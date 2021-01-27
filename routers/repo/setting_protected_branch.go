@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ProtectedBranch render the page to protect the repository
@@ -167,7 +169,8 @@ func SettingsProtectedBranch(c *context.Context) {
 }
 
 // SettingsProtectedBranchPost updates the protected branch settings
-func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm) {
+func SettingsProtectedBranchPost(ctx *context.Context) {
+	f := web.GetForm(ctx).(*auth.ProtectBranchForm)
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
 		ctx.NotFound("IsBranchExist", nil)
@@ -245,6 +248,7 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 			}
 		}
 		protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
+		protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
 		protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 		protectBranch.RequireSignedCommits = f.RequireSignedCommits
 		protectBranch.ProtectedFilePatterns = f.ProtectedFilePatterns
@@ -260,6 +264,10 @@ func SettingsProtectedBranchPost(ctx *context.Context, f auth.ProtectBranchForm)
 		})
 		if err != nil {
 			ctx.ServerError("UpdateProtectBranch", err)
+			return
+		}
+		if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+			ctx.ServerError("CheckPrsForBaseBranch", err)
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", branch))

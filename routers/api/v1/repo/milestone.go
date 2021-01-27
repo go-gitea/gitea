@@ -7,6 +7,7 @@ package repo
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -73,7 +75,7 @@ func ListMilestones(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 
-// GetMilestone get a milestone for a repository
+// GetMilestone get a milestone for a repository by ID and if not available by name
 func GetMilestone(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/milestones/{id} issue issueGetMilestone
 	// ---
@@ -93,28 +95,23 @@ func GetMilestone(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the milestone
-	//   type: integer
-	//   format: int64
+	//   description: the milestone to get, identified by ID and if not available by name
+	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
 
-	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
-	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
-		}
+	milestone := getMilestoneByIDOrName(ctx)
+	if ctx.Written() {
 		return
 	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
 // CreateMilestone create a milestone for a repository
-func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
+func CreateMilestone(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/milestones issue issueCreateMilestone
 	// ---
 	// summary: Create a milestone
@@ -140,6 +137,7 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Milestone"
+	form := web.GetForm(ctx).(*api.CreateMilestoneOption)
 
 	if form.Deadline == nil {
 		defaultDeadline, _ := time.ParseInLocation("2006-01-02", "9999-12-31", time.Local)
@@ -165,8 +163,8 @@ func CreateMilestone(ctx *context.APIContext, form api.CreateMilestoneOption) {
 	ctx.JSON(http.StatusCreated, convert.ToAPIMilestone(milestone))
 }
 
-// EditMilestone modify a milestone for a repository
-func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
+// EditMilestone modify a milestone for a repository by ID and if not available by name
+func EditMilestone(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/milestones/{id} issue issueEditMilestone
 	// ---
 	// summary: Update a milestone
@@ -187,9 +185,8 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the milestone
-	//   type: integer
-	//   format: int64
+	//   description: the milestone to edit, identified by ID and if not available by name
+	//   type: string
 	//   required: true
 	// - name: body
 	//   in: body
@@ -198,14 +195,9 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Milestone"
-
-	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
-	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
-		}
+	form := web.GetForm(ctx).(*api.EditMilestoneOption)
+	milestone := getMilestoneByIDOrName(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -225,13 +217,13 @@ func EditMilestone(ctx *context.APIContext, form api.EditMilestoneOption) {
 	}
 
 	if err := models.UpdateMilestone(milestone, oldIsClosed); err != nil {
-		ctx.ServerError("UpdateMilestone", err)
+		ctx.Error(http.StatusInternalServerError, "UpdateMilestone", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIMilestone(milestone))
 }
 
-// DeleteMilestone delete a milestone for a repository
+// DeleteMilestone delete a milestone for a repository by ID and if not available by name
 func DeleteMilestone(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/milestones/{id} issue issueDeleteMilestone
 	// ---
@@ -249,17 +241,49 @@ func DeleteMilestone(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the milestone to delete
-	//   type: integer
-	//   format: int64
+	//   description: the milestone to delete, identified by ID and if not available by name
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	m := getMilestoneByIDOrName(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, m.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteMilestoneByRepoID", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// getMilestoneByIDOrName get milestone by ID and if not available by name
+func getMilestoneByIDOrName(ctx *context.APIContext) *models.Milestone {
+	mile := ctx.Params(":id")
+	mileID, _ := strconv.ParseInt(mile, 0, 64)
+
+	if mileID != 0 {
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, mileID)
+		if err == nil {
+			return milestone
+		} else if !models.IsErrMilestoneNotExist(err) {
+			ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+			return nil
+		}
+	}
+
+	milestone, err := models.GetMilestoneByRepoIDANDName(ctx.Repo.Repository.ID, mile)
+	if err != nil {
+		if models.IsErrMilestoneNotExist(err) {
+			ctx.NotFound()
+			return nil
+		}
+		ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
+		return nil
+	}
+
+	return milestone
 }

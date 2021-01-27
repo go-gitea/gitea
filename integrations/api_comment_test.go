@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -125,7 +126,7 @@ func TestAPIGetComment(t *testing.T) {
 	DecodeJSON(t, resp, &apiComment)
 
 	assert.NoError(t, comment.LoadPoster())
-	expect := comment.APIFormat()
+	expect := convert.ToComment(comment)
 
 	assert.Equal(t, expect.ID, apiComment.ID)
 	assert.Equal(t, expect.Poster.FullName, apiComment.Poster.FullName)

@@ -5,8 +5,10 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
+	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -185,28 +187,6 @@ func TestDeleteWebhookByOrgID(t *testing.T) {
 	assert.True(t, IsErrWebhookNotExist(err))
 }
 
-func TestToHookTaskType(t *testing.T) {
-	assert.Equal(t, GOGS, ToHookTaskType("gogs"))
-	assert.Equal(t, SLACK, ToHookTaskType("slack"))
-	assert.Equal(t, GITEA, ToHookTaskType("gitea"))
-	assert.Equal(t, TELEGRAM, ToHookTaskType("telegram"))
-}
-
-func TestHookTaskType_Name(t *testing.T) {
-	assert.Equal(t, "gogs", GOGS.Name())
-	assert.Equal(t, "slack", SLACK.Name())
-	assert.Equal(t, "gitea", GITEA.Name())
-	assert.Equal(t, "telegram", TELEGRAM.Name())
-}
-
-func TestIsValidHookTaskType(t *testing.T) {
-	assert.True(t, IsValidHookTaskType("gogs"))
-	assert.True(t, IsValidHookTaskType("slack"))
-	assert.True(t, IsValidHookTaskType("gitea"))
-	assert.True(t, IsValidHookTaskType("telegram"))
-	assert.False(t, IsValidHookTaskType("invalid"))
-}
-
 func TestHookTasks(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	hookTasks, err := HookTasks(1, 1)
@@ -225,7 +205,7 @@ func TestCreateHookTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:    3,
 		HookID:    3,
-		Type:      GITEA,
+		Typ:       GITEA,
 		URL:       "http://www.example.com/unit_test",
 		Payloader: &api.PushPayload{},
 	}
@@ -244,4 +224,116 @@ func TestUpdateHookTask(t *testing.T) {
 	AssertNotExistsBean(t, hook)
 	assert.NoError(t, UpdateHookTask(hook))
 	AssertExistsAndLoadBean(t, hook)
+}
+
+func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      3,
+		HookID:      3,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	AssertNotExistsBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: false,
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), PerWebhook, 168*time.Hour, 1))
+	AssertExistsAndLoadBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      3,
+		HookID:      3,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().AddDate(0, 0, -8).UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	AssertNotExistsBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: false,
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	AssertExistsAndLoadBean(t, hookTask)
+}
+
+func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	hookTask := &HookTask{
+		RepoID:      2,
+		HookID:      4,
+		Typ:         GITEA,
+		URL:         "http://www.example.com/unit_test",
+		Payloader:   &api.PushPayload{},
+		IsDelivered: true,
+		Delivered:   time.Now().AddDate(0, 0, -6).UnixNano(),
+	}
+	AssertNotExistsBean(t, hookTask)
+	assert.NoError(t, CreateHookTask(hookTask))
+	AssertExistsAndLoadBean(t, hookTask)
+
+	assert.NoError(t, CleanupHookTaskTable(context.Background(), OlderThan, 168*time.Hour, 0))
+	AssertExistsAndLoadBean(t, hookTask)
 }

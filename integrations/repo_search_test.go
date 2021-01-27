@@ -7,7 +7,6 @@ package integrations
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -62,14 +61,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	assert.EqualValues(t, expected, filenames)
 }
 
-func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository, ...chan<- error)) {
-	waiter := make(chan error, 1)
-	op(repo, waiter)
-
-	select {
-	case err := <-waiter:
-		assert.NoError(t, err)
-	case <-time.After(1 * time.Minute):
-		assert.Fail(t, "Repository indexer took too long")
-	}
+func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository)) {
+	op(repo)
 }

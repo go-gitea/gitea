@@ -24,7 +24,7 @@
 				<label for="nickname">{{.i18n.Tr "settings.u2f_nickname"}}</label>
 				<input id="nickname" name="nickname" type="text" required>
 			</div>
-			<button id="register-security-key" class="ui green button">{{svg "octicon-key" 16}} {{.i18n.Tr "settings.u2f_register_key"}}</button>
+			<button id="register-security-key" class="ui green button">{{svg "octicon-key"}} {{.i18n.Tr "settings.u2f_register_key"}}</button>
 		</div>
 	{{else}}
 		<b>{{.i18n.Tr "settings.u2f_require_twofa"}}</b>
@@ -45,7 +45,7 @@
 
 <div class="ui small basic delete modal" id="delete-registration">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 	{{.i18n.Tr "settings.u2f_delete_key"}}
 	</div>
 	<div class="content">

@@ -22,7 +22,10 @@ import (
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, _ := reader.Read(buf)
+	n, err := reader.Read(buf)
+	if err != nil && err != io.EOF {
+		return err
+	}
 	if n >= 0 {
 		buf = buf[:n]
 	}
@@ -31,7 +34,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
-	name = strings.Replace(name, ",", " ", -1)
+	name = strings.ReplaceAll(name, ",", " ")
 
 	if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		cs, err := charset.DetectEncoding(buf)
@@ -43,12 +46,17 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		if base.IsSVGImageFile(buf) {
+			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+			ctx.Resp.Header().Set("Content-Type", base.SVGMimeType)
+		}
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	_, err := ctx.Resp.Write(buf)
+	_, err = ctx.Resp.Write(buf)
 	if err != nil {
 		return err
 	}

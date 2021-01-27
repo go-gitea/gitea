@@ -34,6 +34,8 @@ func TestMilestone_APIFormat(t *testing.T) {
 		IsClosed:        false,
 		NumOpenIssues:   5,
 		NumClosedIssues: 6,
+		CreatedUnix:     timeutil.TimeStamp(time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
+		UpdatedUnix:     timeutil.TimeStamp(time.Date(1999, time.March, 1, 0, 0, 0, 0, time.UTC).Unix()),
 		DeadlineUnix:    timeutil.TimeStamp(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC).Unix()),
 	}
 	assert.Equal(t, api.Milestone{
@@ -43,6 +45,8 @@ func TestMilestone_APIFormat(t *testing.T) {
 		Description:  milestone.Content,
 		OpenIssues:   milestone.NumOpenIssues,
 		ClosedIssues: milestone.NumClosedIssues,
+		Created:      milestone.CreatedUnix.AsTime(),
+		Updated:      milestone.UpdatedUnix.AsTimePtr(),
 		Deadline:     milestone.DeadlineUnix.AsTimePtr(),
 	}, *ToAPIMilestone(milestone))
 }

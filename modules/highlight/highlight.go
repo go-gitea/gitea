@@ -8,10 +8,12 @@ package highlight
 import (
 	"bufio"
 	"bytes"
+	gohtml "html"
 	"path/filepath"
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/alecthomas/chroma/formatters/html"
@@ -116,9 +118,11 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		fileName = "test." + val
 	}
 
-	lexer := lexers.Match(fileName)
+	language := analyze.GetCodeLanguage(fileName, code)
+
+	lexer := lexers.Get(language)
 	if lexer == nil {
-		lexer = lexers.Analyse(string(code))
+		lexer = lexers.Match(fileName)
 		if lexer == nil {
 			lexer = lexers.Fallback
 		}
@@ -160,7 +164,7 @@ func plainText(code string, numLines int) map[int]string {
 		if content == "" {
 			content = "\n"
 		}
-		m[line] = content
+		m[line] = gohtml.EscapeString(content)
 	}
 	return m
 }

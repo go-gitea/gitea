@@ -191,8 +191,14 @@ var CompleteUserAuth = func(res http.ResponseWriter, req *http.Request) (goth.Us
 		return user, err
 	}
 
+	params := req.URL.Query()
+	if params.Encode() == "" && req.Method == "POST" {
+		req.ParseForm()
+		params = req.Form
+	}
+
 	// get new token and retry fetch
-	_, err = sess.Authorize(provider, req.URL.Query())
+	_, err = sess.Authorize(provider, params)
 	if err != nil {
 		return goth.User{}, err
 	}
@@ -220,8 +226,10 @@ func validateState(req *http.Request, sess goth.Session) error {
 		return err
 	}
 
+	reqState := GetState(req)
+
 	originalState := authURL.Query().Get("state")
-	if originalState != "" && (originalState != req.URL.Query().Get("state")) {
+	if originalState != "" && (originalState != reqState) {
 		return errors.New("state token mismatch")
 	}
 	return nil

@@ -3,6 +3,7 @@ language: go
 go:
   - 1.13.x
   - 1.14.x
+  - 1.15.x
   - master
 
 sudo: true
@@ -13,6 +14,7 @@ env:
     - PQGOSSLTESTS=1
     - PQSSLCERTTEST_PATH=$PWD/certs
     - PGHOST=127.0.0.1
+    - GODEBUG=x509ignoreCN=0
   matrix:
     - PGVERSION=10
     - PGVERSION=9.6

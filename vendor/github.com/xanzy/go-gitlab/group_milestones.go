@@ -43,6 +43,7 @@ type GroupMilestone struct {
 	State       string     `json:"state"`
 	UpdatedAt   *time.Time `json:"updated_at"`
 	CreatedAt   *time.Time `json:"created_at"`
+	Expired     *bool      `json:"expired"`
 }
 
 func (m GroupMilestone) String() string {
@@ -56,9 +57,11 @@ func (m GroupMilestone) String() string {
 // https://docs.gitlab.com/ce/api/group_milestones.html#list-group-milestones
 type ListGroupMilestonesOptions struct {
 	ListOptions
-	IIDs   []int  `url:"iids,omitempty" json:"iids,omitempty"`
-	State  string `url:"state,omitempty" json:"state,omitempty"`
-	Search string `url:"search,omitempty" json:"search,omitempty"`
+	IIDs                    []int   `url:"iids,omitempty" json:"iids,omitempty"`
+	State                   *string `url:"state,omitempty" json:"state,omitempty"`
+	Title                   *string `url:"title,omitempty" json:"title,omitempty"`
+	Search                  *string `url:"search,omitempty" json:"search,omitempty"`
+	IncludeParentMilestones *bool   `url:"include_parent_milestones,omitempty" json:"include_parent_milestones,omitempty"`
 }
 
 // ListGroupMilestones returns a list of group milestones.
@@ -246,4 +249,43 @@ func (s *GroupMilestonesService) GetGroupMilestoneMergeRequests(gid interface{},
 	}
 
 	return mr, resp, err
+}
+
+type BurndownChartEvent struct {
+	CreatedAt *time.Time `json:"created_at"`
+	Weight    *int       `json:"weight"`
+	Action    *string    `json:"action"`
+}
+
+// GetGroupMilestoneBurndownChartEventsOptions represents the available
+// GetGroupMilestoneBurndownChartEventsOptions() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/group_milestones.html#get-all-burndown-chart-events-for-a-single-milestone-starter
+type GetGroupMilestoneBurndownChartEventsOptions ListOptions
+
+// GetGroupMilestoneBurndownChartEvents gets all merge requests assigned to a
+// single group milestone.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/group_milestones.html#get-all-burndown-chart-events-for-a-single-milestone-starter
+func (s *GroupMilestonesService) GetGroupMilestoneBurndownChartEvents(gid interface{}, milestone int, opt *GetGroupMilestoneBurndownChartEventsOptions, options ...RequestOptionFunc) ([]*BurndownChartEvent, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/milestones/%d/burndown_events", pathEscape(group), milestone)
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var be []*BurndownChartEvent
+	resp, err := s.client.Do(req, &be)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return be, resp, err
 }

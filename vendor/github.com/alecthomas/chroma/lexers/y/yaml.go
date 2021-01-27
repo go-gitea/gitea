@@ -23,13 +23,13 @@ var YAML = internal.Register(MustNewLexer(
 			{`&[^\s]+`, CommentPreproc, nil},
 			{`\*[^\s]+`, CommentPreproc, nil},
 			{`^%include\s+[^\n\r]+`, CommentPreproc, nil},
-			{`[>|](?:[+-])?\s(?:^(?:[ \n]{1})+.*\n?)*$`, StringDoc, nil},
 			Include("key"),
 			Include("value"),
 			{`[?:,\[\]]`, Punctuation, nil},
 			{`.`, Text, nil},
 		},
 		"value": {
+			{`([>|](?:[+-])?)(\n(^ {1,})(?:.*\n*(?:^\3 *).*)*)`, ByGroups(Punctuation, StringDoc, Whitespace), nil},
 			{Words(``, `\b`, "true", "True", "TRUE", "false", "False", "FALSE", "null",
 				"y", "Y", "yes", "Yes", "YES", "n", "N", "no", "No", "NO",
 				"on", "On", "ON", "off", "Off", "OFF"), KeywordConstant, nil},
@@ -37,6 +37,7 @@ var YAML = internal.Register(MustNewLexer(
 			{`'(?:\\.|[^'])*'`, StringSingle, nil},
 			{`\d\d\d\d-\d\d-\d\d([T ]\d\d:\d\d:\d\d(\.\d+)?(Z|\s+[-+]\d+)?)?`, LiteralDate, nil},
 			{`\b[+\-]?(0x[\da-f]+|0o[0-7]+|(\d+\.?\d*|\.?\d+)(e[\+\-]?\d+)?|\.inf|\.nan)\b`, Number, nil},
+			{`([^\{\}\[\]\?,\:\!\-\*&\@].*)( )+(#.*)`, ByGroups(Literal, Whitespace, Comment), nil},
 			{`[^\{\}\[\]\?,\:\!\-\*&\@].*`, Literal, nil},
 		},
 		"key": {

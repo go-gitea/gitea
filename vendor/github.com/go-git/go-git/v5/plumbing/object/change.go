@@ -75,7 +75,7 @@ func (c *Change) Files() (from, to *File, err error) {
 func (c *Change) String() string {
 	action, err := c.Action()
 	if err != nil {
-		return fmt.Sprintf("malformed change")
+		return "malformed change"
 	}
 
 	return fmt.Sprintf("<Action: %s, Path: %s>", action, c.name())

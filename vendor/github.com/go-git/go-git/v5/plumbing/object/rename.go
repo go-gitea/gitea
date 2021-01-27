@@ -536,7 +536,7 @@ var errIndexFull = errors.New("index is full")
 // between two files.
 // To save space in memory, this index uses a space efficient encoding which
 // will not exceed 1MiB per instance. The index starts out at a smaller size
-// (closer to 2KiB), but may grow as more distinct blocks withing the scanned
+// (closer to 2KiB), but may grow as more distinct blocks within the scanned
 // file are discovered.
 // see: https://github.com/eclipse/jgit/blob/master/org.eclipse.jgit/src/org/eclipse/jgit/diff/SimilarityIndex.java
 type similarityIndex struct {
@@ -709,7 +709,7 @@ func (i *similarityIndex) common(dst *similarityIndex) uint64 {
 }
 
 func (i *similarityIndex) add(key int, cnt uint64) error {
-	key = int(uint32(key)*0x9e370001 >> 1)
+	key = int(uint32(key) * 0x9e370001 >> 1)
 
 	j := i.slot(key)
 	for {
@@ -769,7 +769,7 @@ func (i *similarityIndex) slot(key int) int {
 	// We use 31 - hashBits because the upper bit was already forced
 	// to be 0 and we want the remaining high bits to be used as the
 	// table slot.
-	return int(uint32(key) >> uint(31 - i.hashBits))
+	return int(uint32(key) >> uint(31-i.hashBits))
 }
 
 func shouldGrowAt(hashBits int) int {

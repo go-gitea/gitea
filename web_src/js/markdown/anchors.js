@@ -23,7 +23,7 @@ export default function initMarkdownAnchors() {
     const a = document.createElement('a');
     a.classList.add('anchor');
     a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
-    a.innerHTML = svg('octicon-link', 16);
+    a.innerHTML = svg('octicon-link');
     heading.prepend(a);
   }
 

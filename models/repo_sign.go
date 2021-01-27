@@ -31,7 +31,7 @@ const (
 func signingModeFromStrings(modeStrings []string) []signingMode {
 	returnable := make([]signingMode, 0, len(modeStrings))
 	for _, mode := range modeStrings {
-		signMode := signingMode(strings.ToLower(mode))
+		signMode := signingMode(strings.ToLower(strings.TrimSpace(mode)))
 		switch signMode {
 		case never:
 			return []signingMode{never}
@@ -59,9 +59,10 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 	return returnable
 }
 
-func signingKey(repoPath string) string {
+// SigningKey returns the KeyID and git Signature for the repo
+func SigningKey(repoPath string) (string, *git.Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
-		return ""
+		return "", nil
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
@@ -69,19 +70,27 @@ func signingKey(repoPath string) string {
 		value, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunInDir(repoPath)
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
-			return ""
+			return "", nil
 		}
 
 		signingKey, _ := git.NewCommand("config", "--get", "user.signingkey").RunInDir(repoPath)
-		return strings.TrimSpace(signingKey)
+		signingName, _ := git.NewCommand("config", "--get", "user.name").RunInDir(repoPath)
+		signingEmail, _ := git.NewCommand("config", "--get", "user.email").RunInDir(repoPath)
+		return strings.TrimSpace(signingKey), &git.Signature{
+			Name:  strings.TrimSpace(signingName),
+			Email: strings.TrimSpace(signingEmail),
+		}
 	}
 
-	return setting.Repository.Signing.SigningKey
+	return setting.Repository.Signing.SigningKey, &git.Signature{
+		Name:  setting.Repository.Signing.SigningName,
+		Email: setting.Repository.Signing.SigningEmail,
+	}
 }
 
 // PublicSigningKey gets the public signing key within a provided repository directory
 func PublicSigningKey(repoPath string) (string, error) {
-	signingKey := signingKey(repoPath)
+	signingKey, _ := SigningKey(repoPath)
 	if signingKey == "" {
 		return "", nil
 	}
@@ -96,143 +105,143 @@ func PublicSigningKey(repoPath string) (string, error) {
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(repoPath string, u *User) (bool, string, error) {
+func SignInitialCommit(repoPath string, u *User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey := signingKey(repoPath)
+	signingKey, sig := SigningKey(repoPath)
 	if signingKey == "" {
-		return false, "", &ErrWontSign{noKey}
+		return false, "", nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, "", &ErrWontSign{never}
+			return false, "", nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if len(keys) == 0 {
-				return false, "", &ErrWontSign{pubkey}
+				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
 			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if twofaModel == nil {
-				return false, "", &ErrWontSign{twofa}
+				return false, "", nil, &ErrWontSign{twofa}
 			}
 		}
 	}
-	return true, signingKey, nil
+	return true, signingKey, sig, nil
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func (repo *Repository) SignWikiCommit(u *User) (bool, string, error) {
+func (repo *Repository) SignWikiCommit(u *User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey := signingKey(repo.WikiPath())
+	signingKey, sig := SigningKey(repo.WikiPath())
 	if signingKey == "" {
-		return false, "", &ErrWontSign{noKey}
+		return false, "", nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, "", &ErrWontSign{never}
+			return false, "", nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if len(keys) == 0 {
-				return false, "", &ErrWontSign{pubkey}
+				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
 			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if twofaModel == nil {
-				return false, "", &ErrWontSign{twofa}
+				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
 			gitRepo, err := git.OpenRepository(repo.WikiPath())
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit("HEAD")
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if commit.Signature == nil {
-				return false, "", &ErrWontSign{parentSigned}
+				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(commit)
 			if !verification.Verified {
-				return false, "", &ErrWontSign{parentSigned}
+				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 		}
 	}
-	return true, signingKey, nil
+	return true, signingKey, sig, nil
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string) (bool, string, error) {
+func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey := signingKey(repo.RepoPath())
+	signingKey, sig := SigningKey(repo.RepoPath())
 	if signingKey == "" {
-		return false, "", &ErrWontSign{noKey}
+		return false, "", nil, &ErrWontSign{noKey}
 	}
 
 Loop:
 	for _, rule := range rules {
 		switch rule {
 		case never:
-			return false, "", &ErrWontSign{never}
+			return false, "", nil, &ErrWontSign{never}
 		case always:
 			break Loop
 		case pubkey:
 			keys, err := ListGPGKeys(u.ID, ListOptions{})
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if len(keys) == 0 {
-				return false, "", &ErrWontSign{pubkey}
+				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
 			twofaModel, err := GetTwoFactorByUID(u.ID)
 			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if twofaModel == nil {
-				return false, "", &ErrWontSign{twofa}
+				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
 			gitRepo, err := git.OpenRepository(tmpBasePath)
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit(parentCommit)
 			if err != nil {
-				return false, "", err
+				return false, "", nil, err
 			}
 			if commit.Signature == nil {
-				return false, "", &ErrWontSign{parentSigned}
+				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 			verification := ParseCommitWithSignature(commit)
 			if !verification.Verified {
-				return false, "", &ErrWontSign{parentSigned}
+				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 		}
 	}
-	return true, signingKey, nil
+	return true, signingKey, sig, nil
 }

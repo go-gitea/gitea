@@ -1,28 +1,22 @@
 root = true
 
 [*]
-charset = utf-8
-insert_final_newline = true
-trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+tab_width = 2
 end_of_line = lf
-
-[*.md]
-trim_trailing_whitespace = false
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
 
 [*.{go,tmpl,html}]
 indent_style = tab
-indent_size = 4
-
-[*.{less,css}]
-indent_style = space
-indent_size = 4
-
-[*.{js,json,yml}]
-indent_style = space
-indent_size = 2
 
 [Makefile]
 indent_style = tab
 
 [*.svg]
 insert_final_newline = false
+
+[*.md]
+trim_trailing_whitespace = false

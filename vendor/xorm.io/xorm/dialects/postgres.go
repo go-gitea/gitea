@@ -857,6 +857,8 @@ func (db *postgres) SQLType(c *schemas.Column) string {
 		res = schemas.Real
 	case schemas.TinyText, schemas.MediumText, schemas.LongText:
 		res = schemas.Text
+	case schemas.NChar:
+		res = schemas.Char
 	case schemas.NVarchar:
 		res = schemas.Varchar
 	case schemas.Uuid:
@@ -1015,7 +1017,7 @@ WHERE n.nspname= s.table_schema AND c.relkind = 'r'::char AND c.relname = $1%s A
 
 	schema := db.getSchema()
 	if schema != "" {
-		s = fmt.Sprintf(s, "AND s.table_schema = $2")
+		s = fmt.Sprintf(s, " AND s.table_schema = $2")
 		args = append(args, schema)
 	} else {
 		s = fmt.Sprintf(s, "")
@@ -1086,8 +1088,10 @@ WHERE n.nspname= s.table_schema AND c.relkind = 'r'::char AND c.relname = $1%s A
 		col.Nullable = (isNullable == "YES")
 
 		switch strings.ToLower(dataType) {
-		case "character varying", "character", "string":
+		case "character varying", "string":
 			col.SQLType = schemas.SQLType{Name: schemas.Varchar, DefaultLength: 0, DefaultLength2: 0}
+		case "character":
+			col.SQLType = schemas.SQLType{Name: schemas.Char, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp without time zone":
 			col.SQLType = schemas.SQLType{Name: schemas.DateTime, DefaultLength: 0, DefaultLength2: 0}
 		case "timestamp with time zone":

@@ -313,7 +313,7 @@ err := engine.Where(builder.NotIn("a", 1, 2).And(builder.In("b", "c", "d", "e"))
 // SELECT id, name ... FROM user WHERE a NOT IN (?, ?) AND b IN (?, ?, ?)
 ```
 
-* Multiple operations in one go routine, no transation here but resue session memory
+* Multiple operations in one go routine, no transaction here but resue session memory
 
 ```Go
 session := engine.NewSession()
@@ -336,7 +336,7 @@ if _, err := session.Exec("delete from userinfo where username = ?", user2.Usern
 return nil
 ```
 
-* Transation should be on one go routine. There is transaction and resue session memory
+* Transaction should be on one go routine. There is transaction and resue session memory
 
 ```Go
 session := engine.NewSession()

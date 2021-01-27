@@ -1,4 +1,6 @@
-ORIGINAL LICENSE: This software is (c) Copyright 1992 by Panagiotis Tsirigotis
+ORIGINAL LICENSE: This software is
+
+(c) Copyright 1992 by Panagiotis Tsirigotis
 
 The author (Panagiotis Tsirigotis) grants permission to use, copy, and distribute
 this software and its documentation for any purpose and without fee, provided
@@ -10,11 +12,9 @@ Modifications to this software may be distributed, either by distributing
 the modified software or by distributing patches to the original software,
 under the following additional terms:
 
-   1. The version number will be modified as follows:
-
+1. The version number will be modified as follows:
 a. The first 3 components of the version number (i.e <number>.<number>.<number>)
 will remain unchanged.
-
 b. A new component will be appended to the version number to indicate the
 modification level. The form of this component is up to the author of the
 modifications.

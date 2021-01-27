@@ -11,21 +11,22 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ListPullRequests returns a list of all PRs
-func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions) {
+func ListPullRequests(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/pulls repository repoListPullRequests
 	// ---
 	// summary: List a repo's pull requests
@@ -253,7 +254,7 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
 }
 
 // CreatePullRequest does what it says
-func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption) {
+func CreatePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls repository repoCreatePullRequest
 	// ---
 	// summary: Create a pull request
@@ -283,6 +284,13 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
+	if form.Head == form.Base {
+		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
+			"Invalid PullRequest: There are no changes between the head and the base")
+		return
+	}
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -431,7 +439,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 }
 
 // EditPullRequest does what it says
-func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
+func EditPullRequest(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index} repository repoEditPullRequest
 	// ---
 	// summary: Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.
@@ -472,6 +480,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.EditPullRequestOption)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -679,7 +688,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 }
 
 // MergePullRequest merges a PR given an index
-func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
+func MergePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
 	// ---
 	// summary: Merge a pull request
@@ -714,6 +723,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -725,7 +735,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	}
 
 	if err = pr.LoadHeadRepo(); err != nil {
-		ctx.ServerError("LoadHeadRepo", err)
+		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
@@ -759,12 +769,22 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() || pr.HasMerged || pr.IsWorkInProgress() {
-		ctx.Status(http.StatusMethodNotAllowed)
+	if !pr.CanAutoMerge() {
+		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr); err != nil {
+	if pr.HasMerged {
+		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+		return
+	}
+
+	if pr.IsWorkInProgress() {
+		ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
+		return
+	}
+
+	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
 			return
@@ -812,7 +832,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 
 	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
-			ctx.Status(http.StatusMethodNotAllowed)
+			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
@@ -875,7 +895,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 			if models.IsErrUserNotExist(err) {
 				ctx.NotFound("GetUserByName")
 			} else {
-				ctx.ServerError("GetUserByName", err)
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
 			return nil, nil, nil, nil, "", ""
 		}
@@ -919,7 +939,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
@@ -938,7 +958,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	permHead, err := models.GetUserRepoPermission(headRepo, ctx.User)
 	if err != nil {
 		headGitRepo.Close()
-		ctx.ServerError("GetUserRepoPermission", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
 	if !permHead.CanRead(models.UnitTypeCode) {

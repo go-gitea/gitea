@@ -566,9 +566,22 @@ func (r *runner) execute() error {
 			continue
 
 		case syntax.EndZ:
-			if r.rightchars() > 1 || r.rightchars() == 1 && r.charAt(r.textPos()) != '\n' {
+			rchars := r.rightchars()
+			if rchars > 1 {
 				break
 			}
+			// RE2 and EcmaScript define $ as "asserts position at the end of the string"
+			// PCRE/.NET adds "or before the line terminator right at the end of the string (if any)"
+			if (r.re.options & (RE2 | ECMAScript)) != 0 {
+				// RE2/Ecmascript mode
+				if rchars > 0 {
+					break
+				}
+			} else if rchars == 1 && r.charAt(r.textPos()) != '\n' {
+				// "regular" mode
+				break
+			}
+
 			r.advance(0)
 			continue
 
@@ -938,8 +951,8 @@ func (r *runner) advance(i int) {
 }
 
 func (r *runner) goTo(newpos int) {
-	// when branching backward, ensure storage
-	if newpos < r.codepos {
+	// when branching backward or in place, ensure storage
+	if newpos <= r.codepos {
 		r.ensureStorage()
 	}
 

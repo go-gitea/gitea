@@ -5,19 +5,28 @@
 package repofiles
 
 import (
-	"encoding/json"
 	"fmt"
 	"html"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
 )
+
+const (
+	secondsByMinute = float64(time.Minute / time.Second) // seconds in a minute
+	secondsByHour   = 60 * secondsByMinute               // seconds in an hour
+	secondsByDay    = 8 * secondsByHour                  // seconds in a day
+	secondsByWeek   = 5 * secondsByDay                   // seconds in a week
+	secondsByMonth  = 4 * secondsByWeek                  // seconds in a month
+)
+
+var reDuration = regexp.MustCompile(`(?i)^(?:(\d+([\.,]\d+)?)(?:mo))?(?:(\d+([\.,]\d+)?)(?:w))?(?:(\d+([\.,]\d+)?)(?:d))?(?:(\d+([\.,]\d+)?)(?:h))?(?:(\d+([\.,]\d+)?)(?:m))?$`)
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
@@ -30,6 +39,60 @@ func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error
 		return nil, err
 	}
 	return issue, nil
+}
+
+// timeLogToAmount parses time log string and returns amount in seconds
+func timeLogToAmount(str string) int64 {
+	matches := reDuration.FindAllStringSubmatch(str, -1)
+	if len(matches) == 0 {
+		return 0
+	}
+
+	match := matches[0]
+
+	var a int64
+
+	// months
+	if len(match[1]) > 0 {
+		mo, _ := strconv.ParseFloat(strings.Replace(match[1], ",", ".", 1), 64)
+		a += int64(mo * secondsByMonth)
+	}
+
+	// weeks
+	if len(match[3]) > 0 {
+		w, _ := strconv.ParseFloat(strings.Replace(match[3], ",", ".", 1), 64)
+		a += int64(w * secondsByWeek)
+	}
+
+	// days
+	if len(match[5]) > 0 {
+		d, _ := strconv.ParseFloat(strings.Replace(match[5], ",", ".", 1), 64)
+		a += int64(d * secondsByDay)
+	}
+
+	// hours
+	if len(match[7]) > 0 {
+		h, _ := strconv.ParseFloat(strings.Replace(match[7], ",", ".", 1), 64)
+		a += int64(h * secondsByHour)
+	}
+
+	// minutes
+	if len(match[9]) > 0 {
+		d, _ := strconv.ParseFloat(strings.Replace(match[9], ",", ".", 1), 64)
+		a += int64(d * secondsByMinute)
+	}
+
+	return a
+}
+
+func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLog string) error {
+	amount := timeLogToAmount(timeLog)
+	if amount == 0 {
+		return nil
+	}
+
+	_, err := models.AddTime(doer, issue, amount, time)
+	return err
 }
 
 func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, closed bool) error {
@@ -139,149 +202,17 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				}
 			}
 			close := (ref.Action == references.XRefActionCloses)
+			if close && len(ref.TimeLog) > 0 {
+				if err := issueAddTime(refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+					return err
+				}
+			}
 			if close != refIssue.IsClosed {
 				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
 					return err
 				}
 			}
 		}
-	}
-	return nil
-}
-
-// CommitRepoActionOptions represent options of a new commit action.
-type CommitRepoActionOptions struct {
-	PushUpdateOptions
-
-	RepoOwnerID int64
-	Commits     *repository.PushCommits
-}
-
-// CommitRepoAction adds new commit action to the repository, and prepare
-// corresponding webhooks.
-func CommitRepoAction(optsList ...*CommitRepoActionOptions) error {
-	var pusher *models.User
-	var repo *models.Repository
-	actions := make([]*models.Action, len(optsList))
-
-	for i, opts := range optsList {
-		if pusher == nil || pusher.Name != opts.PusherName {
-			var err error
-			pusher, err = models.GetUserByName(opts.PusherName)
-			if err != nil {
-				return fmt.Errorf("GetUserByName [%s]: %v", opts.PusherName, err)
-			}
-		}
-
-		if repo == nil || repo.OwnerID != opts.RepoOwnerID || repo.Name != opts.RepoName {
-			var err error
-			if repo != nil {
-				// Change repository empty status and update last updated time.
-				if err := models.UpdateRepository(repo, false); err != nil {
-					return fmt.Errorf("UpdateRepository: %v", err)
-				}
-			}
-			repo, err = models.GetRepositoryByName(opts.RepoOwnerID, opts.RepoName)
-			if err != nil {
-				return fmt.Errorf("GetRepositoryByName [owner_id: %d, name: %s]: %v", opts.RepoOwnerID, opts.RepoName, err)
-			}
-		}
-		refName := git.RefEndName(opts.RefFullName)
-
-		// Change default branch and empty status only if pushed ref is non-empty branch.
-		if repo.IsEmpty && opts.IsBranch() && !opts.IsDelRef() {
-			repo.DefaultBranch = refName
-			repo.IsEmpty = false
-			if refName != "master" {
-				gitRepo, err := git.OpenRepository(repo.RepoPath())
-				if err != nil {
-					return err
-				}
-				if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-					if !git.IsErrUnsupportedVersion(err) {
-						gitRepo.Close()
-						return err
-					}
-				}
-				gitRepo.Close()
-			}
-		}
-
-		opType := models.ActionCommitRepo
-
-		// Check it's tag push or branch.
-		if opts.IsTag() {
-			opType = models.ActionPushTag
-			if opts.IsDelRef() {
-				opType = models.ActionDeleteTag
-			}
-			opts.Commits = &repository.PushCommits{}
-		} else if opts.IsDelRef() {
-			opType = models.ActionDeleteBranch
-			opts.Commits = &repository.PushCommits{}
-		} else {
-			// if not the first commit, set the compare URL.
-			if !opts.IsNewRef() {
-				opts.Commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
-			}
-
-			if err := UpdateIssuesCommit(pusher, repo, opts.Commits.Commits, refName); err != nil {
-				log.Error("updateIssuesCommit: %v", err)
-			}
-		}
-
-		if len(opts.Commits.Commits) > setting.UI.FeedMaxCommitNum {
-			opts.Commits.Commits = opts.Commits.Commits[:setting.UI.FeedMaxCommitNum]
-		}
-
-		data, err := json.Marshal(opts.Commits)
-		if err != nil {
-			return fmt.Errorf("Marshal: %v", err)
-		}
-
-		actions[i] = &models.Action{
-			ActUserID: pusher.ID,
-			ActUser:   pusher,
-			OpType:    opType,
-			Content:   string(data),
-			RepoID:    repo.ID,
-			Repo:      repo,
-			RefName:   refName,
-			IsPrivate: repo.IsPrivate,
-		}
-
-		var isHookEventPush = true
-		switch opType {
-		case models.ActionCommitRepo: // Push
-			if opts.IsNewBranch() {
-				notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
-			}
-		case models.ActionDeleteBranch: // Delete Branch
-			notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
-
-		case models.ActionPushTag: // Create
-			notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
-
-		case models.ActionDeleteTag: // Delete Tag
-			notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
-		default:
-			isHookEventPush = false
-		}
-
-		if isHookEventPush {
-			notification.NotifyPushCommits(pusher, repo, opts.RefFullName, opts.OldCommitID, opts.NewCommitID, opts.Commits)
-		}
-	}
-
-	if repo != nil {
-		// Change repository empty status and update last updated time.
-		if err := models.UpdateRepository(repo, false); err != nil {
-			return fmt.Errorf("UpdateRepository: %v", err)
-		}
-	}
-
-	if err := models.NotifyWatchers(actions...); err != nil {
-		return fmt.Errorf("NotifyWatchers: %v", err)
 	}
 	return nil
 }

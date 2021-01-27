@@ -39,7 +39,7 @@ func NewSubModuleFile(c *Commit, refURL, refID string) *SubModuleFile {
 	}
 }
 
-func getRefURL(refURL, urlPrefix, repoFullName string) string {
+func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 	if refURL == "" {
 		return ""
 	}
@@ -76,7 +76,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 				pth = "/" + pth
 			}
 
-			if urlPrefixHostname == refHostname {
+			if urlPrefixHostname == refHostname || refHostname == sshDomain {
 				return urlPrefix + path.Clean(path.Join("/", pth))
 			}
 			return "http://" + refHostname + pth
@@ -102,7 +102,7 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 					return ref.Scheme + "://" + fmt.Sprintf("%v", ref.User) + "@" + ref.Host + ref.Path
 				}
 				return ref.Scheme + "://" + ref.Host + ref.Path
-			} else if urlPrefixHostname == refHostname {
+			} else if urlPrefixHostname == refHostname || refHostname == sshDomain {
 				return urlPrefix + path.Clean(path.Join("/", ref.Path))
 			} else {
 				return "http://" + refHostname + ref.Path
@@ -114,8 +114,8 @@ func getRefURL(refURL, urlPrefix, repoFullName string) string {
 }
 
 // RefURL guesses and returns reference URL.
-func (sf *SubModuleFile) RefURL(urlPrefix string, repoFullName string) string {
-	return getRefURL(sf.refURL, urlPrefix, repoFullName)
+func (sf *SubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) string {
+	return getRefURL(sf.refURL, urlPrefix, repoFullName, sshDomain)
 }
 
 // RefID returns reference ID.

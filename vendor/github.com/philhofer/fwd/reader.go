@@ -34,7 +34,10 @@
 //
 package fwd
 
-import "io"
+import (
+	"io"
+	"os"
+)
 
 const (
 	// DefaultReaderSize is the default size of the read buffer
@@ -50,11 +53,24 @@ func NewReader(r io.Reader) *Reader {
 }
 
 // NewReaderSize returns a new *Reader that
-// reads from 'r' and has a buffer size 'n'
+// reads from 'r' and has a buffer size 'n'.
 func NewReaderSize(r io.Reader, n int) *Reader {
+	buf := make([]byte, 0, max(n, minReaderSize))
+	return NewReaderBuf(r, buf)
+}
+
+// NewReaderBuf returns a new *Reader that
+// reads from 'r' and uses 'buf' as a buffer.
+// 'buf' is not used when has smaller capacity than 16,
+// custom buffer is allocated instead.
+func NewReaderBuf(r io.Reader, buf []byte) *Reader {
+	if cap(buf) < minReaderSize {
+		buf = make([]byte, 0, minReaderSize)
+	}
+	buf = buf[:0]
 	rd := &Reader{
 		r:    r,
-		data: make([]byte, 0, max(minReaderSize, n)),
+		data: buf,
 	}
 	if s, ok := r.(io.Seeker); ok {
 		rd.rs = s
@@ -174,6 +190,19 @@ func (r *Reader) Peek(n int) ([]byte, error) {
 	return r.data[r.n : r.n+n], nil
 }
 
+// discard(n) discards up to 'n' buffered bytes, and
+// and returns the number of bytes discarded
+func (r *Reader) discard(n int) int {
+	inbuf := r.buffered()
+	if inbuf <= n {
+		r.n = 0
+		r.data = r.data[:0]
+		return inbuf
+	}
+	r.n += n
+	return n
+}
+
 // Skip moves the reader forward 'n' bytes.
 // Returns the number of bytes skipped and any
 // errors encountered. It is analogous to Seek(n, 1).
@@ -188,33 +217,25 @@ func (r *Reader) Peek(n int) ([]byte, error) {
 // will not return `io.EOF` until the next call
 // to Read.)
 func (r *Reader) Skip(n int) (int, error) {
-
-	// fast path
-	if r.buffered() >= n {
-		r.n += n
-		return n, nil
+	if n < 0 {
+		return 0, os.ErrInvalid
 	}
 
-	// use seeker implementation
-	// if we can
-	if r.rs != nil {
-		return r.skipSeek(n)
-	}
+	// discard some or all of the current buffer
+	skipped := r.discard(n)
 
-	// loop on filling
-	// and then erasing
-	o := n
-	for r.buffered() < n && r.state == nil {
+	// if we can Seek() through the remaining bytes, do that
+	if n > skipped && r.rs != nil {
+		nn, err := r.rs.Seek(int64(n-skipped), 1)
+		return int(nn) + skipped, err
+	}
+	// otherwise, keep filling the buffer
+	// and discarding it up to 'n'
+	for skipped < n && r.state == nil {
 		r.more()
-		// we can skip forward
-		// up to r.buffered() bytes
-		step := min(r.buffered(), n)
-		r.n += step
-		n -= step
+		skipped += r.discard(n - skipped)
 	}
-	// at this point, n should be
-	// 0 if everything went smoothly
-	return o - n, r.noEOF()
+	return skipped, r.noEOF()
 }
 
 // Next returns the next 'n' bytes in the stream.
@@ -247,20 +268,6 @@ func (r *Reader) Next(n int) ([]byte, error) {
 	out := r.data[r.n : r.n+n]
 	r.n += n
 	return out, nil
-}
-
-// skipSeek uses the io.Seeker to seek forward.
-// only call this function when n > r.buffered()
-func (r *Reader) skipSeek(n int) (int, error) {
-	o := r.buffered()
-	// first, clear buffer
-	n -= o
-	r.n = 0
-	r.data = r.data[:0]
-
-	// then seek forward remaning bytes
-	i, err := r.rs.Seek(int64(n), 1)
-	return int(i) + o, err
 }
 
 // Read implements `io.Reader`
@@ -366,13 +373,6 @@ func (r *Reader) WriteTo(w io.Writer) (int64, error) {
 		return i, r.err()
 	}
 	return i, nil
-}
-
-func min(a int, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func max(a int, b int) int {

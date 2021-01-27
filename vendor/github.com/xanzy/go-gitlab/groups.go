@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"time"
 )
 
 // GroupsService handles communication with the group related methods of
@@ -32,38 +33,46 @@ type GroupsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html
 type Group struct {
-	ID                             int                        `json:"id"`
-	Name                           string                     `json:"name"`
-	Path                           string                     `json:"path"`
-	Description                    string                     `json:"description"`
-	MembershipLock                 bool                       `json:"membership_lock"`
-	Visibility                     VisibilityValue            `json:"visibility"`
-	LFSEnabled                     bool                       `json:"lfs_enabled"`
-	AvatarURL                      string                     `json:"avatar_url"`
-	WebURL                         string                     `json:"web_url"`
-	RequestAccessEnabled           bool                       `json:"request_access_enabled"`
-	FullName                       string                     `json:"full_name"`
-	FullPath                       string                     `json:"full_path"`
-	ParentID                       int                        `json:"parent_id"`
-	Projects                       []*Project                 `json:"projects"`
-	Statistics                     *StorageStatistics         `json:"statistics"`
-	CustomAttributes               []*CustomAttribute         `json:"custom_attributes"`
-	ShareWithGroupLock             bool                       `json:"share_with_group_lock"`
-	RequireTwoFactorAuth           bool                       `json:"require_two_factor_authentication"`
-	TwoFactorGracePeriod           int                        `json:"two_factor_grace_period"`
-	ProjectCreationLevel           ProjectCreationLevelValue  `json:"project_creation_level"`
-	AutoDevopsEnabled              bool                       `json:"auto_devops_enabled"`
-	SubGroupCreationLevel          SubGroupCreationLevelValue `json:"subgroup_creation_level"`
-	EmailsDisabled                 bool                       `json:"emails_disabled"`
-	MentionsDisabled               bool                       `json:"mentions_disabled"`
-	RunnersToken                   string                     `json:"runners_token"`
-	SharedProjects                 []*Project                 `json:"shared_projects"`
-	LDAPCN                         string                     `json:"ldap_cn"`
-	LDAPAccess                     AccessLevelValue           `json:"ldap_access"`
-	LDAPGroupLinks                 []*LDAPGroupLink           `json:"ldap_group_links"`
-	SharedRunnersMinutesLimit      int                        `json:"shared_runners_minutes_limit"`
-	ExtraSharedRunnersMinutesLimit int                        `json:"extra_shared_runners_minutes_limit"`
-	MarkedForDeletionOn            *ISOTime                   `json:"marked_for_deletion_on"`
+	ID                    int                        `json:"id"`
+	Name                  string                     `json:"name"`
+	Path                  string                     `json:"path"`
+	Description           string                     `json:"description"`
+	MembershipLock        bool                       `json:"membership_lock"`
+	Visibility            VisibilityValue            `json:"visibility"`
+	LFSEnabled            bool                       `json:"lfs_enabled"`
+	AvatarURL             string                     `json:"avatar_url"`
+	WebURL                string                     `json:"web_url"`
+	RequestAccessEnabled  bool                       `json:"request_access_enabled"`
+	FullName              string                     `json:"full_name"`
+	FullPath              string                     `json:"full_path"`
+	ParentID              int                        `json:"parent_id"`
+	Projects              []*Project                 `json:"projects"`
+	Statistics            *StorageStatistics         `json:"statistics"`
+	CustomAttributes      []*CustomAttribute         `json:"custom_attributes"`
+	ShareWithGroupLock    bool                       `json:"share_with_group_lock"`
+	RequireTwoFactorAuth  bool                       `json:"require_two_factor_authentication"`
+	TwoFactorGracePeriod  int                        `json:"two_factor_grace_period"`
+	ProjectCreationLevel  ProjectCreationLevelValue  `json:"project_creation_level"`
+	AutoDevopsEnabled     bool                       `json:"auto_devops_enabled"`
+	SubGroupCreationLevel SubGroupCreationLevelValue `json:"subgroup_creation_level"`
+	EmailsDisabled        bool                       `json:"emails_disabled"`
+	MentionsDisabled      bool                       `json:"mentions_disabled"`
+	RunnersToken          string                     `json:"runners_token"`
+	SharedProjects        []*Project                 `json:"shared_projects"`
+	SharedWithGroups      []struct {
+		GroupID          int      `json:"group_id"`
+		GroupName        string   `json:"group_name"`
+		GroupFullPath    string   `json:"group_full_path"`
+		GroupAccessLevel int      `json:"group_access_level"`
+		ExpiresAt        *ISOTime `json:"expires_at"`
+	} `json:"shared_with_groups"`
+	LDAPCN                         string           `json:"ldap_cn"`
+	LDAPAccess                     AccessLevelValue `json:"ldap_access"`
+	LDAPGroupLinks                 []*LDAPGroupLink `json:"ldap_group_links"`
+	SharedRunnersMinutesLimit      int              `json:"shared_runners_minutes_limit"`
+	ExtraSharedRunnersMinutesLimit int              `json:"extra_shared_runners_minutes_limit"`
+	MarkedForDeletionOn            *ISOTime         `json:"marked_for_deletion_on"`
+	CreatedAt                      *time.Time       `json:"created_at"`
 }
 
 type LDAPGroupLink struct {
@@ -85,6 +94,7 @@ type ListGroupsOptions struct {
 	SkipGroups           []int             `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
 	Sort                 *string           `url:"sort,omitempty" json:"sort,omitempty"`
 	Statistics           *bool             `url:"statistics,omitempty" json:"statistics,omitempty"`
+	TopLevelOnly         *bool             `url:"top_level_only,omitempty" json:"top_level_only,omitempty"`
 	WithCustomAttributes *bool             `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 }
 
@@ -276,8 +286,7 @@ func (s *GroupsService) SearchGroup(query string, options ...RequestOptionFunc) 
 	return g, resp, err
 }
 
-// ListGroupProjectsOptions represents the available ListGroupProjects()
-// options.
+// ListGroupProjectsOptions represents the available ListGroup() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-group-39-s-projects
@@ -323,8 +332,7 @@ func (s *GroupsService) ListGroupProjects(gid interface{}, opt *ListGroupProject
 	return p, resp, err
 }
 
-// ListSubgroupsOptions represents the available ListSubgroupsOptions()
-// options.
+// ListSubgroupsOptions represents the available ListSubgroups() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
@@ -340,6 +348,38 @@ func (s *GroupsService) ListSubgroups(gid interface{}, opt *ListSubgroupsOptions
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("groups/%s/subgroups", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var g []*Group
+	resp, err := s.client.Do(req, &g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, err
+}
+
+// ListDescendantGroupsOptions represents the available ListDescendantGroups()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+type ListDescendantGroupsOptions ListGroupsOptions
+
+// ListDescendantGroups gets a list of subgroups for a given project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+func (s *GroupsService) ListDescendantGroups(gid interface{}, opt *ListDescendantGroupsOptions, options ...RequestOptionFunc) ([]*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/descendant_groups", pathEscape(group))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -388,7 +428,7 @@ func (s *GroupsService) ListGroupLDAPLinks(gid interface{}, options ...RequestOp
 type AddGroupLDAPLinkOptions struct {
 	CN          *string `url:"cn,omitempty" json:"cn,omitempty"`
 	GroupAccess *int    `url:"group_access,omitempty" json:"group_access,omitempty"`
-	Provider    *string `url:"provider,omitempty" json:"provider,ommitempty"`
+	Provider    *string `url:"provider,omitempty" json:"provider,omitempty"`
 }
 
 // AddGroupLDAPLink creates a new group LDAP link. Available only for users who
@@ -453,6 +493,158 @@ func (s *GroupsService) DeleteGroupLDAPLinkForProvider(gid interface{}, provider
 		pathEscape(provider),
 		pathEscape(cn),
 	)
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// GroupPushRules represents a group push rule.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#get-group-push-rules
+type GroupPushRules struct {
+	ID                         int        `json:"id"`
+	CreatedAt                  *time.Time `json:"created_at"`
+	CommitMessageRegex         string     `json:"commit_message_regex"`
+	CommitMessageNegativeRegex string     `json:"commit_message_negative_regex"`
+	BranchNameRegex            string     `json:"branch_name_regex"`
+	DenyDeleteTag              bool       `json:"deny_delete_tag"`
+	MemberCheck                bool       `json:"member_check"`
+	PreventSecrets             bool       `json:"prevent_secrets"`
+	AuthorEmailRegex           string     `json:"author_email_regex"`
+	FileNameRegex              string     `json:"file_name_regex"`
+	MaxFileSize                int        `json:"max_file_size"`
+	CommitCommitterCheck       bool       `json:"commit_committer_check"`
+	RejectUnsignedCommits      bool       `json:"reject_unsigned_commits"`
+}
+
+// GetGroupPushRules gets the push rules of a group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#get-group-push-rules
+func (s *GroupsService) GetGroupPushRules(gid interface{}, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// AddGroupPushRuleOptions represents the available AddGroupPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#add-group-push-rule
+type AddGroupPushRuleOptions struct {
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
+}
+
+// AddGroupPushRule adds push rules to the specified group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#add-group-push-rule
+func (s *GroupsService) AddGroupPushRule(gid interface{}, opt *AddGroupPushRuleOptions, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// EditGroupPushRuleOptions represents the available EditGroupPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-push-rule
+type EditGroupPushRuleOptions struct {
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
+}
+
+// EditGroupPushRule edits a push rule for a specified group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-push-rule
+func (s *GroupsService) EditGroupPushRule(gid interface{}, opt *EditGroupPushRuleOptions, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("PUT", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// DeleteGroupPushRule deletes the push rules of a group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#delete-group-push-rule
+func (s *GroupsService) DeleteGroupPushRule(gid interface{}, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -32,7 +33,11 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
+	if len(org.Description) != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(org.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
 
 	var orderBy models.SearchOrderBy
 	ctx.Data["SortType"] = ctx.Query("sort")
@@ -119,11 +124,14 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
+
+	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

@@ -21,6 +21,8 @@ _testmain.go
 
 *.exe
 
+.envrc
+
 /.vscode/
 /.idea/
 /debug.test
@@ -28,6 +30,7 @@ _testmain.go
 /cluster-test/cluster-test
 /cluster-test/*.log
 /cluster-test/es-chaos-monkey
+/dist
 /go.sum
 /spec
 /tmp

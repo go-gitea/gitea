@@ -5,7 +5,7 @@ import (
 	"io"
 	"path/filepath"
 
-	"github.com/pierrec/lz4"
+	"github.com/pierrec/lz4/v4"
 )
 
 // Lz4 facilitates LZ4 compression.
@@ -16,7 +16,14 @@ type Lz4 struct {
 // Compress reads in, compresses it, and writes it to out.
 func (lz *Lz4) Compress(in io.Reader, out io.Writer) error {
 	w := lz4.NewWriter(out)
-	w.Header.CompressionLevel = lz.CompressionLevel
+	// TODO archiver v4: use proper lz4.Fast
+	// bitshifting for backwards compatibility with lz4/v3
+	options := []lz4.Option{
+		lz4.CompressionLevelOption(lz4.CompressionLevel(1 << (8 + lz.CompressionLevel))),
+	}
+	if err := w.Apply(options...); err != nil {
+		return err
+	}
 	defer w.Close()
 	_, err := io.Copy(w, in)
 	return err

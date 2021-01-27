@@ -8,15 +8,19 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 )
 
 // Collaboration represent the relation between an individual and a repository.
 type Collaboration struct {
-	ID     int64      `xorm:"pk autoincr"`
-	RepoID int64      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	UserID int64      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Mode   AccessMode `xorm:"DEFAULT 2 NOT NULL"`
+	ID          int64              `xorm:"pk autoincr"`
+	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	UserID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Mode        AccessMode         `xorm:"DEFAULT 2 NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func (repo *Repository) addCollaborator(e Engine, u *User) error {

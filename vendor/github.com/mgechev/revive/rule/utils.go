@@ -182,8 +182,8 @@ func isExprABooleanLit(n ast.Node) (lexeme string, ok bool) {
 	return oper.Name, (oper.Name == trueName || oper.Name == falseName)
 }
 
-// gofmt returns a string representation of the expression.
-func gofmt(x ast.Expr) string {
+// gofmt returns a string representation of an AST subtree.
+func gofmt(x interface{}) string {
 	buf := bytes.Buffer{}
 	fs := token.NewFileSet()
 	printer.Fprint(&buf, fs, x)

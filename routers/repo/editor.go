@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 )
 
@@ -114,9 +114,9 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		n, _ := dataRc.Read(buf)
 		buf = buf[:n]
 
-		// Only text file are editable online.
-		if !base.IsTextFile(buf) {
-			ctx.NotFound("base.IsTextFile", nil)
+		// Only some file types are editable online as text.
+		if !base.IsRepresentableAsText(buf) {
+			ctx.NotFound("base.IsRepresentableAsText", nil)
 			return
 		}
 
@@ -184,6 +184,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	}
 
 	ctx.Data["PageIsEdit"] = true
+	ctx.Data["PageHasPosted"] = true
 	ctx.Data["IsNewFile"] = isNewFile
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -237,7 +238,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		FromTreePath: ctx.Repo.TreePath,
 		TreePath:     form.TreePath,
 		Message:      message,
-		Content:      strings.Replace(form.Content, "\r", "", -1),
+		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 		IsNewFile:    isNewFile,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
@@ -286,38 +287,59 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+form.NewBranchName), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+util.PathEscapeSegments(form.NewBranchName)), tplEditFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplEditFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplEditFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("editFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplEditFile, &form)
 			}
 		} else {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.fail_to_update_file", form.TreePath, utils.SanitizeFlashErrorString(err.Error())), tplEditFile, &form)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.editor.fail_to_update_file", form.TreePath),
+				"Summary": ctx.Tr("repo.editor.fail_to_update_file_summary"),
+				"Details": utils.SanitizeFlashErrorString(err.Error()),
+			})
+			if err != nil {
+				ctx.ServerError("editFilePost.HTMLString", err)
+				return
+			}
+			ctx.RenderWithErr(flashError, tplEditFile, &form)
 		}
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
 }
 
 // EditFilePost response for editing file
-func EditFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
-	editFilePost(ctx, form, false)
+func EditFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditRepoFileForm)
+	editFilePost(ctx, *form, false)
 }
 
 // NewFilePost response for creating file
-func NewFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
-	editFilePost(ctx, form, true)
+func NewFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditRepoFileForm)
+	editFilePost(ctx, *form, true)
 }
 
 // DiffPreviewPost render preview diff page
-func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
+func DiffPreviewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditPreviewDiffForm)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if len(treePath) == 0 {
 		ctx.Error(500, "file name to diff is invalid")
@@ -376,7 +398,8 @@ func DeleteFile(ctx *context.Context) {
 }
 
 // DeleteFilePost response for deleting file
-func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
+func DeleteFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.DeleteRepoFileForm)
 	canCommit := renderCommitRights(ctx)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
@@ -463,7 +486,16 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplDeleteFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplDeleteFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("DeleteFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplDeleteFile, &form)
 			}
 		} else {
 			ctx.ServerError("DeleteRepoFile", err)
@@ -472,9 +504,9 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
-		treePath := filepath.Dir(ctx.Repo.TreePath)
+		treePath := path.Dir(ctx.Repo.TreePath)
 		if treePath == "." {
 			treePath = "" // the file deleted was in the root, so we return the user to the root directory
 		}
@@ -493,18 +525,12 @@ func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
 	}
 }
 
-func renderUploadSettings(ctx *context.Context) {
-	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireSimpleMDE"] = true
-	ctx.Data["UploadAllowedTypes"] = strings.Join(setting.Repository.Upload.AllowedTypes, ",")
-	ctx.Data["UploadMaxSize"] = setting.Repository.Upload.FileMaxSize
-	ctx.Data["UploadMaxFiles"] = setting.Repository.Upload.MaxFiles
-}
-
 // UploadFile render upload file page
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if treePath != ctx.Repo.TreePath {
@@ -535,9 +561,12 @@ func UploadFile(ctx *context.Context) {
 }
 
 // UploadFilePost response for uploading file
-func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
+func UploadFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UploadRepoFileForm)
 	ctx.Data["PageIsUpload"] = true
-	renderUploadSettings(ctx)
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	upload.AddUploadContext(ctx, "repo")
 	canCommit := renderCommitRights(ctx)
 
 	oldBranchName := ctx.Repo.BranchName
@@ -653,13 +682,22 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 			branchErr := err.(models.ErrBranchAlreadyExists)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplUploadFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+ctx.Repo.CommitID+"..."+form.NewBranchName), tplUploadFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+ctx.Repo.CommitID+"..."+util.PathEscapeSegments(form.NewBranchName)), tplUploadFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected_no_message"), tplUploadFile, &form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.editor.push_rejected", utils.SanitizeFlashErrorString(errPushRej.Message)), tplUploadFile, &form)
+				flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+					"Message": ctx.Tr("repo.editor.push_rejected"),
+					"Summary": ctx.Tr("repo.editor.push_rejected_summary"),
+					"Details": utils.SanitizeFlashErrorString(errPushRej.Message),
+				})
+				if err != nil {
+					ctx.ServerError("UploadFilePost.HTMLString", err)
+					return
+				}
+				ctx.RenderWithErr(flashError, tplUploadFile, &form)
 			}
 		} else {
 			// os.ErrNotExist - upload file missing in the intervening time?!
@@ -670,7 +708,7 @@ func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
 	}
 
 	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
-		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + ctx.Repo.BranchName + "..." + form.NewBranchName)
+		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
 	}
@@ -703,12 +741,10 @@ func UploadFileToServer(ctx *context.Context) {
 		buf = buf[:n]
 	}
 
-	if len(setting.Repository.Upload.AllowedTypes) > 0 {
-		err = upload.VerifyAllowedContentType(buf, setting.Repository.Upload.AllowedTypes)
-		if err != nil {
-			ctx.Error(400, err.Error())
-			return
-		}
+	err = upload.Verify(buf, header.Filename, setting.Repository.Upload.AllowedTypes)
+	if err != nil {
+		ctx.Error(400, err.Error())
+		return
 	}
 
 	name := cleanUploadFileName(header.Filename)
@@ -730,7 +766,8 @@ func UploadFileToServer(ctx *context.Context) {
 }
 
 // RemoveUploadFileFromServer remove file from server file dir
-func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFileForm) {
+func RemoveUploadFileFromServer(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RemoveUploadFileForm)
 	if len(form.File) == 0 {
 		ctx.Status(204)
 		return
@@ -774,10 +811,10 @@ func GetClosestParentWithFiles(treePath string, commit *git.Commit) string {
 	// see if the tree has entries
 	if tree, err := commit.SubTree(treePath); err != nil {
 		// failed to get tree, going up a dir
-		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+		return GetClosestParentWithFiles(path.Dir(treePath), commit)
 	} else if entries, err := tree.ListEntries(); err != nil || len(entries) == 0 {
 		// no files in this dir, going up a dir
-		return GetClosestParentWithFiles(filepath.Dir(treePath), commit)
+		return GetClosestParentWithFiles(path.Dir(treePath), commit)
 	}
 	return treePath
 }

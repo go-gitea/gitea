@@ -21,12 +21,16 @@ import (
 
 func main() {
 	var (
-		prefix      = "gitea-licenses"
-		url         = "https://api.github.com/repos/spdx/license-list-data/tarball"
-		destination = ""
+		prefix         = "gitea-licenses"
+		url            = "https://api.github.com/repos/spdx/license-list-data/tarball"
+		githubApiToken = ""
+		githubUsername = ""
+		destination    = ""
 	)
 
 	flag.StringVar(&destination, "dest", "options/license/", "destination for the licenses")
+	flag.StringVar(&githubUsername, "username", "", "github username")
+	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
 
 	file, err := ioutil.TempFile(os.TempDir(), prefix)
@@ -37,8 +41,16 @@ func main() {
 
 	defer util.Remove(file.Name())
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalf("Failed to download archive. %s", err)
+	}
 
+	if len(githubApiToken) > 0 && len(githubUsername) > 0 {
+		req.SetBasicAuth(githubUsername, githubApiToken)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Fatalf("Failed to download archive. %s", err)
 	}

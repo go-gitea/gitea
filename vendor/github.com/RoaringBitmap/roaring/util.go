@@ -1,6 +1,7 @@
 package roaring
 
 import (
+	"math"
 	"math/rand"
 	"sort"
 )
@@ -15,7 +16,7 @@ const (
 	noOffsetThreshold          = 4
 
 	// MaxUint32 is the largest uint32 value.
-	MaxUint32 = 4294967295
+	MaxUint32 = math.MaxUint32
 
 	// MaxRange is One more than the maximum allowed bitmap bit index. For use as an upper
 	// bound for ranges.
@@ -23,7 +24,7 @@ const (
 
 	// MaxUint16 is the largest 16 bit unsigned int.
 	// This is the largest value an interval16 can store.
-	MaxUint16 = 65535
+	MaxUint16 = math.MaxUint16
 
 	// Compute wordSizeInBytes, the size of a word in bytes.
 	_m              = ^uint64(0)

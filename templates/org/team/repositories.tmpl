@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="organization teams">
+<div class="page-content organization teams">
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -42,13 +42,13 @@
 							{{end}}
 							<a class="member" href="{{AppSubUrl}}/{{$.Org.Name}}/{{.Name}}">
 								{{if .IsPrivate}}
-									{{svg "octicon-lock" 16}}
+									{{svg "octicon-lock"}}
 								{{else if .IsFork}}
-									{{svg "octicon-repo-forked" 16}}
+									{{svg "octicon-repo-forked"}}
 								{{else if .IsMirror}}
-									{{svg "octicon-mirror" 16}}
+									{{svg "octicon-mirror"}}
 								{{else}}
-									{{svg "octicon-repo" 16}}
+									{{svg "octicon-repo"}}
 								{{end}}
 								<strong>{{$.Org.Name}}/{{.Name}}</strong>
 							</a>
@@ -66,7 +66,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "org.teams.remove_all_repos_title"}}
 	</div>
 	<div class="content">

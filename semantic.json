@@ -1,5 +1,5 @@
 {
-  "version": "2.8.6",
+  "version": "2.8.7",
   "base": "node_modules/fomantic-ui",
   "paths": {
     "source": {

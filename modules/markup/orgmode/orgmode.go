@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -94,10 +95,23 @@ func (r *Renderer) WriteRegularLink(l org.RegularLink) {
 	}
 	switch l.Kind() {
 	case "image":
-		r.WriteString(fmt.Sprintf(`<img src="%s" alt="%s" title="%s" />`, link, description, description))
+		imageSrc := getMediaURL(link)
+		fmt.Fprintf(r, `<img src="%s" alt="%s" title="%s" />`, imageSrc, description, description)
 	case "video":
-		r.WriteString(fmt.Sprintf(`<video src="%s" title="%s">%s</video>`, link, description, description))
+		videoSrc := getMediaURL(link)
+		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, videoSrc, description, description)
 	default:
-		r.WriteString(fmt.Sprintf(`<a href="%s" title="%s">%s</a>`, link, description, description))
+		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
 	}
+}
+
+func getMediaURL(l []byte) string {
+	srcURL := string(l)
+
+	// Check if link is valid
+	if len(srcURL) > 0 && !markup.IsLink(l) {
+		srcURL = strings.Replace(srcURL, "/src/", "/media/", 1)
+	}
+
+	return srcURL
 }

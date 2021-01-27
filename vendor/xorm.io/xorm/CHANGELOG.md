@@ -3,6 +3,39 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.0.6](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1308) - 2021-01-05
+
+* BUGFIXES
+  * Fix bug when modify column on mssql (#1849)
+  * Fix find and count bug with cols (#1826)
+  * Fix update bug (#1823)
+  * Fix json tag with other type (#1822)
+* ENHANCEMENTS
+  * prevent panic when struct with unexport field (#1839)
+  * Automatically convert datetime to int64 (#1715)
+* MISC
+  * Fix index (#1841)
+  * Performance improvement for columnsbyName (#1788)
+
+## [1.0.5](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1299) - 2020-09-08
+
+* BUGFIXES
+  * Fix bug of ToDB when update on a nil pointer (#1786)
+  * Fix warnings with schema Sync2 with default varchar as NVARCHAR (#1783)
+  * Do not ever quote asterisk symbol. Fixes #1780 (#1781)
+  * Fix bug on get columns for postgres (#1779)
+
+## [1.0.4](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1286) - 2020-09-02
+
+* FEATURES
+  * Add params for mssql to allow redefine varchar as nvarchar or char as nchar (#1741)
+* BUGFIXES
+  * Fix mysql dialect error from invalid db identifier in orderby clause (#1743) (#1751)
+* ENHANCEMENTS
+  * Support get dataSourceName on ContextHook for  monitor which DB executed SQL (#1740)
+* MISC
+  * Correct default detection in MariaDB >= 10.2.7 (#1778)
+
 ## [1.0.3](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1281) - 2020-07-10
 
 * BUGFIXES

@@ -44,6 +44,18 @@ func (r *ReadOnlyFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	return fi, false, err
 }
 
+func (r *ReadOnlyFs) SymlinkIfPossible(oldname, newname string) error {
+	return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: ErrNoSymlink}
+}
+
+func (r *ReadOnlyFs) ReadlinkIfPossible(name string) (string, error) {
+	if srdr, ok := r.source.(LinkReader); ok {
+		return srdr.ReadlinkIfPossible(name)
+	}
+
+	return "", &os.PathError{Op: "readlink", Path: name, Err: ErrNoReadlink}
+}
+
 func (r *ReadOnlyFs) Rename(o, n string) error {
 	return syscall.EPERM
 }

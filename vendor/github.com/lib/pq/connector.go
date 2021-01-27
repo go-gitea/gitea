@@ -27,7 +27,7 @@ func (c *Connector) Connect(ctx context.Context) (driver.Conn, error) {
 	return c.open(ctx)
 }
 
-// Driver returnst the underlying driver of this Connector.
+// Driver returns the underlying driver of this Connector.
 func (c *Connector) Driver() driver.Driver {
 	return &Driver{}
 }

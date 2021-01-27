@@ -14,9 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
+	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // GetBranch get a branch of a repository
@@ -45,15 +47,12 @@ func GetBranch(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Branch"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.TreePath != "" {
-		// if TreePath != "", then URL contained extra slashes
-		// (i.e. "master/subbranch" instead of "master"), so branch does
-		// not exist
-		ctx.NotFound()
-		return
-	}
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.BranchName)
+	branchName := ctx.Params("*")
+
+	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -69,7 +68,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(ctx.Repo.BranchName)
+	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -112,21 +111,17 @@ func DeleteBranch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
-	if ctx.Repo.TreePath != "" {
-		// if TreePath != "", then URL contained extra slashes
-		// (i.e. "master/subbranch" instead of "master"), so branch does
-		// not exist
-		ctx.NotFound()
-		return
-	}
+	branchName := ctx.Params("*")
 
-	if ctx.Repo.Repository.DefaultBranch == ctx.Repo.BranchName {
+	if ctx.Repo.Repository.DefaultBranch == branchName {
 		ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
 		return
 	}
 
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(ctx.Repo.BranchName, ctx.User)
+	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -136,7 +131,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.BranchName)
+	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -152,7 +147,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.GitRepo.DeleteBranch(ctx.Repo.BranchName, git.DeleteBranchOptions{
+	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
 		Force: true,
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
@@ -160,11 +155,9 @@ func DeleteBranch(ctx *context.APIContext) {
 	}
 
 	// Don't return error below this
-	if err := repofiles.PushUpdate(
-		ctx.Repo.Repository,
-		ctx.Repo.BranchName,
-		repofiles.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + ctx.Repo.BranchName,
+	if err := repo_service.PushUpdate(
+		&repo_module.PushUpdateOptions{
+			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  c.ID.String(),
 			NewCommitID:  git.EmptySHA,
 			PusherID:     ctx.User.ID,
@@ -175,7 +168,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		log.Error("Update: %v", err)
 	}
 
-	if err := ctx.Repo.Repository.AddDeletedBranch(ctx.Repo.BranchName, c.ID.String(), ctx.User.ID); err != nil {
+	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, c.ID.String(), ctx.User.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 
@@ -183,7 +176,7 @@ func DeleteBranch(ctx *context.APIContext) {
 }
 
 // CreateBranch creates a branch for a user's repository
-func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
+func CreateBranch(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/branches repository repoCreateBranch
 	// ---
 	// summary: Create a branch
@@ -214,6 +207,7 @@ func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	//   "409":
 	//     description: The branch with the same name already exists.
 
+	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
 		return
@@ -403,7 +397,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 }
 
 // CreateBranchProtection creates a branch protection for a repo
-func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtectionOption) {
+func CreateBranchProtection(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/branch_protections repository repoCreateBranchProtection
 	// ---
 	// summary: Create a branch protections for a repository
@@ -436,6 +430,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
 	// Currently protection must match an actual branch
@@ -517,21 +512,22 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	}
 
 	protectBranch = &models.ProtectedBranch{
-		RepoID:                   ctx.Repo.Repository.ID,
-		BranchName:               form.BranchName,
-		CanPush:                  form.EnablePush,
-		EnableWhitelist:          form.EnablePush && form.EnablePushWhitelist,
-		EnableMergeWhitelist:     form.EnableMergeWhitelist,
-		WhitelistDeployKeys:      form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
-		EnableStatusCheck:        form.EnableStatusCheck,
-		StatusCheckContexts:      form.StatusCheckContexts,
-		EnableApprovalsWhitelist: form.EnableApprovalsWhitelist,
-		RequiredApprovals:        requiredApprovals,
-		BlockOnRejectedReviews:   form.BlockOnRejectedReviews,
-		DismissStaleApprovals:    form.DismissStaleApprovals,
-		RequireSignedCommits:     form.RequireSignedCommits,
-		ProtectedFilePatterns:    form.ProtectedFilePatterns,
-		BlockOnOutdatedBranch:    form.BlockOnOutdatedBranch,
+		RepoID:                        ctx.Repo.Repository.ID,
+		BranchName:                    form.BranchName,
+		CanPush:                       form.EnablePush,
+		EnableWhitelist:               form.EnablePush && form.EnablePushWhitelist,
+		EnableMergeWhitelist:          form.EnableMergeWhitelist,
+		WhitelistDeployKeys:           form.EnablePush && form.EnablePushWhitelist && form.PushWhitelistDeployKeys,
+		EnableStatusCheck:             form.EnableStatusCheck,
+		StatusCheckContexts:           form.StatusCheckContexts,
+		EnableApprovalsWhitelist:      form.EnableApprovalsWhitelist,
+		RequiredApprovals:             requiredApprovals,
+		BlockOnRejectedReviews:        form.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: form.BlockOnOfficialReviewRequests,
+		DismissStaleApprovals:         form.DismissStaleApprovals,
+		RequireSignedCommits:          form.RequireSignedCommits,
+		ProtectedFilePatterns:         form.ProtectedFilePatterns,
+		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
 	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
@@ -544,6 +540,11 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
+		return
+	}
+
+	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 		return
 	}
 
@@ -563,7 +564,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 }
 
 // EditBranchProtection edits a branch protection for a repo
-func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtectionOption) {
+func EditBranchProtection(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/branch_protections/{name} repository repoEditBranchProtection
 	// ---
 	// summary: Edit a branch protections for a repository. Only fields that are set will be changed
@@ -598,7 +599,7 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
 	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)
@@ -653,6 +654,10 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 
 	if form.BlockOnRejectedReviews != nil {
 		protectBranch.BlockOnRejectedReviews = *form.BlockOnRejectedReviews
+	}
+
+	if form.BlockOnOfficialReviewRequests != nil {
+		protectBranch.BlockOnOfficialReviewRequests = *form.BlockOnOfficialReviewRequests
 	}
 
 	if form.DismissStaleApprovals != nil {
@@ -767,6 +772,11 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateProtectBranch", err)
+		return
+	}
+
+	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CheckPrsForBaseBranch", err)
 		return
 	}
 

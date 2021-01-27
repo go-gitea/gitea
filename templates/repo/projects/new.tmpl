@@ -1,0 +1,70 @@
+{{template "base/head" .}}
+<div class="page-content repository new milestone">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="navbar">
+			{{template "repo/issue/navbar" .}}
+			{{if and .CanWriteProjects .PageIsEditProject}}
+			<div class="ui right floated secondary menu">
+				<a class="ui green button" href="{{$.RepoLink}}/projects/new">{{.i18n.Tr "repo.milestones.new"}}</a>
+			</div>
+			{{end}}
+		</div>
+		<div class="ui divider"></div>
+		<h2 class="ui dividing header">
+			{{if .PageIsEditProjects}}
+			{{.i18n.Tr "repo.projects.edit"}}
+			<div class="sub header">{{.i18n.Tr "repo.projects.edit_subheader"}}</div>
+			{{else}}
+				{{.i18n.Tr "repo.projects.new"}}
+				<div class="sub header">{{.i18n.Tr "repo.projects.new_subheader"}}</div>
+				{{end}}
+		</h2>
+		{{template "base/alert" .}}
+		<form class="ui form grid" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="eleven wide column">
+				<div class="field {{if .Err_Title}}error{{end}}">
+					<label>{{.i18n.Tr "repo.projects.title"}}</label>
+					<input name="title" placeholder="{{.i18n.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+				</div>
+				<div class="field">
+					<label>{{.i18n.Tr "repo.projects.description"}}</label>
+					<textarea name="content" placeholder="{{.i18n.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+				</div>
+
+				{{if not .PageIsEditProjects}}
+					<label>{{.i18n.Tr "repo.projects.template.desc"}}</label>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="board_type" value="{{.type}}">
+						<div class="default text">{{.i18n.Tr "repo.projects.template.desc_helper"}}</div>
+						<div class="menu">
+							{{range $element := .ProjectTypes}}
+								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.i18n.Tr $element.Translation}}</div>
+							{{end}}
+						</div>
+					</div>
+				{{end}}
+			</div>
+			<div class="ui container">
+				<div class="ui divider"></div>
+				<div class="ui left">
+					{{if .PageIsEditProjects}}
+					<a class="ui blue basic button" href="{{.RepoLink}}/projects">
+						{{.i18n.Tr "repo.milestones.cancel"}}
+					</a>
+					<button class="ui green button">
+						{{.i18n.Tr "repo.projects.modify"}}
+					</button>
+					{{else}}
+						<button class="ui green button">
+							{{.i18n.Tr "repo.projects.create"}}
+						</button>
+					{{end}}
+				</div>
+			</div>
+
+		</form>
+	</div>
+</div>
+{{template "base/footer" .}}

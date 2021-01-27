@@ -5,15 +5,17 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", "/repo/migrate")
+	req := NewRequest(t, "GET", fmt.Sprintf("/repo/migrate?service_type=%d", structs.PlainGitService)) // render plain git migration page
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
@@ -28,8 +30,8 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"clone_addr": cloneAddr,
 		"uid":        uid,
 		"repo_name":  repoName,
-	},
-	)
+		"service":    fmt.Sprintf("%d", structs.PlainGitService),
+	})
 	resp = session.MakeRequest(t, req, http.StatusFound)
 
 	return resp
