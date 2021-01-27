@@ -100,7 +100,7 @@ require (
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.42.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.2.1
+	github.com/yuin/goldmark v1.3.1
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4
