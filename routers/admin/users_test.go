@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +40,8 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 		MustChangePassword: true,
 	}
 
-	NewUserPost(ctx, form)
+	web.SetForm(ctx, &form)
+	NewUserPost(ctx)
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
@@ -76,7 +78,8 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	NewUserPost(ctx, form)
+	web.SetForm(ctx, &form)
+	NewUserPost(ctx)
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
@@ -113,7 +116,8 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	NewUserPost(ctx, form)
+	web.SetForm(ctx, &form)
+	NewUserPost(ctx)
 
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }

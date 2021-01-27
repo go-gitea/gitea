@@ -345,19 +345,23 @@ ports:
   - "127.0.0.1:2222:22"
 ```
 
-In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add
+In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add the public key of the key you created above ("Gitea Host Key") to `~/git/.ssh/authorized_keys`.
+This can be done via `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
+Important: The pubkey from the `git` user needs to be added "as is" while all other pubkeys added via the Gitea web interface will be prefixed with `command="/app [...]`.
+
+The file should then look somewhat like
 
 ```bash
-command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa <YOUR_SSH_PUBKEY>
+# SSH pubkey from git user
+ssh-rsa <Gitea Host Key>
+
+# other keys from users
+command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
 ```
-
-and replace `<YOUR_SSH_PUBKEY>` with a valid SSH public key of yours.
-
-In addition the public key of the `git` user on the host needs to be added to `/home/git/.ssh/authorized_keys` so authentication against the container can succeed: `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
 
 Here is a detailed explanation what is happening when a SSH request is made:
 
-1. A SSH request is made against the host using the `git` user, e.g. `git clone git@domain:user/repo.git`.
+1. A SSH request is made against the host (usually port 22) using the `git` user, e.g. `git clone git@domain:user/repo.git`.
 2. In `/home/git/.ssh/authorized_keys` , the command executes the `/app/gitea/gitea` script.
 3. `/app/gitea/gitea` forwards the SSH request to port 2222 which is mapped to the SSH port (22) of the container.
 4. Due to the existence of the public key of the `git` user in `/home/git/.ssh/authorized_keys` the authentication host → container succeeds and the SSH request get forwarded to Gitea running in the docker container.

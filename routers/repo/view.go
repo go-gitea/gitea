@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	gotemplate "html/template"
+	"io"
 	"io/ioutil"
 	"net/url"
 	"path"
@@ -396,6 +397,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isLFSFile := false
 	ctx.Data["IsTextFile"] = isTextFile
 
+	isDisplayingSource := ctx.Query("display") == "source"
+	isDisplayingRendered := !isDisplayingSource
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
+	if !isRepresentableAsText {
+		// If we can't show plain text, always try to render.
+		isDisplayingSource = false
+		isDisplayingRendered = true
+	}
+	ctx.Data["IsDisplayingSource"] = isDisplayingSource
+	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+
+	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
+
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
 		meta := lfs.IsPointerFile(&buf)
@@ -421,7 +436,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 			buf = make([]byte, 1024)
 			n, err = dataRc.Read(buf)
-			if err != nil {
+			// Error EOF don't mean there is an error, it just means we read to
+			// the end
+			if err != nil && err != io.EOF {
 				ctx.ServerError("Data", err)
 				return
 			}
@@ -451,12 +468,18 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	// Assume file is not editable first.
 	if isLFSFile {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
-	} else if !isTextFile {
+	} else if !isRepresentableAsText {
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
 	switch {
-	case isTextFile:
+	case isRepresentableAsText:
+		// This will be true for SVGs.
+		if base.IsImageFile(buf) {
+			ctx.Data["IsImageFile"] = true
+			ctx.Data["HasSourceRenderedToggle"] = true
+		}
+
 		if fileSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["IsFileTooLarge"] = true
 			break

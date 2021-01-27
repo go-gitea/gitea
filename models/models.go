@@ -128,6 +128,7 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(UserRedirect),
 		new(Project),
 		new(ProjectBoard),
 		new(ProjectIssue),
@@ -175,8 +176,8 @@ func NewTestEngine() (err error) {
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.ProdMode))
-	x.ShowSQL(!setting.ProdMode)
+	x.SetLogger(NewXORMLogger(!setting.IsProd()))
+	x.ShowSQL(!setting.IsProd())
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 

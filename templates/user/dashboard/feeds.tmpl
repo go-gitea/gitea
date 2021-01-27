@@ -18,7 +18,11 @@
 							{{$.i18n.Tr "action.rename_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 5}}
 							{{ $branchLink := .GetBranch | EscapePound | Escape}}
-							{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
+							{{if .Content}}
+								{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
+							{{else}}
+								{{$.i18n.Tr "action.create_branch" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
+							{{end}}
 						{{else if eq .GetOpType 6}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.create_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}

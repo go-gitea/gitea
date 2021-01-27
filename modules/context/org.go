@@ -10,8 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
 )
 
 // Organization contains organization context
@@ -54,7 +52,14 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.Organization, err = models.GetUserByName(orgName)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", err)
+			redirectUserID, err := models.LookupUserRedirect(orgName)
+			if err == nil {
+				RedirectToUser(ctx, orgName, redirectUserID)
+			} else if models.IsErrUserRedirectNotExist(err) {
+				ctx.NotFound("GetUserByName", err)
+			} else {
+				ctx.ServerError("LookupUserRedirect", err)
+			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
@@ -166,7 +171,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 }
 
 // OrgAssignment returns a macaron middleware to handle organization assignment
-func OrgAssignment(args ...bool) macaron.Handler {
+func OrgAssignment(args ...bool) func(ctx *Context) {
 	return func(ctx *Context) {
 		HandleOrgAssignment(ctx, args...)
 	}

@@ -58,12 +58,7 @@ func (table *Table) ColumnsSeq() []string {
 }
 
 func (table *Table) columnsByName(name string) []*Column {
-	for k, cols := range table.columnsMap {
-		if strings.EqualFold(k, name) {
-			return cols
-		}
-	}
-	return nil
+	return table.columnsMap[strings.ToLower(name)]
 }
 
 // GetColumn returns column according column name, if column not found, return nil

@@ -1312,8 +1312,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("NewRepoRedirect: %v", err)
+	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
 	return sess.Commit()
@@ -1361,12 +1361,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, repo.OwnerID, newRepoName); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
-	}
-
-	if err := NewRepoRedirect(DBContext{sess}, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 
@@ -1511,26 +1506,27 @@ func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes [
 }
 
 // DeleteRepository deletes a repository for a user or organization.
+// make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *User, uid, repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
 	// In case is a organization.
-	org, err := GetUserByID(uid)
+	org, err := getUserByID(sess, uid)
 	if err != nil {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err = org.getTeams(sess); err != nil {
 			return err
 		}
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	repo := &Repository{ID: repoID, OwnerID: uid}
-	has, err := sess.Get(repo)
+	repo := &Repository{OwnerID: uid}
+	has, err := sess.ID(repoID).Get(repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -1679,14 +1675,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if err = sess.Commit(); err != nil {
-		sess.Close()
-		if len(deployKeys) > 0 {
-			// We need to rewrite the public keys because the commit failed
-			if err2 := RewriteAllPublicKeys(); err2 != nil {
-				return fmt.Errorf("Commit: %v SSH Keys: %v", err, err2)
-			}
-		}
-		return fmt.Errorf("Commit: %v", err)
+		return err
 	}
 
 	sess.Close()

@@ -1556,8 +1556,11 @@ a.ui.label:hover {
 .ui.button {
   background: var(--color-button);
   border: 1px solid var(--color-light-border);
-  box-shadow: none !important;
   color: var(--color-text);
+}
+
+.page-content .ui.button {
+  box-shadow: none !important;
 }
 
 .ui.button:hover {
@@ -1781,7 +1784,7 @@ a.ui.basic.label:hover {
 }
 
 /* fix misaligned right buttons on box headers */
-.ui.attached.header .right {
+.ui.attached.header .right:not(.dropdown) {
   position: absolute;
   right: .78571429rem;
   top: 0;

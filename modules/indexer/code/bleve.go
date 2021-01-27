@@ -21,15 +21,15 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/blevesearch/bleve"
-	analyzer_custom "github.com/blevesearch/bleve/analysis/analyzer/custom"
-	analyzer_keyword "github.com/blevesearch/bleve/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search/query"
+	"github.com/blevesearch/bleve/v2"
+	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
+	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
+	"github.com/blevesearch/bleve/v2/index/upsidedown"
+	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/ethantkoenig/rupture"
 	"github.com/go-enry/go-enry/v2"
 )
@@ -280,12 +280,23 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	phraseQuery := bleve.NewMatchPhraseQuery(keyword)
-	phraseQuery.FieldVal = "Content"
-	phraseQuery.Analyzer = repoIndexerAnalyzer
+func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	var (
+		indexerQuery query.Query
+		keywordQuery query.Query
+	)
 
-	var indexerQuery query.Query
+	if isMatch {
+		prefixQuery := bleve.NewPrefixQuery(keyword)
+		prefixQuery.FieldVal = "Content"
+		keywordQuery = prefixQuery
+	} else {
+		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
+		phraseQuery.FieldVal = "Content"
+		phraseQuery.Analyzer = repoIndexerAnalyzer
+		keywordQuery = phraseQuery
+	}
+
 	if len(repoIDs) > 0 {
 		var repoQueries = make([]query.Query, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
@@ -294,10 +305,10 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 		indexerQuery = bleve.NewConjunctionQuery(
 			bleve.NewDisjunctionQuery(repoQueries...),
-			phraseQuery,
+			keywordQuery,
 		)
 	} else {
-		indexerQuery = phraseQuery
+		indexerQuery = keywordQuery
 	}
 
 	// Save for reuse without language filter
