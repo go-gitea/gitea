@@ -68,7 +68,6 @@ func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, options ...Req
 	}
 
 	return pm, resp, err
-
 }
 
 // AddProjectMirrorOptions contains the properties requires to create
