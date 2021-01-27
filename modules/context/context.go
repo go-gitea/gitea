@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
+	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
@@ -499,23 +500,8 @@ func getCsrfOpts() CsrfOptions {
 
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
-
-	var c cache.Cache
-	var err error
-	if setting.CacheService.Enabled {
-		c, err = cache.NewCacher(cache.Options{
-			Adapter:       setting.CacheService.Adapter,
-			AdapterConfig: setting.CacheService.Conn,
-			Interval:      setting.CacheService.Interval,
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
-
+	var rnd = templates.HTMLRenderer()
 	var csrfOpts = getCsrfOpts()
-	//var flashEncryptionKey, _ = NewSecret()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -524,7 +510,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
 				Resp:    NewResponse(resp),
-				Cache:   c,
+				Cache:   mc.GetCache(),
 				Locale:  locale,
 				Link:    link,
 				Render:  rnd,
@@ -571,16 +557,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if flash := f.Encode(); len(flash) > 0 {
-					if err == nil {
-						middlewares.SetCookie(resp, "macaron_flash", flash, 0,
-							setting.SessionConfig.CookiePath,
-							middlewares.Domain(setting.SessionConfig.Domain),
-							middlewares.HTTPOnly(true),
-							middlewares.Secure(setting.SessionConfig.Secure),
-							//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
-						)
-						return
-					}
+					middlewares.SetCookie(resp, "macaron_flash", flash, 0,
+						setting.SessionConfig.CookiePath,
+						middlewares.Domain(setting.SessionConfig.Domain),
+						middlewares.HTTPOnly(true),
+						middlewares.Secure(setting.SessionConfig.Secure),
+						//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
+					)
+					return
 				}
 
 				ctx.SetCookie("macaron_flash", "", -1,
