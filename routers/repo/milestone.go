@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"xorm.io/builder"
 )
@@ -106,7 +107,8 @@ func NewMilestone(ctx *context.Context) {
 }
 
 // NewMilestonePost response for creating milestone
-func NewMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
+func NewMilestonePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateMilestoneForm)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
@@ -165,7 +167,8 @@ func EditMilestone(ctx *context.Context) {
 }
 
 // EditMilestonePost response for edting milestone
-func EditMilestonePost(ctx *context.Context, form auth.CreateMilestoneForm) {
+func EditMilestonePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateMilestoneForm)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true

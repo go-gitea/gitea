@@ -7,6 +7,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
+	"code.gitea.io/gitea/modules/util"
 
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
@@ -67,6 +69,7 @@ var (
 	// AppVer settings
 	AppVer         string
 	AppBuiltWith   string
+	AppStartTime   time.Time
 	AppName        string
 	AppURL         string
 	AppSubURL      string
@@ -101,6 +104,7 @@ var (
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
 	StaticURLPrefix      string
+	AbsoluteAssetURL     string
 
 	SSH = struct {
 		Disabled                       bool              `ini:"DISABLE_SSH"`
@@ -138,7 +142,7 @@ var (
 		ServerMACs:          []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
 		KeygenPath:          "ssh-keygen",
 		MinimumKeySizeCheck: true,
-		MinimumKeySizes:     map[string]int{"ed25519": 256, "ecdsa": 256, "rsa": 2048},
+		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
 	}
 
 	// Security settings
@@ -186,6 +190,10 @@ var (
 			EventSourceUpdateTime time.Duration
 		} `ini:"ui.notification"`
 
+		SVG struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		} `ini:"ui.svg"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -225,6 +233,11 @@ var (
 			TimeoutStep:           10 * time.Second,
 			MaxTimeout:            60 * time.Second,
 			EventSourceUpdateTime: 10 * time.Second,
+		},
+		SVG: struct {
+			Enabled bool `ini:"ENABLE_RENDER"`
+		}{
+			Enabled: true,
 		},
 		Admin: struct {
 			UserPagingNum   int
@@ -290,6 +303,8 @@ var (
 
 	CSRFCookieName     = "_csrf"
 	CSRFCookieHTTPOnly = true
+
+	ManifestData string
 
 	// Mirror settings
 	Mirror struct {
@@ -361,7 +376,7 @@ var (
 	CustomConf    string
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
-	ProdMode      bool
+	RunMode       string
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
@@ -371,6 +386,11 @@ var (
 	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
 	UILocation = time.Local
 )
+
+// IsProd if it's a production mode
+func IsProd() bool {
+	return strings.EqualFold(RunMode, "prod")
+}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -496,7 +516,11 @@ func NewContext() {
 		createPIDFile(PIDFile)
 	}
 
-	if com.IsFile(CustomConf) {
+	isFile, err := util.IsFile(CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+	}
+	if isFile {
 		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
 		}
@@ -589,6 +613,11 @@ func NewContext() {
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
 		Domain = urlHostname
 	}
+
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+
+	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
+	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
 
 	var defaultLocalURL string
 	switch Protocol {
@@ -737,7 +766,11 @@ func NewContext() {
 				return
 			}
 			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
+			isFile, err := util.IsFile(CustomConf)
+			if err != nil {
+				log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+			}
+			if isFile {
 				if err := cfg.Append(CustomConf); err != nil {
 					log.Error("failed to load custom conf %s: %v", CustomConf, err)
 					return
@@ -837,6 +870,7 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
@@ -905,7 +939,10 @@ func NewContext() {
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
 
-	HasRobotsTxt = com.IsFile(path.Join(CustomPath, "robots.txt"))
+	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
+	}
 
 	newMarkup()
 
@@ -1002,7 +1039,11 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 
 		// Save secret
 		cfgSave := ini.Empty()
-		if com.IsFile(CustomConf) {
+		isFile, err := util.IsFile(CustomConf)
+		if err != nil {
+			log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+		}
+		if isFile {
 			// Keeps custom settings if there is already something.
 			if err := cfgSave.Append(CustomConf); err != nil {
 				log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
@@ -1019,6 +1060,66 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 		}
 	}
 	return token
+}
+
+// MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
+func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
+	parsedPrefix, err := url.Parse(strings.TrimSuffix(staticURLPrefix, "/"))
+	if err != nil {
+		log.Fatal("Unable to parse STATIC_URL_PREFIX: %v", err)
+	}
+
+	if err == nil && parsedPrefix.Hostname() == "" {
+		if staticURLPrefix == "" {
+			return strings.TrimSuffix(appURL, "/")
+		}
+
+		// StaticURLPrefix is just a path
+		return strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
+	}
+
+	return strings.TrimSuffix(staticURLPrefix, "/")
+}
+
+// MakeManifestData generates web app manifest JSON
+func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []byte {
+	type manifestIcon struct {
+		Src   string `json:"src"`
+		Type  string `json:"type"`
+		Sizes string `json:"sizes"`
+	}
+
+	type manifestJSON struct {
+		Name      string         `json:"name"`
+		ShortName string         `json:"short_name"`
+		StartURL  string         `json:"start_url"`
+		Icons     []manifestIcon `json:"icons"`
+	}
+
+	bytes, err := json.Marshal(&manifestJSON{
+		Name:      appName,
+		ShortName: appName,
+		StartURL:  appURL,
+		Icons: []manifestIcon{
+			{
+				Src:   absoluteAssetURL + "/img/logo.png",
+				Type:  "image/png",
+				Sizes: "512x512",
+			},
+			{
+				Src:   absoluteAssetURL + "/img/logo.svg",
+				Type:  "image/svg+xml",
+				Sizes: "512x512",
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error("unable to marshal manifest JSON. Error: %v", err)
+		return make([]byte, 0)
+	}
+
+	return bytes
 }
 
 // NewServices initializes the services

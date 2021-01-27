@@ -17,13 +17,13 @@ import (
 
 // Reaction represents a reactions on issues and comments.
 type Reaction struct {
-	ID               int64  `xorm:"pk autoincr"`
-	Type             string `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	IssueID          int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	CommentID        int64  `xorm:"INDEX UNIQUE(s)"`
-	UserID           int64  `xorm:"INDEX UNIQUE(s) NOT NULL"`
-	OriginalAuthorID int64  `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
-	OriginalAuthor   string
+	ID               int64              `xorm:"pk autoincr"`
+	Type             string             `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	IssueID          int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	CommentID        int64              `xorm:"INDEX UNIQUE(s)"`
+	UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
+	OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
+	OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
 	User             *User              `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
@@ -178,11 +178,15 @@ func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-func deleteReaction(e *xorm.Session, opts *ReactionOptions) error {
+func deleteReaction(e Engine, opts *ReactionOptions) error {
 	reaction := &Reaction{
-		Type:    opts.Type,
-		UserID:  opts.Doer.ID,
-		IssueID: opts.Issue.ID,
+		Type: opts.Type,
+	}
+	if opts.Doer != nil {
+		reaction.UserID = opts.Doer.ID
+	}
+	if opts.Issue != nil {
+		reaction.IssueID = opts.Issue.ID
 	}
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID

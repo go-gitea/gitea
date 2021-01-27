@@ -15,17 +15,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"gitea.com/macaron/macaron"
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
@@ -82,7 +81,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
 	}()
-	hash := plumbing.NewHash(sha)
+	hash := git.MustIDFromString(sha)
 
 	return git.NewCommand("cat-file", "commit", sha).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
@@ -118,7 +117,8 @@ func isErrUnverifiedCommit(err error) bool {
 }
 
 // HookPreReceive checks whether a individual commit is acceptable
-func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
+func HookPreReceive(ctx *gitea_context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
@@ -371,7 +371,8 @@ func HookPreReceive(ctx *macaron.Context, opts private.HookOptions) {
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
+func HookPostReceive(ctx *gitea_context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 
@@ -413,8 +414,8 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 				RepoName:     repoName,
 			}
 			updates = append(updates, &option)
-			if repo.IsEmpty && option.IsBranch() && option.BranchName() == "master" {
-				// put the master branch first
+			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
+				// put the master/main branch first
 				copy(updates[1:], updates)
 				updates[0] = &option
 			}
@@ -541,7 +542,7 @@ func HookPostReceive(ctx *macaron.Context, opts private.HookOptions) {
 }
 
 // SetDefaultBranch updates the default branch
-func SetDefaultBranch(ctx *macaron.Context) {
+func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")

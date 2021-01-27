@@ -11,7 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -58,13 +60,13 @@ func ListForks(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		apiForks[i] = fork.APIFormat(access)
+		apiForks[i] = convert.ToRepo(fork, access)
 	}
 	ctx.JSON(http.StatusOK, apiForks)
 }
 
 // CreateFork create a fork of a repo
-func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
+func CreateFork(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/forks repository createFork
 	// ---
 	// summary: Fork a repository
@@ -93,6 +95,7 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateForkOption)
 	repo := ctx.Repo.Repository
 	var forker *models.User // user/org that will own the fork
 	if form.Organization == nil {
@@ -125,5 +128,5 @@ func CreateFork(ctx *context.APIContext, form api.CreateForkOption) {
 	}
 
 	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, fork.APIFormat(models.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, models.AccessModeOwner))
 }

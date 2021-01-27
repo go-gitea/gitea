@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -34,6 +35,9 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
+	if len(org.Description) != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(org.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
 
 	var orderBy models.SearchOrderBy
 	ctx.Data["SortType"] = ctx.Query("sort")

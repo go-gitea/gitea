@@ -3,14 +3,22 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
+  - /templates/base/head.tmpl
+  - /templates/repo/activity.tmpl
+  - /templates/repo/view_file.tmpl
 
 parserOptions:
   sourceType: module
-  ecmaVersion: 2020
+  ecmaVersion: 2021
 
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
+  - eslint-plugin-vue
+  - eslint-plugin-html
+
+extends:
+  - plugin:vue/recommended
 
 env:
   es2021: true
@@ -23,12 +31,19 @@ globals:
   SimpleMDE: false
   u2fApi: false
 
+settings:
+  html/html-extensions: [".tmpl"]
+
 overrides:
-  - files: ["web_src/**/*.js"]
+  - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl"]
     env:
       browser: true
       jquery: true
       node: false
+  - files: ["templates/**/*.tmpl"]
+    rules:
+      no-tabs: [0]
+      indent: [2, tab, {SwitchCase: 1}]
   - files: ["web_src/**/*worker.js"]
     env:
       worker: true
@@ -220,6 +235,7 @@ rules:
   no-new-symbol: [2]
   no-new-wrappers: [2]
   no-new: [0]
+  no-nonoctal-decimal-escape: [2]
   no-obj-calls: [2]
   no-octal-escape: [2]
   no-octal: [2]
@@ -330,6 +346,7 @@ rules:
   unicorn/catch-error-name: [0]
   unicorn/consistent-function-scoping: [2]
   unicorn/custom-error-definition: [0]
+  unicorn/empty-brace-spaces: [2]
   unicorn/error-message: [0]
   unicorn/escape-case: [0]
   unicorn/expiring-todo-comments: [0]
@@ -345,6 +362,7 @@ rules:
   unicorn/no-for-loop: [0]
   unicorn/no-hex-escape: [0]
   unicorn/no-keyword-prefix: [0]
+  unicorn/no-lonely-if: [2]
   unicorn/no-nested-ternary: [0]
   unicorn/no-new-buffer: [0]
   unicorn/no-null: [0]
@@ -361,6 +379,7 @@ rules:
   unicorn/prefer-add-event-listener: [2]
   unicorn/prefer-array-find: [2]
   unicorn/prefer-dataset: [2]
+  unicorn/prefer-date-now: [2]
   unicorn/prefer-event-key: [2]
   unicorn/prefer-includes: [2]
   unicorn/prefer-math-trunc: [2]
@@ -387,6 +406,11 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
+  vue/attributes-order: [0]
+  vue/component-definition-name-casing: [0]
+  vue/html-closing-bracket-spacing: [0]
+  vue/max-attributes-per-line: [0]
+  vue/one-component-per-file: [0]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]

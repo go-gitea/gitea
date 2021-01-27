@@ -5,7 +5,11 @@
 package migrations
 
 import (
+	"fmt"
+	"strconv"
+
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
@@ -28,40 +32,65 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		return err
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
+	sqlSelect := `SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated`
+	sqlTail := ` FROM comment INNER JOIN (
+		SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
+		FROM comment AS C
+		WHERE C.type = 21
+			AND C.created_unix =
+				(SELECT MIN(comment.created_unix)
+					FROM comment
+					WHERE comment.review_id = C.review_id
+					AND comment.type = 21
+					AND comment.line = C.line
+					AND comment.tree_path = C.tree_path)
+		) AS first
+		ON comment.review_id = first.review_id
+			AND comment.tree_path = first.tree_path AND comment.line = first.line
+	WHERE comment.type = 21
+		AND comment.id != first.id
+		AND comment.commit_sha != first.commit_sha`
 
+	var sqlCmd string
 	var start = 0
 	var batchSize = 100
+	sess := x.NewSession()
+	defer sess.Close()
 	for {
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+
+		if setting.Database.UseMSSQL {
+			if _, err := sess.Exec(sqlSelect + " INTO #temp_comments" + sqlTail); err != nil {
+				log.Error("unable to create temporary table")
+				return err
+			}
+		}
+
 		var comments = make([]*Comment, 0, batchSize)
-		if err := sess.SQL(`SELECT comment.id as id, first.commit_sha as commit_sha, first.patch as patch, first.invalidated as invalidated
-		FROM comment INNER JOIN (
-			SELECT C.id, C.review_id, C.line, C.tree_path, C.patch, C.commit_sha, C.invalidated
-			FROM comment AS C 
-			WHERE C.type = 21
-				AND C.created_unix = 
-					(SELECT MIN(comment.created_unix)
-						FROM comment
-						WHERE comment.review_id = C.review_id
-						AND comment.type = 21
-						AND comment.line = C.line
-						AND comment.tree_path = C.tree_path)
-			) AS first
-			ON comment.review_id = first.review_id
-				AND comment.tree_path = first.tree_path AND comment.line = first.line
-		WHERE comment.type = 21
-			AND comment.id != first.id
-			AND comment.commit_sha != first.commit_sha`).Limit(batchSize, start).Find(&comments); err != nil {
+
+		switch {
+		case setting.Database.UseMySQL:
+			sqlCmd = sqlSelect + sqlTail + " LIMIT " + strconv.Itoa(batchSize) + ", " + strconv.Itoa(start)
+		case setting.Database.UsePostgreSQL:
+			fallthrough
+		case setting.Database.UseSQLite3:
+			sqlCmd = sqlSelect + sqlTail + " LIMIT " + strconv.Itoa(batchSize) + " OFFSET " + strconv.Itoa(start)
+		case setting.Database.UseMSSQL:
+			sqlCmd = "SELECT TOP " + strconv.Itoa(batchSize) + " * FROM #temp_comments WHERE " +
+				"(id NOT IN ( SELECT TOP " + strconv.Itoa(start) + " id FROM #temp_comments ORDER BY id )) ORDER BY id"
+		default:
+			return fmt.Errorf("Unsupported database type")
+		}
+
+		if err := sess.SQL(sqlCmd).Find(&comments); err != nil {
 			log.Error("failed to select: %v", err)
 			return err
 		}
 
 		for _, comment := range comments {
-			if _, err := sess.Table("comment").Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
+			if _, err := sess.Table("comment").ID(comment.ID).Cols("commit_sha", "patch", "invalidated").Update(comment); err != nil {
 				log.Error("failed to update comment[%d]: %v %v", comment.ID, comment, err)
 				return err
 			}
@@ -69,10 +98,13 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 
 		start += len(comments)
 
+		if err := sess.Commit(); err != nil {
+			return err
+		}
 		if len(comments) < batchSize {
 			break
 		}
 	}
 
-	return sess.Commit()
+	return nil
 }

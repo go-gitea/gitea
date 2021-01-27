@@ -43,7 +43,7 @@
 
 .ui.accordion .title:not(.ui) {
   padding: 0.5em 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   font-size: 1em;
   color: rgba(0, 0, 0, 0.87);
 }
@@ -138,7 +138,7 @@
   margin: 0;
   padding: 0.75em 1em;
   color: rgba(0, 0, 0, 0.4);
-  font-weight: bold;
+  font-weight: 500;
   border-top: 1px solid rgba(34, 36, 38, 0.15);
   transition: background 0.1s ease, color 0.1s ease;
 }
@@ -354,7 +354,7 @@
 *******************************/
 
 .ui.breadcrumb .active.section {
-  font-weight: bold;
+  font-weight: 500;
 }
 
 /*******************************
@@ -423,12 +423,12 @@
   vertical-align: baseline;
   background: #E0E1E2 none;
   color: rgba(0, 0, 0, 0.6);
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   margin: 0 0.25em 0 0;
   padding: 0.78571429em 1.5em 0.78571429em;
   text-transform: none;
   text-shadow: none;
-  font-weight: bold;
+  font-weight: 500;
   line-height: 1em;
   font-style: normal;
   text-align: center;
@@ -578,7 +578,7 @@
 .ui.disabled.button:hover,
 .ui.disabled.active.button {
   cursor: default;
-  opacity: 0.45 !important;
+  opacity: var(--opacity-disabled) !important;
   background-image: none;
   box-shadow: none;
   pointer-events: none !important;
@@ -1521,7 +1521,7 @@
   line-height: 1.78571429em;
   color: rgba(0, 0, 0, 0.4);
   font-style: normal;
-  font-weight: bold;
+  font-weight: 500;
   box-shadow: 0 0 0 1px transparent inset;
 }
 
@@ -5179,7 +5179,7 @@
 .ui.card > .content > .header {
   display: block;
   margin: '';
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   color: rgba(0, 0, 0, 0.85);
 }
 
@@ -5187,7 +5187,7 @@
 
 .ui.cards > .card > .content > .header:not(.ui),
 .ui.card > .content > .header:not(.ui) {
-  font-weight: bold;
+  font-weight: 500;
   font-size: 1.28571429em;
   margin-top: -0.21425em;
   line-height: 1.28571429em;
@@ -7305,7 +7305,7 @@ a.inverted.ui.card:hover,
 .ui.comments .comment .author {
   font-size: 1em;
   color: rgba(0, 0, 0, 0.87);
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .ui.comments .comment a.author {
@@ -7619,7 +7619,7 @@ a.inverted.ui.card:hover,
 /* Text Container */
 
 .ui.text.container {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   max-width: 700px;
   line-height: 1.5;
   font-size: 1.14285714rem;
@@ -7722,22 +7722,6 @@ a.inverted.ui.card:hover,
 }
 
 /* Scrollbars */
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.ui.dimmer:not(.inverted)::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
 
 /*******************************
             States
@@ -8158,7 +8142,7 @@ body.dimmable > .dimmer {
   margin: 1rem 0;
   line-height: 1;
   height: 0;
-  font-weight: bold;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: rgba(0, 0, 0, 0.85);
@@ -8616,7 +8600,7 @@ body.dimmable > .dimmer {
 .ui.dropdown .menu > .header {
   margin: 1rem 0 0.75rem;
   padding: 0 1.14285714rem;
-  font-weight: bold;
+  font-weight: 500;
   text-transform: uppercase;
 }
 
@@ -9218,7 +9202,7 @@ select.ui.dropdown {
 
 .ui.active.search.dropdown input.search:focus + .text i.icon,
 .ui.active.search.dropdown input.search:focus + .text .flag {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.active.search.dropdown input.search:focus + .text {
@@ -9416,7 +9400,7 @@ select.ui.dropdown {
 }
 
 .ui.inline.dropdown > .text {
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .ui.inline.dropdown .menu {
@@ -9437,7 +9421,7 @@ select.ui.dropdown {
 
 .ui.dropdown .menu .active.item {
   background: transparent;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.95);
   box-shadow: none;
   z-index: 12;
@@ -9750,7 +9734,7 @@ select.ui.dropdown {
 .ui.dropdown .menu > .disabled.item {
   cursor: default;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -10679,7 +10663,7 @@ select.ui.dropdown {
   margin: 0 0 0.28571429rem 0;
   color: rgba(0, 0, 0, 0.87);
   font-size: 0.92857143em;
-  font-weight: bold;
+  font-weight: 500;
   text-transform: none;
 }
 
@@ -10723,7 +10707,7 @@ select.ui.dropdown {
 .ui.form input[type="text"],
 .ui.form input[type="file"],
 .ui.form input[type="url"] {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   margin: 0;
   outline: none;
   -webkit-appearance: none;
@@ -10755,7 +10739,7 @@ select.ui.dropdown {
   box-shadow: 0 0 0 0 transparent inset;
   transition: color 0.1s ease, border-color 0.1s ease;
   font-size: 1em;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   line-height: 1.2857;
   resize: vertical;
 }
@@ -12029,12 +12013,12 @@ select.ui.dropdown {
 .ui.form .disabled.field,
 .ui.form .field :disabled {
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.form .field.disabled > label,
 .ui.form .fields.disabled > label {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.form .field.disabled :disabled {
@@ -12186,7 +12170,7 @@ select.ui.dropdown {
   margin: 0 0 0.28571429rem 0;
   color: rgba(0, 0, 0, 0.87);
   font-size: 0.92857143em;
-  font-weight: bold;
+  font-weight: 500;
   text-transform: none;
 }
 
@@ -12395,7 +12379,7 @@ select.ui.dropdown {
   margin-bottom: 0;
   vertical-align: baseline;
   font-size: 0.92857143em;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
   text-transform: none;
 }
@@ -14784,8 +14768,8 @@ select.ui.dropdown {
   border: none;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
   padding: 0 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font-weight: bold;
+  font-family: var(--fonts-regular);
+  font-weight: 500;
   line-height: 1.28571429em;
   text-transform: none;
   color: rgba(0, 0, 0, 0.87);
@@ -15045,7 +15029,7 @@ h6.ui.header .sub.header {
 .ui.sub.header {
   padding: 0;
   margin-bottom: 0.14285714rem;
-  font-weight: bold;
+  font-weight: 500;
   font-size: 0.85714286em;
   text-transform: uppercase;
   color: '';
@@ -15117,7 +15101,7 @@ h6.ui.header .sub.header {
 *******************************/
 
 .ui.disabled.header {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -15784,7 +15768,7 @@ i.emphasized.icons:not(.disabled) {
 
 i.disabled.icon,
 i.disabled.icons {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   cursor: default;
   pointer-events: none;
 }
@@ -24666,7 +24650,7 @@ img.ui.image {
 .ui.disabled.images,
 .ui.disabled.image {
   cursor: default;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -24986,7 +24970,7 @@ img.ui.bordered.image {
   -webkit-tap-highlight-color: rgba(255, 255, 255, 0);
   text-align: left;
   line-height: 1.21428571em;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   padding: 0.67857143em 1em;
   background: #FFFFFF;
   border: 1px solid rgba(34, 36, 38, 0.15);
@@ -25024,7 +25008,7 @@ img.ui.bordered.image {
 
 .ui.disabled.input,
 .ui.input:not(.disabled) input[disabled] {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 .ui.disabled.input > input,
@@ -25868,8 +25852,8 @@ img.ui.bordered.image {
 .ui.items > .item > .content > .header {
   display: inline-block;
   margin: -0.21425em 0 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font-weight: bold;
+  font-family: var(--fonts-regular);
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.85);
 }
 
@@ -26365,7 +26349,7 @@ img.ui.bordered.image {
   padding: 0.5833em 0.833em;
   color: rgba(0, 0, 0, 0.6);
   text-transform: none;
-  font-weight: bold;
+  font-weight: 500;
   border: 0 solid transparent;
   border-radius: 0.28571429rem;
   transition: background 0.1s ease;
@@ -26419,7 +26403,7 @@ a.ui.label {
 .ui.label > .detail {
   display: inline-block;
   vertical-align: top;
-  font-weight: bold;
+  font-weight: 500;
   margin-left: 1em;
   opacity: 0.8;
 }
@@ -28905,8 +28889,8 @@ ol.ui.list ol li,
 .ui.list > .item .header {
   display: block;
   margin: 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font-weight: bold;
+  font-family: var(--fonts-regular);
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
 }
 
@@ -30779,7 +30763,7 @@ ol.ui.suffixed.list li:before,
 .ui.menu {
   display: flex;
   margin: 1rem 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   background: #FFFFFF;
   font-weight: normal;
   border: 1px solid rgba(34, 36, 38, 0.15);
@@ -30943,13 +30927,13 @@ ol.ui.suffixed.list li:before,
   margin: 0;
   background: '';
   text-transform: normal;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .ui.vertical.menu .item > .header:not(.ui) {
   margin: 0 0 0.5em;
   font-size: 1em;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 /*--------------
@@ -31002,7 +30986,7 @@ ol.ui.suffixed.list li:before,
 
 .ui.menu .ui.dropdown .menu > .active.item {
   background: rgba(0, 0, 0, 0.03) !important;
-  font-weight: bold !important;
+  font-weight: 500 !important;
   color: rgba(0, 0, 0, 0.95) !important;
 }
 
@@ -31410,7 +31394,7 @@ Floated Menu / Item
 
 .ui.vertical.menu .item .menu .active.item {
   background-color: transparent;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.95);
 }
 
@@ -31458,7 +31442,7 @@ Floated Menu / Item
   color: rgba(0, 0, 0, 0.95);
   border-top-width: 1px;
   border-color: #D4D4D5;
-  font-weight: bold;
+  font-weight: 500;
   margin-bottom: -1px;
   box-shadow: none;
   border-radius: 0.28571429rem 0.28571429rem 0 0 !important;
@@ -31827,7 +31811,7 @@ Floated Menu / Item
   background-color: transparent;
   box-shadow: none;
   border-color: currentColor;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.95);
 }
 
@@ -31935,7 +31919,7 @@ Floated Menu / Item
   color: rgba(0, 0, 0, 0.85);
   font-size: 0.92857143em;
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 /* Image */
@@ -33232,8 +33216,8 @@ Floated Menu / Item
 
 .ui.message .header {
   display: block;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font-weight: bold;
+  font-family: var(--fonts-regular);
+  font-weight: 500;
   margin: -0.14285714em 0 0 0;
 }
 
@@ -33958,7 +33942,7 @@ Floated Menu / Item
 
 .ui.modal > .header {
   display: block;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   background: #FFFFFF;
   margin: 0;
   padding: 1.25rem 1.5rem;
@@ -33970,7 +33954,7 @@ Floated Menu / Item
 .ui.modal > .header:not(.ui) {
   font-size: 1.42857143rem;
   line-height: 1.28571429em;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 /*--------------
@@ -34747,10 +34731,10 @@ Floated Menu / Item
 
 .ui.popup > .header {
   padding: 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   font-size: 1.14285714em;
   line-height: 1.2;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .ui.popup > .header + .content {
@@ -35644,7 +35628,7 @@ Floated Menu / Item
   color: rgba(255, 255, 255, 0.7);
   text-shadow: none;
   margin-top: -0.5em;
-  font-weight: bold;
+  font-weight: 500;
   text-align: left;
 }
 
@@ -35659,7 +35643,7 @@ Floated Menu / Item
   left: 0;
   bottom: auto;
   color: rgba(0, 0, 0, 0.87);
-  font-weight: bold;
+  font-weight: 500;
   text-shadow: none;
   margin-top: 0.2em;
   text-align: center;
@@ -37054,8 +37038,8 @@ template {
 
 .ui.search > .results .result .title {
   margin: -0.14285714em 0 0;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
-  font-weight: bold;
+  font-family: var(--fonts-regular);
+  font-weight: 500;
   font-size: 1em;
   color: rgba(0, 0, 0, 0.85);
 }
@@ -37080,9 +37064,9 @@ template {
 }
 
 .ui.search > .results > .message .header {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   font-size: 1rem;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.87);
 }
 
@@ -37100,7 +37084,7 @@ template {
   background: #F3F4F5;
   padding: 0.92857143em 1em;
   color: rgba(0, 0, 0, 0.87);
-  font-weight: bold;
+  font-weight: 500;
   text-align: center;
 }
 
@@ -37199,7 +37183,7 @@ template {
 .ui.disabled.search {
   cursor: default;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /*******************************
@@ -37288,10 +37272,10 @@ template {
   width: 100px;
   white-space: nowrap;
   background: transparent;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   font-size: 1em;
   padding: 0.4em 1em;
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.4);
   border-bottom: 1px solid rgba(34, 36, 38, 0.1);
 }
@@ -38000,7 +37984,7 @@ template {
   ---------------*/
 
 .ui.disabled.segment {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   color: rgba(40, 40, 40, 0.3);
 }
 
@@ -39034,7 +39018,7 @@ body {
   overflow-x: hidden;
   min-width: 320px;
   background: #FFFFFF;
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   font-size: 14px;
   line-height: 1.4285em;
   color: rgba(0, 0, 0, 0.87);
@@ -39049,10 +39033,10 @@ h2,
 h3,
 h4,
 h5 {
-  font-family: 'Roboto', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+  font-family: var(--fonts-regular);
   line-height: 1.28571429em;
   margin: calc(2rem - 0.1428571428571429em) 0 1rem;
-  font-weight: bold;
+  font-weight: 500;
   padding: 0;
 }
 
@@ -39173,53 +39157,6 @@ textarea::selection,
 input::selection {
   background-color: rgba(100, 100, 100, 0.4);
   color: rgba(0, 0, 0, 0.87);
-}
-
-/* Force Simple Scrollbars */
-
-body ::-webkit-scrollbar {
-  -webkit-appearance: none;
-  width: 10px;
-  height: 10px;
-}
-
-body ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 0;
-}
-
-body ::-webkit-scrollbar-thumb {
-  cursor: pointer;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.25);
-  -webkit-transition: color 0.2s ease;
-  transition: color 0.2s ease;
-}
-
-body ::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-body ::-webkit-scrollbar-thumb:hover {
-  background: rgba(128, 135, 139, 0.8);
-}
-
-/* Inverted UI */
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:window-inactive {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
 }
 
 /*******************************
@@ -39388,7 +39325,7 @@ body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
   padding: 0.92857143em 0.78571429em;
   vertical-align: inherit;
   font-style: none;
-  font-weight: bold;
+  font-weight: 500;
   text-transform: none;
   border-bottom: 1px solid rgba(34, 36, 38, 0.1);
   border-left: none;
@@ -39563,7 +39500,7 @@ body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
   .ui.table:not(.unstackable) > tr > td:first-child,
   .ui.table:not(.unstackable) > tbody > tr > td:first-child,
   .ui.table:not(.unstackable) > tfoot > tr > td:first-child {
-    font-weight: bold;
+    font-weight: 500;
   }
 
   /* Definition Table */
@@ -39894,7 +39831,7 @@ body .ui.inverted:not(.dimmer)::-webkit-scrollbar-thumb:hover {
 .ui.definition.table > tfoot > tr > td:first-child:not(.ignored),
 .ui.definition.table tr td.definition {
   background: rgba(0, 0, 0, 0.03);
-  font-weight: bold;
+  font-weight: 500;
   color: rgba(0, 0, 0, 0.95);
   text-transform: '';
   box-shadow: '';
@@ -41846,7 +41783,7 @@ span.ui.warning.text {
 }
 
 span.ui.disabled.text {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
 }
 
 /* Sizes */

@@ -12,21 +12,23 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // Migrate migrate remote git repository to gitea
-func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
+func Migrate(ctx *context.APIContext) {
 	// swagger:operation POST /repos/migrate repository repoMigrate
 	// ---
 	// summary: Migrate a remote git repository
@@ -46,6 +48,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.MigrateRepoOptions)
 
 	//get repoOwner
 	var (
@@ -119,6 +123,11 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		return
 	}
 
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrationsGlobalDisabled", fmt.Errorf("the site administrator has disabled migrations"))
+		return
+	}
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -136,6 +145,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		PullRequests:   form.PullRequests,
 		Releases:       form.Releases,
 		GitServiceType: gitServiceType,
+		MirrorInterval: form.MirrorInterval,
 	}
 	if opts.Mirror {
 		opts.Issues = false
@@ -171,11 +181,8 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 		}
 
 		if err == nil {
-			repo.Status = models.RepositoryReady
-			if err := models.UpdateRepositoryCols(repo, "status"); err == nil {
-				notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
-				return
-			}
+			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
+			return
 		}
 
 		if repo != nil {
@@ -191,7 +198,7 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	}
 
 	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, repo.APIFormat(models.AccessModeAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
 }
 
 func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
@@ -212,6 +219,10 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(models.ErrNameCharsNotAllowed).Name))
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+	case models.IsErrMigrationNotAllowed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
+	case base.IsErrNotSupported(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||

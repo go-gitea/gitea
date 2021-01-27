@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -164,9 +165,9 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 // escape a line's content or return <br> needed for copy/paste purposes
 func getLineContent(content string) string {
 	if len(content) > 0 {
-		return content
+		return html.EscapeString(content)
 	}
-	return "\n"
+	return "<br>"
 }
 
 // DiffSection represents a section of a DiffFile.
@@ -355,8 +356,6 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
-	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
@@ -676,6 +675,15 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 	leftLine, rightLine := 1, 1
 
 	for {
+		for isFragment {
+			curFile.IsIncomplete = true
+			_, isFragment, err = input.ReadLine()
+			if err != nil {
+				// Now by the definition of ReadLine this cannot be io.EOF
+				err = fmt.Errorf("Unable to ReadLine: %v", err)
+				return
+			}
+		}
 		sb.Reset()
 		lineBytes, isFragment, err = input.ReadLine()
 		if err != nil {
@@ -789,6 +797,10 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 					return
 				}
 			}
+		}
+		if len(line) > maxLineCharacters {
+			curFile.IsIncomplete = true
+			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 

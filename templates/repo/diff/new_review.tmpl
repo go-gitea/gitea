@@ -7,10 +7,10 @@
 		<div class="ui clearing segment">
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
 			{{.CsrfTokenHtml}}
-			    <input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
-				<i class="ui right floated link icon close"></i>
-				<div class="header">
-				{{$.i18n.Tr "repo.diff.review.header"}}
+				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
+				<div class="header df ac pb-3">
+					<div class="f1">{{$.i18n.Tr "repo.diff.review.header"}}</div>
+					<a class="muted close px-3">{{svg "octicon-x" 16}}</a>
 				</div>
 				<div class="ui field">
 					<textarea name="content" tabindex="0" rows="2"

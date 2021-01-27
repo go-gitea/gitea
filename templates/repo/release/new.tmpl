@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository new release">
+<div class="page-content repository new release">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui dividing header">
@@ -67,27 +67,27 @@
 					<span class="help">{{.i18n.Tr "repo.release.prerelease_helper"}}</span>
 					<div class="field">
 						{{if .PageIsEditRelease}}
-							<a class="ui blue basic button" href="{{.RepoLink}}/releases">
+							<a class="ui button" href="{{.RepoLink}}/releases">
 								{{.i18n.Tr "repo.release.cancel"}}
 							</a>
-							{{if .IsDraft}}
-								<input class="ui grey button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
-								<button class="ui green button">
-									{{.i18n.Tr "repo.release.publish"}}
-								</button>
-							{{else}}
-								<button class="ui green button">
-									{{.i18n.Tr "repo.release.edit_release"}}
-								</button>
-							{{end}}
 							<a class="ui red button delete-button" data-url="{{$.RepoLink}}/releases/delete" data-id="{{.ID}}">
 								{{$.i18n.Tr "repo.release.delete_release"}}
 							</a>
+							{{if .IsDraft}}
+								<input class="ui button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
+								<button class="ui primary button">
+									{{.i18n.Tr "repo.release.publish"}}
+								</button>
+							{{else}}
+								<button class="ui primary button">
+									{{.i18n.Tr "repo.release.edit_release"}}
+								</button>
+							{{end}}
 						{{else}}
-							<button class="ui green button">
+							<input class="ui button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
+							<button class="ui primary button">
 								{{.i18n.Tr "repo.release.publish"}}
 							</button>
-							<input class="ui grey button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
 						{{end}}
 					</div>
 				</div>
