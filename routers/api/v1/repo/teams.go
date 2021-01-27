@@ -102,6 +102,10 @@ func IsTeam(ctx *context.APIContext) {
 	}
 
 	if team.HasRepository(ctx.Repo.Repository.ID) {
+		if err := team.GetUnits(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
+			return
+		}
 		apiTeam := convert.ToTeam(team)
 		ctx.JSON(http.StatusOK, apiTeam)
 		return
