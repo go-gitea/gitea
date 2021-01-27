@@ -247,7 +247,7 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
-	// FIXME: not all routes need go through same middlewares.
+	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check

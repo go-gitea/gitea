@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
 )
@@ -33,7 +33,7 @@ type CreateOrgForm struct {
 // Validate validates the fields
 func (f *CreateOrgForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // UpdateOrgSettingForm form for updating organization settings
@@ -51,7 +51,7 @@ type UpdateOrgSettingForm struct {
 // Validate validates the fields
 func (f *UpdateOrgSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ___________
@@ -74,5 +74,5 @@ type CreateTeamForm struct {
 // Validate validates the fields
 func (f *CreateTeamForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

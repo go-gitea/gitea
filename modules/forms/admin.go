@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
 )
@@ -27,7 +27,7 @@ type AdminCreateUserForm struct {
 // Validate validates form fields
 func (f *AdminCreateUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AdminEditUserForm form for admin to create user
@@ -54,7 +54,7 @@ type AdminEditUserForm struct {
 // Validate validates form fields
 func (f *AdminEditUserForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // AdminDashboardForm form for admin dashboard operations
@@ -66,5 +66,5 @@ type AdminDashboardForm struct {
 // Validate validates form fields
 func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
