@@ -12488,7 +12488,7 @@
           "x-go-name": "Gitignores"
         },
         "issue_labels": {
-          "description": "Issue Label set to use",
+          "description": "Label-Set to use",
           "type": "string",
           "x-go-name": "IssueLabels"
         },
@@ -14212,7 +14212,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/auth"
+      "x-go-package": "code.gitea.io/gitea/modules/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14292,7 +14292,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/auth"
+      "x-go-package": "code.gitea.io/gitea/modules/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -15473,6 +15473,10 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "duration": {
+          "type": "string",
+          "x-go-name": "Duration"
+        },
         "issue_index": {
           "type": "integer",
           "format": "int64",
@@ -15489,6 +15493,11 @@
         "repo_owner_name": {
           "type": "string",
           "x-go-name": "RepoOwnerName"
+        },
+        "seconds": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Seconds"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

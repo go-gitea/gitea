@@ -5,25 +5,19 @@ go 1.14
 require (
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.13.1
+	gitea.com/go-chi/binding v0.0.0-20210113025129-03f1d313373c
+	gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
+	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
-	gitea.com/macaron/binding v0.0.0-20190822013154-a5f53841ed2b
-	gitea.com/macaron/cache v0.0.0-20200924044943-905232fba10b
-	gitea.com/macaron/captcha v0.0.0-20200825161008-e8597820aaca
-	gitea.com/macaron/cors v0.0.0-20190826180238-95aec09ea8b4
-	gitea.com/macaron/csrf v0.0.0-20190822024205-3dc5a4474439
-	gitea.com/macaron/gzip v0.0.0-20200827120000-efa5e8477cf5
-	gitea.com/macaron/i18n v0.0.0-20200911004404-4ca3dd0cbd60
-	gitea.com/macaron/inject v0.0.0-20190805023432-d4c86e31027a
-	gitea.com/macaron/macaron v1.5.1-0.20201027213641-0db5d4584804
-	gitea.com/macaron/session v0.0.0-20201103015045-a177a2701dee
-	gitea.com/macaron/toolbox v0.0.0-20190822013122-05ff0fc766b7
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.5.1
 	github.com/RoaringBitmap/roaring v0.5.5 // indirect
 	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/blevesearch/bleve/v2 v2.0.1
+	github.com/caddyserver/certmagic v0.12.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.9.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -35,6 +29,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.1
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-chi/chi v1.5.1
+	github.com/go-chi/cors v1.1.1
 	github.com/go-enry/go-enry/v2 v2.6.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
@@ -46,6 +41,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
+	github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/context v1.1.1
@@ -128,3 +124,5 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 
 replace github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
+
+replace github.com/gogs/go-gogs-client => github.com/6543-forks/go-gogs-client v0.0.0-20210116182316-f2f8bc0ea9cc

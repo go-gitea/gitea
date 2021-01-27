@@ -256,6 +256,10 @@ func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 		issueList = append(issueList, issues...)
 	}
 
+	if err := IssueList(issueList).LoadComments(); err != nil {
+		return nil, err
+	}
+
 	b.Issues = issueList
 	return issueList, nil
 }

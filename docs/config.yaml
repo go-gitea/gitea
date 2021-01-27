@@ -19,7 +19,7 @@ params:
   author: The Gitea Authors
   website: https://docs.gitea.io
   version: 1.13.1
-  minGoVersion: 1.13
+  minGoVersion: 1.14
   goVersion: 1.15
   minNodeVersion: 10.13
 
@@ -356,6 +356,53 @@ languages:
           weight: 70
           pre: comment
         - name: Fórum
+          url: https://discourse.gitea.io/
+          weight: 80
+          pre: group
+
+  de-de:
+    weight: 7
+    languageName: Deutsch
+    menu:
+      page:
+        - name: Webseite
+          url: https://gitea.io/en-us/
+          weight: 10
+          pre: home
+          post: active
+        - name: Dokumentation
+          url: /de-de/
+          weight: 20
+          pre: question
+        - name: API
+          url: https://try.gitea.io/api/swagger
+          weight: 45
+          pre: plug
+        - name: Blog
+          url: https://blog.gitea.io/
+          weight: 30
+          pre: rss
+        - name: Code
+          url: https://code.gitea.io/
+          weight: 40
+          pre: code
+        - name: Übersetzung
+          url: https://crowdin.com/project/gitea
+          weight: 41
+          pre: language
+        - name: Downloads
+          url: https://dl.gitea.io/
+          weight: 50
+          pre: download
+        - name: GitHub
+          url: https://github.com/go-gitea/
+          weight: 60
+          pre: github
+        - name: Discord Chat
+          url: https://discord.gg/Gitea
+          weight: 70
+          pre: comment
+        - name: Forum
           url: https://discourse.gitea.io/
           weight: 80
           pre: group
