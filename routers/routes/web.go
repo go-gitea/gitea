@@ -161,7 +161,9 @@ func WebRoutes() *web.Route {
 
 	mailer.InitMailRender(templates.Mailer())
 
-	r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	if setting.Service.EnableCaptcha {
+		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	}
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
