@@ -67,7 +67,8 @@ require (
 	github.com/mgechev/revive v1.0.3
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.4
-	github.com/minio/minio-go/v7 v7.0.6
+	github.com/minio/md5-simd v1.1.1 // indirect
+	github.com/minio/minio-go/v7 v7.0.7
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -103,7 +104,7 @@ require (
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
+	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 	golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c

@@ -53,15 +53,6 @@ type NoncurrentVersionExpiration struct {
 	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty"`
 }
 
-// NoncurrentVersionTransition structure, set this action to request server to
-// transition noncurrent object versions to different set storage classes
-// at a specific period in the object's lifetime.
-type NoncurrentVersionTransition struct {
-	XMLName        xml.Name       `xml:"NoncurrentVersionTransition,omitempty"  json:"-"`
-	StorageClass   string         `xml:"StorageClass,omitempty" json:"StorageClass,omitempty"`
-	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty" json:"NoncurrentDays,omitempty"`
-}
-
 // MarshalXML if non-current days not set to non zero value
 func (n NoncurrentVersionExpiration) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if n.IsDaysNull() {
@@ -76,13 +67,28 @@ func (n NoncurrentVersionExpiration) IsDaysNull() bool {
 	return n.NoncurrentDays == ExpirationDays(0)
 }
 
+// NoncurrentVersionTransition structure, set this action to request server to
+// transition noncurrent object versions to different set storage classes
+// at a specific period in the object's lifetime.
+type NoncurrentVersionTransition struct {
+	XMLName        xml.Name       `xml:"NoncurrentVersionTransition,omitempty"  json:"-"`
+	StorageClass   string         `xml:"StorageClass,omitempty" json:"StorageClass,omitempty"`
+	NoncurrentDays ExpirationDays `xml:"NoncurrentDays,omitempty" json:"NoncurrentDays,omitempty"`
+}
+
+// IsDaysNull returns true if days field is null
+func (n NoncurrentVersionTransition) IsDaysNull() bool {
+	return n.NoncurrentDays == ExpirationDays(0)
+}
+
 // MarshalXML is extended to leave out
 // <NoncurrentVersionTransition></NoncurrentVersionTransition> tags
 func (n NoncurrentVersionTransition) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	if n.NoncurrentDays == ExpirationDays(0) {
+	if n.IsDaysNull() {
 		return nil
 	}
-	return e.EncodeElement(&n, start)
+	type noncurrentVersionTransitionWrapper NoncurrentVersionTransition
+	return e.EncodeElement(noncurrentVersionTransitionWrapper(n), start)
 }
 
 // Tag structure key/value pair representing an object tag to apply lifecycle configuration
