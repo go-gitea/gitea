@@ -222,7 +222,7 @@ github.com/emirpasic/gods/utils
 # github.com/ethantkoenig/rupture v1.0.0
 ## explicit
 github.com/ethantkoenig/rupture
-# github.com/fatih/color v1.9.0
+# github.com/fatih/color v1.10.0
 github.com/fatih/color
 # github.com/fatih/structtag v1.2.0
 github.com/fatih/structtag
@@ -540,13 +540,12 @@ github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-# github.com/mattn/go-colorable v0.1.7
-## explicit
+# github.com/mattn/go-colorable v0.1.8
 github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.9
+# github.com/mattn/go-runewidth v0.0.10
 ## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.14.6
@@ -557,7 +556,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 ## explicit
 github.com/mgechev/dots
-# github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7
+# github.com/mgechev/revive v1.0.3
 ## explicit
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
@@ -665,6 +664,9 @@ github.com/prometheus/procfs/internal/util
 ## explicit
 github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
+# github.com/rivo/uniseg v0.2.0
+## explicit
+github.com/rivo/uniseg
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
 # github.com/russross/blackfriday/v2 v2.0.1
@@ -857,9 +859,10 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210113181707-4bcb84eeeb78
+# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 ## explicit
 golang.org/x/sys/cpu
+golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -891,7 +894,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 ## explicit
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20201125231158-b5590deeca9b
+# golang.org/x/tools v0.1.0
 ## explicit
 golang.org/x/tools/cover
 golang.org/x/tools/go/analysis
