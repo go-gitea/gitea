@@ -17,6 +17,7 @@ require (
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/blevesearch/bleve/v2 v2.0.1
+	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/caddyserver/certmagic v0.12.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.9.0
@@ -78,7 +79,7 @@ require (
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/pquerna/otp v1.2.0
+	github.com/pquerna/otp v1.3.0
 	github.com/prometheus/client_golang v1.8.0
 	github.com/quasoft/websspi v1.0.0
 	github.com/rivo/uniseg v0.2.0 // indirect

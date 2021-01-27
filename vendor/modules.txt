@@ -152,7 +152,8 @@ github.com/blevesearch/zapx/v13
 github.com/blevesearch/zapx/v14
 # github.com/blevesearch/zapx/v15 v15.1.10
 github.com/blevesearch/zapx/v15
-# github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc
+# github.com/boombuler/barcode v1.0.1
+## explicit
 github.com/boombuler/barcode
 github.com/boombuler/barcode/qr
 github.com/boombuler/barcode/utils
@@ -641,7 +642,7 @@ github.com/pierrec/lz4/v4/internal/xxh32
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/pquerna/otp v1.2.0
+# github.com/pquerna/otp v1.3.0
 ## explicit
 github.com/pquerna/otp
 github.com/pquerna/otp/hotp
