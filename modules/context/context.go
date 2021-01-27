@@ -485,6 +485,31 @@ func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
 }
 
+// SignedUserName returns signed user's name via context
+func SignedUserName(req *http.Request) string {
+	if middlewares.IsInternalPath(req) {
+		return ""
+	}
+	if middlewares.IsAPIPath(req) {
+		ctx, ok := req.Context().Value(apiContextKey).(*APIContext)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	} else {
+		ctx, ok := req.Context().Value(contextKey).(*Context)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	}
+	return ""
+}
+
 func getCsrfOpts() CsrfOptions {
 	return CsrfOptions{
 		Secret:         setting.SecretKey,
