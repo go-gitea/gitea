@@ -12,10 +12,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 )
 
@@ -325,17 +326,20 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 }
 
 // EditFilePost response for editing file
-func EditFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
-	editFilePost(ctx, form, false)
+func EditFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditRepoFileForm)
+	editFilePost(ctx, *form, false)
 }
 
 // NewFilePost response for creating file
-func NewFilePost(ctx *context.Context, form auth.EditRepoFileForm) {
-	editFilePost(ctx, form, true)
+func NewFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditRepoFileForm)
+	editFilePost(ctx, *form, true)
 }
 
 // DiffPreviewPost render preview diff page
-func DiffPreviewPost(ctx *context.Context, form auth.EditPreviewDiffForm) {
+func DiffPreviewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditPreviewDiffForm)
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
 	if len(treePath) == 0 {
 		ctx.Error(500, "file name to diff is invalid")
@@ -394,7 +398,8 @@ func DeleteFile(ctx *context.Context) {
 }
 
 // DeleteFilePost response for deleting file
-func DeleteFilePost(ctx *context.Context, form auth.DeleteRepoFileForm) {
+func DeleteFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.DeleteRepoFileForm)
 	canCommit := renderCommitRights(ctx)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
@@ -556,7 +561,8 @@ func UploadFile(ctx *context.Context) {
 }
 
 // UploadFilePost response for uploading file
-func UploadFilePost(ctx *context.Context, form auth.UploadRepoFileForm) {
+func UploadFilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UploadRepoFileForm)
 	ctx.Data["PageIsUpload"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -760,7 +766,8 @@ func UploadFileToServer(ctx *context.Context) {
 }
 
 // RemoveUploadFileFromServer remove file from server file dir
-func RemoveUploadFileFromServer(ctx *context.Context, form auth.RemoveUploadFileForm) {
+func RemoveUploadFileFromServer(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RemoveUploadFileForm)
 	if len(form.File) == 0 {
 		ctx.Status(204)
 		return

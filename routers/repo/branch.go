@@ -10,14 +10,15 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -367,7 +368,8 @@ func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 }
 
 // CreateBranch creates new branch in repository
-func CreateBranch(ctx *context.Context, form auth.NewBranchForm) {
+func CreateBranch(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewBranchForm)
 	if !ctx.Repo.CanCreateBranch() {
 		ctx.NotFound("CreateBranch", nil)
 		return
