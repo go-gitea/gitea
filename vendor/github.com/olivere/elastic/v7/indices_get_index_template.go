@@ -14,15 +14,15 @@ import (
 	"github.com/olivere/elastic/v7/uritemplates"
 )
 
-// IndicesGetTemplateService returns an index template (v1).
+// IndicesGetIndexTemplateService returns an index template.
 //
 // Index templates have changed during in 7.8 update of Elasticsearch.
-// This service implements the legacy version (7.7 or lower). If you want
-// the new version, please use the IndicesGetIndexTemplateService.
+// This service implements the new version (7.8 or later). If you want
+// the old version, please use the IndicesGetTemplateService.
 //
-// See https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-get-template-v1.html
+// See https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-get-template.html
 // for more details.
-type IndicesGetTemplateService struct {
+type IndicesGetIndexTemplateService struct {
 	client *Client
 
 	pretty     *bool       // pretty format the returned JSON response
@@ -31,46 +31,47 @@ type IndicesGetTemplateService struct {
 	filterPath []string    // list of filters used to reduce the response
 	headers    http.Header // custom request-level HTTP headers
 
-	name         []string
-	flatSettings *bool
-	local        *bool
+	name          []string
+	masterTimeout string
+	flatSettings  *bool
+	local         *bool
 }
 
-// NewIndicesGetTemplateService creates a new IndicesGetTemplateService.
-func NewIndicesGetTemplateService(client *Client) *IndicesGetTemplateService {
-	return &IndicesGetTemplateService{
+// NewIndicesGetIndexTemplateService creates a new IndicesGetIndexTemplateService.
+func NewIndicesGetIndexTemplateService(client *Client) *IndicesGetIndexTemplateService {
+	return &IndicesGetIndexTemplateService{
 		client: client,
 		name:   make([]string, 0),
 	}
 }
 
 // Pretty tells Elasticsearch whether to return a formatted JSON response.
-func (s *IndicesGetTemplateService) Pretty(pretty bool) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Pretty(pretty bool) *IndicesGetIndexTemplateService {
 	s.pretty = &pretty
 	return s
 }
 
 // Human specifies whether human readable values should be returned in
 // the JSON response, e.g. "7.5mb".
-func (s *IndicesGetTemplateService) Human(human bool) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Human(human bool) *IndicesGetIndexTemplateService {
 	s.human = &human
 	return s
 }
 
 // ErrorTrace specifies whether to include the stack trace of returned errors.
-func (s *IndicesGetTemplateService) ErrorTrace(errorTrace bool) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) ErrorTrace(errorTrace bool) *IndicesGetIndexTemplateService {
 	s.errorTrace = &errorTrace
 	return s
 }
 
 // FilterPath specifies a list of filters used to reduce the response.
-func (s *IndicesGetTemplateService) FilterPath(filterPath ...string) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) FilterPath(filterPath ...string) *IndicesGetIndexTemplateService {
 	s.filterPath = filterPath
 	return s
 }
 
 // Header adds a header to the request.
-func (s *IndicesGetTemplateService) Header(name string, value string) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Header(name string, value string) *IndicesGetIndexTemplateService {
 	if s.headers == nil {
 		s.headers = http.Header{}
 	}
@@ -79,37 +80,43 @@ func (s *IndicesGetTemplateService) Header(name string, value string) *IndicesGe
 }
 
 // Headers specifies the headers of the request.
-func (s *IndicesGetTemplateService) Headers(headers http.Header) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Headers(headers http.Header) *IndicesGetIndexTemplateService {
 	s.headers = headers
 	return s
 }
 
 // Name is the name of the index template.
-func (s *IndicesGetTemplateService) Name(name ...string) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Name(name ...string) *IndicesGetIndexTemplateService {
 	s.name = append(s.name, name...)
 	return s
 }
 
 // FlatSettings is returns settings in flat format (default: false).
-func (s *IndicesGetTemplateService) FlatSettings(flatSettings bool) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) FlatSettings(flatSettings bool) *IndicesGetIndexTemplateService {
 	s.flatSettings = &flatSettings
 	return s
 }
 
 // Local indicates whether to return local information, i.e. do not retrieve
 // the state from master node (default: false).
-func (s *IndicesGetTemplateService) Local(local bool) *IndicesGetTemplateService {
+func (s *IndicesGetIndexTemplateService) Local(local bool) *IndicesGetIndexTemplateService {
 	s.local = &local
 	return s
 }
 
+// MasterTimeout specifies the timeout for connection to master.
+func (s *IndicesGetIndexTemplateService) MasterTimeout(masterTimeout string) *IndicesGetIndexTemplateService {
+	s.masterTimeout = masterTimeout
+	return s
+}
+
 // buildURL builds the URL for the operation.
-func (s *IndicesGetTemplateService) buildURL() (string, url.Values, error) {
+func (s *IndicesGetIndexTemplateService) buildURL() (string, url.Values, error) {
 	// Build URL
 	var err error
 	var path string
 	if len(s.name) > 0 {
-		path, err = uritemplates.Expand("/_template/{name}", map[string]string{
+		path, err = uritemplates.Expand("/_index_template/{name}", map[string]string{
 			"name": strings.Join(s.name, ","),
 		})
 	} else {
@@ -139,16 +146,19 @@ func (s *IndicesGetTemplateService) buildURL() (string, url.Values, error) {
 	if s.local != nil {
 		params.Set("local", fmt.Sprintf("%v", *s.local))
 	}
+	if s.masterTimeout != "" {
+		params.Set("master_timeout", s.masterTimeout)
+	}
 	return path, params, nil
 }
 
 // Validate checks if the operation is valid.
-func (s *IndicesGetTemplateService) Validate() error {
+func (s *IndicesGetIndexTemplateService) Validate() error {
 	return nil
 }
 
 // Do executes the operation.
-func (s *IndicesGetTemplateService) Do(ctx context.Context) (map[string]*IndicesGetTemplateResponse, error) {
+func (s *IndicesGetIndexTemplateService) Do(ctx context.Context) (*IndicesGetIndexTemplateResponse, error) {
 	// Check pre-conditions
 	if err := s.Validate(); err != nil {
 		return nil, err
@@ -172,19 +182,33 @@ func (s *IndicesGetTemplateService) Do(ctx context.Context) (map[string]*Indices
 	}
 
 	// Return operation response
-	var ret map[string]*IndicesGetTemplateResponse
+	var ret *IndicesGetIndexTemplateResponse
 	if err := s.client.decoder.Decode(res.Body, &ret); err != nil {
 		return nil, err
 	}
 	return ret, nil
 }
 
-// IndicesGetTemplateResponse is the response of IndicesGetTemplateService.Do.
-type IndicesGetTemplateResponse struct {
-	Order         int                    `json:"order,omitempty"`
-	Version       int                    `json:"version,omitempty"`
-	IndexPatterns []string               `json:"index_patterns,omitempty"`
-	Settings      map[string]interface{} `json:"settings,omitempty"`
-	Mappings      map[string]interface{} `json:"mappings,omitempty"`
-	Aliases       map[string]interface{} `json:"aliases,omitempty"`
+// IndicesGetIndexTemplateResponse is the response of IndicesGetIndexTemplateService.Do.
+type IndicesGetIndexTemplateResponse struct {
+	IndexTemplates []IndicesGetIndexTemplates `json:"index_templates"`
+}
+
+type IndicesGetIndexTemplates struct {
+	Name          string                   `json:"name"`
+	IndexTemplate *IndicesGetIndexTemplate `json:"index_template"`
+}
+
+type IndicesGetIndexTemplate struct {
+	IndexPatterns []string                     `json:"index_patterns,omitempty"`
+	ComposedOf    []string                     `json:"composed_of,omitempty"`
+	Priority      int                          `json:"priority,omitempty"`
+	Version       int                          `json:"version,omitempty"`
+	Template      *IndicesGetIndexTemplateData `json:"template,omitempty"`
+}
+
+type IndicesGetIndexTemplateData struct {
+	Settings map[string]interface{} `json:"settings,omitempty"`
+	Mappings map[string]interface{} `json:"mappings,omitempty"`
+	Aliases  map[string]interface{} `json:"aliases,omitempty"`
 }
