@@ -46,37 +46,39 @@ func TestTimeSince(t *testing.T) {
 
 	// test that each diff in `diffs` yields the expected string
 	test := func(expected string, diffs ...time.Duration) {
-		for _, diff := range diffs {
-			actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
-			assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
-			actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
-			assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
-		}
+		t.Run(expected, func(t *testing.T) {
+			for _, diff := range diffs {
+				actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
+				assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
+				actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
+				assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
+			}
+		})
 	}
 	test("1 second", time.Second, time.Second+50*time.Millisecond)
 	test("2 seconds", 2*time.Second, 2*time.Second+50*time.Millisecond)
 	test("1 minute", time.Minute, time.Minute+29*time.Second)
-	test("2 minutes", time.Minute, time.Minute+30*time.Second)
+	test("2 minutes", 2*time.Minute, time.Minute+30*time.Second)
 	test("2 minutes", 2*time.Minute, 2*time.Minute+29*time.Second)
 	test("1 hour", time.Hour, time.Hour+29*time.Minute)
-	test("2 hours", time.Hour, time.Hour+30*time.Minute)
+	test("2 hours", 2*time.Hour, time.Hour+30*time.Minute)
 	test("2 hours", 2*time.Hour, 2*time.Hour+29*time.Minute)
-	test("3 hours", 2*time.Hour, 2*time.Hour+30*time.Minute)
+	test("3 hours", 3*time.Hour, 2*time.Hour+30*time.Minute)
 	test("1 day", DayDur, DayDur+11*time.Hour)
-	test("2 days", DayDur, DayDur+12*time.Hour)
+	test("2 days", 2*DayDur, DayDur+12*time.Hour)
 	test("2 days", 2*DayDur, 2*DayDur+11*time.Hour)
-	test("3 days", 2*DayDur, 2*DayDur+12*time.Hour)
+	test("3 days", 3*DayDur, 2*DayDur+12*time.Hour)
 	test("1 week", WeekDur, WeekDur+3*DayDur)
-	test("2 weeks", WeekDur, WeekDur+4*DayDur)
+	test("2 weeks", 2*WeekDur, WeekDur+4*DayDur)
 	test("2 weeks", 2*WeekDur, 2*WeekDur+3*DayDur)
-	test("3 weeks", 2*WeekDur, 2*WeekDur+4*DayDur)
-	test("1 month", MonthDur, MonthDur+15*DayDur)
-	test("2 months", MonthDur, MonthDur+16*DayDur)
-	test("2 months", 2*MonthDur, 2*MonthDur+15*DayDur)
+	test("3 weeks", 3*WeekDur, 2*WeekDur+4*DayDur)
+	test("1 month", MonthDur, MonthDur+14*DayDur)
+	test("2 months", 2*MonthDur, MonthDur+15*DayDur)
+	test("2 months", 2*MonthDur, 2*MonthDur+14*DayDur)
 	test("1 year", YearDur, YearDur+5*MonthDur)
-	test("2 years", YearDur, YearDur+6*MonthDur)
+	test("2 years", 2*YearDur, YearDur+6*MonthDur)
 	test("2 years", 2*YearDur, 2*YearDur+5*MonthDur)
-	test("3 years", 2*YearDur, 2*YearDur+6*MonthDur)
+	test("3 years", 3*YearDur, 2*YearDur+6*MonthDur)
 }
 
 func TestTimeSincePro(t *testing.T) {

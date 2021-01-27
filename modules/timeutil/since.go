@@ -22,12 +22,70 @@ const (
 	Hour   = 60 * Minute
 	Day    = 24 * Hour
 	Week   = 7 * Day
-	Year   = 365*Day + 5*Hour + 48*Minute + 46 // 365d5h48m46s ref. https://pumas.nasa.gov/files/04_21_97_1.pdf
-	Month  = Year / 12
+	Month  = 30 * Day
+	Year   = 12 * Month
 )
 
 func round(s float64) int64 {
 	return int64(math.Round(s))
+}
+
+func computeTimeDiffFloor(diff int64, lang string) (int64, string) {
+	diffStr := ""
+	switch {
+	case diff <= 0:
+		diff = 0
+		diffStr = i18n.Tr(lang, "tool.now")
+	case diff < 2:
+		diff = 0
+		diffStr = i18n.Tr(lang, "tool.1s")
+	case diff < 1*Minute:
+		diffStr = i18n.Tr(lang, "tool.seconds", diff)
+		diff = 0
+
+	case diff < 2*Minute:
+		diff -= 1 * Minute
+		diffStr = i18n.Tr(lang, "tool.1m")
+	case diff < 1*Hour:
+		diffStr = i18n.Tr(lang, "tool.minutes", diff/Minute)
+		diff -= diff / Minute * Minute
+
+	case diff < 2*Hour:
+		diff -= 1 * Hour
+		diffStr = i18n.Tr(lang, "tool.1h")
+	case diff < 1*Day:
+		diffStr = i18n.Tr(lang, "tool.hours", diff/Hour)
+		diff -= diff / Hour * Hour
+
+	case diff < 2*Day:
+		diff -= 1 * Day
+		diffStr = i18n.Tr(lang, "tool.1d")
+	case diff < 1*Week:
+		diffStr = i18n.Tr(lang, "tool.days", diff/Day)
+		diff -= diff / Day * Day
+
+	case diff < 2*Week:
+		diff -= 1 * Week
+		diffStr = i18n.Tr(lang, "tool.1w")
+	case diff < 1*Month:
+		diffStr = i18n.Tr(lang, "tool.weeks", diff/Week)
+		diff -= diff / Week * Week
+
+	case diff < 2*Month:
+		diff -= 1 * Month
+		diffStr = i18n.Tr(lang, "tool.1mon")
+	case diff < 1*Year:
+		diffStr = i18n.Tr(lang, "tool.months", diff/Month)
+		diff -= diff / Month * Month
+
+	case diff < 2*Year:
+		diff -= 1 * Year
+		diffStr = i18n.Tr(lang, "tool.1y")
+	default:
+		diffStr = i18n.Tr(lang, "tool.years", diff/Year)
+		diff -= (diff / Year) * Year
+	}
+	return diff, diffStr
 }
 
 func computeTimeDiff(diff int64, lang string) (int64, string) {
@@ -146,7 +204,7 @@ func timeSincePro(then, now time.Time, lang string) string {
 			break
 		}
 
-		diff, diffStr = computeTimeDiff(diff, lang)
+		diff, diffStr = computeTimeDiffFloor(diff, lang)
 		timeStr += ", " + diffStr
 	}
 	return strings.TrimPrefix(timeStr, ", ")
