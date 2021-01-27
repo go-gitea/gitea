@@ -73,12 +73,12 @@ func (w *wrappedIndexer) Delete(repoID int64) error {
 	return indexer.Delete(repoID)
 }
 
-func (w *wrappedIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (w *wrappedIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	indexer, err := w.get()
 	if err != nil {
 		return 0, nil, nil, err
 	}
-	return indexer.Search(repoIDs, language, keyword, page, pageSize)
+	return indexer.Search(repoIDs, language, keyword, page, pageSize, isMatch)
 
 }
 
