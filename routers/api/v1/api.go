@@ -553,6 +553,11 @@ func Routes() *web.Route {
 		}))
 	}
 	m.Use(context.APIContexter())
+
+	if setting.EnableAccessLog {
+		m.Use(context.AccessLogger())
+	}
+
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
