@@ -133,11 +133,18 @@ func GlobalInit(ctx context.Context) {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
+	checkRunMode()
 
 	// Setup i18n
 	InitLocales()
 
 	NewServices()
+
+	if setting.EnableSQLite3 {
+		log.Info("SQLite3 Supported")
+	} else if setting.Database.UseSQLite3 {
+		log.Fatal("SQLite3 is set in settings but NOT Supported")
+	}
 
 	if setting.InstallLock {
 		highlight.NewContext()
@@ -172,10 +179,6 @@ func GlobalInit(ctx context.Context) {
 		}
 		eventsource.GetManager().Init()
 	}
-	if setting.EnableSQLite3 {
-		log.Info("SQLite3 Supported")
-	}
-	checkRunMode()
 
 	if err := repo_migrations.Init(); err != nil {
 		log.Fatal("Failed to initialize repository migrations: %v", err)
