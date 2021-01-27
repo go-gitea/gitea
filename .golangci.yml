@@ -70,7 +70,7 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/macaron.go
+    - path: routers/routes/web.go
       linters:
         - dupl
     - path: routers/api/v1/repo/issue_subscription.go

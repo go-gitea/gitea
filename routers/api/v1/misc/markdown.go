@@ -5,6 +5,7 @@
 package misc
 
 import (
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -13,12 +14,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"mvdan.cc/xurls/v2"
 )
 
 // Markdown render markdown document to HTML
-func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
+func Markdown(ctx *context.APIContext) {
 	// swagger:operation POST /markdown miscellaneous renderMarkdown
 	// ---
 	// summary: Render a markdown document as HTML
@@ -36,6 +38,8 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.MarkdownOption)
 
 	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
@@ -117,7 +121,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	body, err := ctx.Req.Body().Bytes()
+	body, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 		return

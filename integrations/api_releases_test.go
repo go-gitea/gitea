@@ -131,7 +131,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	tag := "v1.1"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s/",
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, tag)
 
 	req := NewRequestf(t, "GET", urlStr)
@@ -144,7 +144,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	nonexistingtag := "nonexistingtag"
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s/",
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, nonexistingtag)
 
 	req = NewRequestf(t, "GET", urlStr)
@@ -163,7 +163,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag/?token=%s",
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag?token=%s",
 		owner.Name, repo.Name, token)
 
 	req := NewRequestf(t, http.MethodDelete, urlStr)
@@ -171,7 +171,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 
 	// Make sure that actual releases can't be deleted outright
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag/?token=%s",
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s",
 		owner.Name, repo.Name, token)
 
 	req = NewRequestf(t, http.MethodDelete, urlStr)

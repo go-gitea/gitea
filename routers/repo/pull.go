@@ -16,17 +16,19 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -168,7 +170,8 @@ func Fork(ctx *context.Context) {
 }
 
 // ForkPost response for forking a repository
-func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
+func ForkPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
 	ctxUser := checkContextUser(ctx, form.UID)
@@ -765,7 +768,8 @@ func UpdatePullRequest(ctx *context.Context) {
 }
 
 // MergePullRequest response for merging pull request
-func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
+func MergePullRequest(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -954,7 +958,8 @@ func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 }
 
 // CompareAndPullRequestPost response for creating pull request
-func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) {
+func CompareAndPullRequestPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
@@ -974,7 +979,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 	defer headGitRepo.Close()
 
-	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, form, true)
+	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
@@ -984,7 +989,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 
 	if ctx.HasError() {
-		auth.AssignForm(form, ctx.Data)
+		middlewares.AssignForm(form, ctx.Data)
 
 		// This stage is already stop creating new pull request, so it does not matter if it has
 		// something to compare or not.

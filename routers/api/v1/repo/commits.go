@@ -69,7 +69,11 @@ func getCommit(ctx *context.APIContext, identifier string) {
 	defer gitRepo.Close()
 	commit, err := gitRepo.GetCommit(identifier)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetCommit", git.IsErrNotExist, err)
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(identifier)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "gitRepo.GetCommit", err)
 		return
 	}
 
