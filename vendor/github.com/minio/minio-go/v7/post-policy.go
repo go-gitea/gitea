@@ -170,6 +170,24 @@ func (p *PostPolicy) SetContentType(contentType string) error {
 	return nil
 }
 
+// SetContentTypeStartsWith - Sets what content-type of the object for this policy
+// based upload can start with.
+func (p *PostPolicy) SetContentTypeStartsWith(contentTypeStartsWith string) error {
+	if strings.TrimSpace(contentTypeStartsWith) == "" || contentTypeStartsWith == "" {
+		return errInvalidArgument("No content type specified.")
+	}
+	policyCond := policyCondition{
+		matchType: "starts-with",
+		condition: "$Content-Type",
+		value:     contentTypeStartsWith,
+	}
+	if err := p.addNewPolicy(policyCond); err != nil {
+		return err
+	}
+	p.formData["Content-Type"] = contentTypeStartsWith
+	return nil
+}
+
 // SetContentLengthRange - Set new min and max content length
 // condition for all incoming uploads.
 func (p *PostPolicy) SetContentLengthRange(min, max int64) error {

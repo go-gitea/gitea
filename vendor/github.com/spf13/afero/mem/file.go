@@ -225,11 +225,11 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 		return 0, ErrFileClosed
 	}
 	switch whence {
-	case 0:
+	case io.SeekStart:
 		atomic.StoreInt64(&f.at, offset)
-	case 1:
-		atomic.AddInt64(&f.at, int64(offset))
-	case 2:
+	case io.SeekCurrent:
+		atomic.AddInt64(&f.at, offset)
+	case io.SeekEnd:
 		atomic.StoreInt64(&f.at, int64(len(f.fileData.data))+offset)
 	}
 	return f.at, nil
@@ -260,7 +260,7 @@ func (f *File) Write(b []byte) (n int, err error) {
 	}
 	setModTime(f.fileData, time.Now())
 
-	atomic.StoreInt64(&f.at, int64(len(f.fileData.data)))
+	atomic.AddInt64(&f.at, int64(n))
 	return
 }
 

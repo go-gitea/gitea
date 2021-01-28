@@ -84,7 +84,7 @@ func (c *Client) GetRepoBranch(user, repo, branch string) (*Branch, *Response, e
 
 // DeleteRepoBranch delete a branch in a repository
 func (c *Client) DeleteRepoBranch(user, repo, branch string) (bool, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return false, nil, err
 	}
 	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/branches/%s", user, repo, branch), nil, nil)
@@ -118,7 +118,7 @@ func (opt CreateBranchOption) Validate() error {
 
 // CreateBranch creates a branch for a user's repository
 func (c *Client) CreateBranch(owner, repo string, opt CreateBranchOption) (*Branch, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {

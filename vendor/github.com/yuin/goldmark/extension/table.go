@@ -15,6 +15,13 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
+var escapedPipeCellListKey = parser.NewContextKey()
+
+type escapedPipeCell struct {
+	Cell *ast.TableCell
+	Pos  []int
+}
+
 // TableCellAlignMethod indicates how are table cells aligned in HTML format.indicates how are table cells aligned in HTML format.
 type TableCellAlignMethod int
 
@@ -148,7 +155,7 @@ func (b *tableParagraphTransformer) Transform(node *gast.Paragraph, reader text.
 		if alignments == nil {
 			continue
 		}
-		header := b.parseRow(lines.At(i-1), alignments, true, reader)
+		header := b.parseRow(lines.At(i-1), alignments, true, reader, pc)
 		if header == nil || len(alignments) != header.ChildCount() {
 			return
 		}
@@ -156,7 +163,7 @@ func (b *tableParagraphTransformer) Transform(node *gast.Paragraph, reader text.
 		table.Alignments = alignments
 		table.AppendChild(table, ast.NewTableHeader(header))
 		for j := i + 1; j < lines.Len(); j++ {
-			table.AppendChild(table, b.parseRow(lines.At(j), alignments, false, reader))
+			table.AppendChild(table, b.parseRow(lines.At(j), alignments, false, reader, pc))
 		}
 		node.Lines().SetSliced(0, i-1)
 		node.Parent().InsertAfter(node.Parent(), node, table)
@@ -170,7 +177,7 @@ func (b *tableParagraphTransformer) Transform(node *gast.Paragraph, reader text.
 	}
 }
 
-func (b *tableParagraphTransformer) parseRow(segment text.Segment, alignments []ast.Alignment, isHeader bool, reader text.Reader) *ast.TableRow {
+func (b *tableParagraphTransformer) parseRow(segment text.Segment, alignments []ast.Alignment, isHeader bool, reader text.Reader, pc parser.Context) *ast.TableRow {
 	source := reader.Source()
 	line := segment.Value(source)
 	pos := 0
@@ -194,18 +201,39 @@ func (b *tableParagraphTransformer) parseRow(segment text.Segment, alignments []
 		} else {
 			alignment = alignments[i]
 		}
-		closure := util.FindClosure(line[pos:], byte(0), '|', true, false)
-		if closure < 0 {
-			closure = len(line[pos:])
-		}
+
+		var escapedCell *escapedPipeCell
 		node := ast.NewTableCell()
-		seg := text.NewSegment(segment.Start+pos, segment.Start+pos+closure)
+		node.Alignment = alignment
+		hasBacktick := false
+		closure := pos
+		for ; closure < limit; closure++ {
+			if line[closure] == '`' {
+				hasBacktick = true
+			}
+			if line[closure] == '|' {
+				if closure == 0 || line[closure-1] != '\\' {
+					break
+				} else if hasBacktick {
+					if escapedCell == nil {
+						escapedCell = &escapedPipeCell{node, []int{}}
+						escapedList := pc.ComputeIfAbsent(escapedPipeCellListKey,
+							func() interface{} {
+								return []*escapedPipeCell{}
+							}).([]*escapedPipeCell)
+						escapedList = append(escapedList, escapedCell)
+						pc.Set(escapedPipeCellListKey, escapedList)
+					}
+					escapedCell.Pos = append(escapedCell.Pos, segment.Start+closure-1)
+				}
+			}
+		}
+		seg := text.NewSegment(segment.Start+pos, segment.Start+closure)
 		seg = seg.TrimLeftSpace(source)
 		seg = seg.TrimRightSpace(source)
 		node.Lines().Append(seg)
-		node.Alignment = alignment
 		row.AppendChild(row, node)
-		pos += closure + 1
+		pos = closure + 1
 	}
 	for ; i < len(alignments); i++ {
 		row.AppendChild(row, ast.NewTableCell())
@@ -241,6 +269,49 @@ func (b *tableParagraphTransformer) parseDelimiter(segment text.Segment, reader 
 		}
 	}
 	return alignments
+}
+
+type tableASTTransformer struct {
+}
+
+var defaultTableASTTransformer = &tableASTTransformer{}
+
+// NewTableASTTransformer returns a parser.ASTTransformer for tables.
+func NewTableASTTransformer() parser.ASTTransformer {
+	return defaultTableASTTransformer
+}
+
+func (a *tableASTTransformer) Transform(node *gast.Document, reader text.Reader, pc parser.Context) {
+	lst := pc.Get(escapedPipeCellListKey)
+	if lst == nil {
+		return
+	}
+	pc.Set(escapedPipeCellListKey, nil)
+	for _, v := range lst.([]*escapedPipeCell) {
+		_ = gast.Walk(v.Cell, func(n gast.Node, entering bool) (gast.WalkStatus, error) {
+			if n.Kind() != gast.KindCodeSpan {
+				return gast.WalkContinue, nil
+			}
+			c := n.FirstChild()
+			for c != nil {
+				next := c.NextSibling()
+				if c.Kind() == gast.KindText {
+					t := c.(*gast.Text)
+					for _, pos := range v.Pos {
+						if t.Segment.Start <= pos && t.Segment.Stop > pos {
+							n1 := gast.NewRawTextSegment(t.Segment.WithStop(pos))
+							n2 := gast.NewRawTextSegment(t.Segment.WithStart(pos + 1))
+							n.InsertAfter(n, c, n1)
+							n.InsertAfter(n, n1, n2)
+							n.RemoveChild(n, c)
+						}
+					}
+				}
+				c = next
+			}
+			return gast.WalkContinue, nil
+		})
+	}
 }
 
 // TableHTMLRenderer is a renderer.NodeRenderer implementation that
@@ -419,7 +490,7 @@ func (r *TableHTMLRenderer) renderTableCell(w util.BufWriter, source []byte, nod
 					cob.AppendByte(';')
 				}
 				style := fmt.Sprintf("text-align:%s", n.Alignment.String())
-				cob.Append(util.StringToReadOnlyBytes(style))
+				cob.AppendString(style)
 				n.SetAttributeString("style", cob.Bytes())
 			}
 		}
@@ -454,9 +525,14 @@ func NewTable(opts ...TableOption) goldmark.Extender {
 }
 
 func (e *table) Extend(m goldmark.Markdown) {
-	m.Parser().AddOptions(parser.WithParagraphTransformers(
-		util.Prioritized(NewTableParagraphTransformer(), 200),
-	))
+	m.Parser().AddOptions(
+		parser.WithParagraphTransformers(
+			util.Prioritized(NewTableParagraphTransformer(), 200),
+		),
+		parser.WithASTTransformers(
+			util.Prioritized(defaultTableASTTransformer, 0),
+		),
+	)
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(NewTableHTMLRenderer(e.options...), 500),
 	))

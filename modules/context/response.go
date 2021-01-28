@@ -12,6 +12,7 @@ type ResponseWriter interface {
 	Flush()
 	Status() int
 	Before(func(ResponseWriter))
+	Size() int
 }
 
 var (
@@ -21,9 +22,15 @@ var (
 // Response represents a response
 type Response struct {
 	http.ResponseWriter
+	written        int
 	status         int
 	befores        []func(ResponseWriter)
 	beforeExecuted bool
+}
+
+// Size return written size
+func (r *Response) Size() int {
+	return r.written
 }
 
 // Write writes bytes to HTTP endpoint
@@ -35,8 +42,9 @@ func (r *Response) Write(bs []byte) (int, error) {
 		r.beforeExecuted = true
 	}
 	size, err := r.ResponseWriter.Write(bs)
+	r.written += size
 	if err != nil {
-		return 0, err
+		return size, err
 	}
 	if r.status == 0 {
 		r.WriteHeader(200)
