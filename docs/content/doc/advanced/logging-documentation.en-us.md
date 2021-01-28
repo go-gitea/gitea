@@ -180,7 +180,7 @@ Certain configuration is common to all modes of log output:
 - `STACKTRACE_LEVEL` is the lowest level that this output will print
   a stacktrace. This value is inherited.
 - `MODE` is the mode of the log output. It will default to the sublogger
-  name. Thus `[log.console.macaron]` will default to `MODE = console`.
+  name. Thus `[log.console.router]` will default to `MODE = console`.
 - `COLORIZE` will default to `true` for `console` as
   described, otherwise it will default to `false`.
 
