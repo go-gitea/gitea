@@ -356,8 +356,8 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
+	ctx.Resp.WriteHeader(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -483,6 +483,31 @@ func WithContext(req *http.Request, ctx *Context) *http.Request {
 // GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
+}
+
+// SignedUserName returns signed user's name via context
+func SignedUserName(req *http.Request) string {
+	if middlewares.IsInternalPath(req) {
+		return ""
+	}
+	if middlewares.IsAPIPath(req) {
+		ctx, ok := req.Context().Value(apiContextKey).(*APIContext)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	} else {
+		ctx, ok := req.Context().Value(contextKey).(*Context)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	}
+	return ""
 }
 
 func getCsrfOpts() CsrfOptions {
