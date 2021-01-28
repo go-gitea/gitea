@@ -2,6 +2,7 @@ package ast
 
 import (
 	"fmt"
+
 	gast "github.com/yuin/goldmark/ast"
 )
 
@@ -9,13 +10,15 @@ import (
 // (PHP Markdown Extra) text.
 type FootnoteLink struct {
 	gast.BaseInline
-	Index int
+	Index    int
+	RefCount int
 }
 
 // Dump implements Node.Dump.
 func (n *FootnoteLink) Dump(source []byte, level int) {
 	m := map[string]string{}
 	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["RefCount"] = fmt.Sprintf("%v", n.RefCount)
 	gast.DumpHelper(n, source, level, m, nil)
 }
 
@@ -30,36 +33,40 @@ func (n *FootnoteLink) Kind() gast.NodeKind {
 // NewFootnoteLink returns a new FootnoteLink node.
 func NewFootnoteLink(index int) *FootnoteLink {
 	return &FootnoteLink{
-		Index: index,
+		Index:    index,
+		RefCount: 0,
 	}
 }
 
-// A FootnoteBackLink struct represents a link to a footnote of Markdown
+// A FootnoteBacklink struct represents a link to a footnote of Markdown
 // (PHP Markdown Extra) text.
-type FootnoteBackLink struct {
+type FootnoteBacklink struct {
 	gast.BaseInline
-	Index int
+	Index    int
+	RefCount int
 }
 
 // Dump implements Node.Dump.
-func (n *FootnoteBackLink) Dump(source []byte, level int) {
+func (n *FootnoteBacklink) Dump(source []byte, level int) {
 	m := map[string]string{}
 	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["RefCount"] = fmt.Sprintf("%v", n.RefCount)
 	gast.DumpHelper(n, source, level, m, nil)
 }
 
-// KindFootnoteBackLink is a NodeKind of the FootnoteBackLink node.
-var KindFootnoteBackLink = gast.NewNodeKind("FootnoteBackLink")
+// KindFootnoteBacklink is a NodeKind of the FootnoteBacklink node.
+var KindFootnoteBacklink = gast.NewNodeKind("FootnoteBacklink")
 
 // Kind implements Node.Kind.
-func (n *FootnoteBackLink) Kind() gast.NodeKind {
-	return KindFootnoteBackLink
+func (n *FootnoteBacklink) Kind() gast.NodeKind {
+	return KindFootnoteBacklink
 }
 
-// NewFootnoteBackLink returns a new FootnoteBackLink node.
-func NewFootnoteBackLink(index int) *FootnoteBackLink {
-	return &FootnoteBackLink{
-		Index: index,
+// NewFootnoteBacklink returns a new FootnoteBacklink node.
+func NewFootnoteBacklink(index int) *FootnoteBacklink {
+	return &FootnoteBacklink{
+		Index:    index,
+		RefCount: 0,
 	}
 }
 

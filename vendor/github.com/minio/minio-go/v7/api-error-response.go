@@ -102,7 +102,7 @@ const (
 // structure as error.
 func httpRespToErrorResponse(resp *http.Response, bucketName, objectName string) error {
 	if resp == nil {
-		msg := "Response is empty. " + reportIssue
+		msg := "Empty http response. " + reportIssue
 		return errInvalidArgument(msg)
 	}
 

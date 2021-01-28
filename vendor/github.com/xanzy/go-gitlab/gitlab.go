@@ -117,6 +117,7 @@ type Client struct {
 	Epics                 *EpicsService
 	Events                *EventsService
 	Features              *FeaturesService
+	FreezePeriods         *FreezePeriodsService
 	GitIgnoreTemplates    *GitIgnoreTemplatesService
 	GroupBadges           *GroupBadgesService
 	GroupCluster          *GroupClustersService
@@ -280,6 +281,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Epics = &EpicsService{client: c}
 	c.Events = &EventsService{client: c}
 	c.Features = &FeaturesService{client: c}
+	c.FreezePeriods = &FreezePeriodsService{client: c}
 	c.GitIgnoreTemplates = &GitIgnoreTemplatesService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
@@ -290,6 +292,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GroupVariables = &GroupVariablesService{client: c}
 	c.Groups = &GroupsService{client: c}
 	c.InstanceCluster = &InstanceClustersService{client: c}
+	c.InstanceVariables = &InstanceVariablesService{client: c}
 	c.IssueLinks = &IssueLinksService{client: c}
 	c.Issues = &IssuesService{client: c, timeStats: timeStats}
 	c.IssuesStatistics = &IssuesStatisticsService{client: c}
@@ -425,7 +428,7 @@ func (c *Client) configureLimiter() error {
 	if v := resp.Header.Get(headerRateLimit); v != "" {
 		if rateLimit, _ := strconv.ParseFloat(v, 64); rateLimit > 0 {
 			// The rate limit is based on requests per minute, so for our limiter to
-			// work correctly we devide the limit by 60 to get the limit per second.
+			// work correctly we divide the limit by 60 to get the limit per second.
 			rateLimit /= 60
 			// Configure the limit and burst using a split of 2/3 for the limit and
 			// 1/3 for the burst. This enables clients to burst 1/3 of the allowed

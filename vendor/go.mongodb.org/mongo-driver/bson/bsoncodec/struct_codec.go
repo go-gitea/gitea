@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,9 +20,35 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultStructCodec = &StructCodec{
-	cache:  make(map[reflect.Type]*structDescription),
-	parser: DefaultStructTagParser,
+// DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
+type DecodeError struct {
+	keys    []string
+	wrapped error
+}
+
+// Unwrap returns the underlying error
+func (de *DecodeError) Unwrap() error {
+	return de.wrapped
+}
+
+// Error implements the error interface.
+func (de *DecodeError) Error() string {
+	// The keys are stored in reverse order because the de.keys slice is builtup while propagating the error up the
+	// stack of BSON keys, so we call de.Keys(), which reverses them.
+	keyPath := strings.Join(de.Keys(), ".")
+	return fmt.Sprintf("error decoding key %s: %v", keyPath, de.wrapped)
+}
+
+// Keys returns the BSON key path that caused an error as a slice of strings. The keys in the slice are in top-down
+// order. For example, if the document being unmarshalled was {a: {b: {c: 1}}} and the value for c was supposed to be
+// a string, the keys slice will be ["a", "b", "c"].
+func (de *DecodeError) Keys() []string {
+	reversedKeys := make([]string, 0, len(de.keys))
+	for idx := len(de.keys) - 1; idx >= 0; idx-- {
+		reversedKeys = append(reversedKeys, de.keys[idx])
+	}
+
+	return reversedKeys
 }
 
 // Zeroer allows custom struct types to implement a report of zero
@@ -33,13 +60,14 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 type StructCodec struct {
-	cache                   map[reflect.Type]*structDescription
-	l                       sync.RWMutex
-	parser                  StructTagParser
-	DecodeZeroStruct        bool
-	DecodeDeepZeroInline    bool
-	EncodeOmitDefaultStruct bool
-	AllowUnexportedFields   bool
+	cache                            map[reflect.Type]*structDescription
+	l                                sync.RWMutex
+	parser                           StructTagParser
+	DecodeZeroStruct                 bool
+	DecodeDeepZeroInline             bool
+	EncodeOmitDefaultStruct          bool
+	AllowUnexportedFields            bool
+	OverwriteDuplicatedInlinedFields bool
 }
 
 var _ ValueEncoder = &StructCodec{}
@@ -66,6 +94,9 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	}
 	if structOpt.EncodeOmitDefaultStruct != nil {
 		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
+	}
+	if structOpt.OverwriteDuplicatedInlinedFields != nil {
+		codec.OverwriteDuplicatedInlinedFields = *structOpt.OverwriteDuplicatedInlinedFields
 	}
 	if structOpt.AllowUnexportedFields != nil {
 		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
@@ -166,6 +197,19 @@ func (sc *StructCodec) EncodeValue(r EncodeContext, vw bsonrw.ValueWriter, val r
 	return dw.WriteDocumentEnd()
 }
 
+func newDecodeError(key string, original error) error {
+	de, ok := original.(*DecodeError)
+	if !ok {
+		return &DecodeError{
+			keys:    []string{key},
+			wrapped: original,
+		}
+	}
+
+	de.keys = append(de.keys, key)
+	return de
+}
+
 // DecodeValue implements the Codec interface.
 // By default, map types in val will not be cleared. If a map has existing key/value pairs, it will be extended with the new ones from vr.
 // For slices, the decoder will set the length of the slice to zero and append all elements. The underlying array will not be cleared.
@@ -178,6 +222,13 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 	case bsontype.Type(0), bsontype.EmbeddedDocument:
 	case bsontype.Null:
 		if err := vr.ReadNull(); err != nil {
+			return err
+		}
+
+		val.Set(reflect.Zero(val.Type()))
+		return nil
+	case bsontype.Undefined:
+		if err := vr.ReadUndefined(); err != nil {
 			return err
 		}
 
@@ -267,7 +318,8 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 		}
 
 		if !field.CanSet() { // Being settable is a super set of being addressable.
-			return fmt.Errorf("cannot decode element '%s' into field %v; it is not settable", name, field)
+			innerErr := fmt.Errorf("field %v is not settable", field)
+			return newDecodeError(fd.name, innerErr)
 		}
 		if field.Kind() == reflect.Ptr && field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
@@ -276,19 +328,19 @@ func (sc *StructCodec) DecodeValue(r DecodeContext, vr bsonrw.ValueReader, val r
 
 		dctx := DecodeContext{Registry: r.Registry, Truncate: fd.truncate || r.Truncate}
 		if fd.decoder == nil {
-			return ErrNoDecoder{Type: field.Elem().Type()}
+			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
 		}
 
 		if decoder, ok := fd.decoder.(ValueDecoder); ok {
 			err = decoder.DecodeValue(dctx, vr, field.Elem())
 			if err != nil {
-				return err
+				return newDecodeError(fd.name, err)
 			}
 			continue
 		}
 		err = fd.decoder.DecodeValue(dctx, vr, field)
 		if err != nil {
-			return err
+			return newDecodeError(fd.name, err)
 		}
 	}
 
@@ -350,7 +402,8 @@ type structDescription struct {
 }
 
 type fieldDescription struct {
-	name      string
+	name      string // BSON key name
+	fieldName string // struct field name
 	idx       int
 	omitEmpty bool
 	minSize   bool
@@ -358,6 +411,35 @@ type fieldDescription struct {
 	inline    []int
 	encoder   ValueEncoder
 	decoder   ValueDecoder
+}
+
+type byIndex []fieldDescription
+
+func (bi byIndex) Len() int { return len(bi) }
+
+func (bi byIndex) Swap(i, j int) { bi[i], bi[j] = bi[j], bi[i] }
+
+func (bi byIndex) Less(i, j int) bool {
+	// If a field is inlined, its index in the top level struct is stored at inline[0]
+	iIdx, jIdx := bi[i].idx, bi[j].idx
+	if len(bi[i].inline) > 0 {
+		iIdx = bi[i].inline[0]
+	}
+	if len(bi[j].inline) > 0 {
+		jIdx = bi[j].inline[0]
+	}
+	if iIdx != jIdx {
+		return iIdx < jIdx
+	}
+	for k, biik := range bi[i].inline {
+		if k >= len(bi[j].inline) {
+			return false
+		}
+		if biik != bi[j].inline[k] {
+			return biik < bi[j].inline[k]
+		}
+	}
+	return len(bi[i].inline) < len(bi[j].inline)
 }
 
 func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescription, error) {
@@ -377,6 +459,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 		inlineMap: -1,
 	}
 
+	var fields []fieldDescription
 	for i := 0; i < numFields; i++ {
 		sf := t.Field(i)
 		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) {
@@ -394,7 +477,12 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 			decoder = nil
 		}
 
-		description := fieldDescription{idx: i, encoder: encoder, decoder: decoder}
+		description := fieldDescription{
+			fieldName: sf.Name,
+			idx:       i,
+			encoder:   encoder,
+			decoder:   decoder,
+		}
 
 		stags, err := sc.parser.ParseStructTags(sf)
 		if err != nil {
@@ -431,36 +519,83 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type) (*structDescr
 					return nil, err
 				}
 				for _, fd := range inlinesf.fl {
-					if _, exists := sd.fm[fd.name]; exists {
-						return nil, fmt.Errorf("(struct %s) duplicated key %s", t.String(), fd.name)
-					}
 					if fd.inline == nil {
 						fd.inline = []int{i, fd.idx}
 					} else {
 						fd.inline = append([]int{i}, fd.inline...)
 					}
-					sd.fm[fd.name] = fd
-					sd.fl = append(sd.fl, fd)
+					fields = append(fields, fd)
+
 				}
 			default:
 				return nil, fmt.Errorf("(struct %s) inline fields must be a struct, a struct pointer, or a map", t.String())
 			}
 			continue
 		}
-
-		if _, exists := sd.fm[description.name]; exists {
-			return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), description.name)
-		}
-
-		sd.fm[description.name] = description
-		sd.fl = append(sd.fl, description)
+		fields = append(fields, description)
 	}
+
+	// Sort fieldDescriptions by name and use dominance rules to determine which should be added for each name
+	sort.Slice(fields, func(i, j int) bool {
+		x := fields
+		// sort field by name, breaking ties with depth, then
+		// breaking ties with index sequence.
+		if x[i].name != x[j].name {
+			return x[i].name < x[j].name
+		}
+		if len(x[i].inline) != len(x[j].inline) {
+			return len(x[i].inline) < len(x[j].inline)
+		}
+		return byIndex(x).Less(i, j)
+	})
+
+	for advance, i := 0, 0; i < len(fields); i += advance {
+		// One iteration per name.
+		// Find the sequence of fields with the name of this first field.
+		fi := fields[i]
+		name := fi.name
+		for advance = 1; i+advance < len(fields); advance++ {
+			fj := fields[i+advance]
+			if fj.name != name {
+				break
+			}
+		}
+		if advance == 1 { // Only one field with this name
+			sd.fl = append(sd.fl, fi)
+			sd.fm[name] = fi
+			continue
+		}
+		dominant, ok := dominantField(fields[i : i+advance])
+		if !ok || !sc.OverwriteDuplicatedInlinedFields {
+			return nil, fmt.Errorf("struct %s) duplicated key %s", t.String(), name)
+		}
+		sd.fl = append(sd.fl, dominant)
+		sd.fm[name] = dominant
+	}
+
+	sort.Sort(byIndex(sd.fl))
 
 	sc.l.Lock()
 	sc.cache[t] = sd
 	sc.l.Unlock()
 
 	return sd, nil
+}
+
+// dominantField looks through the fields, all of which are known to
+// have the same name, to find the single field that dominates the
+// others using Go's inlining rules. If there are multiple top-level
+// fields, the boolean will be false: This condition is an error in Go
+// and we skip all the fields.
+func dominantField(fields []fieldDescription) (fieldDescription, bool) {
+	// The fields are sorted in increasing index-length order, then by presence of tag.
+	// That means that the first field is the dominant one. We need only check
+	// for error cases: two fields at top level.
+	if len(fields) > 1 &&
+		len(fields[0].inline) == len(fields[1].inline) {
+		return fieldDescription{}, false
+	}
+	return fields[0], true
 }
 
 func fieldByIndexErr(v reflect.Value, index []int) (result reflect.Value, err error) {
