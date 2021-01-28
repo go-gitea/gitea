@@ -206,6 +206,11 @@ func (d Decimal128) IsInf() int {
 	return -1
 }
 
+// IsZero returns true if d is the empty Decimal128.
+func (d Decimal128) IsZero() bool {
+	return d.h == 0 && d.l == 0
+}
+
 func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	div64 := uint64(div)
 	a := h >> 32

@@ -38,6 +38,7 @@ type GroupHook struct {
 	JobEvents                bool       `json:"job_events"`
 	PipelineEvents           bool       `json:"pipeline_events"`
 	WikiPageEvents           bool       `json:"wiki_page_events"`
+	DeploymentEvents         bool       `json:"deployment_events"`
 	EnableSSLVerification    bool       `json:"enable_ssl_verification"`
 	CreatedAt                *time.Time `json:"created_at"`
 }
@@ -105,6 +106,7 @@ type AddGroupHookOptions struct {
 	JobEvents                *bool   `url:"job_events,omitempty"  json:"job_events,omitempty"`
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty"  json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty"  json:"wiki_page_events,omitempty"`
+	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty"  json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -149,6 +151,7 @@ type EditGroupHookOptions struct {
 	JobEvents                *bool   `url:"job_events,omitempty" json:"job_events,omitempty"`
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
+	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }

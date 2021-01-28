@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/spec"
 )
 
@@ -94,6 +95,106 @@ type GenSchema struct {
 	WantsMarshalBinary         bool // do we generate MarshalBinary interface?
 	StructTags                 []string
 	ExtraImports               map[string]string // non-standard imports detected when using external types
+	ExternalDocs               *spec.ExternalDocumentation
+}
+
+func (g GenSchema) renderMarshalTag() string {
+	if g.HasBaseType {
+		return "-"
+	}
+
+	var result strings.Builder
+
+	result.WriteString(g.OriginalName)
+
+	if !g.Required && g.IsEmptyOmitted {
+		result.WriteString(",omitempty")
+	}
+
+	if g.IsJSONString {
+		result.WriteString(",string")
+	}
+
+	return result.String()
+}
+
+// PrintTags takes care of rendering tags for a struct field
+func (g GenSchema) PrintTags() string {
+	tags := make(map[string]string, 3)
+	orderedTags := make([]string, 0, 3)
+
+	tags["json"] = g.renderMarshalTag()
+	orderedTags = append(orderedTags, "json")
+
+	if len(g.XMLName) > 0 {
+		if !g.Required && g.IsEmptyOmitted {
+			tags["xml"] = g.XMLName + ",omitempty"
+		} else {
+			tags["xml"] = g.XMLName
+		}
+		orderedTags = append(orderedTags, "xml")
+	}
+
+	// Add extra struct tags, only if the tag hasn't already been set, i.e. example.
+	// Extra struct tags have the same value has the `json` tag.
+	for _, tag := range g.StructTags {
+		if _, exists := tags[tag]; exists {
+			// dedupe
+			continue
+		}
+
+		if tag == "example" && len(g.Example) > 0 {
+			// only add example tag if it's contained in the struct tags
+			tags["example"] = g.Example // json representation of the example object
+		} else {
+			tags[tag] = tags["json"]
+		}
+
+		orderedTags = append(orderedTags, tag)
+	}
+
+	// Assemble the tags in key value pairs with the value properly quoted.
+	kvPairs := make([]string, 0, len(orderedTags)+1)
+	for _, key := range orderedTags {
+		kvPairs = append(kvPairs, fmt.Sprintf("%s:%s", key, strconv.Quote(tags[key])))
+	}
+
+	if len(g.CustomTag) > 0 {
+		kvPairs = append(kvPairs, g.CustomTag)
+	}
+
+	// Join the key value pairs by a space.
+	completeTag := strings.Join(kvPairs, " ")
+
+	// If the values contain a backtick, we cannot render the tag using backticks because Go does not support
+	// escaping backticks in raw string literals.
+	valuesHaveBacktick := false
+	for _, value := range tags {
+		if !strconv.CanBackquote(value) {
+			valuesHaveBacktick = true
+			break
+		}
+	}
+
+	if !valuesHaveBacktick {
+		return fmt.Sprintf("`%s`", completeTag)
+	}
+
+	// We have to escape the tag again to put it in a literal with double quotes as the tag format uses double quotes.
+	return strconv.Quote(completeTag)
+}
+
+// UnderlyingType tells the go type or the aliased go type
+func (g GenSchema) UnderlyingType() string {
+	if g.IsAliased {
+		return g.AliasedType
+	}
+	return g.GoType
+}
+
+// ToString returns a string conversion expression for the schema
+func (g GenSchema) ToString() string {
+	return g.resolvedType.ToString(g.ValueExpression)
 }
 
 func (g GenSchemaList) Len() int      { return len(g) }
@@ -122,32 +223,13 @@ func (g GenSchemaList) Less(i, j int) bool {
 }
 
 type sharedValidations struct {
-	HasValidations bool
-	Required       bool
+	spec.SchemaValidations
 
-	// String validations
-	MaxLength *int64
-	MinLength *int64
-	Pattern   string
-
-	// Number validations
-	MultipleOf       *float64
-	Minimum          *float64
-	Maximum          *float64
-	ExclusiveMinimum bool
-	ExclusiveMaximum bool
-
-	Enum      []interface{}
-	ItemsEnum []interface{}
-
-	// Slice validations
-	MinItems            *int64
-	MaxItems            *int64
-	UniqueItems         bool
-	HasSliceValidations bool
-
-	// Not used yet (perhaps intended for maxProperties, minProperties validations?)
-	NeedsSize bool
+	HasValidations        bool
+	HasContextValidations bool
+	Required              bool
+	HasSliceValidations   bool
+	ItemsEnum             []interface{}
 
 	// NOTE: "patternProperties" and "dependencies" not supported by Swagger 2.0
 }
@@ -176,6 +258,20 @@ type GenResponse struct {
 
 	StrictResponders bool
 	OperationName    string
+	Examples         GenResponseExamples
+}
+
+// GenResponseExamples is a sortable collection []GenResponseExample
+type GenResponseExamples []GenResponseExample
+
+func (g GenResponseExamples) Len() int           { return len(g) }
+func (g GenResponseExamples) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
+func (g GenResponseExamples) Less(i, j int) bool { return g[i].MediaType < g[j].MediaType }
+
+// GenResponseExample captures an example provided for a response for some mime type
+type GenResponseExample struct {
+	MediaType string
+	Example   interface{}
 }
 
 // GenHeader represents a header on a response for code generation
@@ -210,9 +306,14 @@ type GenHeader struct {
 
 // ItemsDepth returns a string "items.items..." with as many items as the level of nesting of the array.
 // For a header objects it always returns "".
-func (g *GenHeader) ItemsDepth() string {
+func (h *GenHeader) ItemsDepth() string {
 	// NOTE: this is currently used by templates to generate explicit comments in nested structures
 	return ""
+}
+
+// ToString returns a string conversion expression for the header
+func (h GenHeader) ToString() string {
+	return h.resolvedType.ToString(h.ValueExpression)
 }
 
 // GenHeaders is a sorted collection of headers for codegen
@@ -260,8 +361,8 @@ type GenParameter struct {
 	Child  *GenItems
 	Parent *GenItems
 
-	/// Unused
-	//BodyParam *GenParameter
+	// Unused
+	// BodyParam *GenParameter
 
 	Default         interface{}
 	HasDefault      bool
@@ -323,6 +424,16 @@ func (g *GenParameter) ItemsDepth() string {
 	return ""
 }
 
+// UnderlyingType tells the go type or the aliased go type
+func (g GenParameter) UnderlyingType() string {
+	return g.GoType
+}
+
+// ToString returns a string conversion expression for the parameter
+func (g GenParameter) ToString() string {
+	return g.resolvedType.ToString(g.ValueExpression)
+}
+
 // GenParameters represents a sorted parameter collection
 type GenParameters []GenParameter
 
@@ -375,6 +486,16 @@ func (g *GenItems) ItemsDepth() string {
 		current = current.Parent
 	}
 	return strings.Repeat("items.", i)
+}
+
+// UnderlyingType tells the go type or the aliased go type
+func (g GenItems) UnderlyingType() string {
+	return g.GoType
+}
+
+// ToString returns a string conversion expression for the item
+func (g GenItems) ToString() string {
+	return g.resolvedType.ToString(g.ValueExpression)
 }
 
 // GenOperationGroup represents a named (tagged) group of operations
@@ -470,10 +591,12 @@ type GenOperation struct {
 	ExtraSchemas   GenSchemaList
 	PackageAlias   string
 
-	Authorized          bool
-	Security            []GenSecurityRequirements
-	SecurityDefinitions GenSecuritySchemes
-	Principal           string
+	Authorized           bool
+	Security             []GenSecurityRequirements // resolved security requirements for the operation
+	SecurityDefinitions  GenSecuritySchemes
+	SecurityRequirements []analysis.SecurityRequirement // original security requirements as per the spec (for doc)
+	Principal            string
+	PrincipalIsNullable  bool
 
 	SuccessResponse  *GenResponse
 	SuccessResponses []GenResponse
@@ -494,15 +617,20 @@ type GenOperation struct {
 	HasBodyParams        bool
 	HasStreamingResponse bool
 
-	Schemes            []string
-	ExtraSchemes       []string
-	ProducesMediaTypes []string
-	ConsumesMediaTypes []string
-	TimeoutName        string
+	Schemes              []string
+	ExtraSchemes         []string
+	SchemeOverrides      []string // original scheme overrides for operation, as per spec (for doc)
+	ExtraSchemeOverrides []string // original extra scheme overrides for operation, as per spec (for doc)
+	ProducesMediaTypes   []string
+	ConsumesMediaTypes   []string
+	TimeoutName          string
 
 	Extensions map[string]interface{}
 
 	StrictResponders bool
+	ExternalDocs     *spec.ExternalDocumentation
+	Produces         []string // original produces for operation (for doc)
+	Consumes         []string // original consumes for operation (for doc)
 }
 
 // GenOperations represents a list of operations to generate
@@ -517,28 +645,33 @@ func (g GenOperations) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 // from a swagger spec
 type GenApp struct {
 	GenCommon
-	APIPackage          string
-	Package             string
-	ReceiverName        string
-	Name                string
-	Principal           string
-	DefaultConsumes     string
-	DefaultProduces     string
-	Host                string
-	BasePath            string
-	Info                *spec.Info
-	ExternalDocs        *spec.ExternalDocumentation
-	Imports             map[string]string
-	DefaultImports      map[string]string
-	Schemes             []string
-	ExtraSchemes        []string
-	Consumes            GenSerGroups
-	Produces            GenSerGroups
-	SecurityDefinitions GenSecuritySchemes
-	Models              []GenDefinition
-	Operations          GenOperations
-	OperationGroups     GenOperationGroups
-	SwaggerJSON         string
+	APIPackage           string
+	ServerPackageAlias   string
+	APIPackageAlias      string
+	Package              string
+	ReceiverName         string
+	Name                 string
+	Principal            string
+	PrincipalIsNullable  bool
+	DefaultConsumes      string
+	DefaultProduces      string
+	Host                 string
+	BasePath             string
+	Info                 *spec.Info
+	ExternalDocs         *spec.ExternalDocumentation
+	Tags                 []spec.Tag
+	Imports              map[string]string
+	DefaultImports       map[string]string
+	Schemes              []string
+	ExtraSchemes         []string
+	Consumes             GenSerGroups
+	Produces             GenSerGroups
+	SecurityDefinitions  GenSecuritySchemes
+	SecurityRequirements []analysis.SecurityRequirement // original security requirements as per the spec (for doc)
+	Models               []GenDefinition
+	Operations           GenOperations
+	OperationGroups      GenOperationGroups
+	SwaggerJSON          string
 	// Embedded specs: this is important for when the generated server adds routes.
 	// NOTE: there is a distinct advantage to having this in runtime rather than generated code.
 	// We are not ever going to generate the router.
@@ -613,16 +746,18 @@ type GenSerializer struct {
 
 // GenSecurityScheme represents a security scheme for code generation
 type GenSecurityScheme struct {
-	AppName      string
-	ID           string
-	Name         string
-	ReceiverName string
-	IsBasicAuth  bool
-	IsAPIKeyAuth bool
-	IsOAuth2     bool
-	Scopes       []string
-	Source       string
-	Principal    string
+	AppName             string
+	ID                  string
+	Name                string
+	ReceiverName        string
+	IsBasicAuth         bool
+	IsAPIKeyAuth        bool
+	IsOAuth2            bool
+	Scopes              []string
+	Source              string
+	Principal           string
+	PrincipalIsNullable bool
+
 	// from spec.SecurityScheme
 	Description      string
 	Type             string
@@ -631,6 +766,7 @@ type GenSecurityScheme struct {
 	AuthorizationURL string
 	TokenURL         string
 	Extensions       map[string]interface{}
+	ScopesDesc       []GenSecurityScope
 }
 
 // GenSecuritySchemes sorted representation of serializers
@@ -644,6 +780,12 @@ func (g GenSecuritySchemes) Less(i, j int) bool { return g[i].ID < g[j].ID }
 type GenSecurityRequirement struct {
 	Name   string
 	Scopes []string
+}
+
+// GenSecurityScope represents a scope descriptor for an OAuth2 security scheme
+type GenSecurityScope struct {
+	Name        string
+	Description string
 }
 
 // GenSecurityRequirements represents a compounded security requirement specification.
