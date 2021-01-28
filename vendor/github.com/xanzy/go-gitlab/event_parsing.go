@@ -12,6 +12,7 @@ type EventType string
 // List of available event types.
 const (
 	EventTypeBuild         EventType = "Build Hook"
+	EventTypeDeployment    EventType = "Deployment Hook"
 	EventTypeIssue         EventType = "Issue Hook"
 	EventConfidentialIssue EventType = "Confidential Issue Hook"
 	EventTypeJob           EventType = "Job Hook"
@@ -140,7 +141,7 @@ func ParseSystemhook(payload []byte) (event interface{}, err error) {
 		event = &UserTeamSystemEvent{}
 	default:
 		switch e.ObjectKind {
-		case "merge_request":
+		case string(MergeRequestEventTargetType):
 			event = &MergeEvent{}
 		default:
 			return nil, fmt.Errorf("unexpected system hook type %s", e.EventName)
@@ -183,6 +184,8 @@ func ParseWebhook(eventType EventType, payload []byte) (event interface{}, err e
 	switch eventType {
 	case EventTypeBuild:
 		event = &BuildEvent{}
+	case EventTypeDeployment:
+		event = &DeploymentEvent{}
 	case EventTypeIssue, EventConfidentialIssue:
 		event = &IssueEvent{}
 	case EventTypeJob:
@@ -204,7 +207,7 @@ func ParseWebhook(eventType EventType, payload []byte) (event interface{}, err e
 			return nil, err
 		}
 
-		if note.ObjectKind != "note" {
+		if note.ObjectKind != string(NoteEventTargetType) {
 			return nil, fmt.Errorf("unexpected object kind %s", note.ObjectKind)
 		}
 

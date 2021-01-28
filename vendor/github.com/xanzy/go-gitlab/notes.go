@@ -70,18 +70,29 @@ type Note struct {
 
 // NotePosition represents the position attributes of a note.
 type NotePosition struct {
-	BaseSHA      string `json:"base_sha"`
-	StartSHA     string `json:"start_sha"`
-	HeadSHA      string `json:"head_sha"`
-	PositionType string `json:"position_type"`
-	NewPath      string `json:"new_path,omitempty"`
-	NewLine      int    `json:"new_line,omitempty"`
-	OldPath      string `json:"old_path,omitempty"`
-	OldLine      int    `json:"old_line,omitempty"`
-	Width        int    `json:"width,omitempty"`
-	Height       int    `json:"height,omitempty"`
-	X            int    `json:"x,omitempty"`
-	Y            int    `json:"y,omitempty"`
+	BaseSHA      string     `json:"base_sha"`
+	StartSHA     string     `json:"start_sha"`
+	HeadSHA      string     `json:"head_sha"`
+	PositionType string     `json:"position_type"`
+	NewPath      string     `json:"new_path,omitempty"`
+	NewLine      int        `json:"new_line,omitempty"`
+	OldPath      string     `json:"old_path,omitempty"`
+	OldLine      int        `json:"old_line,omitempty"`
+	LineRange    *LineRange `json:"line_range"`
+}
+
+// LineRange represents the range of a note.
+type LineRange struct {
+	StartRange *LinePosition `json:"start"`
+	EndRange   *LinePosition `json:"end"`
+}
+
+// LinePosition represents a position in a line range.
+type LinePosition struct {
+	LineCode string `json:"line_code"`
+	Type     string `json:"type"`
+	OldLine  int    `json:"old_line"`
+	NewLine  int    `json:"new_line"`
 }
 
 func (n Note) String() string {
