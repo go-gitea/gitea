@@ -27,6 +27,9 @@ type Flash struct {
 }
 
 func (f *Flash) set(name, msg string, current ...bool) {
+	if f.Values == nil {
+		f.Values = make(map[string][]string)
+	}
 	isShow := false
 	if (len(current) == 0 && FlashNow) ||
 		(len(current) > 0 && current[0]) {

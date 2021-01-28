@@ -88,10 +88,6 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 		})
 	})
-
-	if setting.EnableAccessLog {
-		handlers = append(handlers, accessLogger())
-	}
 	return handlers
 }
 
@@ -101,7 +97,6 @@ func NormalRoutes() *web.Route {
 	for _, middle := range commonMiddlewares() {
 		r.Use(middle)
 	}
-	r.Use(Recovery())
 
 	r.Mount("/", WebRoutes())
 	r.Mount("/api/v1", apiv1.Routes())
@@ -123,6 +118,8 @@ func WebRoutes() *web.Route {
 		Secure:         setting.SessionConfig.Secure,
 		Domain:         setting.SessionConfig.Domain,
 	}))
+
+	r.Use(Recovery())
 
 	r.Use(public.Custom(
 		&public.Options{
@@ -160,10 +157,16 @@ func WebRoutes() *web.Route {
 
 	mailer.InitMailRender(templates.Mailer())
 
-	r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	if setting.Service.EnableCaptcha {
+		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	}
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
+
+	if setting.EnableAccessLog {
+		r.Use(context.AccessLogger())
+	}
 
 	r.Use(user.GetNotificationCount)
 	r.Use(repo.GetActiveStopwatch)
