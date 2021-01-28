@@ -606,6 +606,14 @@ func NewContext() {
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
+	// FIXME: The fix related to logo.png does not work when the ordering of the following lines
+	//  is changed.
+	//  OK:
+	//    ... sec.Key("STATIC_URL_PREFIX").MustString("") is first, sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL) is 2nd
+	//  KO:
+	//    ... sec.Key("STATIC_URL_PREFIX").MustString("") is 2nd, sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL) is first
+	//  Can someone who knows go explain this?
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(""), "/"))
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
@@ -613,8 +621,6 @@ func NewContext() {
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {
 		Domain = urlHostname
 	}
-
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(""), "/"))
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
