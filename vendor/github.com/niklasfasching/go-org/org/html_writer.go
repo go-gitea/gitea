@@ -15,8 +15,9 @@ import (
 
 // HTMLWriter exports an org document into a html document.
 type HTMLWriter struct {
-	ExtendingWriter    Writer
-	HighlightCodeBlock func(source, lang string, inline bool) string
+	ExtendingWriter     Writer
+	HighlightCodeBlock  func(source, lang string, inline bool) string
+	PrettyRelativeLinks bool
 
 	strings.Builder
 	document   *Document
@@ -341,6 +342,16 @@ func (w *HTMLWriter) WriteRegularLink(l RegularLink) {
 	url := html.EscapeString(l.URL)
 	if l.Protocol == "file" {
 		url = url[len("file:"):]
+	}
+	if isRelative := l.Protocol == "file" || l.Protocol == ""; isRelative && w.PrettyRelativeLinks {
+		if !strings.HasPrefix(url, "/") {
+			url = "../" + url
+		}
+		if strings.HasSuffix(url, ".org") {
+			url = strings.TrimSuffix(url, ".org") + "/"
+		}
+	} else if isRelative && strings.HasSuffix(url, ".org") {
+		url = strings.TrimSuffix(url, ".org") + ".html"
 	}
 	if prefix := w.document.Links[l.Protocol]; prefix != "" {
 		url = html.EscapeString(prefix) + strings.TrimPrefix(url, l.Protocol+":")

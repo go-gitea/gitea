@@ -84,10 +84,11 @@ func (c *clientGenerator) Generate() error {
 	}
 
 	if c.GenOpts.IncludeModel {
-		for _, mod := range app.Models {
-			if mod.IsStream {
+		for _, m := range app.Models {
+			if m.IsStream {
 				continue
 			}
+			mod := m
 			if err := c.GenOpts.renderDefinition(&mod); err != nil {
 				return err
 			}
@@ -95,8 +96,10 @@ func (c *clientGenerator) Generate() error {
 	}
 
 	if c.GenOpts.IncludeHandler {
-		for _, opg := range app.OperationGroups {
-			for _, op := range opg.Operations {
+		for _, g := range app.OperationGroups {
+			opg := g
+			for _, o := range opg.Operations {
+				op := o
 				if err := c.GenOpts.renderOperation(&op); err != nil {
 					return err
 				}

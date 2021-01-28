@@ -389,17 +389,18 @@ type GetCommitStatusesOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#get-the-status-of-a-commit
 type CommitStatus struct {
-	ID          int        `json:"id"`
-	SHA         string     `json:"sha"`
-	Ref         string     `json:"ref"`
-	Status      string     `json:"status"`
-	Name        string     `json:"name"`
-	TargetURL   string     `json:"target_url"`
-	Description string     `json:"description"`
-	CreatedAt   *time.Time `json:"created_at"`
-	StartedAt   *time.Time `json:"started_at"`
-	FinishedAt  *time.Time `json:"finished_at"`
-	Author      Author     `json:"author"`
+	ID           int        `json:"id"`
+	SHA          string     `json:"sha"`
+	Ref          string     `json:"ref"`
+	Status       string     `json:"status"`
+	CreatedAt    *time.Time `json:"created_at"`
+	StartedAt    *time.Time `json:"started_at"`
+	FinishedAt   *time.Time `json:"finished_at"`
+	Name         string     `json:"name"`
+	AllowFailure bool       `json:"allow_failure"`
+	Author       Author     `json:"author"`
+	Description  string     `json:"description"`
+	TargetURL    string     `json:"target_url"`
 }
 
 // GetCommitStatuses gets the statuses of a commit in a project.

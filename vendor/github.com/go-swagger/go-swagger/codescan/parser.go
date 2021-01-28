@@ -626,7 +626,8 @@ COMMENTS:
 			}
 
 			var matched bool
-			for _, tagger := range st.taggers {
+			for _, tg := range st.taggers {
+				tagger := tg
 				if tagger.Matches(line) {
 					st.seenTag = true
 					st.currentTagger = &tagger
@@ -1311,13 +1312,13 @@ func (ss *setOpResponses) Matches(line string) bool {
 	return ss.rx.MatchString(line)
 }
 
-//ResponseTag used when specifying a response to point to a defined swagger:response
+// ResponseTag used when specifying a response to point to a defined swagger:response
 const ResponseTag = "response"
 
-//BodyTag used when specifying a response to point to a model/schema
+// BodyTag used when specifying a response to point to a model/schema
 const BodyTag = "body"
 
-//DescriptionTag used when specifying a response that gives a description of the response
+// DescriptionTag used when specifying a response that gives a description of the response
 const DescriptionTag = "description"
 
 func parseTags(line string) (modelOrResponse string, arrays int, isDefinitionRef bool, description string, err error) {
@@ -1331,8 +1332,8 @@ func parseTags(line string) (modelOrResponse string, arrays int, isDefinitionRef
 			tag = tagValList[0]
 			value = tagValList[1]
 		} else {
-			//TODO: Print a warning, and in the long term, do not support not tagged values
-			//Add a default tag if none is supplied
+			// TODO: Print a warning, and in the long term, do not support not tagged values
+			// Add a default tag if none is supplied
 			if i == 0 {
 				tag = ResponseTag
 			} else {
@@ -1353,15 +1354,15 @@ func parseTags(line string) (modelOrResponse string, arrays int, isDefinitionRef
 			}
 		}
 		if foundModelOrResponse {
-			//Read the model or response tag
+			// Read the model or response tag
 			parsedModelOrResponse = true
-			//Check for nested arrays
+			// Check for nested arrays
 			arrays = 0
 			for strings.HasPrefix(value, "[]") {
 				arrays++
 				value = value[2:]
 			}
-			//What's left over is the model name
+			// What's left over is the model name
 			modelOrResponse = value
 		} else {
 			foundDescription := false
@@ -1369,7 +1370,7 @@ func parseTags(line string) (modelOrResponse string, arrays int, isDefinitionRef
 				foundDescription = true
 			}
 			if foundDescription {
-				//Descriptions are special, they make they read the rest of the line
+				// Descriptions are special, they make they read the rest of the line
 				descriptionWords := []string{value}
 				if i < len(tags)-1 {
 					descriptionWords = append(descriptionWords, tags[i+1:]...)
@@ -1382,13 +1383,13 @@ func parseTags(line string) (modelOrResponse string, arrays int, isDefinitionRef
 				} else {
 					err = fmt.Errorf("invalid tag: %s", tag)
 				}
-				//return error
+				// return error
 				return
 			}
 		}
 	}
 
-	//TODO: Maybe do, if !parsedModelOrResponse {return some error}
+	// TODO: Maybe do, if !parsedModelOrResponse {return some error}
 	return
 }
 
@@ -1431,7 +1432,7 @@ func (ss *setOpResponses) Parse(lines []string) error {
 			if err != nil {
 				return err
 			}
-			//A possible exception for having a definition
+			// A possible exception for having a definition
 			if _, ok := ss.responses[refTarget]; !ok {
 				if _, ok := ss.definitions[refTarget]; ok {
 					isDefinitionRef = true
