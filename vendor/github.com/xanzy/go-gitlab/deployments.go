@@ -34,6 +34,7 @@ type Deployment struct {
 	IID         int          `json:"iid"`
 	Ref         string       `json:"ref"`
 	SHA         string       `json:"sha"`
+	Status      string       `json:"status"`
 	CreatedAt   *time.Time   `json:"created_at"`
 	UpdatedAt   *time.Time   `json:"updated_at"`
 	User        *ProjectUser `json:"user"`
@@ -53,10 +54,12 @@ type Deployment struct {
 		User       *User      `json:"user"`
 		Commit     *Commit    `json:"commit"`
 		Pipeline   struct {
-			ID     int    `json:"id"`
-			SHA    string `json:"sha"`
-			Ref    string `json:"ref"`
-			Status string `json:"status"`
+			ID        int        `json:"id"`
+			SHA       string     `json:"sha"`
+			Ref       string     `json:"ref"`
+			Status    string     `json:"status"`
+			CreatedAt *time.Time `json:"created_at"`
+			UpdatedAt *time.Time `json:"updated_at"`
 		} `json:"pipeline"`
 		Runner *Runner `json:"runner"`
 	} `json:"deployable"`
