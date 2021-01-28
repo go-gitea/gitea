@@ -23,7 +23,8 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean-all build
 
 FROM alpine:3.13
-LABEL maintainer="maintainers@gitea.io"
+LABEL maintainer="maintainers@gitea.io" \
+    org.opencontainers.image.source="https://github.com/go-gitea/gitea"
 
 EXPOSE 2222 3000
 
