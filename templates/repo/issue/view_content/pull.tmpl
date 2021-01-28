@@ -39,12 +39,12 @@
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}">
+								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
 									<div class="header">
-										{{$.i18n.Tr "repo.issues.dismiss_review_confirm"}}
+										{{$.i18n.Tr "repo.issues.dismiss_review"}}
 									</div>
 									<div class="content">
 										<div class="ui warning message text left">
@@ -59,7 +59,7 @@
 											</div>
 											<div class="text right actions">
 												<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-												<button class="ui red button" type="submit">{{$.i18n.Tr "repo.issues.dismiss_review_btn"}}</button>
+												<button class="ui red button" type="submit">{{$.i18n.Tr "ok"}}</button>
 											</div>
 										</form>
 									</div>
