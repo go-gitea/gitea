@@ -270,7 +270,7 @@ func Int64sContains(intsSlice []int64, a int64) bool {
 }
 
 // IsLetter reports whether the rune is a letter (category L).
-// https://github.com/golang/go/blob/master/src/go/scanner/scanner.go#L257
+// https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
 }
