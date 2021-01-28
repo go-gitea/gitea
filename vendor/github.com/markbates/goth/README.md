@@ -50,8 +50,10 @@ $ go get github.com/markbates/goth
 * MicrosoftOnline
 * Naver
 * Nextcloud
+* Okta
 * OneDrive
 * OpenID Connect (auto discovery)
+* Oura
 * Paypal
 * SalesForce
 * Shopify
@@ -144,6 +146,7 @@ Would I love to see more providers? Certainly! Would you love to contribute one?
 1. Fork it
 2. Create your feature branch (git checkout -b my-new-feature)
 3. Write Tests!
-4. Commit your changes (git commit -am 'Add some feature')
-5. Push to the branch (git push origin my-new-feature)
-6. Create new Pull Request
+4. Make sure the codebase adhere to the Go coding standards by executing `gofmt -s -w ./`
+5. Commit your changes (git commit -am 'Add some feature')
+6. Push to the branch (git push origin my-new-feature)
+7. Create new Pull Request

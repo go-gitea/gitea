@@ -251,6 +251,10 @@ func (s *GroupMilestonesService) GetGroupMilestoneMergeRequests(gid interface{},
 	return mr, resp, err
 }
 
+// BurndownChartEvent reprensents a burnout chart event
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/group_milestones.html#get-all-burndown-chart-events-for-a-single-milestone-starter
 type BurndownChartEvent struct {
 	CreatedAt *time.Time `json:"created_at"`
 	Weight    *int       `json:"weight"`
