@@ -94,16 +94,6 @@ func SessionUser(sess SessionStore) *models.User {
 	return user
 }
 
-// isAPIPath returns true if the specified URL is an API path
-func isAPIPath(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/api/")
-}
-
-// isInternalPath returns true if the specified URL is an internal API path
-func isInternalPath(req *http.Request) bool {
-	return strings.HasPrefix(req.URL.Path, "/api/internal/")
-}
-
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"

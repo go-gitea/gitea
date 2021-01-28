@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
+	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
@@ -355,8 +356,8 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
+	ctx.Resp.WriteHeader(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -484,6 +485,31 @@ func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
 }
 
+// SignedUserName returns signed user's name via context
+func SignedUserName(req *http.Request) string {
+	if middlewares.IsInternalPath(req) {
+		return ""
+	}
+	if middlewares.IsAPIPath(req) {
+		ctx, ok := req.Context().Value(apiContextKey).(*APIContext)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	} else {
+		ctx, ok := req.Context().Value(contextKey).(*Context)
+		if ok {
+			v := ctx.Data["SignedUserName"]
+			if res, ok := v.(string); ok {
+				return res
+			}
+		}
+	}
+	return ""
+}
+
 func getCsrfOpts() CsrfOptions {
 	return CsrfOptions{
 		Secret:         setting.SecretKey,
@@ -499,23 +525,8 @@ func getCsrfOpts() CsrfOptions {
 
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
-
-	var c cache.Cache
-	var err error
-	if setting.CacheService.Enabled {
-		c, err = cache.NewCacher(cache.Options{
-			Adapter:       setting.CacheService.Adapter,
-			AdapterConfig: setting.CacheService.Conn,
-			Interval:      setting.CacheService.Interval,
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
-
+	var rnd = templates.HTMLRenderer()
 	var csrfOpts = getCsrfOpts()
-	//var flashEncryptionKey, _ = NewSecret()
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -524,7 +535,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
 				Resp:    NewResponse(resp),
-				Cache:   c,
+				Cache:   mc.GetCache(),
 				Locale:  locale,
 				Link:    link,
 				Render:  rnd,
@@ -571,16 +582,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if flash := f.Encode(); len(flash) > 0 {
-					if err == nil {
-						middlewares.SetCookie(resp, "macaron_flash", flash, 0,
-							setting.SessionConfig.CookiePath,
-							middlewares.Domain(setting.SessionConfig.Domain),
-							middlewares.HTTPOnly(true),
-							middlewares.Secure(setting.SessionConfig.Secure),
-							//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
-						)
-						return
-					}
+					middlewares.SetCookie(resp, "macaron_flash", flash, 0,
+						setting.SessionConfig.CookiePath,
+						middlewares.Domain(setting.SessionConfig.Domain),
+						middlewares.HTTPOnly(true),
+						middlewares.Secure(setting.SessionConfig.Secure),
+						//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
+					)
+					return
 				}
 
 				ctx.SetCookie("macaron_flash", "", -1,

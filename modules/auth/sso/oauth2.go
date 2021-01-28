@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -121,7 +122,7 @@ func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store 
 		return nil
 	}
 
-	if isInternalPath(req) || !isAPIPath(req) && !isAttachmentDownload(req) {
+	if middlewares.IsInternalPath(req) || !middlewares.IsAPIPath(req) && !isAttachmentDownload(req) {
 		return nil
 	}
 
