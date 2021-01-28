@@ -37,6 +37,12 @@ func (b *CopyOnWriteBuffer) Write(value []byte) {
 	b.buffer = append(b.buffer, value...)
 }
 
+// WriteString writes given string to the buffer.
+// WriteString allocate new buffer and clears it at the first time.
+func (b *CopyOnWriteBuffer) WriteString(value string) {
+	b.Write(StringToReadOnlyBytes(value))
+}
+
 // Append appends given bytes to the buffer.
 // Append copy buffer at the first time.
 func (b *CopyOnWriteBuffer) Append(value []byte) {
@@ -47,6 +53,12 @@ func (b *CopyOnWriteBuffer) Append(value []byte) {
 		b.copied = true
 	}
 	b.buffer = append(b.buffer, value...)
+}
+
+// AppendString appends given string to the buffer.
+// AppendString copy buffer at the first time.
+func (b *CopyOnWriteBuffer) AppendString(value string) {
+	b.Append(StringToReadOnlyBytes(value))
 }
 
 // WriteByte writes the given byte to the buffer.
@@ -804,7 +816,7 @@ func IsPunct(c byte) bool {
 	return punctTable[c] == 1
 }
 
-// IsPunct returns true if the given rune is a punctuation, otherwise false.
+// IsPunctRune returns true if the given rune is a punctuation, otherwise false.
 func IsPunctRune(r rune) bool {
 	return int32(r) <= 256 && IsPunct(byte(r)) || unicode.IsPunct(r)
 }
@@ -814,7 +826,7 @@ func IsSpace(c byte) bool {
 	return spaceTable[c] == 1
 }
 
-// IsSpace returns true if the given rune is a space, otherwise false.
+// IsSpaceRune returns true if the given rune is a space, otherwise false.
 func IsSpaceRune(r rune) bool {
 	return int32(r) <= 256 && IsSpace(byte(r)) || unicode.IsSpace(r)
 }

@@ -15,22 +15,22 @@ import (
 
 // Locale handle locale
 func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
-	hasCookie := false
-
 	// 1. Check URL arguments.
 	lang := req.URL.Query().Get("lang")
+	var changeLang = lang != ""
 
 	// 2. Get language information from cookies.
 	if len(lang) == 0 {
 		ck, _ := req.Cookie("lang")
-		lang = ck.Value
-		hasCookie = true
+		if ck != nil {
+			lang = ck.Value
+		}
 	}
 
 	// Check again in case someone modify by purpose.
-	if !i18n.IsExist(lang) {
+	if lang != "" && !i18n.IsExist(lang) {
 		lang = ""
-		hasCookie = false
+		changeLang = false
 	}
 
 	// 3. Get language information from 'Accept-Language'.
@@ -41,8 +41,8 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		lang = tag.String()
 	}
 
-	if !hasCookie {
-		req.AddCookie(NewCookie("lang", lang, 1<<31-1))
+	if changeLang {
+		SetCookie(resp, "lang", lang, 1<<31-1)
 	}
 
 	return translation.NewLocale(lang)

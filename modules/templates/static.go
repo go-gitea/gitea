@@ -7,10 +7,7 @@
 package templates
 
 import (
-	"bytes"
-	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,32 +18,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"gitea.com/macaron/macaron"
 )
 
 var (
 	subjectTemplates = texttmpl.New("")
 	bodyTemplates    = template.New("")
 )
-
-type templateFileSystem struct {
-	files []macaron.TemplateFile
-}
-
-func (templates templateFileSystem) ListFiles() []macaron.TemplateFile {
-	return templates.files
-}
-
-func (templates templateFileSystem) Get(name string) (io.Reader, error) {
-	for i := range templates.files {
-		if templates.files[i].Name()+templates.files[i].Ext() == name {
-			return bytes.NewReader(templates.files[i].Data()), nil
-		}
-	}
-
-	return nil, fmt.Errorf("file '%s' not found", name)
-}
 
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
@@ -70,95 +47,6 @@ func GetAssetNames() []string {
 	customDir := path.Join(setting.CustomPath, "templates")
 	customTmpls := getDirAssetNames(customDir)
 	return append(tmpls, customTmpls...)
-}
-
-func NewTemplateFileSystem() templateFileSystem {
-	fs := templateFileSystem{}
-	fs.files = make([]macaron.TemplateFile, 0, 10)
-
-	for _, assetPath := range AssetNames() {
-		if strings.HasPrefix(assetPath, "mail/") {
-			continue
-		}
-
-		if !strings.HasSuffix(assetPath, ".tmpl") {
-			continue
-		}
-
-		content, err := Asset(assetPath)
-
-		if err != nil {
-			log.Warn("Failed to read embedded %s template. %v", assetPath, err)
-			continue
-		}
-
-		fs.files = append(fs.files, macaron.NewTplFile(
-			strings.TrimSuffix(
-				assetPath,
-				".tmpl",
-			),
-			content,
-			".tmpl",
-		))
-	}
-
-	customDir := path.Join(setting.CustomPath, "templates")
-	isDir, err := util.IsDir(customDir)
-	if err != nil {
-		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(customDir)
-
-		if err != nil {
-			log.Warn("Failed to read %s templates dir. %v", customDir, err)
-		} else {
-			for _, filePath := range files {
-				if strings.HasPrefix(filePath, "mail/") {
-					continue
-				}
-
-				if !strings.HasSuffix(filePath, ".tmpl") {
-					continue
-				}
-
-				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
-
-				if err != nil {
-					log.Warn("Failed to read custom %s template. %v", filePath, err)
-					continue
-				}
-
-				fs.files = append(fs.files, macaron.NewTplFile(
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-					content,
-					".tmpl",
-				))
-			}
-		}
-	}
-
-	return fs
-}
-
-// HTMLRenderer implements the macaron handler for serving HTML templates.
-func HTMLRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:              NewFuncMap(),
-		TemplateFileSystem: NewTemplateFileSystem(),
-	})
-}
-
-// JSONRenderer implements the macaron handler for serving JSON templates.
-func JSONRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:              NewFuncMap(),
-		TemplateFileSystem: NewTemplateFileSystem(),
-		HTMLContentType:    "application/json",
-	})
 }
 
 // Mailer provides the templates required for sending notification mails.

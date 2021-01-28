@@ -9,12 +9,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -112,7 +113,8 @@ func NewProject(ctx *context.Context) {
 }
 
 // NewProjectPost creates a new project
-func NewProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
+func NewProjectPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
@@ -217,7 +219,8 @@ func EditProject(ctx *context.Context) {
 }
 
 // EditProjectPost response for editing a project
-func EditProjectPost(ctx *context.Context, form auth.CreateProjectForm) {
+func EditProjectPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
@@ -399,8 +402,8 @@ func DeleteProjectBoard(ctx *context.Context) {
 }
 
 // AddBoardToProjectPost allows a new board to be added to a project.
-func AddBoardToProjectPost(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
-
+func AddBoardToProjectPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditProjectBoardTitleForm)
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
@@ -479,8 +482,8 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 }
 
 // EditProjectBoardTitle allows a project board's title to be updated
-func EditProjectBoardTitle(ctx *context.Context, form auth.EditProjectBoardTitleForm) {
-
+func EditProjectBoardTitle(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditProjectBoardTitleForm)
 	_, board := checkProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return

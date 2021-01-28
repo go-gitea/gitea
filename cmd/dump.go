@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )

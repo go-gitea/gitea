@@ -52,7 +52,7 @@ type Server struct {
 	Name string `long:"name" short:"A" description:"the name of the application, defaults to a mangled value of info.title"`
 	// TODO(fredbi): CmdName string `long:"cmd-name" short:"A" description:"the name of the server command, when main is generated (defaults to {name}-server)"`
 
-	//deprecated flags
+	// deprecated flags
 	WithContext bool `long:"with-context" description:"handlers get a context as first arg (deprecated)"`
 }
 

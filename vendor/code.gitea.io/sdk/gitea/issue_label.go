@@ -71,7 +71,7 @@ func (c *Client) CreateLabel(owner, repo string, opt CreateLabelOption) (*Label,
 		return nil, nil, err
 	}
 	if len(opt.Color) == 6 {
-		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+		if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 			opt.Color = "#" + opt.Color
 		}
 	}

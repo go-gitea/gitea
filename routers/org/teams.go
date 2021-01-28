@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 )
 
@@ -186,7 +187,8 @@ func NewTeam(ctx *context.Context) {
 }
 
 // NewTeamPost response for create new team
-func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
+func NewTeamPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateTeamForm)
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
@@ -274,7 +276,8 @@ func EditTeam(ctx *context.Context) {
 }
 
 // EditTeamPost response for modify team information
-func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
+func EditTeamPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateTeamForm)
 	t := ctx.Org.Team
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
