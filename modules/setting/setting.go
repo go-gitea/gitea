@@ -79,33 +79,32 @@ var (
 	AppWorkPath    string
 
 	// Server settings
-	Protocol                Scheme
-	Domain                  string
-	HTTPAddr                string
-	HTTPPort                string
-	LocalURL                string
-	RedirectOtherPort       bool
-	PortToRedirect          string
-	OfflineMode             bool
-	CertFile                string
-	KeyFile                 string
-	StaticRootPath          string
-	StaticCacheTime         time.Duration
-	EnableGzip              bool
-	LandingPageURL          LandingPage
-	UnixSocketPermission    uint32
-	EnablePprof             bool
-	PprofDataPath           string
-	EnableLetsEncrypt       bool
-	LetsEncryptTOS          bool
-	LetsEncryptDirectory    string
-	LetsEncryptEmail        string
-	GracefulRestartable     bool
-	GracefulHammerTime      time.Duration
-	StartupTimeout          time.Duration
-	StaticURLPrefix         string
-	StaticURLPrefixManifest string
-	AbsoluteAssetURL        string
+	Protocol             Scheme
+	Domain               string
+	HTTPAddr             string
+	HTTPPort             string
+	LocalURL             string
+	RedirectOtherPort    bool
+	PortToRedirect       string
+	OfflineMode          bool
+	CertFile             string
+	KeyFile              string
+	StaticRootPath       string
+	StaticCacheTime      time.Duration
+	EnableGzip           bool
+	LandingPageURL       LandingPage
+	UnixSocketPermission uint32
+	EnablePprof          bool
+	PprofDataPath        string
+	EnableLetsEncrypt    bool
+	LetsEncryptTOS       bool
+	LetsEncryptDirectory string
+	LetsEncryptEmail     string
+	GracefulRestartable  bool
+	GracefulHammerTime   time.Duration
+	StartupTimeout       time.Duration
+	StaticURLPrefix      string
+	AbsoluteAssetURL     string
 
 	SSH = struct {
 		Disabled                       bool              `ini:"DISABLE_SSH"`
@@ -607,11 +606,6 @@ func NewContext() {
 	// Suburl should start with '/' and end without '/', such as '/{subpath}'.
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
-	// FIXME: Why does the content of 'StaticURLPrefixManifest' depend on the ordering of
-	//   the next two lines?
-	// Manifest on top: ""
-	// Manifest below:  "/gitea"
-	StaticURLPrefixManifest = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(""), "/")
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
 	AppSubURLDepth = strings.Count(AppSubURL, "/")
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
@@ -620,7 +614,7 @@ func NewContext() {
 		Domain = urlHostname
 	}
 
-	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefixManifest)
+	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(""), "/"))
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
