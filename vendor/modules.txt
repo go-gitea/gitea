@@ -4,7 +4,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.13.1
+# code.gitea.io/sdk/gitea v0.13.2
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/lunny/levelqueue v0.3.0
