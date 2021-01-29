@@ -1359,7 +1359,7 @@ function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
-  if ($editArea.length > 0 && isMobile) {
+  if ($editArea.length > 0 && isMobile()) {
     $editArea.css('display', 'inline-block');
     return;
   }
