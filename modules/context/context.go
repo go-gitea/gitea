@@ -330,7 +330,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 // PlainText render content as plain text
 func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -365,7 +365,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
