@@ -235,6 +235,7 @@ func CreateFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
@@ -323,6 +324,7 @@ func UpdateFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
@@ -449,6 +451,7 @@ func DeleteFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()

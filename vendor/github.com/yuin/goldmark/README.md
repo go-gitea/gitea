@@ -1,7 +1,7 @@
 goldmark
 ==========================================
 
-[![http://godoc.org/github.com/yuin/goldmark](https://godoc.org/github.com/yuin/goldmark?status.svg)](http://godoc.org/github.com/yuin/goldmark)
+[![https://pkg.go.dev/github.com/yuin/goldmark](https://pkg.go.dev/badge/github.com/yuin/goldmark.svg)](https://pkg.go.dev/github.com/yuin/goldmark)
 [![https://github.com/yuin/goldmark/actions?query=workflow:test](https://github.com/yuin/goldmark/workflows/test/badge.svg?branch=master&event=push)](https://github.com/yuin/goldmark/actions?query=workflow:test)
 [![https://coveralls.io/github/yuin/goldmark](https://coveralls.io/repos/github/yuin/goldmark/badge.svg?branch=master)](https://coveralls.io/github/yuin/goldmark)
 [![https://goreportcard.com/report/github.com/yuin/goldmark](https://goreportcard.com/badge/github.com/yuin/goldmark)](https://goreportcard.com/report/github.com/yuin/goldmark)
@@ -173,6 +173,7 @@ Parser and Renderer options
     - This extension enables Table, Strikethrough, Linkify and TaskList.
     - This extension does not filter tags defined in [6.11: Disallowed Raw HTML (extension)](https://github.github.com/gfm/#disallowed-raw-html-extension-).
     If you need to filter HTML tags, see [Security](#security).
+    - If you need to parse github emojis, you can use [goldmark-emoji](https://github.com/yuin/goldmark-emoji) extension.
 - `extension.DefinitionList`
     - [PHP Markdown Extra: Definition lists](https://michelf.ca/projects/php-markdown/extra/#def-list)
 - `extension.Footnote`
@@ -286,6 +287,89 @@ markdown := goldmark.New(
 )
 ```
 
+### Footnotes extension
+
+The Footnote extension implements [PHP Markdown Extra: Footnotes](https://michelf.ca/projects/php-markdown/extra/#footnotes).
+
+This extension has some options:
+
+| Functional option | Type | Description |
+| ----------------- | ---- | ----------- |
+| `extension.WithFootnoteIDPrefix` | `[]byte` |  a prefix for the id attributes.|
+| `extension.WithFootnoteIDPrefixFunction` | `func(gast.Node) []byte` |  a function that determines the id attribute for given Node.|
+| `extension.WithFootnoteLinkTitle` | `[]byte` |  an optional title attribute for footnote links.|
+| `extension.WithFootnoteBacklinkTitle` | `[]byte` |  an optional title attribute for footnote backlinks. |
+| `extension.WithFootnoteLinkClass` | `[]byte` |  a class for footnote links. This defaults to `footnote-ref`. |
+| `extension.WithFootnoteBacklinkClass` | `[]byte` |  a class for footnote backlinks. This defaults to `footnote-backref`. |
+| `extension.WithFootnoteBacklinkHTML` | `[]byte` |  a class for footnote backlinks. This defaults to `&#x21a9;&#xfe0e;`. |
+
+Some options can have special substitutions. Occurances of “^^” in the string will be replaced by the corresponding footnote number in the HTML output. Occurances of “%%” will be replaced by a number for the reference (footnotes can have multiple references).
+
+`extension.WithFootnoteIDPrefix` and `extension.WithFootnoteIDPrefixFunction` are useful if you have multiple Markdown documents displayed inside one HTML document to avoid footnote ids to clash each other.
+
+`extension.WithFootnoteIDPrefix` sets fixed id prefix, so you may write codes like the following:
+
+```go
+for _, path := range files {
+    source := readAll(path)
+    prefix := getPrefix(path)
+
+    markdown := goldmark.New(
+        goldmark.WithExtensions(
+            NewFootnote(
+                WithFootnoteIDPrefix([]byte(path)),
+            ),
+        ),
+    )
+    var b bytes.Buffer
+    err := markdown.Convert(source, &b)
+    if err != nil {
+        t.Error(err.Error())
+    }
+}
+```
+
+`extension.WithFootnoteIDPrefixFunction` determines an id prefix by calling given function, so you may write codes like the following:
+
+```go
+markdown := goldmark.New(
+    goldmark.WithExtensions(
+        NewFootnote(
+                WithFootnoteIDPrefixFunction(func(n gast.Node) []byte {
+                    v, ok := n.OwnerDocument().Meta()["footnote-prefix"]
+                    if ok {
+                        return util.StringToReadOnlyBytes(v.(string))
+                    }
+                    return nil
+                }),
+        ),
+    ),
+)
+
+for _, path := range files {
+    source := readAll(path)
+    var b bytes.Buffer
+
+    doc := markdown.Parser().Parse(text.NewReader(source))
+    doc.Meta()["footnote-prefix"] = getPrefix(path)
+    err := markdown.Renderer().Render(&b, source, doc)
+}
+```
+
+You can use [goldmark-meta](https://github.com/yuin/goldmark-meta) to define a id prefix in the markdown document:
+
+
+```markdown
+---
+title: document title
+slug: article1
+footnote-prefix: article1
+---
+
+# My article
+
+```
+ 
 Security
 --------------------
 By default, goldmark does not render raw HTML or potentially-dangerous URLs.
@@ -336,6 +420,8 @@ Extensions
   extension for the goldmark Markdown parser.
 - [goldmark-highlighting](https://github.com/yuin/goldmark-highlighting): A syntax-highlighting extension
   for the goldmark markdown parser.
+- [goldmark-emoji](https://github.com/yuin/goldmark-emoji): An emoji
+  extension for the goldmark Markdown parser.
 - [goldmark-mathjax](https://github.com/litao91/goldmark-mathjax): Mathjax support for the goldmark markdown parser
 
 goldmark internal(for extension developers)
