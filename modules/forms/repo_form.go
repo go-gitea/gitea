@@ -698,6 +698,7 @@ type EditRepoFileForm struct {
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
+	Signoff       bool
 }
 
 // Validate validates the fields
@@ -733,6 +734,7 @@ type UploadRepoFileForm struct {
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	Files         []string
+	Signoff       bool
 }
 
 // Validate validates the fields
@@ -766,6 +768,7 @@ type DeleteRepoFileForm struct {
 	CommitChoice  string `binding:"Required;MaxSize(50)"`
 	NewBranchName string `binding:"GitRefName;MaxSize(100)"`
 	LastCommit    string
+	Signoff       bool
 }
 
 // Validate validates the fields
