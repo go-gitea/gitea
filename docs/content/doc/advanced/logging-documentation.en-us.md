@@ -27,7 +27,6 @@ The fundamental thing to be aware of in Gitea is that there are several
 log groups:
 
 - The "Default" logger
-- The Macaron logger
 - The Router logger
 - The Access logger
 - The XORM logger
@@ -74,8 +73,7 @@ You can disable Router log by setting `DISABLE_ROUTER_LOG`.
 You can configure the outputs of this
 router log by setting the `ROUTER` value in the `[log]` section of the
 configuration. `ROUTER` will default to `console` if unset. The Gitea
-Router logs the same data as the Macaron log but has slightly different
-coloring. It logs at the `Info` level by default, but this can be
+Router logs at the `Info` level by default, but this can be
 changed if desired by setting the `ROUTER_LOG_LEVEL` value.
 
 Please note, setting the `LEVEL` of this logger to a level above
@@ -182,7 +180,7 @@ Certain configuration is common to all modes of log output:
 - `STACKTRACE_LEVEL` is the lowest level that this output will print
   a stacktrace. This value is inherited.
 - `MODE` is the mode of the log output. It will default to the sublogger
-  name. Thus `[log.console.macaron]` will default to `MODE = console`.
+  name. Thus `[log.console.router]` will default to `MODE = console`.
 - `COLORIZE` will default to `true` for `console` as
   described, otherwise it will default to `false`.
 
@@ -280,8 +278,6 @@ LOG_SQL = false ; SQL logs are rarely helpful unless we specifically ask for the
 [log]
 MODE = console
 LEVEL = debug ; please set the level to debug when we are debugging a problem
-REDIRECT_MACARON_LOG = true
-MACARON = console
 ROUTER = console
 COLORIZE = false ; this can be true if you can strip out the ansi coloring
 ```
@@ -314,7 +310,6 @@ ROOT_PATH = %(GITEA_WORK_DIR)/log
 MODE = console
 LEVEL = Info
 STACKTRACE_LEVEL = None
-REDIRECT_MACARON_LOG = false
 ENABLE_ACCESS_LOG = false
 ENABLE_XORM_LOG = true
 XORM = ,
@@ -345,7 +340,7 @@ recommended that pausing only done for a very short period of time.
 ## Adding and removing logging whilst Gitea is running
 
 It is possible to add and remove logging whilst Gitea is running using the `gitea manager logging add` and `remove` subcommands.
-This functionality can only adjust running log systems and cannot be used to start the access, macaron or router loggers if they
+This functionality can only adjust running log systems and cannot be used to start the access or router loggers if they
 were not already initialised. If you wish to start these systems you are advised to adjust the app.ini and (gracefully) restart
 the Gitea service.
 

@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -182,6 +183,10 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
+	var startTime = time.Now()
+	ctx.Data["TmplLoadTimes"] = func() string {
+		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
 		ctx.ServerError("Render failed", err)
 	}
@@ -190,6 +195,10 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // HTMLString render content to a string but not http.ResponseWriter
 func (ctx *Context) HTMLString(name string, data interface{}) (string, error) {
 	var buf strings.Builder
+	var startTime = time.Now()
+	ctx.Data["TmplLoadTimes"] = func() string {
+		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+	}
 	err := ctx.Render.HTML(&buf, 200, string(name), data)
 	return buf.String(), err
 }
@@ -321,7 +330,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 // PlainText render content as plain text
 func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -356,7 +365,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
@@ -547,10 +556,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				Data: map[string]interface{}{
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
-					"TmplLoadTimes": func() string {
-						return time.Since(startTime).String()
-					},
-					"Link": link,
+					"Link":          link,
 				},
 			}
 
