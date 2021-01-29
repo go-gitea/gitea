@@ -28,11 +28,13 @@ type License struct {
 	VendorExtensible
 }
 
+// LicenseProps holds the properties of a License object
 type LicenseProps struct {
 	Name string `json:"name,omitempty"`
 	URL  string `json:"url,omitempty"`
 }
 
+// UnmarshalJSON hydrates License from json
 func (l *License) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &l.LicenseProps); err != nil {
 		return err
@@ -40,6 +42,7 @@ func (l *License) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &l.VendorExtensible)
 }
 
+// MarshalJSON produces License as json
 func (l License) MarshalJSON() ([]byte, error) {
 	b1, err := json.Marshal(l.LicenseProps)
 	if err != nil {
