@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/yuin/goldmark/ast"
@@ -113,8 +112,6 @@ func (s *linkParser) Trigger() []byte {
 	return []byte{'!', '[', ']'}
 }
 
-var linkDestinationRegexp = regexp.MustCompile(`\s*([^\s].+)`)
-var linkTitleRegexp = regexp.MustCompile(`\s+(\)|["'\(].+)`)
 var linkBottom = NewContextKey()
 
 func (s *linkParser) Parse(parent ast.Node, block text.Reader, pc Context) ast.Node {
@@ -293,20 +290,17 @@ func (s *linkParser) parseLink(parent ast.Node, last *linkLabelState, block text
 func parseLinkDestination(block text.Reader) ([]byte, bool) {
 	block.SkipSpaces()
 	line, _ := block.PeekLine()
-	buf := []byte{}
 	if block.Peek() == '<' {
 		i := 1
 		for i < len(line) {
 			c := line[i]
 			if c == '\\' && i < len(line)-1 && util.IsPunct(line[i+1]) {
-				buf = append(buf, '\\', line[i+1])
 				i += 2
 				continue
 			} else if c == '>' {
 				block.Advance(i + 1)
 				return line[1:i], true
 			}
-			buf = append(buf, c)
 			i++
 		}
 		return nil, false
@@ -316,7 +310,6 @@ func parseLinkDestination(block text.Reader) ([]byte, bool) {
 	for i < len(line) {
 		c := line[i]
 		if c == '\\' && i < len(line)-1 && util.IsPunct(line[i+1]) {
-			buf = append(buf, '\\', line[i+1])
 			i += 2
 			continue
 		} else if c == '(' {
@@ -329,7 +322,6 @@ func parseLinkDestination(block text.Reader) ([]byte, bool) {
 		} else if util.IsSpace(c) {
 			break
 		}
-		buf = append(buf, c)
 		i++
 	}
 	block.Advance(i)

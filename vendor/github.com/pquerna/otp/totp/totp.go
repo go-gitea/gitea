@@ -20,6 +20,7 @@ package totp
 import (
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/hotp"
+	"io"
 
 	"crypto/rand"
 	"encoding/base32"
@@ -142,6 +143,8 @@ type GenerateOpts struct {
 	Digits otp.Digits
 	// Algorithm to use for HMAC. Defaults to SHA1.
 	Algorithm otp.Algorithm
+	// Reader to use for generating TOTP Key.
+	Rand io.Reader
 }
 
 var b32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
@@ -169,6 +172,10 @@ func Generate(opts GenerateOpts) (*otp.Key, error) {
 		opts.Digits = otp.DigitsSix
 	}
 
+	if opts.Rand == nil {
+		opts.Rand = rand.Reader
+	}
+
 	// otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
 
 	v := url.Values{}
@@ -176,7 +183,7 @@ func Generate(opts GenerateOpts) (*otp.Key, error) {
 		v.Set("secret", b32NoPadding.EncodeToString(opts.Secret))
 	} else {
 		secret := make([]byte, opts.SecretSize)
-		_, err := rand.Read(secret)
+		_, err := opts.Rand.Read(secret)
 		if err != nil {
 			return nil, err
 		}

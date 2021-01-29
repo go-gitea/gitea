@@ -25,7 +25,7 @@ import (
 
 const (
 	// Version is the current version of Elastic.
-	Version = "7.0.21"
+	Version = "7.0.22"
 
 	// DefaultURL is the default endpoint of Elasticsearch on the local machine.
 	// It is used e.g. when initializing a new Client without a specific URL.
@@ -145,6 +145,7 @@ type Client struct {
 	gzipEnabled               bool            // gzip compression enabled or disabled (default)
 	requiredPlugins           []string        // list of required plugins
 	retrier                   Retrier         // strategy for retries
+	retryStatusCodes          []int           // HTTP status codes where to retry automatically (with retrier)
 	headers                   http.Header     // a list of default headers to add to each request
 }
 
@@ -247,6 +248,7 @@ func NewSimpleClient(options ...ClientOptionFunc) (*Client, error) {
 		sendGetBodyAs:             DefaultSendGetBodyAs,
 		gzipEnabled:               DefaultGzipEnabled,
 		retrier:                   noRetries, // no retries by default
+		retryStatusCodes:          nil,       // no automatic retries for specific HTTP status codes
 		deprecationlog:            noDeprecationLog,
 	}
 
@@ -332,6 +334,7 @@ func DialContext(ctx context.Context, options ...ClientOptionFunc) (*Client, err
 		sendGetBodyAs:             DefaultSendGetBodyAs,
 		gzipEnabled:               DefaultGzipEnabled,
 		retrier:                   noRetries, // no retries by default
+		retryStatusCodes:          nil,       // no automatic retries for specific HTTP status codes
 		deprecationlog:            noDeprecationLog,
 	}
 
@@ -722,6 +725,17 @@ func SetRetrier(retrier Retrier) ClientOptionFunc {
 			retrier = noRetries // no retries by default
 		}
 		c.retrier = retrier
+		return nil
+	}
+}
+
+// SetRetryStatusCodes specifies the HTTP status codes where the client
+// will retry automatically. Notice that retries call the specified retrier,
+// so calling SetRetryStatusCodes without setting a Retrier won't do anything
+// for retries.
+func SetRetryStatusCodes(statusCodes ...int) ClientOptionFunc {
+	return func(c *Client) error {
+		c.retryStatusCodes = statusCodes
 		return nil
 	}
 }
@@ -1262,15 +1276,16 @@ func (c *Client) mustActiveConn() error {
 
 // PerformRequestOptions must be passed into PerformRequest.
 type PerformRequestOptions struct {
-	Method          string
-	Path            string
-	Params          url.Values
-	Body            interface{}
-	ContentType     string
-	IgnoreErrors    []int
-	Retrier         Retrier
-	Headers         http.Header
-	MaxResponseSize int64
+	Method           string
+	Path             string
+	Params           url.Values
+	Body             interface{}
+	ContentType      string
+	IgnoreErrors     []int
+	Retrier          Retrier
+	RetryStatusCodes []int
+	Headers          http.Header
+	MaxResponseSize  int64
 }
 
 // PerformRequest does a HTTP request to Elasticsearch.
@@ -1294,8 +1309,22 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 	if opt.Retrier != nil {
 		retrier = opt.Retrier
 	}
+	retryStatusCodes := c.retryStatusCodes
+	if opt.RetryStatusCodes != nil {
+		retryStatusCodes = opt.RetryStatusCodes
+	}
 	defaultHeaders := c.headers
 	c.mu.RUnlock()
+
+	// retry returns true if statusCode indicates the request is to be retried
+	retry := func(statusCode int) bool {
+		for _, code := range retryStatusCodes {
+			if code == statusCode {
+				return true
+			}
+		}
+		return false
+	}
 
 	var err error
 	var conn *conn
@@ -1403,6 +1432,21 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 			retried = true
 			time.Sleep(wait)
 			continue // try again
+		}
+		if retry(res.StatusCode) {
+			n++
+			wait, ok, rerr := retrier.Retry(ctx, n, (*http.Request)(req), res, err)
+			if rerr != nil {
+				c.errorf("elastic: %s is dead", conn.URL())
+				conn.MarkAsDead()
+				return nil, rerr
+			}
+			if ok {
+				// retry
+				retried = true
+				time.Sleep(wait)
+				continue // try again
+			}
 		}
 		defer res.Body.Close()
 
@@ -1698,29 +1742,81 @@ func (c *Client) Aliases() *AliasesService {
 	return NewAliasesService(c)
 }
 
-// IndexGetTemplate gets an index template.
-// Use XXXTemplate funcs to manage search templates.
+// -- Legacy templates --
+
+// IndexGetTemplate gets an index template (v1/legacy version before 7.8).
+//
+// This service implements the legacy version of index templates as described
+// in https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-templates-v1.html.
+//
+// See e.g. IndexPutIndexTemplate and IndexPutComponentTemplate for the new version(s).
 func (c *Client) IndexGetTemplate(names ...string) *IndicesGetTemplateService {
 	return NewIndicesGetTemplateService(c).Name(names...)
 }
 
-// IndexTemplateExists gets check if an index template exists.
-// Use XXXTemplate funcs to manage search templates.
+// IndexTemplateExists gets check if an index template exists (v1/legacy version before 7.8).
+//
+// This service implements the legacy version of index templates as described
+// in https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-templates-v1.html.
+//
+// See e.g. IndexPutIndexTemplate and IndexPutComponentTemplate for the new version(s).
 func (c *Client) IndexTemplateExists(name string) *IndicesExistsTemplateService {
 	return NewIndicesExistsTemplateService(c).Name(name)
 }
 
-// IndexPutTemplate creates or updates an index template.
-// Use XXXTemplate funcs to manage search templates.
+// IndexPutTemplate creates or updates an index template (v1/legacy version before 7.8).
+//
+// This service implements the legacy version of index templates as described
+// in https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-templates-v1.html.
+//
+// See e.g. IndexPutIndexTemplate and IndexPutComponentTemplate for the new version(s).
 func (c *Client) IndexPutTemplate(name string) *IndicesPutTemplateService {
 	return NewIndicesPutTemplateService(c).Name(name)
 }
 
-// IndexDeleteTemplate deletes an index template.
-// Use XXXTemplate funcs to manage search templates.
+// IndexDeleteTemplate deletes an index template (v1/legacy version before 7.8).
+//
+// This service implements the legacy version of index templates as described
+// in https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-templates-v1.html.
+//
+// See e.g. IndexPutIndexTemplate and IndexPutComponentTemplate for the new version(s).
 func (c *Client) IndexDeleteTemplate(name string) *IndicesDeleteTemplateService {
 	return NewIndicesDeleteTemplateService(c).Name(name)
 }
+
+// -- Index templates --
+
+// IndexPutIndexTemplate creates or updates an index template (new version after 7.8).
+//
+// This service implements the new version of index templates as described
+// on https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-put-template.html.
+//
+// See e.g. IndexPutTemplate for the v1/legacy version.
+func (c *Client) IndexPutIndexTemplate(name string) *IndicesPutIndexTemplateService {
+	return NewIndicesPutIndexTemplateService(c).Name(name)
+}
+
+// IndexGetIndexTemplate returns an index template (new version after 7.8).
+//
+// This service implements the new version of index templates as described
+// on https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-get-template.html.
+//
+// See e.g. IndexPutTemplate for the v1/legacy version.
+func (c *Client) IndexGetIndexTemplate(name string) *IndicesGetIndexTemplateService {
+	return NewIndicesGetIndexTemplateService(c).Name(name)
+}
+
+// IndexDeleteIndexTemplate deletes an index template (new version after 7.8).
+//
+// This service implements the new version of index templates as described
+// on https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-delete-template.html.
+//
+// See e.g. IndexPutTemplate for the v1/legacy version.
+func (c *Client) IndexDeleteIndexTemplate(name string) *IndicesDeleteIndexTemplateService {
+	return NewIndicesDeleteIndexTemplateService(c).Name(name)
+}
+
+// -- TODO Component templates --
 
 // GetMapping gets a mapping.
 func (c *Client) GetMapping() *IndicesGetMappingService {
@@ -1928,6 +2024,23 @@ func (c *Client) DeleteScript() *DeleteScriptService {
 
 func (c *Client) XPackInfo() *XPackInfoService {
 	return NewXPackInfoService(c)
+}
+
+// -- X-Pack Async Search --
+
+// XPackAsyncSearchSubmit starts an asynchronous search.
+func (c *Client) XPackAsyncSearchSubmit() *XPackAsyncSearchSubmit {
+	return NewXPackAsyncSearchSubmit(c)
+}
+
+// XPackAsyncSearchGet retrieves the outcome of an asynchronous search.
+func (c *Client) XPackAsyncSearchGet() *XPackAsyncSearchGet {
+	return NewXPackAsyncSearchGet(c)
+}
+
+// XPackAsyncSearchDelete deletes an asynchronous search.
+func (c *Client) XPackAsyncSearchDelete() *XPackAsyncSearchDelete {
+	return NewXPackAsyncSearchDelete(c)
 }
 
 // -- X-Pack Index Lifecycle Management --
