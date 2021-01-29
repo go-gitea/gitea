@@ -23,7 +23,7 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-// APIContext is a specific macaron context for API service
+// APIContext is a specific context for API service
 type APIContext struct {
 	*Context
 	Org *APIOrganization
@@ -217,7 +217,7 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIContexter returns apicontext as macaron middleware
+// APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	var csrfOpts = getCsrfOpts()
 
