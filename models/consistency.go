@@ -291,7 +291,7 @@ func CountNullArchivedRepository() (int64, error) {
 
 // FixNullArchivedRepository sets is_archived to false where it is null
 func FixNullArchivedRepository() (int64, error) {
-	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").Update(&Repository{
+	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
 		IsArchived: false,
 	})
 }
@@ -303,5 +303,5 @@ func CountWrongUserType() (int64, error) {
 
 // FixWrongUserType fix OrgUser who have wrong type
 func FixWrongUserType() (int64, error) {
-	return x.Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").Update(&User{Type: 1})
+	return x.Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
