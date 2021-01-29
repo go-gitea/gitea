@@ -371,8 +371,6 @@ func InstallPost(ctx *context.Context) {
 	cfg.Section("log").Key("MODE").SetValue("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
-	cfg.Section("log").Key("MACARON").SetValue("console")
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
