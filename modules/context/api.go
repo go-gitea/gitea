@@ -17,8 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/session"
 )
@@ -224,7 +224,7 @@ func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			var locale = middlewares.Locale(w, req)
+			var locale = middleware.Locale(w, req)
 			var ctx = APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
