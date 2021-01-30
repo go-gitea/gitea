@@ -13,6 +13,9 @@ import (
 
 // GetBranch returns a branch by its name
 func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
+	if len(branch) == 0 {
+		return nil, fmt.Errorf("GetBranch: empty string for branch")
+	}
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err

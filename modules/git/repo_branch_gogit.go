@@ -42,9 +42,10 @@ func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
 		if i < skip {
 			i++
 			return nil
-		} else if limit != 0 && i < skip+limit {
+		} else if limit != 0 && count > skip+limit {
 			return nil
 		}
+
 		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
 		return nil
 	})

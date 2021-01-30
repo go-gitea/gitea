@@ -58,12 +58,14 @@ func Branches(ctx *context.Context) {
 		page = 1
 	}
 
-	pageSize := ctx.QueryInt("limit")
-	if pageSize <= 0 || pageSize > git.BranchesRangeSize {
-		pageSize = git.BranchesRangeSize
+	limit := ctx.QueryInt("limit")
+	if limit <= 0 || limit > git.BranchesRangeSize {
+		limit = git.BranchesRangeSize
 	}
 
-	branches, branchesCount := loadBranches(ctx, page, pageSize)
+	skip := (page - 1) * limit
+	log.Info("Branches: skip: %d limit: %d", skip, limit)
+	branches, branchesCount := loadBranches(ctx, skip, limit)
 	if ctx.Written() {
 		return
 	}
@@ -80,6 +82,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 	branchName := ctx.Query("name")
 	if branchName == ctx.Repo.Repository.DefaultBranch {
+		log.Warn("DeleteBranch: Can't delete default branch '%s'", branchName)
 		ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
 		return
 	}
@@ -92,16 +95,19 @@ func DeleteBranchPost(ctx *context.Context) {
 	}
 
 	if isProtected {
+		log.Warn("DeleteBranch: Can't delete protected branch '%s'", branchName)
 		ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 		return
 	}
 
-	if !ctx.Repo.GitRepo.IsBranchExist(branchName) || branchName == ctx.Repo.Repository.DefaultBranch {
+	if !ctx.Repo.GitRepo.IsBranchExist(branchName) {
+		log.Warn("DeleteBranch: Can't delete non existing branch '%s'", branchName)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
 		return
 	}
 
 	if err := deleteBranch(ctx, branchName); err != nil {
+		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
 		return
 	}
@@ -129,10 +135,11 @@ func RestoreBranchPost(ctx *context.Context) {
 		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
 	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
+			log.Warn("RestoreBranch: Can't restore branch '%s', since one with same name already exist", deletedBranch.Name)
 			ctx.Flash.Error(ctx.Tr("repo.branch.already_exists", deletedBranch.Name))
 			return
 		}
-		log.Error("CreateBranch: %v", err)
+		log.Error("RestoreBranch: CreateBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", deletedBranch.Name))
 		return
 	}
@@ -148,7 +155,7 @@ func RestoreBranchPost(ctx *context.Context) {
 			RepoUserName: ctx.Repo.Owner.Name,
 			RepoName:     ctx.Repo.Repository.Name,
 		}); err != nil {
-		log.Error("Update: %v", err)
+		log.Error("RestoreBranch: Update: %v", err)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.restore_success", deletedBranch.Name))
@@ -197,17 +204,17 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
-func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
+func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
+		log.Error("loadBranches: get default branch: %v", err)
 		ctx.ServerError("GetDefaultBranch", err)
 		return nil, 0
 	}
 
-	skip, _ := models.ListOptions{Page: page, PageSize: pageSize}.GetStartEnd()
-
-	rawBranches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, pageSize)
+	rawBranches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, limit)
 	if err != nil {
+		log.Error("GetBranches: %v", err)
 		ctx.ServerError("GetBranches", err)
 		return nil, 0
 	}
@@ -226,7 +233,7 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 
 	var branches []*Branch
 	for i := range rawBranches {
-		if strings.EqualFold(rawBranches[i].Name, ctx.Repo.Repository.DefaultBranch) {
+		if rawBranches[i].Name == defaultBranch.Name {
 			// Skip default branch
 			continue
 		}
@@ -240,6 +247,7 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 	}
 
 	// Always add the default branch
+	log.Info("loadOneBranch: load default: '%s'", defaultBranch.Name)
 	branches = append(branches, loadOneBranch(ctx, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo))
 
 	if ctx.Repo.CanWrite(models.UnitTypeCode) {
@@ -257,6 +265,7 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
 	repoIDToRepo map[int64]*models.Repository,
 	repoIDToGitRepo map[int64]*git.Repository) *Branch {
+	log.Info("loadOneBranch: '%s'", rawBranch.Name)
 
 	commit, err := rawBranch.GetCommit()
 	if err != nil {
