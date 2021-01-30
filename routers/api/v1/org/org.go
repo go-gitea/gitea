@@ -28,9 +28,9 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
-	maxResults := len(orgs)
 
-	orgs = utils.PaginateUserSlice(orgs, listOptions.Page, listOptions.PageSize)
+	maxResults := len(orgs)
+	orgs, _ = utils.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {

@@ -6,6 +6,7 @@ package utils
 
 import (
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -67,21 +68,29 @@ func GetListOptions(ctx *context.APIContext) models.ListOptions {
 	}
 }
 
-// PaginateUserSlice cut a slice of Users as per pagination options
-// TODO: make it generic
-func PaginateUserSlice(items []*models.User, page, pageSize int) []*models.User {
-	if page != 0 {
-		page--
+// PaginateSlice cut a slice as per pagination options
+// if page = 0 it do not paginate
+func PaginateSlice(list interface{}, page, pageSize int) interface{} {
+	if page <= 0 || pageSize <= 0 {
+		return list
+	}
+	listValue := reflect.ValueOf(list)
+
+	if reflect.TypeOf(list).Kind() != reflect.Slice {
+		return list
 	}
 
-	if page*pageSize >= len(items) {
-		return items[len(items):]
+	page--
+
+	if page*pageSize >= listValue.Len() {
+		return listValue.Slice(listValue.Len(), listValue.Len()).Interface()
 	}
 
-	items = items[page*pageSize:]
+	listValue = listValue.Slice(page*pageSize, listValue.Len())
 
-	if len(items) > pageSize {
-		return items[:pageSize]
+	if listValue.Len() > pageSize {
+		return listValue.Slice(0, pageSize).Interface()
 	}
-	return items
+
+	return listValue.Interface()
 }
