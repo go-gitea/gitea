@@ -17,6 +17,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -284,15 +285,28 @@ func ListBranches(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/BranchList"
+
+	listOptions := utils.GetListOptions(ctx)
 
 	branches, err := repo_module.GetBranches(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
 	}
+
+	maxResults := len(branches)
+	branches, _ = utils.PaginateSlice(branches, listOptions.Page, listOptions.PageSize).([]*git.Branch)
 
 	apiBranches := make([]*api.Branch, len(branches))
 	for i := range branches {
@@ -313,6 +327,9 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 	ctx.JSON(http.StatusOK, &apiBranches)
 }
 
