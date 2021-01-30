@@ -105,10 +105,21 @@ type PipelineTestSuites struct {
 
 // PipelineTestCases contains test cases details.
 type PipelineTestCases struct {
-	Status        string  `json:"status"`
-	Name          string  `json:"name"`
-	Classname     string  `json:"classname"`
-	ExecutionTime float64 `json:"execution_time"`
+	Status         string         `json:"status"`
+	Name           string         `json:"name"`
+	Classname      string         `json:"classname"`
+	File           string         `json:"file"`
+	ExecutionTime  float64        `json:"execution_time"`
+	SystemOutput   string         `json:"system_output"`
+	StackTrace     string         `json:"stack_trace"`
+	AttachmentURL  string         `json:"attachment_url"`
+	RecentFailures RecentFailures `json:"recent_failures"`
+}
+
+// RecentFailures contains failures count for the project's default branch.
+type RecentFailures struct {
+	Count      int    `json:"count"`
+	BaseBranch string `json:"base_branch"`
 }
 
 func (p PipelineTestReport) String() string {

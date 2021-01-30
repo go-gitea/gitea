@@ -132,10 +132,7 @@ func NewHTMLRenderer(params HTMLRendererParameters) *HTMLRenderer {
 	}
 
 	if params.FootnoteReturnLinkContents == "" {
-		// U+FE0E is VARIATION SELECTOR-15.
-		// It suppresses automatic emoji presentation of the preceding
-		// U+21A9 LEFTWARDS ARROW WITH HOOK on iOS and iPadOS.
-		params.FootnoteReturnLinkContents = "<span aria-label='Return'>↩\ufe0e</span>"
+		params.FootnoteReturnLinkContents = `<sup>[return]</sup>`
 	}
 
 	return &HTMLRenderer{
@@ -619,7 +616,7 @@ func (r *HTMLRenderer) RenderNode(w io.Writer, node *Node, entering bool) WalkSt
 		}
 	case Code:
 		r.out(w, codeTag)
-		escapeAllHTML(w, node.Literal)
+		escapeHTML(w, node.Literal)
 		r.out(w, codeCloseTag)
 	case Document:
 		break
@@ -765,7 +762,7 @@ func (r *HTMLRenderer) RenderNode(w io.Writer, node *Node, entering bool) WalkSt
 		r.cr(w)
 		r.out(w, preTag)
 		r.tag(w, codeTag[:len(codeTag)-1], attrs)
-		escapeAllHTML(w, node.Literal)
+		escapeHTML(w, node.Literal)
 		r.out(w, codeCloseTag)
 		r.out(w, preCloseTag)
 		if node.Parent.Type != Item {

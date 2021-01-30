@@ -5,8 +5,18 @@
 		<form class="ui form ignore-dirty" style="max-width: 100%">
             <input type="hidden" name="tab" value="{{$.TabName}}">
             <div class="ui fluid action input">
+            <div class="twelve wide field">
                 <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+            </div>
+            <div class="two wide field">
+                <select name="t">
+                    <option value="">{{.i18n.Tr "explore.search.fuzzy"}}</option>
+                    <option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "explore.search.match"}}</option>
+                </select>
+            </div>
+            <div class="three field">
                 <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+            </div>
             </div>
         </form>
         <div class="ui divider"></div>
@@ -18,7 +28,7 @@
                 </h3>
 				<div class="df ac fw">
 					{{range $term := .SearchResultLanguages}}
-					<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
+					<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
 						<i class="color-icon mr-3" style="background-color: {{$term.Color}}"></i>
 						{{$term.Language}}
 						<div class="detail">{{$term.Count}}</div>
@@ -62,4 +72,3 @@
 	</div>
 </div>
 {{template "base/footer" .}}
-

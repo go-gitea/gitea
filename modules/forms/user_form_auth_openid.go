@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"gitea.com/go-chi/binding"
 )
 
@@ -21,7 +21,7 @@ type SignInOpenIDForm struct {
 // Validate validates the fields
 func (f *SignInOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // SignUpOpenIDForm form for signin up with OpenID
@@ -35,7 +35,7 @@ type SignUpOpenIDForm struct {
 // Validate validates the fields
 func (f *SignUpOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 // ConnectOpenIDForm form for connecting an existing account to an OpenID URI
@@ -47,5 +47,5 @@ type ConnectOpenIDForm struct {
 // Validate validates the fields
 func (f *ConnectOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

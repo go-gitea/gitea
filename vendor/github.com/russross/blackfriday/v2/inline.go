@@ -278,7 +278,7 @@ func link(p *Markdown, data []byte, offset int) (int, *Node) {
 		case data[i] == '\n':
 			textHasNl = true
 
-		case isBackslashEscaped(data, i):
+		case data[i-1] == '\\':
 			continue
 
 		case data[i] == '[':
