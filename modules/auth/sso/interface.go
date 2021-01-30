@@ -8,12 +8,12 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/session"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // DataStore represents a data store
-type DataStore middlewares.DataStore
+type DataStore middleware.DataStore
 
 // SessionStore represents a session store
 type SessionStore session.Store
