@@ -196,7 +196,7 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 }
 
 // loadBranches loads branches from the repository limited by page & pageSize.
-// NOTE: May write to context on error. page & pageSize must be > 0
+// NOTE: May write to context on error.
 func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
@@ -204,7 +204,9 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 		return nil, 0
 	}
 
-	rawBranches, err := repo_module.GetBranches(ctx.Repo.Repository)
+	skip, _ := models.ListOptions{Page: page, PageSize: pageSize}.GetStartEnd()
+
+	rawBranches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, pageSize)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil, 0
@@ -222,26 +224,16 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 	repoIDToGitRepo := map[int64]*git.Repository{}
 	repoIDToGitRepo[ctx.Repo.Repository.ID] = ctx.Repo.GitRepo
 
-	var totalNumOfBranches = len(rawBranches)
-	var startIndex = (page - 1) * pageSize
-	if startIndex > totalNumOfBranches {
-		startIndex = totalNumOfBranches - 1
-	}
-	var endIndex = startIndex + pageSize
-	if endIndex > totalNumOfBranches {
-		endIndex = totalNumOfBranches - 1
-	}
-
 	var branches []*Branch
-	for i := startIndex; i < endIndex; i++ {
+	for i := range rawBranches {
+		if strings.EqualFold(rawBranches[i].Name, ctx.Repo.Repository.DefaultBranch) {
+			// Skip default branch
+			continue
+		}
+
 		var branch = loadOneBranch(ctx, rawBranches[i], protectedBranches, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
 			return nil, 0
-		}
-
-		if branch.Name == ctx.Repo.Repository.DefaultBranch {
-			// Skip default branch
-			continue
 		}
 
 		branches = append(branches, branch)
@@ -259,7 +251,7 @@ func loadBranches(ctx *context.Context, page, pageSize int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, len(rawBranches) - 1
+	return branches, totalNumOfBranches - 1
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,

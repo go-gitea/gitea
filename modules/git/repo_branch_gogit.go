@@ -27,16 +27,18 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns all branches of the repository.
 // if limit = 0 it will not limit
-func (repo *Repository) GetBranches(skip, limit int) ([]string, error) {
+func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
 	var branchNames []string
 
 	branches, err := repo.gogitRepo.Branches()
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	i := 0
+	count := 0
 	_ = branches.ForEach(func(branch *plumbing.Reference) error {
+		count++
 		if i < skip {
 			i++
 			return nil
@@ -49,5 +51,5 @@ func (repo *Repository) GetBranches(skip, limit int) ([]string, error) {
 
 	// TODO: Sort?
 
-	return branchNames, nil
+	return branchNames, count, nil
 }

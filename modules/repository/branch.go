@@ -23,8 +23,9 @@ func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
 }
 
 // GetBranches returns all the branches of a repository
-func GetBranches(repo *models.Repository) ([]*git.Branch, error) {
-	return git.GetBranchesByPath(repo.RepoPath())
+// if limit = 0 it will not limit
+func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
+	return git.GetBranchesByPath(repo.RepoPath(), skip, limit)
 }
 
 // checkBranchName validates branch name with existing repository branches
@@ -35,7 +36,7 @@ func checkBranchName(repo *models.Repository, name string) error {
 	}
 	defer gitRepo.Close()
 
-	branches, err := GetBranches(repo)
+	branches, _, err := GetBranches(repo, 0, 0)
 	if err != nil {
 		return err
 	}

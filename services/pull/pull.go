@@ -482,7 +482,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository
 func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
-	branches, err := git.GetBranchesByPath(repo.RepoPath())
+	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
 	if err != nil {
 		return err
 	}
