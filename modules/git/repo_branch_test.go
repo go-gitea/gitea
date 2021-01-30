@@ -17,7 +17,13 @@ func TestRepository_GetBranches(t *testing.T) {
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
-	branches, err := bareRepo1.GetBranches()
+	branches, err := bareRepo1.GetBranches(0, 2)
+
+	assert.NoError(t, err)
+	assert.Len(t, branches, 2)
+	assert.ElementsMatch(t, []string{"branch1", "branch2"}, branches)
+
+	branches, err = bareRepo1.GetBranches(0, 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, branches, 3)
@@ -33,7 +39,7 @@ func BenchmarkRepository_GetBranches(b *testing.B) {
 	defer bareRepo1.Close()
 
 	for i := 0; i < b.N; i++ {
-		_, err := bareRepo1.GetBranches()
+		_, err := bareRepo1.GetBranches(0, 0)
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -14,5 +14,5 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // GetTags returns all tags of the repository.
 func (repo *Repository) GetTags() ([]string, error) {
-	return callShowRef(repo.Path, TagPrefix, "--tags")
+	return callShowRef(repo.Path, TagPrefix, "--tags", 0, 0)
 }

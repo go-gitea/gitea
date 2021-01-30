@@ -85,7 +85,7 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 	}
 	defer gitRepo.Close()
 
-	brs, err := gitRepo.GetBranches()
+	brs, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
 		return nil, err
 	}

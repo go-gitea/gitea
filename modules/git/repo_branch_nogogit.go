@@ -22,11 +22,13 @@ func (repo *Repository) IsBranchExist(name string) bool {
 }
 
 // GetBranches returns all branches of the repository.
-func (repo *Repository) GetBranches() ([]string, error) {
-	return callShowRef(repo.Path, BranchPrefix, "--heads")
+// if limit = 0 it will not limit
+func (repo *Repository) GetBranches(skip, limit int) ([]string, error) {
+	return callShowRef(repo.Path, BranchPrefix, "--heads", skip, limit)
 }
 
-func callShowRef(repoPath, prefix, arg string) ([]string, error) {
+// callShowRef return refs, if limit = 0 it will not limit
+func callShowRef(repoPath, prefix, arg string, skip, limit int) ([]string, error) {
 	var branchNames []string
 
 	stdoutReader, stdoutWriter := io.Pipe()
@@ -49,8 +51,21 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 		}
 	}()
 
+	i := 0
 	bufReader := bufio.NewReader(stdoutReader)
-	for {
+	for i < skip {
+		_, isPrefix, err := bufReader.ReadLine()
+		if !isPrefix {
+			i++
+		}
+		if err == io.EOF {
+			return branchNames, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	for limit == 0 || i < skip+limit {
 		// The output of show-ref is simply a list:
 		// <sha> SP <ref> LF
 		_, err := bufReader.ReadSlice(' ')
@@ -78,5 +93,7 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 			branchName = branchName[:len(branchName)-1]
 		}
 		branchNames = append(branchNames, branchName)
+		i++
 	}
+	return branchNames, nil
 }
