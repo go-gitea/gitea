@@ -241,13 +241,17 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 // Listen starts a SSH server listens on given port.
 func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
-	// TODO: Handle ciphers, keyExchanges, and macs
-
 	srv := ssh.Server{
 		Addr:             fmt.Sprintf("%s:%d", host, port),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
-
+		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
+			config := &gossh.ServerConfig{}
+			config.KeyExchanges = keyExchanges
+			config.MACs = macs
+			config.Ciphers = ciphers
+			return config
+		},
 		// We need to explicitly disable the PtyCallback so text displays
 		// properly.
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
