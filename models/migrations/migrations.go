@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -296,6 +297,8 @@ func EnsureUpToDate(x *xorm.Engine) error {
 
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
+	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
+	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
 		return fmt.Errorf("sync: %v", err)
 	}
@@ -334,6 +337,8 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+		// Reset the mapper between each migration - migrations are not supposed to depend on each other
+		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
