@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -306,7 +307,7 @@ func ListBranches(ctx *context.APIContext) {
 	}
 
 	maxResults := len(branches)
-	branches, _ = utils.PaginateSlice(branches, listOptions.Page, listOptions.PageSize).([]*git.Branch)
+	branches, _ = util.PaginateSlice(branches, listOptions.Page, listOptions.PageSize).([]*git.Branch)
 
 	apiBranches := make([]*api.Branch, len(branches))
 	for i := range branches {

@@ -6,7 +6,6 @@ package utils
 
 import (
 	"net/url"
-	"reflect"
 	"strings"
 	"time"
 
@@ -66,31 +65,4 @@ func GetListOptions(ctx *context.APIContext) models.ListOptions {
 		Page:     ctx.QueryInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
-}
-
-// PaginateSlice cut a slice as per pagination options
-// if page = 0 it do not paginate
-func PaginateSlice(list interface{}, page, pageSize int) interface{} {
-	if page <= 0 || pageSize <= 0 {
-		return list
-	}
-	listValue := reflect.ValueOf(list)
-
-	if reflect.TypeOf(list).Kind() != reflect.Slice {
-		return list
-	}
-
-	page--
-
-	if page*pageSize >= listValue.Len() {
-		return listValue.Slice(listValue.Len(), listValue.Len()).Interface()
-	}
-
-	listValue = listValue.Slice(page*pageSize, listValue.Len())
-
-	if listValue.Len() > pageSize {
-		return listValue.Slice(0, pageSize).Interface()
-	}
-
-	return listValue.Interface()
 }

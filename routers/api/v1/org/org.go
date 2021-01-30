@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -30,7 +31,7 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 	}
 
 	maxResults := len(orgs)
-	orgs, _ = utils.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
+	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
