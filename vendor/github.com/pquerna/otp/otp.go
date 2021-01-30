@@ -31,6 +31,7 @@ import (
 	"image"
 	"net/url"
 	"strings"
+	"strconv"
 )
 
 // Error when attempting to convert the secret from base32 to raw bytes.
@@ -138,6 +139,18 @@ func (k *Key) Secret() string {
 	return q.Get("secret")
 }
 
+// Period returns a tiny int representing the rotation time in seconds.
+func (k *Key) Period() uint64 {
+	q := k.url.Query()
+
+	if u, err := strconv.ParseUint(q.Get("period"), 10, 64); err == nil {
+		return u
+	}
+	
+	// If no period is defined 30 seconds is the default per (rfc6238)
+	return 30
+}
+
 // URL returns the OTP URL as a string
 func (k *Key) URL() string {
 	return k.url.String()
@@ -148,6 +161,9 @@ func (k *Key) URL() string {
 type Algorithm int
 
 const (
+	// AlgorithmSHA1 should be used for compatibility with Google Authenticator.
+	//
+	// See https://github.com/pquerna/otp/issues/55 for additional details.
 	AlgorithmSHA1 Algorithm = iota
 	AlgorithmSHA256
 	AlgorithmSHA512

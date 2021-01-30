@@ -88,10 +88,6 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			next.ServeHTTP(resp, req)
 		})
 	})
-
-	if setting.EnableAccessLog {
-		handlers = append(handlers, accessLogger())
-	}
 	return handlers
 }
 
@@ -161,10 +157,16 @@ func WebRoutes() *web.Route {
 
 	mailer.InitMailRender(templates.Mailer())
 
-	r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	if setting.Service.EnableCaptcha {
+		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+	}
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	r.Use(context.Contexter())
 	// Removed: SetAutoHead allow a get request redirect to head if get method is not exist
+
+	if setting.EnableAccessLog {
+		r.Use(context.AccessLogger())
+	}
 
 	r.Use(user.GetNotificationCount)
 	r.Use(repo.GetActiveStopwatch)
@@ -213,7 +215,7 @@ func WebRoutes() *web.Route {
 	return r
 }
 
-// RegisterRoutes routes routes to Macaron
+// RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
@@ -245,7 +247,7 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
-	// FIXME: not all routes need go through same middlewares.
+	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check

@@ -27,7 +27,7 @@ type TrackedTime struct {
 
 // GetUserTrackedTimes list tracked times of a user
 func (c *Client) GetUserTrackedTimes(owner, repo, user string) ([]*TrackedTime, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, nil, err
 	}
 	times := make([]*TrackedTime, 0, 10)
@@ -37,7 +37,7 @@ func (c *Client) GetUserTrackedTimes(owner, repo, user string) ([]*TrackedTime, 
 
 // GetRepoTrackedTimes list tracked times of a repository
 func (c *Client) GetRepoTrackedTimes(owner, repo string) ([]*TrackedTime, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, nil, err
 	}
 	times := make([]*TrackedTime, 0, 10)
@@ -47,7 +47,7 @@ func (c *Client) GetRepoTrackedTimes(owner, repo string) ([]*TrackedTime, *Respo
 
 // GetMyTrackedTimes list tracked times of the current user
 func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, nil, err
 	}
 	times := make([]*TrackedTime, 0, 10)
@@ -75,7 +75,7 @@ func (opt AddTimeOption) Validate() error {
 
 // AddTime adds time to issue with the given index
 func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*TrackedTime, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {
@@ -99,7 +99,7 @@ type ListTrackedTimesOptions struct {
 
 // ListTrackedTimes list tracked times of a single issue for a given repository
 func (c *Client) ListTrackedTimes(owner, repo string, index int64, opt ListTrackedTimesOptions) ([]*TrackedTime, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, nil, err
 	}
 	opt.setDefaults()
@@ -110,7 +110,7 @@ func (c *Client) ListTrackedTimes(owner, repo string, index int64, opt ListTrack
 
 // ResetIssueTime reset tracked time of a single issue for a given repository
 func (c *Client) ResetIssueTime(owner, repo string, index int64) (*Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, err
 	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index), nil, nil)
@@ -119,7 +119,7 @@ func (c *Client) ResetIssueTime(owner, repo string, index int64) (*Response, err
 
 // DeleteTime delete a specific tracked time by id of a single issue for a given repository
 func (c *Client) DeleteTime(owner, repo string, index, timeID int64) (*Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.11.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
 		return nil, err
 	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times/%d", owner, repo, index, timeID), nil, nil)

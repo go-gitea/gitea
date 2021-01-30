@@ -5,7 +5,10 @@
 package base
 
 import (
+	"encoding/base64"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,11 +56,48 @@ func TestBasicAuthDecode(t *testing.T) {
 
 func TestBasicAuthEncode(t *testing.T) {
 	assert.Equal(t, "Zm9vOmJhcg==", BasicAuthEncode("foo", "bar"))
+	assert.Equal(t, "MjM6IjotLS0t", BasicAuthEncode("23:\"", "----"))
 }
 
-// TODO: Test PBKDF2()
-// TODO: Test VerifyTimeLimitCode()
-// TODO: Test CreateTimeLimitCode()
+func TestVerifyTimeLimitCode(t *testing.T) {
+	tc := []struct {
+		data    string
+		minutes int
+		code    string
+		valid   bool
+	}{{
+		data:    "data",
+		minutes: 2,
+		code:    testCreateTimeLimitCode(t, "data", 2),
+		valid:   true,
+	}, {
+		data:    "abc123-ß",
+		minutes: 1,
+		code:    testCreateTimeLimitCode(t, "abc123-ß", 1),
+		valid:   true,
+	}, {
+		data:    "data",
+		minutes: 2,
+		code:    "2021012723240000005928251dac409d2c33a6eb82c63410aaad569bed",
+		valid:   false,
+	}}
+	for _, test := range tc {
+		actualValid := VerifyTimeLimitCode(test.data, test.minutes, test.code)
+		assert.Equal(t, test.valid, actualValid, "data: '%s' code: '%s' should be valid: %t", test.data, test.code, test.valid)
+	}
+}
+
+func testCreateTimeLimitCode(t *testing.T, data string, m int) string {
+	result0 := CreateTimeLimitCode(data, m, nil)
+	result1 := CreateTimeLimitCode(data, m, time.Now().Format("200601021504"))
+	result2 := CreateTimeLimitCode(data, m, time.Unix(time.Now().Unix()+int64(time.Minute)*int64(m), 0).Format("200601021504"))
+
+	assert.Equal(t, result0, result1)
+	assert.NotEqual(t, result0, result2)
+
+	assert.True(t, len(result0) != 0)
+	return result0
+}
 
 func TestFileSize(t *testing.T) {
 	var size int64 = 512
@@ -74,6 +114,12 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "512 PiB", FileSize(size))
 	size *= 4
 	assert.Equal(t, "2.0 EiB", FileSize(size))
+}
+
+func TestPrettyNumber(t *testing.T) {
+	assert.Equal(t, "23,342,432", PrettyNumber(23342432))
+	assert.Equal(t, "0", PrettyNumber(0))
+	assert.Equal(t, "-100,000", PrettyNumber(-100000))
 }
 
 func TestSubtract(t *testing.T) {
@@ -168,6 +214,13 @@ func TestInt64sToMap(t *testing.T) {
 	)
 }
 
+func TestInt64sContains(t *testing.T) {
+	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
+	assert.Equal(t, true, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
+	assert.Equal(t, true, Int64sContains([]int64{2323}, 2323))
+	assert.Equal(t, false, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
+}
+
 func TestIsLetter(t *testing.T) {
 	assert.True(t, IsLetter('a'))
 	assert.True(t, IsLetter('e'))
@@ -181,6 +234,8 @@ func TestIsLetter(t *testing.T) {
 	assert.False(t, IsLetter('-'))
 	assert.False(t, IsLetter('1'))
 	assert.False(t, IsLetter('$'))
+	assert.False(t, IsLetter(0x00))
+	assert.False(t, IsLetter(0x93))
 }
 
 func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
@@ -197,9 +252,17 @@ Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
 Comment Comment Comment --><svg></svg>`)))
 }
 
+// IsRepresentableAsText
+
 func TestIsTextFile(t *testing.T) {
 	assert.True(t, IsTextFile([]byte{}))
 	assert.True(t, IsTextFile([]byte("lorem ipsum")))
+}
+
+func TestIsImageFile(t *testing.T) {
+	png, _ := base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC")
+	assert.True(t, IsImageFile(png))
+	assert.False(t, IsImageFile([]byte("plain text")))
 }
 
 func TestIsSVGImageFile(t *testing.T) {
@@ -248,6 +311,33 @@ func TestIsSVGImageFile(t *testing.T) {
 	<foo></foo>`)))
 }
 
+func TestIsPDFFile(t *testing.T) {
+	pdf, _ := base64.StdEncoding.DecodeString("JVBERi0xLjYKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nF3NPwsCMQwF8D2f4s2CNYk1baF0EHRwOwg4iJt/NsFb/PpevUE4Mjwe")
+	assert.True(t, IsPDFFile(pdf))
+	assert.False(t, IsPDFFile([]byte("plain text")))
+}
+
+func TestIsVideoFile(t *testing.T) {
+	mp4, _ := base64.StdEncoding.DecodeString("AAAAGGZ0eXBtcDQyAAAAAGlzb21tcDQyAAEI721vb3YAAABsbXZoZAAAAADaBlwX2gZcFwAAA+gA")
+	assert.True(t, IsVideoFile(mp4))
+	assert.False(t, IsVideoFile([]byte("plain text")))
+}
+
+func TestIsAudioFile(t *testing.T) {
+	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
+	assert.True(t, IsAudioFile(mp3))
+	assert.False(t, IsAudioFile([]byte("plain text")))
+}
+
+// TODO: Test EntryIcon
+
+func TestSetupGiteaRoot(t *testing.T) {
+	_ = os.Setenv("GITEA_ROOT", "test")
+	assert.EqualValues(t, "test", SetupGiteaRoot())
+	_ = os.Setenv("GITEA_ROOT", "")
+	assert.NotEqual(t, "test", SetupGiteaRoot())
+}
+
 func TestFormatNumberSI(t *testing.T) {
 	assert.Equal(t, "125", FormatNumberSI(int(125)))
 	assert.Equal(t, "1.3k", FormatNumberSI(int64(1317)))
@@ -255,6 +345,3 @@ func TestFormatNumberSI(t *testing.T) {
 	assert.Equal(t, "45.7G", FormatNumberSI(45721317675))
 	assert.Equal(t, "", FormatNumberSI("test"))
 }
-
-// TODO: IsImageFile(), currently no idea how to test
-// TODO: IsPDFFile(), currently no idea how to test

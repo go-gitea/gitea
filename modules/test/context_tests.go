@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/go-chi/chi"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 	var ctx = context.Context{
 		Render: &mockRender{},
 		Data:   make(map[string]interface{}),
-		Flash: &middlewares.Flash{
+		Flash: &middleware.Flash{
 			Values: make(url.Values),
 		},
 		Resp:   context.NewResponse(resp),

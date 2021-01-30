@@ -260,6 +260,7 @@ func (r FileInfo) String() string {
 // https://docs.gitlab.com/ce/api/repository_files.html#create-new-file-in-repository
 type CreateFileOptions struct {
 	Branch        *string `url:"branch,omitempty" json:"branch,omitempty"`
+	StartBranch   *string `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	Encoding      *string `url:"encoding,omitempty" json:"encoding,omitempty"`
 	AuthorEmail   *string `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string `url:"author_name,omitempty" json:"author_name,omitempty"`
@@ -302,6 +303,7 @@ func (s *RepositoryFilesService) CreateFile(pid interface{}, fileName string, op
 // https://docs.gitlab.com/ce/api/repository_files.html#update-existing-file-in-repository
 type UpdateFileOptions struct {
 	Branch        *string `url:"branch,omitempty" json:"branch,omitempty"`
+	StartBranch   *string `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	Encoding      *string `url:"encoding,omitempty" json:"encoding,omitempty"`
 	AuthorEmail   *string `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string `url:"author_name,omitempty" json:"author_name,omitempty"`

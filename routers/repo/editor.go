@@ -240,6 +240,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 		Message:      message,
 		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 		IsNewFile:    isNewFile,
+		Signoff:      form.Signoff,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
 		if git.IsErrNotExist(err) {
@@ -442,6 +443,7 @@ func DeleteFilePost(ctx *context.Context) {
 		NewBranch:    branchName,
 		TreePath:     ctx.Repo.TreePath,
 		Message:      message,
+		Signoff:      form.Signoff,
 	}); err != nil {
 		// This is where we handle all the errors thrown by repofiles.DeleteRepoFile
 		if git.IsErrNotExist(err) || models.IsErrRepoFileDoesNotExist(err) {
@@ -650,6 +652,7 @@ func UploadFilePost(ctx *context.Context) {
 		TreePath:     form.TreePath,
 		Message:      message,
 		Files:        form.Files,
+		Signoff:      form.Signoff,
 	}); err != nil {
 		if models.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true

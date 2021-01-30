@@ -719,7 +719,7 @@ loop:
 									n256setup()
 								}
 								attr &= backgroundMask
-								attr |= n256foreAttr[n256]
+								attr |= n256foreAttr[n256%len(n256foreAttr)]
 								i += 2
 							}
 						} else if len(token) == 5 && token[i+1] == "2" {
@@ -761,7 +761,7 @@ loop:
 									n256setup()
 								}
 								attr &= foregroundMask
-								attr |= n256backAttr[n256]
+								attr |= n256backAttr[n256%len(n256backAttr)]
 								i += 2
 							}
 						} else if len(token) == 5 && token[i+1] == "2" {
