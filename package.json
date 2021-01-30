@@ -17,7 +17,7 @@
     "codemirror": "5.59.0",
     "core-js": "3.8.1",
     "css-loader": "5.0.1",
-    "css-minimizer-webpack-plugin": "1.1.5",
+    "css-minimizer-webpack-plugin": "1.2.0",
     "dropzone": "5.7.2",
     "easymde": "2.13.0",
     "escape-goat": "3.0.0",
