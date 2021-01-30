@@ -13,8 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // ssoMethods contains the list of SSO authentication plugins in the order they are expected to be
@@ -121,7 +121,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	// Language setting of the user overwrites the one previously set
 	// If the user does not have a locale set, we save the current one.
 	if len(user.Language) == 0 {
-		lc := middlewares.Locale(resp, req)
+		lc := middleware.Locale(resp, req)
 		user.Language = lc.Language()
 		if err := models.UpdateUserCols(user, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", user.ID, user.Language))
@@ -129,8 +129,8 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		}
 	}
 
-	middlewares.SetCookie(resp, "lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.SetCookie(resp, "lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	middlewares.SetCookie(resp, setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.SetCookie(resp, setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
 }

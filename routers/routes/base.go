@@ -18,10 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/session"
 )
@@ -153,7 +153,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						return
 					}
 
-					var lc = middlewares.Locale(w, req)
+					var lc = middleware.Locale(w, req)
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":   lc.Language(),
