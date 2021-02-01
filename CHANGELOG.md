@@ -7,10 +7,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.13.2](https://github.com/go-gitea/gitea/releases/tag/v1.13.2) - 2021-01-31
 
 * SECURITY
+  * Prevent panic on fuzzer provided string (#14405) (#14409)
   * Add secure/httpOnly attributes to the lang cookie (#14279) (#14280)
 * API
-  * Check release publisher exists (#14375)
+  * If release publisher is deleted use ghost user (#14375)
 * BUGFIXES
+  * Internal ssh server respect Ciphers, MACs and KeyExchanges settings (#14523)
   * Set the name Mapper in migrations (#14526) (#14529)
   * Fix wiki preview (#14515)
   * Update code.gitea.io/sdk/gitea v0.13.1 -> v0.13.2 (#14497)
@@ -18,7 +20,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix lfs preview bug (#14428) (#14433)
   * Ensure timeout error is shown on u2f timeout (#14417) (#14431)
   * Fix Deadlock & Delete affected reactions on comment deletion (#14392) (#14425)
-  * Prevent panic on fuzzer provided string (#14405) (#14409)
   * Use path not filepath in routers/editor (#14390) (#14396)
   * Check if label template exist first (#14384) (#14389)
   * Fix migration v141 (#14387) (#14388)
