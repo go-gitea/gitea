@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"path"
 	"strings"
 
@@ -21,16 +22,15 @@ import (
 
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, reader io.Reader) error {
-	buf := make([]byte, 1024)
-	n, err := reader.Read(buf)
+	content, err := ioutil.ReadAll(reader)
 	if err != nil && err != io.EOF {
 		return err
 	}
-	if n >= 0 {
-		buf = buf[:n]
-	}
+	length := len(content)
+	buf := content[:1024]
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", length))
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
@@ -56,11 +56,7 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	_, err = ctx.Resp.Write(buf)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(ctx.Resp, reader)
+	_, err = ctx.Resp.Write(content)
 	return err
 }
 
