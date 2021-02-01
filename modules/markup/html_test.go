@@ -383,3 +383,28 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
 }
+
+func Test_ParseClusterFuzz(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+	assert.NotContains(t, string(val), "<html")
+
+	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err = PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+
+	assert.NotContains(t, string(val), "<html")
+}

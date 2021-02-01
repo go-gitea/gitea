@@ -4,18 +4,16 @@ THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS PUBLIC LICENSE
 ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM CONSTITUTES
 RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
 
-   1. DEFINITIONS
+1. DEFINITIONS
 
-   "Contribution" means:
+"Contribution" means:
 
-a. in the case of Lucent Technologies Inc. ("LUCENT"), the Original Program,
+a.  in the case of Lucent Technologies Inc. ("LUCENT"), the Original Program,
 and
+     b.  in the case of each Contributor,
 
-      b. in the case of each Contributor,
-
-         i. changes to the Program, and
-
-         ii. additions to the Program;
+          i.  changes to the Program, and
+          ii.  additions to the Program;
 
 where such changes and/or additions to the Program were added to the Program
 by such Contributor itself or anyone acting on such Contributor's behalf,
@@ -41,15 +39,15 @@ documentation, if any.
 "Recipient" means anyone who receives the Program under this Agreement, including
 all Contributors.
 
-   2. GRANT OF RIGHTS
+2. GRANT OF RIGHTS
 
-a. Subject to the terms of this Agreement, each Contributor hereby grants
+a.  Subject to the terms of this Agreement, each Contributor hereby grants
 Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce,
 prepare derivative works of, publicly display, publicly perform, distribute
 and sublicense the Contribution of such Contributor, if any, and such derivative
 works, in source code and object code form.
 
-b. Subject to the terms of this Agreement, each Contributor hereby grants
+b.  Subject to the terms of this Agreement, each Contributor hereby grants
 Recipient a non-exclusive, worldwide, royalty-free patent license under Licensed
 Patents to make, use, sell, offer to sell, import and otherwise transfer the
 Contribution of such Contributor, if any, in source code and object code form.
@@ -61,7 +59,7 @@ license granted by a Contributor shall not apply to (i) any other combinations
 which include the Contribution, nor to (ii) Contributions of other Contributors.
 No hardware per se is licensed hereunder.
 
-c. Recipient understands that although each Contributor grants the licenses
+c.  Recipient understands that although each Contributor grants the licenses
 to its Contributions set forth herein, no assurances are provided by any Contributor
 that the Program does not infringe the patent or other intellectual property
 rights of any other entity. Each Contributor disclaims any liability to Recipient
@@ -73,34 +71,30 @@ if a third party patent license is required to allow Recipient to distribute
 the Program, it is Recipient's responsibility to acquire that license before
 distributing the Program.
 
-d. Each Contributor represents that to its knowledge it has sufficient copyright
+d.  Each Contributor represents that to its knowledge it has sufficient copyright
 rights in its Contribution, if any, to grant the copyright license set forth
 in this Agreement.
 
-   3. REQUIREMENTS
+3. REQUIREMENTS
 
 A. Distributor may choose to distribute the Program in any form under this
 Agreement or under its own license agreement, provided that:
 
-         1. it complies with the terms and conditions of this Agreement;
-
-2. if the Program is distributed in source code or other tangible form, a
+          1.  it complies with the terms and conditions of this Agreement;
+2.  if the Program is distributed in source code or other tangible form, a
 copy of this Agreement or Distributor's own license agreement is included
 with each copy of the Program; and
-
-3. if distributed under Distributor's own license agreement, such license
+3.  if distributed under Distributor's own license agreement, such license
 agreement:
 
-a. effectively disclaims on behalf of all Contributors all warranties and
+a.  effectively disclaims on behalf of all Contributors all warranties and
 conditions, express and implied, including warranties or conditions of title
 and non-infringement, and implied warranties or conditions of merchantability
 and fitness for a particular purpose;
-
-b. effectively excludes on behalf of all Contributors all liability for damages,
+b.  effectively excludes on behalf of all Contributors all liability for damages,
 including direct, indirect, special, incidental and consequential damages,
 such as lost profits; and
-
-c. states that any provisions which differ from this Agreement are offered
+c.  states that any provisions which differ from this Agreement are offered
 by that Contributor alone and not by any other party.
 
 B. Each Distributor must include the following in a conspicuous location in
@@ -114,7 +108,7 @@ to identify the originator of the Contribution. Also, each Contributor must
 agree that the additions and/or changes are intended to be a Contribution.
 Once a Contribution is contributed, it may not thereafter be revoked.
 
-   4. COMMERCIAL DISTRIBUTION
+4. COMMERCIAL DISTRIBUTION
 
 Commercial distributors of software may accept certain responsibilities with
 respect to end users, business partners and the like. While this license is
@@ -145,7 +139,7 @@ would have to defend claims against the Contributors related to those performanc
 claims and warranties, and if a court requires any Contributor to pay any
 damages as a result, the Commercial Distributor must pay those damages.
 
-   5. NO WARRANTY
+5. NO WARRANTY
 
 EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, THE PROGRAM IS PROVIDED ON
 AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS
@@ -158,7 +152,7 @@ risks and costs of program errors, compliance with applicable laws, damage
 to or loss of data, programs or equipment, and unavailability or interruption
 of operations.
 
-   6. DISCLAIMER OF LIABILITY
+6. DISCLAIMER OF LIABILITY
 
 EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, NEITHER RECIPIENT NOR ANY
 CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -168,13 +162,13 @@ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
 WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS
 GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
-   7. EXPORT CONTROL
+7. EXPORT CONTROL
 
 Recipient agrees that Recipient alone is responsible for compliance with the
 United States export administration regulations (and the export control laws
 and regulation of any other countries).
 
-   8. GENERAL
+8. GENERAL
 
 If any provision of this Agreement is invalid or unenforceable under applicable
 law, it shall not affect the validity or enforceability of the remainder of

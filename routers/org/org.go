@@ -9,11 +9,12 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -33,7 +34,8 @@ func Create(ctx *context.Context) {
 }
 
 // CreatePost response for create organization
-func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
+func CreatePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.CreateOrgForm)
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.User.CanCreateOrganization() {

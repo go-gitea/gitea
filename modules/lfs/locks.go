@@ -182,7 +182,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockRequest
-	bodyReader := ctx.Req.Body().ReadCloser()
+	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
@@ -317,7 +317,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockDeleteRequest
-	bodyReader := ctx.Req.Body().ReadCloser()
+	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {

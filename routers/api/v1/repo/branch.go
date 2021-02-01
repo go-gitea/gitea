@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -175,7 +176,7 @@ func DeleteBranch(ctx *context.APIContext) {
 }
 
 // CreateBranch creates a branch for a user's repository
-func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
+func CreateBranch(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/branches repository repoCreateBranch
 	// ---
 	// summary: Create a branch
@@ -206,6 +207,7 @@ func CreateBranch(ctx *context.APIContext, opt api.CreateBranchRepoOption) {
 	//   "409":
 	//     description: The branch with the same name already exists.
 
+	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.Error(http.StatusNotFound, "", "Git Repository is empty.")
 		return
@@ -395,7 +397,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 }
 
 // CreateBranchProtection creates a branch protection for a repo
-func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtectionOption) {
+func CreateBranchProtection(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/branch_protections repository repoCreateBranchProtection
 	// ---
 	// summary: Create a branch protections for a repository
@@ -428,6 +430,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateBranchProtectionOption)
 	repo := ctx.Repo.Repository
 
 	// Currently protection must match an actual branch
@@ -561,7 +564,7 @@ func CreateBranchProtection(ctx *context.APIContext, form api.CreateBranchProtec
 }
 
 // EditBranchProtection edits a branch protection for a repo
-func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtectionOption) {
+func EditBranchProtection(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/branch_protections/{name} repository repoEditBranchProtection
 	// ---
 	// summary: Edit a branch protections for a repository. Only fields that are set will be changed
@@ -596,7 +599,7 @@ func EditBranchProtection(ctx *context.APIContext, form api.EditBranchProtection
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
 	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)

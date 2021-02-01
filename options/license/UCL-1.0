@@ -5,7 +5,7 @@ work of authorship (the "Original Work") whose owner (the "Licensor") has
 placed the following licensing notice adjacent to the copyright notice for
 the Original Work:
 
-Licensed under the Upstream Compatibility License 1.0
+     Licensed under the Upstream Compatibility License 1.0
 
 1) Grant of Copyright License. Licensor grants You a worldwide, royalty-free,
 non-exclusive, sublicensable license, for the duration of the copyright, to
@@ -21,12 +21,13 @@ Original Work;
 c) to distribute or communicate copies of the Original Work and Derivative
 Works to the public, with the proviso that copies of Original Work You distribute
 or communicate shall be licensed under this Upstream Compatibility License
-and all Derivative Work You distribute or communicate shall be licensed under
-both this Upstream Compatibility License and the Apache License 2.0 or later;
+and all Derivative Work You distribute or communicate
+shall be licensed under both this Upstream Compatibility License and the Apache
+License 2.0 or later;
 
-      d) to perform the Original Work publicly; and
+     d) to perform the Original Work publicly; and
 
-      e) to display the Original Work publicly.
+     e) to display the Original Work publicly.
 
 2) Grant of Patent License. Licensor grants You a worldwide, royalty-free,
 non-exclusive, sublicensable license, under patent claims owned or controlled
@@ -48,7 +49,7 @@ continues to distribute the Original Work.
 of any contributors to the Original Work, nor any of their trademarks or service
 marks, may be used to endorse or promote products derived from this Original
 Work without express prior permission of the Licensor. Except as expressly
-stated herein, nothing in this License grants any license to Licensor's trademarks,
+stated herein, nothing in this License grants any license to Licensor’s trademarks,
 copyrights, patents, trade secrets or any other intellectual property. No
 patent license is granted to make, use, sell, offer for sale, have made, or
 import embodiments of any patent claims other than the licensed claims defined
@@ -107,7 +108,7 @@ to undertake the activities listed in Section 1, including your right to create
 Derivative Works based upon the Original Work, and doing so without honoring
 these terms and conditions is prohibited by copyright law and international
 treaty. Nothing in this License is intended to affect copyright exceptions
-and limitations (including "fair use" or "fair dealing"). This License shall
+and limitations (including “fair use” or “fair dealing”). This License shall
 terminate immediately and You may no longer exercise any of the rights granted
 to You by this License upon your failure to honor the conditions in Section
 1(c).
@@ -164,8 +165,8 @@ to other original works of authorship subject to the following conditions:
 Software License" or "OSL" or the "Upstream Compatibility License" or "UCL"
 and you may not use those names in the name of your Modified License; (ii)
 You must replace the notice specified in the first paragraph above with the
-notice "Licensed under <insert your license name here> " or with a notice
-of your own that is not confusingly similar to the notice in this License;
-and (iii) You may not claim that your original works are open source software
+notice "Licensed under <insert your license name here>" or with a notice of
+your own that is not confusingly similar to the notice in this License; and
+(iii) You may not claim that your original works are open source software
 unless your Modified License has been approved by Open Source Initiative (OSI)
 and You comply with its license review and certification process.

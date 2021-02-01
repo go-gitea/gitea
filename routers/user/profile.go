@@ -23,7 +23,11 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", nil)
+			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+				context.RedirectToUser(ctx, name, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}

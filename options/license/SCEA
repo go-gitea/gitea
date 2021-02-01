@@ -2,7 +2,7 @@ SCEA Shared Source License 1.0
 
 Terms and Conditions:
 
-   1. Definitions:
+1. Definitions:
 
 "Software" shall mean the software and related documentation, whether in Source
 or Object Form, made available under this SCEA Shared Source license ("License"),
@@ -14,7 +14,6 @@ or attached or accompanying the source files.
 "Object Code" or "Object Form" shall mean any form that results from translation
 or transformation of Source Code, including but not limited to compiled object
 code or conversions to other forms intended for machine execution.
-
 "Source Code" or "Source Form" shall have the plain meaning generally accepted
 in the software industry, including but not limited to software source code,
 documentation source, header and configuration files.
@@ -22,22 +21,21 @@ documentation source, header and configuration files.
 "You" or "Your" shall mean you as an individual or as a company, or whichever
 form under which you are exercising rights under this License.
 
-   2. License Grant.
+2. License Grant.
 
 Licensor hereby grants to You, free of charge subject to the terms and conditions
 of this License, an irrevocable, non-exclusive, worldwide, perpetual, and
 royalty-free license to use, modify, reproduce, distribute, publicly perform
 or display the Software in Object or Source Form .
 
-   3. No Right to File for Patent.
-
+3. No Right to File for Patent.
 In exchange for the rights that are granted to You free of charge under this
 License, You agree that You will not file for any patent application, seek
 copyright protection or take any other action that might otherwise impair
 the ownership rights in and to the Software that may belong to SCEA or any
 of the other contributors/authors of the Software.
 
-   4. Contributions.
+4. Contributions.
 
 SCEA welcomes contributions in form of modifications, optimizations, tools
 or documentation designed to improve or expand the performance and scope of
@@ -62,26 +60,26 @@ Your donated Contributions are integrated into the Software then Sony Computer
 Entertainment, Inc. shall become the copyright owner of the Software now containing
 Your contributions and SCEA would be the Licensor.
 
-   5. Redistribution in Source Form
+5. Redistribution in Source Form
 
 You may redistribute copies of the Software, modifications or derivatives
 thereof in Source Code Form, provided that You:
 
-      a. Include a copy of this License and any copyright notices with source
+     a. Include a copy of this License and any copyright notices with source
 
-      b. Identify modifications if any were made to the Software
+     b. Identify modifications if any were made to the Software
 
 c. Include a copy of all documentation accompanying the Software and modifications
 made by You
 
-   6. Redistribution in Object Form
+6. Redistribution in Object Form
 
 If You redistribute copies of the Software, modifications or derivatives thereof
 in Object Form only (as incorporated into finished goods, i.e. end user applications)
 then You will not have a duty to include any copies of the code, this License,
 copyright notices, other attributions or documentation.
 
-   7. No Warranty
+7. No Warranty
 
 THE SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT ANY REPRESENTATIONS
 OR WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION,
@@ -90,7 +88,7 @@ A PARTICULAR PURPOSE. YOU ARE SOLELY RESPONSIBLE FOR DETERMINING THE APPROPRIATE
 OF USING, MODIFYING OR REDISTRIBUTING THE SOFTWARE AND ASSUME ANY RISKS ASSOCIATED
 WITH YOUR EXERCISE OF PERMISSIONS UNDER THIS LICENSE.
 
-   8. Limitation of Liability
+8. Limitation of Liability
 
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY WILL EITHER PARTY BE LIABLE
 TO THE OTHER PARTY OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL,
@@ -101,7 +99,7 @@ OF SUCH INJURY, LOSS, OR DAMAGE. THE LIMITATIONS OF LIABILITY SET FORTH IN
 THIS SECTION SHALL APPLY TO THE FULLEST EXTENT PERMISSIBLE AT LAW OR ANY GOVERMENTAL
 REGULATIONS.
 
-   9. Governing Law and Consent to Jurisdiction
+9. Governing Law and Consent to Jurisdiction
 
 This Agreement shall be governed by and interpreted in accordance with the
 laws of the State of California, excluding that body of law related to choice
@@ -114,14 +112,13 @@ jurisdiction and venue of such courts for purposes of any such action. In
 addition, each party hereby waives the right to a jury trial in any action
 or proceeding related to this Agreement.
 
-   10. Copyright Notice for Redistribution of Source Code
+10. Copyright Notice for Redistribution of Source Code
 
 Copyright 2005 Sony Computer Entertainment Inc.
 
 Licensed under the SCEA Shared Source License, Version 1.0 (the "License");
 you may not use this file except in compliance with the License. You may obtain
 a copy of the License at:
-
 http://research.scea.com/scea_shared_source_license.html
 
 Unless required by applicable law or agreed to in writing, software distributed

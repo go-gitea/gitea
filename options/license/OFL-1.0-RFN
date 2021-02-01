@@ -20,15 +20,11 @@ DEFINITIONS
 
 "Font Software" refers to any and all of the following:
 
-   - font files
-
-   - data files
-
-   - source code
-
-   - build scripts
-
-   - documentation
+     - font files
+     - data files
+     - source code
+     - build scripts
+     - documentation
 
 "Reserved Font Name" refers to the Font Software name as seen by users and
 any other names as specified after the copyright statement.
