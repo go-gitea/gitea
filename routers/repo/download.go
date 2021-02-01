@@ -21,16 +21,18 @@ import (
 )
 
 // ServeData download file from io.Reader
-func ServeData(ctx *context.Context, name string, reader io.Reader) error {
-	content, err := ioutil.ReadAll(reader)
+func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
+	buf := make([]byte, 1024)
+	n, err := reader.Read(buf)
 	if err != nil && err != io.EOF {
 		return err
 	}
-	length := len(content)
-	buf := content[:1024]
+	if n >= 0 {
+		buf = buf[:n]
+	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
-	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", length))
+	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
@@ -56,7 +58,11 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	_, err = ctx.Resp.Write(content)
+	_, err = ctx.Resp.Write(buf)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(ctx.Resp, reader)
 	return err
 }
 
@@ -72,7 +78,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
+	return ServeData(ctx, ctx.Repo.TreePath, blob.Size(), dataRc)
 }
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
@@ -101,7 +107,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 		}()
-		return ServeData(ctx, ctx.Repo.TreePath, lfsDataRc)
+		return ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
 	}
 
 	return ServeBlob(ctx, blob)
