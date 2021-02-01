@@ -8,7 +8,6 @@ package repo
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path"
 	"strings"
 
