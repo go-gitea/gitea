@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * API
   * If release publisher is deleted use ghost user (#14375)
 * BUGFIXES
-  * Internal ssh server respect Ciphers, MACs and KeyExchanges settings (#14523)
+  * Internal ssh server respect Ciphers, MACs and KeyExchanges settings (#14523) (#14530)
   * Set the name Mapper in migrations (#14526) (#14529)
   * Fix wiki preview (#14515)
   * Update code.gitea.io/sdk/gitea v0.13.1 -> v0.13.2 (#14497)
