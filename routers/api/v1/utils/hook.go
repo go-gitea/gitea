@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
@@ -67,6 +68,14 @@ func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) 
 		return false
 	}
 	return true
+}
+
+// AddSystemHook add a system hook
+func AddSystemHook(ctx *context.APIContext, form *api.CreateHookOption) {
+	hook, ok := addHook(ctx, form, 0, 0)
+	if ok {
+		ctx.JSON(http.StatusCreated, convert.ToHook(setting.AppSubURL+"/admin", hook))
+	}
 }
 
 // AddOrgHook add a hook to an organization. Writes to `ctx` accordingly
@@ -168,6 +177,22 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		return nil, false
 	}
 	return w, true
+}
+
+// EditSystemHook edit system webhook `w` according to `form`. Writes to `ctx` accordingly
+func EditSystemHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64) {
+	hook, err := models.GetSystemOrDefaultWebhook(hookID)
+	if err != nil {
+		return
+	}
+	if !editHook(ctx, form, hook) {
+		return
+	}
+	updated, err := models.GetSystemOrDefaultWebhook(hookID)
+	if err != nil {
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToHook(setting.AppURL+"/admin", updated))
 }
 
 // EditOrgHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
