@@ -390,7 +390,7 @@ github.com/gogs/chardet
 # github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 ## explicit
 github.com/gogs/cron
-# github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355 => github.com/6543-forks/go-gogs-client v0.0.0-20210116182316-f2f8bc0ea9cc
+# github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 ## explicit
 github.com/gogs/go-gogs-client
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
@@ -1011,4 +1011,3 @@ xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 # github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
-# github.com/gogs/go-gogs-client => github.com/6543-forks/go-gogs-client v0.0.0-20210116182316-f2f8bc0ea9cc
