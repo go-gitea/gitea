@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package org
+package admin
 
 import (
 	"net/http"
@@ -36,7 +36,7 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	sysHooks, err := models.GetSystemWebhooks(utils.GetListOptions(ctx))
+	sysHooks, err := models.GetSystemWebhooks()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetSystemWebhooks", err)
 		return

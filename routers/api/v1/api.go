@@ -1032,7 +1032,7 @@ func Routes() *web.Route {
 				m.Combo("").Get(admin.ListHooks).
 					Post(bind(api.CreateHookOption{}), admin.CreateHook)
 				m.Combo("/{id}").Get(admin.GetHook).
-					Patch(bind(admin.EditHookOption{}), admin.EditHook).
+					Patch(bind(api.EditHookOption{}), admin.EditHook).
 					Delete(admin.DeleteHook)
 			})
 		}, reqToken(), reqSiteAdmin())
