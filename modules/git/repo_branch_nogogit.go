@@ -21,8 +21,8 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return IsReferenceExist(repo.Path, BranchPrefix+name)
 }
 
-// GetBranches returns all branches of the repository.
-// if limit = 0 it will not limit
+// GetBranches returns branches from the repository, skipping skip initial branches and
+// returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
 	return callShowRef(repo.Path, BranchPrefix, "--heads", skip, limit)
 }
