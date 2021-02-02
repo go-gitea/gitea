@@ -25,8 +25,8 @@ func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
 	return gitRepo.GetBranch(branch)
 }
 
-// GetBranches returns all the branches of a repository
-// if limit = 0 it will not limit
+// GetBranches returns branches from the repository, skipping skip initial branches and
+// returning at most limit branches, or all branches if limit is 0.
 func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
 	return git.GetBranchesByPath(repo.RepoPath(), skip, limit)
 }
