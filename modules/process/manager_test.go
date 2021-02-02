@@ -13,7 +13,10 @@ import (
 )
 
 func TestManager_Add(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process)}
+	go func() {
+		_ = GetManager()
+	}()
+	pm := GetManager()
 
 	pid := pm.Add("foo", nil)
 	assert.Equal(t, int64(1), pid, "expected to get pid 1 got %d", pid)
