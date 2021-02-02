@@ -27,13 +27,14 @@ type Blob struct {
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	stdoutReader, stdoutWriter := io.Pipe()
-	var err error
+	errChan := make(chan error)
 
 	go func() {
 		stderr := &strings.Builder{}
-		err = NewCommand("cat-file", "--batch").RunInDirFullPipeline(b.repoPath, stdoutWriter, stderr, strings.NewReader(b.ID.String()+"\n"))
+		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(b.repoPath, stdoutWriter, stderr, strings.NewReader(b.ID.String()+"\n"))
 		if err != nil {
 			err = ConcatenateError(err, stderr.String())
+			errChan <- err
 			_ = stdoutWriter.CloseWithError(err)
 		} else {
 			_ = stdoutWriter.Close()
@@ -50,8 +51,8 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	return &LimitedReaderCloser{
 		R: bufReader,
 		C: stdoutReader,
-		N: int64(size),
-	}, err
+		N: size,
+	}, <-errChan
 }
 
 // Size returns the uncompressed size of the blob
