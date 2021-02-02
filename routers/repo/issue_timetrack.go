@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // AddTimeManually tracks time manually
-func AddTimeManually(c *context.Context, form auth.AddTimeManuallyForm) {
+func AddTimeManually(c *context.Context) {
+	form := web.GetForm(c).(*auth.AddTimeManuallyForm)
 	issue := GetActionIssue(c)
 	if c.Written() {
 		return

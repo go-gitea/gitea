@@ -1,8 +1,7 @@
 SGI FREE SOFTWARE LICENSE B
-
 (Version 1.0 1/25/2000)
 
-   1. Definitions.
+1. Definitions.
 
 1.1 "Additional Notice Provisions" means such additional provisions as appear
 in the Notice in Original Code under the heading "Additional Notice Provisions."
@@ -23,7 +22,7 @@ with code not governed by the terms of this License.
 whether at the time of the initial grant or subsequently acquired, any and
 all of the rights conveyed herein.
 
-      1.7 "License" means this document.
+     1.7 "License" means this document.
 
 1.8 "Modifications" means any addition to the substance or structure of the
 Original Code and/or any addition to or deletion from previous Modifications.
@@ -50,11 +49,11 @@ the power, direct or indirect, to direct or manage such entity, or (b) ownership
 of fifty percent (50%) or more of the outstanding shares or beneficial ownership
 of such entity.
 
-      1.12 SGI" means Silicon Graphics, Inc.
+     1.12 SGI" means Silicon Graphics, Inc.
 
-   2. License Grant and Restrictions.
+2. License Grant and Restrictions.
 
-2.1 License Grant. Subject to the provisions of this License and any third
+2.1v License Grant. Subject to the provisions of this License and any third
 party intellectual property claims, for the duration of intellectual property
 protections inherent in the Original Code, SGI hereby grants Recipient a worldwide,
 royalty-free, non-exclusive license, to do the following: (i) under copyrights
@@ -80,24 +79,24 @@ under Section 2.1(i) to the extent such Modifications are fully compliant
 with any API as may be identified in Additional Notice Provisions as appear
 in the Original Code.
 
-   3. Redistributions.
+3. Redistributions.
 
-A. Retention of Notice/Copy of License. The Notice set forth in Exhibit A,
+A.	Retention of Notice/Copy of License. The Notice set forth in Exhibit A,
 below, must be conspicuously retained or included in any and all redistributions
 of Covered Code. For distributions of the Covered Code in source code form,
 the Notice must appear in every file that can include a text comments field;
 in executable form, the Notice and a copy of this License must appear in related
-documentation or collateral where the Recipient's rights relating to Covered
+documentation or collateral where the Recipient’s rights relating to Covered
 Code are described. Any Additional Notice Provisions which actually appears
 in the Original Code must also be retained or included in any and all redistributions
 of Covered Code.
 
-B. Alternative License. Provided that Recipient is in compliance with the
+B.	Alternative License. Provided that Recipient is in compliance with the
 terms of this License, Recipient may distribute the source code and/or executable
 version(s) of Covered Code under (1) this License; (2) a license identical
 to this License but for only such changes as are necessary in order to clarify
-Recipient's role as licensor of Modifications, without derogation of any of
-SGI's rights; and/or (3) a license of Recipient's choosing, containing terms
+Recipient’s role as licensor of Modifications, without derogation of any of
+SGI’s rights; and/or (3) a license of Recipient’s choosing, containing terms
 different from this License, provided that the license terms include this
 Section 3 and Sections 4, 6, 7, 10, 12, and 13, which terms may not be modified
 or superseded by any other terms of such license. If Recipient elects to use
@@ -105,7 +104,7 @@ any license other than this License, Recipient must make it absolutely clear
 that any of its terms which differ from this License are offered by Recipient
 alone, and not by SGI.
 
-C. Indemnity. Recipient hereby agrees to indemnify SGI for any liability incurred
+C.	Indemnity. Recipient hereby agrees to indemnify SGI for any liability incurred
 by SGI as a result of any such alternative license terms Recipient offers.
 
 4. Termination. This License and the rights granted hereunder will terminate
@@ -204,7 +203,9 @@ including without limitation, court costs and reasonable attorneys fees and
 expenses. The application of the United Nations Convention on Contracts for
 the International Sale of Goods is expressly excluded. Any law or regulation
 which provides that the language of a contract shall be construed against
-the drafter shall not apply to this License. Exhibit A
+the drafter shall not apply to this License.
+
+Exhibit A
 
 License Applicability. Except to the extent portions of this file are made
 subject to an alternative license as permitted in the SGI Free Software License
@@ -221,11 +222,11 @@ IS" basis, with ALL EXPRESS AND IMPLIED WARRANTIES AND CONDITIONS DISCLAIMED,
 INCLUDING, WITHOUT LIMITATION, ANY IMPLIED WARRANTIES AND CONDITIONS OF MERCHANTABILITY,
 SATISFACTORY QUALITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
 
-Original Code. The Original Code is: [ name of software , version number ,
-and release date], developed by Silicon Graphics, Inc. The Original Code is
-Copyright (c) [ dates of first publication, as appearing in the Notice in
-the Original Code] Silicon Graphics, Inc. Copyright in any portions created
-by third parties is as indicated elsewhere herein. All Rights Reserved.
+Original Code. The Original Code is: [name of software, version number, and
+release date], developed by Silicon Graphics, Inc. The Original Code is Copyright
+(c) [dates of first publication, as appearing in the Notice in the Original
+Code] Silicon Graphics, Inc. Copyright in any portions created by third parties
+is as indicated elsewhere herein. All Rights Reserved.
 
-Additional Notice Provisions: [ such additional provisions, if any, as appear
+Additional Notice Provisions: [such additional provisions, if any, as appear
 in the Notice in the Original Code under the heading "Additional Notice Provisions"]

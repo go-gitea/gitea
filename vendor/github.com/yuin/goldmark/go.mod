@@ -1,3 +1,3 @@
 module github.com/yuin/goldmark
 
-go 1.13
+go 1.15

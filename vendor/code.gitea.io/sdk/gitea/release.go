@@ -57,7 +57,7 @@ func (c *Client) GetRelease(user, repo string, id int64) (*Release, *Response, e
 
 // GetReleaseByTag get a release of a repository by tag
 func (c *Client) GetReleaseByTag(user, repo string, tag string) (*Release, *Response, error) {
-	if c.CheckServerVersionConstraint(">=1.13.0") != nil {
+	if c.checkServerVersionGreaterThanOrEqual(version1_13_0) != nil {
 		return c.fallbackGetReleaseByTag(user, repo, tag)
 	}
 	r := new(Release)

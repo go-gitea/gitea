@@ -50,13 +50,14 @@ The U.S. Government cannot be held liable for any damages either directly
 or indirectly caused by the use of the SMP Software.
 
 It is not permitted to copy, sublicense, distribute or transfer any of the
-SMP Software except as expressly indicated herein. Any attempts to do otherwise
+SMP Software except as expressly indicated herein.  Any attempts to do otherwise
 will be considered a violation of this License and your rights to the SMP
 Software will be voided.
 
 The SMP uses the Enhanced SNACC (eSNACC) Abstract Syntax Notation One (ASN.1)
-C++ Library to ASN.1 encode and decode security-related data objects. The
+C++ Library to ASN.1 encode and decode security-related data objects.  The
 eSNACC ASN.1 C++ Library is covered by the ENHANCED SNACC SOFTWARE PUBLIC
-LICENSE. None of the GNU public licenses apply to the eSNACC ASN.1 C++ Library.
-The eSNACC Compiler is not distributed as part of the SMP. Copyright © 1997-2002
-National Security Agency
+LICENSE.  None of the GNU public licenses apply to the eSNACC ASN.1 C++ Library.
+The eSNACC Compiler is not distributed as part of the SMP.
+
+Copyright © 1997-2002 National Security Agency

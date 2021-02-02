@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
@@ -42,7 +43,7 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 }
 
 // CreateUser create a user
-func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
+func CreateUser(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users admin adminCreateUser
 	// ---
 	// summary: Create a user
@@ -64,7 +65,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateUserOption)
 	u := &models.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
@@ -119,7 +120,7 @@ func CreateUser(ctx *context.APIContext, form api.CreateUserOption) {
 }
 
 // EditUser api for modifying a user's information
-func EditUser(ctx *context.APIContext, form api.EditUserOption) {
+func EditUser(ctx *context.APIContext) {
 	// swagger:operation PATCH /admin/users/{username} admin adminEditUser
 	// ---
 	// summary: Edit an existing user
@@ -144,7 +145,7 @@ func EditUser(ctx *context.APIContext, form api.EditUserOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.EditUserOption)
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
@@ -283,7 +284,7 @@ func DeleteUser(ctx *context.APIContext) {
 }
 
 // CreatePublicKey api for creating a public key to a user
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/keys admin adminCreatePublicKey
 	// ---
 	// summary: Add a public key on behalf of a user
@@ -308,12 +309,12 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
-	user.CreateUserPublicKey(ctx, form, u.ID)
+	user.CreateUserPublicKey(ctx, *form, u.ID)
 }
 
 // DeleteUserPublicKey api for deleting a user's public key
