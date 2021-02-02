@@ -42,7 +42,7 @@ require (
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
-	github.com/gogs/go-gogs-client v0.0.0-20200905025246-8bb8a50cb355
+	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/context v1.1.1
@@ -125,5 +125,3 @@ require (
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
 
 replace github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
-
-replace github.com/gogs/go-gogs-client => github.com/6543-forks/go-gogs-client v0.0.0-20210116182316-f2f8bc0ea9cc
