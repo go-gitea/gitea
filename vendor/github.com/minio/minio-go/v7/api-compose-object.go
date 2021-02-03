@@ -215,7 +215,7 @@ func (c Client) copyObjectDo(ctx context.Context, srcBucket, srcObject, destBuck
 		headers.Set(amzBucketReplicationStatus, string(dstOpts.Internal.ReplicationStatus))
 	}
 	if !dstOpts.Internal.SourceMTime.IsZero() {
-		headers.Set(minIOBucketSourceMTime, dstOpts.Internal.SourceMTime.Format(time.RFC3339))
+		headers.Set(minIOBucketSourceMTime, dstOpts.Internal.SourceMTime.Format(time.RFC3339Nano))
 	}
 	if dstOpts.Internal.SourceETag != "" {
 		headers.Set(minIOBucketSourceETag, dstOpts.Internal.SourceETag)

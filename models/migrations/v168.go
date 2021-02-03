@@ -1,22 +1,11 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addDismissedReviewColumn(x *xorm.Engine) error {
-	type Review struct {
-		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
-	}
-
-	if err := x.Sync2(new(Review)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
+func recreateUserTableToFixDefaultValues(_ *xorm.Engine) error {
 	return nil
 }

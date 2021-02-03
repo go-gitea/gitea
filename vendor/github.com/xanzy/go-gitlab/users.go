@@ -54,40 +54,43 @@ type BasicUser struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/users.html
 type User struct {
-	ID                        int                `json:"id"`
-	Username                  string             `json:"username"`
-	Email                     string             `json:"email"`
-	Name                      string             `json:"name"`
-	State                     string             `json:"state"`
-	WebURL                    string             `json:"web_url"`
-	CreatedAt                 *time.Time         `json:"created_at"`
-	Bio                       string             `json:"bio"`
-	Location                  string             `json:"location"`
-	PublicEmail               string             `json:"public_email"`
-	Skype                     string             `json:"skype"`
-	Linkedin                  string             `json:"linkedin"`
-	Twitter                   string             `json:"twitter"`
-	WebsiteURL                string             `json:"website_url"`
-	Organization              string             `json:"organization"`
-	ExternUID                 string             `json:"extern_uid"`
-	Provider                  string             `json:"provider"`
-	ThemeID                   int                `json:"theme_id"`
-	LastActivityOn            *ISOTime           `json:"last_activity_on"`
-	ColorSchemeID             int                `json:"color_scheme_id"`
-	IsAdmin                   bool               `json:"is_admin"`
-	AvatarURL                 string             `json:"avatar_url"`
-	CanCreateGroup            bool               `json:"can_create_group"`
-	CanCreateProject          bool               `json:"can_create_project"`
-	ProjectsLimit             int                `json:"projects_limit"`
-	CurrentSignInAt           *time.Time         `json:"current_sign_in_at"`
-	LastSignInAt              *time.Time         `json:"last_sign_in_at"`
-	ConfirmedAt               *time.Time         `json:"confirmed_at"`
-	TwoFactorEnabled          bool               `json:"two_factor_enabled"`
-	Identities                []*UserIdentity    `json:"identities"`
-	External                  bool               `json:"external"`
-	PrivateProfile            bool               `json:"private_profile"`
-	SharedRunnersMinutesLimit int                `json:"shared_runners_minutes_limit"`
-	CustomAttributes          []*CustomAttribute `json:"custom_attributes"`
+	ID                             int                `json:"id"`
+	Username                       string             `json:"username"`
+	Email                          string             `json:"email"`
+	Name                           string             `json:"name"`
+	State                          string             `json:"state"`
+	WebURL                         string             `json:"web_url"`
+	CreatedAt                      *time.Time         `json:"created_at"`
+	Bio                            string             `json:"bio"`
+	Location                       string             `json:"location"`
+	PublicEmail                    string             `json:"public_email"`
+	Skype                          string             `json:"skype"`
+	Linkedin                       string             `json:"linkedin"`
+	Twitter                        string             `json:"twitter"`
+	WebsiteURL                     string             `json:"website_url"`
+	Organization                   string             `json:"organization"`
+	ExternUID                      string             `json:"extern_uid"`
+	Provider                       string             `json:"provider"`
+	ThemeID                        int                `json:"theme_id"`
+	LastActivityOn                 *ISOTime           `json:"last_activity_on"`
+	ColorSchemeID                  int                `json:"color_scheme_id"`
+	IsAdmin                        bool               `json:"is_admin"`
+	AvatarURL                      string             `json:"avatar_url"`
+	CanCreateGroup                 bool               `json:"can_create_group"`
+	CanCreateProject               bool               `json:"can_create_project"`
+	ProjectsLimit                  int                `json:"projects_limit"`
+	CurrentSignInAt                *time.Time         `json:"current_sign_in_at"`
+	LastSignInAt                   *time.Time         `json:"last_sign_in_at"`
+	ConfirmedAt                    *time.Time         `json:"confirmed_at"`
+	TwoFactorEnabled               bool               `json:"two_factor_enabled"`
+	Note                           string             `json:"note"`
+	Identities                     []*UserIdentity    `json:"identities"`
+	External                       bool               `json:"external"`
+	PrivateProfile                 bool               `json:"private_profile"`
+	SharedRunnersMinutesLimit      int                `json:"shared_runners_minutes_limit"`
+	ExtraSharedRunnersMinutesLimit int                `json:"extra_shared_runners_minutes_limit"`
+	UsingLicenseSeat               bool               `json:"using_license_seat"`
+	CustomAttributes               []*CustomAttribute `json:"custom_attributes"`
 }
 
 // UserIdentity represents a user identity.
@@ -101,8 +104,9 @@ type UserIdentity struct {
 // GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-users
 type ListUsersOptions struct {
 	ListOptions
-	Active  *bool `url:"active,omitempty" json:"active,omitempty"`
-	Blocked *bool `url:"blocked,omitempty" json:"blocked,omitempty"`
+	Active          *bool `url:"active,omitempty" json:"active,omitempty"`
+	Blocked         *bool `url:"blocked,omitempty" json:"blocked,omitempty"`
+	ExcludeInternal *bool `url:"exclude_internal,omitempty" json:"exclude_internal,omitempty"`
 
 	// The options below are only available for admins.
 	Search               *string    `url:"search,omitempty" json:"search,omitempty"`
@@ -362,8 +366,9 @@ func (s *UsersService) GetSSHKey(key int, options ...RequestOptionFunc) (*SSHKey
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#add-ssh-key
 type AddSSHKeyOptions struct {
-	Title *string `url:"title,omitempty" json:"title,omitempty"`
-	Key   *string `url:"key,omitempty" json:"key,omitempty"`
+	Title     *string  `url:"title,omitempty" json:"title,omitempty"`
+	Key       *string  `url:"key,omitempty" json:"key,omitempty"`
+	ExpiresAt *ISOTime `url:"expires_at,omitempty" json:"expires_at,omitempty"`
 }
 
 // AddSSHKey creates a new key owned by the currently authenticated user.
@@ -937,10 +942,10 @@ func (s *UsersService) SetUserStatus(opt *UserStatusOptions, options ...RequestO
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/users.html#user-memberships-admin-only
 type UserMembership struct {
-	SourceID    int    `json:"source_id"`
-	SourceName  string `json:"source_name"`
-	SourceType  string `json:"source_type"`
-	AccessLevel string `json:"access_level"`
+	SourceID    int              `json:"source_id"`
+	SourceName  string           `json:"source_name"`
+	SourceType  string           `json:"source_type"`
+	AccessLevel AccessLevelValue `json:"access_level"`
 }
 
 // GetUserMembershipOptions represents the options available to query user memberships.

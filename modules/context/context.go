@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -25,11 +26,11 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -55,7 +56,7 @@ type Context struct {
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
-	Flash   *middlewares.Flash
+	Flash   *middleware.Flash
 	Session session.Store
 
 	Link        string // current request URL
@@ -182,6 +183,10 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 // HTML calls Context.HTML and converts template name to string.
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
+	var startTime = time.Now()
+	ctx.Data["TmplLoadTimes"] = func() string {
+		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
 		ctx.ServerError("Render failed", err)
 	}
@@ -190,6 +195,10 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // HTMLString render content to a string but not http.ResponseWriter
 func (ctx *Context) HTMLString(name string, data interface{}) (string, error) {
 	var buf strings.Builder
+	var startTime = time.Now()
+	ctx.Data["TmplLoadTimes"] = func() string {
+		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
+	}
 	err := ctx.Render.HTML(&buf, 200, string(name), data)
 	return buf.String(), err
 }
@@ -197,7 +206,7 @@ func (ctx *Context) HTMLString(name string, data interface{}) (string, error) {
 // RenderWithErr used for page has form validation but need to prompt error to users.
 func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}) {
 	if form != nil {
-		middlewares.AssignForm(form, ctx.Data)
+		middleware.AssignForm(form, ctx.Data)
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
@@ -321,7 +330,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 // PlainText render content as plain text
 func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -356,7 +365,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 
 // JSON render content as JSON
 func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf8")
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
@@ -375,12 +384,12 @@ func (ctx *Context) Redirect(location string, status ...int) {
 
 // SetCookie set cookies to web browser
 func (ctx *Context) SetCookie(name string, value string, others ...interface{}) {
-	middlewares.SetCookie(ctx.Resp, name, value, others...)
+	middleware.SetCookie(ctx.Resp, name, value, others...)
 }
 
 // GetCookie returns given cookie value from request header.
 func (ctx *Context) GetCookie(name string) string {
-	return middlewares.GetCookie(ctx.Req, name)
+	return middleware.GetCookie(ctx.Req, name)
 }
 
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
@@ -487,10 +496,10 @@ func GetContext(req *http.Request) *Context {
 
 // SignedUserName returns signed user's name via context
 func SignedUserName(req *http.Request) string {
-	if middlewares.IsInternalPath(req) {
+	if middleware.IsInternalPath(req) {
 		return ""
 	}
-	if middlewares.IsAPIPath(req) {
+	if middleware.IsAPIPath(req) {
 		ctx, ok := req.Context().Value(apiContextKey).(*APIContext)
 		if ok {
 			v := ctx.Data["SignedUserName"]
@@ -530,7 +539,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			var locale = middlewares.Locale(resp, req)
+			var locale = middleware.Locale(resp, req)
 			var startTime = time.Now()
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
@@ -547,10 +556,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				Data: map[string]interface{}{
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
-					"TmplLoadTimes": func() string {
-						return time.Since(startTime).String()
-					},
-					"Link": link,
+					"Link":          link,
 				},
 			}
 
@@ -561,7 +567,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			flashCookie := ctx.GetCookie("macaron_flash")
 			vals, _ := url.ParseQuery(flashCookie)
 			if len(vals) > 0 {
-				f := &middlewares.Flash{
+				f := &middleware.Flash{
 					DataStore:  &ctx,
 					Values:     vals,
 					ErrorMsg:   vals.Get("error"),
@@ -572,7 +578,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				ctx.Data["Flash"] = f
 			}
 
-			f := &middlewares.Flash{
+			f := &middleware.Flash{
 				DataStore:  &ctx,
 				Values:     url.Values{},
 				ErrorMsg:   "",
@@ -582,11 +588,11 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 			ctx.Resp.Before(func(resp ResponseWriter) {
 				if flash := f.Encode(); len(flash) > 0 {
-					middlewares.SetCookie(resp, "macaron_flash", flash, 0,
+					middleware.SetCookie(resp, "macaron_flash", flash, 0,
 						setting.SessionConfig.CookiePath,
-						middlewares.Domain(setting.SessionConfig.Domain),
-						middlewares.HTTPOnly(true),
-						middlewares.Secure(setting.SessionConfig.Secure),
+						middleware.Domain(setting.SessionConfig.Domain),
+						middleware.HTTPOnly(true),
+						middleware.Secure(setting.SessionConfig.Secure),
 						//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
 					)
 					return
@@ -594,10 +600,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 				ctx.SetCookie("macaron_flash", "", -1,
 					setting.SessionConfig.CookiePath,
-					middlewares.Domain(setting.SessionConfig.Domain),
-					middlewares.HTTPOnly(true),
-					middlewares.Secure(setting.SessionConfig.Secure),
-					//middlewares.SameSite(), FIXME: we need a samesite config
+					middleware.Domain(setting.SessionConfig.Domain),
+					middleware.HTTPOnly(true),
+					middleware.Secure(setting.SessionConfig.Secure),
+					//middleware.SameSite(), FIXME: we need a samesite config
 				)
 			})
 

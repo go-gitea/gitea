@@ -727,6 +727,12 @@ func Routes() *web.Route {
 						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(reqAdmin(), repo.DeleteCollaborator)
 				}, reqToken())
+				m.Group("/teams", func() {
+					m.Get("", reqAnyRepoReader(), repo.ListTeams)
+					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
+						Put(reqAdmin(), repo.AddTeam).
+						Delete(reqAdmin(), repo.DeleteTeam)
+				}, reqToken())
 				m.Get("/raw/*", context.RepoRefForAPI, reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
