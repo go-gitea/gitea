@@ -41,6 +41,15 @@ export default {
       no_contributions: 'No contributions',
     },
   }),
+  computed: {
+    sum() {
+      let s = 0;
+      for (let i = 0; i < this.values.length; i++) {
+        s += this.values[i].count;
+      }
+      return s;
+    }
+  },
   methods: {
     handleDayClick(e) {
       // Reset filter if same date is clicked
@@ -59,15 +68,6 @@ export default {
       window.location.search = newSearch.length ? `?${newSearch}` : '';
     }
   },
-  computed: {
-    sum() {
-      let s = 0;
-      for (let i = 0; i < this.values.length; i++) {
-        s += this.values[i].count;
-      }
-      return s;
-    }
-  }
 };
 </script>
 <style scoped/>
