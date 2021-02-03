@@ -12,11 +12,11 @@ func PaginateSlice(list interface{}, page, pageSize int) interface{} {
 	if page <= 0 || pageSize <= 0 {
 		return list
 	}
-	listValue := reflect.ValueOf(list)
-
 	if reflect.TypeOf(list).Kind() != reflect.Slice {
 		return list
 	}
+
+	listValue := reflect.ValueOf(list)
 
 	page--
 
