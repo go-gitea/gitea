@@ -678,7 +678,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 		return nil
 	}
 
-	brs, err := ctx.Repo.GitRepo.GetBranches()
+	brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil
