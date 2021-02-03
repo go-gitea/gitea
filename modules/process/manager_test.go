@@ -12,11 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestManager_Add(t *testing.T) {
+func TestGetManager(t *testing.T) {
 	go func() {
+		// test race protection
 		_ = GetManager()
 	}()
 	pm := GetManager()
+	assert.NotNil(t, pm)
+}
+
+func TestManager_Add(t *testing.T) {
+	pm := Manager{processes: make(map[int64]*Process)}
 
 	pid := pm.Add("foo", nil)
 	assert.Equal(t, int64(1), pid, "expected to get pid 1 got %d", pid)
