@@ -124,7 +124,9 @@ type CreateReleaseOptions struct {
 	TagName     *string        `url:"tag_name" json:"tag_name"`
 	Description *string        `url:"description" json:"description"`
 	Ref         *string        `url:"ref,omitempty" json:"ref,omitempty"`
+	Milestones  []string       `url:"milestones,omitempty" json:"milestones,omitempty"`
 	Assets      *ReleaseAssets `url:"assets,omitempty" json:"assets,omitempty"`
+	ReleasedAt  *time.Time     `url:"released_at,omitempty" json:"released_at,omitempty"`
 }
 
 // CreateRelease creates a release.
@@ -157,8 +159,10 @@ func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOpti
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/releases/index.html#update-a-release
 type UpdateReleaseOptions struct {
-	Name        *string `url:"name" json:"name"`
-	Description *string `url:"description" json:"description"`
+	Name        *string    `url:"name" json:"name"`
+	Description *string    `url:"description" json:"description"`
+	Milestones  []string   `url:"milestones,omitempty" json:"milestones,omitempty"`
+	ReleasedAt  *time.Time `url:"released_at,omitempty" json:"released_at,omitempty"`
 }
 
 // UpdateRelease updates a release.

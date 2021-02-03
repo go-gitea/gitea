@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
 )
@@ -71,5 +71,5 @@ type AuthenticationForm struct {
 // Validate validates fields
 func (f *AuthenticationForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	return middlewares.Validate(errs, ctx.Data, f, ctx.Locale)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
