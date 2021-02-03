@@ -5,10 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 	"text/template/parse"
 	"unicode"
@@ -16,6 +20,7 @@ import (
 	"log"
 
 	"github.com/go-openapi/inflect"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/swag"
 	"github.com/kr/pretty"
 )
@@ -28,6 +33,8 @@ var (
 	FuncMapFunc func(*LanguageOpts) template.FuncMap
 
 	templates *Repository
+
+	docFormat map[string]string
 )
 
 func initTemplateRepo() {
@@ -40,6 +47,11 @@ func initTemplateRepo() {
 	assets = defaultAssets()
 	protectedTemplates = defaultProtectedTemplates()
 	templates = NewRepository(FuncMapFunc(DefaultLanguageFunc()))
+
+	docFormat = map[string]string{
+		"binary": "binary (byte stream)",
+		"byte":   "byte (base64 string)",
+	}
 }
 
 // DefaultFuncMap yields a map with default functions for use n the templates.
@@ -72,9 +84,11 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		},
 		"dropPackage":      dropPackage,
 		"upper":            strings.ToUpper,
+		"lower":            strings.ToLower,
 		"contains":         swag.ContainsStrings,
 		"padSurround":      padSurround,
 		"joinFilePath":     filepath.Join,
+		"joinPath":         path.Join,
 		"comment":          padComment,
 		"blockcomment":     blockComment,
 		"inspect":          pretty.Sprint,
@@ -85,6 +99,44 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		"stringContains":   strings.Contains,
 		"imports":          lang.imports,
 		"dict":             dict,
+		"isInteger":        isInteger,
+		"escapeBackticks": func(arg string) string {
+			return strings.ReplaceAll(arg, "`", "`+\"`\"+`")
+		},
+		"paramDocType": func(param GenParameter) string {
+			return resolvedDocType(param.SwaggerType, param.SwaggerFormat, param.Child)
+		},
+		"headerDocType": func(header GenHeader) string {
+			return resolvedDocType(header.SwaggerType, header.SwaggerFormat, header.Child)
+		},
+		"schemaDocType": func(in interface{}) string {
+			switch schema := in.(type) {
+			case GenSchema:
+				return resolvedDocSchemaType(schema.SwaggerType, schema.SwaggerFormat, schema.Items)
+			case *GenSchema:
+				if schema == nil {
+					return ""
+				}
+				return resolvedDocSchemaType(schema.SwaggerType, schema.SwaggerFormat, schema.Items)
+			case GenDefinition:
+				return resolvedDocSchemaType(schema.SwaggerType, schema.SwaggerFormat, schema.Items)
+			case *GenDefinition:
+				if schema == nil {
+					return ""
+				}
+				return resolvedDocSchemaType(schema.SwaggerType, schema.SwaggerFormat, schema.Items)
+			default:
+				panic("dev error: schemaDocType should be called with GenSchema or GenDefinition")
+			}
+		},
+		"schemaDocMapType": func(schema GenSchema) string {
+			return resolvedDocElemType("object", schema.SwaggerFormat, &schema.resolvedType)
+		},
+		"docCollectionFormat": resolvedDocCollectionFormat,
+		"trimSpace":           strings.TrimSpace,
+		"httpStatus":          httpStatus,
+		"cleanupEnumVariant":  cleanupEnumVariant,
+		"gt0":                 gt0,
 	})
 }
 
@@ -98,6 +150,9 @@ func defaultAssets() map[string][]byte {
 		"schemavalidator.gotmpl":         MustAsset("templates/schemavalidator.gotmpl"),
 		"schemapolymorphic.gotmpl":       MustAsset("templates/schemapolymorphic.gotmpl"),
 		"schemaembedded.gotmpl":          MustAsset("templates/schemaembedded.gotmpl"),
+		"validation/minimum.gotmpl":      MustAsset("templates/validation/minimum.gotmpl"),
+		"validation/maximum.gotmpl":      MustAsset("templates/validation/maximum.gotmpl"),
+		"validation/multipleOf.gotmpl":   MustAsset("templates/validation/multipleOf.gotmpl"),
 
 		// schema serialization templates
 		"additionalpropertiesserializer.gotmpl": MustAsset("templates/serializers/additionalpropertiesserializer.gotmpl"),
@@ -117,6 +172,10 @@ func defaultAssets() map[string][]byte {
 		"model.gotmpl":      MustAsset("templates/model.gotmpl"),
 		"header.gotmpl":     MustAsset("templates/header.gotmpl"),
 
+		// simple schema generation helpers templates
+		"simpleschema/defaultsvar.gotmpl":  MustAsset("templates/simpleschema/defaultsvar.gotmpl"),
+		"simpleschema/defaultsinit.gotmpl": MustAsset("templates/simpleschema/defaultsinit.gotmpl"),
+
 		"swagger_json_embed.gotmpl": MustAsset("templates/swagger_json_embed.gotmpl"),
 
 		// server templates
@@ -135,6 +194,8 @@ func defaultAssets() map[string][]byte {
 		"client/response.gotmpl":  MustAsset("templates/client/response.gotmpl"),
 		"client/client.gotmpl":    MustAsset("templates/client/client.gotmpl"),
 		"client/facade.gotmpl":    MustAsset("templates/client/facade.gotmpl"),
+
+		"markdown/docs.gotmpl": MustAsset("templates/markdown/docs.gotmpl"),
 	}
 }
 
@@ -167,13 +228,20 @@ func defaultProtectedTemplates() map[string]bool {
 		"tuplefield":                  true,
 		"tuplefieldIface":             true,
 		"typeSchemaType":              true,
-		"validationCustomformat":      true,
-		"validationPrimitive":         true,
-		"validationStructfield":       true,
-		"withBaseTypeBody":            true,
-		"withoutBaseTypeBody":         true,
+		"simpleschemaDefaultsvar":     true,
+		"simpleschemaDefaultsinit":    true,
 
-		// all serializers TODO(fred)
+		// validation helpers
+		"validationCustomformat": true,
+		"validationPrimitive":    true,
+		"validationStructfield":  true,
+		"withBaseTypeBody":       true,
+		"withoutBaseTypeBody":    true,
+		"validationMinimum":      true,
+		"validationMaximum":      true,
+		"validationMultipleOf":   true,
+
+		// all serializers
 		"additionalPropertiesSerializer": true,
 		"tupleSerializer":                true,
 		"schemaSerializer":               true,
@@ -213,6 +281,31 @@ type Repository struct {
 	templates     map[string]*template.Template
 	funcs         template.FuncMap
 	allowOverride bool
+	mux           sync.Mutex
+}
+
+// ShallowClone a repository.
+//
+// Clones the maps of files and templates, so as to be able to use
+// the cloned repo concurrently.
+func (t *Repository) ShallowClone() *Repository {
+	clone := &Repository{
+		files:         make(map[string]string, len(t.files)),
+		templates:     make(map[string]*template.Template, len(t.templates)),
+		funcs:         t.funcs,
+		allowOverride: t.allowOverride,
+	}
+
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	for k, file := range t.files {
+		clone.files[k] = file
+	}
+	for k, tpl := range t.templates {
+		clone.templates[k] = tpl
+	}
+	return clone
 }
 
 // LoadDefaults will load the embedded templates
@@ -532,7 +625,7 @@ func padComment(str string, pads ...string) string {
 }
 
 func blockComment(str string) string {
-	return strings.Replace(str, "*/", "[*]/", -1)
+	return strings.ReplaceAll(str, "*/", "[*]/")
 }
 
 func pascalize(arg string) string {
@@ -566,6 +659,28 @@ func prefixForName(arg string) string {
 	return "Nr"
 }
 
+func replaceSpecialChar(in rune) string {
+	switch in {
+	case '.':
+		return "-Dot-"
+	case '+':
+		return "-Plus-"
+	case '-':
+		return "-Dash-"
+	case '#':
+		return "-Hashtag-"
+	}
+	return string(in)
+}
+
+func cleanupEnumVariant(in string) string {
+	replaced := ""
+	for _, char := range in {
+		replaced += replaceSpecialChar(char)
+	}
+	return replaced
+}
+
 func dict(values ...interface{}) (map[string]interface{}, error) {
 	if len(values)%2 != 0 {
 		return nil, fmt.Errorf("expected even number of arguments, got %d", len(values))
@@ -579,4 +694,133 @@ func dict(values ...interface{}) (map[string]interface{}, error) {
 		dict[key] = values[i+1]
 	}
 	return dict, nil
+}
+
+func isInteger(arg interface{}) bool {
+	// is integer determines if a value may be represented by an integer
+	switch val := arg.(type) {
+	case int8, int16, int32, int, int64, uint8, uint16, uint32, uint, uint64:
+		return true
+	case *int8, *int16, *int32, *int, *int64, *uint8, *uint16, *uint32, *uint, *uint64:
+		v := reflect.ValueOf(arg)
+		return !v.IsNil()
+	case float64:
+		return math.Round(val) == val
+	case *float64:
+		return val != nil && math.Round(*val) == *val
+	case float32:
+		return math.Round(float64(val)) == float64(val)
+	case *float32:
+		return val != nil && math.Round(float64(*val)) == float64(*val)
+	case string:
+		_, err := strconv.ParseInt(val, 10, 64)
+		return err == nil
+	case *string:
+		if val == nil {
+			return false
+		}
+		_, err := strconv.ParseInt(*val, 10, 64)
+		return err == nil
+	default:
+		return false
+	}
+}
+
+func resolvedDocCollectionFormat(cf string, child *GenItems) string {
+	if child == nil {
+		return cf
+	}
+	ccf := cf
+	if ccf == "" {
+		ccf = "csv"
+	}
+	rcf := resolvedDocCollectionFormat(child.CollectionFormat, child.Child)
+	if rcf == "" {
+		return ccf
+	}
+	return ccf + "|" + rcf
+}
+
+func resolvedDocType(tn, ft string, child *GenItems) string {
+	if tn == "array" {
+		if child == nil {
+			return "[]any"
+		}
+		return "[]" + resolvedDocType(child.SwaggerType, child.SwaggerFormat, child.Child)
+	}
+
+	if ft != "" {
+		if doc, ok := docFormat[ft]; ok {
+			return doc
+		}
+		return fmt.Sprintf("%s (formatted %s)", ft, tn)
+	}
+
+	return tn
+}
+
+func resolvedDocSchemaType(tn, ft string, child *GenSchema) string {
+	if tn == "array" {
+		if child == nil {
+			return "[]any"
+		}
+		return "[]" + resolvedDocSchemaType(child.SwaggerType, child.SwaggerFormat, child.Items)
+	}
+
+	if tn == "object" {
+		if child == nil || child.ElemType == nil {
+			return "map of any"
+		}
+		if child.IsMap {
+			return "map of " + resolvedDocElemType(child.SwaggerType, child.SwaggerFormat, &child.resolvedType)
+		}
+
+		return child.GoType
+	}
+
+	if ft != "" {
+		if doc, ok := docFormat[ft]; ok {
+			return doc
+		}
+		return fmt.Sprintf("%s (formatted %s)", ft, tn)
+	}
+
+	return tn
+}
+
+func resolvedDocElemType(tn, ft string, schema *resolvedType) string {
+	if schema == nil {
+		return ""
+	}
+	if schema.IsMap {
+		return "map of " + resolvedDocElemType(schema.ElemType.SwaggerType, schema.ElemType.SwaggerFormat, schema.ElemType)
+	}
+
+	if schema.IsArray {
+		return "[]" + resolvedDocElemType(schema.ElemType.SwaggerType, schema.ElemType.SwaggerFormat, schema.ElemType)
+	}
+
+	if ft != "" {
+		if doc, ok := docFormat[ft]; ok {
+			return doc
+		}
+		return fmt.Sprintf("%s (formatted %s)", ft, tn)
+	}
+
+	return tn
+}
+
+func httpStatus(code int) string {
+	if name, ok := runtime.Statuses[code]; ok {
+		return name
+	}
+	// non-standard codes deserve some name
+	return fmt.Sprintf("Status %d", code)
+}
+
+func gt0(in *int64) bool {
+	// gt0 returns true if the *int64 points to a value > 0
+	// NOTE: plain {{ gt .MinProperties 0 }} just refuses to work normally
+	// with a pointer
+	return in != nil && *in > 0
 }

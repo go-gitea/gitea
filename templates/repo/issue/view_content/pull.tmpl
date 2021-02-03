@@ -343,7 +343,7 @@
 										</span>
 									</button>
 									{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
-										<div class="ui dropdown icon button">
+										<div class="ui dropdown icon button no-text">
 											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 											<div class="menu">
 												{{if $prUnit.PullRequestsConfig.AllowMerge}}
@@ -363,8 +363,8 @@
 									{{end}}
 								</div>
 							</div>
-							<div class="dib ml-3">{{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}}</div>
-							<div class="instruct" style="display:none">
+							<div class="instruct-toggle ml-3">{{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}}</div>
+							<div class="instruct-content" style="display:none">
 								<div class="ui divider"></div>
 								<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
 								<div class="ui secondary segment">

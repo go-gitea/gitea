@@ -132,7 +132,7 @@ func (opt CreatePullReviewComment) Validate() error {
 
 // ListPullReviews lists all reviews of a pull request
 func (c *Client) ListPullReviews(owner, repo string, index int64, opt ListPullReviewsOptions) ([]*PullReview, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	opt.setDefaults()
@@ -147,7 +147,7 @@ func (c *Client) ListPullReviews(owner, repo string, index int64, opt ListPullRe
 
 // GetPullReview gets a specific review of a pull request
 func (c *Client) GetPullReview(owner, repo string, index, id int64) (*PullReview, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 
@@ -158,7 +158,7 @@ func (c *Client) GetPullReview(owner, repo string, index, id int64) (*PullReview
 
 // ListPullReviewComments lists all comments of a pull request review
 func (c *Client) ListPullReviewComments(owner, repo string, index, id int64) ([]*PullReviewComment, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	rcl := make([]*PullReviewComment, 0, 4)
@@ -170,7 +170,7 @@ func (c *Client) ListPullReviewComments(owner, repo string, index, id int64) ([]
 
 // DeletePullReview delete a specific review from a pull request
 func (c *Client) DeletePullReview(owner, repo string, index, id int64) (*Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, err
 	}
 
@@ -180,7 +180,7 @@ func (c *Client) DeletePullReview(owner, repo string, index, id int64) (*Respons
 
 // CreatePullReview create a review to an pull request
 func (c *Client) CreatePullReview(owner, repo string, index int64, opt CreatePullReviewOptions) (*PullReview, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {
@@ -200,7 +200,7 @@ func (c *Client) CreatePullReview(owner, repo string, index int64, opt CreatePul
 
 // SubmitPullReview submit a pending review to an pull request
 func (c *Client) SubmitPullReview(owner, repo string, index, id int64, opt SubmitPullReviewOptions) (*PullReview, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {

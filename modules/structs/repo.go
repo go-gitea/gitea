@@ -91,6 +91,7 @@ type Repository struct {
 	AllowSquash               bool             `json:"allow_squash_merge"`
 	AvatarURL                 string           `json:"avatar_url"`
 	Internal                  bool             `json:"internal"`
+	MirrorInterval            string           `json:"mirror_interval"`
 }
 
 // CreateRepoOption options when creating repository
@@ -105,7 +106,7 @@ type CreateRepoOption struct {
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
-	// Issue Label set to use
+	// Label-Set to use
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
@@ -168,6 +169,8 @@ type EditRepoOption struct {
 	AllowSquash *bool `json:"allow_squash_merge,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
+	// set to a string like `8h30m0s` to set the mirror interval time
+	MirrorInterval *string `json:"mirror_interval,omitempty"`
 }
 
 // CreateBranchRepoOption options when creating a branch in a repository
@@ -249,15 +252,16 @@ type MigrateRepoOptions struct {
 	AuthPassword string `json:"auth_password"`
 	AuthToken    string `json:"auth_token"`
 
-	Mirror       bool   `json:"mirror"`
-	Private      bool   `json:"private"`
-	Description  string `json:"description" binding:"MaxSize(255)"`
-	Wiki         bool   `json:"wiki"`
-	Milestones   bool   `json:"milestones"`
-	Labels       bool   `json:"labels"`
-	Issues       bool   `json:"issues"`
-	PullRequests bool   `json:"pull_requests"`
-	Releases     bool   `json:"releases"`
+	Mirror         bool   `json:"mirror"`
+	Private        bool   `json:"private"`
+	Description    string `json:"description" binding:"MaxSize(255)"`
+	Wiki           bool   `json:"wiki"`
+	Milestones     bool   `json:"milestones"`
+	Labels         bool   `json:"labels"`
+	Issues         bool   `json:"issues"`
+	PullRequests   bool   `json:"pull_requests"`
+	Releases       bool   `json:"releases"`
+	MirrorInterval string `json:"mirror_interval"`
 }
 
 // TokenAuth represents whether a service type supports token-based auth
@@ -276,5 +280,6 @@ var (
 		GithubService,
 		GitlabService,
 		GiteaService,
+		GogsService,
 	}
 )

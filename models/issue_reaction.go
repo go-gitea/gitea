@@ -178,11 +178,15 @@ func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-func deleteReaction(e *xorm.Session, opts *ReactionOptions) error {
+func deleteReaction(e Engine, opts *ReactionOptions) error {
 	reaction := &Reaction{
-		Type:    opts.Type,
-		UserID:  opts.Doer.ID,
-		IssueID: opts.Issue.ID,
+		Type: opts.Type,
+	}
+	if opts.Doer != nil {
+		reaction.UserID = opts.Doer.ID
+	}
+	if opts.Issue != nil {
+		reaction.IssueID = opts.Issue.ID
 	}
 	if opts.Comment != nil {
 		reaction.CommentID = opts.Comment.ID

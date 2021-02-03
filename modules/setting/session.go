@@ -41,7 +41,7 @@ var (
 func newSessionService() {
 	sec := Cfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
-		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "nodb"})
+		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache"})
 	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(path.Join(AppDataPath, "sessions")), "\" ")
 	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
 		SessionConfig.ProviderConfig = path.Join(AppWorkPath, SessionConfig.ProviderConfig)

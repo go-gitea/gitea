@@ -20,10 +20,10 @@ const (
 	GitServiceGithub GitServiceType = "github"
 	// GitServiceGitlab represents a gitlab service
 	GitServiceGitlab GitServiceType = "gitlab"
+	// GitServiceGitea represents a gitea service
+	GitServiceGitea GitServiceType = "gitea"
 
 	// Not supported jet
-	// // GitServiceGitea represents a gitea service
-	// GitServiceGitea GitServiceType = "gitea"
 	// // GitServiceGogs represents a gogs service
 	// GitServiceGogs GitServiceType = "gogs"
 )
@@ -51,7 +51,7 @@ type MigrateRepoOption struct {
 }
 
 // Validate the MigrateRepoOption struct
-func (opt *MigrateRepoOption) Validate() error {
+func (opt *MigrateRepoOption) Validate(c *Client) error {
 	// check user options
 	if len(opt.CloneAddr) == 0 {
 		return fmt.Errorf("CloneAddr required")
@@ -69,6 +69,15 @@ func (opt *MigrateRepoOption) Validate() error {
 		if len(opt.AuthToken) == 0 {
 			return fmt.Errorf("github require token authentication")
 		}
+	case GitServiceGitlab, GitServiceGitea:
+		if len(opt.AuthToken) == 0 {
+			return fmt.Errorf("%s require token authentication", opt.Service)
+		}
+		// Gitlab is supported since 1.12.0 but api cant handle it until 1.13.0
+		// https://github.com/go-gitea/gitea/pull/12672
+		if c.checkServerVersionGreaterThanOrEqual(version1_13_0) != nil {
+			return fmt.Errorf("migrate from service %s need gitea >= 1.13.0", opt.Service)
+		}
 	}
 	return nil
 }
@@ -78,11 +87,11 @@ func (opt *MigrateRepoOption) Validate() error {
 // To migrate a repository for a organization, the authenticated user must be a
 // owner of the specified organization.
 func (c *Client) MigrateRepo(opt MigrateRepoOption) (*Repository, *Response, error) {
-	if err := opt.Validate(); err != nil {
+	if err := opt.Validate(c); err != nil {
 		return nil, nil, err
 	}
 
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		if len(opt.AuthToken) != 0 {
 			// gitea <= 1.12 dont understand AuthToken
 			opt.AuthUsername = opt.AuthToken

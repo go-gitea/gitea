@@ -17,8 +17,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/webhook"
-
-	"github.com/unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -169,7 +167,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:          key.ID,
 		Key:         key.Content,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
@@ -263,7 +261,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		KeyID:       key.KeyID,
 		Key:         key.Content,
 		Fingerprint: key.Fingerprint,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
 		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
@@ -345,27 +343,6 @@ func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
 		RedirectURIs: app.RedirectURIs,
 		Created:      app.CreatedUnix.AsTime(),
 	}
-}
-
-// ToCommitStatus converts models.CommitStatus to api.Status
-func ToCommitStatus(status *models.CommitStatus) *api.Status {
-	apiStatus := &api.Status{
-		Created:     status.CreatedUnix.AsTime(),
-		Updated:     status.CreatedUnix.AsTime(),
-		State:       api.StatusState(status.State),
-		TargetURL:   status.TargetURL,
-		Description: status.Description,
-		ID:          status.Index,
-		URL:         status.APIURL(),
-		Context:     status.Context,
-	}
-
-	if status.CreatorID != 0 {
-		creator, _ := models.GetUserByID(status.CreatorID)
-		apiStatus.Creator = ToUser(creator, false, false)
-	}
-
-	return apiStatus
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock

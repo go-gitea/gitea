@@ -353,7 +353,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		} else {
 			if committer != sig {
 				// add trailer
-				message += fmt.Sprintf("\nCo-Authored-By: %s\nCo-Committed-By: %s\n", sig.String(), sig.String())
+				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}
 			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())

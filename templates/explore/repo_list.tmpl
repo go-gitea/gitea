@@ -38,12 +38,12 @@
 						{{end}}
 					</div>
 				</div>
-				<div class="metas">
+				<div class="metas df ac">
 					{{if .PrimaryLanguage }}
-					<span class="text grey"><i class="color-icon" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+					<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
 					{{end}}
-					<span class="text grey">{{svg "octicon-star"}} {{.NumStars}}</span>
-					<span class="text grey">{{svg "octicon-git-branch"}} {{.NumForks}}</span>
+					<span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
+					<span class="text grey df ac mr-3">{{svg "octicon-git-branch" 16 "mr-3"}}{{.NumForks}}</span>
 				</div>
 			</div>
 			<div class="description">

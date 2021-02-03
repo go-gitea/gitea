@@ -1,5 +1,3 @@
-
-
 1. You may make and give away verbatim copies of the source form of the software
 without restriction, provided that you duplicate all of the original copyright
 notices and associated disclaimers.
@@ -11,12 +9,12 @@ a) place your modifications in the Public Domain or otherwise make them Freely
 Available, such as by posting said modifications to Usenet or an equivalent
 medium, or by allowing the author to include your modifications in the software.
 
-   b) use the modified software only within your corporation or organization.
+     b) use the modified software only within your corporation or organization.
 
 c) give non-standard binaries non-standard names, with instructions on where
 to get the original software distribution.
 
-   d) make other distribution arrangements with the author.
+     d) make other distribution arrangements with the author.
 
 3. You may distribute the software in object code or binary form, provided
 that you do at least ONE of the following:
@@ -30,7 +28,7 @@ b) accompany the distribution with the machine-readable source of the software.
 c) give non-standard binaries non-standard names, with instructions on where
 to get the original software distribution.
 
-   d) make other distribution arrangements with the author.
+     d) make other distribution arrangements with the author.
 
 4. You may modify and include the part of the software into any other software
 (possibly commercial). But some files in the distribution are not written

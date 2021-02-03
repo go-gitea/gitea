@@ -4,6 +4,74 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.2](https://github.com/go-gitea/gitea/releases/tag/v1.13.2) - 2021-01-31
+
+* SECURITY
+  * Prevent panic on fuzzer provided string (#14405) (#14409)
+  * Add secure/httpOnly attributes to the lang cookie (#14279) (#14280)
+* API
+  * If release publisher is deleted use ghost user (#14375)
+* BUGFIXES
+  * Internal ssh server respect Ciphers, MACs and KeyExchanges settings (#14523) (#14530)
+  * Set the name Mapper in migrations (#14526) (#14529)
+  * Fix wiki preview (#14515)
+  * Update code.gitea.io/sdk/gitea v0.13.1 -> v0.13.2 (#14497)
+  * ChangeUserName: rename user files back on DB issue (#14447)
+  * Fix lfs preview bug (#14428) (#14433)
+  * Ensure timeout error is shown on u2f timeout (#14417) (#14431)
+  * Fix Deadlock & Delete affected reactions on comment deletion (#14392) (#14425)
+  * Use path not filepath in routers/editor (#14390) (#14396)
+  * Check if label template exist first (#14384) (#14389)
+  * Fix migration v141 (#14387) (#14388)
+  * Use Request.URL.RequestURI() for fcgi (#14347)
+  * Use ServerError provided by Context (#14333) (#14345)
+  * Fix edit-label form init (#14337)
+  * Fix mailIssueCommentBatch for pull request (#14252) (#14296)
+  * Render links for commit hashes followed by comma (#14224) (#14227)
+  * Send notifications for mentions in pulls, issues, (code-)comments (#14218) (#14221)
+  * Fix avatar bugs (#14217) (#14220)
+  * Ensure that schema search path is set with every connection on postgres (#14131) (#14216)
+  * Fix dashboard issues labels filter bug (#14210) (#14214)
+  * When visit /favicon.ico but the static file is not exist return 404 but not continue to handle the route (#14211) (#14213)
+  * Fix branch selector on new issue page (#14194) (#14207)
+  * Check for notExist on profile repository page (#14197) (#14203)
+
+## [1.13.1](https://github.com/go-gitea/gitea/releases/tag/v1.13.1) - 2020-12-29
+
+* SECURITY
+  * Hide private participation in Orgs (#13994) (#14031)
+  * Fix escaping issue in diff (#14153) (#14154)
+* BUGFIXES
+  * Fix bug of link query order on markdown render (#14156) (#14171)
+  * Drop long repo topics during migration (#14152) (#14155)
+  * Ensure that search term and page are not lost on adoption page-turn (#14133) (#14143)
+  * Fix storage config implementation (#14091) (#14095)
+  * Fix panic in BasicAuthDecode (#14046) (#14048)
+  * Always wait for the cmd to finish (#14006) (#14039)
+  * Don't use simpleMDE editor on mobile devices for 1.13 (#14029)
+  * Fix incorrect review comment diffs (#14002) (#14011)
+  * Trim the branch prefix from action.GetBranch (#13981) (#13986)
+  * Ensure template renderer is available before storage handler (#13164) (#13982)
+  * Whenever the password is updated ensure that the hash algorithm is too (#13966) (#13967)
+  * Enforce setting HEAD in wiki to master (#13950) (#13961)
+  * Fix feishu webhook caused by API changed (#13938)
+  * Fix Quote Reply button on review diff (#13830) (#13898)
+  * Fix Pull Merge when tag with same name as base branch exist (#13882) (#13896)
+  * Fix mermaid chart size (#13865)
+  * Fix branch/tag notifications in mirror sync (#13855) (#13862)
+  * Fix crash in short link processor (#13839) (#13841)
+  * Update font stack to bootstrap's latest (#13834) (#13837)
+  * Make sure email recipients can see issue (#13820) (#13827)
+  * Reply button is not removed when deleting a code review comment (#13824)
+  * When reinitialising DBConfig reset the database use flags (#13796) (#13811)
+* ENHANCEMENTS
+  * Add emoji in label to project boards (#13978) (#14021)
+  * Send webhook when tag is removed via Web UI (#14015) (#14019)
+  * Use Process Manager to create own Context (#13792) (#13793)
+* API
+  * GetCombinedCommitStatusByRef always return json & swagger doc fixes (#14047)
+  * Return original URL of Repositories (#13885) (#13886)
+
 ## [1.13.0](https://github.com/go-gitea/gitea/releases/tag/v1.13.0) - 2020-12-01
 * SECURITY
   * Add Allow-/Block-List for Migrate & Mirrors (#13610) (#13776)

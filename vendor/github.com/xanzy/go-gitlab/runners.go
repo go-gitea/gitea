@@ -69,6 +69,7 @@ type RunnerDetails struct {
 	Token          string   `json:"token"`
 	Revision       string   `json:"revision"`
 	TagList        []string `json:"tag_list"`
+	RunUntagged    bool     `json:"run_untagged"`
 	Version        string   `json:"version"`
 	Locked         bool     `json:"locked"`
 	AccessLevel    string   `json:"access_level"`
@@ -380,14 +381,27 @@ func (s *RunnersService) ListGroupsRunners(gid interface{}, opt *ListGroupsRunne
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/runners.html#register-a-new-runner
 type RegisterNewRunnerOptions struct {
-	Token          *string  `url:"token" json:"token"`
-	Description    *string  `url:"description,omitempty" json:"description,omitempty"`
-	Info           *string  `url:"info,omitempty" json:"info,omitempty"`
-	Active         *bool    `url:"active,omitempty" json:"active,omitempty"`
-	Locked         *bool    `url:"locked,omitempty" json:"locked,omitempty"`
-	RunUntagged    *bool    `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
-	TagList        []string `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
-	MaximumTimeout *int     `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+	Token          *string                       `url:"token" json:"token"`
+	Description    *string                       `url:"description,omitempty" json:"description,omitempty"`
+	Info           *RegisterNewRunnerInfoOptions `url:"info,omitempty" json:"info,omitempty"`
+	Active         *bool                         `url:"active,omitempty" json:"active,omitempty"`
+	Locked         *bool                         `url:"locked,omitempty" json:"locked,omitempty"`
+	RunUntagged    *bool                         `url:"run_untagged,omitempty" json:"run_untagged,omitempty"`
+	TagList        []string                      `url:"tag_list[],omitempty" json:"tag_list,omitempty"`
+	MaximumTimeout *int                          `url:"maximum_timeout,omitempty" json:"maximum_timeout,omitempty"`
+}
+
+// RegisterNewRunnerInfoOptions represents the info hashmap parameter in
+// RegisterNewRunnerOptions.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/runners.html#register-a-new-runner
+type RegisterNewRunnerInfoOptions struct {
+	Name         *string `url:"name,omitempty" json:"name,omitempty"`
+	Version      *string `url:"version,omitempty" json:"version,omitempty"`
+	Revision     *string `url:"revision,omitempty" json:"revision,omitempty"`
+	Platform     *string `url:"platform,omitempty" json:"platform,omitempty"`
+	Architecture *string `url:"architecture,omitempty" json:"architecture,omitempty"`
 }
 
 // RegisterNewRunner registers a new Runner for the instance.
@@ -418,12 +432,25 @@ type DeleteRegisteredRunnerOptions struct {
 	Token *string `url:"token" json:"token"`
 }
 
-// DeleteRegisteredRunner registers a new Runner for the instance.
+// DeleteRegisteredRunner deletes a Runner by Token.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/runners.html#delete-a-registered-runner
+// https://docs.gitlab.com/ce/api/runners.html#delete-a-runner-by-authentication-token
 func (s *RunnersService) DeleteRegisteredRunner(opt *DeleteRegisteredRunnerOptions, options ...RequestOptionFunc) (*Response, error) {
 	req, err := s.client.NewRequest("DELETE", "runners", opt, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// DeleteRegisteredRunnerByID deletes a Runner by ID.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/runners.html#delete-a-runner-by-id
+func (s *RunnersService) DeleteRegisteredRunnerByID(rid int, options ...RequestOptionFunc) (*Response, error) {
+	req, err := s.client.NewRequest("DELETE", fmt.Sprintf("runners/%d", rid), nil, options)
 	if err != nil {
 		return nil, err
 	}

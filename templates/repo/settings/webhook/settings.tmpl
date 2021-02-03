@@ -1,4 +1,4 @@
-{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminHooksNew}}
+{{$isNew:=or .PageIsSettingsHooksNew .PageIsAdminDefaultHooksNew .PageIsAdminSystemHooksNew}}
 <div class="field">
 	<h4>{{.i18n.Tr "repo.settings.event_desc"}}</h4>
 	<div class="grouped event type fields">

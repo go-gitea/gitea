@@ -23,7 +23,7 @@
 					{{if and .EnableCaptcha (eq .CaptchaType "image")}}
 						<div class="inline field">
 							<label></label>
-							{{.Captcha.CreateHtml}}
+							{{.Captcha.CreateHTML}}
 						</div>
 						<div class="required inline field {{if .Err_Captcha}}error{{end}}">
 							<label for="captcha">{{.i18n.Tr "captcha"}}</label>

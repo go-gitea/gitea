@@ -3,3 +3,5 @@
 @headerFont: var(--fonts-regular);
 @pageFont: var(--fonts-regular);
 @bold: 500;
+@useCustomScrollbars: false;
+@disabledOpacity: var(--opacity-disabled);

@@ -1,7 +1,6 @@
 Open Data Commons - Public Domain Dedication & License (PDDL)
 
 Preamble
-
 The Open Data Commons - Public Domain Dedication & Licence is a document intended
 to allow you to freely share, modify, and use this work for any purpose and
 without any restrictions. This licence is intended for use on databases or
@@ -52,7 +51,7 @@ into the public domain. Unlike licences for free and open source software,
 free cultural works, or open content licences, rightsholders will not be able
 to "dual license" their work by releasing the same work under different licences.
 This is because they have allowed anyone to use the work in whatever way they
-choose. Rightsholders therefore can't re-license it under copyright or database
+choose. Rightsholders therefore can’t re-license it under copyright or database
 rights on different terms because they have nothing left to license. Doing
 so creates truly accessible data to build rich applications and advance the
 progress of science and the arts.
@@ -88,7 +87,7 @@ Part I: Introduction
 The Rightsholder (the Person holding rights or claims over the Work) agrees
 as follows:
 
-   1.0 Definitions of Capitalised Words
+1.0 Definitions of Capitalised Words
 
 "Copyright" - Includes rights under copyright and under neighbouring rights
 and similarly related sets of rights under the law of the relevant jurisdiction
@@ -124,11 +123,11 @@ of this Document.
 
 "You" - the Person acquiring rights under the licence elements of this Document.
 
-   Words in the singular include the plural and vice versa.
+Words in the singular include the plural and vice versa.
 
-   2.0 What this document covers
+2.0 What this document covers
 
-   2.1. Legal effect of this Document. This Document is:
+2.1. Legal effect of this Document. This Document is:
 
 a. A dedication to the public domain and waiver of Copyright and Database
 Rights over the Work; and
@@ -136,7 +135,7 @@ Rights over the Work; and
 b. A licence of Copyright and Database Rights over the Work in jurisdictions
 that do not allow for relinquishment or waiver.
 
-   2.2. Legal rights covered.
+2.2. Legal rights covered.
 
 a. Copyright. Any copyright or neighbouring rights in the Work. Copyright
 law varies between jurisdictions, but is likely to cover: the Database model
@@ -151,7 +150,7 @@ even when there is no copyright over the Database. Database Rights can also
 apply when the Data is removed from the Database and is selected and arranged
 in a way that would not infringe any applicable copyright.
 
-   2.2 Rights not covered.
+2.2 Rights not covered.
 
 a. This Document does not apply to computer programs used in the making or
 operation of the Database;
@@ -172,7 +171,7 @@ cover any information protected by Copyright that is contained in the Work.
 
 Part II: Dedication to the public domain
 
-   3.0 Dedication, waiver, and licence of Copyright and Database Rights
+3.0 Dedication, waiver, and licence of Copyright and Database Rights
 
 3.1 Dedication of Copyright and Database Rights to the public domain. The
 Rightsholder by using this Document, dedicates the Work to the public domain
@@ -197,9 +196,9 @@ in the relevant jurisdiction under Section 6.4, the Rightsholder waives any
 rights and claims that the Rightsholder may have or acquire in the future
 over the Work in:
 
-      a. Copyright; and
+     a. Copyright; and
 
-      b. Database Rights.
+     b. Database Rights.
 
 To the extent possible in the relevant jurisdiction, the above waiver of rights
 and claims applies worldwide and includes media and formats now known or created
@@ -220,7 +219,7 @@ created in the future.
 
 3.4 Moral rights. This section covers moral rights, including the right to
 be identified as the author of the Work or to object to treatment that would
-otherwise prejudice the author's honour and reputation, or any other derogatory
+otherwise prejudice the author’s honour and reputation, or any other derogatory
 treatment:
 
 a. For jurisdictions allowing waiver of moral rights, Licensor waives all
@@ -239,7 +238,7 @@ over the copyrighted aspects of the Work.
 Please note that some jurisdictions do not allow for the waiver of moral rights,
 and so moral rights may still subsist over the work in some jurisdictions.
 
-   4.0 Relationship to other rights
+4.0 Relationship to other rights
 
 4.1 No other contractual conditions. The Rightsholder makes this Work available
 to You without any other contractual obligations, either express or implied.
@@ -253,11 +252,10 @@ that they may have to clear other rights or consult other licences.
 4.3 Relationship to trade marks. This Document does not grant You a licence
 for any trade marks that the Rightsholder may own or that the Rightsholder
 may use to cover the Work. Users of this Database are cautioned that they
-may have to clear other rights or consult other licences.
+may have to clear other rights or consult other licences. Part III: General
+provisions
 
-Part III: General provisions
-
-   5.0 Warranties, disclaimer, and limitation of liability
+5.0 Warranties, disclaimer, and limitation of liability
 
 5.1 The Work is provided by the Rightsholder "as is" and without any warranty
 of any kind, either express or implied, whether of title, of accuracy or completeness,
@@ -278,7 +276,7 @@ advised of the possibility of such damages.
 financial loss to the extent it is caused by proved negligence on the part
 of the Rightsholder.
 
-   6.0 General
+6.0 General
 
 6.1 If any provision of this Document is held to be invalid or unenforceable,
 that must not affect the cvalidity or enforceability of the remainder of the

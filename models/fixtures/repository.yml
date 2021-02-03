@@ -4,6 +4,7 @@
   owner_name: user2
   lower_name: repo1
   name: repo1
+  is_archived: false
   is_empty: false
   is_private: false
   num_issues: 2
@@ -23,6 +24,7 @@
   owner_name: user2
   lower_name: repo2
   name: repo2
+  is_archived: false
   is_private: true
   num_issues: 2
   num_closed_issues: 1
@@ -692,4 +694,44 @@
   num_forks: 0
   num_issues: 0
   is_mirror: false
+  status: 0
+
+-
+  id: 50
+  owner_id: 30
+  owner_name: user30
+  lower_name: repo50
+  name: repo50
+  is_archived: false
+  is_empty: false
+  is_private: false
+  num_issues: 1
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_watches: 0
+  num_projects: 0
+  num_closed_projects: 0
+  status: 0
+
+-
+  id: 51
+  owner_id: 30
+  owner_name: user30
+  lower_name: repo51
+  name: repo51
+  is_archived: true
+  is_empty: false
+  is_private: false
+  num_issues: 1
+  num_closed_issues: 0
+  num_pulls: 0
+  num_closed_pulls: 0
+  num_milestones: 0
+  num_closed_milestones: 0
+  num_watches: 0
+  num_projects: 0
+  num_closed_projects: 0
   status: 0

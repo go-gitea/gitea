@@ -1,8 +1,7 @@
 OPEN PUBLIC LICENSE
-
 Version 1.0
 
-   1. Definitions.
+1. Definitions.
 
 1.1. "Contributor" means each entity that creates or contributes to the creation
 of Modifications.
@@ -17,7 +16,7 @@ of the Original Code and Modifications, in each case including portions thereof.
 1.4. "Electronic Distribution Mechanism" means a mechanism generally accepted
 in the software development community for the electronic transfer of data.
 
-      1.5. "Executable" means Covered Code in any form other than Source Code.
+     1.5. "Executable" means Covered Code in any form other than Source Code.
 
 1.6. "Initial Developer" means the individual or entity identified as the
 Initial Developer in the Source Code notice required by Exhibit A.
@@ -60,9 +59,9 @@ or indirect, to cause the direction or management of such entity, whether
 by contract or otherwise, or (b) ownership of fifty percent (50%) or more
 of the outstanding shares or beneficial ownership of such entity.
 
-      1.13 "License Author" means Lutris Technologies, Inc.
+     1.13 "License Author" means Lutris Technologies, Inc.
 
-   2. Source Code License.
+2. Source Code License.
 
 2.1. The Initial Developer Grant. The Initial Developer hereby grants You
 a worldwide, royalty-free, non-exclusive license, subject to third party intellectual
@@ -96,7 +95,7 @@ is reasonably necessary to enable You to Utilize the Contributor Version (or
 portions thereof), and not to any greater extent that may be necessary to
 Utilize further Modifications or combinations
 
-   3. Distribution Obligations.
+3. Distribution Obligations.
 
 3.1. Application of License. The Modifications which You create or to which
 You contribute are governed by the terms of this License, including without
@@ -133,7 +132,7 @@ Developer in (a) the Source Code, and (b) in any notice in an Executable version
 or related documentation in which You describe the origin or ownership of
 the Covered Code.
 
-      3.4. Intellectual Property Matters
+     3.4. Intellectual Property Matters
 
 (a) Third Party Claims. If You have knowledge that a party claims an intellectual
 property right in particular functionality or code (or its utilization under
@@ -195,7 +194,7 @@ with other code not governed by the terms of this License and distribute the
 Larger Work as a single product. In such a case, You must make sure the requirements
 of this License are fulfilled for the Covered Code.
 
-   4. Inability to Comply Due to Statute or Regulation.
+4. Inability to Comply Due to Statute or Regulation.
 
 If it is impossible for You to comply with any of the terms of this License
 with respect to some or all of the Covered Code due to statute or regulation
@@ -208,12 +207,12 @@ Except to the extent prohibited by statute or regulation, such description
 must be sufficiently detailed for a recipient of ordinary skill to be able
 to understand it.
 
-   5. Application of this License.
+5. Application of this License.
 
 This License applies to code to which the Initial Developer has attached the
 notice in Exhibit A, and to related Covered Code.
 
-   6. Versions of the License.
+6. Versions of the License.
 
 6.1. New Versions. License Author may publish revised and/or new versions
 of the License from time to time. Each version will be given a distinguishing
@@ -237,12 +236,11 @@ the Open Public License. (Filling in the name of the Initial Developer, Original
 Code or Contributor in the notice described in Exhibit A shall not of themselves
 be deemed to be modifications of this License.)
 
-      6.4. Required Additional Developer Specific License
-
+     6.4. Required Additional Developer Specific License
 This license is a union of the following two parts that should be found as
 text files in the same place (directory), in the order of preeminence:
 
-         [1] A Developer specific license.
+          [1] A Developer specific license.
 
 [2] The contents of this file OPL_1_0.TXT, stating the general licensing policy
 of the software.
@@ -251,7 +249,7 @@ In case of conflicting dispositions in the parts of this license, the terms
 of the lower-numbered part will always be superseded by the terms of the higher
 numbered part.
 
-   7. DISCLAIMER OF WARRANTY.
+7. DISCLAIMER OF WARRANTY.
 
 COVERED CODE IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT WARRANTY
 OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, WITHOUT LIMITATION, WARRANTIES
@@ -263,10 +261,9 @@ THE COST OF ANY NECESSARY SERVICING, REPAIR OR CORRECTION. THIS DISCLAIMER
 OF WARRANTY CONSTITUTES AN ESSENTIAL PART OF THIS LICENSE. NO USE OF ANY COVERED
 CODE IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
 
-   8. TERMINATION.
+8. TERMINATION.
 
-      8.1 Termination upon Breach
-
+     8.1 Termination upon Breach
 This License and the rights granted hereunder will terminate automatically
 if You fail to comply with terms herein and fail to cure such breach within
 30 days of becoming aware of the breach. All sublicenses to the Covered Code,
@@ -311,7 +308,7 @@ user license agreements (excluding distributors and resellers) which have
 been validly granted by You or any distributor hereunder prior to termination
 shall survive termination.
 
-   9. LIMITATION OF LIABILITY.
+9. LIMITATION OF LIABILITY.
 
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL THE INITIAL DEVELOPER, ANY OTHER
@@ -327,7 +324,7 @@ SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL
 OR CONSEQUENTIAL DAMAGES, SO THAT EXCLUSION AND LIMITATION MAY NOT APPLY TO
 YOU.
 
-   10. U.S. GOVERNMENT END USERS.
+10. U.S. GOVERNMENT END USERS.
 
 The Covered Code is a ``commercial item,'' as that term is defined in 48 C.F.R.
 2.101 (Oct. 1995), consisting of ``commercial computer software'' and ``commercial
@@ -336,12 +333,12 @@ computer software documentation,'' as such terms are used in 48 C.F.R. 12.212
 227.7202-4 (June 1995), all U.S. Government End Users acquire Covered Code
 with only those rights set forth herein.
 
-   11. MISCELLANEOUS.
+11. MISCELLANEOUS.
 
 his section was intentionally left blank. The contents of this section are
 found in the corresponding addendum described above.
 
-   12. RESPONSIBILITY FOR CLAIMS.
+12. RESPONSIBILITY FOR CLAIMS.
 
 Except in cases where another Contributor has failed to comply with Section
 3.4, You are responsible for damages arising, directly or indirectly, out
@@ -349,6 +346,7 @@ of Your utilization of rights under this License, based on the number of copies
 of Covered Code you made available, the revenues you received from utilizing
 such rights, and other relevant factors. You agree to work with affected parties
 to distribute with Initial Developer responsibility on an equitable basis.
+
 EXHIBIT A.
 
 Text for this Exhibit A is found in the corresponding addendum, described

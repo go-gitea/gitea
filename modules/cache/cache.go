@@ -10,9 +10,9 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	mc "gitea.com/macaron/cache"
+	mc "gitea.com/go-chi/cache"
 
-	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
+	_ "gitea.com/go-chi/cache/memcache" // memcache plugin for cache
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 )
 
 func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
-	return mc.NewCacher(cacheConfig.Adapter, mc.Options{
+	return mc.NewCacher(mc.Options{
 		Adapter:       cacheConfig.Adapter,
 		AdapterConfig: cacheConfig.Conn,
 		Interval:      cacheConfig.Interval,
@@ -38,6 +38,11 @@ func NewContext() error {
 	}
 
 	return err
+}
+
+// GetCache returns the currently configured cache
+func GetCache() mc.Cache {
+	return conn
 }
 
 // GetString returns the key value from cache with callback when no key exists in cache

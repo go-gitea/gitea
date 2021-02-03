@@ -58,17 +58,27 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 	for _, testCase := range testCases {
 		commit, err := repo1.GetCommit(testCase.CommitID)
 		assert.NoError(t, err)
+		assert.NotNil(t, commit)
+		assert.NotNil(t, commit.Tree)
+		assert.NotNil(t, commit.Tree.repo)
+
 		tree, err := commit.Tree.SubTree(testCase.Path)
+		assert.NotNil(t, tree, "tree is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
+		assert.NotNil(t, tree.repo, "repo is nil for testCase CommitID %s in Path %s", testCase.CommitID, testCase.Path)
+
 		assert.NoError(t, err)
 		entries, err := tree.ListEntries()
 		assert.NoError(t, err)
 		commitsInfo, treeCommit, err := entries.GetCommitsInfo(commit, testCase.Path, nil)
-		assert.Equal(t, testCase.ExpectedTreeCommit, treeCommit.ID.String())
 		assert.NoError(t, err)
+		if err != nil {
+			t.FailNow()
+		}
+		assert.Equal(t, testCase.ExpectedTreeCommit, treeCommit.ID.String())
 		assert.Len(t, commitsInfo, len(testCase.ExpectedIDs))
 		for _, commitInfo := range commitsInfo {
-			entry := commitInfo[0].(*TreeEntry)
-			commit := commitInfo[1].(*Commit)
+			entry := commitInfo.Entry
+			commit := commitInfo.Commit
 			expectedID, ok := testCase.ExpectedIDs[entry.Name()]
 			if !assert.True(t, ok) {
 				continue
