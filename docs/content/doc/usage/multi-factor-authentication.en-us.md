@@ -21,14 +21,15 @@ Gitea supports both TOTP (Time-based One-Time Password) tokens and FIDO-based ha
 
 MFA can be configured within the "Security" tab of the user settings page.
 
-## Using MFA
+## MFA Considerations
 
-Enabling MFA on a user does affect how the Git HTTP protocol and the Gitea API can be used.
-These interfaces do not support MFA, and trying to use a password normally will no longer be possible whilst MFA is enabled.
-However, an access token can be generated within the "Applications" tab of the user settings page.
-This access token can be used as if it were a password in order to use these interfaces.
+Enabling MFA on a user does affect how the Git HTTP protocol can be used with the Git CLI.
+This interface does not support MFA, and trying to use a password normally will no longer be possible whilst MFA is enabled.
+If SSH is not an option for Git operations, an access token can be generated within the "Applications" tab of the user settings page.
+This access token can be used as if it were a password in order to allow the Git CLI to function over HTTP.
 
 > **Warning** - By its very nature, an access token sidesteps the security benefits of MFA.
 > It must be kept secure and should only be used as a last resort.
 
-Using Git over SSH is separate to the normal authentication process and will still function normally.
+The Gitea API supports providing the relevant TOTP password in the `X-Gitea-OTP` header, as described in [API Usage](https://docs.gitea.io/en-us/api-usage).
+This should be used instead of an access token where possible.
