@@ -28,7 +28,7 @@ func GetPrivateContext(req *http.Request) *PrivateContext {
 	return req.Context().Value(privateContextKey).(*PrivateContext)
 }
 
-// PrivateContexter returns apicontext as macaron middleware
+// PrivateContexter returns apicontext as middleware
 func PrivateContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

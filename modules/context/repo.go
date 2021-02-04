@@ -373,7 +373,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
-// RepoIDAssignment returns a macaron handler which assigns the repo to the context.
+// RepoIDAssignment returns a handler which assigns the repo to the context.
 func RepoIDAssignment() func(ctx *Context) {
 	return func(ctx *Context) {
 		repoID := ctx.ParamsInt64(":repoid")
@@ -393,7 +393,7 @@ func RepoIDAssignment() func(ctx *Context) {
 	}
 }
 
-// RepoAssignment returns a macaron to handle repository assignment
+// RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -554,7 +554,7 @@ func RepoAssignment() func(http.Handler) http.Handler {
 			}
 			ctx.Data["Tags"] = tags
 
-			brs, err := ctx.Repo.GitRepo.GetBranches()
+			brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 			if err != nil {
 				ctx.ServerError("GetBranches", err)
 				return
@@ -747,7 +747,7 @@ func RepoRefByType(refType RepoRefType) func(http.Handler) http.Handler {
 				refName = ctx.Repo.Repository.DefaultBranch
 				ctx.Repo.BranchName = refName
 				if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-					brs, err := ctx.Repo.GitRepo.GetBranches()
+					brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 					if err != nil {
 						ctx.ServerError("GetBranches", err)
 						return
@@ -849,7 +849,7 @@ func GitHookService() func(ctx *Context) {
 	}
 }
 
-// UnitTypes returns a macaron middleware to set unit types to context variables.
+// UnitTypes returns a middleware to set unit types to context variables.
 func UnitTypes() func(ctx *Context) {
 	return func(ctx *Context) {
 		ctx.Data["UnitTypeCode"] = models.UnitTypeCode

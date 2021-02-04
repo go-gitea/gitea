@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// Options represents the available options to configure the macaron handler.
+// Options represents the available options to configure the handler.
 type Options struct {
 	Directory   string
 	IndexFile   string
@@ -34,7 +34,7 @@ var KnownPublicEntries = []string{
 	"favicon.ico",
 }
 
-// Custom implements the macaron static handler for serving custom assets.
+// Custom implements the static handler for serving custom assets.
 func Custom(opts *Options) func(next http.Handler) http.Handler {
 	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
 }

@@ -73,6 +73,20 @@ const (
 	RepoTypeMirror RepoType = "mirror"
 )
 
+// TrustModel represent how git signatures are handled in a repository
+type TrustModel string
+
+const (
+	// TrustModelDefault use TM set by global config
+	TrustModelDefault TrustModel = "default"
+	// TrustModelCollaborator gpg signature has to be owned by a repo collaborator
+	TrustModelCollaborator TrustModel = "collaborator"
+	// TrustModelCommitter gpg signature has to match committer
+	TrustModelCommitter TrustModel = "committer"
+	// TrustModelCollaboratorCommitter gpg signature has to match committer and owned by a repo collaborator
+	TrustModelCollaboratorCommitter TrustModel = "collaboratorcommitter"
+)
+
 // ListReposOptions options for listing repositories
 type ListReposOptions struct {
 	ListOptions
@@ -224,7 +238,7 @@ func (c *Client) SearchRepos(opt SearchRepoOptions) ([]*Repository, *Response, e
 	} else {
 		link.RawQuery = opt.QueryEncode()
 		// IsPrivate only works on gitea >= 1.12.0
-		if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil && opt.IsPrivate != nil {
+		if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil && opt.IsPrivate != nil {
 			if *opt.IsPrivate {
 				// private repos only not supported on gitea <= 1.11.x
 				return nil, nil, err
@@ -249,6 +263,8 @@ type CreateRepoOption struct {
 	IssueLabels string `json:"issue_labels"`
 	// Whether the repository should be auto-intialized?
 	AutoInit bool `json:"auto_init"`
+	// Whether the repository is template
+	Template bool `json:"template"`
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
@@ -257,19 +273,35 @@ type CreateRepoOption struct {
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch"`
+	// TrustModel of the repository
+	TrustModel TrustModel `json:"trust_model"`
 }
 
 // Validate the CreateRepoOption struct
-func (opt CreateRepoOption) Validate() error {
+func (opt CreateRepoOption) Validate(c *Client) error {
 	if len(strings.TrimSpace(opt.Name)) == 0 {
 		return fmt.Errorf("name is empty")
+	}
+	if len(opt.Name) > 100 {
+		return fmt.Errorf("name has more than 100 chars")
+	}
+	if len(opt.Description) > 255 {
+		return fmt.Errorf("name has more than 255 chars")
+	}
+	if len(opt.DefaultBranch) > 100 {
+		return fmt.Errorf("name has more than 100 chars")
+	}
+	if len(opt.TrustModel) != 0 {
+		if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // CreateRepo creates a repository for authenticated user.
 func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, *Response, error) {
-	if err := opt.Validate(); err != nil {
+	if err := opt.Validate(c); err != nil {
 		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)
@@ -283,7 +315,7 @@ func (c *Client) CreateRepo(opt CreateRepoOption) (*Repository, *Response, error
 
 // CreateOrgRepo creates an organization repository for authenticated user.
 func (c *Client) CreateOrgRepo(org string, opt CreateRepoOption) (*Repository, *Response, error) {
-	if err := opt.Validate(); err != nil {
+	if err := opt.Validate(c); err != nil {
 		return nil, nil, err
 	}
 	body, err := json.Marshal(&opt)

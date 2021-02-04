@@ -68,6 +68,10 @@ func newCacheService() {
 
 	if CacheService.Enabled {
 		log.Info("Cache Service Enabled")
+	} else {
+		log.Warn("Cache Service Disabled so that captcha disabled too")
+		// captcha depends on cache service
+		Service.EnableCaptcha = false
 	}
 
 	sec = Cfg.Section("cache.last_commit")

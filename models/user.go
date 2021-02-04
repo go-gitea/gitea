@@ -1208,6 +1208,16 @@ func deleteUser(e Engine, u *User) error {
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
+	keys, err := listGPGKeys(e, u.ID, ListOptions{})
+	if err != nil {
+		return fmt.Errorf("ListGPGKeys: %v", err)
+	}
+	// Delete GPGKeyImport(s).
+	for _, key := range keys {
+		if _, err = e.Delete(&GPGKeyImport{KeyID: key.KeyID}); err != nil {
+			return fmt.Errorf("deleteGPGKeyImports: %v", err)
+		}
+	}
 	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}

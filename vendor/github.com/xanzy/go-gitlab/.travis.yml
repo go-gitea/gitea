@@ -1,27 +1,21 @@
 language: go
+
 arch:
-    - amd64
-    - ppc64le
+  - amd64
+  - ppc64le
 
 go:
   - 1.13.x
   - 1.14.x
+  - 1.x
   - master
 
-stages:
-  - lint
-  - test
+before_install:
+  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/v1.35.0/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.35.0
 
-jobs:
-  include:
-    - stage: lint
-      script:
-        - go get golang.org/x/lint/golint
-        - golint -set_exit_status
-        - go vet -v
-    - stage: test
-      script:
-        - go test -v
+script:
+  - golangci-lint run
+  - go test -v
 
 matrix:
   allow_failures:
