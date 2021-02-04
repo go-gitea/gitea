@@ -7,7 +7,6 @@ package integrations
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -152,7 +151,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
-	assert.True(t, strings.HasPrefix(err.Message, "release tag does not exist"))
+	assert.EqualValues(t, "Not Found", err.Message)
 }
 
 func TestAPIDeleteTagByName(t *testing.T) {
