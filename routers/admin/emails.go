@@ -14,8 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -114,7 +112,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	truefalse := map[string]bool{"1": true, "0": false}
 
-	uid := com.StrTo(ctx.Query("uid")).MustInt64()
+	uid := ctx.QueryInt64("uid")
 	email := ctx.Query("email")
 	primary, okp := truefalse[ctx.Query("primary")]
 	activate, oka := truefalse[ctx.Query("activate")]

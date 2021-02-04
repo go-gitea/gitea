@@ -55,6 +55,7 @@ FROM = mssql-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
+REGISTER_MANUAL_CONFIRM           = false
 ENABLE_NOTIFY_MAIL                = false
 DISABLE_REGISTRATION              = false
 ENABLE_CAPTCHA                    = false
@@ -77,9 +78,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-mssql/data/sessions
 [log]
 MODE                 = test,file
 ROOT_PATH            = mssql-log
-REDIRECT_MACARON_LOG = true
 ROUTER               = ,
-MACARON              = ,
 XORM                 = file
 
 [log.test]

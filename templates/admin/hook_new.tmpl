@@ -4,14 +4,18 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{if .PageIsAdminHooksNew}}
-				{{.i18n.Tr "admin.hooks.add_webhook"}}
+			{{if .PageIsAdminDefaultHooksNew}}
+				{{.i18n.Tr "admin.defaulthooks.add_webhook"}}
+			{{else if .PageIsAdminSystemHooksNew}}
+				{{.i18n.Tr "admin.systemhooks.add_webhook"}}
+			{{else if .Webhook.IsSystemWebhook}}
+				{{.i18n.Tr "admin.systemhooks.update_webhook"}}
 			{{else}}
-				{{.i18n.Tr "admin.hooks.update_webhook"}}
+				{{.i18n.Tr "admin.defaulthooks.update_webhook"}}
 			{{end}}
 			<div class="ui right">
 				{{if eq .HookType "gitea"}}
-					<img width="26" height="26" src="{{StaticUrlPrefix}}/img/gitea-sm.png">
+					<img width="26" height="26" src="{{StaticUrlPrefix}}/img/gitea.svg">
 				{{else if eq .HookType "gogs"}}
 					<img width="26" height="26" src="{{StaticUrlPrefix}}/img/gogs.ico">
 				{{else if eq .HookType "slack"}}

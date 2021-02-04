@@ -20,7 +20,7 @@ specified below.
 "Copyright Holder" is whoever is named in the copyright or copyrights for
 the package.
 
-"You" is you, if you're thinking about copying or distributing this Package.
+ "You" is you, if you're thinking about copying or distributing this Package.
 
 "Distribution fee" is a fee you charge for providing a copy of this Package
 to another party.
@@ -49,14 +49,14 @@ medium, or placing the modifications on a major network archive site allowing
 unrestricted access to them, or by allowing the Copyright Holder to include
 your modifications in the Standard Version of the Package.
 
-      b) use the modified Package only within your corporation or organization.
+     b) use the modified Package only within your corporation or organization.
 
 c) rename any non-standard executables so the names do not conflict with standard
 executables, which must also be provided, and provide a separate manual page
 for each non-standard executable that clearly documents how it differs from
 the Standard Version.
 
-      d) make other distribution arrangements with the Copyright Holder.
+     d) make other distribution arrangements with the Copyright Holder.
 
 e) permit and encourge anyone who receives a copy of the modified Package
 permission to make your modifications Freely Available in some specific way.
@@ -75,7 +75,7 @@ c) give non-standard executables non-standard names, and clearly document
 the differences in manual pages (or equivalent), together with instructions
 on where to get the Standard Version.
 
-      d) make other distribution arrangements with the Copyright Holder.
+     d) make other distribution arrangements with the Copyright Holder.
 
 e) offer the machine-readable source of the Package, with your modifications,
 by mail order.
@@ -120,4 +120,6 @@ products derived from this software without specific prior written permission.
 
 10. THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES,
 INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF MERCHANTIBILITY AND
-FITNESS FOR A PARTICULAR PURPOSE. The End
+FITNESS FOR A PARTICULAR PURPOSE.
+
+The End

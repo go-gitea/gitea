@@ -9,16 +9,15 @@ package templates
 import (
 	"html/template"
 	"io/ioutil"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"gitea.com/macaron/macaron"
-	"github.com/unknwon/com"
 )
 
 var (
@@ -26,27 +25,23 @@ var (
 	bodyTemplates    = template.New("")
 )
 
-// HTMLRenderer implements the macaron handler for serving HTML templates.
-func HTMLRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:     NewFuncMap(),
-		Directory: path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{
-			path.Join(setting.CustomPath, "templates"),
-		},
-	})
+// GetAsset returns asset content via name
+func GetAsset(name string) ([]byte, error) {
+	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	} else if err == nil {
+		return bs, nil
+	}
+
+	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
 }
 
-// JSONRenderer implements the macaron handler for serving JSON templates.
-func JSONRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:     NewFuncMap(),
-		Directory: path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{
-			path.Join(setting.CustomPath, "templates"),
-		},
-		HTMLContentType: "application/json",
-	})
+// GetAssetNames returns assets list
+func GetAssetNames() []string {
+	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
+	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
+	return append(tmpls, tmpls2...)
 }
 
 // Mailer provides the templates required for sending notification mails.
@@ -65,7 +60,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", staticDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(staticDir)
+		files, err := util.StatDir(staticDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", staticDir, err)
@@ -94,7 +89,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
 	}
 	if isDir {
-		files, err := com.StatDir(customDir)
+		files, err := util.StatDir(customDir)
 
 		if err != nil {
 			log.Warn("Failed to read %s templates dir. %v", customDir, err)

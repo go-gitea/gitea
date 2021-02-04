@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -27,12 +27,12 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -170,7 +170,8 @@ func Fork(ctx *context.Context) {
 }
 
 // ForkPost response for forking a repository
-func ForkPost(ctx *context.Context, form auth.CreateRepoForm) {
+func ForkPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
 	ctxUser := checkContextUser(ctx, form.UID)
@@ -325,6 +326,20 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	}
 	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
+
+	if compareInfo.Commits.Len() != 0 {
+		sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+		commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, models.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLatestCommitStatus", err)
+			return nil
+		}
+		if len(commitStatuses) != 0 {
+			ctx.Data["LatestCommitStatuses"] = commitStatuses
+			ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(commitStatuses)
+		}
+	}
+
 	return compareInfo
 }
 
@@ -368,7 +383,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 			return nil
 		}
-		commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+		commitStatuses, err := models.GetLatestCommitStatus(repo.ID, sha, models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -426,7 +441,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
 		}
-		ctx.Data["GetCommitMessages"] = pull_service.GetCommitMessages(pull)
+		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(pull)
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
@@ -449,7 +464,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(repo, sha, 0)
+	commitStatuses, err := models.GetLatestCommitStatus(repo.ID, sha, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
@@ -670,6 +685,10 @@ func ViewPullFiles(ctx *context.Context) {
 		ctx.ServerError("GetAssignees", err)
 		return
 	}
+	handleTeamMentions(ctx)
+	if ctx.Written() {
+		return
+	}
 	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.User, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
@@ -697,11 +716,11 @@ func UpdatePullRequest(ctx *context.Context) {
 	}
 
 	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("LoadBaseRepo", err)
 		return
 	}
 	if err := issue.PullRequest.LoadHeadRepo(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.ServerError("LoadHeadRepo", err)
 		return
 	}
 
@@ -714,7 +733,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
 	if !allowedUpdate {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	}
 
@@ -734,22 +753,23 @@ func UpdatePullRequest(ctx *context.Context) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 			return
 		}
 		ctx.Flash.Error(err.Error())
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	}
 
 	time.Sleep(1 * time.Second)
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.update_branch_success"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 }
 
 // MergePullRequest response for merging pull request
-func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
+func MergePullRequest(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -757,11 +777,11 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	if issue.IsClosed {
 		if issue.IsPull {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.is_closed"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 			return
 		}
 		ctx.Flash.Error(ctx.Tr("repo.issues.closed_title"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
 		return
 	}
 
@@ -774,25 +794,25 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 	if !allowedMerge {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	}
 
 	if !pr.CanAutoMerge() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	}
 
 	if pr.HasMerged {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
 	}
 
 	if pr.IsWorkInProgress() {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_wip"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 		return
 	}
 
@@ -806,14 +826,14 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 			return
 		} else if !isRepoAdmin {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		}
 	}
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 		return
 	}
 
@@ -845,14 +865,14 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 
 	if !noDeps {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.pr_close_blocked"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 		return
 	}
 
 	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
@@ -866,7 +886,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		} else if models.IsErrRebaseConflicts(err) {
 			conflictError := err.(models.ErrRebaseConflicts)
@@ -880,17 +900,17 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 				return
 			}
 			ctx.Flash.Error(flashError)
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		} else if models.IsErrMergeUnrelatedHistories(err) {
 			log.Debug("MergeUnrelatedHistories error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.unrelated_histories"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		} else if git.IsErrPushOutOfDate(err) {
 			log.Debug("MergePushOutOfDate error: %v", err)
 			ctx.Flash.Error(ctx.Tr("repo.pulls.merge_out_of_date"))
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		} else if git.IsErrPushRejected(err) {
 			log.Debug("MergePushRejected error: %v", err)
@@ -910,7 +930,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 				}
 				ctx.Flash.Error(flashError)
 			}
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 			return
 		}
 		ctx.ServerError("Merge", err)
@@ -923,7 +943,7 @@ func MergePullRequest(ctx *context.Context, form auth.MergePullRequestForm) {
 	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 }
 
 func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
@@ -938,7 +958,8 @@ func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 }
 
 // CompareAndPullRequestPost response for creating pull request
-func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) {
+func CompareAndPullRequestPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
@@ -958,7 +979,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 	defer headGitRepo.Close()
 
-	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, form, true)
+	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
 		return
 	}
@@ -968,7 +989,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 
 	if ctx.HasError() {
-		auth.AssignForm(form, ctx.Data)
+		middleware.AssignForm(form, ctx.Data)
 
 		// This stage is already stop creating new pull request, so it does not matter if it has
 		// something to compare or not.
@@ -1034,7 +1055,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 				}
 				ctx.Flash.Error(flashError)
 			}
-			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pullIssue.Index))
 			return
 		}
 		ctx.ServerError("NewPullRequest", err)
@@ -1042,7 +1063,7 @@ func CompareAndPullRequestPost(ctx *context.Context, form auth.CreateIssueForm) 
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pullIssue.Index))
+	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pullIssue.Index))
 }
 
 // TriggerTask response for a trigger task request
@@ -1141,7 +1162,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	defer func() {
 		ctx.JSON(200, map[string]interface{}{
-			"redirect": pr.BaseRepo.Link() + "/pulls/" + com.ToStr(issue.Index),
+			"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
 		})
 	}()
 

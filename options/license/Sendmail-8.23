@@ -1,6 +1,8 @@
-SENDMAIL LICENSE The following license terms and conditions apply, unless
-a redistribution agreement or other license is obtained from Proofpoint, Inc.,
-892 Ross Street, Sunnyvale, CA, 94089, USA, or by electronic mail at sendmail-license@proofpoint.com.
+SENDMAIL LICENSE
+
+The following license terms and conditions apply, unless a redistribution
+agreement or other license is obtained from Proofpoint, Inc., 892 Ross Street,
+Sunnyvale, CA, 94089, USA, or by electronic mail at sendmail-license@proofpoint.com.
 
 License Terms:
 
@@ -32,8 +34,7 @@ license terms, and the disclaimer/limitation of liability set forth as paragraph
 6 below, in the documentation and/or other materials provided with the distribution.
 For the purposes of binary distribution the "Copyright Notice" refers to the
 following language:
-
-   "Copyright (c) 1998-2014 Proofpoint, Inc. All rights reserved."
+"Copyright (c) 1998-2014 Proofpoint, Inc. All rights reserved."
 
 4. Neither the name of Proofpoint, Inc. nor the University of California nor
 names of their contributors may be used to endorse or promote products derived
@@ -71,5 +72,6 @@ ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. $Revision: 8.23
-$, Last updated $Date: 2014-01-26 20:10:01 $, Document 139848.1
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+$Revision: 8.23 $, Last updated $Date: 2014-01-26 20:10:01 $, Document 139848.1
