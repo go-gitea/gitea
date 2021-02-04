@@ -862,8 +862,8 @@ func Routes() *web.Route {
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
-							Get(repo.GetReleaseTag).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseTag)
+							Get(repo.GetReleaseByTag).
+							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
