@@ -24,6 +24,7 @@ type UploadRepoFileOptions struct {
 	TreePath     string
 	Message      string
 	Files        []string // In UUID format.
+	Signoff      bool
 }
 
 type uploadInfo struct {
@@ -143,7 +144,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	committer := doer
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, opts.Message)
+	commitHash, err := t.CommitTree(author, committer, treeHash, opts.Message, opts.Signoff)
 	if err != nil {
 		return err
 	}

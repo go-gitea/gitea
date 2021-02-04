@@ -18,8 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"gitea.com/macaron/macaron"
 )
 
 var (
@@ -44,29 +42,6 @@ func GetAssetNames() []string {
 	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
 	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
 	return append(tmpls, tmpls2...)
-}
-
-// HTMLRenderer implements the macaron handler for serving HTML templates.
-func HTMLRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:     NewFuncMap(),
-		Directory: path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{
-			path.Join(setting.CustomPath, "templates"),
-		},
-	})
-}
-
-// JSONRenderer implements the macaron handler for serving JSON templates.
-func JSONRenderer() macaron.Handler {
-	return macaron.Renderer(macaron.RenderOptions{
-		Funcs:     NewFuncMap(),
-		Directory: path.Join(setting.StaticRootPath, "templates"),
-		AppendDirectories: []string{
-			path.Join(setting.CustomPath, "templates"),
-		},
-		HTMLContentType: "application/json",
-	})
 }
 
 // Mailer provides the templates required for sending notification mails.

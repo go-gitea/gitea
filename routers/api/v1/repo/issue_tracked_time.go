@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -132,7 +133,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 }
 
 // AddTime add time manual to the given issue
-func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
+func AddTime(ctx *context.APIContext) {
 	// swagger:operation Post /repos/{owner}/{repo}/issues/{index}/times issue issueAddTime
 	// ---
 	// summary: Add tracked time to a issue
@@ -168,7 +169,7 @@ func AddTime(ctx *context.APIContext, form api.AddTimeOption) {
 	//     "$ref": "#/responses/error"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
+	form := web.GetForm(ctx).(*api.AddTimeOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

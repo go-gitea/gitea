@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -37,25 +38,6 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 	}
 	apiKey.ReadOnly = key.Mode == models.AccessModeRead
 	return apiKey, nil
-}
-
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(ctx.Params(name))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
-		return nil
-	}
-	return user
-}
-
-// GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.APIContext) *models.User {
-	return GetUserByParamsName(ctx, ":username")
 }
 
 func composePublicKeysAPILink() string {
@@ -223,7 +205,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 }
 
 // CreatePublicKey create one public key for me
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/keys user userCurrentPostKey
 	// ---
 	// summary: Create a public key
@@ -242,7 +224,8 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	CreateUserPublicKey(ctx, form, ctx.User.ID)
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	CreateUserPublicKey(ctx, *form, ctx.User.ID)
 }
 
 // DeletePublicKey delete one public key

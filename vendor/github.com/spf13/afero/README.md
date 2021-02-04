@@ -227,7 +227,7 @@ operation and a mock filesystem during testing or as needed.
 
 ```go
 appfs := afero.NewOsFs()
-appfs.MkdirAll("src/a", 0755))
+appfs.MkdirAll("src/a", 0755)
 ```
 
 ## Memory Backed Storage
@@ -241,7 +241,7 @@ safely.
 
 ```go
 mm := afero.NewMemMapFs()
-mm.MkdirAll("src/a", 0755))
+mm.MkdirAll("src/a", 0755)
 ```
 
 #### InMemoryFile
@@ -306,7 +306,7 @@ Any Afero FileSystem can be used as an httpFs.
 
 ```go
 httpFs := afero.NewHttpFs(<ExistingFS>)
-fileserver := http.FileServer(httpFs.Dir(<PATH>)))
+fileserver := http.FileServer(httpFs.Dir(<PATH>))
 http.Handle("/", fileserver)
 ```
 
@@ -380,7 +380,6 @@ The following is a short list of possible backends we hope someone will
 implement:
 
 * SSH
-* TAR
 * S3
 
 # About the project

@@ -2,7 +2,9 @@ EPICS Open License Terms
 
 The following is the text of the EPICS Open software license agreement which
 now applies to EPICS Base and many of the unbundled EPICS extensions and support
-modules. Copyright © <YEAR> <HOLDERS>. All rights reserved.
+modules.
+
+Copyright © <YEAR> <HOLDERS>. All rights reserved.
 
 <PRODUCT> is distributed subject to the following license conditions:
 
@@ -23,7 +25,6 @@ your organization, if you meet the following conditions:
 
 a. Copies in source code must include the copyright notice and this Software
 License Agreement.
-
 b. Copies in binary form must include the copyright notice and this Software
 License Agreement in the documentation and/or other materials provided with
 the copy.
@@ -34,11 +35,9 @@ your organization, if you meet all of the following conditions:
 
 a. Copies in source code must include the copyright notice and this Software
 License Agreement;
-
 b. Copies in binary form must include the copyright notice and this Software
 License Agreement in the documentation and/or other materials provided with
 the copy;
-
 c. Modified copies and works based on the Software must carry prominent notices
 stating that you changed specified portions of the Software.
 
