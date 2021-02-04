@@ -8032,9 +8032,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -8811,6 +8808,49 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TagList"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tags/{tag}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a repository's tag by name",
+        "operationId": "repoDeleteTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of tag to delete",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
