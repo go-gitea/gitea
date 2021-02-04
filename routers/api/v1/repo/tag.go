@@ -158,5 +158,5 @@ func DeleteTag(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 	}
 
-	ctx.JSON(http.StatusOK, &tag)
+	ctx.Status(http.StatusNoContent)
 }
