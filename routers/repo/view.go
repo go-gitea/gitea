@@ -713,7 +713,10 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{Page: pager.Paginater.Current()})
+	items, err := getter(models.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: models.ItemsPerPage,
+	})
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -744,6 +747,7 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
+	// TODO: need pagination
 	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
