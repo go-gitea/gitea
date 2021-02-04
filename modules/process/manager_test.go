@@ -12,6 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetManager(t *testing.T) {
+	go func() {
+		// test race protection
+		_ = GetManager()
+	}()
+	pm := GetManager()
+	assert.NotNil(t, pm)
+}
+
 func TestManager_Add(t *testing.T) {
 	pm := Manager{processes: make(map[int64]*Process)}
 

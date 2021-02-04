@@ -1,8 +1,29 @@
 ## Changelog
 
+### [1.8.2](https://github.com/magiconair/properties/tree/v1.8.2) - 25 Aug 2020
+
+ * [PR #36](https://github.com/magiconair/properties/pull/36): Escape backslash on write
+
+   This patch ensures that backslashes are escaped on write. Existing applications which
+   rely on the old behavior may need to be updated.
+
+   Thanks to [@apesternikov](https://github.com/apesternikov) for the patch.
+
+ * [PR #42](https://github.com/magiconair/properties/pull/42): Made Content-Type check whitespace agnostic in LoadURL()
+
+   Thanks to [@aliras1](https://github.com/aliras1) for the patch.
+
+ * [PR #41](https://github.com/magiconair/properties/pull/41): Make key/value separator configurable on Write()
+
+   Thanks to [@mkjor](https://github.com/mkjor) for the patch.
+
+ * [PR #40](https://github.com/magiconair/properties/pull/40): Add method to return a sorted list of keys
+
+   Thanks to [@mkjor](https://github.com/mkjor) for the patch.
+
 ### [1.8.1](https://github.com/magiconair/properties/tree/v1.8.1) - 10 May 2019
 
- * [PR #26](https://github.com/magiconair/properties/pull/35): Close body always after request
+ * [PR #35](https://github.com/magiconair/properties/pull/35): Close body always after request
 
    This patch ensures that in `LoadURL` the response body is always closed.
 

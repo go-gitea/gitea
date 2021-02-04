@@ -7,7 +7,6 @@ package integrations
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -131,7 +130,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	tag := "v1.1"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s/",
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, tag)
 
 	req := NewRequestf(t, "GET", urlStr)
@@ -144,7 +143,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	nonexistingtag := "nonexistingtag"
 
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s/",
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
 		owner.Name, repo.Name, nonexistingtag)
 
 	req = NewRequestf(t, "GET", urlStr)
@@ -152,7 +151,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
-	assert.True(t, strings.HasPrefix(err.Message, "release tag does not exist"))
+	assert.EqualValues(t, "Not Found", err.Message)
 }
 
 func TestAPIDeleteTagByName(t *testing.T) {
@@ -163,7 +162,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag/?token=%s",
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag?token=%s",
 		owner.Name, repo.Name, token)
 
 	req := NewRequestf(t, http.MethodDelete, urlStr)
@@ -171,7 +170,7 @@ func TestAPIDeleteTagByName(t *testing.T) {
 
 	// Make sure that actual releases can't be deleted outright
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag/?token=%s",
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s",
 		owner.Name, repo.Name, token)
 
 	req = NewRequestf(t, http.MethodDelete, urlStr)

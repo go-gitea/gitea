@@ -12,6 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/unrolled/render"
 )
 
 // Vars represents variables to be render in golang templates
@@ -79,4 +81,16 @@ func getDirAssetNames(dir string) []string {
 		tmpls = append(tmpls, "templates/"+filePath)
 	}
 	return tmpls
+}
+
+// HTMLRenderer returns a render.
+func HTMLRenderer() *render.Render {
+	return render.New(render.Options{
+		Extensions:    []string{".tmpl"},
+		Directory:     "templates",
+		Funcs:         NewFuncMap(),
+		Asset:         GetAsset,
+		AssetNames:    GetAssetNames,
+		IsDevelopment: !setting.IsProd(),
+	})
 }

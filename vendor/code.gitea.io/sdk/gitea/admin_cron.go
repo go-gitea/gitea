@@ -25,7 +25,7 @@ type ListCronTaskOptions struct {
 
 // ListCronTasks list available cron tasks
 func (c *Client) ListCronTasks(opt ListCronTaskOptions) ([]*CronTask, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	opt.setDefaults()
@@ -36,7 +36,7 @@ func (c *Client) ListCronTasks(opt ListCronTaskOptions) ([]*CronTask, *Response,
 
 // RunCronTasks run a cron task
 func (c *Client) RunCronTasks(task string) (*Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, err
 	}
 	_, resp, err := c.getResponse("POST", fmt.Sprintf("/admin/cron/%s", task), jsonHeader, nil)

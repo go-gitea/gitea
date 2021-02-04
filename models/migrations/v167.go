@@ -10,12 +10,14 @@ import (
 	"xorm.io/xorm"
 )
 
-func addTimeIDCommentColumn(x *xorm.Engine) error {
-	type Comment struct {
-		TimeID int64
+func addUserRedirect(x *xorm.Engine) (err error) {
+	type UserRedirect struct {
+		ID             int64  `xorm:"pk autoincr"`
+		LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		RedirectUserID int64
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
+	if err := x.Sync2(new(UserRedirect)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
