@@ -1208,7 +1208,7 @@ func deleteUser(e Engine, u *User) error {
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := ListGPGKeys(u.ID, ListOptions{})
+	keys, err := listGPGKeys(e, u.ID, ListOptions{})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %v", err)
 	}
