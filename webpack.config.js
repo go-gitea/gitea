@@ -5,8 +5,11 @@ const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
+const {
+  ESBuildPlugin,
+  ESBuildMinifyPlugin
+} = require('esbuild-loader');
 const {statSync} = require('fs');
 const {resolve, parse} = require('path');
 const {SourceMapDevToolPlugin} = require('webpack');
@@ -78,13 +81,9 @@ module.exports = {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new TerserPlugin({
-        extractComments: false,
-        terserOptions: {
-          output: {
-            comments: false,
-          },
-        },
+      new ESBuildMinifyPlugin({
+        target: 'es2015', // Syntax to compile to (see options below for possible values)
+        minify: true
       }),
       new CssMinimizerPlugin({
         sourceMap: true,
@@ -131,36 +130,9 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'babel-loader',
+            loader: 'esbuild-loader',
             options: {
-              sourceMaps: true,
-              cacheDirectory: true,
-              cacheCompression: false,
-              cacheIdentifier: [
-                resolve(__dirname, 'package.json'),
-                resolve(__dirname, 'package-lock.json'),
-                resolve(__dirname, 'webpack.config.js'),
-              ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              presets: [
-                [
-                  '@babel/preset-env',
-                  {
-                    useBuiltIns: 'usage',
-                    corejs: 3,
-                  },
-                ],
-              ],
-              plugins: [
-                [
-                  '@babel/plugin-transform-runtime',
-                  {
-                    regenerator: true,
-                  }
-                ],
-              ],
-              generatorOpts: {
-                compact: false,
-              },
+              target: 'es2015' // Syntax to compile to (see options below for possible values)
             },
           },
         ],
@@ -243,6 +215,7 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
+    new ESBuildPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].css',

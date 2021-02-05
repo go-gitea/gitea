@@ -20,6 +20,7 @@
     "css-minimizer-webpack-plugin": "1.2.0",
     "dropzone": "5.7.2",
     "easymde": "2.13.0",
+    "esbuild-loader": "2.8.0",
     "escape-goat": "3.0.0",
     "fast-glob": "3.2.4",
     "file-loader": "6.2.0",
