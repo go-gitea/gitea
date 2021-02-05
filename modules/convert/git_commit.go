@@ -139,7 +139,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	affectedFiles := append(fileStatus.Added, fileStatus.Removed...)
 	affectedFiles = append(affectedFiles, fileStatus.Modified...)
 	affectedFileList := make([]*api.CommitAffectedFiles, len(affectedFiles))
-	for i := 0; i < len(affectedFiles); i++ {
+	for i := range affectedFiles {
 		affectedFileList[i] = &api.CommitAffectedFiles{
 			Filename: affectedFiles[i],
 		}
