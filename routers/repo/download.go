@@ -31,7 +31,11 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
-	ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+	if size >= 0 {
+		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+	} else {
+		log.Error("ServeData called to serve data: %s with size < 0: %d", name, size)
+	}
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
