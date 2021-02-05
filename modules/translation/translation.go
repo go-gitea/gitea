@@ -64,7 +64,7 @@ func InitLocales() {
 				// just log if lang is already loaded since we can not reload it
 				log.Warn("Can not load language '%s' since already loaded", setting.Langs[i])
 			} else {
-				log.Fatal("Failed to set messages to %s: %v", setting.Langs[i], err)
+				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 			}
 		}
 	}
