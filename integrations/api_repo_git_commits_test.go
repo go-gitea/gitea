@@ -106,5 +106,5 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 
 	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
-	compareCommitFiles(t, []string{"readme.md"}, apiData[2].Files)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 }
