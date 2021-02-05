@@ -170,7 +170,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 }
 
-// OrgAssignment returns a macaron middleware to handle organization assignment
+// OrgAssignment returns a middleware to handle organization assignment
 func OrgAssignment(args ...bool) func(ctx *Context) {
 	return func(ctx *Context) {
 		HandleOrgAssignment(ctx, args...)

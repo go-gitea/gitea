@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// RequireRepoAdmin returns a macaron middleware for requiring repository admin permission
+// RequireRepoAdmin returns a middleware for requiring repository admin permission
 func RequireRepoAdmin() func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.IsSigned || !ctx.Repo.IsAdmin() {
@@ -19,7 +19,7 @@ func RequireRepoAdmin() func(ctx *Context) {
 	}
 }
 
-// RequireRepoWriter returns a macaron middleware for requiring repository write to the specify unitType
+// RequireRepoWriter returns a middleware for requiring repository write to the specify unitType
 func RequireRepoWriter(unitType models.UnitType) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanWrite(unitType) {
@@ -29,7 +29,7 @@ func RequireRepoWriter(unitType models.UnitType) func(ctx *Context) {
 	}
 }
 
-// RequireRepoWriterOr returns a macaron middleware for requiring repository write to one of the unit permission
+// RequireRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
 func RequireRepoWriterOr(unitTypes ...models.UnitType) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
@@ -41,7 +41,7 @@ func RequireRepoWriterOr(unitTypes ...models.UnitType) func(ctx *Context) {
 	}
 }
 
-// RequireRepoReader returns a macaron middleware for requiring repository read to the specify unitType
+// RequireRepoReader returns a middleware for requiring repository read to the specify unitType
 func RequireRepoReader(unitType models.UnitType) func(ctx *Context) {
 	return func(ctx *Context) {
 		if !ctx.Repo.CanRead(unitType) {
@@ -67,7 +67,7 @@ func RequireRepoReader(unitType models.UnitType) func(ctx *Context) {
 	}
 }
 
-// RequireRepoReaderOr returns a macaron middleware for requiring repository write to one of the unit permission
+// RequireRepoReaderOr returns a middleware for requiring repository write to one of the unit permission
 func RequireRepoReaderOr(unitTypes ...models.UnitType) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {

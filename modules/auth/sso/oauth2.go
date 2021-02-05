@@ -12,8 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // Ensure the struct implements the interface.
@@ -122,7 +122,7 @@ func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store 
 		return nil
 	}
 
-	if middlewares.IsInternalPath(req) || !middlewares.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
 		return nil
 	}
 

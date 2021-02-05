@@ -20,12 +20,12 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
@@ -47,11 +47,11 @@ func InstallInit(next http.Handler) http.Handler {
 			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
 			return
 		}
-		var locale = middlewares.Locale(resp, req)
+		var locale = middleware.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = context.Context{
 			Resp:    context.NewResponse(resp),
-			Flash:   &middlewares.Flash{},
+			Flash:   &middleware.Flash{},
 			Locale:  locale,
 			Render:  rnd,
 			Session: session.GetSession(req),
@@ -143,7 +143,7 @@ func Install(ctx *context.Context) {
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 
-	middlewares.AssignForm(form, ctx.Data)
+	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
 }
 
@@ -371,8 +371,6 @@ func InstallPost(ctx *context.Context) {
 	cfg.Section("log").Key("MODE").SetValue("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
-	cfg.Section("log").Key("MACARON").SetValue("console")
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
