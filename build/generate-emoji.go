@@ -174,7 +174,7 @@ func generate() ([]byte, error) {
 					s = append(s, k)
 				} else {
 					// insert into slice after first element because all emoji that support skin tones
-					// have that modifer placed at this spot
+					// have that modifier placed at this spot
 					s = append(s, "")
 					copy(s[2:], s[1:])
 					s[1] = k
