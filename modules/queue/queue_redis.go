@@ -5,12 +5,10 @@
 package queue
 
 import (
-	"errors"
-	"strings"
-
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/nosql"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v7"
 )
 
 // RedisQueueType is the type for redis queue
@@ -75,11 +73,8 @@ type RedisByteFIFO struct {
 
 // RedisByteFIFOConfiguration is the configuration for the RedisByteFIFO
 type RedisByteFIFOConfiguration struct {
-	Network   string
-	Addresses string
-	Password  string
-	DBIndex   int
-	QueueName string
+	ConnectionString string
+	QueueName        string
 }
 
 // NewRedisByteFIFO creates a ByteFIFO formed from a redisClient
@@ -87,21 +82,7 @@ func NewRedisByteFIFO(config RedisByteFIFOConfiguration) (*RedisByteFIFO, error)
 	fifo := &RedisByteFIFO{
 		queueName: config.QueueName,
 	}
-	dbs := strings.Split(config.Addresses, ",")
-	if len(dbs) == 0 {
-		return nil, errors.New("no redis host specified")
-	} else if len(dbs) == 1 {
-		fifo.client = redis.NewClient(&redis.Options{
-			Network:  config.Network,
-			Addr:     strings.TrimSpace(dbs[0]), // use default Addr
-			Password: config.Password,           // no password set
-			DB:       config.DBIndex,            // use default DB
-		})
-	} else {
-		fifo.client = redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs: dbs,
-		})
-	}
+	fifo.client = nosql.GetManager().GetRedisClient(config.ConnectionString)
 	if err := fifo.client.Ping().Err(); err != nil {
 		return nil, err
 	}

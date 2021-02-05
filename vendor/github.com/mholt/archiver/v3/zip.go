@@ -6,11 +6,31 @@ import (
 	"compress/flate"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/dsnet/compress/bzip2"
+	"github.com/klauspost/compress/zstd"
+	"github.com/ulikunitz/xz"
+)
+
+// ZipCompressionMethod Compression type
+type ZipCompressionMethod uint16
+
+// Compression methods.
+// see https://pkware.cachefly.net/webdocs/casestudies/APPNOTE.TXT.
+// Note LZMA: Disabled - because 7z isn't able to unpack ZIP+LZMA ZIP+LZMA2 archives made this way - and vice versa.
+const (
+	Store   ZipCompressionMethod = 0
+	Deflate ZipCompressionMethod = 8
+	BZIP2   ZipCompressionMethod = 12
+	LZMA    ZipCompressionMethod = 14
+	ZSTD    ZipCompressionMethod = 93
+	XZ      ZipCompressionMethod = 95
 )
 
 // Zip provides facilities for operating ZIP archives.
@@ -50,20 +70,64 @@ type Zip struct {
 	// especially on extraction.
 	ImplicitTopLevelFolder bool
 
+	// Strip number of leading paths. This feature is available
+	// only during unpacking of the entire archive.
+	StripComponents int
+
 	// If true, errors encountered during reading
 	// or writing a single file will be logged and
 	// the operation will continue on remaining files.
 	ContinueOnError bool
 
-	zw   *zip.Writer
-	zr   *zip.Reader
-	ridx int
+	// Compression algorithm
+	FileMethod ZipCompressionMethod
+	zw         *zip.Writer
+	zr         *zip.Reader
+	ridx       int
+	//decinitialized bool
 }
 
 // CheckExt ensures the file extension matches the format.
 func (*Zip) CheckExt(filename string) error {
 	if !strings.HasSuffix(filename, ".zip") {
 		return fmt.Errorf("filename must have a .zip extension")
+	}
+	return nil
+}
+
+// Registering a global decompressor is not reentrant and may panic
+func registerDecompressor(zr *zip.Reader) {
+	// register zstd decompressor
+	zr.RegisterDecompressor(uint16(ZSTD), func(r io.Reader) io.ReadCloser {
+		zr, err := zstd.NewReader(r)
+		if err != nil {
+			return nil
+		}
+		return zr.IOReadCloser()
+	})
+	zr.RegisterDecompressor(uint16(BZIP2), func(r io.Reader) io.ReadCloser {
+		bz2r, err := bzip2.NewReader(r, nil)
+		if err != nil {
+			return nil
+		}
+		return bz2r
+	})
+	zr.RegisterDecompressor(uint16(XZ), func(r io.Reader) io.ReadCloser {
+		xr, err := xz.NewReader(r)
+		if err != nil {
+			return nil
+		}
+		return ioutil.NopCloser(xr)
+	})
+}
+
+// CheckPath ensures the file extension matches the format.
+func (*Zip) CheckPath(to, filename string) error {
+	to, _ = filepath.Abs(to) //explicit the destination folder to prevent that 'string.HasPrefix' check can be 'bypassed' when no destination folder is supplied in input
+	dest := filepath.Join(to, filename)
+	//prevent path traversal attacks
+	if !strings.HasPrefix(dest, to) {
+		return &IllegalPathError{AbsolutePath: dest, Filename: filename}
 	}
 	return nil
 }
@@ -165,7 +229,7 @@ func (z *Zip) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if z.ContinueOnError {
+			if z.ContinueOnError || IsIllegalPathError(err) {
 				log.Printf("[ERROR] Reading file in zip archive: %v", err)
 				continue
 			}
@@ -182,15 +246,31 @@ func (z *Zip) extractNext(to string) error {
 		return err // don't wrap error; calling loop must break on io.EOF
 	}
 	defer f.Close()
-	return z.extractFile(f, to)
-}
 
-func (z *Zip) extractFile(f File, to string) error {
 	header, ok := f.Header.(zip.FileHeader)
 	if !ok {
 		return fmt.Errorf("expected header to be zip.FileHeader but was %T", f.Header)
 	}
 
+	errPath := z.CheckPath(to, header.Name)
+	if errPath != nil {
+		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+
+	if z.StripComponents > 0 {
+		if strings.Count(header.Name, "/") < z.StripComponents {
+			return nil // skip path with fewer components
+		}
+
+		for i := 0; i < z.StripComponents; i++ {
+			slash := strings.Index(header.Name, "/")
+			header.Name = header.Name[slash+1:]
+		}
+	}
+	return z.extractFile(f, to, &header)
+}
+
+func (z *Zip) extractFile(f File, to string, header *zip.FileHeader) error {
 	to = filepath.Join(to, header.Name)
 
 	// if a directory, no content; simply make the directory and return
@@ -292,6 +372,20 @@ func (z *Zip) Create(out io.Writer) error {
 			return flate.NewWriter(out, z.CompressionLevel)
 		})
 	}
+	switch z.FileMethod {
+	case BZIP2:
+		z.zw.RegisterCompressor(uint16(BZIP2), func(out io.Writer) (io.WriteCloser, error) {
+			return bzip2.NewWriter(out, &bzip2.WriterConfig{Level: z.CompressionLevel})
+		})
+	case ZSTD:
+		z.zw.RegisterCompressor(uint16(ZSTD), func(out io.Writer) (io.WriteCloser, error) {
+			return zstd.NewWriter(out)
+		})
+	case XZ:
+		z.zw.RegisterCompressor(uint16(XZ), func(out io.Writer) (io.WriteCloser, error) {
+			return xz.NewWriter(out)
+		})
+	}
 	return nil
 }
 
@@ -320,7 +414,7 @@ func (z *Zip) Write(f File) error {
 		if _, ok := compressedFormats[ext]; ok && z.SelectiveCompression {
 			header.Method = zip.Store
 		} else {
-			header.Method = zip.Deflate
+			header.Method = uint16(z.FileMethod)
 		}
 	}
 
@@ -376,6 +470,7 @@ func (z *Zip) Open(in io.Reader, size int64) error {
 	if err != nil {
 		return fmt.Errorf("creating reader: %v", err)
 	}
+	registerDecompressor(z.zr)
 	z.ridx = 0
 	return nil
 }
@@ -432,11 +527,13 @@ func (z *Zip) Walk(archive string, walkFn WalkFunc) error {
 		return fmt.Errorf("opening zip reader: %v", err)
 	}
 	defer zr.Close()
-
+	registerDecompressor(&zr.Reader)
 	for _, zf := range zr.File {
 		zfrc, err := zf.Open()
 		if err != nil {
-			zfrc.Close()
+			if zfrc != nil {
+				zfrc.Close()
+			}
 			if z.ContinueOnError {
 				log.Printf("[ERROR] Opening %s: %v", zf.Name, err)
 				continue
@@ -501,7 +598,7 @@ func (z *Zip) Extract(source, target, destination string) error {
 			}
 			joined := filepath.Join(destination, end)
 
-			err = z.extractFile(f, joined)
+			err = z.extractFile(f, joined, &zfh)
 			if err != nil {
 				return fmt.Errorf("extracting file %s: %v", zfh.Name, err)
 			}
@@ -530,7 +627,9 @@ func (*Zip) Match(file io.ReadSeeker) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer file.Seek(currentPos, io.SeekStart)
+	defer func() {
+		_, _ = file.Seek(currentPos, io.SeekStart)
+	}()
 
 	buf := make([]byte, 4)
 	if n, err := file.Read(buf); err != nil || n < 4 {
@@ -547,6 +646,7 @@ func NewZip() *Zip {
 		CompressionLevel:     flate.DefaultCompression,
 		MkdirAll:             true,
 		SelectiveCompression: true,
+		FileMethod:           Deflate,
 	}
 }
 
@@ -560,6 +660,7 @@ var (
 	_ = Extractor(new(Zip))
 	_ = Matcher(new(Zip))
 	_ = ExtensionChecker(new(Zip))
+	_ = FilenameChecker(new(Zip))
 )
 
 // compressedFormats is a (non-exhaustive) set of lowercased

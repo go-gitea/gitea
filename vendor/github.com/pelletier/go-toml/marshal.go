@@ -76,6 +76,7 @@ var textUnmarshalerType = reflect.TypeOf(new(encoding.TextUnmarshaler)).Elem()
 var localDateType = reflect.TypeOf(LocalDate{})
 var localTimeType = reflect.TypeOf(LocalTime{})
 var localDateTimeType = reflect.TypeOf(LocalDateTime{})
+var mapStringInterfaceType = reflect.TypeOf(map[string]interface{}{})
 
 // Check if the given marshal type maps to a Tree primitive
 func isPrimitive(mtype reflect.Type) bool {
@@ -436,6 +437,7 @@ func (e *Encoder) valueToTree(mtype reflect.Type, mval reflect.Value) (*Tree, er
 					if tree, ok := val.(*Tree); ok && mtypef.Anonymous && !opts.nameFromTag && !e.promoteAnon {
 						e.appendTree(tval, tree)
 					} else {
+						val = e.wrapTomlValue(val, tval)
 						tval.SetPathWithOptions([]string{opts.name}, SetOptions{
 							Comment:   opts.comment,
 							Commented: opts.commented,
@@ -474,6 +476,7 @@ func (e *Encoder) valueToTree(mtype reflect.Type, mval reflect.Value) (*Tree, er
 			if err != nil {
 				return nil, err
 			}
+			val = e.wrapTomlValue(val, tval)
 			if e.quoteMapKeys {
 				keyStr, err := tomlValueStringRepresentation(key.String(), "", "", e.order, e.arraysOneElementPerLine)
 				if err != nil {
@@ -516,13 +519,13 @@ func (e *Encoder) valueToOtherSlice(mtype reflect.Type, mval reflect.Value) (int
 
 // Convert given marshal value to toml value
 func (e *Encoder) valueToToml(mtype reflect.Type, mval reflect.Value) (interface{}, error) {
-	e.line++
 	if mtype.Kind() == reflect.Ptr {
 		switch {
 		case isCustomMarshaler(mtype):
 			return callCustomMarshaler(mval)
 		case isTextMarshaler(mtype):
-			return callTextMarshaler(mval)
+			b, err := callTextMarshaler(mval)
+			return string(b), err
 		default:
 			return e.valueToToml(mtype.Elem(), mval.Elem())
 		}
@@ -534,7 +537,8 @@ func (e *Encoder) valueToToml(mtype reflect.Type, mval reflect.Value) (interface
 	case isCustomMarshaler(mtype):
 		return callCustomMarshaler(mval)
 	case isTextMarshaler(mtype):
-		return callTextMarshaler(mval)
+		b, err := callTextMarshaler(mval)
+		return string(b), err
 	case isTree(mtype):
 		return e.valueToTree(mtype, mval)
 	case isOtherSequence(mtype), isCustomMarshalerSequence(mtype), isTextMarshalerSequence(mtype):
@@ -575,6 +579,25 @@ func (e *Encoder) appendTree(t, o *Tree) error {
 		t.values[key] = value
 	}
 	return nil
+}
+
+// Create a toml value with the current line number as the position line
+func (e *Encoder) wrapTomlValue(val interface{}, parent *Tree) interface{} {
+	_, isTree := val.(*Tree)
+	_, isTreeS := val.([]*Tree)
+	if isTree || isTreeS {
+		return val
+	}
+
+	ret := &tomlValue{
+		value: val,
+		position: Position{
+			e.line,
+			parent.position.Col,
+		},
+	}
+	e.line++
+	return ret
 }
 
 // Unmarshal attempts to unmarshal the Tree into a Go struct pointed by v.
@@ -681,6 +704,8 @@ func (d *Decoder) unmarshal(v interface{}) error {
 
 	switch elem.Kind() {
 	case reflect.Struct, reflect.Map:
+	case reflect.Interface:
+		elem = mapStringInterfaceType
 	default:
 		return errors.New("only a pointer to struct or map can be unmarshaled from TOML")
 	}
@@ -716,6 +741,10 @@ func (d *Decoder) valueFromTree(mtype reflect.Type, tval *Tree, mval1 *reflect.V
 	// Check if pointer to value implements the Unmarshaler interface.
 	if mvalPtr := reflect.New(mtype); isCustomUnmarshaler(mvalPtr.Type()) {
 		d.visitor.visitAll()
+
+		if tval == nil {
+			return mvalPtr.Elem(), nil
+		}
 
 		if err := callCustomUnmarshaler(mvalPtr, tval.ToMap()); err != nil {
 			return reflect.ValueOf(nil), fmt.Errorf("unmarshal toml: %v", err)

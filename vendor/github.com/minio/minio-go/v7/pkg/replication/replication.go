@@ -46,18 +46,23 @@ const (
 
 // Options represents options to set a replication configuration rule
 type Options struct {
-	Op           OptionType
-	ID           string
-	Prefix       string
-	RuleStatus   string
-	Priority     string
-	TagString    string
-	StorageClass string
-	Arn          string
+	Op                     OptionType
+	ID                     string
+	Prefix                 string
+	RuleStatus             string
+	Priority               string
+	TagString              string
+	StorageClass           string
+	RoleArn                string
+	DestBucket             string
+	IsTagSet               bool
+	IsSCSet                bool
+	ReplicateDeletes       string // replicate versioned deletes
+	ReplicateDeleteMarkers string // replicate soft deletes
 }
 
 // Tags returns a slice of tags for a rule
-func (opts Options) Tags() []Tag {
+func (opts Options) Tags() ([]Tag, error) {
 	var tagList []Tag
 	tagTokens := strings.Split(opts.TagString, "&")
 	for _, tok := range tagTokens {
@@ -65,12 +70,15 @@ func (opts Options) Tags() []Tag {
 			break
 		}
 		kv := strings.SplitN(tok, "=", 2)
+		if len(kv) != 2 {
+			return []Tag{}, fmt.Errorf("Tags should be entered as comma separated k=v pairs")
+		}
 		tagList = append(tagList, Tag{
 			Key:   kv[0],
 			Value: kv[1],
 		})
 	}
-	return tagList
+	return tagList, nil
 }
 
 // Config - replication configuration specified in
@@ -89,9 +97,30 @@ func (c *Config) Empty() bool {
 // AddRule adds a new rule to existing replication config. If a rule exists with the
 // same ID, then the rule is replaced.
 func (c *Config) AddRule(opts Options) error {
-	tags := opts.Tags()
+	priority, err := strconv.Atoi(opts.Priority)
+	if err != nil {
+		return err
+	}
+	if opts.RoleArn != c.Role && c.Role != "" {
+		return fmt.Errorf("Role ARN does not match existing configuration")
+	}
+	var status Status
+	// toggle rule status for edit option
+	switch opts.RuleStatus {
+	case "enable":
+		status = Enabled
+	case "disable":
+		status = Disabled
+	default:
+		return fmt.Errorf("Rule state should be either [enable|disable]")
+	}
+
+	tags, err := opts.Tags()
+	if err != nil {
+		return err
+	}
 	andVal := And{
-		Tags: opts.Tags(),
+		Tags: tags,
 	}
 	filter := Filter{Prefix: opts.Prefix}
 	// only a single tag is set.
@@ -103,89 +132,242 @@ func (c *Config) AddRule(opts Options) error {
 		filter.And = andVal
 		filter.And.Prefix = opts.Prefix
 		filter.Prefix = ""
+		filter.Tag = Tag{}
 	}
 	if opts.ID == "" {
 		opts.ID = xid.New().String()
 	}
-	var status Status
-	// toggle rule status for edit option
-	switch opts.RuleStatus {
-	case "enable":
-		status = Enabled
-	case "disable":
-		status = Disabled
-	}
-	arnStr := opts.Arn
-	if opts.Arn == "" {
+	arnStr := opts.RoleArn
+	if opts.RoleArn == "" {
 		arnStr = c.Role
+	}
+	if arnStr == "" {
+		return fmt.Errorf("Role ARN required")
 	}
 	tokens := strings.Split(arnStr, ":")
 	if len(tokens) != 6 {
 		return fmt.Errorf("invalid format for replication Arn")
 	}
-	if c.Role == "" { // for new configurations
-		c.Role = opts.Arn
+	if c.Role == "" {
+		c.Role = arnStr
 	}
-	priority, err := strconv.Atoi(opts.Priority)
-	if err != nil {
-		return err
+	destBucket := opts.DestBucket
+	// ref https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-arn-format.html
+	if btokens := strings.Split(destBucket, ":"); len(btokens) != 6 {
+		if len(btokens) == 1 {
+			destBucket = fmt.Sprintf("arn:aws:s3:::%s", destBucket)
+		} else {
+			return fmt.Errorf("destination bucket needs to be in Arn format")
+		}
 	}
+	dmStatus := Disabled
+	if opts.ReplicateDeleteMarkers != "" {
+		switch opts.ReplicateDeleteMarkers {
+		case "enable":
+			dmStatus = Enabled
+		case "disable":
+			dmStatus = Disabled
+		default:
+			return fmt.Errorf("ReplicateDeleteMarkers should be either enable|disable")
+		}
+	}
+
+	vDeleteStatus := Disabled
+	if opts.ReplicateDeletes != "" {
+		switch opts.ReplicateDeletes {
+		case "enable":
+			vDeleteStatus = Enabled
+		case "disable":
+			vDeleteStatus = Disabled
+		default:
+			return fmt.Errorf("ReplicateDeletes should be either enable|disable")
+		}
+	}
+
 	newRule := Rule{
 		ID:       opts.ID,
 		Priority: priority,
 		Status:   status,
 		Filter:   filter,
 		Destination: Destination{
-			Bucket:       fmt.Sprintf("arn:aws:s3:::%s", tokens[5]),
+			Bucket:       destBucket,
 			StorageClass: opts.StorageClass,
 		},
-		DeleteMarkerReplication: DeleteMarkerReplication{Status: Disabled},
+		DeleteMarkerReplication: DeleteMarkerReplication{Status: dmStatus},
+		DeleteReplication:       DeleteReplication{Status: vDeleteStatus},
+		// MinIO enables replica metadata syncing by default in the case of bi-directional replication to allow
+		// automatic failover as the expectation in this case is that replica and source should be identical.
+		// However AWS leaves this configurable https://docs.aws.amazon.com/AmazonS3/latest/dev/replication-for-metadata-changes.html
+		SourceSelectionCriteria: SourceSelectionCriteria{
+			ReplicaModifications: ReplicaModifications{
+				Status: Enabled,
+			},
+		},
 	}
 
-	ruleFound := false
-	for i, rule := range c.Rules {
-		if rule.Priority == newRule.Priority && rule.ID != newRule.ID {
+	// validate rule after overlaying priority for pre-existing rule being disabled.
+	if err := newRule.Validate(); err != nil {
+		return err
+	}
+	for _, rule := range c.Rules {
+		if rule.Priority == newRule.Priority {
 			return fmt.Errorf("Priority must be unique. Replication configuration already has a rule with this priority")
 		}
 		if rule.Destination.Bucket != newRule.Destination.Bucket {
 			return fmt.Errorf("The destination bucket must be same for all rules")
 		}
-		if rule.ID != newRule.ID {
-			continue
+		if rule.ID == newRule.ID {
+			return fmt.Errorf("A rule exists with this ID")
 		}
-		if opts.Priority == "" && rule.ID == newRule.ID {
-			// inherit priority from existing rule, required field on server
-			newRule.Priority = rule.Priority
-		}
-		if opts.RuleStatus == "" {
-			newRule.Status = rule.Status
-		}
-		c.Rules[i] = newRule
-		ruleFound = true
-		break
 	}
-	// validate rule after overlaying priority for pre-existing rule being disabled.
+
+	c.Rules = append(c.Rules, newRule)
+	return nil
+}
+
+// EditRule modifies an existing rule in replication config
+func (c *Config) EditRule(opts Options) error {
+	if opts.ID == "" {
+		return fmt.Errorf("Rule ID missing")
+	}
+	rIdx := -1
+	var newRule Rule
+	for i, rule := range c.Rules {
+		if rule.ID == opts.ID {
+			rIdx = i
+			newRule = rule
+			break
+		}
+	}
+	if rIdx < 0 {
+		return fmt.Errorf("Rule with ID %s not found in replication configuration", opts.ID)
+	}
+	prefixChg := opts.Prefix != newRule.Prefix()
+	if opts.IsTagSet || prefixChg {
+		prefix := newRule.Prefix()
+		if prefix != opts.Prefix {
+			prefix = opts.Prefix
+		}
+		tags := []Tag{newRule.Filter.Tag}
+		if len(newRule.Filter.And.Tags) != 0 {
+			tags = newRule.Filter.And.Tags
+		}
+		var err error
+		if opts.IsTagSet {
+			tags, err = opts.Tags()
+			if err != nil {
+				return err
+			}
+		}
+		andVal := And{
+			Tags: tags,
+		}
+
+		filter := Filter{Prefix: prefix}
+		// only a single tag is set.
+		if prefix == "" && len(tags) == 1 {
+			filter.Tag = tags[0]
+		}
+		// both prefix and tag are present
+		if len(andVal.Tags) > 1 || prefix != "" {
+			filter.And = andVal
+			filter.And.Prefix = prefix
+			filter.Prefix = ""
+			filter.Tag = Tag{}
+		}
+		newRule.Filter = filter
+	}
+
+	// toggle rule status for edit option
+	if opts.RuleStatus != "" {
+		switch opts.RuleStatus {
+		case "enable":
+			newRule.Status = Enabled
+		case "disable":
+			newRule.Status = Disabled
+		default:
+			return fmt.Errorf("Rule state should be either [enable|disable]")
+		}
+	}
+	// set DeleteMarkerReplication rule status for edit option
+	if opts.ReplicateDeleteMarkers != "" {
+		switch opts.ReplicateDeleteMarkers {
+		case "enable":
+			newRule.DeleteMarkerReplication.Status = Enabled
+		case "disable":
+			newRule.DeleteMarkerReplication.Status = Disabled
+		default:
+			return fmt.Errorf("ReplicateDeleteMarkers state should be either [enable|disable]")
+		}
+	}
+
+	// set DeleteReplication rule status for edit option. This is a MinIO specific
+	// option to replicate versioned deletes
+	if opts.ReplicateDeletes != "" {
+		switch opts.ReplicateDeletes {
+		case "enable":
+			newRule.DeleteReplication.Status = Enabled
+		case "disable":
+			newRule.DeleteReplication.Status = Disabled
+		default:
+			return fmt.Errorf("ReplicateDeletes state should be either [enable|disable]")
+		}
+	}
+
+	if opts.IsSCSet {
+		newRule.Destination.StorageClass = opts.StorageClass
+	}
+	if opts.Priority != "" {
+		priority, err := strconv.Atoi(opts.Priority)
+		if err != nil {
+			return err
+		}
+		newRule.Priority = priority
+	}
+	if opts.DestBucket != "" {
+		destBucket := opts.DestBucket
+		// ref https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-arn-format.html
+		if btokens := strings.Split(opts.DestBucket, ":"); len(btokens) != 6 {
+			if len(btokens) == 1 {
+				destBucket = fmt.Sprintf("arn:aws:s3:::%s", destBucket)
+			} else {
+				return fmt.Errorf("destination bucket needs to be in Arn format")
+			}
+		}
+		newRule.Destination.Bucket = destBucket
+	}
+	// validate rule
 	if err := newRule.Validate(); err != nil {
 		return err
 	}
-	if !ruleFound && opts.Op == SetOption {
-		return fmt.Errorf("Rule with ID %s not found in replication configuration", opts.ID)
+	// ensure priority and destination bucket restrictions are not violated
+	for idx, rule := range c.Rules {
+		if rule.Priority == newRule.Priority && rIdx != idx {
+			return fmt.Errorf("Priority must be unique. Replication configuration already has a rule with this priority")
+		}
+		if rule.Destination.Bucket != newRule.Destination.Bucket {
+			return fmt.Errorf("The destination bucket must be same for all rules")
+		}
 	}
-	if !ruleFound {
-		c.Rules = append(c.Rules, newRule)
-	}
+
+	c.Rules[rIdx] = newRule
 	return nil
 }
 
 // RemoveRule removes a rule from replication config.
 func (c *Config) RemoveRule(opts Options) error {
 	var newRules []Rule
+	ruleFound := false
 	for _, rule := range c.Rules {
 		if rule.ID != opts.ID {
 			newRules = append(newRules, rule)
+			continue
 		}
+		ruleFound = true
 	}
-
+	if !ruleFound {
+		return fmt.Errorf("Rule with ID %s not found", opts.ID)
+	}
 	if len(newRules) == 0 {
 		return fmt.Errorf("Replication configuration should have at least one rule")
 	}
@@ -201,8 +383,10 @@ type Rule struct {
 	Status                  Status                  `xml:"Status"`
 	Priority                int                     `xml:"Priority"`
 	DeleteMarkerReplication DeleteMarkerReplication `xml:"DeleteMarkerReplication"`
+	DeleteReplication       DeleteReplication       `xml:"DeleteReplication"`
 	Destination             Destination             `xml:"Destination"`
 	Filter                  Filter                  `xml:"Filter" json:"Filter"`
+	SourceSelectionCriteria SourceSelectionCriteria `xml:"SourceSelectionCriteria" json:"SourceSelectionCriteria"`
 }
 
 // Validate validates the rule for correctness
@@ -219,6 +403,10 @@ func (r Rule) Validate() error {
 
 	if r.Priority < 0 && r.Status == Enabled {
 		return fmt.Errorf("Priority must be set for the rule")
+	}
+
+	if err := r.validateStatus(); err != nil {
+		return err
 	}
 
 	return nil
@@ -268,17 +456,19 @@ func (r Rule) Prefix() string {
 // <filter><and></and></filter>. This method returns all the tags from the
 // rule in the format tag1=value1&tag2=value2
 func (r Rule) Tags() string {
+	ts := []Tag{r.Filter.Tag}
 	if len(r.Filter.And.Tags) != 0 {
-		var buf bytes.Buffer
-		for _, t := range r.Filter.And.Tags {
-			if buf.Len() > 0 {
-				buf.WriteString("&")
-			}
-			buf.WriteString(t.String())
-		}
-		return buf.String()
+		ts = r.Filter.And.Tags
 	}
-	return ""
+
+	var buf bytes.Buffer
+	for _, t := range ts {
+		if buf.Len() > 0 {
+			buf.WriteString("&")
+		}
+		buf.WriteString(t.String())
+	}
+	return buf.String()
 }
 
 // Filter - a filter for a replication configuration Rule.
@@ -321,6 +511,9 @@ type Tag struct {
 }
 
 func (tag Tag) String() string {
+	if tag.IsEmpty() {
+		return ""
+	}
 	return tag.Key + "=" + tag.Value
 }
 
@@ -352,7 +545,7 @@ type Destination struct {
 type And struct {
 	XMLName xml.Name `xml:"And,omitempty" json:"-"`
 	Prefix  string   `xml:"Prefix,omitempty" json:"Prefix,omitempty"`
-	Tags    []Tag    `xml:"Tag,omitempty" json:"Tags,omitempty"`
+	Tags    []Tag    `xml:"Tag,omitempty" json:"Tag,omitempty"`
 }
 
 // isEmpty returns true if Tags field is null
@@ -377,4 +570,41 @@ type DeleteMarkerReplication struct {
 // IsEmpty returns true if DeleteMarkerReplication is not set
 func (d DeleteMarkerReplication) IsEmpty() bool {
 	return len(d.Status) == 0
+}
+
+// DeleteReplication - whether versioned deletes are replicated - this
+// is a MinIO specific extension
+type DeleteReplication struct {
+	Status Status `xml:"Status" json:"Status"` // should be set to "Disabled" by default
+}
+
+// IsEmpty returns true if DeleteReplication is not set
+func (d DeleteReplication) IsEmpty() bool {
+	return len(d.Status) == 0
+}
+
+// ReplicaModifications specifies if replica modification sync is enabled
+type ReplicaModifications struct {
+	Status Status `xml:"Status" json:"Status"`
+}
+
+// SourceSelectionCriteria - specifies additional source selection criteria in ReplicationConfiguration.
+type SourceSelectionCriteria struct {
+	ReplicaModifications ReplicaModifications `xml:"ReplicaModifications" json:"ReplicaModifications"`
+}
+
+// IsValid - checks whether SourceSelectionCriteria is valid or not.
+func (s SourceSelectionCriteria) IsValid() bool {
+	return s.ReplicaModifications.Status == Enabled || s.ReplicaModifications.Status == Disabled
+}
+
+// Validate source selection criteria
+func (s SourceSelectionCriteria) Validate() error {
+	if (s == SourceSelectionCriteria{}) {
+		return nil
+	}
+	if !s.IsValid() {
+		return fmt.Errorf("Invalid ReplicaModification status")
+	}
+	return nil
 }

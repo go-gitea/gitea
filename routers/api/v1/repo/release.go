@@ -9,7 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
@@ -41,22 +43,26 @@ func GetRelease(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	release, err := models.GetReleaseByID(id)
-	if err != nil {
+	if err != nil && !models.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if release.RepoID != ctx.Repo.Repository.ID {
+	if err != nil && models.IsErrReleaseNotExist(err) ||
+		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
 	}
+
 	if err := release.LoadAttributes(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, release.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToRelease(release))
 }
 
 // ListReleases list a repository's releases
@@ -113,13 +119,13 @@ func ListReleases(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		rels[i] = release.APIFormat()
+		rels[i] = convert.ToRelease(release)
 	}
 	ctx.JSON(http.StatusOK, rels)
 }
 
 // CreateRelease create a release
-func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
+func CreateRelease(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/releases repository repoCreateRelease
 	// ---
 	// summary: Create a release
@@ -145,9 +151,11 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/error"
-
+	form := web.GetForm(ctx).(*api.CreateReleaseOption)
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
 		if !models.IsErrReleaseNotExist(err) {
@@ -199,11 +207,11 @@ func CreateRelease(ctx *context.APIContext, form api.CreateReleaseOption) {
 			return
 		}
 	}
-	ctx.JSON(http.StatusCreated, rel.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToRelease(rel))
 }
 
 // EditRelease edit a release
-func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
+func EditRelease(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id} repository repoEditRelease
 	// ---
 	// summary: Update a release
@@ -235,7 +243,10 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Release"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
+	form := web.GetForm(ctx).(*api.EditReleaseOption)
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)
 	if err != nil && !models.IsErrReleaseNotExist(err) {
@@ -280,7 +291,7 @@ func EditRelease(ctx *context.APIContext, form api.EditReleaseOption) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, rel.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToRelease(rel))
 }
 
 // DeleteRelease delete a release from a repository
@@ -308,6 +319,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(id)

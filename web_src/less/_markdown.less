@@ -26,7 +26,7 @@
   }
 
   .absent {
-    color: #cc0000;
+    color: var(--color-red);
   }
 
   .anchor {
@@ -77,7 +77,7 @@
   h6 {
     margin-top: 1em;
     margin-bottom: 16px;
-    font-weight: bold;
+    font-weight: 600;
     line-height: 1.4;
 
     &:first-of-type {
@@ -104,14 +104,14 @@
     padding-bottom: .3em;
     font-size: 2.25em;
     line-height: 1.2;
-    border-bottom: 1px solid #eeeeee;
+    border-bottom: 1px solid var(--color-secondary);
   }
 
   h2 {
     padding-bottom: .3em;
     font-size: 1.75em;
     line-height: 1.225;
-    border-bottom: 1px solid #eeeeee;
+    border-bottom: 1px solid var(--color-secondary);
   }
 
   h3 {
@@ -129,7 +129,7 @@
 
   h6 {
     font-size: 1em;
-    color: #777777;
+    color: var(--color-text-light-2);
   }
 
   p,
@@ -147,7 +147,7 @@
     height: 4px;
     padding: 0;
     margin: 16px 0;
-    background-color: #e7e7e7;
+    background-color: var(--color-secondary);
     border: 0;
   }
 
@@ -162,9 +162,60 @@
     list-style-type: none;
   }
 
-  li.task-list-item {
+  .task-list-item {
     list-style-type: none;
-    margin-left: calc(-2em + 2px);
+
+    input[type="checkbox"] {
+      margin: 0 6px .25em -1.6em;
+    }
+  }
+
+  .task-list-item + .task-list-item {
+    margin-top: 3px;
+  }
+
+  input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    position: relative;
+    border: 1px solid var(--color-secondary);
+    border-radius: 2px;
+    background: var(--color-input-background);
+    height: 14px;
+    width: 14px;
+    opacity: 1 !important; // override fomantic on edit preview
+    pointer-events: auto !important; // override fomantic on edit preview
+    vertical-align: middle !important; // override fomantic on edit preview
+  }
+
+  input[type="checkbox"]:not([disabled]):hover,
+  input[type="checkbox"]:not([disabled]):active {
+    border-color: var(--color-primary);
+  }
+
+  input[type="checkbox"]::after {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    background: var(--color-text);
+    mask-size: cover;
+    -webkit-mask-size: cover;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "";
+    mask-image: var(--checkbox-mask-checked);
+    -webkit-mask-image: var(--checkbox-mask-checked);
+  }
+
+  input[type="checkbox"]:indeterminate::after {
+    content: "";
+    mask-image: var(--checkbox-mask-indeterminate);
+    -webkit-mask-image: var(--checkbox-mask-indeterminate);
   }
 
   ul ul,
@@ -193,7 +244,7 @@
     margin-top: 16px;
     font-size: 1em;
     font-style: italic;
-    font-weight: bold;
+    font-weight: 600;
   }
 
   dl dd {
@@ -204,8 +255,8 @@
   blockquote {
     margin-left: 0;
     padding: 0 15px;
-    color: #777777;
-    border-left: 4px solid #dddddd;
+    color: var(--color-text-light-2);
+    border-left: 4px solid var(--color-secondary);
   }
 
   blockquote > :first-child {
@@ -224,22 +275,21 @@
   }
 
   table th {
-    font-weight: bold;
+    font-weight: 600;
   }
 
   table th,
   table td {
     padding: 6px 13px !important;
-    border: 1px solid #dddddd !important;
+    border: 1px solid var(--color-secondary) !important;
   }
 
   table tr {
-    background-color: #ffffff;
-    border-top: 1px solid #cccccc;
+    border-top: 1px solid var(--color-secondary);
   }
 
   table tr:nth-child(2n) {
-    background-color: #f8f8f8;
+    background-color: var(--color-markdown-table-row);
   }
 
   img {
@@ -263,7 +313,7 @@
     padding: 7px;
     margin: 13px 0 0;
     overflow: hidden;
-    border: 1px solid #dddddd;
+    border: 1px solid var(--color-secondary);
   }
 
   span.frame span img {
@@ -275,7 +325,7 @@
     display: block;
     padding: 5px 0 0;
     clear: both;
-    color: #333333;
+    color: var(--color-text);
   }
 
   span.align-center {
@@ -344,7 +394,7 @@
     padding: .2em .3em;
     margin: 0;
     font-size: 85%;
-    background-color: rgba(0, 0, 0, .04);
+    background-color: var(--color-markdown-code-block);
     border-radius: 3px;
   }
 
@@ -361,8 +411,9 @@
     padding: 0;
     margin: 0;
     font-size: 100%;
-    word-break: normal;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-wrap: break-word;
     background: transparent;
     border: 0;
   }
@@ -374,10 +425,9 @@
   .highlight pre,
   pre {
     padding: 16px;
-    overflow: auto;
     font-size: 85%;
     line-height: 1.45;
-    background-color: #f7f7f7;
+    background-color: var(--color-markdown-code-block);
     border-radius: 3px;
   }
 
@@ -403,10 +453,10 @@
     border: 0;
   }
 
-  pre code:before,
-  pre code:after,
-  pre tt:before,
-  pre tt:after {
+  pre code::before,
+  pre code::after,
+  pre tt::before,
+  pre tt::after {
     content: normal;
   }
 
@@ -415,17 +465,12 @@
     padding: 3px 5px;
     font-size: 11px;
     line-height: 10px;
-    color: #555555;
+    color: var(--color-text-light);
     vertical-align: middle;
-    background-color: #fcfcfc;
-    border: solid 1px #cccccc;
-    border-bottom-color: #bbbbbb;
+    background-color: var(--color-markdown-code-block);
+    border: 1px solid var(--color-secondary);
     border-radius: 3px;
-    box-shadow: inset 0 -1px 0 #bbbbbb;
-  }
-
-  input[type="checkbox"] {
-    vertical-align: middle !important;
+    box-shadow: inset 0 -1px 0 var(--color-secondary);
   }
 
   .csv-data td,
@@ -441,7 +486,6 @@
   .csv-data .blob-num {
     padding: 10px 8px 9px;
     text-align: right;
-    background: #ffffff;
     border: 0;
   }
 
@@ -450,8 +494,7 @@
   }
 
   .csv-data th {
-    font-weight: bold;
-    background: #f8f8f8;
+    font-weight: 600;
     border-top: 0;
   }
 

@@ -24,17 +24,19 @@ type encoderOptions struct {
 	allLitEntropy   bool
 	customWindow    bool
 	customALEntropy bool
+	dict            *dict
 }
 
 func (o *encoderOptions) setDefault() {
 	*o = encoderOptions{
 		// use less ram: true for now, but may change.
-		concurrent: runtime.GOMAXPROCS(0),
-		crc:        true,
-		single:     nil,
-		blockSize:  1 << 16,
-		windowSize: 8 << 20,
-		level:      SpeedDefault,
+		concurrent:    runtime.GOMAXPROCS(0),
+		crc:           true,
+		single:        nil,
+		blockSize:     1 << 16,
+		windowSize:    8 << 20,
+		level:         SpeedDefault,
+		allLitEntropy: true,
 	}
 }
 
@@ -45,6 +47,8 @@ func (o encoderOptions) encoder() encoder {
 		return &doubleFastEncoder{fastEncoder: fastEncoder{fastBase: fastBase{maxMatchOff: int32(o.windowSize)}}}
 	case SpeedBetterCompression:
 		return &betterFastEncoder{fastBase: fastBase{maxMatchOff: int32(o.windowSize)}}
+	case SpeedBestCompression:
+		return &bestFastEncoder{fastBase: fastBase{maxMatchOff: int32(o.windowSize)}}
 	case SpeedFastest:
 		return &fastEncoder{fastBase: fastBase{maxMatchOff: int32(o.windowSize)}}
 	}
@@ -141,20 +145,20 @@ const (
 	// By using this, notice that CPU usage may go up in the future.
 	SpeedBetterCompression
 
+	// SpeedBestCompression will choose the best available compression option.
+	// This will offer the best compression no matter the CPU cost.
+	SpeedBestCompression
+
 	// speedLast should be kept as the last actual compression option.
 	// The is not for external usage, but is used to keep track of the valid options.
 	speedLast
-
-	// SpeedBestCompression will choose the best available compression option.
-	// For now this is not implemented.
-	SpeedBestCompression = SpeedBetterCompression
 )
 
 // EncoderLevelFromString will convert a string representation of an encoding level back
 // to a compression level. The compare is not case sensitive.
 // If the string wasn't recognized, (false, SpeedDefault) will be returned.
 func EncoderLevelFromString(s string) (bool, EncoderLevel) {
-	for l := EncoderLevel(speedNotSet + 1); l < speedLast; l++ {
+	for l := speedNotSet + 1; l < speedLast; l++ {
 		if strings.EqualFold(s, l.String()) {
 			return true, l
 		}
@@ -171,7 +175,9 @@ func EncoderLevelFromZstd(level int) EncoderLevel {
 		return SpeedFastest
 	case level >= 3 && level < 6:
 		return SpeedDefault
-	case level > 5:
+	case level >= 6 && level < 10:
+		return SpeedBetterCompression
+	case level >= 10:
 		return SpeedBetterCompression
 	}
 	return SpeedDefault
@@ -186,6 +192,8 @@ func (e EncoderLevel) String() string {
 		return "default"
 	case SpeedBetterCompression:
 		return "better"
+	case SpeedBestCompression:
+		return "best"
 	default:
 		return "invalid"
 	}
@@ -207,6 +215,8 @@ func WithEncoderLevel(l EncoderLevel) EOption {
 				o.windowSize = 8 << 20
 			case SpeedBetterCompression:
 				o.windowSize = 16 << 20
+			case SpeedBestCompression:
+				o.windowSize = 32 << 20
 			}
 		}
 		if !o.customALEntropy {
@@ -262,6 +272,19 @@ func WithNoEntropyCompression(b bool) EOption {
 func WithSingleSegment(b bool) EOption {
 	return func(o *encoderOptions) error {
 		o.single = &b
+		return nil
+	}
+}
+
+// WithEncoderDict allows to register a dictionary that will be used for the encode.
+// The encoder *may* choose to use no dictionary instead for certain payloads.
+func WithEncoderDict(dict []byte) EOption {
+	return func(o *encoderOptions) error {
+		d, err := loadDict(dict)
+		if err != nil {
+			return err
+		}
+		o.dict = d
 		return nil
 	}
 }

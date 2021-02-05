@@ -7,12 +7,10 @@ package models
 import (
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/xorm"
 )
@@ -50,18 +48,6 @@ func (l *LFSLock) AfterLoad(session *xorm.Session) {
 
 func cleanPath(p string) string {
 	return path.Clean("/" + p)[1:]
-}
-
-// APIFormat convert a Release to lfs.LFSLock
-func (l *LFSLock) APIFormat() *api.LFSLock {
-	return &api.LFSLock{
-		ID:       strconv.FormatInt(l.ID, 10),
-		Path:     l.Path,
-		LockedAt: l.Created.Round(time.Second),
-		Owner: &api.LFSLockOwner{
-			Name: l.Owner.DisplayName(),
-		},
-	}
 }
 
 // CreateLFSLock creates a new lock.

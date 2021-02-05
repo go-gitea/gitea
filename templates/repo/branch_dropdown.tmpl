@@ -1,4 +1,4 @@
-<div class="fitted item choose reference">
+<div class="fitted item choose reference mr-1">
 	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.CanCreateBranch}}" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text">
@@ -6,7 +6,7 @@
 				{{if .IsViewBranch}}{{.i18n.Tr "repo.branch"}}{{else}}{{.i18n.Tr "repo.tree"}}{{end}}:
 				<strong>{{if .IsViewBranch}}{{.BranchName}}{{else}}{{ShortSha .BranchName}}{{end}}</strong>
 			</span>
-			<i class="dropdown icon"></i>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
 		<div class="data" style="display: none" data-mode="{{if .IsViewTag}}tags{{else}}branches{{end}}">
 			{{range .Branches}}
@@ -18,7 +18,7 @@
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
-				<i class="filter icon"></i>
+				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 				<input name="search" ref="searchField" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
 			</div>
 			<div class="header branch-tag-choice">
@@ -26,12 +26,12 @@
 					<div class="two column row">
 						<a class="reference column" href="#" @click="mode = 'branches'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'branches'}">
-								{{svg "octicon-git-branch"}} {{.i18n.Tr "repo.branches"}}
+								{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
 							</span>
 						</a>
 						<a class="reference column" href="#" @click="mode = 'tags'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'tags'}">
-								<i class="reference tags icon"></i> {{.i18n.Tr "repo.tags"}}
+								{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
 							</span>
 						</a>
 					</div>

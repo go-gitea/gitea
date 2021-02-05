@@ -13,9 +13,9 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: GoTool@0
-      displayName: "Install Go 1.14"
+      displayName: "Install Go 1.15"
       inputs:
-        version: "1.14"
+        version: "1.15"
     - script: echo "##vso[task.setvariable variable=PATH]${PATH}:/home/vsts/go/bin/"
     - script: mkdir -p ${HOME}/go/src/github.com/pelletier/go-toml
     - script: cp -R . ${HOME}/go/src/github.com/pelletier/go-toml
@@ -36,9 +36,9 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: GoTool@0
-      displayName: "Install Go 1.14"
+      displayName: "Install Go 1.15"
       inputs:
-        version: "1.14"
+        version: "1.15"
     - task: Go@0
       displayName: "go fmt ./..."
       inputs:
@@ -51,9 +51,9 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: GoTool@0
-      displayName: "Install Go 1.14"
+      displayName: "Install Go 1.15"
       inputs:
-        version: "1.14"
+        version: "1.15"
     - task: Go@0
       displayName: "Generate coverage"
       inputs:
@@ -71,9 +71,9 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: GoTool@0
-      displayName: "Install Go 1.14"
+      displayName: "Install Go 1.15"
       inputs:
-        version: "1.14"
+        version: "1.15"
     - script: echo "##vso[task.setvariable variable=PATH]${PATH}:/home/vsts/go/bin/"
     - task: Bash@3
       inputs:
@@ -86,9 +86,9 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - task: GoTool@0
-      displayName: "Install Go 1.14"
+      displayName: "Install Go 1.15"
       inputs:
-        version: "1.14"
+        version: "1.15"
     - script: echo "##vso[task.setvariable variable=PATH]${PATH}:/home/vsts/go/bin/"
     - script: mkdir -p ${HOME}/go/src/github.com/pelletier/go-toml
     - script: cp -R . ${HOME}/go/src/github.com/pelletier/go-toml
@@ -102,6 +102,15 @@ stages:
     displayName: "unit tests"
     strategy:
       matrix:
+        linux 1.15:
+          goVersion: '1.15'
+          imageName: 'ubuntu-latest'
+        mac 1.15:
+          goVersion: '1.15'
+          imageName: 'macOS-latest'
+        windows 1.15:
+          goVersion: '1.15'
+          imageName: 'windows-latest'
         linux 1.14:
           goVersion: '1.14'
           imageName: 'ubuntu-latest'
@@ -110,15 +119,6 @@ stages:
           imageName: 'macOS-latest'
         windows 1.14:
           goVersion: '1.14'
-          imageName: 'windows-latest'
-        linux 1.13:
-          goVersion: '1.13'
-          imageName: 'ubuntu-latest'
-        mac 1.13:
-          goVersion: '1.13'
-          imageName: 'macOS-latest'
-        windows 1.13:
-          goVersion: '1.13'
           imageName: 'windows-latest'
     pool:
       vmImage: $(imageName)
@@ -155,7 +155,7 @@ stages:
     - task: GoTool@0
       displayName: "Install Go"
       inputs:
-        version: 1.14
+        version: 1.15
     - task: Bash@3
       inputs:
         targetType: inline

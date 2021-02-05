@@ -291,7 +291,7 @@ func (item *MultiGetItem) Source() (interface{}, error) {
 		source["_source"] = src
 	}
 	if item.routing != "" {
-		source["_routing"] = item.routing
+		source["routing"] = item.routing
 	}
 	if len(item.storedFields) > 0 {
 		source["stored_fields"] = strings.Join(item.storedFields, ",")

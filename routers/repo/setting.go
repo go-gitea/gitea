@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -25,12 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 
-	"github.com/unknwon/com"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -60,7 +60,8 @@ func Settings(ctx *context.Context) {
 }
 
 // SettingsPost response for changes of a repository
-func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RepoSettingForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 
@@ -88,6 +89,18 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
 				case models.IsErrNameReserved(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplSettingsOptions, &form)
+				case models.IsErrRepoFilesAlreadyExist(err):
+					ctx.Data["Err_RepoName"] = true
+					switch {
+					case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tplSettingsOptions, form)
+					case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tplSettingsOptions, form)
+					case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tplSettingsOptions, form)
+					default:
+						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
+					}
 				case models.IsErrNamePatternNotAllowed(err):
 					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
@@ -190,8 +203,8 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 
 		address = u.String()
 
-		if err := mirror_service.SaveAddress(ctx.Repo.Mirror, address); err != nil {
-			ctx.ServerError("SaveAddress", err)
+		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+			ctx.ServerError("UpdateAddress", err)
 			return
 		}
 
@@ -776,7 +789,6 @@ func GitHooks(ctx *context.Context) {
 func GitHooksEdit(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.githooks")
 	ctx.Data["PageIsSettingsGitHooks"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 
 	name := ctx.Params(":name")
 	hook, err := ctx.Repo.GitRepo.GetHook(name)
@@ -829,7 +841,8 @@ func DeployKeys(ctx *context.Context) {
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
+func DeployKeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
@@ -873,6 +886,9 @@ func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
 		case models.IsErrKeyNameAlreadyUsed(err):
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
+		case models.IsErrDeployKeyNameAlreadyUsed(err):
+			ctx.Data["Err_Title"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.settings.key_name_used"), tplDeployKeys, &form)
 		default:
 			ctx.ServerError("AddDeployKey", err)
 		}
@@ -913,7 +929,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 		// No avatar is uploaded and we not removing it here.
 		// No random avatar generated here.
 		// Just exit, no action.
-		if !com.IsFile(ctxRepo.CustomAvatarPath()) {
+		if ctxRepo.CustomAvatarRelativePath() == "" {
 			log.Trace("No avatar was uploaded for repo: %d. Default icon will appear instead.", ctxRepo.ID)
 		}
 		return nil
@@ -925,7 +941,7 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 	}
 	defer r.Close()
 
-	if form.Avatar.Size > setting.AvatarMaxFileSize {
+	if form.Avatar.Size > setting.Avatar.MaxFileSize {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 
@@ -943,9 +959,10 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 }
 
 // SettingsAvatar save new POSTed repository avatar
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	form.Source = auth.AvatarLocal
-	if err := UpdateAvatarSetting(ctx, form); err != nil {
+	if err := UpdateAvatarSetting(ctx, *form); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))

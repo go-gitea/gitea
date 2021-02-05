@@ -20,16 +20,6 @@ func (f *decompressor) huffmanBytesBuffer() {
 		stateDict
 	)
 	fr := f.r.(*bytes.Buffer)
-	moreBits := func() error {
-		c, err := fr.ReadByte()
-		if err != nil {
-			return noEOF(err)
-		}
-		f.roffset++
-		f.b |= uint32(c) << f.nb
-		f.nb += 8
-		return nil
-	}
 
 	switch f.stepState {
 	case stateInit:
@@ -63,7 +53,7 @@ readLiteral:
 						return
 					}
 					f.roffset++
-					b |= uint32(c) << (nb & 31)
+					b |= uint32(c) << (nb & regSizeMaskUint32)
 					nb += 8
 				}
 				chunk := f.hl.chunks[b&(huffmanNumChunks-1)]
@@ -82,7 +72,7 @@ readLiteral:
 						f.err = CorruptInputError(f.roffset)
 						return
 					}
-					f.b = b >> (n & 31)
+					f.b = b >> (n & regSizeMaskUint32)
 					f.nb = nb - n
 					v = int(chunk >> huffmanValueShift)
 					break
@@ -90,9 +80,7 @@ readLiteral:
 			}
 		}
 
-		var n uint // number of bits extra
 		var length int
-		var err error
 		switch {
 		case v < 256:
 			f.dict.writeByte(byte(v))
@@ -109,25 +97,26 @@ readLiteral:
 		// otherwise, reference to older data
 		case v < 265:
 			length = v - (257 - 3)
-			n = 0
-		case v < 269:
-			length = v*2 - (265*2 - 11)
-			n = 1
-		case v < 273:
-			length = v*4 - (269*4 - 19)
-			n = 2
-		case v < 277:
-			length = v*8 - (273*8 - 35)
-			n = 3
-		case v < 281:
-			length = v*16 - (277*16 - 67)
-			n = 4
-		case v < 285:
-			length = v*32 - (281*32 - 131)
-			n = 5
 		case v < maxNumLit:
-			length = 258
-			n = 0
+			val := decCodeToLen[(v - 257)]
+			length = int(val.length) + 3
+			n := uint(val.extra)
+			for f.nb < n {
+				c, err := fr.ReadByte()
+				if err != nil {
+					if debugDecode {
+						fmt.Println("morebits n>0:", err)
+					}
+					f.err = err
+					return
+				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
+			}
+			length += int(f.b & uint32(1<<(n&regSizeMaskUint32)-1))
+			f.b >>= n & regSizeMaskUint32
+			f.nb -= n
 		default:
 			if debugDecode {
 				fmt.Println(v, ">= maxNumLit")
@@ -135,42 +124,69 @@ readLiteral:
 			f.err = CorruptInputError(f.roffset)
 			return
 		}
-		if n > 0 {
-			for f.nb < n {
-				if err = moreBits(); err != nil {
-					if debugDecode {
-						fmt.Println("morebits n>0:", err)
-					}
-					f.err = err
-					return
-				}
-			}
-			length += int(f.b & uint32(1<<n-1))
-			f.b >>= n
-			f.nb -= n
-		}
 
-		var dist int
+		var dist uint32
 		if f.hd == nil {
 			for f.nb < 5 {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<5:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			dist = int(bits.Reverse8(uint8(f.b & 0x1F << 3)))
+			dist = uint32(bits.Reverse8(uint8(f.b & 0x1F << 3)))
 			f.b >>= 5
 			f.nb -= 5
 		} else {
-			if dist, err = f.huffSym(f.hd); err != nil {
-				if debugDecode {
-					fmt.Println("huffsym:", err)
+			// Since a huffmanDecoder can be empty or be composed of a degenerate tree
+			// with single element, huffSym must error on these two edge cases. In both
+			// cases, the chunks slice will be 0 for the invalid sequence, leading it
+			// satisfy the n == 0 check below.
+			n := uint(f.hd.maxRead)
+			// Optimization. Compiler isn't smart enough to keep f.b,f.nb in registers,
+			// but is smart enough to keep local variables in registers, so use nb and b,
+			// inline call to moreBits and reassign b,nb back to f on return.
+			nb, b := f.nb, f.b
+			for {
+				for nb < n {
+					c, err := fr.ReadByte()
+					if err != nil {
+						f.b = b
+						f.nb = nb
+						f.err = noEOF(err)
+						return
+					}
+					f.roffset++
+					b |= uint32(c) << (nb & regSizeMaskUint32)
+					nb += 8
 				}
-				f.err = err
-				return
+				chunk := f.hd.chunks[b&(huffmanNumChunks-1)]
+				n = uint(chunk & huffmanCountMask)
+				if n > huffmanChunkBits {
+					chunk = f.hd.links[chunk>>huffmanValueShift][(b>>huffmanChunkBits)&f.hd.linkMask]
+					n = uint(chunk & huffmanCountMask)
+				}
+				if n <= nb {
+					if n == 0 {
+						f.b = b
+						f.nb = nb
+						if debugDecode {
+							fmt.Println("huffsym: n==0")
+						}
+						f.err = CorruptInputError(f.roffset)
+						return
+					}
+					f.b = b >> (n & regSizeMaskUint32)
+					f.nb = nb - n
+					dist = uint32(chunk >> huffmanValueShift)
+					break
+				}
 			}
 		}
 
@@ -180,20 +196,24 @@ readLiteral:
 		case dist < maxNumDist:
 			nb := uint(dist-2) >> 1
 			// have 1 bit in bottom of dist, need nb more.
-			extra := (dist & 1) << nb
+			extra := (dist & 1) << (nb & regSizeMaskUint32)
 			for f.nb < nb {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<nb:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			extra |= int(f.b & uint32(1<<nb-1))
-			f.b >>= nb
+			extra |= f.b & uint32(1<<(nb&regSizeMaskUint32)-1)
+			f.b >>= nb & regSizeMaskUint32
 			f.nb -= nb
-			dist = 1<<(nb+1) + 1 + extra
+			dist = 1<<((nb+1)&regSizeMaskUint32) + 1 + extra
 		default:
 			if debugDecode {
 				fmt.Println("dist too big:", dist, maxNumDist)
@@ -203,7 +223,7 @@ readLiteral:
 		}
 
 		// No check on length; encoding can be prescient.
-		if dist > f.dict.histSize() {
+		if dist > uint32(f.dict.histSize()) {
 			if debugDecode {
 				fmt.Println("dist > f.dict.histSize():", dist, f.dict.histSize())
 			}
@@ -211,7 +231,7 @@ readLiteral:
 			return
 		}
 
-		f.copyLen, f.copyDist = length, dist
+		f.copyLen, f.copyDist = length, int(dist)
 		goto copyHistory
 	}
 
@@ -244,16 +264,6 @@ func (f *decompressor) huffmanBytesReader() {
 		stateDict
 	)
 	fr := f.r.(*bytes.Reader)
-	moreBits := func() error {
-		c, err := fr.ReadByte()
-		if err != nil {
-			return noEOF(err)
-		}
-		f.roffset++
-		f.b |= uint32(c) << f.nb
-		f.nb += 8
-		return nil
-	}
 
 	switch f.stepState {
 	case stateInit:
@@ -287,7 +297,7 @@ readLiteral:
 						return
 					}
 					f.roffset++
-					b |= uint32(c) << (nb & 31)
+					b |= uint32(c) << (nb & regSizeMaskUint32)
 					nb += 8
 				}
 				chunk := f.hl.chunks[b&(huffmanNumChunks-1)]
@@ -306,7 +316,7 @@ readLiteral:
 						f.err = CorruptInputError(f.roffset)
 						return
 					}
-					f.b = b >> (n & 31)
+					f.b = b >> (n & regSizeMaskUint32)
 					f.nb = nb - n
 					v = int(chunk >> huffmanValueShift)
 					break
@@ -314,9 +324,7 @@ readLiteral:
 			}
 		}
 
-		var n uint // number of bits extra
 		var length int
-		var err error
 		switch {
 		case v < 256:
 			f.dict.writeByte(byte(v))
@@ -333,25 +341,26 @@ readLiteral:
 		// otherwise, reference to older data
 		case v < 265:
 			length = v - (257 - 3)
-			n = 0
-		case v < 269:
-			length = v*2 - (265*2 - 11)
-			n = 1
-		case v < 273:
-			length = v*4 - (269*4 - 19)
-			n = 2
-		case v < 277:
-			length = v*8 - (273*8 - 35)
-			n = 3
-		case v < 281:
-			length = v*16 - (277*16 - 67)
-			n = 4
-		case v < 285:
-			length = v*32 - (281*32 - 131)
-			n = 5
 		case v < maxNumLit:
-			length = 258
-			n = 0
+			val := decCodeToLen[(v - 257)]
+			length = int(val.length) + 3
+			n := uint(val.extra)
+			for f.nb < n {
+				c, err := fr.ReadByte()
+				if err != nil {
+					if debugDecode {
+						fmt.Println("morebits n>0:", err)
+					}
+					f.err = err
+					return
+				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
+			}
+			length += int(f.b & uint32(1<<(n&regSizeMaskUint32)-1))
+			f.b >>= n & regSizeMaskUint32
+			f.nb -= n
 		default:
 			if debugDecode {
 				fmt.Println(v, ">= maxNumLit")
@@ -359,42 +368,69 @@ readLiteral:
 			f.err = CorruptInputError(f.roffset)
 			return
 		}
-		if n > 0 {
-			for f.nb < n {
-				if err = moreBits(); err != nil {
-					if debugDecode {
-						fmt.Println("morebits n>0:", err)
-					}
-					f.err = err
-					return
-				}
-			}
-			length += int(f.b & uint32(1<<n-1))
-			f.b >>= n
-			f.nb -= n
-		}
 
-		var dist int
+		var dist uint32
 		if f.hd == nil {
 			for f.nb < 5 {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<5:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			dist = int(bits.Reverse8(uint8(f.b & 0x1F << 3)))
+			dist = uint32(bits.Reverse8(uint8(f.b & 0x1F << 3)))
 			f.b >>= 5
 			f.nb -= 5
 		} else {
-			if dist, err = f.huffSym(f.hd); err != nil {
-				if debugDecode {
-					fmt.Println("huffsym:", err)
+			// Since a huffmanDecoder can be empty or be composed of a degenerate tree
+			// with single element, huffSym must error on these two edge cases. In both
+			// cases, the chunks slice will be 0 for the invalid sequence, leading it
+			// satisfy the n == 0 check below.
+			n := uint(f.hd.maxRead)
+			// Optimization. Compiler isn't smart enough to keep f.b,f.nb in registers,
+			// but is smart enough to keep local variables in registers, so use nb and b,
+			// inline call to moreBits and reassign b,nb back to f on return.
+			nb, b := f.nb, f.b
+			for {
+				for nb < n {
+					c, err := fr.ReadByte()
+					if err != nil {
+						f.b = b
+						f.nb = nb
+						f.err = noEOF(err)
+						return
+					}
+					f.roffset++
+					b |= uint32(c) << (nb & regSizeMaskUint32)
+					nb += 8
 				}
-				f.err = err
-				return
+				chunk := f.hd.chunks[b&(huffmanNumChunks-1)]
+				n = uint(chunk & huffmanCountMask)
+				if n > huffmanChunkBits {
+					chunk = f.hd.links[chunk>>huffmanValueShift][(b>>huffmanChunkBits)&f.hd.linkMask]
+					n = uint(chunk & huffmanCountMask)
+				}
+				if n <= nb {
+					if n == 0 {
+						f.b = b
+						f.nb = nb
+						if debugDecode {
+							fmt.Println("huffsym: n==0")
+						}
+						f.err = CorruptInputError(f.roffset)
+						return
+					}
+					f.b = b >> (n & regSizeMaskUint32)
+					f.nb = nb - n
+					dist = uint32(chunk >> huffmanValueShift)
+					break
+				}
 			}
 		}
 
@@ -404,20 +440,24 @@ readLiteral:
 		case dist < maxNumDist:
 			nb := uint(dist-2) >> 1
 			// have 1 bit in bottom of dist, need nb more.
-			extra := (dist & 1) << nb
+			extra := (dist & 1) << (nb & regSizeMaskUint32)
 			for f.nb < nb {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<nb:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			extra |= int(f.b & uint32(1<<nb-1))
-			f.b >>= nb
+			extra |= f.b & uint32(1<<(nb&regSizeMaskUint32)-1)
+			f.b >>= nb & regSizeMaskUint32
 			f.nb -= nb
-			dist = 1<<(nb+1) + 1 + extra
+			dist = 1<<((nb+1)&regSizeMaskUint32) + 1 + extra
 		default:
 			if debugDecode {
 				fmt.Println("dist too big:", dist, maxNumDist)
@@ -427,7 +467,7 @@ readLiteral:
 		}
 
 		// No check on length; encoding can be prescient.
-		if dist > f.dict.histSize() {
+		if dist > uint32(f.dict.histSize()) {
 			if debugDecode {
 				fmt.Println("dist > f.dict.histSize():", dist, f.dict.histSize())
 			}
@@ -435,7 +475,7 @@ readLiteral:
 			return
 		}
 
-		f.copyLen, f.copyDist = length, dist
+		f.copyLen, f.copyDist = length, int(dist)
 		goto copyHistory
 	}
 
@@ -468,16 +508,6 @@ func (f *decompressor) huffmanBufioReader() {
 		stateDict
 	)
 	fr := f.r.(*bufio.Reader)
-	moreBits := func() error {
-		c, err := fr.ReadByte()
-		if err != nil {
-			return noEOF(err)
-		}
-		f.roffset++
-		f.b |= uint32(c) << f.nb
-		f.nb += 8
-		return nil
-	}
 
 	switch f.stepState {
 	case stateInit:
@@ -511,7 +541,7 @@ readLiteral:
 						return
 					}
 					f.roffset++
-					b |= uint32(c) << (nb & 31)
+					b |= uint32(c) << (nb & regSizeMaskUint32)
 					nb += 8
 				}
 				chunk := f.hl.chunks[b&(huffmanNumChunks-1)]
@@ -530,7 +560,7 @@ readLiteral:
 						f.err = CorruptInputError(f.roffset)
 						return
 					}
-					f.b = b >> (n & 31)
+					f.b = b >> (n & regSizeMaskUint32)
 					f.nb = nb - n
 					v = int(chunk >> huffmanValueShift)
 					break
@@ -538,9 +568,7 @@ readLiteral:
 			}
 		}
 
-		var n uint // number of bits extra
 		var length int
-		var err error
 		switch {
 		case v < 256:
 			f.dict.writeByte(byte(v))
@@ -557,25 +585,26 @@ readLiteral:
 		// otherwise, reference to older data
 		case v < 265:
 			length = v - (257 - 3)
-			n = 0
-		case v < 269:
-			length = v*2 - (265*2 - 11)
-			n = 1
-		case v < 273:
-			length = v*4 - (269*4 - 19)
-			n = 2
-		case v < 277:
-			length = v*8 - (273*8 - 35)
-			n = 3
-		case v < 281:
-			length = v*16 - (277*16 - 67)
-			n = 4
-		case v < 285:
-			length = v*32 - (281*32 - 131)
-			n = 5
 		case v < maxNumLit:
-			length = 258
-			n = 0
+			val := decCodeToLen[(v - 257)]
+			length = int(val.length) + 3
+			n := uint(val.extra)
+			for f.nb < n {
+				c, err := fr.ReadByte()
+				if err != nil {
+					if debugDecode {
+						fmt.Println("morebits n>0:", err)
+					}
+					f.err = err
+					return
+				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
+			}
+			length += int(f.b & uint32(1<<(n&regSizeMaskUint32)-1))
+			f.b >>= n & regSizeMaskUint32
+			f.nb -= n
 		default:
 			if debugDecode {
 				fmt.Println(v, ">= maxNumLit")
@@ -583,42 +612,69 @@ readLiteral:
 			f.err = CorruptInputError(f.roffset)
 			return
 		}
-		if n > 0 {
-			for f.nb < n {
-				if err = moreBits(); err != nil {
-					if debugDecode {
-						fmt.Println("morebits n>0:", err)
-					}
-					f.err = err
-					return
-				}
-			}
-			length += int(f.b & uint32(1<<n-1))
-			f.b >>= n
-			f.nb -= n
-		}
 
-		var dist int
+		var dist uint32
 		if f.hd == nil {
 			for f.nb < 5 {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<5:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			dist = int(bits.Reverse8(uint8(f.b & 0x1F << 3)))
+			dist = uint32(bits.Reverse8(uint8(f.b & 0x1F << 3)))
 			f.b >>= 5
 			f.nb -= 5
 		} else {
-			if dist, err = f.huffSym(f.hd); err != nil {
-				if debugDecode {
-					fmt.Println("huffsym:", err)
+			// Since a huffmanDecoder can be empty or be composed of a degenerate tree
+			// with single element, huffSym must error on these two edge cases. In both
+			// cases, the chunks slice will be 0 for the invalid sequence, leading it
+			// satisfy the n == 0 check below.
+			n := uint(f.hd.maxRead)
+			// Optimization. Compiler isn't smart enough to keep f.b,f.nb in registers,
+			// but is smart enough to keep local variables in registers, so use nb and b,
+			// inline call to moreBits and reassign b,nb back to f on return.
+			nb, b := f.nb, f.b
+			for {
+				for nb < n {
+					c, err := fr.ReadByte()
+					if err != nil {
+						f.b = b
+						f.nb = nb
+						f.err = noEOF(err)
+						return
+					}
+					f.roffset++
+					b |= uint32(c) << (nb & regSizeMaskUint32)
+					nb += 8
 				}
-				f.err = err
-				return
+				chunk := f.hd.chunks[b&(huffmanNumChunks-1)]
+				n = uint(chunk & huffmanCountMask)
+				if n > huffmanChunkBits {
+					chunk = f.hd.links[chunk>>huffmanValueShift][(b>>huffmanChunkBits)&f.hd.linkMask]
+					n = uint(chunk & huffmanCountMask)
+				}
+				if n <= nb {
+					if n == 0 {
+						f.b = b
+						f.nb = nb
+						if debugDecode {
+							fmt.Println("huffsym: n==0")
+						}
+						f.err = CorruptInputError(f.roffset)
+						return
+					}
+					f.b = b >> (n & regSizeMaskUint32)
+					f.nb = nb - n
+					dist = uint32(chunk >> huffmanValueShift)
+					break
+				}
 			}
 		}
 
@@ -628,20 +684,24 @@ readLiteral:
 		case dist < maxNumDist:
 			nb := uint(dist-2) >> 1
 			// have 1 bit in bottom of dist, need nb more.
-			extra := (dist & 1) << nb
+			extra := (dist & 1) << (nb & regSizeMaskUint32)
 			for f.nb < nb {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<nb:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			extra |= int(f.b & uint32(1<<nb-1))
-			f.b >>= nb
+			extra |= f.b & uint32(1<<(nb&regSizeMaskUint32)-1)
+			f.b >>= nb & regSizeMaskUint32
 			f.nb -= nb
-			dist = 1<<(nb+1) + 1 + extra
+			dist = 1<<((nb+1)&regSizeMaskUint32) + 1 + extra
 		default:
 			if debugDecode {
 				fmt.Println("dist too big:", dist, maxNumDist)
@@ -651,7 +711,7 @@ readLiteral:
 		}
 
 		// No check on length; encoding can be prescient.
-		if dist > f.dict.histSize() {
+		if dist > uint32(f.dict.histSize()) {
 			if debugDecode {
 				fmt.Println("dist > f.dict.histSize():", dist, f.dict.histSize())
 			}
@@ -659,7 +719,7 @@ readLiteral:
 			return
 		}
 
-		f.copyLen, f.copyDist = length, dist
+		f.copyLen, f.copyDist = length, int(dist)
 		goto copyHistory
 	}
 
@@ -692,16 +752,6 @@ func (f *decompressor) huffmanStringsReader() {
 		stateDict
 	)
 	fr := f.r.(*strings.Reader)
-	moreBits := func() error {
-		c, err := fr.ReadByte()
-		if err != nil {
-			return noEOF(err)
-		}
-		f.roffset++
-		f.b |= uint32(c) << f.nb
-		f.nb += 8
-		return nil
-	}
 
 	switch f.stepState {
 	case stateInit:
@@ -735,7 +785,7 @@ readLiteral:
 						return
 					}
 					f.roffset++
-					b |= uint32(c) << (nb & 31)
+					b |= uint32(c) << (nb & regSizeMaskUint32)
 					nb += 8
 				}
 				chunk := f.hl.chunks[b&(huffmanNumChunks-1)]
@@ -754,7 +804,7 @@ readLiteral:
 						f.err = CorruptInputError(f.roffset)
 						return
 					}
-					f.b = b >> (n & 31)
+					f.b = b >> (n & regSizeMaskUint32)
 					f.nb = nb - n
 					v = int(chunk >> huffmanValueShift)
 					break
@@ -762,9 +812,7 @@ readLiteral:
 			}
 		}
 
-		var n uint // number of bits extra
 		var length int
-		var err error
 		switch {
 		case v < 256:
 			f.dict.writeByte(byte(v))
@@ -781,25 +829,26 @@ readLiteral:
 		// otherwise, reference to older data
 		case v < 265:
 			length = v - (257 - 3)
-			n = 0
-		case v < 269:
-			length = v*2 - (265*2 - 11)
-			n = 1
-		case v < 273:
-			length = v*4 - (269*4 - 19)
-			n = 2
-		case v < 277:
-			length = v*8 - (273*8 - 35)
-			n = 3
-		case v < 281:
-			length = v*16 - (277*16 - 67)
-			n = 4
-		case v < 285:
-			length = v*32 - (281*32 - 131)
-			n = 5
 		case v < maxNumLit:
-			length = 258
-			n = 0
+			val := decCodeToLen[(v - 257)]
+			length = int(val.length) + 3
+			n := uint(val.extra)
+			for f.nb < n {
+				c, err := fr.ReadByte()
+				if err != nil {
+					if debugDecode {
+						fmt.Println("morebits n>0:", err)
+					}
+					f.err = err
+					return
+				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
+			}
+			length += int(f.b & uint32(1<<(n&regSizeMaskUint32)-1))
+			f.b >>= n & regSizeMaskUint32
+			f.nb -= n
 		default:
 			if debugDecode {
 				fmt.Println(v, ">= maxNumLit")
@@ -807,42 +856,69 @@ readLiteral:
 			f.err = CorruptInputError(f.roffset)
 			return
 		}
-		if n > 0 {
-			for f.nb < n {
-				if err = moreBits(); err != nil {
-					if debugDecode {
-						fmt.Println("morebits n>0:", err)
-					}
-					f.err = err
-					return
-				}
-			}
-			length += int(f.b & uint32(1<<n-1))
-			f.b >>= n
-			f.nb -= n
-		}
 
-		var dist int
+		var dist uint32
 		if f.hd == nil {
 			for f.nb < 5 {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<5:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			dist = int(bits.Reverse8(uint8(f.b & 0x1F << 3)))
+			dist = uint32(bits.Reverse8(uint8(f.b & 0x1F << 3)))
 			f.b >>= 5
 			f.nb -= 5
 		} else {
-			if dist, err = f.huffSym(f.hd); err != nil {
-				if debugDecode {
-					fmt.Println("huffsym:", err)
+			// Since a huffmanDecoder can be empty or be composed of a degenerate tree
+			// with single element, huffSym must error on these two edge cases. In both
+			// cases, the chunks slice will be 0 for the invalid sequence, leading it
+			// satisfy the n == 0 check below.
+			n := uint(f.hd.maxRead)
+			// Optimization. Compiler isn't smart enough to keep f.b,f.nb in registers,
+			// but is smart enough to keep local variables in registers, so use nb and b,
+			// inline call to moreBits and reassign b,nb back to f on return.
+			nb, b := f.nb, f.b
+			for {
+				for nb < n {
+					c, err := fr.ReadByte()
+					if err != nil {
+						f.b = b
+						f.nb = nb
+						f.err = noEOF(err)
+						return
+					}
+					f.roffset++
+					b |= uint32(c) << (nb & regSizeMaskUint32)
+					nb += 8
 				}
-				f.err = err
-				return
+				chunk := f.hd.chunks[b&(huffmanNumChunks-1)]
+				n = uint(chunk & huffmanCountMask)
+				if n > huffmanChunkBits {
+					chunk = f.hd.links[chunk>>huffmanValueShift][(b>>huffmanChunkBits)&f.hd.linkMask]
+					n = uint(chunk & huffmanCountMask)
+				}
+				if n <= nb {
+					if n == 0 {
+						f.b = b
+						f.nb = nb
+						if debugDecode {
+							fmt.Println("huffsym: n==0")
+						}
+						f.err = CorruptInputError(f.roffset)
+						return
+					}
+					f.b = b >> (n & regSizeMaskUint32)
+					f.nb = nb - n
+					dist = uint32(chunk >> huffmanValueShift)
+					break
+				}
 			}
 		}
 
@@ -852,20 +928,24 @@ readLiteral:
 		case dist < maxNumDist:
 			nb := uint(dist-2) >> 1
 			// have 1 bit in bottom of dist, need nb more.
-			extra := (dist & 1) << nb
+			extra := (dist & 1) << (nb & regSizeMaskUint32)
 			for f.nb < nb {
-				if err = moreBits(); err != nil {
+				c, err := fr.ReadByte()
+				if err != nil {
 					if debugDecode {
 						fmt.Println("morebits f.nb<nb:", err)
 					}
 					f.err = err
 					return
 				}
+				f.roffset++
+				f.b |= uint32(c) << f.nb
+				f.nb += 8
 			}
-			extra |= int(f.b & uint32(1<<nb-1))
-			f.b >>= nb
+			extra |= f.b & uint32(1<<(nb&regSizeMaskUint32)-1)
+			f.b >>= nb & regSizeMaskUint32
 			f.nb -= nb
-			dist = 1<<(nb+1) + 1 + extra
+			dist = 1<<((nb+1)&regSizeMaskUint32) + 1 + extra
 		default:
 			if debugDecode {
 				fmt.Println("dist too big:", dist, maxNumDist)
@@ -875,7 +955,7 @@ readLiteral:
 		}
 
 		// No check on length; encoding can be prescient.
-		if dist > f.dict.histSize() {
+		if dist > uint32(f.dict.histSize()) {
 			if debugDecode {
 				fmt.Println("dist > f.dict.histSize():", dist, f.dict.histSize())
 			}
@@ -883,7 +963,7 @@ readLiteral:
 			return
 		}
 
-		f.copyLen, f.copyDist = length, dist
+		f.copyLen, f.copyDist = length, int(dist)
 		goto copyHistory
 	}
 

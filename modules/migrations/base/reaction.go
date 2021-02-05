@@ -6,7 +6,7 @@ package base
 
 // Reaction represents a reaction to an issue/pr/comment.
 type Reaction struct {
-	UserID   int64
-	UserName string
+	UserID   int64  `yaml:"user_id"`
+	UserName string `yaml:"user_name"`
 	Content  string
 }

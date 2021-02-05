@@ -15,9 +15,9 @@ import (
 // All the payloads will end with a newline character.  Wants and
 // shallows are sorted alphabetically.  A depth of 0 means no depth
 // request is sent.
-func (u *UploadRequest) Encode(w io.Writer) error {
+func (req *UploadRequest) Encode(w io.Writer) error {
 	e := newUlReqEncoder(w)
-	return e.Encode(u)
+	return e.Encode(req)
 }
 
 type ulReqEncoder struct {

@@ -8,11 +8,11 @@
 <div class="ui {{if .ReadOnly}}disabled{{end}} floating filter select-branch dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 	<div class="ui basic small button">
 		<span class="text branch-name">{{if .Issue.Ref}}{{$.RefEndName}}{{else}}{{.i18n.Tr "repo.issues.no_ref"}}{{end}}</span>
-		<i class="dropdown icon"></i>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</div>
 	<div class="menu">
 		<div class="ui icon search input">
-			<i class="filter icon"></i>
+			<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
 			<input name="search" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
 		</div>
 		<div class="header">
@@ -20,18 +20,18 @@
 				<div class="two column row">
 					<a class="reference column" href="#" data-target="#branch-list">
 						<span class="text black">
-							{{svg "octicon-git-branch"}} {{.i18n.Tr "repo.branches"}}
+							{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
 						</span>
 					</a>
 					<a class="reference column" href="#" data-target="#tag-list">
 						<span class="text">
-							<i class="reference tags icon"></i> {{.i18n.Tr "repo.tags"}}
+							{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
 						</span>
 					</a>
 				</div>
 			</div>
 		</div>
-		<div id="branch-list" class="scrolling menu reference-list-menu">
+		<div id="branch-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}">
 			{{if .Issue.Ref}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{$.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}	
@@ -39,7 +39,7 @@
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector">{{.}}</div>
 			{{end}}
 		</div>
-		<div id="tag-list" class="scrolling menu reference-list-menu" style="display: none">
+		<div id="tag-list" class="scrolling menu reference-list-menu {{if not .Issue}}new-issue{{end}}" style="display: none">
 			{{if .Issue.Ref}}
 				<div class="item text small" data-id="" data-id-selector="#ref_selector"><strong><a href="#">{{.i18n.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}	

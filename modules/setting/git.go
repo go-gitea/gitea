@@ -19,6 +19,8 @@ var (
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
 		MaxGitDiffFiles           int
+		CommitsRangeSize          int
+		BranchesRangeSize         int
 		VerbosePush               bool
 		VerbosePushDelay          time.Duration
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
@@ -37,6 +39,8 @@ var (
 		MaxGitDiffLines:           1000,
 		MaxGitDiffLineCharacters:  5000,
 		MaxGitDiffFiles:           100,
+		CommitsRangeSize:          50,
+		BranchesRangeSize:         20,
 		VerbosePush:               true,
 		VerbosePushDelay:          5 * time.Second,
 		GCArgs:                    []string{},
@@ -65,7 +69,7 @@ func newGit() {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
 	if err := git.SetExecutablePath(Git.Path); err != nil {
-		log.Fatal("Failed to initialize Git settings", err)
+		log.Fatal("Failed to initialize Git settings: %v", err)
 	}
 	git.DefaultCommandExecutionTimeout = time.Duration(Git.Timeout.Default) * time.Second
 
@@ -74,7 +78,10 @@ func newGit() {
 		log.Fatal("Error retrieving git version: %v", err)
 	}
 
-	if git.CheckGitVersionConstraint(">= 2.9") == nil {
+	// force cleanup args
+	git.GlobalCommandArgs = []string{}
+
+	if git.CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "credential.helper=")
 	}
@@ -82,11 +89,14 @@ func newGit() {
 	var format = "Git Version: %s"
 	var args = []interface{}{version.Original()}
 	// Since git wire protocol has been released from git v2.18
-	if Git.EnableAutoGitWireProtocol && git.CheckGitVersionConstraint(">= 2.18") == nil {
+	if Git.EnableAutoGitWireProtocol && git.CheckGitVersionAtLeast("2.18") == nil {
 		git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "protocol.version=2")
 		format += ", Wire Protocol %s Enabled"
 		args = append(args, "Version 2") // for focus color
 	}
+
+	git.CommitsRangeSize = Git.CommitsRangeSize
+	git.BranchesRangeSize = Git.BranchesRangeSize
 
 	log.Info(format, args...)
 }

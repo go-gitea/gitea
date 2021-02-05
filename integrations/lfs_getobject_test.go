@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/gzip"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -78,6 +78,7 @@ func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, exp
 			}
 		}
 	}
+
 	resp := session.MakeRequest(t, req, expectedStatus)
 
 	return resp
@@ -120,7 +121,7 @@ func TestGetLFSLarge(t *testing.T) {
 		t.Skip()
 		return
 	}
-	content := make([]byte, gzip.MinSize*10)
+	content := make([]byte, routes.GzipMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
@@ -136,7 +137,7 @@ func TestGetLFSGzip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, gzip.MinSize*10)
+	b := make([]byte, routes.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -157,7 +158,7 @@ func TestGetLFSZip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, gzip.MinSize*10)
+	b := make([]byte, routes.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -210,7 +211,7 @@ func TestGetLFSRange(t *testing.T) {
 		{"bytes=0-10", "123456789\n", http.StatusPartialContent},
 		// end-range bigger than length-1 is ignored
 		{"bytes=0-11", "123456789\n", http.StatusPartialContent},
-		{"bytes=11-", "", http.StatusPartialContent},
+		{"bytes=11-", "Requested Range Not Satisfiable", http.StatusRequestedRangeNotSatisfiable},
 		// incorrect header value cause whole header to be ignored
 		{"bytes=-", "123456789\n", http.StatusOK},
 		{"foobar", "123456789\n", http.StatusOK},

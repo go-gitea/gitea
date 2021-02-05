@@ -6,19 +6,21 @@
 package admin
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
+	router_user_setting "code.gitea.io/gitea/routers/user/setting"
 	"code.gitea.io/gitea/services/mailer"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -62,7 +64,8 @@ func NewUser(ctx *context.Context) {
 }
 
 // NewUserPost response for adding a new user
-func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
+func NewUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
@@ -92,8 +95,9 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
-			u.LoginType = models.LoginType(com.StrTo(fields[0]).MustInt())
-			u.LoginSource = com.StrTo(fields[1]).MustInt64()
+			lType, _ := strconv.ParseInt(fields[0], 10, 0)
+			u.LoginType = models.LoginType(lType)
+			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
@@ -129,6 +133,9 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 		case models.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
+		case models.IsErrEmailInvalid(err):
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case models.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplUserNew, &form)
@@ -151,7 +158,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + com.ToStr(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
 }
 
 func prepareUserInfo(ctx *context.Context) *models.User {
@@ -179,6 +186,16 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	}
 	ctx.Data["Sources"] = sources
 
+	ctx.Data["TwoFactorEnabled"] = true
+	_, err = models.GetTwoFactorByUID(u.ID)
+	if err != nil {
+		if !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
+			return nil
+		}
+		ctx.Data["TwoFactorEnabled"] = false
+	}
+
 	return u
 }
 
@@ -188,6 +205,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -198,10 +216,12 @@ func EditUser(ctx *context.Context) {
 }
 
 // EditUserPost response for editting user
-func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
+func EditUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
 
 	u := prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -215,16 +235,16 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 
 	fields := strings.Split(form.LoginType, "-")
 	if len(fields) == 2 {
-		loginType := models.LoginType(com.StrTo(fields[0]).MustInt())
-		loginSource := com.StrTo(fields[1]).MustInt64()
+		loginType, _ := strconv.ParseInt(fields[0], 10, 0)
+		loginSource, _ := strconv.ParseInt(fields[1], 10, 64)
 
 		if u.LoginSource != loginSource {
 			u.LoginSource = loginSource
-			u.LoginType = loginType
+			u.LoginType = models.LoginType(loginType)
 		}
 	}
 
-	if len(form.Password) > 0 {
+	if len(form.Password) > 0 && (u.IsLocal() || u.IsOAuth2()) {
 		var err error
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
@@ -250,7 +270,32 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		u.HashPassword(form.Password)
+		if err = u.SetPassword(form.Password); err != nil {
+			ctx.ServerError("SetPassword", err)
+			return
+		}
+	}
+
+	if len(form.UserName) != 0 && u.Name != form.UserName {
+		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+			ctx.Redirect(setting.AppSubURL + "/admin/users")
+			return
+		}
+		u.Name = form.UserName
+		u.LowerName = strings.ToLower(form.UserName)
+	}
+
+	if form.Reset2FA {
+		tf, err := models.GetTwoFactorByUID(u.ID)
+		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+			ctx.ServerError("GetTwoFactorByUID", err)
+			return
+		}
+
+		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+			ctx.ServerError("DeleteTwoFactorByID", err)
+			return
+		}
 	}
 
 	u.LoginName = form.LoginName
@@ -277,6 +322,9 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 		if models.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
+		} else if models.IsErrEmailInvalid(err) {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

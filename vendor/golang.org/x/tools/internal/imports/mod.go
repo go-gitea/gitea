@@ -1,3 +1,7 @@
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package imports
 
 import (
@@ -59,6 +63,8 @@ func (r *ModuleResolver) init() error {
 	}
 	inv := gocommand.Invocation{
 		BuildFlags: r.env.BuildFlags,
+		ModFlag:    r.env.ModFlag,
+		ModFile:    r.env.ModFile,
 		Env:        r.env.env(),
 		Logf:       r.env.Logf,
 		WorkingDir: r.env.WorkingDir,
@@ -80,13 +86,22 @@ func (r *ModuleResolver) init() error {
 		r.modsByDir = []*gocommand.ModuleJSON{mainMod, r.dummyVendorMod}
 	} else {
 		// Vendor mode is off, so run go list -m ... to find everything.
-		r.initAllMods()
+		err := r.initAllMods()
+		// We expect an error when running outside of a module with
+		// GO111MODULE=on. Other errors are fatal.
+		if err != nil && !strings.Contains(err.Error(), "working directory is not part of a module") {
+			return err
+		}
 	}
 
 	if gmc := r.env.Env["GOMODCACHE"]; gmc != "" {
 		r.moduleCacheDir = gmc
 	} else {
-		r.moduleCacheDir = filepath.Join(filepath.SplitList(goenv["GOPATH"])[0], "/pkg/mod")
+		gopaths := filepath.SplitList(goenv["GOPATH"])
+		if len(gopaths) == 0 {
+			return fmt.Errorf("empty GOPATH")
+		}
+		r.moduleCacheDir = filepath.Join(gopaths[0], "/pkg/mod")
 	}
 
 	sort.Slice(r.modsByModPath, func(i, j int) bool {
@@ -151,7 +166,7 @@ func (r *ModuleResolver) init() error {
 }
 
 func (r *ModuleResolver) initAllMods() error {
-	stdout, err := r.env.invokeGo(context.TODO(), "list", "-m", "-json", "...")
+	stdout, err := r.env.invokeGo(context.TODO(), "list", "-m", "-e", "-json", "...")
 	if err != nil {
 		return err
 	}
@@ -345,10 +360,11 @@ func (r *ModuleResolver) modInfo(dir string) (modDir string, modName string) {
 	}
 
 	if r.dirInModuleCache(dir) {
-		matches := modCacheRegexp.FindStringSubmatch(dir)
-		index := strings.Index(dir, matches[1]+"@"+matches[2])
-		modDir := filepath.Join(dir[:index], matches[1]+"@"+matches[2])
-		return modDir, readModName(filepath.Join(modDir, "go.mod"))
+		if matches := modCacheRegexp.FindStringSubmatch(dir); len(matches) == 3 {
+			index := strings.Index(dir, matches[1]+"@"+matches[2])
+			modDir := filepath.Join(dir[:index], matches[1]+"@"+matches[2])
+			return modDir, readModName(filepath.Join(modDir, "go.mod"))
+		}
 	}
 	for {
 		if info, ok := r.cacheLoad(dir); ok {
@@ -487,7 +503,7 @@ func (r *ModuleResolver) scan(ctx context.Context, callback *scanCallback) error
 	return nil
 }
 
-func (r *ModuleResolver) scoreImportPath(ctx context.Context, path string) int {
+func (r *ModuleResolver) scoreImportPath(ctx context.Context, path string) float64 {
 	if _, ok := stdlib[path]; ok {
 		return MaxRelevance
 	}
@@ -495,17 +511,31 @@ func (r *ModuleResolver) scoreImportPath(ctx context.Context, path string) int {
 	return modRelevance(mod)
 }
 
-func modRelevance(mod *gocommand.ModuleJSON) int {
+func modRelevance(mod *gocommand.ModuleJSON) float64 {
+	var relevance float64
 	switch {
 	case mod == nil: // out of scope
 		return MaxRelevance - 4
 	case mod.Indirect:
-		return MaxRelevance - 3
+		relevance = MaxRelevance - 3
 	case !mod.Main:
-		return MaxRelevance - 2
+		relevance = MaxRelevance - 2
 	default:
-		return MaxRelevance - 1 // main module ties with stdlib
+		relevance = MaxRelevance - 1 // main module ties with stdlib
 	}
+
+	_, versionString, ok := module.SplitPathVersion(mod.Path)
+	if ok {
+		index := strings.Index(versionString, "v")
+		if index == -1 {
+			return relevance
+		}
+		if versionNumber, err := strconv.ParseFloat(versionString[index+1:], 64); err == nil {
+			relevance += versionNumber / 1000
+		}
+	}
+
+	return relevance
 }
 
 // canonicalize gets the result of canonicalizing the packages using the results

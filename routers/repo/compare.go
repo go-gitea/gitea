@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -183,6 +184,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	ctx.Data["BaseIsCommit"] = baseIsCommit
 	ctx.Data["BaseIsBranch"] = baseIsBranch
 	ctx.Data["BaseIsTag"] = baseIsTag
+	ctx.Data["IsPull"] = true
 
 	// Now we have the repository that represents the base
 
@@ -518,7 +520,7 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 	}
 	defer gitRepo.Close()
 
-	branches, err := gitRepo.GetBranches()
+	branches, _, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
 		return false, nil, err
 	}
@@ -539,7 +541,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	if ctx.Data["PageIsComparePull"] == true {
-		headBranches, err := headGitRepo.GetBranches()
+		headBranches, _, err := headGitRepo.GetBranches(0, 0)
 		if err != nil {
 			ctx.ServerError("GetBranches", err)
 			return
@@ -578,7 +580,8 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
-	renderAttachmentSettings(ctx)
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 

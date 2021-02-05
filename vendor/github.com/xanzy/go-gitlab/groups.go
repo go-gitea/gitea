@@ -75,6 +75,9 @@ type Group struct {
 	CreatedAt                      *time.Time       `json:"created_at"`
 }
 
+// LDAPGroupLink represents a GitLab LDAP group link.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#ldap-group-links
 type LDAPGroupLink struct {
 	CN          string           `json:"cn"`
 	GroupAccess AccessLevelValue `json:"group_access"`
@@ -263,6 +266,31 @@ func (s *GroupsService) DeleteGroup(gid interface{}, options ...RequestOptionFun
 	return s.client.Do(req, nil)
 }
 
+// RestoreGroup restores a previously deleted group
+//
+// GitLap API docs:
+// https://docs.gitlab.com/ee/api/groups.html#restore-group-marked-for-deletion
+func (s *GroupsService) RestoreGroup(gid interface{}, options ...RequestOptionFunc) (*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/restore", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := new(Group)
+	resp, err := s.client.Do(req, g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, nil
+}
+
 // SearchGroup get all groups that match your string in their name or path.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#search-for-group
@@ -286,8 +314,7 @@ func (s *GroupsService) SearchGroup(query string, options ...RequestOptionFunc) 
 	return g, resp, err
 }
 
-// ListGroupProjectsOptions represents the available ListGroupProjects()
-// options.
+// ListGroupProjectsOptions represents the available ListGroup() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-group-39-s-projects
@@ -333,14 +360,13 @@ func (s *GroupsService) ListGroupProjects(gid interface{}, opt *ListGroupProject
 	return p, resp, err
 }
 
-// ListSubgroupsOptions represents the available ListSubgroupsOptions()
-// options.
+// ListSubgroupsOptions represents the available ListSubgroups() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
 type ListSubgroupsOptions ListGroupsOptions
 
-// ListSubgroups gets a list of subgroups for a given project.
+// ListSubgroups gets a list of subgroups for a given group.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
@@ -350,6 +376,38 @@ func (s *GroupsService) ListSubgroups(gid interface{}, opt *ListSubgroupsOptions
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("groups/%s/subgroups", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var g []*Group
+	resp, err := s.client.Do(req, &g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, err
+}
+
+// ListDescendantGroupsOptions represents the available ListDescendantGroups()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+type ListDescendantGroupsOptions ListGroupsOptions
+
+// ListDescendantGroups gets a list of subgroups for a given project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+func (s *GroupsService) ListDescendantGroups(gid interface{}, opt *ListDescendantGroupsOptions, options ...RequestOptionFunc) ([]*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/descendant_groups", pathEscape(group))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -463,6 +521,158 @@ func (s *GroupsService) DeleteGroupLDAPLinkForProvider(gid interface{}, provider
 		pathEscape(provider),
 		pathEscape(cn),
 	)
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// GroupPushRules represents a group push rule.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#get-group-push-rules
+type GroupPushRules struct {
+	ID                         int        `json:"id"`
+	CreatedAt                  *time.Time `json:"created_at"`
+	CommitMessageRegex         string     `json:"commit_message_regex"`
+	CommitMessageNegativeRegex string     `json:"commit_message_negative_regex"`
+	BranchNameRegex            string     `json:"branch_name_regex"`
+	DenyDeleteTag              bool       `json:"deny_delete_tag"`
+	MemberCheck                bool       `json:"member_check"`
+	PreventSecrets             bool       `json:"prevent_secrets"`
+	AuthorEmailRegex           string     `json:"author_email_regex"`
+	FileNameRegex              string     `json:"file_name_regex"`
+	MaxFileSize                int        `json:"max_file_size"`
+	CommitCommitterCheck       bool       `json:"commit_committer_check"`
+	RejectUnsignedCommits      bool       `json:"reject_unsigned_commits"`
+}
+
+// GetGroupPushRules gets the push rules of a group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#get-group-push-rules
+func (s *GroupsService) GetGroupPushRules(gid interface{}, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// AddGroupPushRuleOptions represents the available AddGroupPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#add-group-push-rule
+type AddGroupPushRuleOptions struct {
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
+}
+
+// AddGroupPushRule adds push rules to the specified group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#add-group-push-rule
+func (s *GroupsService) AddGroupPushRule(gid interface{}, opt *AddGroupPushRuleOptions, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// EditGroupPushRuleOptions represents the available EditGroupPushRule()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-push-rule
+type EditGroupPushRuleOptions struct {
+	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
+	MemberCheck                *bool   `url:"member_check,omitempty" json:"member_check,omitempty"`
+	PreventSecrets             *bool   `url:"prevent_secrets,omitempty" json:"prevent_secrets,omitempty"`
+	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
+	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
+	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
+	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
+	FileNameRegex              *string `url:"file_name_regex,omitempty" json:"file_name_regex,omitempty"`
+	MaxFileSize                *int    `url:"max_file_size,omitempty" json:"max_file_size,omitempty"`
+	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	RejectUnsignedCommits      *bool   `url:"reject_unsigned_commits,omitempty" json:"reject_unsigned_commits,omitempty"`
+}
+
+// EditGroupPushRule edits a push rule for a specified group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#edit-group-push-rule
+func (s *GroupsService) EditGroupPushRule(gid interface{}, opt *EditGroupPushRuleOptions, options ...RequestOptionFunc) (*GroupPushRules, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
+
+	req, err := s.client.NewRequest("PUT", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	gpr := new(GroupPushRules)
+	resp, err := s.client.Do(req, gpr)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return gpr, resp, err
+}
+
+// DeleteGroupPushRule deletes the push rules of a group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#delete-group-push-rule
+func (s *GroupsService) DeleteGroupPushRule(gid interface{}, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {

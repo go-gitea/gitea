@@ -7,24 +7,23 @@ package repo
 
 import (
 	"fmt"
-	"os"
-	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
-	tplCreate base.TplName = "repo/create"
+	tplCreate       base.TplName = "repo/create"
+	tplAlertDetails base.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -146,11 +145,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	} else {
-		ctx.HTML(200, tplCreate)
-	}
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+
+	ctx.HTML(200, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
@@ -160,6 +158,18 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -172,7 +182,8 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 }
 
 // CreatePost response for creating repository
-func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
+func CreatePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores
@@ -238,6 +249,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
+			IsTemplate:    form.Template,
 			TrustModel:    models.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
@@ -313,94 +325,49 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(404)
 }
 
-// Download download an archive of a repository
+// Download an archive of a repository
 func Download(ctx *context.Context) {
-	var (
-		uri         = ctx.Params("*")
-		refName     string
-		ext         string
-		archivePath string
-		archiveType git.ArchiveType
-	)
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
-	switch {
-	case strings.HasSuffix(uri, ".zip"):
-		ext = ".zip"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/zip")
-		archiveType = git.ZIP
-	case strings.HasSuffix(uri, ".tar.gz"):
-		ext = ".tar.gz"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/targz")
-		archiveType = git.TARGZ
-	default:
-		log.Trace("Unknown format: %s", uri)
+	if aReq == nil {
 		ctx.Error(404)
 		return
 	}
-	refName = strings.TrimSuffix(uri, ext)
 
-	if !com.IsDir(archivePath) {
-		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
-			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
-			return
-		}
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete = aReq.WaitForCompletion(ctx)
 	}
 
-	// Get corresponding commit.
-	var (
-		commit *git.Commit
-		err    error
-	)
-	gitRepo := ctx.Repo.GitRepo
-	if gitRepo.IsBranchExist(refName) {
-		commit, err = gitRepo.GetBranchCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-	} else if gitRepo.IsTagExist(refName) {
-		commit, err = gitRepo.GetTagCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetTagCommit", err)
-			return
-		}
-	} else if len(refName) >= 4 && len(refName) <= 40 {
-		commit, err = gitRepo.GetCommit(refName)
-		if err != nil {
-			ctx.NotFound("GetCommit", nil)
-			return
-		}
+	if complete {
+		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.NotFound("Download", nil)
-		return
+		ctx.Error(404)
 	}
-
-	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
-	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(ctx.Req.Context(), archivePath, git.CreateArchiveOpts{
-			Format: archiveType,
-			Prefix: setting.Repository.PrefixArchiveFiles,
-		}); err != nil {
-			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
-			return
-		}
-	}
-
-	ctx.ServeFile(archivePath, ctx.Repo.Repository.Name+"-"+refName+ext)
 }
 
-// Status returns repository's status
-func Status(ctx *context.Context) {
-	task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err,
-		})
+// InitiateDownload will enqueue an archival request, as needed.  It may submit
+// a request that's already in-progress, but the archiver service will just
+// kind of drop it on the floor if this is the case.
+func InitiateDownload(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
+
+	if aReq == nil {
+		ctx.Error(404)
 		return
+	}
+
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"status": ctx.Repo.Repository.Status,
-		"err":    task.Errors,
+		"complete": complete,
 	})
 }

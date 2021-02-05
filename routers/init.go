@@ -24,33 +24,29 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
+	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
-
-	"gitea.com/macaron/i18n"
-	"gitea.com/macaron/macaron"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 func checkRunMode() {
-	switch setting.Cfg.Section("").Key("RUN_MODE").String() {
-	case "prod":
-		macaron.Env = macaron.PROD
-		macaron.ColorLog = false
-		setting.ProdMode = true
-	default:
+	switch setting.RunMode {
+	case "dev", "test":
 		git.Debug = true
+	default:
+		git.Debug = false
 	}
-	log.Info("Run Mode: %s", strings.Title(macaron.Env))
+	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 }
 
 // NewServices init new services
@@ -90,36 +86,47 @@ func initDBEngine(ctx context.Context) (err error) {
 	return nil
 }
 
-// InitLocales loads the locales
-func InitLocales() {
-	localeNames, err := options.Dir("locale")
-
-	if err != nil {
-		log.Fatal("Failed to list locale files: %v", err)
-	}
-	localFiles := make(map[string][]byte)
-
-	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
+// PreInstallInit preloads the configuration to check if we need to run install
+func PreInstallInit(ctx context.Context) bool {
+	setting.NewContext()
+	if !setting.InstallLock {
+		log.Trace("AppPath: %s", setting.AppPath)
+		log.Trace("AppWorkPath: %s", setting.AppWorkPath)
+		log.Trace("Custom path: %s", setting.CustomPath)
+		log.Trace("Log path: %s", setting.LogRootPath)
+		log.Trace("Preparing to run install page")
+		translation.InitLocales()
+		if setting.EnableSQLite3 {
+			log.Info("SQLite3 Supported")
 		}
+		setting.InitDBConfig()
+		svg.Init()
 	}
-	i18n.I18n(i18n.Options{
-		SubURL:       setting.AppSubURL,
-		Files:        localFiles,
-		Langs:        setting.Langs,
-		Names:        setting.Names,
-		DefaultLang:  "en-US",
-		Redirect:     false,
-		CookieDomain: setting.SessionConfig.Domain,
-	})
+
+	return !setting.InstallLock
+}
+
+// PostInstallInit rereads the settings and starts up the database
+func PostInstallInit(ctx context.Context) {
+	setting.NewContext()
+	setting.InitDBConfig()
+	if setting.InstallLock {
+		if err := initDBEngine(ctx); err == nil {
+			log.Info("ORM engine initialization successful!")
+		} else {
+			log.Fatal("ORM engine initialization failed: %v", err)
+		}
+		svg.Init()
+	}
 }
 
 // GlobalInit is for global configuration reload-able.
 func GlobalInit(ctx context.Context) {
 	setting.NewContext()
+	if !setting.InstallLock {
+		log.Fatal("Gitea is not installed")
+	}
+
 	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
@@ -128,65 +135,61 @@ func GlobalInit(ctx context.Context) {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
+	checkRunMode()
 
 	// Setup i18n
-	InitLocales()
+	translation.InitLocales()
 
 	NewServices()
 
-	if setting.InstallLock {
-		highlight.NewContext()
-		external.RegisterParsers()
-		markup.Init()
-		if err := initDBEngine(ctx); err == nil {
-			log.Info("ORM engine initialization successful!")
-		} else {
-			log.Fatal("ORM engine initialization failed: %v", err)
-		}
+	highlight.NewContext()
+	external.RegisterParsers()
+	markup.Init()
 
-		if err := models.InitOAuth2(); err != nil {
-			log.Fatal("Failed to initialize OAuth2 support: %v", err)
-		}
-
-		models.NewRepoContext()
-
-		// Booting long running goroutines.
-		cron.NewContext()
-		issue_indexer.InitIssueIndexer(false)
-		code_indexer.Init()
-		if err := stats_indexer.Init(); err != nil {
-			log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
-		}
-		mirror_service.InitSyncMirrors()
-		webhook.InitDeliverHooks()
-		if err := pull_service.Init(); err != nil {
-			log.Fatal("Failed to initialize test pull requests queue: %v", err)
-		}
-		if err := task.Init(); err != nil {
-			log.Fatal("Failed to initialize task scheduler: %v", err)
-		}
-		eventsource.GetManager().Init()
-	}
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
+	} else if setting.Database.UseSQLite3 {
+		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
-	checkRunMode()
-
-	// Now because Install will re-run GlobalInit once it has set InstallLock
-	// we can't tell if the ssh port will remain unused until that's done.
-	// However, see FIXME comment in install.go
-	if setting.InstallLock {
-		if setting.SSH.StartBuiltinServer {
-			ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-			log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		} else {
-			ssh.Unused()
-		}
+	if err := initDBEngine(ctx); err == nil {
+		log.Info("ORM engine initialization successful!")
+	} else {
+		log.Fatal("ORM engine initialization failed: %v", err)
 	}
 
-	if setting.InstallLock {
-		sso.Init()
+	if err := models.InitOAuth2(); err != nil {
+		log.Fatal("Failed to initialize OAuth2 support: %v", err)
 	}
+
+	models.NewRepoContext()
+
+	// Booting long running goroutines.
+	cron.NewContext()
+	issue_indexer.InitIssueIndexer(false)
+	code_indexer.Init()
+	if err := stats_indexer.Init(); err != nil {
+		log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
+	}
+	mirror_service.InitSyncMirrors()
+	webhook.InitDeliverHooks()
+	if err := pull_service.Init(); err != nil {
+		log.Fatal("Failed to initialize test pull requests queue: %v", err)
+	}
+	if err := task.Init(); err != nil {
+		log.Fatal("Failed to initialize task scheduler: %v", err)
+	}
+	if err := repo_migrations.Init(); err != nil {
+		log.Fatal("Failed to initialize repository migrations: %v", err)
+	}
+	eventsource.GetManager().Init()
+
+	if setting.SSH.StartBuiltinServer {
+		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+	} else {
+		ssh.Unused()
+	}
+	sso.Init()
 
 	svg.Init()
 }

@@ -356,6 +356,13 @@ func (rc *ReadCloser) Close() error {
 	return rc.v.Close()
 }
 
+// Volumes returns the volume filenames that have been used in decoding the archive
+// up to this point. This will include the current open volume if the archive is still
+// being processed.
+func (rc *ReadCloser) Volumes() []string {
+	return rc.v.files
+}
+
 // OpenReader opens a RAR archive specified by the name and returns a ReadCloser.
 func OpenReader(name, password string) (*ReadCloser, error) {
 	v, err := openVolume(name, password)

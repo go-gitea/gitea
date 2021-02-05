@@ -138,6 +138,9 @@ type Context interface {
 	// Get returns a value associated with the given key.
 	Get(ContextKey) interface{}
 
+	// ComputeIfAbsent computes a value if a value associated with the given key is absent and returns the value.
+	ComputeIfAbsent(ContextKey, func() interface{}) interface{}
+
 	// Set sets the given value to the context.
 	Set(ContextKey, interface{})
 
@@ -250,6 +253,15 @@ func NewContext(options ...ContextOption) Context {
 
 func (p *parseContext) Get(key ContextKey) interface{} {
 	return p.store[key]
+}
+
+func (p *parseContext) ComputeIfAbsent(key ContextKey, f func() interface{}) interface{} {
+	v := p.store[key]
+	if v == nil {
+		v = f()
+		p.store[key] = v
+	}
+	return v
 }
 
 func (p *parseContext) Set(key ContextKey, value interface{}) {

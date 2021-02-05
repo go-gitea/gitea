@@ -163,7 +163,7 @@ func tomlValueStringRepresentation(v interface{}, commented string, indent strin
 		return "\"" + encodeTomlString(value) + "\"", nil
 	case []byte:
 		b, _ := v.([]byte)
-		return tomlValueStringRepresentation(string(b), commented, indent, ord, arraysOneElementPerLine)
+		return string(b), nil
 	case bool:
 		if value {
 			return "true", nil

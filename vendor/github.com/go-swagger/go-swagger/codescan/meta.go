@@ -204,7 +204,8 @@ func parseContactInfo(line string) (*spec.ContactInfo, error) {
 		ContactInfoProps: spec.ContactInfoProps{
 			URL:   url,
 			Name:  name,
-			Email: email,},
+			Email: email,
+		},
 	}, nil
 }
 

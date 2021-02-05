@@ -6,17 +6,19 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -25,9 +27,17 @@ const (
 
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "Migrate: the site administrator has disabled migrations")
+		return
+	}
+
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	serviceType := ctx.QueryInt("service_type")
 	if serviceType == 0 {
+		ctx.Data["Org"] = ctx.Query("org")
+		ctx.Data["Mirror"] = ctx.Query("mirror")
+
 		ctx.HTML(200, tplMigrate)
 		return
 	}
@@ -57,6 +67,11 @@ func Migrate(ctx *context.Context) {
 }
 
 func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
+		return
+	}
+
 	switch {
 	case migrations.IsRateLimitError(err):
 		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
@@ -67,6 +82,18 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -91,11 +118,19 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 }
 
 // MigratePost response for migrating from external git repository
-func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
+func MigratePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MigrateRepoForm)
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	// Plain git should be first
-	ctx.Data["service"] = form.Service
+	ctx.Data["service"] = structs.GitServiceType(form.Service)
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+
+	tpl := base.TplName("repo/migrate/" + structs.GitServiceType(form.Service).Name())
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -104,7 +139,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMigrate)
+		ctx.HTML(200, tpl)
 		return
 	}
 
@@ -115,11 +150,11 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 			addrErr := err.(models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
 			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
 			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, &form)
 			default:
 				ctx.ServerError("Unknown error", err)
 			}
@@ -157,9 +192,9 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
@@ -169,5 +204,5 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
+	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 }

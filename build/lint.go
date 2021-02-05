@@ -15,12 +15,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/mgechev/dots"
 	"github.com/mgechev/revive/formatter"
 	"github.com/mgechev/revive/lint"
 	"github.com/mgechev/revive/rule"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pelletier/go-toml"
 )
 
 func fail(err string) {
@@ -133,7 +133,7 @@ func parseConfig(path string) *lint.Config {
 	if err != nil {
 		fail("cannot read the config file")
 	}
-	_, err = toml.Decode(string(file), config)
+	err = toml.Unmarshal(file, config)
 	if err != nil {
 		fail("cannot parse the config file: " + err.Error())
 	}

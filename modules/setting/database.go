@@ -47,7 +47,8 @@ var (
 		ConnMaxLifetime   time.Duration
 		IterateBufferSize int
 	}{
-		Timeout: 500,
+		Timeout:           500,
+		IterateBufferSize: 50,
 	}
 )
 
@@ -61,6 +62,11 @@ func InitDBConfig() {
 	sec := Cfg.Section("database")
 	Database.Type = sec.Key("DB_TYPE").String()
 	defaultCharset := "utf8"
+	Database.UseMySQL = false
+	Database.UseSQLite3 = false
+	Database.UsePostgreSQL = false
+	Database.UseMSSQL = false
+
 	switch Database.Type {
 	case "sqlite3":
 		Database.UseSQLite3 = true

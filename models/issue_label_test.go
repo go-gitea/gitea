@@ -263,7 +263,10 @@ func TestUpdateLabel(t *testing.T) {
 	label.Name = update.Name
 	assert.NoError(t, UpdateLabel(update))
 	newLabel := AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	assert.Equal(t, *label, *newLabel)
+	assert.EqualValues(t, label.ID, newLabel.ID)
+	assert.EqualValues(t, label.Color, newLabel.Color)
+	assert.EqualValues(t, label.Name, newLabel.Name)
+	assert.EqualValues(t, label.Description, newLabel.Description)
 	CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 

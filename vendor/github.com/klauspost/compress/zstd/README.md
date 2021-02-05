@@ -5,7 +5,6 @@ It offers a very wide range of compression / speed trade-off, while being backed
 A high performance compression algorithm is implemented. For now focused on speed. 
 
 This package provides [compression](#Compressor) to and [decompression](#Decompressor) of Zstandard content. 
-Note that custom dictionaries are only supported for decompression.
 
 This package is pure Go and without use of "unsafe". 
 
@@ -25,21 +24,20 @@ Godoc Documentation: https://godoc.org/github.com/klauspost/compress/zstd
 ### Status: 
 
 STABLE - there may always be subtle bugs, a wide variety of content has been tested and the library is actively 
-used by several projects. This library is being continuously [fuzz-tested](https://github.com/klauspost/compress-fuzz),
-kindly supplied by [fuzzit.dev](https://fuzzit.dev/).
+used by several projects. This library is being [fuzz-tested](https://github.com/klauspost/compress-fuzz) for all updates.
 
 There may still be specific combinations of data types/size/settings that could lead to edge cases, 
 so as always, testing is recommended.  
 
 For now, a high speed (fastest) and medium-fast (default) compressor has been implemented. 
 
-The "Fastest" compression ratio is roughly equivalent to zstd level 1. 
-The "Default" compression ratio is roughly equivalent to zstd level 3 (default).
+* The "Fastest" compression ratio is roughly equivalent to zstd level 1. 
+* The "Default" compression ratio is roughly equivalent to zstd level 3 (default).
+* The "Better" compression ratio is roughly equivalent to zstd level 7.
+* The "Best" compression ratio is roughly equivalent to zstd level 11.
 
 In terms of speed, it is typically 2x as fast as the stdlib deflate/gzip in its fastest mode. 
 The compression ratio compared to stdlib is around level 3, but usually 3x as fast.
-
-Compared to cgo zstd, the speed is around level 3 (default), but compression slightly worse, between level 1&2.
 
  
 ### Usage
@@ -55,11 +53,11 @@ To create a writer with default options, do like this:
 ```Go
 // Compress input to output.
 func Compress(in io.Reader, out io.Writer) error {
-    w, err := NewWriter(output)
+    enc, err := zstd.NewWriter(out)
     if err != nil {
         return err
     }
-    _, err := io.Copy(w, input)
+    _, err = io.Copy(enc, in)
     if err != nil {
         enc.Close()
         return err
@@ -141,7 +139,7 @@ I have collected some speed examples to compare speed and compression against ot
 
 * `file` is the input file.
 * `out` is the compressor used. `zskp` is this package. `zstd` is the Datadog cgo library. `gzstd/gzkp` is gzip standard and this library.
-* `level` is the compression level used. For `zskp` level 1 is "fastest", level 2 is "default".
+* `level` is the compression level used. For `zskp` level 1 is "fastest", level 2 is "default"; 3 is "better", 4 is "best".
 * `insize`/`outsize` is the input/output size.
 * `millis` is the number of milliseconds used for compression.
 * `mb/s` is megabytes (2^20 bytes) per second.
@@ -155,11 +153,13 @@ file    out     level   insize      outsize     millis  mb/s
 silesia.tar zskp    1   211947520   73101992    643     313.87
 silesia.tar zskp    2   211947520   67504318    969     208.38
 silesia.tar zskp    3   211947520   65177448    1899    106.44
+silesia.tar zskp    4   211947520   61381950    8115    24.91
 
 cgo zstd:
 silesia.tar zstd    1   211947520   73605392    543     371.56
 silesia.tar zstd    3   211947520   66793289    864     233.68
 silesia.tar zstd    6   211947520   62916450    1913    105.66
+silesia.tar zstd    9   211947520   60212393    5063    39.92
 
 gzip, stdlib/this package:
 silesia.tar gzstd   1   211947520   80007735    1654    122.21
@@ -172,9 +172,11 @@ file        out     level   insize  outsize     millis  mb/s
 gob-stream  zskp    1   1911399616  235022249   3088    590.30
 gob-stream  zskp    2   1911399616  205669791   3786    481.34
 gob-stream  zskp    3   1911399616  185792019   9324    195.48
+gob-stream  zskp    4   1911399616  171537212   32113   56.76
 gob-stream  zstd    1   1911399616  249810424   2637    691.26
 gob-stream  zstd    3   1911399616  208192146   3490    522.31
 gob-stream  zstd    6   1911399616  193632038   6687    272.56
+gob-stream  zstd    9   1911399616  177620386   16175   112.70
 gob-stream  gzstd   1   1911399616  357382641   10251   177.82
 gob-stream  gzkp    1   1911399616  362156523   5695    320.08
 
@@ -186,9 +188,11 @@ file    out level   insize      outsize     millis  mb/s
 enwik9  zskp    1   1000000000  343848582   3609    264.18
 enwik9  zskp    2   1000000000  317276632   5746    165.97
 enwik9  zskp    3   1000000000  294540704   11725   81.34
+enwik9  zskp    4   1000000000  276609671   44029   21.66
 enwik9  zstd    1   1000000000  358072021   3110    306.65
 enwik9  zstd    3   1000000000  313734672   4784    199.35
 enwik9  zstd    6   1000000000  295138875   10290   92.68
+enwik9  zstd    9   1000000000  278348700   28549   33.40
 enwik9  gzstd   1   1000000000  382578136   9604    99.30
 enwik9  gzkp    1   1000000000  383825945   6544    145.73
 
@@ -199,9 +203,11 @@ file                        out level   insize      outsize     millis  mb/s
 github-june-2days-2019.json zskp    1   6273951764  699045015   10620   563.40
 github-june-2days-2019.json zskp    2   6273951764  617881763   11687   511.96
 github-june-2days-2019.json zskp    3   6273951764  537511906   29252   204.54
+github-june-2days-2019.json zskp    4   6273951764  512796117   97791   61.18
 github-june-2days-2019.json zstd    1   6273951764  766284037   8450    708.00
 github-june-2days-2019.json zstd    3   6273951764  661889476   10927   547.57
 github-june-2days-2019.json zstd    6   6273951764  642756859   22996   260.18
+github-june-2days-2019.json zstd    9   6273951764  601974523   52413   114.16
 github-june-2days-2019.json gzstd   1   6273951764  1164400847  29948   199.79
 github-june-2days-2019.json gzkp    1   6273951764  1128755542  19236   311.03
 
@@ -212,9 +218,11 @@ file                    out level   insize      outsize     millis  mb/s
 rawstudio-mint14.tar    zskp    1   8558382592  3667489370  20210   403.84
 rawstudio-mint14.tar    zskp    2   8558382592  3364592300  31873   256.07
 rawstudio-mint14.tar    zskp    3   8558382592  3224594213  71751   113.75
+rawstudio-mint14.tar    zskp    4   8558382592  3027332295  486243  16.79
 rawstudio-mint14.tar    zstd    1   8558382592  3609250104  17136   476.27
 rawstudio-mint14.tar    zstd    3   8558382592  3341679997  29262   278.92
 rawstudio-mint14.tar    zstd    6   8558382592  3235846406  77904   104.77
+rawstudio-mint14.tar    zstd    9   8558382592  3160778861  140946  57.91
 rawstudio-mint14.tar    gzstd   1   8558382592  3926257486  57722   141.40
 rawstudio-mint14.tar    gzkp    1   8558382592  3970463184  41749   195.49
 
@@ -225,47 +233,14 @@ file                    out level   insize      outsize     millis  mb/s
 nyc-taxi-data-10M.csv   zskp    1   3325605752  641339945   8925    355.35
 nyc-taxi-data-10M.csv   zskp    2   3325605752  591748091   11268   281.44
 nyc-taxi-data-10M.csv   zskp    3   3325605752  538490114   19880   159.53
+nyc-taxi-data-10M.csv   zskp    4   3325605752  495986829   89368   35.49
 nyc-taxi-data-10M.csv   zstd    1   3325605752  687399637   8233    385.18
 nyc-taxi-data-10M.csv   zstd    3   3325605752  598514411   10065   315.07
 nyc-taxi-data-10M.csv   zstd    6   3325605752  570522953   20038   158.27
+nyc-taxi-data-10M.csv   zstd    9   3325605752  517554797   64565   49.12
 nyc-taxi-data-10M.csv   gzstd   1   3325605752  928656485   23876   132.83
 nyc-taxi-data-10M.csv   gzkp    1   3325605752  924718719   16388   193.53
 ```
-
-### Converters
-
-As part of the development process a *Snappy* -> *Zstandard* converter was also built.
-
-This can convert a *framed* [Snappy Stream](https://godoc.org/github.com/golang/snappy#Writer) to a zstd stream. 
-Note that a single block is not framed.
-
-Conversion is done by converting the stream directly from Snappy without intermediate full decoding.
-Therefore the compression ratio is much less than what can be done by a full decompression
-and compression, and a faulty Snappy stream may lead to a faulty Zstandard stream without
-any errors being generated.
-No CRC value is being generated and not all CRC values of the Snappy stream are checked.
-However, it provides really fast re-compression of Snappy streams.
-
-
-```
-BenchmarkSnappy_ConvertSilesia-8           1  1156001600 ns/op   183.35 MB/s
-Snappy len 103008711 -> zstd len 82687318
-
-BenchmarkSnappy_Enwik9-8           1  6472998400 ns/op   154.49 MB/s
-Snappy len 508028601 -> zstd len 390921079
-```
-
-
-```Go
-    s := zstd.SnappyConverter{}
-    n, err = s.Convert(input, output)
-    if err != nil {
-        fmt.Println("Re-compressed stream to", n, "bytes")
-    }
-```
-
-The converter `s` can be reused to avoid allocations, even after errors.
-
 
 ## Decompressor
 
@@ -287,14 +262,14 @@ For streaming use a simple setup could look like this:
 import "github.com/klauspost/compress/zstd"
 
 func Decompress(in io.Reader, out io.Writer) error {
-    d, err := zstd.NewReader(input)
+    d, err := zstd.NewReader(in)
     if err != nil {
         return err
     }
     defer d.Close()
     
     // Copy content...
-    _, err := io.Copy(out, d)
+    _, err = io.Copy(out, d)
     return err
 }
 ```
@@ -336,6 +311,21 @@ The dictionary will be used automatically for the data that specifies them.
 A re-used Decoder will still contain the dictionaries registered.
 
 When registering multiple dictionaries with the same ID, the last one will be used.
+
+It is possible to use dictionaries when compressing data.
+
+To enable a dictionary use `WithEncoderDict(dict []byte)`. Here only one dictionary will be used 
+and it will likely be used even if it doesn't improve compression. 
+
+The used dictionary must be used to decompress the content.
+
+For any real gains, the dictionary should be built with similar data. 
+If an unsuitable dictionary is used the output may be slightly larger than using no dictionary.
+Use the [zstd commandline tool](https://github.com/facebook/zstd/releases) to build a dictionary from sample data.
+For information see [zstd dictionary information](https://github.com/facebook/zstd#the-case-for-small-data-compression). 
+
+For now there is a fixed startup performance penalty for compressing content with dictionaries. 
+This will likely be improved over time. Just be aware to test performance when implementing.  
 
 ### Allocation-less operation
 

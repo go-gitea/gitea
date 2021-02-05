@@ -28,8 +28,9 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 // ToCommitMeta convert a git.Tag to an api.CommitMeta
 func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
-		SHA: tag.Object.String(),
-		URL: util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+		SHA:     tag.Object.String(),
+		URL:     util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
+		Created: tag.Tagger.When,
 	}
 }
 
@@ -85,13 +86,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiAuthor = cacheAuthor.APIFormat()
+		apiAuthor = ToUser(cacheAuthor, false, false)
 	} else {
 		author, err := models.GetUserByEmail(commit.Author.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = author.APIFormat()
+			apiAuthor = ToUser(author, false, false)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -107,13 +108,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiCommitter = cacheCommitter.APIFormat()
+		apiCommitter = ToUser(cacheCommitter, false, false)
 	} else {
 		committer, err := models.GetUserByEmail(commit.Committer.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = committer.APIFormat()
+			apiCommitter = ToUser(committer, false, false)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}

@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -152,4 +152,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	MigrateRepoOptions api.MigrateRepoOptions
+
+	// in:body
+	PullReviewRequestOptions api.PullReviewRequestOptions
 }

@@ -35,7 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	var commit = util.URLJoin(AppSubURL, "commit", sha)
 	var subtree = util.URLJoin(commit, "src")
-	var tree = strings.Replace(subtree, "/commit/", "/tree/", -1)
+	var tree = strings.ReplaceAll(subtree, "/commit/", "/tree/")
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
@@ -46,6 +46,12 @@ func TestRender_Commits(t *testing.T) {
 	test("/home/gitea/"+sha, "<p>/home/gitea/"+sha+"</p>")
 	test("deadbeef", `<p>deadbeef</p>`)
 	test("d27ace93", `<p>d27ace93</p>`)
+	test(sha[:14]+".x", `<p>`+sha[:14]+`.x</p>`)
+
+	expected14 := `<a href="` + commit[:len(commit)-(40-14)] + `" rel="nofollow"><code>` + sha[:10] + `</code></a>`
+	test(sha[:14]+".", `<p>`+expected14+`.</p>`)
+	test(sha[:14]+",", `<p>`+expected14+`,</p>`)
+	test("["+sha[:14]+"]", `<p>[`+expected14+`]</p>`)
 }
 
 func TestRender_CrossReferences(t *testing.T) {
@@ -142,7 +148,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="ftp://gitea.com/file.txt" rel="nofollow">ftp://gitea.com/file.txt</a></p>`)
 	test(
 		"magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download",
-		`<p><a href="magnet:?dn=download&xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
+		`<p><a href="magnet:?xt=urn%3Abtih%3A5dee65101db281ac9c46344cd6b175cdcadabcde&dn=download" rel="nofollow">magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcadabcde&amp;dn=download</a></p>`)
 
 	// Test that should *not* be turned into URL
 	test(
@@ -235,7 +241,7 @@ func TestRender_emoji(t *testing.T) {
 	setting.StaticURLPrefix = AppURL
 
 	test := func(input, expected string) {
-		expected = strings.Replace(expected, "&", "&amp;", -1)
+		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
@@ -376,4 +382,29 @@ func TestRender_ShortLinks(t *testing.T) {
 		"<p><a href=\"https://example.org\">[[foobar]]</a></p>",
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`,
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
+}
+
+func Test_ParseClusterFuzz(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+	assert.NotContains(t, string(val), "<html")
+
+	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
+
+	val, err = PostProcess([]byte(data), "https://example.com", localMetas, false)
+
+	assert.NoError(t, err)
+
+	assert.NotContains(t, string(val), "<html")
 }

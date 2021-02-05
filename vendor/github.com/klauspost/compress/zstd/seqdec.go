@@ -181,11 +181,18 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 			return fmt.Errorf("output (%d) bigger than max block size", size)
 		}
 		if size > cap(s.out) {
-			// Not enough size, will be extremely rarely triggered,
+			// Not enough size, which can happen under high volume block streaming conditions
 			// but could be if destination slice is too small for sync operations.
-			// We add maxBlockSize to the capacity.
-			s.out = append(s.out, make([]byte, maxBlockSize)...)
-			s.out = s.out[:len(s.out)-maxBlockSize]
+			// over-allocating here can create a large amount of GC pressure so we try to keep
+			// it as contained as possible
+			used := len(s.out) - startSize
+			addBytes := 256 + ll + ml + used>>2
+			// Clamp to max block size.
+			if used+addBytes > maxBlockSize {
+				addBytes = maxBlockSize - used
+			}
+			s.out = append(s.out, make([]byte, addBytes)...)
+			s.out = s.out[:len(s.out)-addBytes]
 		}
 		if ml > maxMatchLen {
 			return fmt.Errorf("match len (%d) bigger than max allowed length", ml)
@@ -195,6 +202,10 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 		s.out = append(s.out, s.literals[:ll]...)
 		s.literals = s.literals[ll:]
 		out := s.out
+
+		if mo == 0 && ml > 0 {
+			return fmt.Errorf("zero matchoff and matchlen (%d) > 0", ml)
+		}
 
 		if mo > len(s.out)+len(hist) || mo > s.windowSize {
 			if len(s.dict) == 0 {
@@ -216,10 +227,6 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 				mo = 0
 				ml = 0
 			}
-		}
-
-		if mo == 0 && ml > 0 {
-			return fmt.Errorf("zero matchoff and matchlen (%d) > 0", ml)
 		}
 
 		// Copy from history.

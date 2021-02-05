@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/google/uuid"
@@ -41,19 +40,6 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	}
 
 	return nil
-}
-
-// APIFormat converts models.Attachment to api.Attachment
-func (a *Attachment) APIFormat() *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
-	}
 }
 
 // AttachmentRelativePath returns the relative path

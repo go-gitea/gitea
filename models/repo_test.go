@@ -193,3 +193,34 @@ func TestDoctorUserStarNum(t *testing.T) {
 
 	assert.NoError(t, DoctorUserStarNum())
 }
+
+func TestRepoGetReviewers(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// test public repo
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+
+	reviewers, err := repo1.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(reviewers))
+
+	// test private repo
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	reviewers, err = repo2.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(reviewers))
+}
+
+func TestRepoGetReviewerTeams(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	teams, err := repo2.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Empty(t, teams)
+
+	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	teams, err = repo3.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(teams))
+}
