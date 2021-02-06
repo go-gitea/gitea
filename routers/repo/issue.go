@@ -16,10 +16,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -29,6 +29,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	comment_service "code.gitea.io/gitea/services/comments"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -113,16 +114,17 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.Query("type")
 	sortType := ctx.Query("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
 	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
 
 	var (
-		assigneeID  = ctx.QueryInt64("assignee")
-		posterID    int64
-		mentionedID int64
-		forceEmpty  bool
+		assigneeID        = ctx.QueryInt64("assignee")
+		posterID          int64
+		mentionedID       int64
+		reviewRequestedID int64
+		forceEmpty        bool
 	)
 
 	if ctx.IsSigned {
@@ -133,6 +135,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			mentionedID = ctx.User.ID
 		case "assigned":
 			assigneeID = ctx.User.ID
+		case "review_requested":
+			reviewRequestedID = ctx.User.ID
 		}
 	}
 
@@ -169,14 +173,15 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issueStats = &models.IssueStats{}
 	} else {
 		issueStats, err = models.GetIssueStats(&models.IssueStatsOptions{
-			RepoID:      repo.ID,
-			Labels:      selectLabels,
-			MilestoneID: milestoneID,
-			AssigneeID:  assigneeID,
-			MentionedID: mentionedID,
-			PosterID:    posterID,
-			IsPull:      isPullOption,
-			IssueIDs:    issueIDs,
+			RepoID:            repo.ID,
+			Labels:            selectLabels,
+			MilestoneID:       milestoneID,
+			AssigneeID:        assigneeID,
+			MentionedID:       mentionedID,
+			PosterID:          posterID,
+			ReviewRequestedID: reviewRequestedID,
+			IsPull:            isPullOption,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -217,17 +222,18 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
-			RepoIDs:      []int64{repo.ID},
-			AssigneeID:   assigneeID,
-			PosterID:     posterID,
-			MentionedID:  mentionedID,
-			MilestoneIDs: mileIDs,
-			ProjectID:    projectID,
-			IsClosed:     util.OptionalBoolOf(isShowClosed),
-			IsPull:       isPullOption,
-			LabelIDs:     labelIDs,
-			SortType:     sortType,
-			IssueIDs:     issueIDs,
+			RepoIDs:           []int64{repo.ID},
+			AssigneeID:        assigneeID,
+			PosterID:          posterID,
+			MentionedID:       mentionedID,
+			ReviewRequestedID: reviewRequestedID,
+			MilestoneIDs:      mileIDs,
+			ProjectID:         projectID,
+			IsClosed:          util.OptionalBoolOf(isShowClosed),
+			IsPull:            isPullOption,
+			LabelIDs:          labelIDs,
+			SortType:          sortType,
+			IssueIDs:          issueIDs,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -672,7 +678,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 		return nil
 	}
 
-	brs, err := ctx.Repo.GitRepo.GetBranches()
+	brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return nil
@@ -919,7 +925,8 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 }
 
 // NewIssuePost response for creating new issue
-func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
+func NewIssuePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
@@ -935,7 +942,7 @@ func NewIssuePost(ctx *context.Context, form auth.CreateIssueForm) {
 		attachments []string
 	)
 
-	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, form, false)
+	labelIDs, assigneeIDs, milestoneID, projectID := ValidateRepoMetas(ctx, *form, false)
 	if ctx.Written() {
 		return
 	}
@@ -1117,7 +1124,7 @@ func ViewIssue(ctx *context.Context) {
 		iw.IssueID = issue.ID
 		iw.IsWatching, err = models.CheckIssueWatch(ctx.User, issue)
 		if err != nil {
-			ctx.InternalServerError(err)
+			ctx.ServerError("CheckIssueWatch", err)
 			return
 		}
 	}
@@ -1372,7 +1379,26 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("Review.LoadCodeComments", err)
 				return
 			}
+			for _, codeComments := range comment.Review.CodeComments {
+				for _, lineComments := range codeComments {
+					for _, c := range lineComments {
+						// Check tag.
+						tag, ok = marked[c.PosterID]
+						if ok {
+							c.ShowTag = tag
+							continue
+						}
 
+						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						if err != nil {
+							ctx.ServerError("commentTag", err)
+							return
+						}
+						marked[c.PosterID] = c.ShowTag
+						participants = addParticipant(c.Poster, participants)
+					}
+				}
+			}
 			if err = comment.LoadResolveDoer(); err != nil {
 				ctx.ServerError("LoadResolveDoer", err)
 				return
@@ -1901,7 +1927,8 @@ func UpdateIssueStatus(ctx *context.Context) {
 }
 
 // NewComment create a comment for issue
-func NewComment(ctx *context.Context, form auth.CreateCommentForm) {
+func NewComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateCommentForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -2101,7 +2128,7 @@ func DeleteComment(ctx *context.Context) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(ctx.User, comment); err != nil {
 		ctx.ServerError("DeleteCommentByID", err)
 		return
 	}
@@ -2110,7 +2137,8 @@ func DeleteComment(ctx *context.Context) {
 }
 
 // ChangeIssueReaction create a reaction for issue
-func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
+func ChangeIssueReaction(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.ReactionForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -2205,7 +2233,8 @@ func ChangeIssueReaction(ctx *context.Context, form auth.ReactionForm) {
 }
 
 // ChangeCommentReaction create a reaction for comment
-func ChangeCommentReaction(ctx *context.Context, form auth.ReactionForm) {
+func ChangeCommentReaction(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.ReactionForm)
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)

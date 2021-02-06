@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -19,6 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -68,6 +70,11 @@ func Search(ctx *context.APIContext) {
 	// - name: priority_owner_id
 	//   in: query
 	//   description: repo owner to prioritize in the results
+	//   type: integer
+	//   format: int64
+	// - name: team_id
+	//   in: query
+	//   description: search only for repos that belong to the given team id
 	//   type: integer
 	//   format: int64
 	// - name: starredBy
@@ -131,6 +138,7 @@ func Search(ctx *context.APIContext) {
 		Keyword:            strings.Trim(ctx.Query("q"), " "),
 		OwnerID:            ctx.QueryInt64("uid"),
 		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
+		TeamID:             ctx.QueryInt64("team_id"),
 		TopicOnly:          ctx.QueryBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
 		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
@@ -270,7 +278,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 }
 
 // Create one repository of mine
-func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
+func Create(ctx *context.APIContext) {
 	// swagger:operation POST /user/repos repository user createCurrentUserRepo
 	// ---
 	// summary: Create a repository
@@ -290,17 +298,17 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	opt := web.GetForm(ctx).(*api.CreateRepoOption)
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
-	CreateUserRepo(ctx, ctx.User, opt)
+	CreateUserRepo(ctx, ctx.User, *opt)
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
-func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+func CreateOrgRepoDeprecated(ctx *context.APIContext) {
 	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
@@ -327,11 +335,11 @@ func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) 
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	CreateOrgRepo(ctx, opt)
+	CreateOrgRepo(ctx)
 }
 
 // CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+func CreateOrgRepo(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
 	// ---
 	// summary: Create a repository in an organization
@@ -356,7 +364,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
+	opt := web.GetForm(ctx).(*api.CreateRepoOption)
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
@@ -382,7 +390,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 			return
 		}
 	}
-	CreateUserRepo(ctx, org, opt)
+	CreateUserRepo(ctx, org, *opt)
 }
 
 // Get one repository
@@ -450,7 +458,7 @@ func GetByID(ctx *context.APIContext) {
 }
 
 // Edit edit repository properties
-func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
+func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo} repository repoEdit
 	// ---
 	// summary: Edit a repository's properties. Only fields that are set will be changed.
@@ -481,6 +489,8 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	opts := *web.GetForm(ctx).(*api.EditRepoOption)
+
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
 	}
@@ -491,6 +501,12 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 
 	if opts.Archived != nil {
 		if err := updateRepoArchivedState(ctx, opts); err != nil {
+			return
+		}
+	}
+
+	if opts.MirrorInterval != nil {
+		if err := updateMirrorInterval(ctx, opts); err != nil {
 			return
 		}
 	}
@@ -772,6 +788,38 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 				return err
 			}
 			log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
+		}
+	}
+	return nil
+}
+
+// updateMirrorInterval updates the repo's mirror Interval
+func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) error {
+	repo := ctx.Repo.Repository
+
+	if opts.MirrorInterval != nil {
+		if !repo.IsMirror {
+			err := fmt.Errorf("repo is not a mirror, can not change mirror interval")
+			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
+			return err
+		}
+		if err := repo.GetMirror(); err != nil {
+			log.Error("Failed to get mirror: %s", err)
+			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
+			return err
+		}
+		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
+			repo.Mirror.Interval = interval
+			if err := models.UpdateMirror(repo.Mirror); err != nil {
+				log.Error("Failed to Set Mirror Interval: %s", err)
+				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+				return err
+			}
+			log.Trace("Repository %s/%s Mirror Interval was Updated to %s", ctx.Repo.Owner.Name, repo.Name, interval)
+		} else {
+			log.Error("Wrong format for MirrorInternal Sent: %s", err)
+			ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
+			return err
 		}
 	}
 	return nil

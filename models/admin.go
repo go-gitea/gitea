@@ -75,7 +75,7 @@ func removeStorageWithNotice(e Engine, bucket storage.ObjectStorage, title, path
 	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = createNotice(x, NoticeRepository, desc); err != nil {
+		if err = createNotice(e, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -131,4 +131,17 @@ func DeleteNoticesByIDs(ids []int64) error {
 		In("id", ids).
 		Delete(new(Notice))
 	return err
+}
+
+// GetAdminUser returns the first administrator
+func GetAdminUser() (*User, error) {
+	var admin User
+	has, err := x.Where("is_admin=?", true).Get(&admin)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{}
+	}
+
+	return &admin, nil
 }

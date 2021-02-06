@@ -52,6 +52,7 @@ type Service struct {
 	PipelineEvents           bool       `json:"pipeline_events"`
 	JobEvents                bool       `json:"job_events"`
 	WikiPageEvents           bool       `json:"wiki_page_events"`
+	DeploymentEvents         bool       `json:"deployment_events"`
 }
 
 // ListServices gets a list of all active services.

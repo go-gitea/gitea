@@ -7,7 +7,9 @@ B.V. ("Licensor"). Any Motosoto Product licensed pursuant to this License
 is a "Licensed Product." Licensed Product, in its entirety, is protected by
 Dutch copyright law. This License identifies the terms under which you may
 use, copy, distribute or modify Licensed Product and has been submitted to
-the Open Software Initiative (OSI) for approval. Preamble
+the Open Software Initiative (OSI) for approval.
+
+Preamble
 
 This Preamble is intended to describe, in plain English, the nature and scope
 of this License. However, this Preamble is not a part of this license. The
@@ -70,7 +72,7 @@ at the end of the License.
 
 License Terms
 
-   1. Grant of License From Licensor.
+1. Grant of License From Licensor.
 
 Licensor hereby grants you a world-wide, royalty-free, non-exclusive license,
 subject to third party intellectual property claims, to do the following:
@@ -95,7 +97,7 @@ claim is necessary to enable you to make, use, sell, offer for sale, have
 made, and/or otherwise dispose of Licensed Product or portions thereof or
 Derivative Works thereof.
 
-   2. Grant of License to Modifications From Contributor.
+2. Grant of License to Modifications From Contributor.
 
 "Modifications" means any additions to or deletions from the substance or
 structure of (i) a file containing Licensed Product, or (ii) any new file
@@ -119,7 +121,7 @@ claim is necessary to enable you to make, use, sell, offer for sale, have
 made, and/or otherwise dispose of Modifications or portions thereof or Derivative
 Works thereof.
 
-   3. Exclusions From License Grant.
+3. Exclusions From License Grant.
 
 Nothing in this License shall be deemed to grant any rights to trademarks,
 copyrights, patents, trade secrets or any other intellectual property of Licensor
@@ -132,7 +134,7 @@ in this License shall be interpreted to prohibit Licensor from licensing under
 different terms from this License any code that Licensor otherwise would have
 a right to license.
 
-   4. Your Obligations Regarding Distribution.
+4. Your Obligations Regarding Distribution.
 
 a. Application of This License to Your Modifications. As an express condition
 for your use of the Licensed Product, you hereby agree that any Modifications
@@ -172,8 +174,7 @@ Product you distribute or in related documentation in which you describe the
 origin or ownership of the Licensed Product. You may not modify or delete
 any preexisting copyright notices in the Licensed Product.
 
-      d. Intellectual Property Matters.
-
+     d. Intellectual Property Matters.
 i. Third Party Claims. If you have knowledge that a license to a third party's
 intellectual property right is required to exercise the rights granted by
 this License, you must include a text file with the Source Code distribution
@@ -235,7 +236,7 @@ the proviso that the requirements of this License are fulfilled for those
 portions of the Derivative Works that consist of the Licensed Product or any
 Modifications thereto.
 
-   5. Inability to Comply Due to Statute or Regulation.
+5. Inability to Comply Due to Statute or Regulation.
 
 If it is impossible for you to comply with any of the terms of this License
 with respect to some or all of the Licensed Product due to statute, judicial
@@ -248,12 +249,12 @@ Code. Except to the extent prohibited by statute or regulation, such description
 must be sufficiently detailed for a recipient of ordinary skill at computer
 programming to be able to understand it.
 
-   6. Application of This License.
+6. Application of This License.
 
 This License applies to code to which Licensor or Contributor has attached
 the Notice in Exhibit A, which is incorporated herein by this reference.
 
-   7. Versions of This License.
+7. Versions of This License.
 
 a. Version. The Motosoto Open Source License is derived from the Jabber Open
 Source License. All changes are related to applicable law and the location
@@ -276,7 +277,7 @@ license so that it is not confusingly similar to this License, and must make
 it clear that your license contains terms that differ from this License. In
 so naming your license, you may not use any trademark of Licensor or any Contributor.
 
-   8. Disclaimer of Warranty.
+8. Disclaimer of Warranty.
 
 LICENSED PRODUCT IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT
 WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION,
@@ -288,7 +289,7 @@ ASSUME THE COST OF ANY NECESSARY SERVICING, REPAIR OR CORRECTION. THIS DISCLAIME
 OF WARRANTY CONSTITUTES AN ESSENTIAL PART OF THIS LICENSE. NO USE OF LICENSED
 PRODUCT IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
 
-   9. Termination.
+9. Termination.
 
 a. Automatic Termination Upon Breach. This license and the rights granted
 hereunder will terminate automatically if you fail to comply with the terms
@@ -326,7 +327,7 @@ Sections 9(a) or 9(b) above, all end user license agreements (excluding licenses
 to distributors and reselle rs) that have been validly granted by you or any
 distributor hereunder prior to termination shall survive termination.
 
-   10. Limitation of Liability.
+10. Limitation of Liability.
 
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL THE LICENSOR, ANY CONTRIBUTOR,

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/webhook"
 )
@@ -158,7 +159,7 @@ func TestHook(ctx *context.APIContext) {
 }
 
 // CreateHook create a hook for a repository
-func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
+func CreateHook(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/hooks repository repoCreateHook
 	// ---
 	// summary: Create a hook
@@ -184,14 +185,16 @@ func CreateHook(ctx *context.APIContext, form api.CreateHookOption) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Hook"
-	if !utils.CheckCreateHookOption(ctx, &form) {
+	form := web.GetForm(ctx).(*api.CreateHookOption)
+
+	if !utils.CheckCreateHookOption(ctx, form) {
 		return
 	}
-	utils.AddRepoHook(ctx, &form)
+	utils.AddRepoHook(ctx, form)
 }
 
 // EditHook modify a hook of a repository
-func EditHook(ctx *context.APIContext, form api.EditHookOption) {
+func EditHook(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/hooks/{id} repository repoEditHook
 	// ---
 	// summary: Edit a hook in a repository
@@ -221,8 +224,9 @@ func EditHook(ctx *context.APIContext, form api.EditHookOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Hook"
+	form := web.GetForm(ctx).(*api.EditHookOption)
 	hookID := ctx.ParamsInt64(":id")
-	utils.EditRepoHook(ctx, &form, hookID)
+	utils.EditRepoHook(ctx, form, hookID)
 }
 
 // DeleteHook delete a hook of a repository

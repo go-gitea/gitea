@@ -3,6 +3,9 @@
 	:search-limit="searchLimit"
 	:suburl="suburl"
 	:uid="uid"
+	{{if .Team}}
+	:team-id="{{.Team.ID}}"
+	{{end}}
 	:more-repos-link="'{{.ContextUser.HomeLink}}'"
 	{{if not .ContextUser.IsOrganization}}
 	:organizations="[

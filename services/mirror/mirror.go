@@ -301,7 +301,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, err := repo_module.GetBranches(m.Repo)
+	branches, _, err := repo_module.GetBranches(m.Repo, 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -521,6 +521,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 	hasDefault := false
 	hasMaster := false
+	hasMain := false
 	defaultBranchName := m.Repo.DefaultBranch
 	if len(defaultBranchName) == 0 {
 		defaultBranchName = setting.Repository.DefaultBranch
@@ -540,6 +541,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 
 		hasDefault = hasDefault || name == defaultBranchName
 		hasMaster = hasMaster || name == "master"
+		hasMain = hasMain || name == "main"
 	}
 
 	if len(firstName) > 0 {
@@ -547,6 +549,8 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 			m.Repo.DefaultBranch = defaultBranchName
 		} else if hasMaster {
 			m.Repo.DefaultBranch = "master"
+		} else if hasMain {
+			m.Repo.DefaultBranch = "main"
 		} else {
 			m.Repo.DefaultBranch = firstName
 		}

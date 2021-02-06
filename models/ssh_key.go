@@ -223,11 +223,6 @@ func writeTmpKeyFile(content string) (string, error) {
 
 // SSHKeyGenParsePublicKey extracts key type and length using ssh-keygen.
 func SSHKeyGenParsePublicKey(key string) (string, int, error) {
-	// The ssh-keygen in Windows does not print key type, so no need go further.
-	if setting.IsWindows {
-		return "", 0, nil
-	}
-
 	tmpName, err := writeTmpKeyFile(key)
 	if err != nil {
 		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
@@ -310,6 +305,10 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 		return "ecdsa", 521, nil
 	case ssh.KeyAlgoED25519:
 		return "ed25519", 256, nil
+	case ssh.KeyAlgoSKECDSA256:
+		return "ecdsa-sk", 256, nil
+	case ssh.KeyAlgoSKED25519:
+		return "ed25519-sk", 256, nil
 	}
 	return "", 0, fmt.Errorf("unsupported key length detection for type: %s", pkey.Type())
 }
@@ -663,6 +662,82 @@ func deletePublicKeys(e Engine, keyIDs ...int64) error {
 
 	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
 	return err
+}
+
+// PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
+	sources := make([]*LoginSource, 0, 5)
+	externals := make([]bool, len(keys))
+keyloop:
+	for i, key := range keys {
+		if key.LoginSourceID == 0 {
+			externals[i] = false
+			continue keyloop
+		}
+
+		var source *LoginSource
+
+	sourceloop:
+		for _, s := range sources {
+			if s.ID == key.LoginSourceID {
+				source = s
+				break sourceloop
+			}
+		}
+
+		if source == nil {
+			var err error
+			source, err = GetLoginSourceByID(key.LoginSourceID)
+			if err != nil {
+				if IsErrLoginSourceNotExist(err) {
+					externals[i] = false
+					sources[i] = &LoginSource{
+						ID: key.LoginSourceID,
+					}
+					continue keyloop
+				}
+				return nil, err
+			}
+		}
+
+		ldapSource := source.LDAP()
+		if ldapSource != nil &&
+			source.IsSyncEnabled &&
+			(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+			len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+			// Disable setting SSH keys for this user
+			externals[i] = true
+		}
+	}
+
+	return externals, nil
+}
+
+// PublicKeyIsExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeyIsExternallyManaged(id int64) (bool, error) {
+	key, err := GetPublicKeyByID(id)
+	if err != nil {
+		return false, err
+	}
+	if key.LoginSourceID == 0 {
+		return false, nil
+	}
+	source, err := GetLoginSourceByID(key.LoginSourceID)
+	if err != nil {
+		if IsErrLoginSourceNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	ldapSource := source.LDAP()
+	if ldapSource != nil &&
+		source.IsSyncEnabled &&
+		(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+		// Disable setting SSH keys for this user
+		return true, nil
+	}
+	return false, nil
 }
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
