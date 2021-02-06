@@ -11,6 +11,11 @@
 					</span>
 					<div class="ui right">
 						<div class="ui menu">
+							<!-- DNM(Krey): Display this only when build option is used -->
+							<a class="{{if $.PageIsOrgTeams}}active{{end}} item" href="{{$.OrgLink}}/discussions">
+								{{svg "octicon-comment-discussion"}}&nbsp;{{$.i18n.Tr "org.discussion"}}
+								<div class="floating ui black label">{{.NumTeams}}</div>
+							</a>
 							<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">
 								{{svg "octicon-organization"}}&nbsp;{{$.i18n.Tr "org.people"}}
 								<div class="floating ui black label">{{.NumMembers}}</div>

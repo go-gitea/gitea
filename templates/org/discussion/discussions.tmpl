@@ -1,0 +1,76 @@
+{{template "base/head" .}}
+<div class="page-content organization members">
+	{{template "org/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+
+		<div class="list">
+			{{ range .Members}}
+				<div class="item ui grid">
+					<div class="ui four wide column" style="display: flex;">
+						{{avatar . 48}}
+						<div>
+							<div class="meta"><a href="{{.HomeLink}}">{{.Name}}</a></div>
+							<div class="meta">{{.FullName}}</div>
+						</div>
+					</div>
+					<div class="ui four wide column center">
+						<div class="meta">
+							{{$.i18n.Tr "org.members.membership_visibility"}}
+						</div>
+						<div class="meta">
+							{{ $isPublic := index $.MembersIsPublicMember .ID}}
+							{{if $isPublic}}
+								<strong>{{$.i18n.Tr "org.members.public"}}</strong>
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.i18n.Tr "org.members.public_helper"}}</a>){{end}}
+							{{else}}
+								<strong>{{$.i18n.Tr "org.members.private"}}</strong>
+								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/public?uid={{.ID}}">{{$.i18n.Tr "org.members.private_helper"}}</a>){{end}}
+							{{end}}
+						</div>
+					</div>
+					<div class="ui three wide column center">
+						<div class="meta">
+							{{$.i18n.Tr "org.members.member_role"}}
+						</div>
+						<div class="meta">
+							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{$.i18n.Tr "org.members.owner"}}{{else}}{{$.i18n.Tr "org.members.member"}}{{end}}</strong>
+						</div>
+					</div>
+					<div class="ui one wide column center">
+						<div class="meta">
+							{{$.i18n.Tr "admin.users.2fa"}}
+						</div>
+						<div class="meta">
+							<strong>
+								{{if index $.MembersTwoFaStatus .ID}}
+									<span class="text green">{{svg "octicon-check"}}</span>
+								{{else}}
+									{{svg "octicon-x"}}
+								{{end}}
+							</strong>
+						</div>
+					</div>
+					<div class="ui four wide column">
+						<div class="text right">
+							{{if eq $.SignedUser.ID .ID}}
+								<form method="post" action="{{$.OrgLink}}/members/action/leave">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
+								</form>
+							{{else if $.IsOrganizationOwner}}
+								<form method="post" action="{{$.OrgLink}}/members/action/remove">
+									{{$.CsrfTokenHtml}}
+									<button type="submit" class="ui red small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.remove"}}</button>
+								</form>
+							{{end}}
+						</div>
+					</div>
+				</div>
+			{{end}}
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+</div>
+{{template "base/footer" .}}
