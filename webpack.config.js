@@ -6,11 +6,7 @@ const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {
-  ESBuildPlugin,
-  ESBuildMinifyPlugin
-} = require('esbuild-loader');
-const {statSync} = require('fs');
+const {ESBuildPlugin, ESBuildMinifyPlugin} = require('esbuild-loader');
 const {resolve, parse} = require('path');
 const {SourceMapDevToolPlugin} = require('webpack');
 
