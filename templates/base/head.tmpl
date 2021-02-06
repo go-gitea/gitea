@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{.Language}}" class="theme-{{.SignedUser.Theme}}">
+<html lang="{{.Lang}}" class="theme-{{.SignedUser.Theme}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -67,6 +67,9 @@
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
 {{end}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+	<script>
+		if (navigator.userAgent.match('Windows')) { document.documentElement.style.setProperty('--fonts-system-ui', 'Segoe UI'); }
+	</script>
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
