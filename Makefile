@@ -541,6 +541,7 @@ migrations.sqlite.test: $(GO_SOURCES)
 .PHONY: check
 check: test
 
+# DNM(Krey): Experiment
 .PHONY: install $(TAGS_PREREQ)
 install: $(wildcard *.go)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) install -v -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)'
