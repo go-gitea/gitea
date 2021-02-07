@@ -29,7 +29,7 @@ import {stripTags} from './utils.js';
 
 import React from "react"
 import ReactDOM from "react-dom"
-import Emoji from "react-emojione"
+import { emojify } from "react-emoji"
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -42,11 +42,8 @@ if(add_reaction_places.length > 0) {
         ReactDOM.render(
           <>
           {response.allowed_reactions.map(r => (
-            <div
-              className="item reaction"
-              data-content={r}
-            >
-              <Emoji>:{r}:</Emoji>
+            <div className="item reaction" data-content={r} >
+              {emojify(`:${r}:`, { emojiType: 'emojione' })}
             </div>
           ))}
           </>,

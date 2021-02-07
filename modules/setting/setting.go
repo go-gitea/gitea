@@ -222,7 +222,7 @@ var (
 		MaxDisplayFileSize:  8388608,
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
-		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		Reactions:           []string{`+1`, `-1`, `laughing`, `tada`, `confused`, `heart`, `rocket`, `eyes`},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
