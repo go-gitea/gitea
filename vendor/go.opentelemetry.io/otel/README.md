@@ -1,6 +1,6 @@
 # OpenTelemetry-Go
 
-[![Circle CI](https://circleci.com/gh/open-telemetry/opentelemetry-go.svg?style=svg)](https://circleci.com/gh/open-telemetry/opentelemetry-go)
+[![CI](https://github.com/open-telemetry/opentelemetry-go/workflows/ci/badge.svg)](https://github.com/open-telemetry/opentelemetry-go/actions?query=workflow%3Aci+branch%3Amaster)
 [![PkgGoDev](https://pkg.go.dev/badge/go.opentelemetry.io/otel)](https://pkg.go.dev/go.opentelemetry.io/otel)
 [![Go Report Card](https://goreportcard.com/badge/go.opentelemetry.io/otel)](https://goreportcard.com/report/go.opentelemetry.io/otel)
 [![Gitter](https://badges.gitter.im/open-telemetry/opentelemetry-go.svg)](https://gitter.im/open-telemetry/opentelemetry-go?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
@@ -23,7 +23,12 @@ Progress and status specific to this repository is tracked in our local
 and
 [milestones](https://github.com/open-telemetry/opentelemetry-go/milestones).
 
+Project versioning information and stability guarantees can be found in the
+[versioning documentation](./VERSIONING.md).
+
 ## Getting Started
+
+You can find a getting started guide on [opentelemetry.io](https://opentelemetry.io/docs/go/getting-started/).
 
 OpenTelemetry's goal is to provide a single set of APIs to capture distributed
 traces and metrics from your application and send them to an observability

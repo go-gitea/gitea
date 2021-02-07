@@ -58,7 +58,7 @@ type Options struct {
 	DB int
 
 	// Maximum number of retries before giving up.
-	// Default is 3 retries.
+	// Default is 3 retries; -1 (not 0) disables retries.
 	MaxRetries int
 	// Minimum backoff between each retry.
 	// Default is 8 milliseconds; -1 disables backoff.

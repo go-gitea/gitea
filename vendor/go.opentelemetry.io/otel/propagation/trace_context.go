@@ -19,7 +19,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"regexp"
+	"strings"
 
+	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -28,12 +30,6 @@ const (
 	maxVersion        = 254
 	traceparentHeader = "traceparent"
 	tracestateHeader  = "tracestate"
-)
-
-type traceContextPropagatorKeyType uint
-
-const (
-	tracestateKey traceContextPropagatorKeyType = 0
 )
 
 // TraceContext is a propagator that supports the W3C Trace Context format
@@ -51,15 +47,13 @@ var traceCtxRegExp = regexp.MustCompile("^(?P<version>[0-9a-f]{2})-(?P<traceID>[
 
 // Inject set tracecontext from the Context into the carrier.
 func (tc TraceContext) Inject(ctx context.Context, carrier TextMapCarrier) {
-	tracestate := ctx.Value(tracestateKey)
-	if state, ok := tracestate.(string); tracestate != nil && ok {
-		carrier.Set(tracestateHeader, state)
-	}
-
 	sc := trace.SpanContextFromContext(ctx)
 	if !sc.IsValid() {
 		return
 	}
+
+	carrier.Set(tracestateHeader, sc.TraceState.String())
+
 	h := fmt.Sprintf("%.2x-%s-%s-%.2x",
 		supportedVersion,
 		sc.TraceID,
@@ -70,11 +64,6 @@ func (tc TraceContext) Inject(ctx context.Context, carrier TextMapCarrier) {
 
 // Extract reads tracecontext from the carrier into a returned Context.
 func (tc TraceContext) Extract(ctx context.Context, carrier TextMapCarrier) context.Context {
-	state := carrier.Get(tracestateHeader)
-	if state != "" {
-		ctx = context.WithValue(ctx, tracestateKey, state)
-	}
-
 	sc := tc.extract(carrier)
 	if !sc.IsValid() {
 		return ctx
@@ -143,6 +132,8 @@ func (tc TraceContext) extract(carrier TextMapCarrier) trace.SpanContext {
 	// Clear all flags other than the trace-context supported sampling bit.
 	sc.TraceFlags = opts[0] & trace.FlagsSampled
 
+	sc.TraceState = parseTraceState(carrier.Get(tracestateHeader))
+
 	if !sc.IsValid() {
 		return trace.SpanContext{}
 	}
@@ -153,4 +144,26 @@ func (tc TraceContext) extract(carrier TextMapCarrier) trace.SpanContext {
 // Fields returns the keys who's values are set with Inject.
 func (tc TraceContext) Fields() []string {
 	return []string{traceparentHeader, tracestateHeader}
+}
+
+func parseTraceState(in string) trace.TraceState {
+	if in == "" {
+		return trace.TraceState{}
+	}
+
+	kvs := []label.KeyValue{}
+	for _, entry := range strings.Split(in, ",") {
+		parts := strings.SplitN(entry, "=", 2)
+		if len(parts) != 2 {
+			// Parse failure, abort!
+			return trace.TraceState{}
+		}
+		kvs = append(kvs, label.String(parts[0], parts[1]))
+	}
+
+	// Ignoring error here as "failure to parse tracestate MUST NOT
+	// affect the parsing of traceparent."
+	// https://www.w3.org/TR/trace-context/#tracestate-header
+	ts, _ := trace.TraceStateFromKeyValues(kvs...)
+	return ts
 }

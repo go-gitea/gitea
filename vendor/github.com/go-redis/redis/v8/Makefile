@@ -19,3 +19,9 @@ testdata/redis:
 
 testdata/redis/src/redis-server: testdata/redis
 	cd $< && make all
+
+tag:
+	git tag $(VERSION)
+	git tag extra/rediscmd/$(VERSION)
+	git tag extra/redisotel/$(VERSION)
+	git tag extra/rediscensus/$(VERSION)

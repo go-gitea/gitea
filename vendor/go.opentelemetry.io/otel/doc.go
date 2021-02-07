@@ -26,6 +26,8 @@ transmitted anywhere. An implementation of the OpenTelemetry SDK, like the
 default SDK implementation (go.opentelemetry.io/otel/sdk), and associated
 exporters are used to process and transport this data.
 
+To read the getting started guide, see https://opentelemetry.io/docs/go/getting-started/.
+
 To read more about tracing, see go.opentelemetry.io/otel/trace.
 
 To read more about metrics, see go.opentelemetry.io/otel/metric.

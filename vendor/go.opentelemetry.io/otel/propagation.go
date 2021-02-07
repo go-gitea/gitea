@@ -25,7 +25,7 @@ func GetTextMapPropagator() propagation.TextMapPropagator {
 	return global.TextMapPropagator()
 }
 
-// SetTextMapPropagator sets propagator as the global TSetTextMapPropagator.
+// SetTextMapPropagator sets propagator as the global TextMapPropagator.
 func SetTextMapPropagator(propagator propagation.TextMapPropagator) {
 	global.SetTextMapPropagator(propagator)
 }

@@ -13,60 +13,117 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# This Makefile.proto has rules to generate *.pb.go files in
-# `exporters/otlp/internal/opentelemetry-proto-gen` from the .proto files in
-# `exporters/otlp/internal/opentelemetry-proto` using protoc with a go plugin.
+# This Makefile.proto has rules to generate go code for otlp
+# exporter. It does it by copying the proto files from
+# `exporters/otlp/internal/opentelemetry-proto` (which is a
+# submodule that needs to be checked out) into `gen/proto`, changing
+# the go_package option to a valid string, generating the go files and
+# finally copying the files into the module. The files are not
+# generated in place, because protoc generates a too-deep directory
+# structure.
 #
-# The protoc binary and other tools are sourced from a docker image
-# `PROTOC_IMAGE`.
+# Currently, all the generated code is in
+# `exporters/otlp/internal/opentelemetry-proto-gen`.
 #
-# Prereqs: The archiving utility `pax` is installed.
+# Prereqs: wget (for downloading the zip file with protoc binary),
+# unzip (for unpacking the archive), rsync (for copying back the
+# generated files).
 
-PROTOC_IMAGE          := namely/protoc-all:1.29_2
-PROTOBUF_VERSION      := v1
-OTEL_PROTO_SUBMODULE  := exporters/otlp/internal/opentelemetry-proto
-PROTOBUF_GEN_DIR      := exporters/otlp/internal/opentelemetry-proto-gen
-PROTOBUF_TEMP_DIR     := gen/pb-go
-PROTO_SOURCE_DIR      := gen/proto
-SUBMODULE_PROTO_FILES := $(wildcard $(OTEL_PROTO_SUBMODULE)/opentelemetry/proto/*/$(PROTOBUF_VERSION)/*.proto \
-                           $(OTEL_PROTO_SUBMODULE)/opentelemetry/proto/collector/*/$(PROTOBUF_VERSION)/*.proto)
-SOURCE_PROTO_FILES    := $(subst $(OTEL_PROTO_SUBMODULE),$(PROTO_SOURCE_DIR),$(SUBMODULE_PROTO_FILES))
+PROTOC_VERSION := 3.14.0
 
-default: protobuf
+TOOLS_DIR                       := $(abspath ./.tools)
+TOOLS_MOD_DIR                   := ./internal/tools
+PROTOBUF_VERSION                := v1
+OTEL_PROTO_SUBMODULE            := exporters/otlp/internal/opentelemetry-proto
+GEN_TEMP_DIR                    := gen
+SUBMODULE_PROTO_FILES           := $(wildcard $(OTEL_PROTO_SUBMODULE)/opentelemetry/proto/*/$(PROTOBUF_VERSION)/*.proto) $(wildcard $(OTEL_PROTO_SUBMODULE)/opentelemetry/proto/collector/*/$(PROTOBUF_VERSION)/*.proto)
 
-.PHONY: protobuf protobuf-source gen-protobuf copy-protobufs
+ifeq ($(strip $(SUBMODULE_PROTO_FILES)),)
+$(error Submodule at $(OTEL_PROTO_SUBMODULE) is not checked out, use "git submodule update --init")
+endif
+
+PROTOBUF_GEN_DIR   := exporters/otlp/internal/opentelemetry-proto-gen
+PROTOBUF_TEMP_DIR  := $(GEN_TEMP_DIR)/pb-go
+PROTO_SOURCE_DIR   := $(GEN_TEMP_DIR)/proto
+SOURCE_PROTO_FILES := $(subst $(OTEL_PROTO_SUBMODULE),$(PROTO_SOURCE_DIR),$(SUBMODULE_PROTO_FILES))
+
+.DEFAULT_GOAL := protobuf
+
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+ifeq ($(UNAME_S),Linux)
+
+PROTOC_OS := linux
+PROTOC_ARCH := $(UNAME_M)
+
+else ifeq ($(UNAME_S),Darwin)
+
+PROTOC_OS := osx
+PROTOC_ARCH := x86_64
+
+endif
+
+PROTOC_ZIP_URL := https://github.com/protocolbuffers/protobuf/releases/download/v$(PROTOC_VERSION)/protoc-$(PROTOC_VERSION)-$(PROTOC_OS)-$(PROTOC_ARCH).zip
+
+$(TOOLS_DIR)/PROTOC_$(PROTOC_VERSION):
+	@rm -f "$(TOOLS_DIR)"/PROTOC_* && \
+	touch "$@"
+
+# Depend on a versioned file (like PROTOC_3.14.0), so when version
+# gets bumped, we will depend on a nonexistent file and thus download
+# a newer version.
+$(TOOLS_DIR)/protoc/bin/protoc: $(TOOLS_DIR)/PROTOC_$(PROTOC_VERSION)
+	echo "Fetching protoc $(PROTOC_VERSION)" && \
+	rm -rf $(TOOLS_DIR)/protoc && \
+	wget -O $(TOOLS_DIR)/protoc.zip $(PROTOC_ZIP_URL) && \
+	unzip $(TOOLS_DIR)/protoc.zip -d $(TOOLS_DIR)/protoc-tmp && \
+	rm $(TOOLS_DIR)/protoc.zip && \
+	touch $(TOOLS_DIR)/protoc-tmp/bin/protoc && \
+	mv $(TOOLS_DIR)/protoc-tmp $(TOOLS_DIR)/protoc
+
+$(TOOLS_DIR)/protoc-gen-gogofast: $(TOOLS_MOD_DIR)/go.mod $(TOOLS_MOD_DIR)/go.sum $(TOOLS_MOD_DIR)/tools.go
+	cd $(TOOLS_MOD_DIR) && \
+	go build -o $(TOOLS_DIR)/protoc-gen-gogofast github.com/gogo/protobuf/protoc-gen-gogofast && \
+	go mod tidy
+
+# Return a sed expression for replacing the go_package option in proto
+# file with a one that's valid for us.
+#
+# Example: $(call get-sed-expr,$(PROTOBUF_GEN_DIR))
+define get-sed-expr
+'s,go_package = "github.com/open-telemetry/opentelemetry-proto/gen/go,go_package = "go.opentelemetry.io/otel/$(1),'
+endef
+
+.PHONY: protobuf
 protobuf: protobuf-source gen-protobuf copy-protobufs
 
-protobuf-source: $(SOURCE_PROTO_FILES) | $(PROTO_SOURCE_DIR)/
+.PHONY: protobuf-source
+protobuf-source: $(SOURCE_PROTO_FILES)
 
-# Changes go_package in .proto file to point to repo-local location
-define exec-replace-pkgname
-sed  's,go_package = "github.com/open-telemetry/opentelemetry-proto/gen/go,go_package = "go.opentelemetry.io/otel/exporters/otlp/internal/opentelemetry-proto-gen,' < $(1) > $(2)
+# This copies proto files from submodule into $(PROTO_SOURCE_DIR),
+# thus satisfying the $(SOURCE_PROTO_FILES) prerequisite. The copies
+# have their package name replaced by go.opentelemetry.io/otel.
+$(PROTO_SOURCE_DIR)/%.proto: $(OTEL_PROTO_SUBMODULE)/%.proto
+	@ \
+	mkdir -p $(@D); \
+	sed -e $(call get-sed-expr,$(PROTOBUF_GEN_DIR)) "$<" >"$@.tmp"; \
+	mv "$@.tmp" "$@"
 
-endef
+.PHONY: gen-protobuf
+gen-protobuf: $(SOURCE_PROTO_FILES) $(TOOLS_DIR)/protoc-gen-gogofast $(TOOLS_DIR)/protoc/bin/protoc
+	@ \
+	mkdir -p "$(PROTOBUF_TEMP_DIR)"; \
+	set -e; for f in $^; do \
+	  if [[ "$${f}" == $(TOOLS_DIR)/* ]]; then continue; fi; \
+	  echo "protoc $${f#"$(PROTO_SOURCE_DIR)/"}"; \
+	  PATH="$(TOOLS_DIR):$${PATH}" $(TOOLS_DIR)/protoc/bin/protoc --proto_path="$(PROTO_SOURCE_DIR)" --gogofast_out="plugins=grpc:$(PROTOBUF_TEMP_DIR)" "$${f}"; \
+	done
 
-# replace opentelemetry-proto package name by go.opentelemetry.io/otel specific version
-$(SOURCE_PROTO_FILES): $(PROTO_SOURCE_DIR)/%.proto: $(OTEL_PROTO_SUBMODULE)/%.proto
-	@mkdir -p $(@D)
-	$(call exec-replace-pkgname,$<,$@)
-
-# Command to run protoc using docker image
-define exec-protoc-all
-docker run -v `pwd`:/defs $(PROTOC_IMAGE) $(1)
-
-endef
-
-gen-protobuf: $(SOURCE_PROTO_FILES) | $(PROTOBUF_GEN_DIR)/
-	$(foreach file,$(subst ${PROTO_SOURCE_DIR}/,,$(SOURCE_PROTO_FILES)),$(call exec-protoc-all, -i $(PROTO_SOURCE_DIR) -f ${file} -l gogo -o ${PROTOBUF_TEMP_DIR}))
-
-# requires `pax` to be installed, as it has consistent options for both BSD (Darwin) and Linux
-copy-protobufs: | $(PROTOBUF_GEN_DIR)/
-	find ./$(PROTOBUF_TEMP_DIR)/go.opentelemetry.io/otel/$(PROTOBUF_GEN_DIR) -type f -print0 | \
-      pax -0 -s ',^./$(PROTOBUF_TEMP_DIR)/go.opentelemetry.io/otel/$(PROTOBUF_GEN_DIR),,' -rw ./$(PROTOBUF_GEN_DIR)
-
-$(PROTO_SOURCE_DIR)/ $(PROTOBUF_GEN_DIR)/:
-	mkdir -p $@
+.PHONY: copy-protobufs
+copy-protobufs:
+	@rsync -a $(PROTOBUF_TEMP_DIR)/go.opentelemetry.io/otel/exporters .
 
 .PHONY: clean
 clean:
-	rm -rf ./gen
+	rm -rf $(GEN_TEMP_DIR)

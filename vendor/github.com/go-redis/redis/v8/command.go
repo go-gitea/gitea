@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8/internal"
+	"github.com/go-redis/redis/v8/internal/hscan"
 	"github.com/go-redis/redis/v8/internal/proto"
 	"github.com/go-redis/redis/v8/internal/util"
 )
@@ -369,6 +370,26 @@ func (cmd *SliceCmd) Result() ([]interface{}, error) {
 
 func (cmd *SliceCmd) String() string {
 	return cmdString(cmd, cmd.val)
+}
+
+// Scan scans the results from the map into a destination struct. The map keys
+// are matched in the Redis struct fields by the `redis:"field"` tag.
+func (cmd *SliceCmd) Scan(dst interface{}) error {
+	if cmd.err != nil {
+		return cmd.err
+	}
+
+	// Pass the list of keys and values.
+	// Skip the first two args for: HMGET key
+	var args []interface{}
+	if cmd.args[0] == "hmget" {
+		args = cmd.args[2:]
+	} else {
+		// Otherwise, it's: MGET field field ...
+		args = cmd.args[1:]
+	}
+
+	return hscan.Scan(dst, args, cmd.val)
 }
 
 func (cmd *SliceCmd) readReply(rd *proto.Reader) error {
@@ -915,6 +936,27 @@ func (cmd *StringStringMapCmd) Result() (map[string]string, error) {
 
 func (cmd *StringStringMapCmd) String() string {
 	return cmdString(cmd, cmd.val)
+}
+
+// Scan scans the results from the map into a destination struct. The map keys
+// are matched in the Redis struct fields by the `redis:"field"` tag.
+func (cmd *StringStringMapCmd) Scan(dst interface{}) error {
+	if cmd.err != nil {
+		return cmd.err
+	}
+
+	strct, err := hscan.Struct(dst)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range cmd.val {
+		if err := strct.Scan(k, v); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (cmd *StringStringMapCmd) readReply(rd *proto.Reader) error {

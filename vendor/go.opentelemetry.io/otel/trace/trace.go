@@ -19,6 +19,8 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"regexp"
+	"strings"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
@@ -42,6 +44,18 @@ const (
 
 	errInvalidSpanIDLength errorConst = "hex encoded span-id must have length equals to 16"
 	errNilSpanID           errorConst = "span-id can't be all zero"
+
+	// based on the W3C Trace Context specification, see https://www.w3.org/TR/trace-context-1/#tracestate-header
+	traceStateKeyFormat                      = `[a-z][_0-9a-z\-\*\/]{0,255}`
+	traceStateKeyFormatWithMultiTenantVendor = `[a-z][_0-9a-z\-\*\/]{0,240}@[a-z][_0-9a-z\-\*\/]{0,13}`
+	traceStateValueFormat                    = `[\x20-\x2b\x2d-\x3c\x3e-\x7e]{0,255}[\x21-\x2b\x2d-\x3c\x3e-\x7e]`
+
+	traceStateMaxListMembers = 32
+
+	errInvalidTraceStateKeyValue errorConst = "provided key or value is not valid according to the" +
+		" W3C Trace Context specification"
+	errInvalidTraceStateMembersNumber errorConst = "trace state would exceed the maximum limit of members (32)"
+	errInvalidTraceStateDuplicate     errorConst = "trace state key/value pairs with duplicate keys provided"
 )
 
 type errorConst string
@@ -157,11 +171,157 @@ func decodeHex(h string, b []byte) error {
 	return nil
 }
 
+// TraceState provides additional vendor-specific trace identification information
+// across different distributed tracing systems. It represents an immutable list consisting
+// of key/value pairs. There can be a maximum of 32 entries in the list.
+//
+// Key and value of each list member must be valid according to the W3C Trace Context specification
+// (see https://www.w3.org/TR/trace-context-1/#key and https://www.w3.org/TR/trace-context-1/#value
+// respectively).
+//
+// Trace state must be valid according to the W3C Trace Context specification at all times. All
+// mutating operations validate their input and, in case of valid parameters, return a new TraceState.
+type TraceState struct { //nolint:golint
+	// TODO @matej-g: Consider implementing this as label.Set, see
+	// comment https://github.com/open-telemetry/opentelemetry-go/pull/1340#discussion_r540599226
+	kvs []label.KeyValue
+}
+
+var _ json.Marshaler = TraceState{}
+var keyFormatRegExp = regexp.MustCompile(
+	`^((` + traceStateKeyFormat + `)|(` + traceStateKeyFormatWithMultiTenantVendor + `))$`,
+)
+var valueFormatRegExp = regexp.MustCompile(`^(` + traceStateValueFormat + `)$`)
+
+// MarshalJSON implements a custom marshal function to encode trace state.
+func (ts TraceState) MarshalJSON() ([]byte, error) {
+	return json.Marshal(ts.kvs)
+}
+
+// String returns trace state as a string valid according to the
+// W3C Trace Context specification.
+func (ts TraceState) String() string {
+	var sb strings.Builder
+
+	for i, kv := range ts.kvs {
+		sb.WriteString((string)(kv.Key))
+		sb.WriteByte('=')
+		sb.WriteString(kv.Value.Emit())
+
+		if i != len(ts.kvs)-1 {
+			sb.WriteByte(',')
+		}
+	}
+
+	return sb.String()
+}
+
+// Get returns a value for given key from the trace state.
+// If no key is found or provided key is invalid, returns an empty value.
+func (ts TraceState) Get(key label.Key) label.Value {
+	if !isTraceStateKeyValid(key) {
+		return label.Value{}
+	}
+
+	for _, kv := range ts.kvs {
+		if kv.Key == key {
+			return kv.Value
+		}
+	}
+
+	return label.Value{}
+}
+
+// Insert adds a new key/value, if one doesn't exists; otherwise updates the existing entry.
+// The new or updated entry is always inserted at the beginning of the TraceState, i.e.
+// on the left side, as per the W3C Trace Context specification requirement.
+func (ts TraceState) Insert(entry label.KeyValue) (TraceState, error) {
+	if !isTraceStateKeyValueValid(entry) {
+		return ts, errInvalidTraceStateKeyValue
+	}
+
+	ckvs := ts.copyKVsAndDeleteEntry(entry.Key)
+	if len(ckvs)+1 > traceStateMaxListMembers {
+		return ts, errInvalidTraceStateMembersNumber
+	}
+
+	ckvs = append(ckvs, label.KeyValue{})
+	copy(ckvs[1:], ckvs)
+	ckvs[0] = entry
+
+	return TraceState{ckvs}, nil
+}
+
+// Delete removes specified entry from the trace state.
+func (ts TraceState) Delete(key label.Key) (TraceState, error) {
+	if !isTraceStateKeyValid(key) {
+		return ts, errInvalidTraceStateKeyValue
+	}
+
+	return TraceState{ts.copyKVsAndDeleteEntry(key)}, nil
+}
+
+// IsEmpty returns true if the TraceState does not contain any entries
+func (ts TraceState) IsEmpty() bool {
+	return len(ts.kvs) == 0
+}
+
+func (ts TraceState) copyKVsAndDeleteEntry(key label.Key) []label.KeyValue {
+	ckvs := make([]label.KeyValue, len(ts.kvs))
+	copy(ckvs, ts.kvs)
+	for i, kv := range ts.kvs {
+		if kv.Key == key {
+			ckvs = append(ckvs[:i], ckvs[i+1:]...)
+			break
+		}
+	}
+
+	return ckvs
+}
+
+// TraceStateFromKeyValues is a convenience method to create a new TraceState from
+// provided key/value pairs.
+func TraceStateFromKeyValues(kvs ...label.KeyValue) (TraceState, error) { //nolint:golint
+	if len(kvs) == 0 {
+		return TraceState{}, nil
+	}
+
+	if len(kvs) > traceStateMaxListMembers {
+		return TraceState{}, errInvalidTraceStateMembersNumber
+	}
+
+	km := make(map[label.Key]bool)
+	for _, kv := range kvs {
+		if !isTraceStateKeyValueValid(kv) {
+			return TraceState{}, errInvalidTraceStateKeyValue
+		}
+		_, ok := km[kv.Key]
+		if ok {
+			return TraceState{}, errInvalidTraceStateDuplicate
+		}
+		km[kv.Key] = true
+	}
+
+	ckvs := make([]label.KeyValue, len(kvs))
+	copy(ckvs, kvs)
+	return TraceState{ckvs}, nil
+}
+
+func isTraceStateKeyValid(key label.Key) bool {
+	return keyFormatRegExp.MatchString(string(key))
+}
+
+func isTraceStateKeyValueValid(kv label.KeyValue) bool {
+	return isTraceStateKeyValid(kv.Key) &&
+		valueFormatRegExp.MatchString(kv.Value.Emit())
+}
+
 // SpanContext contains identifying trace information about a Span.
 type SpanContext struct {
 	TraceID    TraceID
 	SpanID     SpanID
 	TraceFlags byte
+	TraceState TraceState
 }
 
 // IsValid returns if the SpanContext is valid. A valid span context has a

@@ -477,6 +477,7 @@ func (p *ConnPool) ReapStaleConns() (int, error) {
 		p.connsMu.Lock()
 		cn := p.reapStaleConn()
 		p.connsMu.Unlock()
+
 		p.freeTurn()
 
 		if cn != nil {

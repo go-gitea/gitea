@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-redis/redis/v8/internal"
@@ -130,20 +131,7 @@ func (hs hooks) processTxPipeline(
 }
 
 func (hs hooks) withContext(ctx context.Context, fn func() error) error {
-	done := ctx.Done()
-	if done == nil {
-		return fn()
-	}
-
-	errc := make(chan error, 1)
-	go func() { errc <- fn() }()
-
-	select {
-	case <-done:
-		return ctx.Err()
-	case err := <-errc:
-		return err
-	}
+	return fn()
 }
 
 //------------------------------------------------------------------------------
@@ -316,8 +304,26 @@ func (c *baseClient) withConn(
 			c.releaseConn(ctx, cn, err)
 		}()
 
-		err = fn(ctx, cn)
-		return err
+		done := ctx.Done()
+		if done == nil {
+			err = fn(ctx, cn)
+			return err
+		}
+
+		errc := make(chan error, 1)
+		go func() { errc <- fn(ctx, cn) }()
+
+		select {
+		case <-done:
+			_ = cn.Close()
+			// Wait for the goroutine to finish and send something.
+			<-errc
+
+			err = ctx.Err()
+			return err
+		case err = <-errc:
+			return err
+		}
 	})
 }
 
@@ -334,7 +340,7 @@ func (c *baseClient) process(ctx context.Context, cmd Cmder) error {
 				}
 			}
 
-			retryTimeout := true
+			retryTimeout := uint32(1)
 			err := c.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
 				err := cn.WithWriter(ctx, c.opt.WriteTimeout, func(wr *proto.Writer) error {
 					return writeCmd(wr, cmd)
@@ -345,7 +351,9 @@ func (c *baseClient) process(ctx context.Context, cmd Cmder) error {
 
 				err = cn.WithReader(ctx, c.cmdTimeout(cmd), cmd.readReply)
 				if err != nil {
-					retryTimeout = cmd.readTimeout() == nil
+					if cmd.readTimeout() == nil {
+						atomic.StoreUint32(&retryTimeout, 1)
+					}
 					return err
 				}
 
@@ -354,7 +362,7 @@ func (c *baseClient) process(ctx context.Context, cmd Cmder) error {
 			if err == nil {
 				return nil
 			}
-			retry = shouldRetry(err, retryTimeout)
+			retry = shouldRetry(err, atomic.LoadUint32(&retryTimeout) == 1)
 			return err
 		})
 		if err == nil || !retry {
