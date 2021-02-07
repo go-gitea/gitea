@@ -211,6 +211,11 @@ func runDump(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	absFileName, err := filepath.Abs(fileName)
+	if err != nil {
+		return err
+	}
+
 	verbose := ctx.Bool("verbose")
 	outType := ctx.String("type")
 	var iface interface{}
@@ -233,7 +238,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Skip dumping local repositories")
 	} else {
 		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
-		if err := addRecursive(w, "repos", setting.RepoRootPath, verbose); err != nil {
+		if err := addRecursiveExclude(w, "repos", setting.RepoRootPath, []string{absFileName}, verbose); err != nil {
 			fatal("Failed to include repositories: %v", err)
 		}
 
@@ -295,7 +300,7 @@ func runDump(ctx *cli.Context) error {
 	customDir, err := os.Stat(setting.CustomPath)
 	if err == nil && customDir.IsDir() {
 		if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
-			if err := addRecursive(w, "custom", setting.CustomPath, verbose); err != nil {
+			if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include custom: %v", err)
 			}
 		} else {
@@ -325,6 +330,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
@@ -358,7 +364,7 @@ func runDump(ctx *cli.Context) error {
 			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
 		}
 		if isExist {
-			if err := addRecursive(w, "log", setting.LogRootPath, verbose); err != nil {
+			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include log: %v", err)
 			}
 		}
