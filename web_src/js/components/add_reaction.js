@@ -40,9 +40,16 @@ function initReactionSelector(parent) {
     reactions = '.reactions > ';
   }
 
-  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
+  parent
+    .find(`${reactions}a.label`)
+    .popup({
+      position: 'bottom left',
+      metadata: {content: 'title', title: 'none'}
+    });
 
-  parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
+  parent
+    .find(`.select-reaction > .menu > .item, ${reactions}a.label`)
+    .on('click', function (e) {
     const vm = this;
     e.preventDefault();
 

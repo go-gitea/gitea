@@ -40,7 +40,6 @@ if(add_reaction_places.length > 0) {
   .then(response => response.json())
   .then(response => {
     add_reaction_places.forEach(p => {
-      console.log(p.dataset['action-url'])
         ReactDOM.render(
           <AddReaction
             choices={response.allowed_reactions}
@@ -50,6 +49,7 @@ if(add_reaction_places.length > 0) {
           />,
           p,
         )
+        initReactionSelector($(p))
     })
   })
 }
