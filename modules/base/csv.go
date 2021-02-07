@@ -19,6 +19,7 @@ var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
 func CreateCsvReader(rawBytes []byte, delimiter rune) *csv.Reader {
 	rd := csv.NewReader(bytes.NewReader(rawBytes))
 	rd.Comma = delimiter
+	rd.TrimLeadingSpace = true
 	return rd
 }
 
