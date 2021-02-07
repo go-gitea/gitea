@@ -157,6 +157,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-log, L",
 			Usage: "Skip the log dumping",
 		},
+		cli.BoolFlag{
+			Name:  "skip-custom-dir",
+			Usage: "Skip custom directory",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -297,17 +301,21 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	customDir, err := os.Stat(setting.CustomPath)
-	if err == nil && customDir.IsDir() {
-		if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
-			if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
-				fatal("Failed to include custom: %v", err)
+	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
+		log.Info("Skiping custom directory")
+	} else {
+		customDir, err := os.Stat(setting.CustomPath)
+		if err == nil && customDir.IsDir() {
+			if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
+				if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
+					fatal("Failed to include custom: %v", err)
+				}
+			} else {
+				log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
 			}
 		} else {
-			log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
+			log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 		}
-	} else {
-		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
 	isExist, err := util.IsExist(setting.AppDataPath)
