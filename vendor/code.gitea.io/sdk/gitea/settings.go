@@ -33,7 +33,7 @@ type GlobalAttachmentSettings struct {
 
 // GetGlobalUISettings get global ui settings witch are exposed by API
 func (c *Client) GetGlobalUISettings() (*GlobalUISettings, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	conf := new(GlobalUISettings)
@@ -43,7 +43,7 @@ func (c *Client) GetGlobalUISettings() (*GlobalUISettings, *Response, error) {
 
 // GetGlobalRepoSettings get global repository settings witch are exposed by API
 func (c *Client) GetGlobalRepoSettings() (*GlobalRepoSettings, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	conf := new(GlobalRepoSettings)
@@ -53,7 +53,7 @@ func (c *Client) GetGlobalRepoSettings() (*GlobalRepoSettings, *Response, error)
 
 // GetGlobalAPISettings get global api settings witch are exposed by it
 func (c *Client) GetGlobalAPISettings() (*GlobalAPISettings, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	conf := new(GlobalAPISettings)
@@ -63,7 +63,7 @@ func (c *Client) GetGlobalAPISettings() (*GlobalAPISettings, *Response, error) {
 
 // GetGlobalAttachmentSettings get global repository settings witch are exposed by API
 func (c *Client) GetGlobalAttachmentSettings() (*GlobalAttachmentSettings, *Response, error) {
-	if err := c.CheckServerVersionConstraint(">=1.13.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, nil, err
 	}
 	conf := new(GlobalAttachmentSettings)

@@ -329,6 +329,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
@@ -360,6 +361,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
@@ -413,7 +415,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {

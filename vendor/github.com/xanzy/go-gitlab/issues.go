@@ -125,6 +125,7 @@ func (i Issue) String() string {
 	return Stringify(i)
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (i *Issue) UnmarshalJSON(data []byte) error {
 	type alias Issue
 

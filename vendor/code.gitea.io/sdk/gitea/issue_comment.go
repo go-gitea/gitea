@@ -68,7 +68,7 @@ func (c *Client) ListRepoIssueComments(owner, repo string, opt ListIssueCommentO
 // GetIssueComment get a comment for a given repo by id.
 func (c *Client) GetIssueComment(owner, repo string, id int64) (*Comment, *Response, error) {
 	comment := new(Comment)
-	if err := c.CheckServerVersionConstraint(">=1.12.0"); err != nil {
+	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return comment, nil, err
 	}
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/comments/%d", owner, repo, id), nil, nil, &comment)

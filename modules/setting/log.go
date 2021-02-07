@@ -273,7 +273,7 @@ func newRouterLogService() {
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
-	if !DisableRouterLog && RedirectMacaronLog {
+	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags

@@ -34,6 +34,7 @@ type EventsService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/events.html#get-user-contribution-events
 type ContributionEvent struct {
+	ID          int        `json:"id"`
 	Title       string     `json:"title"`
 	ProjectID   int        `json:"project_id"`
 	ActionName  string     `json:"action_name"`
