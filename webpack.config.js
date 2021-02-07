@@ -157,6 +157,7 @@ module.exports = {
                     regenerator: true,
                   }
                 ],
+                ['@babel/plugin-proposal-class-properties'],
               ],
               generatorOpts: {
                 compact: false,

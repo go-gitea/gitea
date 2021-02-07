@@ -29,7 +29,8 @@ import {stripTags} from './utils.js';
 
 import React from "react"
 import ReactDOM from "react-dom"
-import { emojify } from "react-emoji"
+
+import AddReaction, { initReactionSelector } from "./components/add_reaction"
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -39,14 +40,14 @@ if(add_reaction_places.length > 0) {
   .then(response => response.json())
   .then(response => {
     add_reaction_places.forEach(p => {
+      console.log(p.dataset['action-url'])
         ReactDOM.render(
-          <>
-          {response.allowed_reactions.map(r => (
-            <div className="item reaction" data-content={r} >
-              {emojify(`:${r}:`, { emojiType: 'emojione' })}
-            </div>
-          ))}
-          </>,
+          <AddReaction
+            choices={response.allowed_reactions}
+            actionURL={p.dataset['actionUrl']}
+            pick={p.dataset['i18nPick']}
+            octicon={p.innerHTML}
+          />,
           p,
         )
     })
@@ -258,54 +259,6 @@ function initRepoStatusChecker() {
       }
     });
   }
-}
-
-function initReactionSelector(parent) {
-  let reactions = '';
-  if (!parent) {
-    parent = $(document);
-    reactions = '.reactions > ';
-  }
-
-  parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
-
-  parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
-    const vm = this;
-    e.preventDefault();
-
-    if ($(this).hasClass('disabled')) return;
-
-    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
-    const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrf,
-        content: $(this).data('content')
-      }
-    }).done((resp) => {
-      if (resp && (resp.html || resp.empty)) {
-        const content = $(vm).closest('.content');
-        let react = content.find('.segment.reactions');
-        if ((!resp.empty || resp.html === '') && react.length > 0) {
-          react.remove();
-        }
-        if (!resp.empty) {
-          react = $('<div class="ui attached segment reactions"></div>');
-          const attachments = content.find('.segment.bottom:first');
-          if (attachments.length > 0) {
-            react.insertBefore(attachments);
-          } else {
-            react.appendTo(content);
-          }
-          react.html(resp.html);
-          react.find('.dropdown').dropdown();
-          initReactionSelector(react);
-        }
-      }
-    });
-  });
 }
 
 function insertAtCursor(field, value) {
