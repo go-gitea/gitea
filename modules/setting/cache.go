@@ -49,6 +49,8 @@ var (
 	}
 )
 
+const memcachemax = 30 * 24 * time.Hour
+
 func newCacheService() {
 	sec := Cfg.Section("cache")
 	if err := sec.MapTo(&CacheService); err != nil {
@@ -58,8 +60,19 @@ func newCacheService() {
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
 	switch CacheService.Adapter {
 	case "memory":
-	case "redis", "memcache":
+	case "redis":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+	case "memcache":
+		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
+		if CacheService.TTL > memcachemax {
+			log.Warn("Cache service: provided TTL %v is too long for memcache, defaulting to maximum of 30 days", CacheService.TTL)
+			CacheService.TTL = memcachemax
+		}
+		if CacheService.LastCommit.TTL > memcachemax {
+			log.Warn("Cache service: provided LastCommit cache TTL %v is too long for memcache, defaulting to maximum of 30 days", CacheService.LastCommit.TTL)
+
+			CacheService.LastCommit.TTL = memcachemax
+		}
 	case "": // disable cache
 		CacheService.Enabled = false
 	default:
