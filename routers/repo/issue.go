@@ -743,6 +743,14 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 			ctx.Data[ctxDataKey] = templateBody
 			labelIDs := make([]string, 0, len(meta.Labels))
 			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
+				ctx.Data["Labels"] = repoLabels
+				if ctx.Repo.Owner.IsOrganization() {
+					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.Query("sort"), models.ListOptions{}); err == nil {
+						ctx.Data["OrgLabels"] = orgLabels
+						repoLabels = append(repoLabels, orgLabels...)
+					}
+				}
+
 				for _, metaLabel := range meta.Labels {
 					for _, repoLabel := range repoLabels {
 						if strings.EqualFold(repoLabel.Name, metaLabel) {
@@ -752,7 +760,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 						}
 					}
 				}
-				ctx.Data["Labels"] = repoLabels
 			}
 			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
