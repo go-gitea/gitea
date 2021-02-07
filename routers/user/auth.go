@@ -617,10 +617,26 @@ func SignInOAuthCallback(ctx *context.Context) {
 		if setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var name string
+			var missingFields []string
+			if gothUser.UserID == "" {
+				missingFields = append(missingFields, "sub")
+			}
+			if gothUser.Email == "" {
+				missingFields = append(missingFields, "email")
+			}
 			if setting.OAuth2Client.UseNickname {
+				if gothUser.NickName == "" {
+					missingFields = append(missingFields, "nickname")
+				}
 				name = gothUser.NickName
 			} else {
 				name = gothUser.UserID
+			}
+			if len(missingFields) > 0 {
+				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
+				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
+				ctx.ServerError("CreateUser", err)
+				return
 			}
 			u = &models.User{
 				Name:        name,
