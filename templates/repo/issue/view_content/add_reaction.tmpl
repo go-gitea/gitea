@@ -6,6 +6,8 @@
 	<div class="menu">
 		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
+
+    <div class="react" data-react="add_reaction"></div>
 		{{range $value := AllowedReactions}}
 			<div class="item reaction" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>
 		{{end}}

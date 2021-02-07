@@ -27,7 +27,34 @@ import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
 import {stripTags} from './utils.js';
 
+import React from "react"
+import ReactDOM from "react-dom"
+import Emoji from "react-emojione"
+
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+
+var add_reaction_places = document.querySelectorAll(".react[data-react='add_reaction']")
+if(add_reaction_places.length > 0) {
+  fetch("/api/v1/settings/ui", { headers: {"accept": "application/json"}})
+  .then(response => response.json())
+  .then(response => {
+    add_reaction_places.forEach(p => {
+        ReactDOM.render(
+          <>
+          {response.allowed_reactions.map(r => (
+            <div
+              className="item reaction"
+              data-content={r}
+            >
+              <Emoji>:{r}:</Emoji>
+            </div>
+          ))}
+          </>,
+          p,
+        )
+    })
+  })
+}
 
 let previewFileModes;
 const commentMDEditors = {};

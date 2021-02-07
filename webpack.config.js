@@ -143,7 +143,7 @@ module.exports = {
               ].map((path) => statSync(path).mtime.getTime()).join(':'),
               presets: [
                 [
-                  '@babel/preset-env',
+                  '@babel/preset-react',
                   {
                     useBuiltIns: 'usage',
                     corejs: 3,
