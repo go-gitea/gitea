@@ -49,7 +49,8 @@ var (
 	}
 )
 
-const memcachemax = 30 * 24 * time.Hour
+// MemcacheMaxTTL represents the maximum memcache TTL
+const MemcacheMaxTTL = 30 * 24 * time.Hour
 
 func newCacheService() {
 	sec := Cfg.Section("cache")
@@ -60,19 +61,8 @@ func newCacheService() {
 	CacheService.Adapter = sec.Key("ADAPTER").In("memory", []string{"memory", "redis", "memcache"})
 	switch CacheService.Adapter {
 	case "memory":
-	case "redis":
+	case "redis", "memcache":
 		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
-	case "memcache":
-		CacheService.Conn = strings.Trim(sec.Key("HOST").String(), "\" ")
-		if CacheService.TTL > memcachemax {
-			log.Warn("Cache service: provided TTL %v is too long for memcache, defaulting to maximum of 30 days", CacheService.TTL)
-			CacheService.TTL = memcachemax
-		}
-		if CacheService.LastCommit.TTL > memcachemax {
-			log.Warn("Cache service: provided LastCommit cache TTL %v is too long for memcache, defaulting to maximum of 30 days", CacheService.LastCommit.TTL)
-
-			CacheService.LastCommit.TTL = memcachemax
-		}
 	case "": // disable cache
 		CacheService.Enabled = false
 	default:
@@ -97,4 +87,20 @@ func newCacheService() {
 	if CacheService.LastCommit.Enabled {
 		log.Info("Last Commit Cache Service Enabled")
 	}
+}
+
+// TTLSeconds returns the TTLSeconds or unix timestamp for memcache
+func (c Cache) TTLSeconds() int64 {
+	if c.Adapter == "memcache" && c.TTL > MemcacheMaxTTL {
+		return time.Now().Add(c.TTL).Unix()
+	}
+	return int64(c.TTL.Seconds())
+}
+
+// LastCommitCacheTTLSeconds returns the TTLSeconds or unix timestamp for memcache
+func LastCommitCacheTTLSeconds() int64 {
+	if CacheService.Adapter == "memcache" && CacheService.LastCommit.TTL > MemcacheMaxTTL {
+		return time.Now().Add(CacheService.LastCommit.TTL).Unix()
+	}
+	return int64(CacheService.LastCommit.TTL.Seconds())
 }
