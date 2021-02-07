@@ -136,12 +136,12 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	if err != nil {
 		return nil, err
 	}
-	affectedFiles := append(fileStatus.Added, fileStatus.Removed...)
-	affectedFiles = append(affectedFiles, fileStatus.Modified...)
-	affectedFileList := make([]*api.CommitAffectedFiles, len(affectedFiles))
-	for i := range affectedFiles {
-		affectedFileList[i] = &api.CommitAffectedFiles{
-			Filename: affectedFiles[i],
+	affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
+	for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for _, filename := range files {
+			affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
+				Filename: filename,
+			})
 		}
 	}
 
