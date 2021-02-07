@@ -6,9 +6,12 @@ package repo
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"html"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -25,6 +28,16 @@ const (
 	tplCompare     base.TplName = "repo/diff/compare"
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
+
+// setCompareContext sets context data.
+func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+	ctx.Data["BaseCommit"] = base
+	ctx.Data["HeadCommit"] = head
+
+	setPathsCompareContext(ctx, base, head, headTarget)
+	setImageCompareContext(ctx, base, head)
+	setCsvCompareContext(ctx)
+}
 
 // setPathsCompareContext sets context data for source and raw paths
 func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
@@ -62,6 +75,49 @@ func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 			return nil
 		}
 		return result
+	}
+}
+
+// setCsvCompareContext sets context data that is required by the CSV compare template
+func setCsvCompareContext(ctx *context.Context) {
+	ctx.Data["IsCsvFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		extension := strings.ToLower(filepath.Ext(diffFile.Name))
+		return extension == ".csv" || extension == ".tsv"
+	}
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) []*gitdiff.TableDiffSection {
+		if diffFile == nil || baseCommit == nil || headCommit == nil {
+			return nil
+		}
+
+		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+			blob, err := c.GetBlobByPath(diffFile.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			reader, err := blob.DataAsync()
+			if err != nil {
+				return nil, err
+			}
+			defer reader.Close()
+
+			b, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return nil, err
+			}
+
+			return base.CreateCsvReaderAndGuessDelimiter(b), nil
+		}
+
+		baseReader, _ := csvReaderFromCommit(baseCommit)
+		headReader, _ := csvReaderFromCommit(headCommit)
+
+		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
+		if err != nil {
+			log.Error("RenderCsvDiff failed: %v", err)
+			return nil
+		}
+		return sections
 	}
 }
 
@@ -499,9 +555,8 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 
-	setImageCompareContext(ctx, baseCommit, headCommit)
 	headTarget := path.Join(headUser.Name, repo.Name)
-	setPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setCompareContext(ctx, baseCommit, headCommit, headTarget)
 
 	return false
 }
