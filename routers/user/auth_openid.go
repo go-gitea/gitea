@@ -412,7 +412,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	if !createUserInContext(ctx, tplSignUpOID, form, u) {
 		// error already handled
