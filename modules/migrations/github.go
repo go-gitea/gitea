@@ -301,9 +301,14 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			Created:       asset.CreatedAt.Time,
 			Updated:       asset.UpdatedAt.Time,
 			DownloadFunc: func() (io.ReadCloser, error) {
+				g.sleep()
 				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, *asset.ID, http.DefaultClient)
 				if err != nil {
 					return nil, err
+				}
+				err = g.RefreshRate()
+				if err != nil {
+					log.Error("g.client.RateLimits: %s", err)
 				}
 				if asset == nil {
 					return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
