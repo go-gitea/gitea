@@ -49,38 +49,6 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 	})
 }
 
-func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose bool) error {
-	if verbose {
-		log.Info("Adding dir  %s\n", dirPath)
-	}
-	dir, err := os.Open(absPath)
-	if err != nil {
-		return fmt.Errorf("Could not open directory %s: %s", absPath, err)
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(0)
-	if err != nil {
-		return fmt.Errorf("Unable to list files in %s: %s", absPath, err)
-	}
-
-	if err := addFile(w, dirPath, absPath, false); err != nil {
-		return err
-	}
-
-	for _, fileInfo := range files {
-		if fileInfo.IsDir() {
-			err = addRecursive(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		} else {
-			err = addFile(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func isSubdir(upper string, lower string) (bool, error) {
 	if relPath, err := filepath.Rel(upper, lower); err != nil {
 		return false, err
