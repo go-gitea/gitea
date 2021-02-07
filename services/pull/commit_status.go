@@ -108,13 +108,19 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 	}
 	defer headGitRepo.Close()
 
-	if !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Style == models.PullRequestStyleGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+		return "", errors.New("Head branch does not exist, can not merge")
+	}
+	if pr.Style != models.PullRequestStyleGithub && !headGitRepo.IsCommitExist(pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
-	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
-	if err != nil {
-		return "", errors.Wrap(err, "GetBranchCommitID")
+	sha := pr.HeadBranch
+	if pr.Style == models.PullRequestStyleGithub {
+		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
+		if err != nil {
+			return "", errors.Wrap(err, "GetBranchCommitID")
+		}
 	}
 
 	if err := pr.LoadBaseRepo(); err != nil {

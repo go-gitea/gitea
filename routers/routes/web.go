@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -193,6 +194,21 @@ func WebRoutes() *web.Route {
 			http.ServeFile(w, req, filePath)
 		})
 	}
+
+	r.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
+		if !git.SupportProcReceive {
+			rw.WriteHeader(404)
+			return
+		}
+		rw.Header().Set("content-type", "text/json;charset=UTF-8")
+		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
+		if err != nil {
+			log.Error("fail to write result: err: %v", err)
+			rw.WriteHeader(500)
+			return
+		}
+		rw.WriteHeader(200)
+	})
 
 	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)

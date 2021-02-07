@@ -284,6 +284,8 @@ var migrations = []Migration{
 	NewMigration("Add user redirect", addUserRedirect),
 	// v168 -> v169
 	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	// v169 -> v170
+	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
 }
 
 // GetCurrentDBVersion returns the current db version

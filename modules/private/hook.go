@@ -6,6 +6,7 @@ package private
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -55,6 +56,7 @@ type HookOptions struct {
 	GitPushOptions                  GitPushOptions
 	ProtectedBranchID               int64
 	IsDeployKey                     bool
+	IsWiki                          bool
 }
 
 // HookPostReceiveResult represents an individual result from PostReceive
@@ -70,6 +72,20 @@ type HookPostReceiveBranchResult struct {
 	Create  bool
 	Branch  string
 	URL     string
+}
+
+// HockProcReceiveResult represents an individual result from ProcReceive
+type HockProcReceiveResult struct {
+	Results []HockProcReceiveRefResult
+	Err     string
+}
+
+// HockProcReceiveRefResult represents an individual result from ProcReceive
+type HockProcReceiveRefResult struct {
+	OldOID   string
+	NewOID   string
+	Ref      string
+	OrignRef string
 }
 
 // HookPreReceive check whether the provided commits are allowed
@@ -121,6 +137,33 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 	_ = json.NewDecoder(resp.Body).Decode(res)
 
 	return res, ""
+}
+
+// HookProcReceive proc-receive hook
+func HookProcReceive(ownerName, repoName string, opts HookOptions) (*HockProcReceiveResult, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s",
+		url.PathEscape(ownerName),
+		url.PathEscape(repoName),
+	)
+
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	jsonBytes, _ := json.Marshal(opts)
+	req.Body(jsonBytes)
+	resp, err := req.Response()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(decodeJSONError(resp).Err)
+	}
+	res := &HockProcReceiveResult{}
+	_ = json.NewDecoder(resp.Body).Decode(res)
+
+	return res, nil
 }
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository

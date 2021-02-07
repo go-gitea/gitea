@@ -18,6 +18,7 @@ import (
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -153,6 +154,42 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	if opts.GitQuarantinePath != "" {
 		env = append(env,
 			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+	}
+
+	if git.SupportProcReceive {
+		// if need check write permission
+		for _, refFullName := range opts.RefFullNames {
+			if !strings.HasPrefix(refFullName, git.PullRequestPrefix) {
+				pusher, err := models.GetUserByID(opts.UserID)
+				if err != nil {
+					log.Error("models.GetUserByID：%v", err)
+					ctx.Error(http.StatusInternalServerError, "")
+					return
+				}
+
+				perm, err := models.GetUserRepoPermission(repo, pusher)
+				if err != nil {
+					log.Error("models.GetUserRepoPermission:%v", err)
+					ctx.Error(http.StatusInternalServerError, "")
+					return
+				}
+
+				if !perm.CanWrite(models.UnitTypeCode) {
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": "User permission denied.",
+					})
+					return
+				}
+
+				break
+			} else if opts.IsWiki {
+				// TODO: maybe can do it ...
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "not support send pull request to wiki.",
+				})
+				return
+			}
+		}
 	}
 
 	// Iterate across the provided old commit IDs
@@ -538,6 +575,216 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 		Results:      results,
 		RepoWasEmpty: wasEmpty,
+	})
+}
+
+// HookProcReceive proc-receive hook
+func HookProcReceive(ctx *gitea_context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
+	if !git.SupportProcReceive {
+		ctx.Status(404)
+		return
+	}
+
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+	if repo.OwnerName == "" {
+		repo.OwnerName = ownerName
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return
+	}
+	defer gitRepo.Close()
+
+	results := make([]private.HockProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	// TODO: Add more options?
+	var (
+		topicBranch string
+		title       string
+		description string
+	)
+
+	for i := range opts.OldCommitIDs {
+		if opts.NewCommitIDs[i] == git.EmptySHA {
+			ctx.JSON(http.StatusForbidden, map[string]interface{}{
+				"err": "Can't delete not exist branch",
+			})
+			return
+		}
+
+		baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+		if !gitRepo.IsBranchExist(baseBranchName) {
+			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+				"Err": fmt.Sprintf("target branch %s is not exist in %s/%s",
+					baseBranchName, ownerName, repoName),
+			})
+			return
+		}
+
+		if len(topicBranch) == 0 {
+			has := false
+			topicBranch, has = opts.GitPushOptions["topic"]
+			if !has || len(topicBranch) == 0 {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "push option 'topic' is requested",
+				})
+				return
+			}
+		}
+
+		pr, err := models.GetUnmergedAGitStylePullRequest(repo.ID, baseBranchName, opts.UserName, topicBranch)
+		if err != nil {
+			if !models.IsErrPullRequestNotExist(err) {
+				log.Error("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"Err": fmt.Sprintf("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err),
+				})
+				return
+			}
+
+			// create a new pull request
+			if len(title) == 0 {
+				has := false
+				title, has = opts.GitPushOptions["title"]
+				if !has || len(title) == 0 {
+					commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])
+					if err != nil {
+						log.Error("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err)
+						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+							"Err": fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err),
+						})
+						return
+					}
+					title = strings.Split(commit.CommitMessage, "\n")[0]
+				}
+				description = opts.GitPushOptions["description"]
+			}
+
+			pusher, err := models.GetUserByID(opts.UserID)
+			if err != nil {
+				log.Error("Failed to get user. Error: %v", err)
+				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"Err": fmt.Sprintf("Failed to get user. Error: %v", err),
+				})
+				return
+			}
+
+			prIssue := &models.Issue{
+				RepoID:   repo.ID,
+				Title:    title,
+				PosterID: pusher.ID,
+				Poster:   pusher,
+				IsPull:   true,
+				Content:  description,
+			}
+
+			headBranch := ""
+			userName := strings.ToLower(opts.UserName)
+			if !strings.HasPrefix(topicBranch, userName+"/") {
+				headBranch = userName + "/" + topicBranch
+			} else {
+				headBranch = topicBranch
+			}
+
+			pr := &models.PullRequest{
+				HeadRepoID:  repo.ID,
+				BaseRepoID:  repo.ID,
+				HeadBranch:  opts.NewCommitIDs[i],
+				BaseBranch:  baseBranchName,
+				TopicBranch: headBranch,
+				HeadRepo:    repo,
+				BaseRepo:    repo,
+				MergeBase:   "",
+				Type:        models.PullRequestGitea,
+				Style:       models.PullRequestStyleAGit,
+			}
+
+			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+				if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+					ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
+					return
+				}
+				ctx.Error(http.StatusInternalServerError, "NewPullRequest", err.Error())
+				return
+			}
+
+			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
+
+			results = append(results, private.HockProcReceiveRefResult{
+				Ref:      pr.GetGitRefName(),
+				OrignRef: opts.RefFullNames[i],
+				OldOID:   git.EmptySHA,
+				NewOID:   opts.NewCommitIDs[i],
+			})
+			continue
+		}
+
+		// update exist pull request
+		old := pr.HeadBranch
+		pr.HeadBranch = opts.NewCommitIDs[i]
+		if err = pull_service.UpdateRef(pr); err != nil {
+			log.Error("Failed to update pull ref. Error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Failed to update pull ref. Error: %v", err),
+			})
+			return
+		}
+
+		err = pr.UpdateCols("head_branch")
+		if err != nil {
+			log.Error("Failed to update head commit. Error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Failed to update head commit. Error: %v", err),
+			})
+			return
+		}
+		pull_service.AddToTaskQueue(pr)
+		pusher, err := models.GetUserByID(opts.UserID)
+		if err != nil {
+			log.Error("Failed to get user. Error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Failed to get user. Error: %v", err),
+			})
+			return
+		}
+		err = pr.LoadIssue()
+		if err != nil {
+			log.Error("Failed to load pull issue. Error: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Failed to load pull issue. Error: %v", err),
+			})
+			return
+		}
+		comment, err := models.CreatePushPullComment(pusher, pr, old, opts.NewCommitIDs[i])
+		if err == nil && comment != nil {
+			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
+		}
+		notification.NotifyPullRequestSynchronized(pusher, pr)
+
+		results = append(results, private.HockProcReceiveRefResult{
+			OldOID:   old,
+			NewOID:   opts.NewCommitIDs[i],
+			Ref:      pr.GetGitRefName(),
+			OrignRef: opts.RefFullNames[i],
+		})
+	}
+
+	ctx.JSON(http.StatusOK, private.HockProcReceiveResult{
+		Results: results,
 	})
 }
 

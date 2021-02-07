@@ -13,6 +13,14 @@ import (
 // BranchPrefix base dir of the branch information file store on git
 const BranchPrefix = "refs/heads/"
 
+// AGit Flow
+
+// PullRequestPrefix sepcial ref to create a pull request: refs/for/{targe-branch}
+// Note: Different with origin AGit Flow, use push option to set head-branch(topic)
+const PullRequestPrefix = "refs/for/"
+
+// TODO: /refs/for-review for suggest change interface
+
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(repoPath, name string) bool {
 	_, err := NewCommand("show-ref", "--verify", "--", name).RunInDir(repoPath)

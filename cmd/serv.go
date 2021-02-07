@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
@@ -135,6 +136,13 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(words) < 2 {
+		if git.CheckGitVersionAtLeast("2.29") == nil {
+			// for AGit Flow
+			if cmd == "ssh_info" {
+				fmt.Print(`{"type":"gitea","version":1}`)
+				return nil
+			}
+		}
 		fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
@@ -201,6 +209,11 @@ func runServ(c *cli.Context) error {
 		} else {
 			fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
+	}
+
+	// Because of special ref "refs/for" .. , need delay write permission check
+	if git.CheckGitVersionAtLeast("2.29") == nil {
+		requestedMode = models.AccessModeRead
 	}
 
 	results, err := private.ServCommand(keyID, username, reponame, requestedMode, verb, lfsVerb)
