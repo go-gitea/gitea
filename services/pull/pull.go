@@ -52,7 +52,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	if pr.Style == models.PullRequestStyleGithub {
 		err = PushToBaseRepo(pr)
 	} else {
-		UpdateRef(pr)
+		err = UpdateRef(pr)
 	}
 	if err != nil {
 		return err
