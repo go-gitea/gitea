@@ -3,6 +3,8 @@ import React from "react"
 import { emojify } from "react-emoji"
 import { SmileyIcon } from "@primer/octicons-react"
 
+const {csrf} = window.config;
+
 class AddReaction extends React.Component {
   state = { choices: [] }
 
@@ -19,7 +21,7 @@ class AddReaction extends React.Component {
   render = () => (
     <div
       className="item action ui pointing select-reaction dropdown top right"
-      data-action-url={this.props.actionURL}
+      data-action-url={this.props.address}
     >
       <a className="add-reaction" >
         <SmileyIcon />
@@ -27,7 +29,7 @@ class AddReaction extends React.Component {
 
       <div className="menu">
         <div className="header">
-          {this.props.pick}
+          {this.props.phrases.pick}
         </div>
 
         <div className="divider"></div>
@@ -46,10 +48,6 @@ class AddReaction extends React.Component {
   }
 
   /*
-
-    data-action-url="{{ .ActionURL }}"
-    data-i18n-pick="{{ .ctx.i18n.Tr "repo.pick_reaction"}}"
-
     choices={response.allowed_reactions}
     actionURL={p.dataset['actionUrl']}
     pick={p.dataset['i18nPick']}

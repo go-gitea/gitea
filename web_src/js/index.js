@@ -44,7 +44,9 @@ const render_blocks = () => {
 
   block_places.forEach(p => {
     const Block = blocks[p.dataset['block']]
-    ReactDOM.render(<Block/>, p)
+    var props = JSON.parse(p.innerHTML)
+
+    ReactDOM.render(<Block {...props} />, p)
     p.dataset['rendered'] = 'yes'
   })
 }

@@ -1,3 +1,14 @@
 {{if .ctx.IsSigned}}
-  <div class="block" data-block="add_reaction"></div>
+  <div
+    class="block"
+    data-block="add_reaction"
+    type="application/json"
+  >
+  {
+    "address": "{{ .ActionURL }}",
+    "phrases": {
+      "pick": "{{ .ctx.i18n.Tr "repo.pick_reaction"}}"
+    }
+  }
+  </div>
 {{end}}
