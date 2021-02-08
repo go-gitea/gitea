@@ -115,7 +115,8 @@ function initReactionSelector(parent, callback) {
 
             react.html(resp.html);
             react.find('.dropdown').dropdown();
-            initReactionSelector(react, callback);
+
+            callback(react, callback);
           }
         }
       });

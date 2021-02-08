@@ -1156,7 +1156,7 @@ async function initRepository() {
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
     });
-    initReactionSelector(null, () => {});
+    initReactionSelector(null, render_blocks);
   }
 
   // Quick start and repository home
@@ -2543,7 +2543,7 @@ $(document).ready(async () => {
       const conversation = $(data);
       $(this).closest('.conversation-holder').replaceWith(conversation);
       conversation.find('.dropdown').dropdown();
-      initReactionSelector(conversation, () => {});
+      initReactionSelector(conversation, render_blocks);
       initClipboard();
     } else {
       reload();
@@ -3686,7 +3686,7 @@ $(document).on('submit', '.conversation-holder form', async (e) => {
     $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
   }
   newConversationHolder.find('.dropdown').dropdown();
-  initReactionSelector(newConversationHolder, () => {});
+  initReactionSelector(newConversationHolder, render_blocks);
   initClipboard();
 });
 
