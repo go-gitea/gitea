@@ -39,10 +39,12 @@ var blocks = {
 }
 
 var react_places = document.querySelectorAll(".react")
+react_places = react_places.filter(x => x.dataset['rendered'] !== 'yes')
 
 react_places.forEach(p => {
   const Block = blocks[p.dataset['react']]
   ReactDOM.render(<Block/>, p)
+  p.dataset['rendered'] = 'yes'
 })
 
 let previewFileModes;
