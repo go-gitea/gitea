@@ -487,12 +487,6 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	lf, err := os.OpenFile("test.log", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0777)
-	if err != nil {
-		fail("Internal Server Error", "open log file failed: %v", err)
-	}
-	defer lf.Close()
-
 	if git.CheckGitVersionAtLeast("2.29") != nil {
 		fail("Internal Server Error", "git not support proc-receive.")
 	}

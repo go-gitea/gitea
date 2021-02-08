@@ -140,17 +140,20 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 
 	trackingBranch := "tracking"
 	// Fetch head branch
-	// Note: for agit style pull request, the head branch is an commit id
-	headbanch := pr.HeadBranch
+	var headBranch string
 	if pr.Style == models.PullRequestStyleGithub {
-		headbanch = git.BranchPrefix + headbanch
+		headBranch = git.BranchPrefix + pr.HeadBranch
+	} else if len(pr.HeadCommitID) == 40 { // for not created pull request
+		headBranch = pr.HeadCommitID
+	} else {
+		headBranch = pr.GetGitRefName()
 	}
-	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, headbanch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
-		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), headbanch, tmpBasePath, err, outbuf.String(), errbuf.String())
+	if err := git.NewCommand("fetch", "--no-tags", remoteRepoName, headBranch+":"+trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+		log.Error("Unable to fetch head_repo head branch [%s:%s -> tracking in %s]: %v:\n%s\n%s", pr.HeadRepo.FullName(), headBranch, tmpBasePath, err, outbuf.String(), errbuf.String())
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}
-		return "", fmt.Errorf("Unable to fetch head_repo head branch [%s:%s -> tracking in tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), headbanch, err, outbuf.String(), errbuf.String())
+		return "", fmt.Errorf("Unable to fetch head_repo head branch [%s:%s -> tracking in tmpBasePath]: %v\n%s\n%s", pr.HeadRepo.FullName(), headBranch, err, outbuf.String(), errbuf.String())
 	}
 	outbuf.Reset()
 	errbuf.Reset()

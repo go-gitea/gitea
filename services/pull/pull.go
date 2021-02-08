@@ -150,7 +150,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	}
 
 	// Check if pull request for the new target branch already exists
-	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch)
+	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch, models.PullRequestStyleGithub)
 	if existingPr != nil {
 		return models.ErrPullRequestAlreadyExists{
 			ID:         existingPr.ID,
@@ -452,7 +452,7 @@ func UpdateRef(pr *models.PullRequest) (err error) {
 		return err
 	}
 
-	_, err = git.NewCommand("update-ref", pr.GetGitRefName(), pr.HeadBranch).RunInDir(pr.BaseRepo.RepoPath())
+	_, err = git.NewCommand("update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunInDir(pr.BaseRepo.RepoPath())
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}
@@ -568,7 +568,12 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if pr.Style == models.PullRequestStyleGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		headCommit, err = gitRepo.GetCommit(pr.HeadBranch)
+		pr.HeadCommitID, err = git.GetRefCommitID(gitRepo.Path, pr.GetGitRefName())
+		if err != nil {
+			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
+			return ""
+		}
+		headCommit, err = gitRepo.GetCommit(pr.HeadCommitID)
 	}
 	if err != nil {
 		log.Error("Unable to get head commit: %s Error: %v", pr.HeadBranch, err)

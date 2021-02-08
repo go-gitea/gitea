@@ -14,8 +14,7 @@ func addAgitStylePullRequest(x *xorm.Engine) error {
 	type PullRequestStyle int
 
 	type PullRequest struct {
-		TopicBranch string
-		Style       PullRequestStyle
+		Style PullRequestStyle
 	}
 
 	if err := x.Sync2(new(PullRequest)); err != nil {

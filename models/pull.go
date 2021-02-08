@@ -68,8 +68,8 @@ type PullRequest struct {
 	BaseRepoID      int64       `xorm:"INDEX"`
 	BaseRepo        *Repository `xorm:"-"`
 	HeadBranch      string
+	HeadCommitID    string `xorm:"-"`
 	BaseBranch      string
-	TopicBranch     string           // use for agit style pr
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
 
@@ -479,41 +479,17 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
-func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
+func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, style PullRequestStyle) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND style = ? AND issue.is_closed=?",
-			headRepoID, headBranch, baseRepoID, baseBranch, false, PullRequestStyleGithub, false).
+			headRepoID, headBranch, baseRepoID, baseBranch, false, style, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, 0, headRepoID, baseRepoID, headBranch, baseBranch}
-	}
-
-	return pr, nil
-}
-
-// GetUnmergedAGitStylePullRequest get unmerged agit style pull request
-func GetUnmergedAGitStylePullRequest(repoID int64, baseBranch, userName, topicBranch string) (*PullRequest, error) {
-	pr := new(PullRequest)
-
-	headBranch := topicBranch
-	userName = strings.ToLower(userName)
-	if !strings.HasPrefix(topicBranch, userName+"/") {
-		headBranch = userName + "/" + topicBranch
-	}
-
-	has, err := x.
-		Where("head_repo_id=? AND topic_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND style = ? AND issue.is_closed=?",
-			repoID, headBranch, repoID, baseBranch, false, PullRequestStyleAGit, false).
-		Join("INNER", "issue", "issue.id=pull_request.issue_id").
-		Get(pr)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrPullRequestNotExist{0, 0, repoID, repoID, headBranch, baseBranch}
 	}
 
 	return pr, nil

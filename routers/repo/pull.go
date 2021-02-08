@@ -427,18 +427,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		if pull.Style == models.PullRequestStyleGithub {
 			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
 		} else {
-			headBranchExist = headGitRepo.IsCommitExist(pull.HeadBranch)
+			headBranchExist = git.IsReferenceExist(baseGitRepo.Path, pull.GetGitRefName())
 		}
 
 		if headBranchExist {
 			if pull.Style != models.PullRequestStyleGithub {
-				headBranchSha = pull.HeadBranch
+				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitRefName())
 			} else {
 				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-				if err != nil {
-					ctx.ServerError("GetBranchCommitID", err)
-					return nil
-				}
+			}
+			if err != nil {
+				ctx.ServerError("GetBranchCommitID", err)
+				return nil
 			}
 		}
 	}

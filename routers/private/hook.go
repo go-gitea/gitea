@@ -541,7 +541,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch)
+			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, models.PullRequestStyleGithub)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
@@ -646,7 +646,15 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			}
 		}
 
-		pr, err := models.GetUnmergedAGitStylePullRequest(repo.ID, baseBranchName, opts.UserName, topicBranch)
+		headBranch := ""
+		userName := strings.ToLower(opts.UserName)
+		if !strings.HasPrefix(topicBranch, userName+"/") {
+			headBranch = userName + "/" + topicBranch
+		} else {
+			headBranch = topicBranch
+		}
+
+		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestStyleAGit)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
@@ -692,25 +700,17 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 				Content:  description,
 			}
 
-			headBranch := ""
-			userName := strings.ToLower(opts.UserName)
-			if !strings.HasPrefix(topicBranch, userName+"/") {
-				headBranch = userName + "/" + topicBranch
-			} else {
-				headBranch = topicBranch
-			}
-
 			pr := &models.PullRequest{
-				HeadRepoID:  repo.ID,
-				BaseRepoID:  repo.ID,
-				HeadBranch:  opts.NewCommitIDs[i],
-				BaseBranch:  baseBranchName,
-				TopicBranch: headBranch,
-				HeadRepo:    repo,
-				BaseRepo:    repo,
-				MergeBase:   "",
-				Type:        models.PullRequestGitea,
-				Style:       models.PullRequestStyleAGit,
+				HeadRepoID:   repo.ID,
+				BaseRepoID:   repo.ID,
+				HeadBranch:   headBranch,
+				HeadCommitID: opts.NewCommitIDs[i],
+				BaseBranch:   baseBranchName,
+				HeadRepo:     repo,
+				BaseRepo:     repo,
+				MergeBase:    "",
+				Type:         models.PullRequestGitea,
+				Style:        models.PullRequestStyleAGit,
 			}
 
 			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
@@ -734,8 +734,24 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		// update exist pull request
-		old := pr.HeadBranch
-		pr.HeadBranch = opts.NewCommitIDs[i]
+		if err := pr.LoadBaseRepo(); err != nil {
+			log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Unable to load base repository for PR[%d] Error: %v", pr.ID, err),
+			})
+			return
+		}
+
+		old, err := git.GetRefCommitID(pr.BaseRepo.RepoPath(), pr.GetGitRefName())
+		if err != nil {
+			log.Error("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"Err": fmt.Sprintf("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err),
+			})
+			return
+		}
+
+		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(pr); err != nil {
 			log.Error("Failed to update pull ref. Error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -744,14 +760,6 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		err = pr.UpdateCols("head_branch")
-		if err != nil {
-			log.Error("Failed to update head commit. Error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Failed to update head commit. Error: %v", err),
-			})
-			return
-		}
 		pull_service.AddToTaskQueue(pr)
 		pusher, err := models.GetUserByID(opts.UserID)
 		if err != nil {

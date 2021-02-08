@@ -548,7 +548,7 @@ func CompareDiff(ctx *context.Context) {
 		}
 		ctx.Data["HeadBranches"] = headBranches
 
-		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestStyleGithub)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
