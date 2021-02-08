@@ -266,9 +266,9 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
 func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
-	if err := CheckGitVersionAtLeast("1.8"); err != nil {
+	if err := CheckGitVersionAtLeast("1.8"); err == nil {
 		_, err := NewCommand("merge-base", "--is-ancestor", commitHash.String(), c.ID.String()).RunInDir(c.repo.Path)
-		if err != nil {
+		if err == nil {
 			return true, nil
 		}
 		var exitError *exec.ExitError
@@ -280,7 +280,7 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, err
 	}
 
-	result, err := NewCommand("rev-list", "-n1", commitHash.String()+".."+c.ID.String(), "--").RunInDir(c.repo.Path)
+	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", commitHash.String()+".."+c.ID.String(), "--").RunInDir(c.repo.Path)
 	if err != nil {
 		return false, err
 	}
