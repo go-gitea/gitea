@@ -125,4 +125,8 @@ func TestHasPreviousCommit(t *testing.T) {
 	hazNot, err := commit.HasPreviousCommit(notParentSHA)
 	assert.NoError(t, err)
 	assert.False(t, hazNot)
+
+	selfNot, err := commit.HasPreviousCommit(commit.ID)
+	assert.NoError(t, err)
+	assert.False(t, selfNot)
 }
