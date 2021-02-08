@@ -11,7 +11,7 @@ import (
 
 // ToComment converts a models.Comment to the api.Comment format
 func ToComment(c *models.Comment) *api.Comment {
-	assets := make([]*api.Attachment, 0)
+	assets := make([]*api.Attachment, 0, len(c.Attachments))
 	for _, att := range c.Attachments {
 		assets = append(assets, ToCommentAttachment(att))
 	}

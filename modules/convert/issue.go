@@ -26,7 +26,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		return &api.Issue{}
 	}
 
-	assets := make([]*api.Attachment, 0)
+	assets := make([]*api.Attachment, 0, len(issue.Attachments))
 	for _, att := range issue.Attachments {
 		assets = append(assets, ToIssueAttachment(att))
 	}
