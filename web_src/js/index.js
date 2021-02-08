@@ -38,14 +38,18 @@ var blocks = {
   add_reaction: AddReaction,
 }
 
-var block_places = document.querySelectorAll(".block")
-block_places = block_places.filter(x => x.dataset['rendered'] !== 'yes')
+const render_blocks = () => {
+  var block_places = [...document.querySelectorAll(".block")]
+  block_places = block_places.filter(x => x.dataset['rendered'] !== 'yes')
 
-block_places.forEach(p => {
-  const Block = blocks[p.dataset['block']]
-  ReactDOM.render(<Block/>, p)
-  p.dataset['rendered'] = 'yes'
-})
+  block_places.forEach(p => {
+    const Block = blocks[p.dataset['block']]
+    ReactDOM.render(<Block/>, p)
+    p.dataset['rendered'] = 'yes'
+  })
+}
+
+render_blocks()
 
 let previewFileModes;
 const commentMDEditors = {};
