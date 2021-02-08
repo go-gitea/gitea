@@ -75,42 +75,53 @@ function initReactionSelector(parent) {
   parent
     .find(`.select-reaction > .menu > .item, ${reactions}a.label`)
     .on('click', function (e) {
-    const vm = this;
-    e.preventDefault();
+      const vm = this;
+      e.preventDefault();
 
-    if ($(this).hasClass('disabled')) return;
+      if ($(this).hasClass('disabled')) return;
 
-    const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
-    const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrf,
-        content: $(this).data('content')
-      }
-    }).done((resp) => {
-      if (resp && (resp.html || resp.empty)) {
-        const content = $(vm).closest('.content');
-        let react = content.find('.segment.reactions');
-        if ((!resp.empty || resp.html === '') && react.length > 0) {
-          react.remove();
+      const actionURL = $(this).hasClass('item')
+          ? $(this).closest('.select-reaction').data('action-url')
+          : $(this).data('action-url');
+
+      const url = `${actionURL}/${$(this).hasClass('blue')
+          ? 'unreact'
+          : 'react'}`;
+
+      $.ajax({
+        type: 'POST',
+        url,
+        data: {
+          _csrf: csrf,
+          content: $(this).data('content')
         }
-        if (!resp.empty) {
-          react = $('<div class="ui attached segment reactions"></div>');
-          const attachments = content.find('.segment.bottom:first');
-          if (attachments.length > 0) {
-            react.insertBefore(attachments);
-          } else {
-            react.appendTo(content);
+      }).done((resp) => {
+
+        if (resp && (resp.html || resp.empty)) {
+          const content = $(vm).closest('.content');
+          let react = content.find('.segment.reactions');
+
+          if ((!resp.empty || resp.html === '') && react.length > 0) {
+            react.remove();
           }
-          react.html(resp.html);
-          react.find('.dropdown').dropdown();
-          initReactionSelector(react);
+
+          if (!resp.empty) {
+            react = $('<div class="ui attached segment reactions"></div>');
+            const attachments = content.find('.segment.bottom:first');
+
+            if (attachments.length > 0) {
+              react.insertBefore(attachments);
+            } else {
+              react.appendTo(content);
+            }
+
+            react.html(resp.html);
+            react.find('.dropdown').dropdown();
+            initReactionSelector(react);
+          }
         }
-      }
+      });
     });
-  });
 }
 
 export { initReactionSelector }
