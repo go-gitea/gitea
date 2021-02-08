@@ -33,7 +33,7 @@ class AddReaction extends React.Component {
         <div className="divider"></div>
 
         {this.state.choices.map(r => (
-          <div className="item reaction" data-content={r} >
+          <div key={r} className="item reaction" data-content={r} >
             {emojify(`:${r}:`, { emojiType: 'emojione' })}
           </div>
         ))}
