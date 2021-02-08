@@ -11,8 +11,6 @@ import (
 	"io"
 	"strconv"
 	"strings"
-
-	gitea_log "code.gitea.io/gitea/modules/log"
 )
 
 // Blob represents a Git object.
@@ -35,7 +33,6 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(b.repoPath, stdoutWriter, stderr, strings.NewReader(b.ID.String()+"\n"))
 		if err != nil {
 			err = ConcatenateError(err, stderr.String())
-			gitea_log.Error("Blob.DataAsync Error: %v", err)
 			_ = stdoutWriter.CloseWithError(err)
 		} else {
 			_ = stdoutWriter.Close()

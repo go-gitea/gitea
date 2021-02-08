@@ -5,20 +5,10 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle
-	}
-
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+func commentTypeDeleteBranchUseOldRef(x *xorm.Engine) error {
+	_, err := x.Exec("UPDATE comment SET old_ref = commit_sha, commit_sha = '' WHERE type = 11")
+	return err
 }
