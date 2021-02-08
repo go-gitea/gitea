@@ -44,7 +44,7 @@ class AddReaction extends React.Component {
   )
 
   componentDidMount() {
-    initReactionSelector()
+    initReactionSelector(null, this.props.rerender)
   }
 
   /*
@@ -56,7 +56,7 @@ class AddReaction extends React.Component {
    */
 }
 
-function initReactionSelector(parent) {
+function initReactionSelector(parent, callback) {
   let reactions = '';
   if (!parent) {
     parent = $(document);
@@ -115,7 +115,7 @@ function initReactionSelector(parent) {
 
             react.html(resp.html);
             react.find('.dropdown').dropdown();
-            initReactionSelector(react);
+            initReactionSelector(react, callback);
           }
         }
       });

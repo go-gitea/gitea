@@ -46,7 +46,7 @@ const render_blocks = () => {
     const Block = blocks[p.dataset['block']]
     var props = JSON.parse(p.innerHTML)
 
-    ReactDOM.render(<Block {...props} />, p)
+    ReactDOM.render(<Block {...props} rerender={render_blocks} />, p)
     p.dataset['rendered'] = 'yes'
   })
 }
@@ -1156,7 +1156,7 @@ async function initRepository() {
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
     });
-    initReactionSelector();
+    initReactionSelector(null, () => {});
   }
 
   // Quick start and repository home
@@ -2543,7 +2543,7 @@ $(document).ready(async () => {
       const conversation = $(data);
       $(this).closest('.conversation-holder').replaceWith(conversation);
       conversation.find('.dropdown').dropdown();
-      initReactionSelector(conversation);
+      initReactionSelector(conversation, () => {});
       initClipboard();
     } else {
       reload();
@@ -3686,7 +3686,7 @@ $(document).on('submit', '.conversation-holder form', async (e) => {
     $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
   }
   newConversationHolder.find('.dropdown').dropdown();
-  initReactionSelector(newConversationHolder);
+  initReactionSelector(newConversationHolder, () => {});
   initClipboard();
 });
 
