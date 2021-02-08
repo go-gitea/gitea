@@ -6,6 +6,7 @@ package gitdiff
 
 import (
 	"encoding/csv"
+	"errors"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -25,8 +26,8 @@ const (
 
 // TableDiffCell represents a cell of a TableDiffRow
 type TableDiffCell struct {
-	LeftCell  *string
-	RightCell *string
+	LeftCell  string
+	RightCell string
 	Type      TableDiffCellType
 }
 
@@ -64,7 +65,7 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 	for i, row := range a {
 		cells := make([]*TableDiffCell, len(row))
 		for j := 0; j < len(row); j++ {
-			cells[j] = &TableDiffCell{ LeftCell: &row[j], Type: celltype }
+			cells[j] = &TableDiffCell{ LeftCell: row[j], Type: celltype }
 		}
 		rows[i] = &TableDiffRow{ RowIdx: i + 1, Cells: cells }
 	}
@@ -111,22 +112,26 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				return nil
 			}
 			for i := 0; i < len(row); i++ {
-				cells[i] = &TableDiffCell{ LeftCell: &row[i], Type: celltype }
+				cells[i] = &TableDiffCell{ LeftCell: row[i], Type: celltype }
 			}
 			return &TableDiffRow{ RowIdx: bline, Cells: cells }
 		}
 
 		arow := getRow(a, aline - 1)
 		brow := getRow(b, bline - 1)
+		if len(arow) == 0 && len(brow) == 0 {
+			return nil
+		}
+
 		for i := 0; i < len(a2b); i++ {
+			acell, _ := getCell(arow, i)
 			if a2b[i] == unmappedColumn {
-				cells[i] = &TableDiffCell{ LeftCell: getCell(arow, i), Type: TableDiffCellDel }
+				cells[i] = &TableDiffCell{ LeftCell: acell, Type: TableDiffCellDel }
 			} else {
-				acell := getCell(arow, i)
-				bcell := getCell(brow, a2b[i])
+				bcell, _ := getCell(brow, a2b[i])
 				
 				celltype := TableDiffCellChanged
-				if acell != nil && bcell != nil && *acell == *bcell {
+				if acell == bcell {
 					celltype = TableDiffCellEqual
 				}
 
@@ -135,7 +140,8 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		}
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
-				cells[i] = &TableDiffCell{ RightCell: getCell(brow, i), Type: TableDiffCellAdd }
+				bcell, _ := getCell(brow, i)
+				cells[i] = &TableDiffCell{ RightCell: bcell, Type: TableDiffCellAdd }
 			}
 		}
 		
@@ -173,8 +179,8 @@ func getColumnMapping(a [][]string, b [][]string) ([]int, []int) {
 	arow := getRow(a, 0)
 	brow := getRow(b, 0)
 
-	a2b := []int{};
-	b2a := []int{};
+	a2b := []int{}
+	b2a := []int{}
 
 	if arow != nil {
 		a2b = make([]int, len(a[0]))
@@ -191,11 +197,11 @@ func getColumnMapping(a [][]string, b [][]string) ([]int, []int) {
 	for i := 0; i < len(a2b); i++ {
 		a2b[i] = unmappedColumn
 
-		acell := getCell(arow, i)
-		if acell != nil {
+		acell, ea := getCell(arow, i)
+		if ea == nil {
 			for j := bcol; j < len(b2a); j++ {
-				bcell := getCell(brow, j)
-				if bcell != nil && *acell == *bcell {
+				bcell, eb := getCell(brow, j)
+				if eb == nil && acell == bcell {
 					a2b[i] = j
 					b2a[j] = i
 					bcol = j + 1
@@ -223,9 +229,9 @@ func tryMapColumnsByContent(a [][]string, a2b []int, b [][]string, b2a []int) {
 				rows := util.Min(MaxRows, util.Max(0, util.Min(len(a), len(b)) - 1))
 				same := 0
 				for j := 1; j <= rows; j++ {
-					acell := getCell(getRow(a, j), i)
-					bcell := getCell(getRow(b, j), start + 1)
-					if acell != nil && bcell != nil && *acell == *bcell {
+					acell, ea := getCell(getRow(a, j), i)
+					bcell, eb := getCell(getRow(b, j), start + 1)
+					if ea == nil && eb == nil && acell == bcell {
 						same++
 					}
 				}
@@ -248,11 +254,11 @@ func getRow(records [][]string, row int) []string {
 }
 
 // getCell returns the specific cell or nil if not present.
-func getCell(row []string, column int) *string {
+func getCell(row []string, column int) (string, error) {
 	if column < len(row) {
-		return &row[column]
+		return row[column], nil
 	}
-	return nil
+	return "", errors.New("Undefined column")
 }
 
 // countUnmappedColumns returns the count of unmapped columns.
