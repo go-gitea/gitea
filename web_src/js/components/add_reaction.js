@@ -1,5 +1,7 @@
 import React from "react"
+
 import { emojify } from "react-emoji"
+import { SmileyIcon } from "@primer/octicons-react"
 
 class AddReaction extends React.Component {
   state = { choices: [] }
@@ -19,10 +21,9 @@ class AddReaction extends React.Component {
       className="item action ui pointing select-reaction dropdown top right"
       data-action-url={this.props.actionURL}
     >
-      <a
-        className="add-reaction"
-        dangerouslySetInnerHTML={{ __html: this.props.octicon }}
-      ></a>
+      <a className="add-reaction" >
+        <SmileyIcon />
+      </a>
 
       <div className="menu">
         <div className="header">
@@ -45,16 +46,13 @@ class AddReaction extends React.Component {
   }
 
   /*
-    {{svg "octicon-smiley"}}
 
     data-action-url="{{ .ActionURL }}"
     data-i18n-pick="{{ .ctx.i18n.Tr "repo.pick_reaction"}}"
-    data-octicon="{{svg "octicon-smiley"}}"
 
     choices={response.allowed_reactions}
     actionURL={p.dataset['actionUrl']}
     pick={p.dataset['i18nPick']}
-    octicon={p.innerHTML}
 
         initReactionSelector($(p))
    */

@@ -11,6 +11,7 @@
     "@babel/runtime": "7.12.5",
     "@claviska/jquery-minicolors": "2.3.5",
     "@primer/octicons": "11.2.0",
+    "@primer/octicons-react": "12.0.0",
     "add-asset-webpack-plugin": "2.0.0",
     "babel-loader": "8.2.2",
     "clipboard": "2.0.6",
