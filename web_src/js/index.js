@@ -34,25 +34,16 @@ import AddReaction, { initReactionSelector } from "./components/add_reaction"
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
-var add_reaction_places = document.querySelectorAll(".react[data-react='add_reaction']")
-if(add_reaction_places.length > 0) {
-  fetch("/api/v1/settings/ui", { headers: {"accept": "application/json"}})
-  .then(response => response.json())
-  .then(response => {
-    add_reaction_places.forEach(p => {
-        ReactDOM.render(
-          <AddReaction
-            choices={response.allowed_reactions}
-            actionURL={p.dataset['actionUrl']}
-            pick={p.dataset['i18nPick']}
-            octicon={p.innerHTML}
-          />,
-          p,
-        )
-        initReactionSelector($(p))
-    })
-  })
+var blocks = {
+  add_reaction: AddReaction,
 }
+
+var react_places = document.querySelectorAll(".react")
+
+react_places.forEach(p => {
+  const Block = blocks[p.dataset['react']]
+  ReactDOM.render(<Block/>, p)
+})
 
 let previewFileModes;
 const commentMDEditors = {};

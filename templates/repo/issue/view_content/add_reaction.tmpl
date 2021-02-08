@@ -1,11 +1,3 @@
 {{if .ctx.IsSigned}}
-  <div
-    class="react"
-    data-react="add_reaction"
-    data-action-url="{{ .ActionURL }}"
-    data-i18n-pick="{{ .ctx.i18n.Tr "repo.pick_reaction"}}"
-    data-octicon="{{svg "octicon-smiley"}}"
-  >
-    {{svg "octicon-smiley"}}
-  </div>
+  <div class="react" data-react="add_reaction" />
 {{end}}

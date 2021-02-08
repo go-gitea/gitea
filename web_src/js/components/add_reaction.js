@@ -31,6 +31,25 @@ class AddReaction extends React.Component {
   componentDidMount() {
     initReactionSelector()
   }
+
+  /*
+    {{svg "octicon-smiley"}}
+
+    data-action-url="{{ .ActionURL }}"
+    data-i18n-pick="{{ .ctx.i18n.Tr "repo.pick_reaction"}}"
+    data-octicon="{{svg "octicon-smiley"}}"
+
+    choices={response.allowed_reactions}
+    actionURL={p.dataset['actionUrl']}
+    pick={p.dataset['i18nPick']}
+    octicon={p.innerHTML}
+
+    fetch("/api/v1/settings/ui", { headers: {"accept": "application/json"}})
+    .then(response => response.json())
+    .then(response => {
+        initReactionSelector($(p))
+    })
+   */
 }
 
 function initReactionSelector(parent) {
