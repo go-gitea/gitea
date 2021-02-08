@@ -2,6 +2,18 @@ import React from "react"
 import { emojify } from "react-emoji"
 
 class AddReaction extends React.Component {
+  state = { choices: [] }
+
+  constructor(p) {
+    super(p)
+
+    fetch("/api/v1/settings/ui", { headers: {"accept": "application/json"}})
+    .then(response => response.json())
+    .then(response => {
+      this.setState({ choices: response.allowed_reactions })
+    })
+  }
+
   render = () => (
     <div
       className="item action ui pointing select-reaction dropdown top right"
@@ -19,7 +31,7 @@ class AddReaction extends React.Component {
 
         <div className="divider"></div>
 
-        {this.props.choices.map(r => (
+        {this.state.choices.map(r => (
           <div className="item reaction" data-content={r} >
             {emojify(`:${r}:`, { emojiType: 'emojione' })}
           </div>
@@ -44,11 +56,7 @@ class AddReaction extends React.Component {
     pick={p.dataset['i18nPick']}
     octicon={p.innerHTML}
 
-    fetch("/api/v1/settings/ui", { headers: {"accept": "application/json"}})
-    .then(response => response.json())
-    .then(response => {
         initReactionSelector($(p))
-    })
    */
 }
 
