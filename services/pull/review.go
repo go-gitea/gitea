@@ -262,7 +262,7 @@ func DismissReview(reviewID int64, message string, doer *models.User, isDismiss 
 	}
 
 	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
-		return nil, fmt.Errorf("Wrong using")
+		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
 	}
 
 	if err = models.DismissReview(review, isDismiss); err != nil {
