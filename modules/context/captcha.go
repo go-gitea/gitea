@@ -7,6 +7,7 @@ package context
 import (
 	"sync"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 
 	"gitea.com/go-chi/captcha"
@@ -21,6 +22,7 @@ func GetImageCaptcha() *captcha.Captcha {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
 		})
+		cpt.Store = cache.GetCache()
 	})
 	return cpt
 }

@@ -308,7 +308,6 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["EnvVars"] = envVars
 	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog

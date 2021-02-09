@@ -5,6 +5,8 @@
 package translation
 
 import (
+	"errors"
+
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
@@ -49,7 +51,6 @@ func InitLocales() {
 		}
 	}
 
-	// These codes will be used once macaron removed
 	tags := make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)
@@ -58,8 +59,13 @@ func InitLocales() {
 	matcher = language.NewMatcher(tags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err := i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Fatal("Failed to set messages to %s: %v", setting.Langs[i], err)
+		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+			if errors.Is(err, i18n.ErrLangAlreadyExist) {
+				// just log if lang is already loaded since we can not reload it
+				log.Warn("Can not load language '%s' since already loaded", setting.Langs[i])
+			} else {
+				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+			}
 		}
 	}
 	i18n.SetDefaultLang("en-US")

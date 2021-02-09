@@ -553,6 +553,11 @@ func Routes() *web.Route {
 		}))
 	}
 	m.Use(context.APIContexter())
+
+	if setting.EnableAccessLog {
+		m.Use(context.AccessLogger())
+	}
+
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
@@ -722,6 +727,12 @@ func Routes() *web.Route {
 						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(reqAdmin(), repo.DeleteCollaborator)
 				}, reqToken())
+				m.Group("/teams", func() {
+					m.Get("", reqAnyRepoReader(), repo.ListTeams)
+					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
+						Put(reqAdmin(), repo.AddTeam).
+						Delete(reqAdmin(), repo.DeleteTeam)
+				}, reqToken())
 				m.Get("/raw/*", context.RepoRefForAPI, reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
@@ -743,6 +754,7 @@ func Routes() *web.Route {
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
+					m.Delete("/{tag}", repo.DeleteTag)
 				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -851,8 +863,8 @@ func Routes() *web.Route {
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
-							Get(repo.GetReleaseTag).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseTag)
+							Get(repo.GetReleaseByTag).
+							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)

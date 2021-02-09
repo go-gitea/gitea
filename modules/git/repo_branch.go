@@ -78,16 +78,17 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 }
 
 // GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
+// if limit = 0 it will not limit
+func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
 	gitRepo, err := OpenRepository(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer gitRepo.Close()
 
-	brs, err := gitRepo.GetBranches()
+	brs, countAll, err := gitRepo.GetBranches(skip, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	branches := make([]*Branch, len(brs))
@@ -99,7 +100,7 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 		}
 	}
 
-	return branches, nil
+	return branches, countAll, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch

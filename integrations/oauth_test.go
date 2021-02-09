@@ -235,7 +235,7 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"redirect_uri":  "a",
 		"refresh_token": parsed.RefreshToken,
 	})
-	// tip: Why this changed, because macaron will set req.Body back when consume the req but chi will not.
+
 	bs, err := ioutil.ReadAll(refreshReq.Body)
 	assert.NoError(t, err)
 
