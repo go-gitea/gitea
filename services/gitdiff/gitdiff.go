@@ -967,7 +967,13 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 
 // GetDiffCommit builds a Diff representing the given commitID.
 func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles)
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, "")
+}
+
+// GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
+// The whitespaceBehavior is either an empty string or a git flag
+func GetDiffCommitWithWhitespaceBehavior(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
 }
 
 // CommentAsDiff returns c.Patch as *Diff

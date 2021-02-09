@@ -262,6 +262,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 
+	whitespaceFlags := map[string]string{
+		"ignore-all":    "-w",
+		"ignore-change": "-b",
+		"ignore-eol":    "--ignore-space-at-eol",
+		"":              ""}
+
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Params(":sha")
@@ -304,11 +310,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommit(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
 	if err != nil {
-		ctx.NotFound("GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
 	}
 
