@@ -10,19 +10,23 @@ services:
     build:
       context: .
       dockerfile: docker/dockerfiles/gitea.Dockerfile
+    environment:
+      - DB_TYPE=sqlite3
     ports:
       - "3000:3000"
-      - "33629:22"
-    #depends_on:
-  #   - mysql-database
-  # gitea-mysql-database:
-  #   container_name: gitea-database
-  #   image: mysql:5.7
-  #   restart: always
-  #   environment:
-  #     - MYSQL_ROOT_PASSWORD=gitea
-  #     - MYSQL_USER=gitea
-  #     - MYSQL_PASSWORD=gitea
-  #     - MYSQL_DATABASE=gitea
-  #   volumes:
-  #     - ./mysql:/var/lib/mysql
+    depends_on:
+      - gitea-mysql-database
+  gitea-mysql-database:
+    container_name: gitea-mysql-database
+    image: mysql:5.7
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=gitea
+      - MYSQL_USER=gitea
+      - MYSQL_PASSWORD=gitea
+      - MYSQL_DATABASE=gitea
+    ports:
+      - "3306:3306"
+volumes:
+  mysql:
+    driver: local
