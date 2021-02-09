@@ -532,19 +532,13 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
 
-	whitespaceFlags := map[string]string{
-		"ignore-all":    "-w",
-		"ignore-change": "-b",
-		"ignore-eol":    "--ignore-space-at-eol",
-		"":              ""}
-
 	if ctx.Written() {
 		return
 	}
 	defer headGitRepo.Close()
 
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch,
-		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}

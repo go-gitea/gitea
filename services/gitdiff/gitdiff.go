@@ -1001,3 +1001,14 @@ func CommentMustAsDiff(c *models.Comment) *Diff {
 	}
 	return diff
 }
+
+// GetWhitespaceFlag returns git diff flag for treating whitespaces
+func GetWhitespaceFlag(whiteSpaceBehavior string) (string) {
+	whitespaceFlags := map[string]string{
+		"ignore-all":    "-w",
+		"ignore-change": "-b",
+		"ignore-eol":    "--ignore-space-at-eol",
+		"":              ""}
+
+	return whitespaceFlags[whiteSpaceBehavior]
+}

@@ -581,12 +581,6 @@ func ViewPullFiles(ctx *context.Context) {
 	}
 	pull := issue.PullRequest
 
-	whitespaceFlags := map[string]string{
-		"ignore-all":    "-w",
-		"ignore-change": "-b",
-		"ignore-eol":    "--ignore-space-at-eol",
-		"":              ""}
-
 	var (
 		diffRepoPath  string
 		startCommitID string
@@ -629,7 +623,7 @@ func ViewPullFiles(ctx *context.Context) {
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return
@@ -968,12 +962,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	whitespaceFlags := map[string]string{
-		"ignore-all":    "-w",
-		"ignore-change": "-b",
-		"ignore-eol":    "--ignore-space-at-eol",
-		"":              ""}
-
 	var (
 		repo        = ctx.Repo.Repository
 		attachments []string
@@ -1000,7 +988,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		// This stage is already stop creating new pull request, so it does not matter if it has
 		// something to compare or not.
 		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch,
-			whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
+			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
 			return
 		}
@@ -1011,7 +999,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if util.IsEmptyString(form.Title) {
 		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch,
-			whitespaceFlags[ctx.Data["WhitespaceBehavior"].(string)])
+			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
 			return
 		}
