@@ -86,6 +86,7 @@ type HockProcReceiveRefResult struct {
 	NewOID   string
 	Ref      string
 	OrignRef string
+	Err      string
 }
 
 // HookPreReceive check whether the provided commits are allowed

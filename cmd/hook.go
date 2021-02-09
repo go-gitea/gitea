@@ -503,52 +503,43 @@ Gitea or set your environment appropriately.`, "")
 	// H: PKT-LINE(version=1\0push-options...)
 	// H: flush-pkt
 
-	rs, err := readPktLine(reader)
-	if err != nil {
-		fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
-	}
-	if rs.Type != pktLineTypeData {
-		fail("Internal Server Error", "Pkt-Line format is wrong. get %v", rs)
-	}
+	rs := readPktLine(reader, pktLineTypeData)
 
 	const VersionHead string = "version=1"
 
-	if !strings.HasPrefix(rs.Data, VersionHead) {
-		fail("Internal Server Error", "Pkt-Line format is wrong. get %v", rs)
-	}
-
 	hasPushOptions := false
 	response := []byte(VersionHead)
-	if strings.Contains(rs.Data, "push-options") {
-		response = append(response, byte(0))
-		response = append(response, []byte("push-options")...)
-		hasPushOptions = true
+	var requestOptions []string
+
+	for i := range rs.Data {
+		if rs.Data[i] == byte(0) {
+			if string(rs.Data[0:i]) != VersionHead {
+				fail("Internal Server Error", "Received an not supported version: %s", string(rs.Data[0:i]))
+			}
+			requestOptions = strings.Split(string(rs.Data[i+1:]), " ")
+			break
+		}
+	}
+
+	for _, option := range requestOptions {
+		if strings.HasPrefix(option, "push-options") {
+			response = append(response, byte(0))
+			response = append(response, []byte("push-options")...)
+			hasPushOptions = true
+		}
 	}
 	response = append(response, []byte("\n")...)
 
-	rs, err = readPktLine(reader)
-	if err != nil {
-		fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
-	}
-	if rs.Type != pktLineTypeFlush {
-		fail("Internal Server Error", "Pkt-Line format is wrong. get %v", rs)
-	}
+	rs = readPktLine(reader, pktLineTypeFlush)
 
-	err = writePktLine(os.Stdout, pktLineTypeData, response)
-	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
-
-	err = writePktLine(os.Stdout, pktLineTypeFlush, nil)
-	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
+	writePktLine(os.Stdout, pktLineTypeData, response)
+	writePktLine(os.Stdout, pktLineTypeFlush, nil)
 
 	// 2. receive commands from server.
 	// S: PKT-LINE(<old-oid> <new-oid> <ref>)
 	// S: ... ...
 	// S: flush-pkt
-	// # receive push-options
+	// # [receive push-options]
 	// S: PKT-LINE(push-option)
 	// S: ... ...
 	// S: flush-pkt
@@ -561,14 +552,13 @@ Gitea or set your environment appropriately.`, "")
 	hookOptions.RefFullNames = make([]string, 0, hookBatchSize)
 
 	for {
-		rs, err = readPktLine(reader)
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
-		}
+		// note: pktLineTypeUnknow means pktLineTypeFlush and pktLineTypeData all allowed
+		rs = readPktLine(reader, pktLineTypeUnknow)
+
 		if rs.Type == pktLineTypeFlush {
 			break
 		}
-		t := strings.SplitN(rs.Data, " ", 3)
+		t := strings.SplitN(string(rs.Data), " ", 3)
 		if len(t) != 3 {
 			continue
 		}
@@ -581,29 +571,27 @@ Gitea or set your environment appropriately.`, "")
 
 	if hasPushOptions {
 		for {
-			rs, err = readPktLine(reader)
-			if err != nil {
-				fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
-			}
+			rs = readPktLine(reader, pktLineTypeUnknow)
+
 			if rs.Type == pktLineTypeFlush {
 				break
 			}
 
-			kv := strings.SplitN(rs.Data, "=", 2)
+			kv := strings.SplitN(string(rs.Data), "=", 2)
 			if len(kv) == 2 {
 				hookOptions.GitPushOptions[kv[0]] = kv[1]
 			}
 		}
 	}
 
-	// run hook
+	// 3. run hook
 	resp, err := private.HookProcReceive(repoUser, repoName, hookOptions)
 	if err != nil {
 		fail("Internal Server Error", "run proc-receive hook failed :%v", err)
 	}
 
-	// 3 response result to service.
-	// # OK, but has an alternate reference.  The alternate reference name
+	// 4. response result to service
+	// # a. OK, but has an alternate reference.  The alternate reference name
 	// # and other status can be given in option directives.
 	// H: PKT-LINE(ok <ref>)
 	// H: PKT-LINE(option refname <refname>)
@@ -612,28 +600,24 @@ Gitea or set your environment appropriately.`, "")
 	// H: PKT-LINE(option forced-update)
 	// H: ... ...
 	// H: flush-pkt
+	// # b. NO, I reject it.
+	// H: PKT-LINE(ng <ref> <reason>)
+
 	for _, rs := range resp.Results {
-		err = writePktLine(os.Stdout, pktLineTypeData, []byte("ok "+rs.OrignRef))
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		if len(rs.Err) > 0 {
+			writePktLine(os.Stdout, pktLineTypeData, []byte("ng "+rs.OrignRef+" "+rs.Err))
+			continue
 		}
-		err = writePktLine(os.Stdout, pktLineTypeData, []byte("option refname "+rs.Ref))
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+
+		writePktLine(os.Stdout, pktLineTypeData, []byte("ok "+rs.OrignRef))
+		writePktLine(os.Stdout, pktLineTypeData, []byte("option refname "+rs.Ref))
+		if rs.OldOID != git.EmptySHA {
+			writePktLine(os.Stdout, pktLineTypeData, []byte("option old-oid "+rs.OldOID))
 		}
-		err = writePktLine(os.Stdout, pktLineTypeData, []byte("option old-oid "+rs.OldOID))
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-		}
-		err = writePktLine(os.Stdout, pktLineTypeData, []byte("option new-oid "+rs.NewOID))
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-		}
+		writePktLine(os.Stdout, pktLineTypeData, []byte("option new-oid "+rs.NewOID))
 	}
-	err = writePktLine(os.Stdout, pktLineTypeFlush, nil)
-	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-	}
+	writePktLine(os.Stdout, pktLineTypeFlush, nil)
+
 	return nil
 }
 
@@ -653,75 +637,93 @@ const (
 // gitPktLine pkt-line api
 type gitPktLine struct {
 	Type   pktLineType
-	Length int64
-	Data   string
+	Length uint64
+	Data   []byte
 }
 
-func readPktLine(in *bufio.Reader) (r *gitPktLine, err error) {
+func readPktLine(in *bufio.Reader, requestType pktLineType) (r *gitPktLine) {
+	var err error
+
 	// read prefix
 	lengthBytes := make([]byte, 4)
 	for i := 0; i < 4; i++ {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
-			return nil, err
+			fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
+
 	r = new(gitPktLine)
-	r.Length, err = strconv.ParseInt(string(lengthBytes), 16, 64)
+	r.Length, err = strconv.ParseUint(string(lengthBytes), 16, 32)
 	if err != nil {
-		return nil, err
+		fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
 	}
 
 	if r.Length == 0 {
+		if requestType == pktLineTypeData {
+			fail("Internal Server Error", "Pkt-Line format is wrong")
+		}
 		r.Type = pktLineTypeFlush
-		return r, nil
+		return r
 	}
 
-	if r.Length <= 4 || r.Length > 65520 {
-		r.Type = pktLineTypeUnknow
-		return r, nil
+	if r.Length <= 4 || r.Length > 65520 || requestType == pktLineTypeFlush {
+		fail("Internal Server Error", "Pkt-Line format is wrong")
 	}
 
-	tmp := make([]byte, r.Length-4)
-	for i := range tmp {
-		tmp[i], err = in.ReadByte()
+	r.Data = make([]byte, r.Length-4)
+	for i := range r.Data {
+		r.Data[i], err = in.ReadByte()
 		if err != nil {
-			return nil, err
+			fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
 
 	r.Type = pktLineTypeData
-	r.Data = string(tmp)
 
-	return r, nil
+	return r
 }
 
-func writePktLine(out io.Writer, typ pktLineType, data []byte) error {
+func writePktLine(out io.Writer, typ pktLineType, data []byte) {
 	if typ == pktLineTypeFlush {
 		l, err := out.Write([]byte("0000"))
 		if err != nil {
-			return err
+			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 		}
 		if l != 4 {
-			return fmt.Errorf("real write length is different with request, want %v, real %v", 4, l)
+			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 		}
 	}
 
 	if typ != pktLineTypeData {
-		return nil
+		return
 	}
 
-	l := len(data) + 4
-	tmp := []byte(fmt.Sprintf("%04x", l))
-	tmp = append(tmp, data...)
+	hexchar := []byte("0123456789abcdef")
+	hex := func(n uint64) byte {
+		return hexchar[(n)&15]
+	}
+
+	length := uint64(len(data) + 4)
+	tmp := make([]byte, 4)
+	tmp[0] = hex(length >> 12)
+	tmp[1] = hex(length >> 8)
+	tmp[2] = hex(length >> 4)
+	tmp[3] = hex(length)
 
 	lr, err := out.Write(tmp)
 	if err != nil {
-		return err
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
-	if l != lr {
-		return fmt.Errorf("real write length is different with request, want %v, real %v", l, lr)
+	if 4 != lr {
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 
-	return nil
+	lr, err = out.Write(data)
+	if err != nil {
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+	}
+	if int(length-4) != lr {
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+	}
 }

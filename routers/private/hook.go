@@ -620,19 +620,25 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
-			ctx.JSON(http.StatusForbidden, map[string]interface{}{
-				"err": "Can't delete not exist branch",
+			results = append(results, private.HockProcReceiveRefResult{
+				OrignRef: opts.RefFullNames[i],
+				OldOID:   opts.OldCommitIDs[i],
+				NewOID:   opts.NewCommitIDs[i],
+				Err:      "Can't delete not exist branch",
 			})
-			return
+			continue
 		}
 
 		baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
 		if !gitRepo.IsBranchExist(baseBranchName) {
-			ctx.JSON(http.StatusNotFound, map[string]interface{}{
-				"Err": fmt.Sprintf("target branch %s is not exist in %s/%s",
+			results = append(results, private.HockProcReceiveRefResult{
+				OrignRef: opts.RefFullNames[i],
+				OldOID:   opts.OldCommitIDs[i],
+				NewOID:   opts.NewCommitIDs[i],
+				Err: fmt.Sprintf("target branch %s is not exist in %s/%s",
 					baseBranchName, ownerName, repoName),
 			})
-			return
+			continue
 		}
 
 		if len(topicBranch) == 0 {

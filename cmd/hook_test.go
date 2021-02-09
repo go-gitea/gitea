@@ -17,25 +17,21 @@ func TestPktLine(t *testing.T) {
 	// test read
 	s := strings.NewReader("0000")
 	r := bufio.NewReader(s)
-	result, err := readPktLine(r)
-	assert.NoError(t, err)
+	result := readPktLine(r, pktLineTypeFlush)
 	assert.Equal(t, pktLineTypeFlush, result.Type)
 
 	s = strings.NewReader("0006a\n")
 	r = bufio.NewReader(s)
-	result, err = readPktLine(r)
-	assert.NoError(t, err)
+	result = readPktLine(r, pktLineTypeData)
 	assert.Equal(t, pktLineTypeData, result.Type)
-	assert.Equal(t, "a\n", result.Data)
+	assert.Equal(t, []byte("a\n"), result.Data)
 
 	// test write
 	w := bytes.NewBuffer([]byte{})
-	err = writePktLine(w, pktLineTypeFlush, nil)
-	assert.NoError(t, err)
+	writePktLine(w, pktLineTypeFlush, nil)
 	assert.Equal(t, []byte("0000"), w.Bytes())
 
 	w.Reset()
-	err = writePktLine(w, pktLineTypeData, []byte("a\nb"))
-	assert.NoError(t, err)
+	writePktLine(w, pktLineTypeData, []byte("a\nb"))
 	assert.Equal(t, []byte("0007a\nb"), w.Bytes())
 }
