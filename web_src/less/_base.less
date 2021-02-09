@@ -4,6 +4,48 @@
 }
 
 @font-face {
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Regular"), local("YuGothic Regular"), local("YuGothic Medium");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Medium"), local("YuGothic Medium"), local("Yu Gothic Regular");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Yu Gothic";
+  src: local("Yu Gothic Bold"), local("YuGothic Bold");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "Hiragino Sans";
+  src: local("Hiragino Sans W2"), local("Hiragino Kaku Gothic ProN W3");
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: "Hiragino Sans";
+  src: local("Hiragino Sans W4"), local("Hiragino Kaku Gothic ProN W3");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Hiragino Sans";
+  src: local("Hiragino Sans W5"), local("Hiragino Kaku Gothic ProN W6");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Hiragino Sans";
+  src: local("Hiragino Sans W6"), local("Hiragino Kaku Gothic ProN W6");
+  font-weight: 700;
+}
+
+@font-face {
   font-family: "Lato";
   src:
     local("Lato Regular"),
@@ -24,6 +66,30 @@
     url('../fonts/lato-fonts/Lato-Italic.woff') format("woff"); /* Modern Browsers */
   font-style: italic;
   font-weight: normal;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Semibold"),
+    local("Lato-Semibold"),
+    url('../fonts/lato-fonts/Lato-Semibold.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-Semibold.woff') format("woff"); /* Modern Browsers */
+  font-style: normal;
+  font-weight: 600;
+  text-rendering: optimizeLegibility;
+}
+
+@font-face {
+  font-family: "Lato";
+  src:
+    local("Lato Semibold Italic"),
+    local("Lato-SemiboldItalic"),
+    url('../fonts/lato-fonts/Lato-SemiboldItalic.woff2') format("woff2"), /* Modern Browsers */
+    url('../fonts/lato-fonts/Lato-SemiboldItalic.woff') format("woff"); /* Modern Browsers */
+  font-style: italic;
+  font-weight: 600;
   text-rendering: optimizeLegibility;
 }
 
@@ -114,6 +180,11 @@
     font-family: @fonts;
   }
 
+  b,
+  strong {
+    font-weight: 600;
+  }
+
   .ui.accordion .title:not(.ui),
   .ui.button,
   .ui.card > .content > .header.ui.card > .content > .header,
@@ -163,27 +234,27 @@ body {
   flex-direction: column;
 }
 
-@ja-fonts: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Source Han Sans JP", "Noto Sans CJK JP", "Droid Sans Japanese", "Meiryo", "MS PGothic";
+@ja-fonts: "Hiragino Sans", "Source Han Sans JP", "Source Han Sans", "Noto Sans CJK JP", "Yu Gothic", "Droid Sans Japanese", "Meiryo", "MS PGothic";
 :lang(ja) {
   .override-fonts(@default-fonts, @ja-fonts, sans-serif;);
 }
 
-@zh-CN-fonts: "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", SimHei;
+@zh-CN-fonts: "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", "SimHei";
 :lang(zh-CN) {
   .override-fonts(@default-fonts, @zh-CN-fonts, sans-serif;);
 }
 
-@zh-TW-fonts: "PingFang TC", "Hiragino Sans TC", "Source Han Sans TW", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", PMingLiU;
+@zh-TW-fonts: "PingFang TC", "Hiragino Sans TC", "Source Han Sans TW", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU";
 :lang(zh-TW) {
   .override-fonts(@default-fonts, @zh-TW-fonts, sans-serif;);
 }
 
-@zh-HK-fonts: "PingFang HK", "Hiragino Sans TC", "Source Han Sans HK", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", PMingLiU_HKSCS, PMingLiU;
+@zh-HK-fonts: "PingFang HK", "Hiragino Sans TC", "Source Han Sans HK", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU_HKSCS", "PMingLiU";
 :lang(zh-HK) {
   .override-fonts(@default-fonts, @zh-HK-fonts, sans-serif;);
 }
 
-@ko-fonts: "Apple SD Gothic Neo", "NanumBarunGothic", "Malgun Gothic", "Gulim", "Dotum", "Nanum Gothic", "Source Han Sans KR", "Noto Sans CJK KR";
+@ko-fonts: "Apple SD Gothic Neo", "NanumBarunGothic", "Malgun Gothic", "Source Han Sans KR", "Noto Sans CJK KR", "Dotum", "Nanum Gothic";
 :lang(ko) {
   .override-fonts(@default-fonts, @ko-fonts, sans-serif;);
 }
@@ -489,7 +560,7 @@ code,
     }
 
     &.bold {
-      font-weight: bold;
+      font-weight: 600;
     }
 
     &.italic {
@@ -532,7 +603,7 @@ code,
   }
 
   &.bottom.attached.message {
-    font-weight: bold;
+    font-weight: 600;
     text-align: left;
     color: black;
 

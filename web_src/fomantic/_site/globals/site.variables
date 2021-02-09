@@ -1,1 +1,4 @@
-@fontName : 'Roboto';
+@pageFont: var(--fonts-proportional), "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", sans-serif;
+@headerFont: @pageFont;
+
+@bold: 600;
