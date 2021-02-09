@@ -554,7 +554,7 @@ func RepoAssignment() func(http.Handler) http.Handler {
 			}
 			ctx.Data["Tags"] = tags
 
-			brs, err := ctx.Repo.GitRepo.GetBranches()
+			brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 			if err != nil {
 				ctx.ServerError("GetBranches", err)
 				return
@@ -747,7 +747,7 @@ func RepoRefByType(refType RepoRefType) func(http.Handler) http.Handler {
 				refName = ctx.Repo.Repository.DefaultBranch
 				ctx.Repo.BranchName = refName
 				if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-					brs, err := ctx.Repo.GitRepo.GetBranches()
+					brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 					if err != nil {
 						ctx.ServerError("GetBranches", err)
 						return

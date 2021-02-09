@@ -301,7 +301,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, err := repo_module.GetBranches(m.Repo)
+	branches, _, err := repo_module.GetBranches(m.Repo, 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false

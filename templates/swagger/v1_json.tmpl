@@ -2500,6 +2500,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7951,6 +7963,12 @@
             "name": "filepath",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -8070,7 +8088,7 @@
           "repository"
         ],
         "summary": "Get a release by tag name",
-        "operationId": "repoGetReleaseTag",
+        "operationId": "repoGetReleaseByTag",
         "parameters": [
           {
             "type": "string",
@@ -8088,7 +8106,7 @@
           },
           {
             "type": "string",
-            "description": "tagname of the release to get",
+            "description": "tag name of the release to get",
             "name": "tag",
             "in": "path",
             "required": true
@@ -8107,8 +8125,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete a release tag",
-        "operationId": "repoDeleteReleaseTag",
+        "summary": "Delete a release by tag name",
+        "operationId": "repoDeleteReleaseByTag",
         "parameters": [
           {
             "type": "string",
@@ -8126,7 +8144,7 @@
           },
           {
             "type": "string",
-            "description": "name of the tag to delete",
+            "description": "tag name of the release to delete",
             "name": "tag",
             "in": "path",
             "required": true
@@ -8138,9 +8156,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -8917,6 +8932,52 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TagList"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tags/{tag}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a repository's tag by name",
+        "operationId": "repoDeleteTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of tag to delete",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -11927,6 +11988,13 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CommitAffectedFiles"
+          },
+          "x-go-name": "Files"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -11945,6 +12013,17 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CommitAffectedFiles": {
+      "description": "CommitAffectedFiles store information about files affected by the commit",
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string",
+          "x-go-name": "Filename"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
