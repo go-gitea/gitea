@@ -801,7 +801,7 @@ func DismissPullReview(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
-	disMissReview(ctx, opts.Message, true)
+	dismissReview(ctx, opts.Message, true)
 }
 
 // UnDismissPullReview cancel to dismiss a review for a pull request
@@ -841,10 +841,10 @@ func UnDismissPullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-	disMissReview(ctx, "", false)
+	dismissReview(ctx, "", false)
 }
 
-func disMissReview(ctx *context.APIContext, msg string, isDismiss bool) {
+func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 	if !ctx.Repo.IsAdmin() {
 		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
 		return
