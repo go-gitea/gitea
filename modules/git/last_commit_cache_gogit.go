@@ -23,7 +23,7 @@ type LastCommitCache struct {
 }
 
 // NewLastCommitCache creates a new last commit cache for repo
-func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl int64, cache Cache) *LastCommitCache {
+func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, cache Cache) *LastCommitCache {
 	if cache == nil {
 		return nil
 	}
