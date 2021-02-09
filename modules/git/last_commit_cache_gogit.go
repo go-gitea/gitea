@@ -16,7 +16,7 @@ import (
 // LastCommitCache represents a cache to store last commit
 type LastCommitCache struct {
 	repoPath    string
-	ttl         int64
+	ttl         func() int64
 	repo        *Repository
 	commitCache map[string]*object.Commit
 	cache       Cache
