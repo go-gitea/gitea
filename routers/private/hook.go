@@ -788,12 +788,14 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
 		}
 		notification.NotifyPullRequestSynchronized(pusher, pr)
+		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HockProcReceiveRefResult{
-			OldOID:   old,
-			NewOID:   opts.NewCommitIDs[i],
-			Ref:      pr.GetGitRefName(),
-			OrignRef: opts.RefFullNames[i],
+			OldOID:      old,
+			NewOID:      opts.NewCommitIDs[i],
+			Ref:         pr.GetGitRefName(),
+			OrignRef:    opts.RefFullNames[i],
+			IsForcePush: isForcePush,
 		})
 	}
 

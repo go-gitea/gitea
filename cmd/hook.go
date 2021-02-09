@@ -615,6 +615,9 @@ Gitea or set your environment appropriately.`, "")
 			writePktLine(os.Stdout, pktLineTypeData, []byte("option old-oid "+rs.OldOID))
 		}
 		writePktLine(os.Stdout, pktLineTypeData, []byte("option new-oid "+rs.NewOID))
+		if rs.IsForcePush {
+			writePktLine(os.Stdout, pktLineTypeData, []byte("option forced-update"))
+		}
 	}
 	writePktLine(os.Stdout, pktLineTypeFlush, nil)
 
