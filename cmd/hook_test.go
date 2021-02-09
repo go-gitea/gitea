@@ -28,10 +28,10 @@ func TestPktLine(t *testing.T) {
 
 	// test write
 	w := bytes.NewBuffer([]byte{})
-	writePktLine(w, pktLineTypeFlush, nil)
+	writeFlushPktLine(w)
 	assert.Equal(t, []byte("0000"), w.Bytes())
 
 	w.Reset()
-	writePktLine(w, pktLineTypeData, []byte("a\nb"))
+	writeDataPktLine(w, []byte("a\nb"))
 	assert.Equal(t, []byte("0007a\nb"), w.Bytes())
 }

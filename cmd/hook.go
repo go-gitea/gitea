@@ -532,8 +532,8 @@ Gitea or set your environment appropriately.`, "")
 
 	readPktLine(reader, pktLineTypeFlush)
 
-	writePktLine(os.Stdout, pktLineTypeData, response)
-	writePktLine(os.Stdout, pktLineTypeFlush, nil)
+	writeDataPktLine(os.Stdout, response)
+	writeFlushPktLine(os.Stdout)
 
 	// 2. receive commands from server.
 	// S: PKT-LINE(<old-oid> <new-oid> <ref>)
@@ -605,21 +605,21 @@ Gitea or set your environment appropriately.`, "")
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {
-			writePktLine(os.Stdout, pktLineTypeData, []byte("ng "+rs.OrignRef+" "+rs.Err))
+			writeDataPktLine(os.Stdout, []byte("ng "+rs.OrignRef+" "+rs.Err))
 			continue
 		}
 
-		writePktLine(os.Stdout, pktLineTypeData, []byte("ok "+rs.OrignRef))
-		writePktLine(os.Stdout, pktLineTypeData, []byte("option refname "+rs.Ref))
+		writeDataPktLine(os.Stdout, []byte("ok "+rs.OrignRef))
+		writeDataPktLine(os.Stdout, []byte("option refname "+rs.Ref))
 		if rs.OldOID != git.EmptySHA {
-			writePktLine(os.Stdout, pktLineTypeData, []byte("option old-oid "+rs.OldOID))
+			writeDataPktLine(os.Stdout, []byte("option old-oid "+rs.OldOID))
 		}
-		writePktLine(os.Stdout, pktLineTypeData, []byte("option new-oid "+rs.NewOID))
+		writeDataPktLine(os.Stdout, []byte("option new-oid "+rs.NewOID))
 		if rs.IsForcePush {
-			writePktLine(os.Stdout, pktLineTypeData, []byte("option forced-update"))
+			writeDataPktLine(os.Stdout, []byte("option forced-update"))
 		}
 	}
-	writePktLine(os.Stdout, pktLineTypeFlush, nil)
+	writeFlushPktLine(os.Stdout)
 
 	return nil
 }
@@ -687,21 +687,17 @@ func readPktLine(in *bufio.Reader, requestType pktLineType) (r *gitPktLine) {
 	return r
 }
 
-func writePktLine(out io.Writer, typ pktLineType, data []byte) {
-	if typ == pktLineTypeFlush {
-		l, err := out.Write([]byte("0000"))
-		if err != nil {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-		}
-		if l != 4 {
-			fail("Internal Server Error", "Pkt-Line response failed: %v", err)
-		}
+func writeFlushPktLine(out io.Writer) {
+	l, err := out.Write([]byte("0000"))
+	if err != nil {
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
-
-	if typ != pktLineTypeData {
-		return
+	if l != 4 {
+		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
+}
 
+func writeDataPktLine(out io.Writer, data []byte) {
 	hexchar := []byte("0123456789abcdef")
 	hex := func(n uint64) byte {
 		return hexchar[(n)&15]
