@@ -45,14 +45,31 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 
+	ownerName := ctx.Params(":username")
+	repoName := ctx.Params(":reponame")
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+		return
+	}
+	repoLinked, _, err := attach.LinkedRepository()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LinkedRepository", err)
+		return
+	}
+	if repo.ID != repoLinked.ID {
+		log.Info("User requested attachment is not in repository, repository_id %v, release_id %v, attachment_id: %v", repo.ID, attach.ReleaseID, attachID)
+		ctx.NotFound()
+		return
+	}
 	if attach.ReleaseID == 0 {
-		log.Info("User requested attachment is not in release, attachment_id: %v", attachID)
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", attach.ReleaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -288,14 +305,31 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
+	ownerName := ctx.Params(":username")
+	repoName := ctx.Params(":reponame")
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+		return
+	}
+	repoLinked, _, err := attach.LinkedRepository()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LinkedRepository", err)
+		return
+	}
+	if repo.ID != repoLinked.ID {
+		log.Info("User requested attachment is not in repository, repository_id %v, release_id %v, attachment_id: %v", repo.ID, attach.ReleaseID, attachID)
+		ctx.NotFound()
+		return
+	}
 	if attach.ReleaseID == 0 {
-		log.Info("User requested attachment is not in release, attachment_id: %v", attachID)
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", attach.ReleaseID, attachID)
 		ctx.NotFound()
 		return
 	}
@@ -404,14 +438,31 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
+	ownerName := ctx.Params(":username")
+	repoName := ctx.Params(":reponame")
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+		return
+	}
+	repoLinked, _, err := attach.LinkedRepository()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LinkedRepository", err)
+		return
+	}
+	if repo.ID != repoLinked.ID {
+		log.Info("User requested attachment is not in repository, repository_id %v, release_id %v, attachment_id: %v", repo.ID, attach.ReleaseID, attachID)
+		ctx.NotFound()
+		return
+	}
 	if attach.ReleaseID == 0 {
-		log.Info("User requested attachment is not in release, attachment_id: %v", attachID)
+		log.Info("User requested attachment is not in release, release_id %v, attachment_id: %v", attach.ReleaseID, attachID)
 		ctx.NotFound()
 		return
 	}
