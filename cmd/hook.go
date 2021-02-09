@@ -530,7 +530,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 	response = append(response, []byte("\n")...)
 
-	rs = readPktLine(reader, pktLineTypeFlush)
+	readPktLine(reader, pktLineTypeFlush)
 
 	writePktLine(os.Stdout, pktLineTypeData, response)
 	writePktLine(os.Stdout, pktLineTypeFlush, nil)
