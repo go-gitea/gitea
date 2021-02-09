@@ -5,38 +5,15 @@
 version: "3"
 
 services:
-  build-env:
-    container_name: build-env
-    build:
-      context: .
-      dockerfile: docker/dockerfiles/build-env.Dockerfile
-    volumes:
-      - "gitea-common:/mnt/docker-hack"
-    command: |
-      make clean-all build install
-    deploy:
-      resources:
-        limits:
-          cpus: "0.75"
-          memory: 100M
   gitea-service:
     container_name: gitea-service
     build:
       context: .
       dockerfile: docker/dockerfiles/gitea.Dockerfile
-    volumes:
-      - "./docker/files/confdir/gitea:/etc/gitea:rw"
-      - "gitea-common:/mnt/docker-hack:rw"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 100M
     ports:
       - "3000:3000"
       - "33629:22"
-    depends_on:
-      - build-env
+    #depends_on:
   #   - mysql-database
   # gitea-mysql-database:
   #   container_name: gitea-database
@@ -49,8 +26,3 @@ services:
   #     - MYSQL_DATABASE=gitea
   #   volumes:
   #     - ./mysql:/var/lib/mysql
-volumes:
-  gitea-srcdir:
-    driver: local
-  gitea-common:
-    driver: local
