@@ -152,7 +152,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	if err = ServeData(ctx, attach.Name, fr); err != nil {
+	if err = ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}

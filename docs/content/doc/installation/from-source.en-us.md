@@ -186,3 +186,11 @@ CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sq
 ```
 
 Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
+
+You will sometimes need to build a static compiled image. To do this you will need to add:
+
+```
+LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo $TAGS" make build
+```
+
+This can be combined with `CC`, `GOOS`, and `GOARCH` as above.

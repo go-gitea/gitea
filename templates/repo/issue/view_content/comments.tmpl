@@ -251,7 +251,7 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.delete_branch_at" (.CommitSHA|Escape) $createdStr | Safe}}
+				{{$.i18n.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 12}}
