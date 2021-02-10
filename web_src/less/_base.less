@@ -347,6 +347,9 @@ a.muted:hover,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -387,6 +390,10 @@ a.muted:hover,
 
 .ui.menu .ui.dropdown .menu > .item {
   color: var(--color-text) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .ui.menu .ui.dropdown .menu > .item:hover {
@@ -1784,7 +1791,7 @@ a.ui.basic.label:hover {
 }
 
 /* fix misaligned right buttons on box headers */
-.ui.attached.header .right {
+.ui.attached.header .right:not(.dropdown) {
   position: absolute;
   right: .78571429rem;
   top: 0;

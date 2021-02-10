@@ -13,11 +13,12 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // NewCommitStatus creates a new CommitStatus
-func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
+func NewCommitStatus(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/statuses/{sha} repository repoCreateStatus
 	// ---
 	// summary: Create a commit status
@@ -49,6 +50,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "sha not given", nil)

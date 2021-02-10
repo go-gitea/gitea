@@ -223,11 +223,6 @@ func writeTmpKeyFile(content string) (string, error) {
 
 // SSHKeyGenParsePublicKey extracts key type and length using ssh-keygen.
 func SSHKeyGenParsePublicKey(key string) (string, int, error) {
-	// The ssh-keygen in Windows does not print key type, so no need go further.
-	if setting.IsWindows {
-		return "", 0, nil
-	}
-
 	tmpName, err := writeTmpKeyFile(key)
 	if err != nil {
 		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
@@ -310,6 +305,10 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 		return "ecdsa", 521, nil
 	case ssh.KeyAlgoED25519:
 		return "ed25519", 256, nil
+	case ssh.KeyAlgoSKECDSA256:
+		return "ecdsa-sk", 256, nil
+	case ssh.KeyAlgoSKED25519:
+		return "ed25519-sk", 256, nil
 	}
 	return "", 0, fmt.Errorf("unsupported key length detection for type: %s", pkey.Type())
 }
