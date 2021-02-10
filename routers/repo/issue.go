@@ -2464,7 +2464,7 @@ func combineLabelComments(issue *models.Issue) {
 		if i == 0 || cur.Type != models.CommentTypeLabel ||
 			(prev != nil && prev.PosterID != cur.PosterID) ||
 			(prev != nil && cur.CreatedUnix-prev.CreatedUnix >= 60) {
-			if cur.Type == models.CommentTypeLabel {
+			if cur.Type == models.CommentTypeLabel && cur.Label != nil {
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
 				} else {
@@ -2474,10 +2474,12 @@ func combineLabelComments(issue *models.Issue) {
 			continue
 		}
 
-		if cur.Content != "1" {
-			prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
-		} else {
-			prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+		if cur.Label != nil {
+			if cur.Content != "1" {
+				prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+			} else {
+				prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+			}
 		}
 		prev.CreatedUnix = cur.CreatedUnix
 		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
