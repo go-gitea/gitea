@@ -171,6 +171,10 @@ func CreateOrganization(org, owner *User) (err error) {
 		return err
 	}
 
+	if err = deleteUserRedirect(sess, org.Name); err != nil {
+		return err
+	}
+
 	if _, err = sess.Insert(org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
@@ -753,7 +757,7 @@ type accessibleReposEnv struct {
 	orderBy SearchOrderBy
 }
 
-// AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// AccessibleReposEnv builds an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
 	return org.accessibleReposEnv(x, userID)

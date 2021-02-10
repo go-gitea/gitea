@@ -239,7 +239,7 @@ to this License. Sybase may, at its sole discretion, choose to license such
 Sybase Modifications under this License, or on different terms from those
 contained in this License or may choose not to license them at all.
 
-   12. Termination.
+12. Termination.
 
 12.1 Termination. This License and the rights granted hereunder will terminate:
 
@@ -266,7 +266,7 @@ for compensation, indemnity or damages of any sort solely as a result of termina
 this License in accordance with its terms, and termination of this License
 will be without prejudice to any other right or remedy of any party.
 
-   13. Miscellaneous.
+13. Miscellaneous.
 
 13.1 Government End Users. The Covered Code is a "commercial item" as defined
 in FAR 2.101. Government software and technical data rights in the Covered
@@ -317,15 +317,15 @@ for the International Sale of Goods is expressly excluded.
 agreement between the parties with respect to the subject matter hereof. This
 License shall be governed by the laws of the United States and the State of
 California, except that body of California law concerning conflicts of law.
-
 Where You are located in the province of Quebec, Canada, the following clause
 applies: The parties hereby confirm that they have requested that this License
 and all related documents be drafted in English. Les parties ont exigè que
 le prèsent contrat et tous les documents connexes soient rèdiès en anglais.
+
+
 EXHIBIT A.
 
 "Portions Copyright (c) 1983-2002 Sybase, Inc. All Rights Reserved.
-
 This file contains Original Code and/or Modifications of Original Code as
 defined in and that are subject to the Sybase Open Watcom Public License version
 1.0 (the 'License'). You may not use this file except in compliance with the

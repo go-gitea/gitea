@@ -10,8 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +33,8 @@ func TestInitializeLabels(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
-	InitializeLabels(ctx, auth.InitializeLabelsForm{TemplateName: "Default"})
+	web.SetForm(ctx, &auth.InitializeLabelsForm{TemplateName: "Default"})
+	InitializeLabels(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Label{
 		RepoID: 2,
@@ -74,10 +76,11 @@ func TestNewLabel(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
-	NewLabel(ctx, auth.CreateLabelForm{
+	web.SetForm(ctx, &auth.CreateLabelForm{
 		Title: "newlabel",
 		Color: "#abcdef",
 	})
+	NewLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Label{
 		Name:  "newlabel",
@@ -91,11 +94,12 @@ func TestUpdateLabel(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
-	UpdateLabel(ctx, auth.CreateLabelForm{
+	web.SetForm(ctx, &auth.CreateLabelForm{
 		ID:    2,
 		Title: "newnameforlabel",
 		Color: "#abcdef",
 	})
+	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Label{
 		ID:    2,

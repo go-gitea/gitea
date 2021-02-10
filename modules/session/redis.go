@@ -23,7 +23,7 @@ import (
 
 	"code.gitea.io/gitea/modules/nosql"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 	"github.com/go-redis/redis/v7"
 )
 

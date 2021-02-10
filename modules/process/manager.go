@@ -25,6 +25,7 @@ var (
 	// ErrExecTimeout represent a timeout error
 	ErrExecTimeout = errors.New("Process execution timeout")
 	manager        *Manager
+	managerInit    sync.Once
 
 	// DefaultContext is the default context to run processing commands in
 	DefaultContext = context.Background()
@@ -48,11 +49,11 @@ type Manager struct {
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
-	if manager == nil {
+	managerInit.Do(func() {
 		manager = &Manager{
 			processes: make(map[int64]*Process),
 		}
-	}
+	})
 	return manager
 }
 

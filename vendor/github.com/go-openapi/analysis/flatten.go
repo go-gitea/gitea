@@ -156,6 +156,8 @@ func Flatten(opts FlattenOpts) error {
 		return err
 	}
 
+	opts.Spec.reload() // re-analyze
+
 	// strip current file from $ref's, so we can recognize them as proper definitions
 	// In particular, this works around for issue go-openapi/spec#76: leading absolute file in $ref is stripped
 	if err := normalizeRef(&opts); err != nil {
@@ -778,6 +780,9 @@ func rewriteParentRef(spec *swspec.Swagger, key string, ref swspec.Ref) error {
 		}
 		container.Schemas[idx] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
 
+	case swspec.SchemaProperties:
+		container[entry] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
+
 	// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
 	default:
@@ -1038,7 +1043,7 @@ func nameFromRef(ref swspec.Ref) string {
 			return swag.ToJSONName(bn)
 		}
 	}
-	return swag.ToJSONName(strings.Replace(u.Host, ".", " ", -1))
+	return swag.ToJSONName(strings.ReplaceAll(u.Host, ".", " "))
 }
 
 func saveSchema(spec *swspec.Swagger, name string, schema *swspec.Schema) {
@@ -1155,6 +1160,9 @@ func updateRef(spec interface{}, key string, ref swspec.Ref) error {
 			}
 			container.Schemas[idx] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
 
+		case swspec.SchemaProperties:
+			container[entry] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
+
 		// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
 		default:
@@ -1205,6 +1213,9 @@ func updateRefWithSchema(spec *swspec.Swagger, key string, sch *swspec.Schema) e
 				return fmt.Errorf("%s not a number: %v", pth, err)
 			}
 			container.Schemas[idx] = *sch
+
+		case swspec.SchemaProperties:
+			container[entry] = *sch
 
 		// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
@@ -1741,17 +1752,21 @@ DOWNREF:
 // leading absolute file in $ref is stripped
 func normalizeRef(opts *FlattenOpts) error {
 	debugLog("normalizeRef")
-	opts.Spec.reload() // re-analyze
+	altered := false
 	for k, w := range opts.Spec.references.allRefs {
-		if strings.HasPrefix(w.String(), opts.BasePath+definitionsPath) { // may be a mix of / and \, depending on OS
-			// strip base path from definition
-			debugLog("stripping absolute path for: %s", w.String())
-			if err := updateRef(opts.Swagger(), k,
-				swspec.MustCreateRef(slashpath.Join(definitionsPath, slashpath.Base(w.String())))); err != nil {
-				return err
-			}
+		if !strings.HasPrefix(w.String(), opts.BasePath+definitionsPath) { // may be a mix of / and \, depending on OS
+			continue
+		}
+		altered = true
+		// strip base path from definition
+		debugLog("stripping absolute path for: %s", w.String())
+		if err := updateRef(opts.Swagger(), k,
+			swspec.MustCreateRef(slashpath.Join(definitionsPath, slashpath.Base(w.String())))); err != nil {
+			return err
 		}
 	}
-	opts.Spec.reload() // re-analyze
+	if altered {
+		opts.Spec.reload() // re-analyze
+	}
 	return nil
 }

@@ -6,6 +6,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"reflect"
@@ -16,6 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
+	"xorm.io/xorm/schemas"
 )
 
 const minDBVersion = 70 // Gitea 1.5.3
@@ -274,6 +277,16 @@ var migrations = []Migration{
 	// v164 -> v165
 	NewMigration("Add scope and nonce columns to oauth2_grant table", addScopeAndNonceColumnsToOAuth2Grant),
 	// v165 -> v166
+	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
+	// v166 -> v167
+	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+	// v167 -> v168
+	NewMigration("Add user redirect", addUserRedirect),
+	// v168 -> v169
+	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	// v169 -> v170
+	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	// v170 -> v171
 	NewMigration("Add sessions table for macaron/session", addSessionTable),
 }
 
@@ -325,6 +338,8 @@ func EnsureUpToDate(x *xorm.Engine) error {
 
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
+	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
+	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
 		return fmt.Errorf("sync: %v", err)
 	}
@@ -363,6 +378,8 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+		// Reset the mapper between each migration - migrations are not supposed to depend on each other
+		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}
@@ -737,5 +754,41 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		log.Fatal("Unrecognized DB")
 	}
 
+	return nil
+}
+
+// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+	var indexes map[string]*schemas.Index
+	var err error
+	// MSSQL have to remove index at first, otherwise alter column will fail
+	// ref. https://sqlzealots.com/2018/05/09/error-message-the-index-is-dependent-on-column-alter-table-alter-column-failed-because-one-or-more-objects-access-this-column/
+	if x.Dialect().URI().DBType == schemas.MSSQL {
+		indexes, err = x.Dialect().GetIndexes(x.DB(), context.Background(), tableName)
+		if err != nil {
+			return err
+		}
+
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().DropIndexSQL(tableName, index))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	defer func() {
+		for _, index := range indexes {
+			_, err = x.Exec(x.Dialect().CreateIndexSQL(tableName, index))
+			if err != nil {
+				log.Error("Create index %s on table %s failed: %v", index.Name, tableName, err)
+			}
+		}
+	}()
+
+	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
+	if _, err := x.Exec(alterSQL); err != nil {
+		return err
+	}
 	return nil
 }

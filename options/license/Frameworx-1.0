@@ -6,7 +6,6 @@ of Your acceptance of the Frameworx Code Base or an Downstream Distribution
 (each as defined below).
 
 AGREEMENT BACKGROUND
-
 The Frameworx Company is committed to the belief that open source software
 results in better quality, greater technical and product innovation in the
 market place and a more empowered and productive developer and end-user community.
@@ -17,10 +16,9 @@ Base, without royalties and in source code form, to the community pursuant
 to this License Agreement.
 
 AGREEMENT TERMS
-
 The Frameworx Company and You have agreed as follows:
 
-   1. Definitions.The following terms have the following respective meanings:
+1.Definitions.The following terms have the following respective meanings:
 
 (a) Frameworx Code Base means the software developed by The Frameworx Company
 and made available under this License Agreement
@@ -66,7 +64,7 @@ your exercise of all rights in connection with this License Agreement, will
 remain subject to the following terms and conditions, as well as to the other
 provisions hereof:
 
-(a) Complete Source Code for any Downstream Distribution directly or indirectly
+(a)     Complete Source Code for any Downstream Distribution directly or indirectly
 made by You that contains, or depends for its intended functionality on, the
 Frameworx Code Base, or any portion or element thereof, shall be made freely
 available to all users thereof on terms and conditions no more restrictive,
@@ -74,14 +72,14 @@ and no less favorable for any user (including, without limitation, with regard
 to Source Code availability and royalty-free use) than those terms and conditions
 provided in this License Agreement.
 
-(b) Any Value-Added Services that you offer or provide, directly or indirectly,
+(b)     Any Value-Added Services that you offer or provide, directly or indirectly,
 in relation to any Downstream Distribution shall be offered and provided on
 commercial terms that are reasonably commensurate to the fair market value
 of such Value-Added Services. In addition, the terms and conditions on which
 any such Value Added Services are so offered or provided shall be consistent
 with, and shall fully support, the intent and purpose of this License Agreement.
 
-      (c) All Downstream Distributions shall:
+     (c)     All Downstream Distributions shall:
 
 (i) include all portions and elements of the Frameworx Code Base required
 to build the Source Code of such Downstream Distribution into a fully functional
@@ -169,5 +167,6 @@ violation. This License Agreement shall be binding on the legal successors
 and assigns of the parties hereto.
 
 Your agreement to the foregoing as of the date hereof has been evidenced by
-your acceptance of the relevant software distribution hereunder. (C) THE FRAMEWORX
-COMPANY 2003
+your acceptance of the relevant software distribution hereunder.
+
+(C) THE FRAMEWORX COMPANY 2003

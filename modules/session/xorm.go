@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 // XormStore represents a xorm session store implementation.
