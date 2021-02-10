@@ -40,7 +40,7 @@ export async function initStopwatch() {
         return;
       }
       if (event.data.type === 'stopwatches') {
-        updateStopwatchData(event.data);
+        updateStopwatchData(JSON.parse(event.data.data));
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
