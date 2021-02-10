@@ -6,7 +6,9 @@ package queue
 
 import (
 	"context"
+	"fmt"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -49,6 +51,8 @@ func NewRedisUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	if err != nil {
 		return nil, err
 	}
+
+	byteFIFO.ctx = graceful.NewChannelContext(byteFIFOQueue.IsTerminated(), fmt.Errorf("queue has been terminated"))
 
 	queue := &RedisUniqueQueue{
 		ByteFIFOUniqueQueue: byteFIFOQueue,
@@ -102,12 +106,12 @@ func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
 			return err
 		}
 	}
-	return fifo.client.RPush(context.TODO(), fifo.queueName, data).Err()
+	return fifo.client.RPush(fifo.ctx, fifo.queueName, data).Err()
 }
 
 // Pop pops data from the start of the fifo
 func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
-	data, err := fifo.client.LPop(context.TODO(), fifo.queueName).Bytes()
+	data, err := fifo.client.LPop(fifo.ctx, fifo.queueName).Bytes()
 	if err != nil && err != redis.Nil {
 		return data, err
 	}
@@ -116,13 +120,13 @@ func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
 		return data, nil
 	}
 
-	err = fifo.client.SRem(context.TODO(), fifo.setName, data).Err()
+	err = fifo.client.SRem(fifo.ctx, fifo.setName, data).Err()
 	return data, err
 }
 
 // Has returns whether the fifo contains this data
 func (fifo *RedisUniqueByteFIFO) Has(data []byte) (bool, error) {
-	return fifo.client.SIsMember(context.TODO(), fifo.setName, data).Result()
+	return fifo.client.SIsMember(fifo.ctx, fifo.setName, data).Result()
 }
 
 func init() {
