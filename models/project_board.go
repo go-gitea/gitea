@@ -158,15 +158,24 @@ func getProjectBoard(e Engine, boardID int64) (*ProjectBoard, error) {
 	return board, nil
 }
 
-// UpdateProjectBoard updates the title of a project board
+// UpdateProjectBoard updates a project board
 func UpdateProjectBoard(board *ProjectBoard) error {
 	return updateProjectBoard(x, board)
 }
 
 func updateProjectBoard(e Engine, board *ProjectBoard) error {
-	_, err := e.ID(board.ID).Cols(
-		"title",
-	).Update(board)
+	var fieldToUpdate []string
+
+	if board.Sorting != 0 {
+		fieldToUpdate = append(fieldToUpdate, "sorting")
+	}
+
+	if board.Title != "" {
+		fieldToUpdate = append(fieldToUpdate, "title")
+	}
+
+	_, err := e.ID(board.ID).Cols(fieldToUpdate...).Update(board)
+
 	return err
 }
 
@@ -277,4 +286,18 @@ func (bs ProjectBoardList) LoadIssues() (IssueList, error) {
 		issues = append(issues, il...)
 	}
 	return issues, nil
+}
+
+// UpdateProjectBoardSorting update project board sorting
+func UpdateProjectBoardSorting(bs ProjectBoardList) error {
+	for i := range bs {
+		_, err := x.ID(bs[i].ID).Cols(
+			"sorting",
+		).Update(bs[i])
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
