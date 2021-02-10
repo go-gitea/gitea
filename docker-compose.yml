@@ -2,6 +2,8 @@
 
 ###! Universal `docker-compose.yml` file intended to be used as a reference for configuration and development.
 
+# DNM(Krey): Provide the database ports within a private network available to services without the need to expose ports to the system unless explicitly specified
+
 version: "3"
 
 services:
@@ -10,10 +12,9 @@ services:
     build:
       context: .
       dockerfile: docker/dockerfiles/gitea.Dockerfile
-    environment:
-      - DB_TYPE=sqlite3
     ports:
       - "3000:3000"
+    command: /srv/gitea/gitea-wrapper
     depends_on:
       - gitea-mysql-database
   gitea-mysql-database:

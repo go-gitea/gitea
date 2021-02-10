@@ -1,0 +1,109 @@
+#!/bin/sh
+# Shellcheck shell=sh # Written to comply with IEEE Std 1003.1-2017
+
+###! # Gitea wrapper
+###! Wrapper designed to provide the required variables needed for the runtime of gitea using `app.ini' with variables for it's values
+
+# File hierarchy
+export GITEA_WORKDIR="${GITEA_WORKDIR:-"/srv/gitea"}"
+export GITEA_CUSTOMDIR="${GITEA_CUSTOMDIR:-"$GITEA_WORKDIR/custom"}"
+export GITEA_TEMPDIR="${GITEA_TEMPDIR:-"/var/tmp/gitea"}"
+export GITEA_CONFDIR="${GITEA_CONFDIR:-"$GITEA_CUSTOMDIR/conf"}"
+export GITEA_SRCDIR="${GITEA_SRCDIR:-"/go/src/code.gitea.io/gitea"}"
+export GITEA_APP_INI="${GITEA_APP_INI:-"$GITEA_CONFDIR/app.ini"}"
+export GITEA_EXECUTABLE="${GITEA_EXECUTABLE:-"$GITEA_WORKDIR/gitea"}"
+
+cat <<-CONFIG > "$GITEA_APP_INI"
+	APP_NAME = ${GITEA_APP_NAME:-"Gitea: Git with a cup of tea"}
+	RUN_USER = ${GITEA_USER:-"gitea"}
+	RUN_MODE = ${GITEA_RUN_MODE:-"prod"}
+
+	[repository]
+	ROOT = ${GITEA_REPO_ROOT:-"$GITEA_WORKDIR/git/repositories"}
+
+	[repository.local]
+	LOCAL_COPY_PATH = ${GITEA_LOCAL_REPO_PATH:-"/var/tmp/gitea/local-repo"}
+
+	[repository.upload]
+	TEMP_PATH = ${GITEA_UPLOAD_REPO_TEMP_PATH:-"/var/tmp/gitea/uploads"}
+
+	[server]
+	DOMAIN                  = ${GITEA_SERVER_DOMAIN:-"localhost"}
+	APP_DATA_PATH           = ${GITEA_SERVER_APP_DATA_PATH:-"$GITEA_WORKDIR"}
+	SSH_DOMAIN              = ${GITEA_SERVER_SSH_DOMAIN:-"localhost"}
+	HTTP_PORT               = ${GITEA_SERVER_HTTP_PORT:-"3000"}
+	ROOT_URL                = ${GITEA_SERVER_ROOT_URL:-"http://${GITEA_SERVER_DOMAIN:-"localhost"}:${GITEA_SERVER_HTTP_PORT:-"3000"}"}
+	DISABLE_SSH             = ${GITEA_SERVER_DISABLE_SSH:-"false"}
+	START_SSH_SERVER        = ${GITEA_SERVER_START_SSH_SERVER:-"true"}
+	SSH_PORT                = ${GITEA_SERVER_SSH_PORT:-"2222"}
+	SSH_LISTEN_PORT         = ${GITEA_SERVER_SSH_LISTEN_PORT:-"2222"}
+	BUILTIN_SSH_SERVER_USER = ${GITEA_SERVER_BUILTIN_SSH_SERVER_USER:-"git"}
+	LFS_START_SERVER        = ${GITEA_SERVER_LFS_START_SERVER:-"true"}
+	LFS_CONTENT_PATH        = ${GITEA_SERVER_LFS_CONTENT_PATH:-"$GITEA_WORKDIR/git/lfs"}
+	# DNM-SECURITY(Krey): This has to be auto-generated
+	LFS_JWT_SECRET          = ${GITEA_SERVER_LFS_JWT_SECRET:-"kBHxlY89K3nkoTulGbBsDk7Ow_d6QKJxiKYnMWIhrD4"}
+	OFFLINE_MODE            = ${GITEA_SERVER_OFFLINE_MODE:-"false"}
+
+	[database]
+	PATH     = ${GITEA_DB_PATH:-"$GITEA_WORKDIR/data/gitea.db"}
+	DB_TYPE  = ${GITEA_DB_TYPE:-"sqlite3"}
+	HOST     = ${GITEA_DB_HOST:-"127.0.0.1:3306"}
+	NAME     = ${GITEA_DB_NAME:-"gitea"}
+	USER     = ${GITEA_DB_USER:-"gitea"}
+	PASSWD   = ${GITEA_DB_PASSWD:-"gitea"}
+	SCHEMA   = ${GITEA_DB_SCHEMA:-""}
+	SSL_MODE = ${GITEA_DB_SCHEMA:-"disable"}
+	CHARSET  = ${GITEA_DB_CHARSET:-"utf8mb4"}
+	LOG_SQL  = ${GITEA_DB_LOG_SQL:-"false"}
+
+	[session]
+	PROVIDER_CONFIG = ${GITEA_SESSION_PROVIDER_CONFIG:-"$GITEA_WORKDIR/data/sessions"}
+	PROVIDER        = ${GITEA_SESSION_PROVIDER:-"file"}
+
+	[picture]
+	AVATAR_UPLOAD_PATH            = {GITEA_PICTURE_AVATAR_UPLOAD_PATH:-"$GITEA_WORKDIR/data/avatars"}
+	REPOSITORY_AVATAR_UPLOAD_PATH = ${GITEA_PICTURE_REPOSITORY_AVATAR_UPLOAD_PATH:-"$GITEA_WORKDIR/data/gitea/repo-avatars"}
+	DISABLE_GRAVATAR              = ${GITEA_PICTURE_DISABLE_GRAVATAR:-"false"}
+	ENABLE_FEDERATED_AVATAR       = ${GITEA_PICTURE_ENABLE_FEDERATED_AVATAR:-"true"}
+
+	[attachment]
+	PATH = ${GITEA_ATTACHMENT_PATH:-"$GITEA_WORKDIR/data/attachments"}
+
+	[log]
+	ROOT_PATH = ${GITEA_LOG_ROOT_PATH:-"$GITEA_WORKDIR/data/log"}
+	MODE      = ${GITEA_LOG_MODE:-"console"}
+	LEVEL     = ${GITEA_LOG_LEVEL:-"info"}
+	ROUTER    = ${GITEA_LOG_ROUTER:-"console"}
+
+	[security]
+	INSTALL_LOCK   = $GITEA_SECURITY_INSTALL_LOCK
+	SECRET_KEY     = $GITEA_SECURITY_SECRET_KEY
+	INTERNAL_TOKEN = $GITEA_SECURITY_INTERNAL_TOKEN
+
+	[service]
+	DISABLE_REGISTRATION              = ${GITEA_SERVICE_DISABLE_REGISTRATION:-"false"}
+	REQUIRE_SIGNIN_VIEW               = ${GITEA_SERVICE_REQUIRE_SIGNIN_VIEW:-"false"}
+	REGISTER_EMAIL_CONFIRM            = ${GITEA_SERVICE_REGISTER_EMAIL_CONFIRM:-"false"}
+	ENABLE_NOTIFY_MAIL                = ${GITEA_SERVICE_ENABLE_NOTIFY_MAIL:-"false"}
+	ALLOW_ONLY_EXTERNAL_REGISTRATION  = ${GITEA_SERVICE_ALLOW_ONLY_EXTERNAL_REGISTRATION:-"false"}
+	ENABLE_CAPTCHA                    = ${GITEA_SERVICE_ENABLE_CAPTCHA:-"false"}
+	DEFAULT_KEEP_EMAIL_PRIVATE        = ${GITEA_SERVICE_DEFAULT_KEEP_EMAIL_PRIVATE:-"false"}
+	DEFAULT_ALLOW_CREATE_ORGANIZATION = ${GITEA_SERVICE_DEFAULT_ALLOW_CREATE_ORGANIZATION:-"false"}
+	DEFAULT_ENABLE_TIMETRACKING       = ${GITEA_SERVICE_DEFAULT_ENABLE_TIMETRACKING:-"false"}
+	NO_REPLY_ADDRESS                  = ${GITEA_SERVICE_NO_REPLY_ADDRESS:-""}
+
+	[oauth2]
+	JWT_SECRET = ${GITEA_OAUTH2_JWT_SECRET:-"p7iYUHO-V3wNGTMGGtlXVa0OFn1avVTV6I6SAbSQh0o"}
+
+	[mailer]
+	ENABLED = ${GITEA_MAILER_ENABLED:-"false"}
+
+	[openid]
+	ENABLE_OPENID_SIGNIN = ${GITEA_OPENID_ENABLE_OPENID_SIGNIN:-"false"}
+	ENABLE_OPENID_SIGNUP = ${GITEA_OPENID_ENABLE_OPENID_SIGNUP:-"false"}
+CONFIG
+
+# DNM(Krey)
+printf '+ %s\n' "$GITEA_PREFIX $GITEA_EXECUTABLE ${GITEA_ARGS:-"--config $GITEA_APP_INI"} ${GITEA_CMD:-"web"} $GITEA_SUFFIX"
+
+$GITEA_PREFIX "$GITEA_EXECUTABLE" ${GITEA_ARGS:-"--config $GITEA_APP_INI"} ${GITEA_CMD:-"web"} $GITEA_SUFFIX
