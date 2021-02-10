@@ -111,6 +111,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		}
 	}
 
+	// find label comments with empty labels
+	count, err = models.CountCommentTypeLabelWithEmptyLabel()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting label comments with empty labels")
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			updatedCount, err := models.FixCommentTypeLabelWithEmptyLabel()
+			if err != nil {
+				logger.Critical("Error: %v whilst removing label comments with empty labels")
+				return err
+			}
+			logger.Info("%d label comments with empty labels removed", updatedCount)
+		} else {
+			logger.Warn("%d label comments with empty labels", count)
+		}
+	}
 	// TODO: function to recalc all counters
 
 	return nil
