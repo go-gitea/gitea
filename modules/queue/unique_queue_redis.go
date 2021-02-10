@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/graceful"
@@ -94,7 +93,7 @@ func NewRedisUniqueByteFIFO(config RedisUniqueByteFIFOConfiguration) (*RedisUniq
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
 func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
-	added, err := fifo.client.SAdd(context.TODO(), fifo.setName, data).Result()
+	added, err := fifo.client.SAdd(fifo.ctx, fifo.setName, data).Result()
 	if err != nil {
 		return err
 	}
