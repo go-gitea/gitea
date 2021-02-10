@@ -49,38 +49,6 @@ func addFile(w archiver.Writer, filePath string, absPath string, verbose bool) e
 	})
 }
 
-func addRecursive(w archiver.Writer, dirPath string, absPath string, verbose bool) error {
-	if verbose {
-		log.Info("Adding dir  %s\n", dirPath)
-	}
-	dir, err := os.Open(absPath)
-	if err != nil {
-		return fmt.Errorf("Could not open directory %s: %s", absPath, err)
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(0)
-	if err != nil {
-		return fmt.Errorf("Unable to list files in %s: %s", absPath, err)
-	}
-
-	if err := addFile(w, dirPath, absPath, false); err != nil {
-		return err
-	}
-
-	for _, fileInfo := range files {
-		if fileInfo.IsDir() {
-			err = addRecursive(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		} else {
-			err = addFile(w, filepath.Join(dirPath, fileInfo.Name()), filepath.Join(absPath, fileInfo.Name()), verbose)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func isSubdir(upper string, lower string) (bool, error) {
 	if relPath, err := filepath.Rel(upper, lower); err != nil {
 		return false, err
@@ -157,6 +125,10 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-log, L",
 			Usage: "Skip the log dumping",
 		},
+		cli.BoolFlag{
+			Name:  "skip-custom-dir",
+			Usage: "Skip custom directory",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -211,6 +183,11 @@ func runDump(ctx *cli.Context) error {
 	}
 	defer file.Close()
 
+	absFileName, err := filepath.Abs(fileName)
+	if err != nil {
+		return err
+	}
+
 	verbose := ctx.Bool("verbose")
 	outType := ctx.String("type")
 	var iface interface{}
@@ -233,7 +210,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Skip dumping local repositories")
 	} else {
 		log.Info("Dumping local repositories... %s", setting.RepoRootPath)
-		if err := addRecursive(w, "repos", setting.RepoRootPath, verbose); err != nil {
+		if err := addRecursiveExclude(w, "repos", setting.RepoRootPath, []string{absFileName}, verbose); err != nil {
 			fatal("Failed to include repositories: %v", err)
 		}
 
@@ -292,17 +269,21 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	customDir, err := os.Stat(setting.CustomPath)
-	if err == nil && customDir.IsDir() {
-		if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
-			if err := addRecursive(w, "custom", setting.CustomPath, verbose); err != nil {
-				fatal("Failed to include custom: %v", err)
+	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
+		log.Info("Skiping custom directory")
+	} else {
+		customDir, err := os.Stat(setting.CustomPath)
+		if err == nil && customDir.IsDir() {
+			if is, _ := isSubdir(setting.AppDataPath, setting.CustomPath); !is {
+				if err := addRecursiveExclude(w, "custom", setting.CustomPath, []string{absFileName}, verbose); err != nil {
+					fatal("Failed to include custom: %v", err)
+				}
+			} else {
+				log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
 			}
 		} else {
-			log.Info("Custom dir %s is inside data dir %s, skipped", setting.CustomPath, setting.AppDataPath)
+			log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 		}
-	} else {
-		log.Info("Custom dir %s doesn't exist, skipped", setting.CustomPath)
 	}
 
 	isExist, err := util.IsExist(setting.AppDataPath)
@@ -325,6 +306,7 @@ func runDump(ctx *cli.Context) error {
 		excludes = append(excludes, setting.LFS.Path)
 		excludes = append(excludes, setting.Attachment.Path)
 		excludes = append(excludes, setting.LogRootPath)
+		excludes = append(excludes, absFileName)
 		if err := addRecursiveExclude(w, "data", setting.AppDataPath, excludes, verbose); err != nil {
 			fatal("Failed to include data directory: %v", err)
 		}
@@ -358,7 +340,7 @@ func runDump(ctx *cli.Context) error {
 			log.Error("Unable to check if %s exists. Error: %v", setting.LogRootPath, err)
 		}
 		if isExist {
-			if err := addRecursive(w, "log", setting.LogRootPath, verbose); err != nil {
+			if err := addRecursiveExclude(w, "log", setting.LogRootPath, []string{absFileName}, verbose); err != nil {
 				fatal("Failed to include log: %v", err)
 			}
 		}
