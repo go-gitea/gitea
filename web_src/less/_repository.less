@@ -1453,6 +1453,10 @@
       align-items: flex-start;
     }
 
+    @media (max-width: 480px) {
+      flex-wrap: wrap;
+    }
+
     &.sticky {
       position: sticky;
       top: 0;
@@ -1473,12 +1477,38 @@
       margin-right: .25rem;
     }
 
+    .diff-detail-stats {
+      @media (max-width: 480px) {
+        font-size: 0;
+        line-height: 1.6rem;
+
+        strong {
+          font-size: 1rem;
+        }
+      }
+    }
+
     .diff-detail-actions > * {
       margin-right: 0;
     }
 
     .diff-detail-actions > * + * {
       margin-left: .25rem;
+    }
+
+    .diff-detail-actions {
+      @media (max-width: 480px) {
+        padding-top: 0.25rem;
+
+        .ui.button {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          text-align: center;
+        }
+      }
     }
 
     span.status {
