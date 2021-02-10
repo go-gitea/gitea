@@ -19,7 +19,7 @@ export default async function initProject() {
         const boardColumns = board.getElementsByClassName('board-column');
 
         boardColumns.forEach((column, i) => {
-          if (parseInt($(column).data('sorting')) !== i) {
+          if (parseInt($(column).data('sorting'))  !== i) {
             $.ajax({
               url: $(column).data('url'),
               data: JSON.stringify({sorting: i}),
