@@ -1,0 +1,33 @@
+# FIXME-BLOCKER(Krey): Should be adapted to use `COPY` from container to container once upstream implements it, currently using a volume that is provided to relevant containers to share the content (https://github.com/docker/compose/issues/5523#issuecomment-774392560)
+
+###! Universal `docker-compose.yml` file intended to be used as a reference for configuration and development.
+
+# DNM(Krey): Provide the database ports within a private network available to services without the need to expose ports to the system unless explicitly specified
+
+version: "3"
+
+services:
+  gitea-service:
+    container_name: gitea-service
+    build:
+      context: .
+      dockerfile: docker/dockerfiles/gitea.Dockerfile
+    ports:
+      - "3000:3000"
+    command: /srv/gitea/gitea-wrapper
+    depends_on:
+      - gitea-mysql-database
+  gitea-mysql-database:
+    container_name: gitea-mysql-database
+    image: mysql:5.7
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=gitea
+      - MYSQL_USER=gitea
+      - MYSQL_PASSWORD=gitea
+      - MYSQL_DATABASE=gitea
+    ports:
+      - "3306:3306"
+volumes:
+  mysql:
+    driver: local
