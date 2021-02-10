@@ -128,7 +128,7 @@ func (p *RedisProvider) Init(maxlifetime int64, configs string) (err error) {
 	}
 
 	p.c = nosql.GetManager().GetRedisClient(uri.String())
-	return p.c.Ping(graceful.GetManager().HammerContext()).Err()
+	return p.c.Ping(graceful.GetManager().ShutdownContext()).Err()
 }
 
 // Read returns raw session store by session ID.

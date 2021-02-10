@@ -86,7 +86,7 @@ func NewRedisByteFIFO(config RedisByteFIFOConfiguration) (*RedisByteFIFO, error)
 		queueName: config.QueueName,
 	}
 	fifo.client = nosql.GetManager().GetRedisClient(config.ConnectionString)
-	if err := fifo.client.Ping(graceful.GetManager().HammerContext()).Err(); err != nil {
+	if err := fifo.client.Ping(graceful.GetManager().ShutdownContext()).Err(); err != nil {
 		return nil, err
 	}
 	return fifo, nil
