@@ -36,6 +36,7 @@ type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
 	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+	Sorting int8 `xorm:"DEFAULT 0"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -178,7 +179,7 @@ func GetProjectBoards(projectID int64) (ProjectBoardList, error) {
 func getProjectBoards(e Engine, projectID int64) ([]*ProjectBoard, error) {
 	var boards = make([]*ProjectBoard, 0, 5)
 
-	if err := e.Where("project_id=? AND `default`=?", projectID, false).Find(&boards); err != nil {
+	if err := e.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").Find(&boards); err != nil {
 		return nil, err
 	}
 
