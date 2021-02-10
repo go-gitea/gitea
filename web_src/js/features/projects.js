@@ -11,15 +11,15 @@ export default async function initProject() {
   new Sortable(
     document.getElementsByClassName('board')[0],
     {
-      group: "board-column",
-      draggable: ".board-column",
+      group: 'board-column',
+      draggable: '.board-column',
       animation: 150,
       onSort: () => {
         const board = document.getElementsByClassName('board')[0];
         const boardColumns = board.getElementsByClassName('board-column');
 
-        boardColumns.forEach(function(column, i){
-          if ($(column).data('sorting') != i) {
+        boardColumns.forEach((column, i) => {
+          if (parseInt($(column).data('sorting')) !== i) {
             $.ajax({
               url: $(column).data('url'),
               data: JSON.stringify({sorting: i}),
