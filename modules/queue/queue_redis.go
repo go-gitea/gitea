@@ -99,12 +99,12 @@ func (fifo *RedisByteFIFO) PushFunc(data []byte, fn func() error) error {
 			return err
 		}
 	}
-	return fifo.client.RPush(graceful.GetManager().HammerContext(), fifo.queueName, data).Err()
+	return fifo.client.RPush(context.TODO(), fifo.queueName, data).Err()
 }
 
 // Pop pops data from the start of the fifo
 func (fifo *RedisByteFIFO) Pop() ([]byte, error) {
-	data, err := fifo.client.LPop(graceful.GetManager().HammerContext(), fifo.queueName).Bytes()
+	data, err := fifo.client.LPop(context.TODO(), fifo.queueName).Bytes()
 	if err == nil || err == redis.Nil {
 		return data, nil
 	}
@@ -118,7 +118,7 @@ func (fifo *RedisByteFIFO) Close() error {
 
 // Len returns the length of the fifo
 func (fifo *RedisByteFIFO) Len() int64 {
-	val, err := fifo.client.LLen(graceful.GetManager().HammerContext(), fifo.queueName).Result()
+	val, err := fifo.client.LLen(context.TODO(), fifo.queueName).Result()
 	if err != nil {
 		log.Error("Error whilst getting length of redis queue %s: Error: %v", fifo.queueName, err)
 		return -1
