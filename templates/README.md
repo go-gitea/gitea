@@ -1,0 +1,1 @@
+Directory for 'templates' from which we generate the website content

@@ -1,0 +1,17 @@
+<!--
+	Template providing the home page for organization teams e.g. http://domain.tld/org/ORG/teams/TEAM
+-->
+
+{{template "base/head" .}}
+<div class="page-content organization teams">
+	{{template "org/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<div class="ui grid">
+			{{template "org/team/sidebar" .}}
+			<!-- DNM(Krey): Make discussions into a toggle in a settings -->
+			{{template "org/team/discussions" .}}
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

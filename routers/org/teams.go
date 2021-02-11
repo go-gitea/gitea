@@ -20,15 +20,29 @@ import (
 )
 
 const (
+	// tplTeamHome template path for showing team home page
+	tplTeamHome base.TplName = "org/team/home"
 	// tplTeams template path for teams list page
 	tplTeams base.TplName = "org/team/teams"
 	// tplTeamNew template path for create new team page
 	tplTeamNew base.TplName = "org/team/new"
-	// tplTeamMembers template path for showing team members page
-	tplTeamMembers base.TplName = "org/team/members"
 	// tplTeamRepositories template path for showing team repositories page
 	tplTeamRepositories base.TplName = "org/team/repositories"
+	// tplTeamDiscussions template path for showing team discussions page
+	tplTeamDiscussions base.TplName = "org/team/discussions"
 )
+
+// TeamHome render team home page
+func TeamHome(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Org.Team.Name
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamHome"] = true
+	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{}); err != nil {
+		ctx.ServerError("GetMembers", err)
+		return
+	}
+	ctx.HTML(200, tplTeamHome)
+}
 
 // Teams render teams list page
 func Teams(ctx *context.Context) {
@@ -241,18 +255,6 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + t.LowerName)
 }
 
-// TeamMembers render team members page
-func TeamMembers(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Org.Team.Name
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["PageIsOrgTeamMembers"] = true
-	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{}); err != nil {
-		ctx.ServerError("GetMembers", err)
-		return
-	}
-	ctx.HTML(200, tplTeamMembers)
-}
-
 // TeamRepositories show the repositories of team
 func TeamRepositories(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Team.Name
@@ -263,6 +265,18 @@ func TeamRepositories(ctx *context.Context) {
 		return
 	}
 	ctx.HTML(200, tplTeamRepositories)
+}
+
+// TeamDiscussions show the discussions of team
+func TeamDiscussions(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Org.Team.Name
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamRepos"] = true
+	if err := ctx.Org.Team.GetRepositories(&models.SearchTeamOptions{}); err != nil {
+		ctx.ServerError("GetRepositories", err)
+		return
+	}
+	ctx.HTML(200, tplTeamDiscussions)
 }
 
 // EditTeam render team edit page

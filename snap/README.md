@@ -1,0 +1,1 @@
+Directory dedicated to configuration of snap

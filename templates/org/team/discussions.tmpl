@@ -1,0 +1,29 @@
+<!-- Spacing from the other elements -->
+<div class="ui ten wide column">
+	<!-- Container -->
+	<div class="ui top segment">
+		<!-- Header -->
+		<div class="header">
+			<!-- User logo -->
+			<a class="avatar mini" href="{{.SignedUser.HomeLink}}">
+				{{avatar .SignedUser}}
+			</a>
+
+			<!-- Discussion title -->
+			<div class="ui input">
+				<!-- DNM(Krey): Figure out a way to make this 100% width in the header -->
+				<!-- DNM(Krey): Does not work on a <700px width (overlaps) -->
+				<!-- DNM(Krey): Translate the placeholder -->
+				<input placeholder="Start a discussion.." name="title" id="discussion_title" autocomplete="off">
+			</div>
+		</div>
+
+		<!-- TODO -->
+		<div class="segment">
+			<h1>WHEEE2</h1>
+		</div>
+
+		<!-- DNM(Krey): Ensurance that it's not bleeding through -->
+		<h1>OVERLAP</h1>
+	</div>
+</div>
