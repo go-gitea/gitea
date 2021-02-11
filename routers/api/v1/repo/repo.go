@@ -582,6 +582,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
 				return err
 			}
+		}
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
