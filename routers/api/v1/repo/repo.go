@@ -575,16 +575,14 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	// Default branch only updated if changed and exist
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch {
-		if ctx.Repo.GitRepo != nil && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
-			if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
-				if !git.IsErrUnsupportedVersion(err) {
-					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
-					return err
-				}
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch &&
+		ctx.Repo.GitRepo != nil && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+			if !git.IsErrUnsupportedVersion(err) {
+				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+				return err
 			}
-			repo.DefaultBranch = *opts.DefaultBranch
-		}
+		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
 	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
