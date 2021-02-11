@@ -142,3 +142,13 @@ func TestGetReviewersByIssueID(t *testing.T) {
 		}
 	}
 }
+
+func TestDismissReview(t *testing.T) {
+	review1 := AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review2 := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.NoError(t, DismissReview(review1, true))
+	assert.NoError(t, DismissReview(review2, true))
+	assert.NoError(t, DismissReview(review2, true))
+	assert.NoError(t, DismissReview(review2, false))
+	assert.NoError(t, DismissReview(review2, false))
+}

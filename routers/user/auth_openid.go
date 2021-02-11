@@ -415,7 +415,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {

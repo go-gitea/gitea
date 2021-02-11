@@ -284,6 +284,10 @@ var migrations = []Migration{
 	NewMigration("Add user redirect", addUserRedirect),
 	// v168 -> v169
 	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	// v169 -> v170
+	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	// v170 -> v171
+	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

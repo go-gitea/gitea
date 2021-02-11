@@ -745,11 +745,11 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		return err
 	}
 	var opts = &CreateCommentOptions{
-		Type:      CommentTypeDeleteBranch,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		CommitSHA: branchName,
+		Type:   CommentTypeDeleteBranch,
+		Doer:   doer,
+		Repo:   repo,
+		Issue:  issue,
+		OldRef: branchName,
 	}
 	if _, err = createComment(sess, opts); err != nil {
 		return err
