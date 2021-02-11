@@ -65,12 +65,12 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 	for i, row := range a {
 		cells := make([]*TableDiffCell, len(row))
 		for j := 0; j < len(row); j++ {
-			cells[j] = &TableDiffCell{ LeftCell: row[j], Type: celltype }
+			cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
 		}
-		rows[i] = &TableDiffRow{ RowIdx: i + 1, Cells: cells }
+		rows[i] = &TableDiffRow{RowIdx: i + 1, Cells: cells}
 	}
 
-	return []*TableDiffSection{&TableDiffSection{ Rows: rows}}, nil
+	return []*TableDiffSection{{Rows: rows}}, nil
 }
 
 func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
@@ -95,30 +95,30 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 
 	createDiffRow := func(aline int, bline int) *TableDiffRow {
 		cells := make([]*TableDiffCell, columns)
-		
+
 		if aline == 0 || bline == 0 {
 			var (
-				row []string
+				row      []string
 				celltype TableDiffCellType
 			)
 			if bline == 0 {
-				row = getRow(a, aline - 1)
+				row = getRow(a, aline-1)
 				celltype = TableDiffCellDel
 			} else {
-				row = getRow(b, bline - 1)
+				row = getRow(b, bline-1)
 				celltype = TableDiffCellAdd
 			}
 			if row == nil {
 				return nil
 			}
 			for i := 0; i < len(row); i++ {
-				cells[i] = &TableDiffCell{ LeftCell: row[i], Type: celltype }
+				cells[i] = &TableDiffCell{LeftCell: row[i], Type: celltype}
 			}
-			return &TableDiffRow{ RowIdx: bline, Cells: cells }
+			return &TableDiffRow{RowIdx: bline, Cells: cells}
 		}
 
-		arow := getRow(a, aline - 1)
-		brow := getRow(b, bline - 1)
+		arow := getRow(a, aline-1)
+		brow := getRow(b, bline-1)
 		if len(arow) == 0 && len(brow) == 0 {
 			return nil
 		}
@@ -126,26 +126,26 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		for i := 0; i < len(a2b); i++ {
 			acell, _ := getCell(arow, i)
 			if a2b[i] == unmappedColumn {
-				cells[i] = &TableDiffCell{ LeftCell: acell, Type: TableDiffCellDel }
+				cells[i] = &TableDiffCell{LeftCell: acell, Type: TableDiffCellDel}
 			} else {
 				bcell, _ := getCell(brow, a2b[i])
-				
+
 				celltype := TableDiffCellChanged
 				if acell == bcell {
 					celltype = TableDiffCellEqual
 				}
 
-				cells[i] = &TableDiffCell{ LeftCell: acell, RightCell: bcell, Type: celltype }
+				cells[i] = &TableDiffCell{LeftCell: acell, RightCell: bcell, Type: celltype}
 			}
 		}
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
 				bcell, _ := getCell(brow, i)
-				cells[i] = &TableDiffCell{ RightCell: bcell, Type: TableDiffCellAdd }
+				cells[i] = &TableDiffCell{LeftCell: bcell, Type: TableDiffCellAdd}
 			}
 		}
-		
-		return &TableDiffRow{ RowIdx: bline, Cells: cells }
+
+		return &TableDiffRow{RowIdx: bline, Cells: cells}
 	}
 
 	var sections []*TableDiffSection
@@ -167,7 +167,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		}
 
 		if len(rows) > 0 {
-			sections = append(sections, &TableDiffSection{ Rows: rows})
+			sections = append(sections, &TableDiffSection{Rows: rows})
 		}
 	}
 
@@ -226,18 +226,18 @@ func tryMapColumnsByContent(a [][]string, a2b []int, b [][]string, b2a []int) {
 	for i := 0; i < len(a2b); i++ {
 		if a2b[i] == unmappedColumn {
 			if b2a[start] == unmappedColumn {
-				rows := util.Min(MaxRows, util.Max(0, util.Min(len(a), len(b)) - 1))
+				rows := util.Min(MaxRows, util.Max(0, util.Min(len(a), len(b))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
 					acell, ea := getCell(getRow(a, j), i)
-					bcell, eb := getCell(getRow(b, j), start + 1)
+					bcell, eb := getCell(getRow(b, j), start+1)
 					if ea == nil && eb == nil && acell == bcell {
 						same++
 					}
 				}
 				if (float32(same) / float32(rows)) > MinRatio {
 					a2b[i] = start + 1
-					b2a[start + 1] = i
+					b2a[start+1] = i
 				}
 			}
 		}
@@ -292,9 +292,9 @@ func tryMergeLines(lines []*DiffLine) [][2]int {
 	j := 0
 	for i = 0; i < len(ids); i++ {
 		if ids[i][0] == 0 {
-			if j > 0 && result[j - 1][1] == 0 {
+			if j > 0 && result[j-1][1] == 0 {
 				temp := j
-				for temp > 0 && result[temp - 1][1] == 0 {
+				for temp > 0 && result[temp-1][1] == 0 {
 					temp--
 				}
 				result[temp][1] = ids[i][1]
