@@ -1830,6 +1830,10 @@ table th[data-sortt-desc] {
 .ui.button.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
   float: right !important;
+
+  @media (max-width: 480px) {
+    display: none;
+  }
 }
 .ui.selection.dropdown > .search.icon,
 .ui.selection.dropdown > .delete.icon,
