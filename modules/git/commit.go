@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"container/list"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -17,10 +18,10 @@ import (
 	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/hashicorp/go-version"
 )
 
@@ -42,61 +43,6 @@ type Commit struct {
 type CommitGPGSignature struct {
 	Signature string
 	Payload   string //TODO check if can be reconstruct from the rest of commit information to not have duplicate data
-}
-
-func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
-	if c.PGPSignature == "" {
-		return nil
-	}
-
-	var w strings.Builder
-	var err error
-
-	if _, err = fmt.Fprintf(&w, "tree %s\n", c.TreeHash.String()); err != nil {
-		return nil
-	}
-
-	for _, parent := range c.ParentHashes {
-		if _, err = fmt.Fprintf(&w, "parent %s\n", parent.String()); err != nil {
-			return nil
-		}
-	}
-
-	if _, err = fmt.Fprint(&w, "author "); err != nil {
-		return nil
-	}
-
-	if err = c.Author.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprint(&w, "\ncommitter "); err != nil {
-		return nil
-	}
-
-	if err = c.Committer.Encode(&w); err != nil {
-		return nil
-	}
-
-	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
-		return nil
-	}
-
-	return &CommitGPGSignature{
-		Signature: c.PGPSignature,
-		Payload:   w.String(),
-	}
-}
-
-func convertCommit(c *object.Commit) *Commit {
-	return &Commit{
-		ID:            c.Hash,
-		CommitMessage: c.Message,
-		Committer:     &c.Committer,
-		Author:        &c.Author,
-		Signature:     convertPGPSignature(c),
-		Parents:       c.ParentHashes,
-	}
 }
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
@@ -322,23 +268,33 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
 func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
-	for i := 0; i < c.ParentCount(); i++ {
-		commit, err := c.Parent(i)
-		if err != nil {
-			return false, err
-		}
-		if commit.ID == commitHash {
-			return true, nil
-		}
-		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
-		if err != nil {
-			return false, err
-		}
-		if commitInParentCommit {
-			return true, nil
-		}
+	this := c.ID.String()
+	that := commitHash.String()
+
+	if this == that {
+		return false, nil
 	}
-	return false, nil
+
+	if err := CheckGitVersionAtLeast("1.8"); err == nil {
+		_, err := NewCommand("merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		if err == nil {
+			return true, nil
+		}
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+
+	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	if err != nil {
+		return false, err
+	}
+
+	return len(strings.TrimSpace(result)) > 0, nil
 }
 
 // CommitsBeforeLimit returns num commits before current revision
@@ -652,7 +608,7 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
-		return nil, concatenateError(err, stderr.String())
+		return nil, ConcatenateError(err, stderr.String())
 	}
 
 	<-done

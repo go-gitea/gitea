@@ -53,4 +53,5 @@ func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
 	p.AddParam(ctx, "tab", "TabName")
+	p.AddParam(ctx, "t", "queryType")
 }

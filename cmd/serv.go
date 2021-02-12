@@ -26,7 +26,6 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kballard/go-shellquote"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
 )
 
@@ -59,7 +58,7 @@ func setup(logPath string, debug bool) {
 	}
 	setting.NewContext()
 	if debug {
-		setting.ProdMode = false
+		setting.RunMode = "dev"
 	}
 }
 
@@ -77,7 +76,7 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
-		if !setting.ProdMode {
+		if !setting.IsProd() {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
@@ -105,7 +104,10 @@ func runServ(c *cli.Context) error {
 	if len(keys) != 2 || keys[0] != "key" {
 		fail("Key ID format error", "Invalid key argument: %s", c.Args()[0])
 	}
-	keyID := com.StrTo(keys[1]).MustInt64()
+	keyID, err := strconv.ParseInt(keys[1], 10, 64)
+	if err != nil {
+		fail("Key ID format error", "Invalid key argument: %s", c.Args()[1])
+	}
 
 	cmd := os.Getenv("SSH_ORIGINAL_COMMAND")
 	if len(cmd) == 0 {

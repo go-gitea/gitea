@@ -131,6 +131,20 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 		}
 	}
 
+	// Retrieve files affected by the commit
+	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+	if err != nil {
+		return nil, err
+	}
+	affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
+	for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for _, filename := range files {
+			affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
+				Filename: filename,
+			})
+		}
+	}
+
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
@@ -162,5 +176,6 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
+		Files:     affectedFileList,
 	}, nil
 }

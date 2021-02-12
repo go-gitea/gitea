@@ -4,17 +4,31 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID         int64      `xorm:"pk autoincr"`
-		PullID     int64      `xorm:"BIGINT"`
-		UserID     int64      `xorm:"BIGINT"`
-		MergeStyle MergeStyle `xorm:"varchar(50)"`
-		Message    string     `xorm:"TEXT"`
+func convertTopicNameFrom25To50(x *xorm.Engine) error {
+	type Topic struct {
+		ID          int64  `xorm:"pk autoincr"`
+		Name        string `xorm:"UNIQUE VARCHAR(50)"`
+		RepoCount   int
+		CreatedUnix int64 `xorm:"INDEX created"`
+		UpdatedUnix int64 `xorm:"INDEX updated"`
 	}
 
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	if err := x.Sync2(new(Topic)); err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := recreateTable(sess, new(Topic)); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

@@ -22,7 +22,6 @@ import (
 
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -72,36 +71,6 @@ func runHTTPRedirector() {
 	}
 }
 
-func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
-	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(domain),
-		Cache:      autocert.DirCache(directory),
-		Email:      email,
-	}
-	go func() {
-		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
-		if err != nil {
-			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
-		}
-	}()
-	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
-}
-
-func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" && r.Method != "HEAD" {
-		http.Error(w, "Use HTTPS", http.StatusBadRequest)
-		return
-	}
-	// Remove the trailing slash at the end of setting.AppURL, the request
-	// URI always contains a leading slash, which would result in a double
-	// slash
-	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
-	http.Redirect(w, r, target, http.StatusFound)
-}
-
 func runWeb(ctx *cli.Context) error {
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
@@ -133,8 +102,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := routes.NewChi()
-		routes.RegisterInstallRoute(c)
+		c := routes.InstallRoutes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -165,11 +133,9 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// Set up Chi routes
-	c := routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
 
+	// Set up Chi routes
+	c := routes.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())

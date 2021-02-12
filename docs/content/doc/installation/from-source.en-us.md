@@ -101,6 +101,7 @@ Depending on requirements, the following build tags can be included.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
+* `gogit`: (EXPERIMENTAL) Use go-git variants of git commands.
 
 Bundling assets into the binary using the `bindata` build tag is recommended for
 production deployments. It is possible to serve the static assets directly via a reverse proxy,
@@ -185,3 +186,11 @@ CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sq
 ```
 
 Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
+
+You will sometimes need to build a static compiled image. To do this you will need to add:
+
+```
+LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo $TAGS" make build
+```
+
+This can be combined with `CC`, `GOOS`, and `GOARCH` as above.

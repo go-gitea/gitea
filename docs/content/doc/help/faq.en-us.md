@@ -64,7 +64,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
   - `ROOT` in `app.ini`
-  - Else `%(HomeDir)/gitea-repositories`
+  - Else `%(AppDataPath)/gitea-repositories`
 - INI (config file)
   - `-c` flag
   - Else `%(CustomPath)/conf/app.ini`

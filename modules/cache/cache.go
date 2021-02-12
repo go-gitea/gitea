@@ -10,9 +10,9 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	mc "gitea.com/macaron/cache"
+	mc "gitea.com/go-chi/cache"
 
-	_ "gitea.com/macaron/cache/memcache" // memcache plugin for cache
+	_ "gitea.com/go-chi/cache/memcache" // memcache plugin for cache
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 )
 
 func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
-	return mc.NewCacher(cacheConfig.Adapter, mc.Options{
+	return mc.NewCacher(mc.Options{
 		Adapter:       cacheConfig.Adapter,
 		AdapterConfig: cacheConfig.Conn,
 		Interval:      cacheConfig.Interval,
@@ -40,6 +40,11 @@ func NewContext() error {
 	return err
 }
 
+// GetCache returns the currently configured cache
+func GetCache() mc.Cache {
+	return conn
+}
+
 // GetString returns the key value from cache with callback when no key exists in cache
 func GetString(key string, getFunc func() (string, error)) (string, error) {
 	if conn == nil || setting.CacheService.TTL == 0 {
@@ -53,7 +58,7 @@ func GetString(key string, getFunc func() (string, error)) (string, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return "", err
 		}
@@ -81,7 +86,7 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}
@@ -113,7 +118,7 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}

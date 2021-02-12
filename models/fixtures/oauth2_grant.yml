@@ -2,5 +2,6 @@
   user_id: 1
   application_id: 1
   counter: 1
+  scope: "openid profile"
   created_unix: 1546869730
   updated_unix: 1546869730

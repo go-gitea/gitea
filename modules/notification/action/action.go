@@ -29,7 +29,7 @@ func NewNotifier() base.Notifier {
 	return &actionNotifier{}
 }
 
-func (a *actionNotifier) NotifyNewIssue(issue *models.Issue) {
+func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
 	if err := issue.LoadPoster(); err != nil {
 		log.Error("issue.LoadPoster: %v", err)
 		return
@@ -88,7 +88,7 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *model
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
 func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment) {
+	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -120,7 +120,7 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *model
 	}
 }
 
-func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest) {
+func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions []*models.User) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
 		return
@@ -203,7 +203,7 @@ func (a *actionNotifier) NotifyForkRepository(doer *models.User, oldRepo, repo *
 	}
 }
 
-func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment) {
+func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User) {
 	if err := review.LoadReviewer(); err != nil {
 		log.Error("LoadReviewer '%d/%d': %v", review.ID, review.ReviewerID, err)
 		return
@@ -272,6 +272,26 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 		IsPrivate: pr.Issue.Repo.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers [%d]: %v", pr.ID, err)
+	}
+}
+
+func (*actionNotifier) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	reviewerName := review.Reviewer.Name
+	if len(review.OriginalAuthor) > 0 {
+		reviewerName = review.OriginalAuthor
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionPullReviewDismissed,
+		Content:   fmt.Sprintf("%d|%s|%s", review.Issue.Index, reviewerName, comment.Content),
+		RepoID:    review.Issue.Repo.ID,
+		Repo:      review.Issue.Repo,
+		IsPrivate: review.Issue.Repo.IsPrivate,
+		CommentID: comment.ID,
+		Comment:   comment,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", review.Issue.ID, err)
 	}
 }
 

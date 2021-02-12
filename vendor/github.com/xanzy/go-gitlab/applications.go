@@ -26,6 +26,7 @@ type ApplicationsService struct {
 	client *Client
 }
 
+// Application represents a GitLab application
 type Application struct {
 	ID              int    `json:"id"`
 	ApplicationID   string `json:"application_id"`
@@ -64,6 +65,8 @@ func (s *ApplicationsService) CreateApplication(opt *CreateApplicationOptions, o
 	return a, resp, err
 }
 
+// ListApplicationsOptions represents the available
+// ListApplications() options.
 type ListApplicationsOptions ListOptions
 
 // ListApplications get a list of administrables applications by the authenticated user

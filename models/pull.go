@@ -234,7 +234,7 @@ func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
 func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := e.Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request

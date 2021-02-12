@@ -8,8 +8,6 @@ package git
 import (
 	"fmt"
 	"strings"
-
-	"github.com/go-git/go-git/v5/plumbing"
 )
 
 // BranchPrefix base dir of the branch information file store on git
@@ -24,18 +22,6 @@ func IsReferenceExist(repoPath, name string) bool {
 // IsBranchExist returns true if given branch exists in the repository.
 func IsBranchExist(repoPath, name string) bool {
 	return IsReferenceExist(repoPath, BranchPrefix+name)
-}
-
-// IsBranchExist returns true if given branch exists in current repository.
-func (repo *Repository) IsBranchExist(name string) bool {
-	if name == "" {
-		return false
-	}
-	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(BranchPrefix+name), true)
-	if err != nil {
-		return false
-	}
-	return reference.Type() != plumbing.InvalidReference
 }
 
 // Branch represents a Git branch.
@@ -79,25 +65,6 @@ func (repo *Repository) GetDefaultBranch() (string, error) {
 	return NewCommand("symbolic-ref", "HEAD").RunInDir(repo.Path)
 }
 
-// GetBranches returns all branches of the repository.
-func (repo *Repository) GetBranches() ([]string, error) {
-	var branchNames []string
-
-	branches, err := repo.gogitRepo.Branches()
-	if err != nil {
-		return nil, err
-	}
-
-	_ = branches.ForEach(func(branch *plumbing.Reference) error {
-		branchNames = append(branchNames, strings.TrimPrefix(branch.Name().String(), BranchPrefix))
-		return nil
-	})
-
-	// TODO: Sort?
-
-	return branchNames, nil
-}
-
 // GetBranch returns a branch by it's name
 func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 	if !repo.IsBranchExist(branch) {
@@ -111,16 +78,17 @@ func (repo *Repository) GetBranch(branch string) (*Branch, error) {
 }
 
 // GetBranchesByPath returns a branch by it's path
-func GetBranchesByPath(path string) ([]*Branch, error) {
+// if limit = 0 it will not limit
+func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
 	gitRepo, err := OpenRepository(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer gitRepo.Close()
 
-	brs, err := gitRepo.GetBranches()
+	brs, countAll, err := gitRepo.GetBranches(skip, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	branches := make([]*Branch, len(brs))
@@ -132,7 +100,7 @@ func GetBranchesByPath(path string) ([]*Branch, error) {
 		}
 	}
 
-	return branches, nil
+	return branches, countAll, nil
 }
 
 // DeleteBranchOptions Option(s) for delete branch
