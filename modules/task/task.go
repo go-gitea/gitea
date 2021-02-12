@@ -54,20 +54,20 @@ func handle(data ...queue.Data) {
 }
 
 // MigrateRepository add migration repository to task
-func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
-	task, err := CreateMigrateTask(doer, u, opts)
+func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) (*models.Repository, error) {
+	task, repo, err := CreateMigrateTask(doer, u, opts)
 	if err != nil {
-		return err
+		return repo, err
 	}
 
-	return taskQueue.Push(task)
+	return repo, taskQueue.Push(task)
 }
 
 // CreateMigrateTask creates a migrate task
-func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.Task, error) {
+func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.Task, *models.Repository, error) {
 	bs, err := json.Marshal(&opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var task = models.Task{
@@ -79,7 +79,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 	}
 
 	if err := models.CreateTask(&task); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
@@ -98,13 +98,13 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		if err2 != nil {
 			log.Error("UpdateCols Failed: %v", err2.Error())
 		}
-		return nil, err
+		return nil, nil, err
 	}
 
 	task.RepoID = repo.ID
 	if err = task.UpdateCols("repo_id"); err != nil {
-		return nil, err
+		return nil, repo, err
 	}
 
-	return &task, nil
+	return &task, repo, nil
 }
