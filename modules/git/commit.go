@@ -490,6 +490,8 @@ func (c *Commit) GetTagName() (string, error) {
 	return strings.TrimSpace(data), nil
 }
 
+var version27, _ = version.NewVersion("2.7")
+
 // GetBranchNamesForSha returns all branches with the ref/* prefix that belong to a sha commit hash
 func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, err error) {
 	r, err := OpenRepository(repoPath)
@@ -503,8 +505,6 @@ func GetBranchNamesForSha(sha string, repoPath string) (branchNames []string, er
 		Tree: *tree,
 		ID:   commitID,
 	}
-
-	version27, _ := version.NewVersion("2.7")
 
 	if gitVersion.Compare(version27) >= 0 {
 		data, err := NewCommand(
