@@ -94,6 +94,19 @@ func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue 
 	})
 }
 
+func (ns *notificationService) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	if err := issue.LoadPullRequest(); err != nil {
+		log.Error("issue.LoadPullRequest: %v", err)
+		return
+	}
+	if issue.IsPull && models.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
+		_ = ns.issueQueue.Push(issueNotificationOpts{
+			IssueID:              issue.ID,
+			NotificationAuthorID: doer.ID,
+		})
+	}
+}
+
 func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
