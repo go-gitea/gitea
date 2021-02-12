@@ -2390,6 +2390,18 @@ function initIssueReferenceRepositorySearch() {
     });
 }
 
+function initFileViewToggle() {
+  $('.file-view-toggle').on('click', function() {
+    const $this = $(this);
+    $this.parent().children().removeClass('active');
+    $this.addClass('active');
+
+    const $target = $($this.data('toggle-selector'));
+    $target.parent().children().addClass('hide');
+    $target.removeClass('hide');
+  });
+}
+
 $(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
@@ -2611,6 +2623,7 @@ $(document).ready(async () => {
   initTableSort();
   initNotificationsTable();
   initPullRequestMergeInstruction();
+  initFileViewToggle();
 
   const routes = {
     'div.user.settings': initUserSettings,
