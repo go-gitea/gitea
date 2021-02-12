@@ -69,7 +69,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
-	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress()) {
+	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
 		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
