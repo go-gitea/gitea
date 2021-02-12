@@ -10,12 +10,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addDismissedReviewColumn(x *xorm.Engine) error {
-	type Review struct {
-		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
+func addSortingColToProjectBoard(x *xorm.Engine) error {
+	type ProjectBoard struct {
+		Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync2(new(ProjectBoard)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil

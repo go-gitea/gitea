@@ -10,12 +10,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addDismissedReviewColumn(x *xorm.Engine) error {
-	type Review struct {
-		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
+func addTimeIDCommentColumn(x *xorm.Engine) error {
+	type Comment struct {
+		TimeID int64
 	}
 
-	if err := x.Sync2(new(Review)); err != nil {
+	if err := x.Sync2(new(Comment)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
