@@ -81,20 +81,20 @@
 						<label>{{.i18n.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-							<span class="text" title="{{.ContextUser.Name}}">
+							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
 								{{avatar .ContextUser 28 "mini"}}
-								{{.ContextUser.ShortName 20}}
+								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu" title="{{.SignedUser.Name}}">
-								<div class="item" data-value="{{.SignedUser.ID}}">
+								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
 									{{avatar .SignedUser 28 "mini"}}
-									{{.SignedUser.ShortName 20}}
+									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 								</div>
 								{{range .Orgs}}
-									<div class="item" data-value="{{.ID}}" title="{{.Name}}">
+									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
 										{{avatar . 28 "mini"}}
-										{{.ShortName 20}}
+										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
 							</div>

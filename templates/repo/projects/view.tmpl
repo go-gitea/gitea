@@ -72,7 +72,7 @@
 		<div class="board">
 			{{ range $board := .Boards }}
 
-			<div class="ui segment board-column">
+			<div class="ui segment board-column" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header">
 					<div class="ui large label board-label">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}

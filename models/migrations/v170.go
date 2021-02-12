@@ -10,14 +10,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle
+func addDismissedReviewColumn(x *xorm.Engine) error {
+	type Review struct {
+		Dismissed bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
+	if err := x.Sync2(new(Review)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil
