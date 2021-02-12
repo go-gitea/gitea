@@ -618,6 +618,8 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		description string
 	)
 
+	topicBranch = opts.GitPushOptions["topic"]
+
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
 			results = append(results, private.HockProcReceiveRefResult{
@@ -630,34 +632,58 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+		curentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
+			// try match refs/for/<target-branch>/<topic-branch>
+			splits := make([]int, 0, 6)
+			for index, v := range baseBranchName {
+				if v == '/' {
+					if len(splits) >= 6 {
+						break
+					}
+					splits = append(splits, index)
+				}
+			}
+			if len(splits) > 5 {
+				results = append(results, private.HockProcReceiveRefResult{
+					OrignRef: opts.RefFullNames[i],
+					OldOID:   opts.OldCommitIDs[i],
+					NewOID:   opts.NewCommitIDs[i],
+					Err:      fmt.Sprintf("ref 'refs/for/%s' contain too many '/'. \n suggest use 'git push refs/for/<target-branch> -o topic='<topic-branch>'", baseBranchName),
+				})
+				continue
+			}
+			if len(splits) > 0 {
+				for p := len(splits) - 1; p >= 0; p-- {
+					if gitRepo.IsBranchExist(baseBranchName[:splits[p]]) && p != len(baseBranchName)-1 {
+						curentTopicBranch = baseBranchName[splits[p]+1:]
+						baseBranchName = baseBranchName[:splits[p]]
+						break
+					}
+				}
+			}
+		}
+
+		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
 			results = append(results, private.HockProcReceiveRefResult{
 				OrignRef: opts.RefFullNames[i],
 				OldOID:   opts.OldCommitIDs[i],
 				NewOID:   opts.NewCommitIDs[i],
-				Err: fmt.Sprintf("target branch %s is not exist in %s/%s",
-					baseBranchName, ownerName, repoName),
+				Err:      fmt.Sprintf("topic-branch is not set"),
 			})
-			continue
-		}
-
-		if len(topicBranch) == 0 {
-			has := false
-			topicBranch, has = opts.GitPushOptions["topic"]
-			if !has || len(topicBranch) == 0 {
-				ctx.JSON(http.StatusForbidden, map[string]interface{}{
-					"err": "push option 'topic' is requested",
-				})
-				return
-			}
 		}
 
 		headBranch := ""
 		userName := strings.ToLower(opts.UserName)
-		if !strings.HasPrefix(topicBranch, userName+"/") {
-			headBranch = userName + "/" + topicBranch
+
+		if len(curentTopicBranch) == 0 {
+			curentTopicBranch = topicBranch
+		}
+
+		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
+			headBranch = userName + "/" + curentTopicBranch
 		} else {
-			headBranch = topicBranch
+			headBranch = curentTopicBranch
 		}
 
 		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestStyleAGit)
