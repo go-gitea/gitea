@@ -581,7 +581,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		// Call API to add Pending status for commit
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
 			api.CreateStatusOption{
-				State:       api.StatusPending,
+				State:       api.CommitStatusPending,
 				TargetURL:   "http://test.ci/",
 				Description: "",
 				Context:     "testci",
@@ -602,7 +602,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		// Call API to add Success status for commit
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
 			api.CreateStatusOption{
-				State:       api.StatusFailure,
+				State:       api.CommitStatusFailure,
 				TargetURL:   "http://test.ci/",
 				Description: "",
 				Context:     "testci",
@@ -618,7 +618,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		// Call API to add Success statu for commit
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
 			api.CreateStatusOption{
-				State:       api.StatusSuccess,
+				State:       api.CommitStatusSuccess,
 				TargetURL:   "http://test.ci/",
 				Description: "",
 				Context:     "testci",
