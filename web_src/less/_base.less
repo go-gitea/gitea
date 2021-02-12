@@ -347,9 +347,6 @@ a.muted:hover,
 
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .ui.selection.visible.dropdown > .text:not(.default) {
@@ -390,10 +387,6 @@ a.muted:hover,
 
 .ui.menu .ui.dropdown .menu > .item {
   color: var(--color-text) !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
 }
 
 .ui.menu .ui.dropdown .menu > .item:hover {
@@ -2001,4 +1994,17 @@ table th[data-sortt-desc] {
 .flash-error details code {
   display: block;
   text-align: left;
+}
+
+.truncated-item-container {
+  display: flex !important;
+}
+
+.truncated-item-name {
+  line-height: 2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: -.5em;
+  margin-bottom: -.5em;
 }
