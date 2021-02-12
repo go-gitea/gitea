@@ -12,7 +12,7 @@ import (
 
 func addSortingColToProjectBoard(x *xorm.Engine) error {
 	type ProjectBoard struct {
-		Sorting int8 `xorm:"DEFAULT 0"`
+		Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	if err := x.Sync2(new(ProjectBoard)); err != nil {

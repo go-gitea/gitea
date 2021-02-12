@@ -36,7 +36,7 @@ type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
 	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-	Sorting int8 `xorm:"DEFAULT 0"`
+	Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
