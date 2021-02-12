@@ -120,6 +120,30 @@ func (f RegisterForm) IsEmailDomainWhitelisted() bool {
 	return false
 }
 
+// IsEmailDomainBlacklisted validates that the email address
+// does not come from a domain that has been blacklisted.
+// In the absence of a blacklist, all addresses are accepted.
+func (f RegisterForm) IsEmailDomainBlacklisted() bool {
+	if len(setting.Service.EmailDomainBlacklist) == 0 {
+		return false
+	}
+
+	n := strings.LastIndex(f.Email, "@")
+	if n <= 0 {
+		return false
+	}
+
+	domain := strings.ToLower(f.Email[n+1:])
+
+	for _, v := range setting.Service.EmailDomainBlacklist {
+		if strings.ToLower(v) == domain {
+			return true
+		}
+	}
+
+	return false
+}
+
 // MustChangePasswordForm form for updating your password after account creation
 // by an admin
 type MustChangePasswordForm struct {

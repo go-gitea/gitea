@@ -1129,7 +1129,7 @@ func SignUpPost(ctx *context.Context) {
 		}
 	}
 
-	if !form.IsEmailDomainWhitelisted() {
+	if !form.IsEmailDomainWhitelisted() || form.IsEmailDomainBlacklisted() {
 		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
 		return
 	}
