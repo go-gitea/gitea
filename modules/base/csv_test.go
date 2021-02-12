@@ -22,7 +22,7 @@ func TestCreateCsvReaderAndGuessDelimiter(t *testing.T) {
 	assert.Equal(t, ';', rd.Comma)
 }
 
-func TestGuessDelimiter(t *testint.T) {
+func TestGuessDelimiter(t *testing.T) {
 	var kases = map[string]rune{
 		"a":                         ',',
 		"1,2":                       ',',

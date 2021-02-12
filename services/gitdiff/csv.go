@@ -74,17 +74,15 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 }
 
 func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
-	arows, err := baseReader.ReadAll()
+	a, err := baseReader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
-	a := arows[:]
 
-	brows, err := headReader.ReadAll()
+	b, err := headReader.ReadAll()
 	if err != nil {
 		return nil, err
 	}
-	b := brows[:]
 
 	a2b, b2a := getColumnMapping(a, b)
 
@@ -272,7 +270,7 @@ func countUnmappedColumns(mapping []int) int {
 	return count
 }
 
-// tryMergeLines maps the seperated line numbers of a git diff.
+// tryMergeLines maps the separated line numbers of a git diff.
 func tryMergeLines(lines []*DiffLine) [][2]int {
 	ids := make([][2]int, len(lines))
 
