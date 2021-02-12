@@ -1,0 +1,21 @@
+<!-- Spacing from the other elements -->
+<div class="ui ten wide column">
+	<!-- Container -->
+	<div class="ui top segment">
+		<!-- Header -->
+		<div class="header">
+			{{template "org/team/discussions/title" .}}
+		</div>
+		<!-- Editor -->
+		<div class="ui input">
+			<!-- DNM-STUB(Krey): Stub implementation for development -->
+			<input placeholder="content here" name="title" id="discussion_title" autocomplete="off">
+		</div>
+
+		<!-- Publish button -->
+		<div class="ui input">
+			<!-- DNM-STUB(Krey): Stub implementation for development -->
+			{{template "org/team/discussions/publish" .}}
+		</div>
+	</div>
+</div>

@@ -8,9 +8,13 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<div class="ui grid">
-			{{template "org/team/sidebar" .}}
+			<div class="ui six wide column">
+				{{template "org/team/sidebar" .}}
+			</div>
 			<!-- DNM(Krey): Make discussions into a toggle in a settings -->
-			{{template "org/team/discussions" .}}
+			<div class="ui ten wide column">
+				{{template "org/team/discussions" .}}
+			</div>
 		</div>
 	</div>
 </div>

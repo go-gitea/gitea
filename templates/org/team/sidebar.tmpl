@@ -1,63 +1,61 @@
 <!-- Template providing a sidebar in team view e.g. http://domain.tld/org/test-org/teams/<TEAM> left section showing team name, description, etc.. -->
 
-<div class="ui six wide column">
-	<h4 class="ui top attached header">
-		<strong>{{.Team.Name}}</strong>
-		<div class="ui right">
-			{{if .Team.IsMember $.SignedUser.ID}}
-				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave">
-					{{$.CsrfTokenHtml}}
-					<input type="hidden" name="page" value="home"/>
-					<button type="submit" class="ui red tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
-				</form>
-			{{else if .IsOrganizationOwner}}
-				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join">
-					{{$.CsrfTokenHtml}}
-					<input type="hidden" name="page" value="team"/>
-					<button type="submit" class="ui blue tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
-				</form>
-			{{end}}
-		</div>
-	</h4>
-	<div class="ui attached table segment detail">
-		<div class="item">
-			{{if .Team.Description}}
-				{{.Team.Description}}
-			{{else}}
-				<span class="text grey italic">{{.i18n.Tr "org.teams.no_desc"}}</span>
-			{{end}}
-		</div>
-
-		<div class="item">
-			{{if eq .Team.LowerName "owners"}}
-				{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
-			{{else if (eq .Team.Authorize 1)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
-				{{else}}
-					{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
-				{{end}}
-			{{else if (eq .Team.Authorize 2)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
-				{{else}}
-					{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
-				{{end}}
-			{{else if (eq .Team.Authorize 3)}}
-				{{if .Team.IncludesAllRepositories}}
-					{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
-				{{else}}
-					{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
-				{{end}}
-			{{end}}
-			{{if .Team.CanCreateOrgRepo}}
-				<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
-			{{end}}
-		</div>
+<h4 class="ui top attached header">
+	<strong>{{.Team.Name}}</strong>
+	<div class="ui right">
+		{{if .Team.IsMember $.SignedUser.ID}}
+			<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave">
+				{{$.CsrfTokenHtml}}
+				<input type="hidden" name="page" value="home"/>
+				<button type="submit" class="ui red tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.leave"}}</button>
+			</form>
+		{{else if .IsOrganizationOwner}}
+			<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join">
+				{{$.CsrfTokenHtml}}
+				<input type="hidden" name="page" value="team"/>
+				<button type="submit" class="ui blue tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
+			</form>
+		{{end}}
 	</div>
-	{{if .IsOrganizationOwner}}
-		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
-		</div>
-	{{end}}
+</h4>
+<div class="ui attached table segment detail">
+	<div class="item">
+		{{if .Team.Description}}
+			{{.Team.Description}}
+		{{else}}
+			<span class="text grey italic">{{.i18n.Tr "org.teams.no_desc"}}</span>
+		{{end}}
+	</div>
+
+	<div class="item">
+		{{if eq .Team.LowerName "owners"}}
+			{{.i18n.Tr "org.teams.owners_permission_desc" | Str2html}}
+		{{else if (eq .Team.Authorize 1)}}
+			{{if .Team.IncludesAllRepositories}}
+				{{.i18n.Tr "org.teams.all_repositories_read_permission_desc" | Str2html}}
+			{{else}}
+				{{.i18n.Tr "org.teams.read_permission_desc" | Str2html}}
+			{{end}}
+		{{else if (eq .Team.Authorize 2)}}
+			{{if .Team.IncludesAllRepositories}}
+				{{.i18n.Tr "org.teams.all_repositories_write_permission_desc" | Str2html}}
+			{{else}}
+				{{.i18n.Tr "org.teams.write_permission_desc" | Str2html}}
+			{{end}}
+		{{else if (eq .Team.Authorize 3)}}
+			{{if .Team.IncludesAllRepositories}}
+				{{.i18n.Tr "org.teams.all_repositories_admin_permission_desc" | Str2html}}
+			{{else}}
+				{{.i18n.Tr "org.teams.admin_permission_desc" | Str2html}}
+			{{end}}
+		{{end}}
+		{{if .Team.CanCreateOrgRepo}}
+			<br><br>{{.i18n.Tr "org.teams.create_repo_permission_desc" | Str2html}}
+		{{end}}
+	</div>
 </div>
+{{if .IsOrganizationOwner}}
+	<div class="ui bottom attached segment">
+		<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
+	</div>
+{{end}}
