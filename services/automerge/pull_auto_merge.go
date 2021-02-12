@@ -115,7 +115,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 
 			// Merge if all checks succeeded
-			doer, err := models.GetUserByID(scheduledPRM.UserID)
+			doer, err := models.GetUserByID(scheduledPRM.DoerID)
 			if err != nil {
 				return err
 			}

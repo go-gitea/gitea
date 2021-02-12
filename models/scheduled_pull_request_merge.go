@@ -10,8 +10,8 @@ import "code.gitea.io/gitea/modules/timeutil"
 type ScheduledPullRequestMerge struct {
 	ID          int64              `xorm:"pk autoincr"`
 	PullID      int64              `xorm:"BIGINT"`
-	UserID      int64              `xorm:"BIGINT"`
-	User        *User              `xorm:"-"`
+	DoerID      int64              `xorm:"BIGINT"`
+	Doer        *User              `xorm:"-"`
 	MergeStyle  MergeStyle         `xorm:"varchar(50)"`
 	Message     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
@@ -28,7 +28,7 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: opts.PullID}
 	}
 
-	opts.UserID = opts.User.ID
+	opts.DoerID = opts.Doer.ID
 
 	if _, err = x.Insert(opts); err != nil {
 		return
@@ -39,7 +39,7 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return err
 	}
 
-	_, err = CreateScheduledPRToAutoMergeComment(opts.User, pr)
+	_, err = CreateScheduledPRToAutoMergeComment(opts.Doer, pr)
 	return err
 }
 
@@ -50,7 +50,7 @@ func GetScheduledMergeRequestByPullID(pullID int64) (exists bool, scheduledPRM *
 	if err != nil || !exists {
 		return
 	}
-	scheduledPRM.User, err = getUserByID(x, scheduledPRM.UserID)
+	scheduledPRM.Doer, err = getUserByID(x, scheduledPRM.DoerID)
 	return
 }
 

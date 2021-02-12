@@ -838,7 +838,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	if form.MergeWhenChecksSucceed && !lastCommitStatus.IsSuccess() {
 		err = models.ScheduleAutoMerge(&models.ScheduledPullRequestMerge{
 			PullID:     pr.ID,
-			User:       ctx.User,
+			Doer:       ctx.User,
 			MergeStyle: models.MergeStyle(form.Do),
 			Message:    message,
 		})
