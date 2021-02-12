@@ -161,6 +161,15 @@ func (ns *notificationService) NotifyPullRequestPushCommits(doer *models.User, p
 	_ = ns.issueQueue.Push(opts)
 }
 
+func (ns *notificationService) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	var opts = issueNotificationOpts{
+		IssueID:              review.IssueID,
+		NotificationAuthorID: doer.ID,
+		CommentID:            comment.ID,
+	}
+	_ = ns.issueQueue.Push(opts)
+}
+
 func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	if !removed {
 		var opts = issueNotificationOpts{

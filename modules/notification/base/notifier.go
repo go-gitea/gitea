@@ -39,6 +39,7 @@ type Notifier interface {
 	NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
 	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
+	NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment)
 
 	NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 		issue *models.Issue, comment *models.Comment, mentions []*models.User)

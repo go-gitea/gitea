@@ -305,3 +305,13 @@ func CountWrongUserType() (int64, error) {
 func FixWrongUserType() (int64, error) {
 	return x.Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
+
+// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
+func CountCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return x.Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
+}
+
+// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
+func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return x.Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
+}
