@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"html"
 	"io"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/markup"
@@ -35,7 +36,24 @@ func (Parser) Extensions() []string {
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
 	rd := base.CreateCsvReaderAndGuessDelimiter(rawBytes)
 	var tmpBlock bytes.Buffer
-	tmpBlock.WriteString(`<table class="table">`)
+
+	writeField := func(element, class, field string) {
+		tmpBlock.WriteString("<")
+		tmpBlock.WriteString(element)
+		if len(class) > 0 {
+			tmpBlock.WriteString(" class=\"")
+			tmpBlock.WriteString(class)
+			tmpBlock.WriteString("\"")
+		}
+		tmpBlock.WriteString(">")
+		tmpBlock.WriteString(html.EscapeString(field))
+		tmpBlock.WriteString("</")
+		tmpBlock.WriteString(element)
+		tmpBlock.WriteString(">")
+	}
+
+	tmpBlock.WriteString(`<table class="data-table">`)
+	row := 1
 	for {
 		fields, err := rd.Read()
 		if err == io.EOF {
@@ -45,12 +63,17 @@ func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string,
 			continue
 		}
 		tmpBlock.WriteString("<tr>")
+		element := "td"
+		if row == 1 {
+			element = "th"
+		}
+		writeField(element, "line-num", strconv.Itoa(row))
 		for _, field := range fields {
-			tmpBlock.WriteString("<td>")
-			tmpBlock.WriteString(html.EscapeString(field))
-			tmpBlock.WriteString("</td>")
+			writeField(element, "", field)
 		}
 		tmpBlock.WriteString("</tr>")
+
+		row++
 	}
 	tmpBlock.WriteString("</table>")
 
