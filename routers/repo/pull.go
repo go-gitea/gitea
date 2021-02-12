@@ -883,14 +883,14 @@ func MergePullRequest(ctx *context.Context) {
 		if err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
 				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
-				ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 				return
 			}
 			ctx.ServerError("ScheduleAutoMerge", err)
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_success"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 		return
 	}
 	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
@@ -992,7 +992,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	}
 	if !exists {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(pr.Index))
+		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 		return
 	}
 	err = models.RemoveScheduledMergeRequest(scheduledInfo)
@@ -1007,7 +1007,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.pulls.pull_request_schedule_canceled"))
-	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 }
 
 func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
