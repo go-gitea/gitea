@@ -223,3 +223,15 @@ func SubmitReview(ctx *context.Context) {
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
 }
+
+// DismissReview dismissing stale review by repo admin
+func DismissReview(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.DismissReviewForm)
+	comm, err := pull_service.DismissReview(form.ReviewID, form.Message, ctx.User, true)
+	if err != nil {
+		ctx.ServerError("pull_service.DismissReview", err)
+		return
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
+}
