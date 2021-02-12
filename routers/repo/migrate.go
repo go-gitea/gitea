@@ -6,17 +6,19 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -25,9 +27,17 @@ const (
 
 // Migrate render migration of repository page
 func Migrate(ctx *context.Context) {
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "Migrate: the site administrator has disabled migrations")
+		return
+	}
+
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
 	serviceType := ctx.QueryInt("service_type")
 	if serviceType == 0 {
+		ctx.Data["Org"] = ctx.Query("org")
+		ctx.Data["Mirror"] = ctx.Query("mirror")
+
 		ctx.HTML(200, tplMigrate)
 		return
 	}
@@ -57,6 +67,11 @@ func Migrate(ctx *context.Context) {
 }
 
 func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
+		return
+	}
+
 	switch {
 	case migrations.IsRateLimitError(err):
 		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
@@ -103,7 +118,13 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 }
 
 // MigratePost response for migrating from external git repository
-func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
+func MigratePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.MigrateRepoForm)
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	// Plain git should be first
 	ctx.Data["service"] = structs.GitServiceType(form.Service)
@@ -173,7 +194,7 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 
 	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, false)
 	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
+		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return
 	}
 
@@ -183,5 +204,5 @@ func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
 		return
 	}
 
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, &form)
+	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 }

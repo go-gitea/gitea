@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
@@ -108,6 +109,22 @@ func registerUpdateMigrationPosterID() {
 	})
 }
 
+func registerCleanupHookTaskTable() {
+	RegisterTaskFatal("cleanup_hook_task_table", &CleanupHookTaskConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 24h",
+		},
+		CleanupType:  "OlderThan",
+		OlderThan:    168 * time.Hour,
+		NumberToKeep: 10,
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		realConfig := config.(*CleanupHookTaskConfig)
+		return models.CleanupHookTaskTable(ctx, models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
+	})
+}
+
 func initBasicTasks() {
 	registerUpdateMirrorTask()
 	registerRepoHealthCheck()
@@ -115,5 +132,8 @@ func initBasicTasks() {
 	registerArchiveCleanup()
 	registerSyncExternalUsers()
 	registerDeletedBranchesCleanup()
-	registerUpdateMigrationPosterID()
+	if !setting.Repository.DisableMigrations {
+		registerUpdateMigrationPosterID()
+	}
+	registerCleanupHookTaskTable()
 }

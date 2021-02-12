@@ -185,12 +185,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	return t.CommitTreeWithDate(author, committer, treeHash, message, time.Now(), time.Now())
+func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string, signoff bool) (string, error) {
+	return t.CommitTreeWithDate(author, committer, treeHash, message, signoff, time.Now(), time.Now())
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -214,7 +214,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 	args := []string{"commit-tree", treeHash, "-p", "HEAD"}
 
 	// Determine if we should sign
-	if git.CheckGitVersionConstraint(">= 1.7.9") == nil {
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
 		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
@@ -222,18 +222,25 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
 					// Add trailers
 					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-Authored-By: ")
+					_, _ = messageBytes.WriteString("Co-authored-by: ")
 					_, _ = messageBytes.WriteString(committerSig.String())
 					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-Committed-By: ")
+					_, _ = messageBytes.WriteString("Co-committed-by: ")
 					_, _ = messageBytes.WriteString(committerSig.String())
 					_, _ = messageBytes.WriteString("\n")
 				}
 				committerSig = signer
 			}
-		} else if git.CheckGitVersionConstraint(">= 2.0.0") == nil {
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
+	}
+
+	if signoff {
+		// Signed-off-by
+		_, _ = messageBytes.WriteString("\n")
+		_, _ = messageBytes.WriteString("Signed-off-by: ")
+		_, _ = messageBytes.WriteString(committerSig.String())
 	}
 
 	env = append(env,
@@ -335,7 +342,7 @@ func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...str
 	cmdArgs := []string{"check-attr", "-z", attribute}
 
 	// git check-attr --cached first appears in git 1.7.8
-	if git.CheckGitVersionConstraint(">= 1.7.8") == nil {
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 	cmdArgs = append(cmdArgs, "--")

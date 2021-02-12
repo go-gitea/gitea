@@ -63,9 +63,10 @@ type Review struct {
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
-	Official bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID string `xorm:"VARCHAR(40)"`
-	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
+	Official  bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID  string `xorm:"VARCHAR(40)"`
+	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
+	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -466,8 +467,8 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
 		return nil, err
 	}
@@ -558,6 +559,19 @@ func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	return
 }
 
+// DismissReview change the dismiss status of a review
+func DismissReview(review *Review, isDismiss bool) (err error) {
+	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+		return nil
+	}
+
+	review.Dismissed = isDismiss
+
+	_, err = x.Cols("dismissed").Update(review)
+
+	return
+}
+
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
 	sess := x.NewSession()
@@ -627,13 +641,14 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	if _, err = createReview(sess, CreateReviewOptions{
+	review, err = createReview(sess, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
 		Official: official,
 		Stale:    false,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -644,6 +659,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, err
@@ -732,7 +748,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		}
 	}
 
-	if _, err = createReview(sess, CreateReviewOptions{
+	if review, err = createReview(sess, CreateReviewOptions{
 		Type:         ReviewTypeRequest,
 		Issue:        issue,
 		ReviewerTeam: reviewer,
@@ -755,6 +771,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		Issue:           issue,
 		RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+		ReviewID:        review.ID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("createComment(): %v", err)
@@ -892,6 +909,10 @@ func DeleteReview(r *Review) error {
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
+	}
+
+	if r.Type == ReviewTypeRequest {
+		return fmt.Errorf("review request can not be deleted using this method")
 	}
 
 	opts := FindCommentsOptions{

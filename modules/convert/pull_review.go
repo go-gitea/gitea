@@ -28,11 +28,13 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(r.Reviewer, doer != nil, auth),
+		ReviewerTeam:      ToTeam(r.ReviewerTeam),
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
 		Stale:             r.Stale,
 		Official:          r.Official,
+		Dismissed:         r.Dismissed,
 		CodeCommentsCount: r.GetCodeCommentsCount(),
 		Submitted:         r.CreatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(),

@@ -86,3 +86,22 @@
   official: true
   updated_unix: 946684815
   created_unix: 946684815
+
+-
+  id: 11
+  type: 4
+  reviewer_id: 0
+  reviewer_team_id: 7
+  issue_id: 12
+  official: true
+  updated_unix: 1602936509
+  created_unix: 1602936509
+
+-
+  id: 12
+  type: 4
+  reviewer_id: 1
+  issue_id: 12
+  official: true
+  updated_unix: 1603196749
+  created_unix: 1603196749

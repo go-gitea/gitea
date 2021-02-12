@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"xorm.io/builder"
 )
 
@@ -114,7 +114,11 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error)
 				return models.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
 			default:
 			}
-			if !com.IsDir(repo.RepoPath()) {
+			isDir, err := util.IsDir(repo.RepoPath())
+			if err != nil {
+				return fmt.Errorf("Unable to check dir for %s. %w", repo.FullName(), err)
+			}
+			if !isDir {
 				repos = append(repos, repo)
 			}
 			return nil

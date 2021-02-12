@@ -11,13 +11,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -50,7 +49,7 @@ func Teams(ctx *context.Context) {
 
 // TeamsAction response for join, leave, remove, add operations to team
 func TeamsAction(ctx *context.Context) {
-	uid := com.StrTo(ctx.Query("uid")).MustInt64()
+	uid := ctx.QueryInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 		return
@@ -155,7 +154,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
-		err = ctx.Org.Team.RemoveRepository(com.StrTo(ctx.Query("repoid")).MustInt64())
+		err = ctx.Org.Team.RemoveRepository(ctx.QueryInt64("repoid"))
 	case "addall":
 		err = ctx.Org.Team.AddAllRepositories()
 	case "removeall":
@@ -188,7 +187,8 @@ func NewTeam(ctx *context.Context) {
 }
 
 // NewTeamPost response for create new team
-func NewTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
+func NewTeamPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateTeamForm)
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
@@ -276,7 +276,8 @@ func EditTeam(ctx *context.Context) {
 }
 
 // EditTeamPost response for modify team information
-func EditTeamPost(ctx *context.Context, form auth.CreateTeamForm) {
+func EditTeamPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateTeamForm)
 	t := ctx.Org.Team
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true

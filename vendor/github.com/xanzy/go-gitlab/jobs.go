@@ -19,7 +19,6 @@ package gitlab
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"time"
 )
 
@@ -76,6 +75,29 @@ type Job struct {
 	User   *User  `json:"user"`
 }
 
+// Bridge represents a pipeline bridge.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-bridges
+type Bridge struct {
+	Commit             *Commit       `json:"commit"`
+	Coverage           float64       `json:"coverage"`
+	AllowFailure       bool          `json:"allow_failure"`
+	CreatedAt          *time.Time    `json:"created_at"`
+	StartedAt          *time.Time    `json:"started_at"`
+	FinishedAt         *time.Time    `json:"finished_at"`
+	Duration           float64       `json:"duration"`
+	ID                 int           `json:"id"`
+	Name               string        `json:"name"`
+	Pipeline           PipelineInfo  `json:"pipeline"`
+	Ref                string        `json:"ref"`
+	Stage              string        `json:"stage"`
+	Status             string        `json:"status"`
+	Tag                bool          `json:"tag"`
+	WebURL             string        `json:"web_url"`
+	User               *User         `json:"user"`
+	DownstreamPipeline *PipelineInfo `json:"downstream_pipeline"`
+}
+
 // ListJobsOptions are options for two list apis
 type ListJobsOptions struct {
 	ListOptions
@@ -89,7 +111,7 @@ type ListJobsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#list-project-jobs
-func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, options ...RequestOptionFunc) ([]Job, *Response, error) {
+func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, options ...RequestOptionFunc) ([]*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -101,7 +123,7 @@ func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, op
 		return nil, nil, err
 	}
 
-	var jobs []Job
+	var jobs []*Job
 	resp, err := s.client.Do(req, &jobs)
 	if err != nil {
 		return nil, resp, err
@@ -136,6 +158,32 @@ func (s *JobsService) ListPipelineJobs(pid interface{}, pipelineID int, opts *Li
 	return jobs, resp, err
 }
 
+// ListPipelineBridges gets a list of bridges for specific pipeline in a
+// project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-jobs
+func (s *JobsService) ListPipelineBridges(pid interface{}, pipelineID int, opts *ListJobsOptions, options ...RequestOptionFunc) ([]*Bridge, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/pipelines/%d/bridges", pathEscape(project), pipelineID)
+
+	req, err := s.client.NewRequest("GET", u, opts, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var bridges []*Bridge
+	resp, err := s.client.Do(req, &bridges)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return bridges, resp, err
+}
+
 // GetJob gets a single job of a project.
 //
 // GitLab API docs:
@@ -164,8 +212,8 @@ func (s *JobsService) GetJob(pid interface{}, jobID int, options ...RequestOptio
 // GetJobArtifacts get jobs artifacts of a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#get-job-artifacts
-func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#get-job-artifacts
+func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -183,14 +231,14 @@ func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...Req
 		return nil, resp, err
 	}
 
-	return artifactsBuf, resp, err
+	return bytes.NewReader(artifactsBuf.Bytes()), resp, err
 }
 
 // DownloadArtifactsFileOptions represents the available DownloadArtifactsFile()
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#download-the-artifacts-file
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-the-artifacts-archive
 type DownloadArtifactsFileOptions struct {
 	Job *string `url:"job" json:"job"`
 }
@@ -199,8 +247,8 @@ type DownloadArtifactsFileOptions struct {
 // reference name and job provided the job finished successfully.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#download-the-artifacts-file
-func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-the-artifacts-archive
+func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -218,7 +266,7 @@ func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt
 		return nil, resp, err
 	}
 
-	return artifactsBuf, resp, err
+	return bytes.NewReader(artifactsBuf.Bytes()), resp, err
 }
 
 // DownloadSingleArtifactsFile download a file from the artifacts from the
@@ -227,8 +275,8 @@ func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt
 // to a client.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#download-a-single-artifact-file
-func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-a-single-artifact-file-by-job-id
+func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -252,14 +300,14 @@ func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, ar
 		return nil, resp, err
 	}
 
-	return artifactBuf, resp, err
+	return bytes.NewReader(artifactBuf.Bytes()), resp, err
 }
 
 // GetTraceFile gets a trace of a specific job of a project
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#get-a-trace-file
-func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -277,7 +325,7 @@ func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...Reques
 		return nil, resp, err
 	}
 
-	return traceBuf, resp, err
+	return bytes.NewReader(traceBuf.Bytes()), resp, err
 }
 
 // CancelJob cancels a single job of a project.
@@ -360,7 +408,7 @@ func (s *JobsService) EraseJob(pid interface{}, jobID int, options ...RequestOpt
 // expiration is set.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#keep-artifacts
+// https://docs.gitlab.com/ce/api/job_artifacts.html#keep-artifacts
 func (s *JobsService) KeepArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -394,6 +442,31 @@ func (s *JobsService) PlayJob(pid interface{}, jobID int, options ...RequestOpti
 	u := fmt.Sprintf("projects/%s/jobs/%d/play", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	job := new(Job)
+	resp, err := s.client.Do(req, job)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return job, resp, err
+}
+
+// DeleteArtifacts delete artifacts of a job
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/job_artifacts.html#delete-artifacts
+func (s *JobsService) DeleteArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", pathEscape(project), jobID)
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

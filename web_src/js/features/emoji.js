@@ -15,7 +15,7 @@ export const emojiKeys = Object.keys(tempMap).sort((a, b) => {
   return a.localeCompare(b);
 });
 
-export const emojiMap = {};
+const emojiMap = {};
 for (const key of emojiKeys) {
   emojiMap[key] = tempMap[key];
 }

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -45,7 +45,7 @@
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings"><i class="fa fa-pencil-square-o"></i></a></td>
+							<td><a href="{{AppSubUrl}}/org/{{.Name}}/settings">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -70,6 +70,10 @@ type Zip struct {
 	// especially on extraction.
 	ImplicitTopLevelFolder bool
 
+	// Strip number of leading paths. This feature is available
+	// only during unpacking of the entire archive.
+	StripComponents int
+
 	// If true, errors encountered during reading
 	// or writing a single file will be logged and
 	// the operation will continue on remaining files.
@@ -123,7 +127,7 @@ func (*Zip) CheckPath(to, filename string) error {
 	dest := filepath.Join(to, filename)
 	//prevent path traversal attacks
 	if !strings.HasPrefix(dest, to) {
-		return fmt.Errorf("illegal file path: %s", filename)
+		return &IllegalPathError{AbsolutePath: dest, Filename: filename}
 	}
 	return nil
 }
@@ -225,7 +229,7 @@ func (z *Zip) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if z.ContinueOnError || strings.Contains(err.Error(), "illegal file path") {
+			if z.ContinueOnError || IsIllegalPathError(err) {
 				log.Printf("[ERROR] Reading file in zip archive: %v", err)
 				continue
 			}
@@ -243,19 +247,30 @@ func (z *Zip) extractNext(to string) error {
 	}
 	defer f.Close()
 
-	errPath := z.CheckPath(to, f.Header.(zip.FileHeader).Name)
-	if errPath != nil {
-		return fmt.Errorf("checking path traversal attempt: %v", errPath)
-	}
-	return z.extractFile(f, to)
-}
-
-func (z *Zip) extractFile(f File, to string) error {
 	header, ok := f.Header.(zip.FileHeader)
 	if !ok {
 		return fmt.Errorf("expected header to be zip.FileHeader but was %T", f.Header)
 	}
 
+	errPath := z.CheckPath(to, header.Name)
+	if errPath != nil {
+		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+
+	if z.StripComponents > 0 {
+		if strings.Count(header.Name, "/") < z.StripComponents {
+			return nil // skip path with fewer components
+		}
+
+		for i := 0; i < z.StripComponents; i++ {
+			slash := strings.Index(header.Name, "/")
+			header.Name = header.Name[slash+1:]
+		}
+	}
+	return z.extractFile(f, to, &header)
+}
+
+func (z *Zip) extractFile(f File, to string, header *zip.FileHeader) error {
 	to = filepath.Join(to, header.Name)
 
 	// if a directory, no content; simply make the directory and return
@@ -583,7 +598,7 @@ func (z *Zip) Extract(source, target, destination string) error {
 			}
 			joined := filepath.Join(destination, end)
 
-			err = z.extractFile(f, joined)
+			err = z.extractFile(f, joined, &zfh)
 			if err != nil {
 				return fmt.Errorf("extracting file %s: %v", zfh.Name, err)
 			}

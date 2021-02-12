@@ -15,7 +15,7 @@ import (
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
 	showSQL bool
-	logger  *log.Logger
+	logger  log.Logger
 }
 
 // NewXORMLogger inits a log bridge for xorm

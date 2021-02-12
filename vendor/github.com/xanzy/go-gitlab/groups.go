@@ -75,6 +75,9 @@ type Group struct {
 	CreatedAt                      *time.Time       `json:"created_at"`
 }
 
+// LDAPGroupLink represents a GitLab LDAP group link.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#ldap-group-links
 type LDAPGroupLink struct {
 	CN          string           `json:"cn"`
 	GroupAccess AccessLevelValue `json:"group_access"`
@@ -263,6 +266,31 @@ func (s *GroupsService) DeleteGroup(gid interface{}, options ...RequestOptionFun
 	return s.client.Do(req, nil)
 }
 
+// RestoreGroup restores a previously deleted group
+//
+// GitLap API docs:
+// https://docs.gitlab.com/ee/api/groups.html#restore-group-marked-for-deletion
+func (s *GroupsService) RestoreGroup(gid interface{}, options ...RequestOptionFunc) (*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/restore", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := new(Group)
+	resp, err := s.client.Do(req, g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, nil
+}
+
 // SearchGroup get all groups that match your string in their name or path.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#search-for-group
@@ -286,8 +314,7 @@ func (s *GroupsService) SearchGroup(query string, options ...RequestOptionFunc) 
 	return g, resp, err
 }
 
-// ListGroupProjectsOptions represents the available ListGroupProjects()
-// options.
+// ListGroupProjectsOptions represents the available ListGroup() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-group-39-s-projects
@@ -333,14 +360,13 @@ func (s *GroupsService) ListGroupProjects(gid interface{}, opt *ListGroupProject
 	return p, resp, err
 }
 
-// ListSubgroupsOptions represents the available ListSubgroupsOptions()
-// options.
+// ListSubgroupsOptions represents the available ListSubgroups() options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
 type ListSubgroupsOptions ListGroupsOptions
 
-// ListSubgroups gets a list of subgroups for a given project.
+// ListSubgroups gets a list of subgroups for a given group.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
@@ -350,6 +376,38 @@ func (s *GroupsService) ListSubgroups(gid interface{}, opt *ListSubgroupsOptions
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("groups/%s/subgroups", pathEscape(group))
+
+	req, err := s.client.NewRequest("GET", u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var g []*Group
+	resp, err := s.client.Do(req, &g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, err
+}
+
+// ListDescendantGroupsOptions represents the available ListDescendantGroups()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+type ListDescendantGroupsOptions ListGroupsOptions
+
+// ListDescendantGroups gets a list of subgroups for a given project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/groups.html#list-a-groups-descendant-groups
+func (s *GroupsService) ListDescendantGroups(gid interface{}, opt *ListDescendantGroupsOptions, options ...RequestOptionFunc) ([]*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/descendant_groups", pathEscape(group))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {

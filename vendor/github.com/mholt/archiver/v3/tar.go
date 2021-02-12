@@ -40,6 +40,10 @@ type Tar struct {
 	// especially on extraction.
 	ImplicitTopLevelFolder bool
 
+	// Strip number of leading paths. This feature is available
+	// only during unpacking of the entire archive.
+	StripComponents int
+
 	// If true, errors encountered during reading
 	// or writing a single file will be logged and
 	// the operation will continue on remaining files.
@@ -67,7 +71,7 @@ func (*Tar) CheckPath(to, filename string) error {
 	dest := filepath.Join(to, filename)
 	//prevent path traversal attacks
 	if !strings.HasPrefix(dest, to) {
-		return fmt.Errorf("illegal file path: %s", filename)
+		return &IllegalPathError{AbsolutePath: dest, Filename: filename}
 	}
 	return nil
 }
@@ -161,7 +165,7 @@ func (t *Tar) Unarchive(source, destination string) error {
 			break
 		}
 		if err != nil {
-			if t.ContinueOnError || strings.Contains(err.Error(), "illegal file path") {
+			if t.ContinueOnError || IsIllegalPathError(err) {
 				log.Printf("[ERROR] Reading file in tar archive: %v", err)
 				continue
 			}
@@ -232,6 +236,17 @@ func (t *Tar) untarNext(destination string) error {
 	errPath := t.CheckPath(destination, header.Name)
 	if errPath != nil {
 		return fmt.Errorf("checking path traversal attempt: %v", errPath)
+	}
+
+	if t.StripComponents > 0 {
+		if strings.Count(header.Name, "/") < t.StripComponents {
+			return nil // skip path with fewer components
+		}
+
+		for i := 0; i < t.StripComponents; i++ {
+			slash := strings.Index(header.Name, "/")
+			header.Name = header.Name[slash+1:]
+		}
 	}
 	return t.untarFile(f, destination, header)
 }

@@ -82,7 +82,7 @@ func isUserAssignedToIssue(e Engine, issue *Issue, user *User) (isAssigned bool,
 }
 
 // ClearAssigneeByUserID deletes all assignments of an user
-func clearAssigneeByUserID(sess *xorm.Session, userID int64) (err error) {
+func clearAssigneeByUserID(sess Engine, userID int64) (err error) {
 	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
 	return
 }

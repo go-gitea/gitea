@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -65,7 +65,11 @@ func newLFSService() {
 
 			// Save secret
 			cfg := ini.Empty()
-			if com.IsFile(CustomConf) {
+			isFile, err := util.IsFile(CustomConf)
+			if err != nil {
+				log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+			}
+			if isFile {
 				// Keeps custom settings if there is already something.
 				if err := cfg.Append(CustomConf); err != nil {
 					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
@@ -96,7 +100,7 @@ func CheckLFSVersion() {
 			log.Fatal("Error retrieving git version: %v", err)
 		}
 
-		if git.CheckGitVersionConstraint(">= 2.1.2") != nil {
+		if git.CheckGitVersionAtLeast("2.1.2") != nil {
 			LFS.StartServer = false
 			log.Error("LFS server support needs at least Git v2.1.2")
 		} else {

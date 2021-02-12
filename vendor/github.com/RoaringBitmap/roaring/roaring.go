@@ -345,9 +345,9 @@ func newIntReverseIterator(a *Bitmap) *intReverseIterator {
 
 // ManyIntIterable allows you to iterate over the values in a Bitmap
 type ManyIntIterable interface {
-	// pass in a buffer to fill up with values, returns how many values were returned
+	// NextMany fills buf up with values, returns how many values were returned
 	NextMany(buf []uint32) int
-	// pass in a buffer to fill up with 64 bit values, returns how many values were returned
+	// NextMany64 fills up buf with 64 bit values, uses hs as a mask (OR), returns how many values were returned
 	NextMany64(hs uint64, buf []uint64) int
 }
 
@@ -1006,7 +1006,7 @@ main:
 				}
 				s2 = x2.highlowcontainer.getKeyAtIndex(pos2)
 			} else {
-				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getWritableContainerAtIndex(pos1).ior(x2.highlowcontainer.getContainerAtIndex(pos2)), false)
+				rb.highlowcontainer.replaceKeyAndContainerAtIndex(pos1, s1, rb.highlowcontainer.getUnionedWritableContainer(pos1, x2.highlowcontainer.getContainerAtIndex(pos2)), false)
 				pos1++
 				pos2++
 				if (pos1 == length1) || (pos2 == length2) {
@@ -1580,8 +1580,4 @@ func (rb *Bitmap) Stats() Statistics {
 		}
 	}
 	return stats
-}
-
-func (rb *Bitmap) FillLeastSignificant32bits(x []uint64, i uint64, mask uint64) {
-	rb.ManyIterator().NextMany64(mask, x[i:])
 }

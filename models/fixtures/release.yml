@@ -27,3 +27,19 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684800
+
+-
+  id: 3
+  repo_id: 1
+  publisher_id: 2
+  tag_name: "delete-tag"
+  lower_tag_name: "delete-tag"
+  target: "master"
+  title: "delete-tag"
+  sha1: "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+  num_commits: 10
+  is_draft: false
+  is_prerelease: false
+  is_tag: true
+  created_unix: 946684800
+

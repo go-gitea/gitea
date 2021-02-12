@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -41,7 +42,7 @@ func WikiRemoteURL(remote string) string {
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opts migration.MigrateOptions) (*models.Repository, error) {
+func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.Repository, opts migration.MigrateOptions) (*models.Repository, error) {
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
@@ -61,7 +62,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err = git.CloneWithContext(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -77,7 +78,7 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err = git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
@@ -126,12 +127,33 @@ func MigrateRepositoryGitData(doer, u *models.User, repo *models.Repository, opt
 	}
 
 	if opts.Mirror {
-		if err = models.InsertMirror(&models.Mirror{
+		mirrorModel := models.Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-		}); err != nil {
+		}
+
+		if opts.MirrorInterval != "" {
+			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+			if err != nil {
+				log.Error("Failed to set Interval: %v", err)
+				return repo, err
+			}
+			if parsedInterval == 0 {
+				mirrorModel.Interval = 0
+				mirrorModel.NextUpdateUnix = 0
+			} else if parsedInterval < setting.Mirror.MinInterval {
+				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
+				return repo, err
+			} else {
+				mirrorModel.Interval = parsedInterval
+				mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+			}
+		}
+
+		if err = models.InsertMirror(&mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 

@@ -254,17 +254,6 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 	return &description
 }
 
-func newMacaronLogService() {
-	options := newDefaultLogOptions()
-	options.filename = filepath.Join(LogRootPath, "macaron.log")
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-
-	Cfg.Section("log").Key("MACARON").MustString("file")
-	if RedirectMacaronLog {
-		generateNamedLogger("macaron", options)
-	}
-}
-
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
@@ -284,7 +273,7 @@ func newRouterLogService() {
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
-	if !DisableRouterLog && RedirectMacaronLog {
+	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags
@@ -360,7 +349,6 @@ func RestartLogsWithPIDSuffix() {
 // NewLogServices creates all the log services
 func NewLogServices(disableConsole bool) {
 	newLogService()
-	newMacaronLogService()
 	newRouterLogService()
 	newAccessLogService()
 	NewXORMLogService(disableConsole)

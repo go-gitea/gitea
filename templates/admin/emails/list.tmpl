@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="admin user">
+<div class="page-content admin user">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -12,7 +12,7 @@
 				<div class="ui dropdown type jump item">
 					<span class="text">
 						{{.i18n.Tr "repo.issues.filter_sort"}}
-						<i class="dropdown icon"></i>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
 					<div class="menu">
 						<a class="{{if or (eq .SortType "email") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=email&q={{$.Keyword}}">{{.i18n.Tr "admin.emails.filter_sort.email"}}</a>
@@ -52,17 +52,17 @@
 							<td><a href="{{AppSubUrl}}/{{.Name}}">{{.Name}}</a></td>
 							<td><span class="text truncate">{{.FullName}}</span></td>
 							<td><span class="text email">{{.Email}}</span></td>
-							<td><i class="fa fa{{if .IsPrimary}}-check{{end}}-square-o"></i></td>
+							<td>{{if .IsPrimary}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>
 								{{if .CanChange}}
 									<a class="link-email-action" href data-uid="{{.UID}}"
 										data-email="{{.Email}}"
 										data-primary="{{if .IsPrimary}}1{{else}}0{{end}}"
 										data-activate="{{if .IsActivated}}0{{else}}1{{end}}">
-										<i class="fa fa{{if .IsActivated}}-check{{end}}-square-o"></i>
+										{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
 									</a>
 								{{else}}
-									<i class="fa fa{{if .IsActivated}}-check{{end}}-square-o"></i>
+									{{if .IsActivated}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}
 								{{end}}
 							</td>
 						</tr>
