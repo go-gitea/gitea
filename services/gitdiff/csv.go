@@ -13,6 +13,8 @@ import (
 )
 
 const unmappedColumn = -1
+const maxRowsToInspect int = 10
+const minRatioToMatch float32 = 0.8
 
 // TableDiffCellType represents the type of a TableDiffCell.
 type TableDiffCellType uint8
@@ -43,6 +45,66 @@ type TableDiffSection struct {
 	Rows []*TableDiffRow
 }
 
+// csvReader wraps a csv.Reader which buffers the first rows.
+type csvReader struct {
+	reader *csv.Reader
+	buffer [][]string
+	line   int
+	eof    bool
+}
+
+// createCsvReader creates a csvReader and fills the buffer
+func createCsvReader(reader *csv.Reader, bufferRowCount int) (*csvReader, error) {
+	csv := &csvReader{reader: reader}
+	csv.buffer = make([][]string, bufferRowCount)
+	for i := 0; i < bufferRowCount && !csv.eof; i++ {
+		row, err := csv.readNextRow()
+		if err != nil {
+			return nil, err
+		}
+		csv.buffer[i] = row
+	}
+	csv.line = bufferRowCount
+	return csv, nil
+}
+
+// GetRow gets a row from the buffer if present or advances the reader to the requested row. On the end of the file only nil gets returned.
+func (csv *csvReader) GetRow(row int) ([]string, error) {
+	if row < len(csv.buffer) {
+		return csv.buffer[row], nil
+	}
+	if csv.eof {
+		return nil, nil
+	}
+	for {
+		fields, err := csv.readNextRow()
+		if err != nil {
+			return nil, err
+		}
+		if csv.eof {
+			return nil, nil
+		}
+		csv.line++
+		if csv.line-1 == row {
+			return fields, nil
+		}
+	}
+}
+
+func (csv *csvReader) readNextRow() ([]string, error) {
+	if csv.eof {
+		return nil, nil
+	}
+	row, err := csv.reader.Read()
+	if err != nil {
+		if err != io.EOF {
+			return nil, err
+		}
+		csv.eof = true
+	}
+	return row, nil
+}
+
 // CreateCsvDiff creates a tabular diff based on two CSV readers.
 func CreateCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
 	if baseReader != nil && headReader != nil {
@@ -61,12 +123,12 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 	i := 1
 	for {
 		row, err := reader.Read()
-	if err != nil {
+		if err != nil {
 			if err == io.EOF {
 				break
 			}
-		return nil, err
-	}
+			return nil, err
+		}
 		cells := make([]*TableDiffCell, len(row))
 		for j := 0; j < len(row); j++ {
 			cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
@@ -79,12 +141,12 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 }
 
 func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
-	a, err := baseReader.ReadAll()
+	a, err := createCsvReader(baseReader, maxRowsToInspect)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := headReader.ReadAll()
+	b, err := createCsvReader(headReader, maxRowsToInspect)
 	if err != nil {
 		return nil, err
 	}
@@ -96,34 +158,44 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		columns = len(b2a) + countUnmappedColumns(a2b)
 	}
 
-	createDiffRow := func(aline int, bline int) *TableDiffRow {
+	createDiffRow := func(aline int, bline int) (*TableDiffRow, error) {
 		cells := make([]*TableDiffCell, columns)
 
 		if aline == 0 || bline == 0 {
 			var (
 				row      []string
 				celltype TableDiffCellType
+				err      error
 			)
 			if bline == 0 {
-				row = getRow(a, aline-1)
+				row, err = a.GetRow(aline - 1)
 				celltype = TableDiffCellDel
 			} else {
-				row = getRow(b, bline-1)
+				row, err = b.GetRow(bline - 1)
 				celltype = TableDiffCellAdd
 			}
+			if err != nil {
+				return nil, err
+			}
 			if row == nil {
-				return nil
+				return nil, nil
 			}
 			for i := 0; i < len(row); i++ {
 				cells[i] = &TableDiffCell{LeftCell: row[i], Type: celltype}
 			}
-			return &TableDiffRow{RowIdx: bline, Cells: cells}
+			return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
 		}
 
-		arow := getRow(a, aline-1)
-		brow := getRow(b, bline-1)
+		arow, err := a.GetRow(aline - 1)
+		if err != nil {
+			return nil, err
+		}
+		brow, err := b.GetRow(bline - 1)
+		if err != nil {
+			return nil, err
+		}
 		if len(arow) == 0 && len(brow) == 0 {
-			return nil
+			return nil, nil
 		}
 
 		for i := 0; i < len(a2b); i++ {
@@ -148,7 +220,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 			}
 		}
 
-		return &TableDiffRow{RowIdx: bline, Cells: cells}
+		return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
 	}
 
 	var sections []*TableDiffSection
@@ -158,12 +230,18 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		lines := tryMergeLines(section.Lines)
 		for j, line := range lines {
 			if i == 0 && j == 0 && (line[0] != 1 || line[1] != 1) {
-				diffRow := createDiffRow(1, 1)
+				diffRow, err := createDiffRow(1, 1)
+				if err != nil {
+					return nil, err
+				}
 				if diffRow != nil {
 					rows = append(rows, diffRow)
 				}
 			}
-			diffRow := createDiffRow(line[0], line[1])
+			diffRow, err := createDiffRow(line[0], line[1])
+			if err != nil {
+				return nil, err
+			}
 			if diffRow != nil {
 				rows = append(rows, diffRow)
 			}
@@ -178,18 +256,18 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 }
 
 // getColumnMapping creates a mapping of columns between a and b
-func getColumnMapping(a [][]string, b [][]string) ([]int, []int) {
-	arow := getRow(a, 0)
-	brow := getRow(b, 0)
+func getColumnMapping(a *csvReader, b *csvReader) ([]int, []int) {
+	arow, _ := a.GetRow(0)
+	brow, _ := b.GetRow(0)
 
 	a2b := []int{}
 	b2a := []int{}
 
 	if arow != nil {
-		a2b = make([]int, len(a[0]))
+		a2b = make([]int, len(arow))
 	}
 	if brow != nil {
-		b2a = make([]int, len(b[0]))
+		b2a = make([]int, len(brow))
 	}
 
 	for i := 0; i < len(b2a); i++ {
@@ -221,24 +299,21 @@ func getColumnMapping(a [][]string, b [][]string) ([]int, []int) {
 }
 
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
-func tryMapColumnsByContent(a [][]string, a2b []int, b [][]string, b2a []int) {
-	const MaxRows int = 10
-	const MinRatio float32 = 0.8
-
+func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
 	start := 0
 	for i := 0; i < len(a2b); i++ {
 		if a2b[i] == unmappedColumn {
 			if b2a[start] == unmappedColumn {
-				rows := util.Min(MaxRows, util.Max(0, util.Min(len(a), len(b))-1))
+				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(a.buffer), len(b.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
-					acell, ea := getCell(getRow(a, j), i)
-					bcell, eb := getCell(getRow(b, j), start+1)
+					acell, ea := getCell(a.buffer[j], i)
+					bcell, eb := getCell(b.buffer[j], start+1)
 					if ea == nil && eb == nil && acell == bcell {
 						same++
 					}
 				}
-				if (float32(same) / float32(rows)) > MinRatio {
+				if (float32(same) / float32(rows)) > minRatioToMatch {
 					a2b[i] = start + 1
 					b2a[start+1] = i
 				}
@@ -246,14 +321,6 @@ func tryMapColumnsByContent(a [][]string, a2b []int, b [][]string, b2a []int) {
 		}
 		start = a2b[i]
 	}
-}
-
-// getRow returns the specific row or nil if not present.
-func getRow(records [][]string, row int) []string {
-	if row < len(records) {
-		return records[row]
-	}
-	return nil
 }
 
 // getCell returns the specific cell or nil if not present.
@@ -275,7 +342,7 @@ func countUnmappedColumns(mapping []int) int {
 	return count
 }
 
-// tryMergeLines maps the separated line numbers of a git diff.
+// tryMergeLines maps the separated line numbers of a git diff. The result is assumed to be ordered.
 func tryMergeLines(lines []*DiffLine) [][2]int {
 	ids := make([][2]int, len(lines))
 
