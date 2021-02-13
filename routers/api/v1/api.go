@@ -635,7 +635,10 @@ func RegisterRoutes(m *macaron.Macaron) {
 
 			m.Get("/issues/search", repo.SearchIssues)
 
-			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
+			m.Group("/migrate", func() {
+				m.Post("", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
+				m.Get("/status", repo.GetMigratingTask)
+			})
 
 			m.Group("/:username/:reponame", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).

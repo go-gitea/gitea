@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,11 +16,16 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
+	"xorm.io/xorm"
 )
+
+var x *xorm.Engine
+
 
 // Migrate migrate remote git repository to gitea
 func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
@@ -199,4 +205,56 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, migrati
 			ctx.Error(http.StatusInternalServerError, "MigrateRepository", err)
 		}
 	}
+}
+
+// GetMigratingTask returns the migrating task by repo's id
+func GetMigratingTask(ctx *context.APIContext) {
+	tRepo := models.Task{
+		RepoID: ctx.QueryInt64("repo_id"),
+		Type:   api.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&tRepo)
+	if err != nil || !has {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err,
+		})
+	}
+
+	tId, opts, err := getMigratingTaskByID(tRepo.ID, ctx.User.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err,
+		})
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"status":    tId.Status,
+		"err":       tId.Errors,
+		"repo-id":   tId.RepoID,
+		"repo-name": opts.RepoName,
+		"start":     tId.StartTime,
+		"end":       tId.EndTime,
+	})
+}
+
+// GetMigratingTaskByID returns the migrating task by repo's id
+func getMigratingTaskByID(id, doerID int64) (*models.Task, *migration.MigrateOptions, error) {
+	var t = models.Task{
+		ID:     id,
+		DoerID: doerID,
+		Type:   api.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&t)
+	if err != nil {
+		return nil, nil, err
+	} else if !has {
+		return nil, nil, models.ErrTaskDoesNotExist{ID: id, Type: t.Type}
+	}
+
+	var opts migration.MigrateOptions
+	if err := json.Unmarshal([]byte(t.PayloadContent), &opts); err != nil {
+		return nil, nil, err
+	}
+	return &t, &opts, nil
 }
