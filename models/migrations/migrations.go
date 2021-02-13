@@ -286,6 +286,10 @@ var migrations = []Migration{
 	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
 	// v169 -> v170
 	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	// v170 -> v171
+	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
+	// v171 -> v172
+	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
 }
 
 // GetCurrentDBVersion returns the current db version
