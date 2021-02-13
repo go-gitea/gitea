@@ -582,7 +582,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 					Name:  "user2",
 					When:  time.Now(),
 				},
-				Message: fmt.Sprintf("Testing commit 1"),
+				Message: "Testing commit 1",
 			})
 			assert.NoError(t, err)
 			commit, err = git.GetRefCommitID(dstPath, "HEAD")
@@ -642,7 +642,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 					Name:  "user2",
 					When:  time.Now(),
 				},
-				Message: fmt.Sprintf("Testing commit 2"),
+				Message: "Testing commit 2",
 			})
 			assert.NoError(t, err)
 			commit, err = git.GetRefCommitID(dstPath, "HEAD")

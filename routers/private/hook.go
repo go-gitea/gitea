@@ -669,7 +669,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 				OrignRef: opts.RefFullNames[i],
 				OldOID:   opts.OldCommitIDs[i],
 				NewOID:   opts.NewCommitIDs[i],
-				Err:      fmt.Sprintf("topic-branch is not set"),
+				Err:      "topic-branch is not set",
 			})
 		}
 
