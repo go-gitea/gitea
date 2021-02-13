@@ -551,6 +551,11 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 	return func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
+		// TODO: git version in golang docker image is 2.20.1, have to skip this test now
+		if git.CheckGitVersionAtLeast("2.29") != nil {
+			return
+		}
+
 		var (
 			pr1, pr2 *models.PullRequest
 			commit   string
