@@ -120,11 +120,11 @@ func (f RegisterForm) IsEmailDomainWhitelisted() bool {
 	return false
 }
 
-// IsEmailDomainBlacklisted validates that the email address
-// does not come from a domain that has been blacklisted.
-// In the absence of a blacklist, all addresses are accepted.
-func (f RegisterForm) IsEmailDomainBlacklisted() bool {
-	if len(setting.Service.EmailDomainBlacklist) == 0 {
+// IsEmailDomainBlocklisted validates that the email address
+// does not come from a domain that has been blocklisted.
+// In the absence of a blocklist, all addresses are accepted.
+func (f RegisterForm) IsEmailDomainBlocklisted() bool {
+	if len(setting.Service.EmailDomainBlocklist) == 0 {
 		return false
 	}
 
@@ -135,7 +135,7 @@ func (f RegisterForm) IsEmailDomainBlacklisted() bool {
 
 	domain := strings.ToLower(f.Email[n+1:])
 
-	for _, v := range setting.Service.EmailDomainBlacklist {
+	for _, v := range setting.Service.EmailDomainBlocklist {
 		if strings.ToLower(v) == domain {
 			return true
 		}

@@ -120,14 +120,14 @@ For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api
 
 There are multiple things you can combine to prevent spammers.
 
-1. By whitelisting or blacklisting certain email domains
+1. By whitelisting or blocklisting certain email domains
 2. By only whitelisting certain domains with OpenID (see below)
 3. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
 4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
 
 ### Only allow/block certain email domains
 
-You can configure `EMAIL_DOMAIN_WHITELIST` and/or `EMAIL_DOMAIN_BLACKLIST` in your app.ini under `[service]`
+You can configure `EMAIL_DOMAIN_WHITELIST` or `EMAIL_DOMAIN_BLOCKLIST` in your app.ini under `[service]`
 
 ### Only allow/block certain OpenID providers
 
