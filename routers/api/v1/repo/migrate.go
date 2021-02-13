@@ -215,15 +215,16 @@ func GetMigratingTask(ctx *context.APIContext) {
 	}
 	has, err := x.Get(&tRepo)
 	if err != nil || !has {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": err,
+		ctx.JSON(http.StatusInternalServerError, map[string]string{
+			"err": "Internal server error",
 		})
+		return
 	}
 
 	tId, opts, err := getMigratingTaskByID(tRepo.ID, ctx.User.ID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"err": err,
+		ctx.JSON(http.StatusInternalServerError, map[string]string{
+			"err": "Internal server error",
 		})
 		return
 	}
