@@ -6,8 +6,6 @@ package repo
 
 import (
 	"bytes"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/task"
 	"errors"
 	"fmt"
 	"net/http"
@@ -19,8 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -151,13 +151,13 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	}
 
 	if err = models.CheckCreateRepository(ctx.User, repoOwner, opts.RepoName, false); err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, &opts, err)
 		return
 	}
 
 	repo, err := task.MigrateRepository(ctx.User, repoOwner, opts)
 	if err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+		handleMigrateError(ctx, repoOwner, &opts, err)
 		return
 	}
 
@@ -187,18 +187,18 @@ func Migrate(ctx *context.APIContext, form api.MigrateRepoOptions) {
 	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, migrationOpts *migrations.MigrateOptions, err error) {
 	switch {
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-	case models.IsErrRepoFilesAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
+	case models.IsErrRepoAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case models.IsErrNameReserved(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNameCharsNotAllowed(err):
@@ -208,6 +208,11 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	case models.IsErrMigrationNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
+		remoteAddr, _ := auth.ParseRemoteAddr(
+			migrationOpts.CloneAddr,
+			migrationOpts.AuthUsername,
+			migrationOpts.AuthPassword,
+			repoOwner)
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
