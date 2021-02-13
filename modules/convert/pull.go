@@ -103,12 +103,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 		apiPullRequest.Head.RepoID = pr.BaseRepoID
 		apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
+		apiPullRequest.Head.Name = ""
 	}
 
 	if pr.HeadRepo != nil && pr.Style == models.PullRequestStyleGithub {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
-		apiPullRequest.Head.Name = ""
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
