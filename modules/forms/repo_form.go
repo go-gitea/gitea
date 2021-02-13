@@ -622,6 +622,12 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 		len(strings.TrimSpace(f.Content)) == 0
 }
 
+// DismissReviewForm for dismissing stale review by repo admin
+type DismissReviewForm struct {
+	ReviewID int64 `binding:"Required"`
+	Message  string
+}
+
 // __________       .__
 // \______   \ ____ |  |   ____ _____    ______ ____
 //  |       _// __ \|  | _/ __ \\__  \  /  ___// __ \
