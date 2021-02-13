@@ -7,6 +7,7 @@ package gitdiff
 import (
 	"encoding/csv"
 	"errors"
+	"io"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -56,18 +57,22 @@ func CreateCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 
 // createCsvDiffSingle creates a tabular diff based on a single CSV reader. All cells are added or deleted.
 func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*TableDiffSection, error) {
-	a, err := reader.ReadAll()
+	var rows []*TableDiffRow
+	i := 1
+	for {
+		row, err := reader.Read()
 	if err != nil {
+			if err == io.EOF {
+				break
+			}
 		return nil, err
 	}
-
-	rows := make([]*TableDiffRow, len(a))
-	for i, row := range a {
 		cells := make([]*TableDiffCell, len(row))
 		for j := 0; j < len(row); j++ {
 			cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
 		}
-		rows[i] = &TableDiffRow{RowIdx: i + 1, Cells: cells}
+		rows = append(rows, &TableDiffRow{RowIdx: i, Cells: cells})
+		i++
 	}
 
 	return []*TableDiffSection{{Rows: rows}}, nil
