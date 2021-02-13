@@ -7,6 +7,7 @@ package repo
 import (
 	"bufio"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"html"
 	"io/ioutil"
@@ -84,15 +85,27 @@ func setCsvCompareContext(ctx *context.Context) {
 		extension := strings.ToLower(filepath.Ext(diffFile.Name))
 		return extension == ".csv" || extension == ".tsv"
 	}
-	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) []*gitdiff.TableDiffSection {
+
+	type CsvDiffResult struct {
+		Sections []*gitdiff.TableDiffSection
+		Error    string
+	}
+
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) CsvDiffResult {
 		if diffFile == nil || baseCommit == nil || headCommit == nil {
-			return nil
+			return CsvDiffResult{nil, ""}
 		}
+
+		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
 		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
 			blob, err := c.GetBlobByPath(diffFile.Name)
 			if err != nil {
 				return nil, err
+			}
+
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+				return nil, errTooLarge
 			}
 
 			reader, err := blob.DataAsync()
@@ -109,15 +122,25 @@ func setCsvCompareContext(ctx *context.Context) {
 			return base.CreateCsvReaderAndGuessDelimiter(b), nil
 		}
 
-		baseReader, _ := csvReaderFromCommit(baseCommit)
-		headReader, _ := csvReaderFromCommit(headCommit)
+		baseReader, err := csvReaderFromCommit(baseCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
+		headReader, err := csvReaderFromCommit(headCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
-			log.Error("RenderCsvDiff failed: %v", err)
-			return nil
+			errMessage, err := base.FormatCsvError(err, ctx.Locale)
+			if err != nil {
+				log.Error("RenderCsvDiff failed: %v", err)
+				return CsvDiffResult{nil, ""}
+			}
+			return CsvDiffResult{nil, errMessage}
 		}
-		return sections
+		return CsvDiffResult{sections, ""}
 	}
 }
 

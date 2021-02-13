@@ -12,13 +12,14 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func init() {
 	markup.RegisterParser(Parser{})
 }
 
-// Parser implements markup.Parser for orgmode
+// Parser implements markup.Parser for csv files
 type Parser struct {
 }
 
@@ -34,8 +35,16 @@ func (Parser) Extensions() []string {
 
 // Render implements markup.Parser
 func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	rd := base.CreateCsvReaderAndGuessDelimiter(rawBytes)
 	var tmpBlock bytes.Buffer
+
+	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
+		tmpBlock.WriteString("<pre>")
+		tmpBlock.WriteString(html.EscapeString(string(rawBytes)))
+		tmpBlock.WriteString("</pre>")
+		return tmpBlock.Bytes()
+	}
+
+	rd := base.CreateCsvReaderAndGuessDelimiter(rawBytes)
 
 	writeField := func(element, class, field string) {
 		tmpBlock.WriteString("<")

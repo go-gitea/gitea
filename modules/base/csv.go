@@ -7,10 +7,12 @@ package base
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
@@ -75,4 +77,17 @@ func scoreDelimiter(lines []string, delim rune) float64 {
 	}
 
 	return float64(countTotal) * (1 - float64(linesNotEqual)/float64(len(lines)))
+}
+
+// FormatCsvError converts csv errors into readable messages.
+func FormatCsvError(err error, locale translation.Locale) (string, error) {
+	var perr *csv.ParseError
+	if errors.As(err, &perr) {
+		if perr.Err == csv.ErrFieldCount {
+			return locale.Tr("repo.error.csv.invalid_field_count", perr.Line), nil
+		}
+		return locale.Tr("repo.error.csv.unexpected", perr.Line, perr.Column), nil
+	}
+
+	return "", err
 }

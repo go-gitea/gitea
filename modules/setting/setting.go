@@ -194,6 +194,10 @@ var (
 			Enabled bool `ini:"ENABLE_RENDER"`
 		} `ini:"ui.svg"`
 
+		CSV struct {
+			MaxFileSize int64
+		} `ini:"ui.csv"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -238,6 +242,11 @@ var (
 			Enabled bool `ini:"ENABLE_RENDER"`
 		}{
 			Enabled: true,
+		},
+		CSV: struct {
+			MaxFileSize int64
+		}{
+			MaxFileSize: 524288,
 		},
 		Admin: struct {
 			UserPagingNum   int
