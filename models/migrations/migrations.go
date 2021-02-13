@@ -287,7 +287,7 @@ var migrations = []Migration{
 	// v169 -> v170
 	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
 	// v170 -> v171
-	NewMigration("Add sessions table for macaron/session", addSessionTable),
+	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 }
 
 // GetCurrentDBVersion returns the current db version

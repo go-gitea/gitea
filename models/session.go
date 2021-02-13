@@ -12,15 +12,14 @@ import (
 
 // Session represents a session compatible for go-macaron session
 type Session struct {
-	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-macaron/session
+	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-chi/session
 	Data   []byte             `xorm:"BLOB"`
 	Expiry timeutil.TimeStamp // has to be Expiry to match with go-macaron/session
 }
 
 // UpdateSession updates the session with provided id
 func UpdateSession(key string, data []byte) error {
-	_, err := x.Update(&Session{
-		Key:    key,
+	_, err := x.ID(key).Update(&Session{
 		Data:   data,
 		Expiry: timeutil.TimeStampNow(),
 	})
@@ -104,7 +103,7 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 	s := Session{
 		Key: newKey,
 	}
-	if _, err := sess.Get(s); err != nil {
+	if _, err := sess.Get(&s); err != nil {
 		return nil, err
 	}
 
