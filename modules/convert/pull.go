@@ -95,9 +95,20 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 	}
 
-	if pr.HeadRepo != nil {
+	if pr.Style != models.PullRequestStyleGithub {
+		apiPullRequest.Head.Sha, err = git.GetRefCommitID(pr.BaseRepo.RepoPath(), pr.GetGitRefName())
+		if err != nil {
+			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			return nil
+		}
+		apiPullRequest.Head.RepoID = pr.BaseRepoID
+		apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
+	}
+
+	if pr.HeadRepo != nil && pr.Style == models.PullRequestStyleGithub {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
+		apiPullRequest.Head.Name = ""
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
