@@ -7,19 +7,18 @@ package sso
 import (
 	"errors"
 	"net/http"
-	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
+	"github.com/unrolled/render"
 )
 
 const (
@@ -41,6 +40,7 @@ var (
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
 type SSPI struct {
+	rnd *render.Render
 }
 
 // Init creates a new global websspi.Authenticator object
@@ -48,7 +48,18 @@ func (s *SSPI) Init() error {
 	config := websspi.NewConfig()
 	var err error
 	sspiAuth, err = websspi.New(config)
-	return err
+	if err != nil {
+		return err
+	}
+	s.rnd = render.New(render.Options{
+		Extensions:    []string{".tmpl"},
+		Directory:     "templates",
+		Funcs:         templates.NewFuncMap(),
+		Asset:         templates.GetAsset,
+		AssetNames:    templates.GetAssetNames,
+		IsDevelopment: !setting.IsProd(),
+	})
+	return nil
 }
 
 // Free releases resources used by the global websspi.Authenticator object
@@ -65,8 +76,8 @@ func (s *SSPI) IsEnabled() bool {
 // If authentication is successful, returs the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionStore) *models.User {
-	if !s.shouldAuthenticate(ctx) {
+func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+	if !s.shouldAuthenticate(req) {
 		return nil
 	}
 
@@ -76,22 +87,29 @@ func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionSt
 		return nil
 	}
 
-	userInfo, outToken, err := sspiAuth.Authenticate(req, ctx.Resp)
+	userInfo, outToken, err := sspiAuth.Authenticate(req, w)
 	if err != nil {
 		log.Warn("Authentication failed with error: %v\n", err)
-		sspiAuth.AppendAuthenticateHeader(ctx.Resp, outToken)
+		sspiAuth.AppendAuthenticateHeader(w, outToken)
 
 		// Include the user login page in the 401 response to allow the user
 		// to login with another authentication method if SSPI authentication
 		// fails
-		addFlashErr(ctx, ctx.Tr("auth.sspi_auth_failed"))
-		ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
-		ctx.Data["EnableSSPI"] = true
-		ctx.HTML(401, string(tplSignIn))
+		store.GetData()["Flash"] = map[string]string{
+			"ErrorMsg": err.Error(),
+		}
+		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+		store.GetData()["EnableSSPI"] = true
+
+		err := s.rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
+		if err != nil {
+			log.Error("%v", err)
+		}
+
 		return nil
 	}
 	if outToken != "" {
-		sspiAuth.AppendAuthenticateHeader(ctx.Resp, outToken)
+		sspiAuth.AppendAuthenticateHeader(w, outToken)
 	}
 
 	username := sanitizeUsername(userInfo.Username, cfg)
@@ -110,7 +128,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionSt
 			log.Error("User '%s' not found", username)
 			return nil
 		}
-		user, err = s.newUser(ctx, username, cfg)
+		user, err = s.newUser(username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
 			return nil
@@ -118,8 +136,8 @@ func (s *SSPI) VerifyAuthData(req *http.Request, store DataStore, sess SessionSt
 	}
 
 	// Make sure requests to API paths and PWA resources do not create a new session
-	if !isAPIPath(ctx) && !isAttachmentDownload(ctx) {
-		handleSignIn(ctx, sess, user)
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+		handleSignIn(w, req, sess, user)
 	}
 
 	return user
@@ -146,12 +164,12 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 	if path == "/user/login" {
 		if req.FormValue("user_name") != "" && req.FormValue("password") != "" {
 			shouldAuth = false
-		} else if ctx.Req.FormValue("auth_with_sspi") == "1" {
+		} else if req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if isInternalPath(req) {
+	} else if middleware.IsInternalPath(req) {
 		shouldAuth = false
-	} else if isAPIPath(req) || isAttachmentDownload(req) {
+	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
 	return
@@ -215,20 +233,6 @@ func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
 	// as the username can contain several separators: eg. "MICROSOFT\useremail@live.com"
 	username = replaceSeparators(username, cfg)
 	return username
-}
-
-// addFlashErr adds an error message to the Flash object mapped to a macaron.Context
-func addFlashErr(ctx *macaron.Context, err string) {
-	fv := ctx.GetVal(reflect.TypeOf(&session.Flash{}))
-	if !fv.IsValid() {
-		return
-	}
-	flash, ok := fv.Interface().(*session.Flash)
-	if !ok {
-		return
-	}
-	flash.Error(err)
-	ctx.Data["Flash"] = flash
 }
 
 // init registers the SSPI auth method as the last method in the list.

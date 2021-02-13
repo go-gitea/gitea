@@ -64,7 +64,7 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
-				total, res, langs, err := indexer.Search(kw.RepoIDs, "", kw.Keyword, 1, 10)
+				total, res, langs, err := indexer.Search(kw.RepoIDs, "", kw.Keyword, 1, 10, false)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(kw.IDs), total)
 				assert.EqualValues(t, kw.Langs, len(langs))

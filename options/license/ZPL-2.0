@@ -1,7 +1,10 @@
-Zope Public License (ZPL) Version 2.0 This software is Copyright (c) Zope
-Corporation (tm) and Contributors. All rights reserved. This license has been
-certified as open source. It has also been designated as GPL compatible by
-the Free Software Foundation (FSF).
+Zope Public License (ZPL) Version 2.0
+
+This software is Copyright (c) Zope Corporation (tm) and Contributors. All
+rights reserved.
+
+This license has been certified as open source. It has also been designated
+as GPL compatible by the Free Software Foundation (FSF).
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -27,13 +30,15 @@ Disclaimer
 
 THIS SOFTWARE IS PROVIDED BY ZOPE CORPORATION ``AS IS'' AND ANY EXPRESSED
 OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
-OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN
+OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN
 NO EVENT SHALL ZOPE CORPORATION OR ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
 INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
 DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. This software consists of contributions
-made by Zope Corporation and many individuals on behalf of Zope Corporation.
-Specific attributions are listed in the accompanying credits file.
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This software consists of contributions made by Zope Corporation and many
+individuals on behalf of Zope Corporation.  Specific attributions are listed
+in the accompanying credits file.

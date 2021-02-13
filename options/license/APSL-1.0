@@ -1,9 +1,10 @@
 APPLE PUBLIC SOURCE LICENSE
+Version 1.0 - March 16, 1999
 
-Version 1.0 - March 16, 1999 Please read this License carefully before downloading
-this software. By downloading and using this software, you are agreeing to
-be bound by the terms of this License. If you do not or cannot agree to the
-terms of this License, please do not download or use the software.
+Please read this License carefully before downloading this software. By downloading
+and using this software, you are agreeing to be bound by the terms of this
+License. If you do not or cannot agree to the terms of this License, please
+do not download or use the software.
 
 1. General; Definitions. This License applies to any program or other work
 which Apple Computer, Inc. ("Apple") publicly announces as subject to this
@@ -87,7 +88,7 @@ Code you used, prominently include a file carrying such information with the
 Modifications, and duplicate the notice in Exhibit A in each file of the Source
 Code of all such Modifications.
 
-      2.2 You may Deploy Covered Code, provided that You must in each instance:
+     2.2 You may Deploy Covered Code, provided that You must in each instance:
 
 (a) satisfy all the conditions of Section 2.1 with respect to the Source Code
 of the Covered Code;
@@ -175,7 +176,7 @@ aircraft navigation, communication systems, or air traffic control machines
 in which case the failure of the Original Code could lead to death, personal
 injury, or severe physical or environmental damage.
 
-   9. Liability.
+9. Liability.
 
 9.1 Infringement. If any of the Original Code becomes the subject ofa claim
 of infringement ("Affected Original Code"), Apple may, at its sole discretion
@@ -200,7 +201,6 @@ or trade names "Apple", "Apple Computer", "Mac OS X", "Mac OS X Server" or
 any other trademarks or trade names belonging to Apple (collectively "Apple
 Marks") and no Apple Marks may be used to endorse or promote products derived
 from the Original Code
-
 other than as permitted by and in strict compliance at all times with Apple's
 third party trademark usage guidelines which are posted at http://www.apple.com/legal/guidelinesfor3rdparties.html.
 
@@ -213,7 +213,7 @@ in this License or may choose not to license them at all. Apple's development,
 use, reproduction, modification, sublicensing and distribution of Covered
 Code will not be subject to this License.
 
-   12. Termination.
+12. Termination.
 
 12.1 Termination. This License and the rights granted hereunder will terminate:
 
@@ -232,7 +232,6 @@ any further use, reproduction, modification and distribution of the Covered
 Code, or Affected Original Code in the case of termination under Section 9.1,
 and to destroy all copies of the Covered Code or Affected Original Code (in
 the case of
-
 termination under Section 9.1) that are in your possession or control. All
 sublicenses to the Covered Code which have been properly granted prior to
 termination shall survive any termination of this License. Provisions which,
@@ -243,7 +242,7 @@ or damages of any sort solely as a result of terminating this License in accorda
 with its terms, and termination of this License will be without prejudice
 to any other right or remedy of either party.
 
-   13. Miscellaneous.
+13. Miscellaneous.
 
 13.1 Export Law Assurances. You may not use or otherwise export or re-export
 the Original Code except as authorized by United States law and the laws of
@@ -260,7 +259,6 @@ in FAR 2.101. Government software and technical data rights in the Covered
 Code include only those rights customarily provided to the public as defined
 in this License. This customary commercial license in technical data and software
 is provided in
-
 accordance with FAR 12.211 (Technical Data) and 12.212 (Computer Software)
 and, for Department of Defense purchases, DFAR 252.227-7015 (Technical Data
 -- Commercial Items) and 227.7202-3 (Rights in Commercial Computer Software
@@ -310,6 +308,7 @@ Where You are located in the province of Quebec, Canada, the following clause
 applies: The parties hereby confirm that they have requested that this License
 and all related documents be drafted in English. Les parties ont exige que
 le present contrat et tous les documents connexes soient rediges en anglais.
+
 EXHIBIT A.
 
 "Portions Copyright (c) 1999 Apple Computer, Inc. All Rights Reserved. This

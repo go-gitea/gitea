@@ -19,8 +19,9 @@ type Identity struct {
 
 // CommitMeta contains meta information of a commit in terms of API.
 type CommitMeta struct {
-	URL string `json:"url"`
-	SHA string `json:"sha"`
+	URL     string    `json:"url"`
+	SHA     string    `json:"sha"`
+	Created time.Time `json:"created"`
 }
 
 // CommitUser contains information of a user in the context of a commit.

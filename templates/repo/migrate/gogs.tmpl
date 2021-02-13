@@ -1,0 +1,139 @@
+{{template "base/head" .}}
+<div class="page-content repository new migrate">
+	<div class="ui middle very relaxed page grid">
+		<div class="column">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<h3 class="ui top attached header">
+					{{.i18n.Tr "repo.migrate.migrate" .service.Title}}
+					<input id="service_type" type="hidden" name="service" value="{{.service}}">
+				</h3>
+				<div class="ui attached segment">
+					{{template "base/alert" .}}
+					<div class="inline required field {{if .Err_CloneAddr}}error{{end}}">
+						<label for="clone_addr">{{.i18n.Tr "repo.migrate.clone_address"}}</label>
+						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
+						<span class="help">
+							{{.i18n.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate.clone_local_path"}}{{end}}
+							{{if .LFSActive}}<br />{{.i18n.Tr "repo.migrate.lfs_mirror_unsupported"}}{{end}}
+						</span>
+					</div>
+
+					<div class="inline field {{if .Err_Auth}}error{{end}}">
+						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
+						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}} data-need-clear="true" {{end}}>
+						<!-- <a target=”_blank” href="https://docs.gitea.io/en-us/api-usage">{{svg "octicon-question"}}</a> -->
+					</div>
+
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.migrate_options"}}</label>
+						<div class="ui checkbox">
+							{{if .DisableMirrors}}
+								<input id="mirror" name="mirror" type="checkbox" readonly>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
+							{{else}}
+								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
+							{{end}}
+						</div>
+					</div>
+
+					<span class="help">{{.i18n.Tr "repo.migrate.migrate_items_options"}}</span>
+					<div id="migrate_items">
+						<div class="inline field">
+							<label>{{.i18n.Tr "repo.migrate_items"}}</label>
+							<div class="ui checkbox">
+								<input name="wiki" type="checkbox" {{if .wiki}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_wiki" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="milestones" type="checkbox" {{if .milestones}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="labels" type="checkbox" {{if .labels}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_labels" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="issues" type="checkbox" {{if .issues}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
+							</div>
+						</div>
+						<!-- Gogs do not support it
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input name="pull_requests" type="checkbox" {{if .pull_requests}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_merge_requests" | Safe}}</label>
+							</div>
+							<div class="ui checkbox">
+								<input name="releases" type="checkbox" {{if .releases}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_releases" | Safe}}</label>
+							</div>
+						</div>
+					  -->
+					</div>
+
+					<div class="ui divider"></div>
+
+					<div class="inline required field {{if .Err_Owner}}error{{end}}">
+						<label>{{.i18n.Tr "repo.owner"}}</label>
+						<div class="ui selection owner dropdown">
+							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
+							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+								{{avatar .ContextUser}}
+								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
+							</span>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="menu" title="{{.SignedUser.Name}}">
+								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}">
+									{{avatar .SignedUser}}
+									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
+								</div>
+								{{range .Orgs}}
+								<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+									{{avatar .}}
+									<span class="truncated-item-name">{{.ShortName 40}}</span>
+								</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+
+					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
+						<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+						<input id="repo_name" name="repo_name" value="{{.repo_name}}" required>
+					</div>
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.visibility"}}</label>
+						<div class="ui checkbox">
+							{{if .IsForcedPrivate}}
+								<input name="private" type="checkbox" checked readonly>
+								<label>{{.i18n.Tr "repo.visibility_helper_forced" | Safe}}</label>
+							{{else}}
+								<input name="private" type="checkbox" {{if .private}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.visibility_helper" | Safe}}</label>
+							{{end}}
+						</div>
+					</div>
+					<div class="inline field {{if .Err_Description}}error{{end}}">
+						<label for="description">{{.i18n.Tr "repo.repo_desc"}}</label>
+						<textarea id="description" name="description">{{.description}}</textarea>
+					</div>
+
+					<div class="inline field">
+						<label></label>
+						<button class="ui green button">
+							{{.i18n.Tr "repo.migrate_repo"}}
+						</button>
+						<a class="ui button" href="{{AppSubUrl}}/">{{.i18n.Tr "cancel"}}</a>
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

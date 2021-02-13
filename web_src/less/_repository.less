@@ -939,6 +939,10 @@
         }
       }
 
+      .ui.comments {
+        max-width: 100%;
+      }
+
       .comment {
         > .content {
           > div:first-child {
@@ -1048,9 +1052,36 @@
           border: none !important;
         }
 
+        .comment-header {
+          background: transparent;
+          border-bottom: 0 !important;
+          padding: 0 !important;
+
+          &::after,
+          &::before {
+            display: none;
+          }
+        }
+
         .avatar.image {
           width: 28px;
           height: 28px;
+        }
+      }
+
+      .comment-code-cloud {
+        .segment.reactions {
+          border-top: none !important;
+
+          .ui.label {
+            border: 1px solid;
+            padding: 6px !important;
+            border-radius: var(--border-radius);
+          }
+        }
+
+        button.comment-form-reply {
+          margin-left: 0;
         }
       }
 
@@ -1422,6 +1453,10 @@
       align-items: flex-start;
     }
 
+    @media (max-width: 480px) {
+      flex-wrap: wrap;
+    }
+
     &.sticky {
       position: sticky;
       top: 0;
@@ -1442,12 +1477,38 @@
       margin-right: .25rem;
     }
 
+    .diff-detail-stats {
+      @media (max-width: 480px) {
+        font-size: 0;
+        line-height: 1.6rem;
+
+        strong {
+          font-size: 1rem;
+        }
+      }
+    }
+
     .diff-detail-actions > * {
       margin-right: 0;
     }
 
     .diff-detail-actions > * + * {
       margin-left: .25rem;
+    }
+
+    .diff-detail-actions {
+      @media (max-width: 480px) {
+        padding-top: .25rem;
+
+        .ui.button {
+          padding-left: .5rem;
+          padding-right: .5rem;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          text-align: center;
+        }
+      }
     }
 
     span.status {
@@ -2890,7 +2951,7 @@ tbody.commit-list {
 }
 
 .board-card .content {
-  padding: 5px 8px !important;
+  padding: 8px 8px 5px !important;
 }
 
 .board-card .extra.content {
@@ -2963,6 +3024,26 @@ td.blob-excerpt {
 
 .diff-file-header-actions > * + * {
   margin-left: .5rem !important;
+}
+
+.ui.attached.header.diff-file-header {
+  &.sticky-2nd-row {
+    position: sticky;
+    top: 46px;
+    z-index: 7;
+
+    @media @mediaMd {
+      top: 77px;
+    }
+
+    @media @mediaSm {
+      top: 77px;
+    }
+
+    @media (max-width: 480px) {
+      position: static;
+    }
+  }
 }
 
 .diff-stats-bar {

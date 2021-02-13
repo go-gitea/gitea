@@ -4,6 +4,7 @@
 package zstd
 
 import (
+	"bytes"
 	"errors"
 	"log"
 	"math"
@@ -73,6 +74,10 @@ var (
 	// ErrDecoderClosed will be returned if the Decoder was used after
 	// Close has been called.
 	ErrDecoderClosed = errors.New("decoder used after Close")
+
+	// ErrDecoderNilInput is returned when a nil Reader was provided
+	// and an operation other than Reset/DecodeAll/Close was attempted.
+	ErrDecoderNilInput = errors.New("nil input provided as reader")
 )
 
 func println(a ...interface{}) {
@@ -142,3 +147,10 @@ func load64(b []byte, i int) uint64 {
 	return uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 |
 		uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
 }
+
+type byter interface {
+	Bytes() []byte
+	Len() int
+}
+
+var _ byter = &bytes.Buffer{}

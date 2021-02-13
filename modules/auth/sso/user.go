@@ -12,7 +12,7 @@ import (
 
 // SignedInUser returns the user object of signed user.
 // It returns a bool value to indicate whether user uses basic auth or not.
-func SignedInUser(req *http.Request, ds DataStore, sess SessionStore) (*models.User, bool) {
+func SignedInUser(req *http.Request, w http.ResponseWriter, ds DataStore, sess SessionStore) (*models.User, bool) {
 	if !models.HasEngine {
 		return nil, false
 	}
@@ -22,7 +22,7 @@ func SignedInUser(req *http.Request, ds DataStore, sess SessionStore) (*models.U
 		if !ssoMethod.IsEnabled() {
 			continue
 		}
-		user := ssoMethod.VerifyAuthData(req, ds, sess)
+		user := ssoMethod.VerifyAuthData(req, w, ds, sess)
 		if user != nil {
 			_, isBasic := ssoMethod.(*Basic)
 			return user, isBasic

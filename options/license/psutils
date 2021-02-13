@@ -1,34 +1,22 @@
-PS Utilities Package The constituent files of this package listed below are
-copyright (C) 1991-1995 Angus J. C. Duggan.
+PS Utilities Package
 
-LICENSE Makefile.msc Makefile.nt Makefile.os2
+The constituent files of this package listed below are copyright (C) 1991-1995
+Angus J. C. Duggan.
 
-Makefile.unix README config.h descrip.mms
-
-epsffit.c epsffit.man extractres.man extractres.pl
-
-fixdlsrps.man fixdlsrps.pl fixfmps.man fixfmps.pl
-
-fixmacps.man fixmacps.pl fixpsditps.man fixpsditps.pl
-
-fixpspps.man fixpspps.pl fixscribeps.man fixscribeps.pl
-
-fixtpps.man fixtpps.pl fixwfwps.man fixwfwps.pl
-
-fixwpps.man fixwpps.pl fixwwps.man fixwwps.pl
-
-getafm getafm.man includeres.man includeres.pl
-
-maketext patchlev.h psbook.c psbook.man
-
-pserror.c pserror.h psmerge.man psmerge.pl
-
-psnup.c psnup.man psresize.c psresize.man
-
-psselect.c psselect.man psspec.c psspec.h
-
-pstops.c pstops.man psutil.c psutil.h
-
+LICENSE          Makefile.msc     Makefile.nt	   Makefile.os2
+Makefile.unix    README           config.h         descrip.mms
+epsffit.c        epsffit.man	  extractres.man   extractres.pl
+fixdlsrps.man    fixdlsrps.pl     fixfmps.man	   fixfmps.pl
+fixmacps.man     fixmacps.pl	  fixpsditps.man   fixpsditps.pl
+fixpspps.man     fixpspps.pl	  fixscribeps.man  fixscribeps.pl
+fixtpps.man	 fixtpps.pl	  fixwfwps.man     fixwfwps.pl
+fixwpps.man	 fixwpps.pl	  fixwwps.man	   fixwwps.pl
+getafm           getafm.man	  includeres.man   includeres.pl
+maketext         patchlev.h	  psbook.c         psbook.man
+pserror.c        pserror.h        psmerge.man	   psmerge.pl
+psnup.c          psnup.man        psresize.c	   psresize.man
+psselect.c	 psselect.man     psspec.c         psspec.h
+pstops.c         pstops.man	  psutil.c         psutil.h
 showchar
 
 They may be copied and used for any purpose (including distribution as part

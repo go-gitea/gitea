@@ -1,4 +1,6 @@
-Info-ZIP License Copyright (c) 1990-2009 Info-ZIP. All rights reserved.
+Info-ZIP License
+
+Copyright (c) 1990-2009 Info-ZIP. All rights reserved.
 
 For the purposes of this copyright and license, "Info-ZIP" is defined as the
 following set of individuals:
@@ -20,10 +22,9 @@ Permission is granted to anyone to use this software for any purpose, including
 commercial applications, and to alter it and redistribute it freely, subject
 to the above disclaimer and the following restrictions:
 
-* Redistributions of source code (in whole or in part) must retain the above
+*	Redistributions of source code (in whole or in part) must retain the above
 copyright notice, definition, disclaimer, and this list of conditions.
-
-* Redistributions in binary form (compiled executables and libraries) must
+*	Redistributions in binary form (compiled executables and libraries) must
 reproduce the above copyright notice, definition, disclaimer, and this list
 of conditions in documentation and/or other materials provided with the distribution.
 Additional documentation is not needed for executables where a command line
@@ -32,8 +33,7 @@ startup banner. The sole exception to this condition is redistribution of
 a standard UnZipSFX binary (including SFXWiz) as part of a self-extracting
 archive; that is permitted without inclusion of this license, as long as the
 normal SFX banner has not been removed from the binary or disabled.
-
-* Altered versions--including, but not limited to, ports to new operating
+*	Altered versions--including, but not limited to, ports to new operating
 systems, existing ports with new graphical interfaces, versions with modified
 or added functionality, and dynamic, shared, or static library versions not
 from Info-ZIP--must be plainly marked as such and must not be misrepresented
@@ -45,7 +45,6 @@ but not limited to, labeling of the altered versions with the names "Info-ZIP"
 Such altered versions are further prohibited from misrepresentative use of
 the Zip-Bugs or Info-ZIP e-mail addresses or the Info-ZIP URL(s), such as
 to imply Info-ZIP will provide support for the altered versions.
-
-* Info-ZIP retains the right to use the names "Info-ZIP," "Zip," "UnZip,"
+*	Info-ZIP retains the right to use the names "Info-ZIP," "Zip," "UnZip,"
 "UnZipSFX," "WiZ," "Pocket UnZip," "Pocket Zip," and "MacZip" for its own
 source and binary releases.
