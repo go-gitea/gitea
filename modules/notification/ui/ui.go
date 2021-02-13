@@ -119,15 +119,32 @@ func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest, ment
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
 		return
 	}
-	_ = ns.issueQueue.Push(issueNotificationOpts{
-		IssueID:              pr.Issue.ID,
-		NotificationAuthorID: pr.Issue.PosterID,
-	})
+	toNotify := make(map[int64]struct{}, 32)
+	repoWatchers, err := models.GetRepoWatchersIDs(pr.Issue.RepoID)
+	if err != nil {
+		log.Error("GetRepoWatchersIDs: %v", err)
+		return
+	}
+	for _, id := range repoWatchers {
+		toNotify[id] = struct{}{}
+	}
+	issueParticipants, err := models.GetParticipantsIDsByIssueID(pr.IssueID)
+	if err != nil {
+		log.Error("GetParticipantsIDsByIssueID: %v", err)
+		return
+	}
+	for _, id := range issueParticipants {
+		toNotify[id] = struct{}{}
+	}
+	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
+		toNotify[mention.ID] = struct{}{}
+	}
+	for receiverID := range toNotify {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
 			NotificationAuthorID: pr.Issue.PosterID,
-			ReceiverID:           mention.ID,
+			ReceiverID:           receiverID,
 		})
 	}
 }
