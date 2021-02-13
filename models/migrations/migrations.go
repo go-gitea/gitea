@@ -289,6 +289,8 @@ var migrations = []Migration{
 	// v170 -> v171
 	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
 	// v171 -> v172
+	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
+	// v172 -> v173
 	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
 }
 
