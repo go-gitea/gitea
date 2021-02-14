@@ -169,7 +169,7 @@
 			{{else if .IsPullWorkInProgress}}
 				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" }}
+					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Safe}}
 					{{if .HasIssuesOrPullsWritePermission}}
 						{{$.i18n.Tr "repo.pulls.remove_wip_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
 					{{end}}
