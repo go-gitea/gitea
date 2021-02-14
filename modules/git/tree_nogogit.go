@@ -32,7 +32,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		return t.entries, nil
 	}
 
-	stdout, err := NewCommand("ls-tree", t.ID.String()).RunInDirBytes(t.repo.Path)
+	stdout, err := NewCommand("ls-tree", "-l", t.ID.String()).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -42,7 +42,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		return nil, err
 	}
 
-	t.entries, err = parseTreeEntries(stdout, t)
+	t.entries, err = parseTreeEntries(stdout, t, true)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -55,12 +55,12 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
-	stdout, err := NewCommand("ls-tree", "-t", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
+	stdout, err := NewCommand("ls-tree", "-t", "-l", "-r", t.ID.String()).RunInDirBytes(t.repo.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
+	t.entriesRecursive, err = parseTreeEntries(stdout, t, true)
 	if err == nil {
 		t.entriesRecursiveParsed = true
 	}
