@@ -95,29 +95,40 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// IsEmailDomainWhitelisted validates that the email address
-// provided by the user matches what has been configured .
-// If the domain whitelist from the config is empty, it marks the
-// email as whitelisted
-func (f RegisterForm) IsEmailDomainWhitelisted() bool {
-	if len(setting.Service.EmailDomainWhitelist) == 0 {
-		return true
+// IsEmailDomainListed checks whether the domain of an email address
+// matches a list of domains
+func IsEmailDomainListed(list []string, email string) bool {
+	if len(list) == 0 {
+		return false
 	}
 
-	n := strings.LastIndex(f.Email, "@")
+	n := strings.LastIndex(email, "@")
 	if n <= 0 {
 		return false
 	}
 
-	domain := strings.ToLower(f.Email[n+1:])
+	domain := strings.ToLower(email[n+1:])
 
-	for _, v := range setting.Service.EmailDomainWhitelist {
+	for _, v := range list {
 		if strings.ToLower(v) == domain {
 			return true
 		}
 	}
 
 	return false
+}
+
+// IsEmailDomainAllowed validates that the email address
+// provided by the user matches what has been configured .
+// The email is marked as allowed if it matches any of the
+// domains in the whitelist or if it doesn't match any of
+// domains in the blocklist, if any such list is not empty.
+func (f RegisterForm) IsEmailDomainAllowed() bool {
+	if len(setting.Service.EmailDomainWhitelist) == 0 {
+		return !IsEmailDomainListed(setting.Service.EmailDomainBlocklist, f.Email)
+	}
+
+	return IsEmailDomainListed(setting.Service.EmailDomainWhitelist, f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
