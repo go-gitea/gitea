@@ -211,11 +211,6 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
-	// Because of special ref "refs/for" .. , need delay write permission check
-	if git.CheckGitVersionAtLeast("2.29") == nil {
-		requestedMode = models.AccessModeRead
-	}
-
 	results, err := private.ServCommand(keyID, username, reponame, requestedMode, verb, lfsVerb)
 	if err != nil {
 		if private.IsErrServCommand(err) {
