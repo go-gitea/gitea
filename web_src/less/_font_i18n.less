@@ -1,0 +1,108 @@
+/* font i18n */
+:root {
+  /* customizable localized variables */
+  :lang(ja) {
+    --fonts-regular: var(--fonts-emoji), system-ui-ja, var(--fonts-proportional);
+  }
+  :lang(zh-CN) {
+    --fonts-regular: var(--fonts-emoji), system-ui-zh-cn, var(--fonts-proportional);
+  }
+  :lang(zh-TW) {
+    --fonts-regular: var(--fonts-emoji), system-ui-zh-tw, var(--fonts-proportional);
+  }
+  :lang(zh-HK) {
+    --fonts-regular: var(--fonts-emoji), system-ui-zh-hk, var(--fonts-proportional);
+  }
+  :lang(ko) {
+    --fonts-regular: var(--fonts-emoji), system-ui-ko, var(--fonts-proportional);
+  }
+}
+
+[lang] {
+  font-family: var(--fonts-regular);
+}
+
+each(@fonts, {
+  @weights: .gen-weights-all(@value);
+  @locale: replace(@key, "@", "-");
+  .font-face-cjk(~"system-ui@{locale}", @weights[@light], 300);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@regular], 400);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@medium], 500);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@bold], 700);
+});
+
+@fonts: {
+  @ja:
+    "HiraginoSans-:{W2,W4,W5,W6}", "Hiragino Kaku Gothic ProN :{W3,W6}",
+    .shs("JP")[], .shs("J")[], .noto("JP")[], .shs("")[],
+    /* https://acetaminophen.hatenablog.com/entry/2016/02/15/225009 */
+    "Yu Gothic :{Regular,Medium,Medium,Bold}", "YuGothic :{Regular,Medium,Medium,Bold}",
+    "Droid Sans Japanese:{}", "Meiryo:{, Bold}", "MS PGothic:{}";
+  @zh-cn:
+    .pingfang("SC")[],
+    .shs("CN")[], .shs("SC")[], .noto("SC")[],
+    "HiraginoSansGB-:{W3,W6}", "Hiragino Sans GB :{W3,W6}",
+    "Microsoft YaHei:{ Light,, Bold}", "Heiti SC :{Light,Medium}", "SimHei:{}";
+  @zh-tw:
+    .pingfang("TC")[],
+    .shs("TW")[], .shs("TC")[], .noto("TC")[],
+    "HiraginoSansTC-:{W3,W6}", "Hiragino Sans TC :{W3,W6}",
+    "Microsoft JhengHei:{ Light,, Bold}", "Heiti TC :{Light,Medium}", "PMingLiU:{}";
+  @zh-hk:
+    .pingfang("HK")[],
+    .shs("HK")[], .shs("HC")[], .noto("HK")[], .shs("TC")[], .noto("TC")[],
+    "Microsoft JhengHei:{ Light,, Bold}", "Heiti TC :{Light,Medium}", "PMingLiU_HKSCS:{}", "PMingLiU:{}";
+  @ko:
+    "AppleSDGothicNeo-:{Light,Regular,Medium,Semibold}",
+    .shs("KR")[], .shs("K")[], .noto("KR")[],
+    "NanumBarunGothic:{ Light,, Bold}",
+    "Malgun Gothic:{ Semilight,, Bold}", "Nanum Gothic:{, Bold}", "Dotum:{}";
+}
+
+.noto(@suffix) { @value: "Noto Sans CJK @{suffix} ", "NotoSansCJK@{suffix}-"; }
+.shs(@suffix) { @value: replace("Source Han Sans @{suffix} ", "  ", " "), "SourceHanSans@{suffix}-"; }
+.pingfang(@suffix) { @value: "PingFang@{suffix}-:{Light,Regular,Medium,Semibold}"; }
+.font-face-cjk(@family, @src, @weight) {
+  @font-face {
+    font-family: @family;
+    src: @src;
+    font-weight: @weight;
+    unicode-range: ~"U+11??, U+2E80-4DBF, U+AC00-D7FF, U+4E00-9FFF, U+FF00-FFEF, U+1F2??";
+  }
+}
+
+.gen-weights(@family) when (isstring(@family)) {
+  @family-str: replace(@family, ":\{.*\}$", "");
+  // apply standard style names if none is given
+  // should the font have no styles, use :{}, as in "SimHei:{}"
+  @weights-str: if(@family = @family-str, "Light,Regular,Medium,Bold", replace(@family, ".*:\{(.*)\}$", "$1"));
+  @lightest: replace(@weights-str, ",.*", "");
+  @boldest: replace(@weights-str, ".*,", "");
+  @2ndboldest: replace(@weights-str, "(?:.*,|)([^,]*),.*$", "$1");
+  @2ndlightest: if(@2ndboldest = @lightest, @lightest, replace(@weights-str, "^.*?,([^,]*).*", "$1"));
+
+  @light: local("@{family-str}@{lightest}");
+  @regular: local("@{family-str}@{2ndlightest}");
+  @medium: local("@{family-str}@{2ndboldest}");
+  @bold: local("@{family-str}@{boldest}");
+}
+.gen-weights(@family) when not (isstring(@family)) {
+  .gen-weights-all(@family);
+}
+.gen-weights(@family, @last) {
+  @this: .gen-weights(@family);
+
+  @light: @last[@light], @this[@light];
+  @regular: @last[@regular], @this[@regular];
+  @medium: @last[@medium], @this[@medium];
+  @bold: @last[@bold], @this[@bold];
+}
+.gen-weights-all(@family) when not (isstring(@family)) {
+  .gen-weights-all(@family, length(@family));
+}
+.gen-weights-all(@family, 1) when not (isstring(@family)) {
+  .gen-weights(extract(@family, 1));
+}
+.gen-weights-all(@family, @ctr) when not (isstring(@family)) and (@ctr > 1) and (@ctr <= length(@family)) {
+  .gen-weights(extract(@family, @ctr), .gen-weights-all(@family, @ctr - 1));
+}
