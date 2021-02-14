@@ -78,6 +78,10 @@
 							{{ $branchLink := .GetBranch | EscapePound | Escape}}
 							{{ $linkText := .Content | RenderEmoji }}
 							{{$.i18n.Tr "action.publish_release" .GetRepoLink $branchLink .ShortRepoPath $linkText | Str2html}}
+						{{else if eq .GetOpType 25}}
+							{{ $index := index .GetIssueInfos 0}}
+							{{ $reviewer := index .GetIssueInfos 1}}
+							{{$.i18n.Tr "action.review_dismissed" .GetRepoLink $index .ShortRepoPath $reviewer | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}
@@ -111,6 +115,9 @@
 						<p class="text light grey">{{index .GetIssueInfos 1}}</p>
 					{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}
 						<span class="text truncate issue title">{{.GetIssueTitle | RenderEmoji}}</span>
+					{{else if eq .GetOpType 25}}
+					<p class="text light grey">{{$.i18n.Tr "action.review_dismissed_reason"}}</p>
+						<p class="text light grey">{{index .GetIssueInfos 2 | RenderEmoji}}</p>
 					{{end}}
 					<p class="text italic light grey">{{TimeSince .GetCreate $.i18n.Lang}}</p>
 				</div>
