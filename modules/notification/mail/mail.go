@@ -80,7 +80,7 @@ func (m *mailNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.I
 		return
 	}
 	if issue.IsPull && models.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
-		if err := mailer.MailParticipants(issue, doer, models.ActionCreatePullRequest, nil); err != nil {
+		if err := mailer.MailParticipants(issue, doer, models.ActionPullRequestReadyForReview, nil); err != nil {
 			log.Error("MailParticipants: %v", err)
 		}
 	}

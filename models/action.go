@@ -51,6 +51,7 @@ const (
 	ActionCommentPull                               // 23
 	ActionPublishRelease                            // 24
 	ActionPullReviewDismissed                       // 25
+	ActionPullRequestReadyForReview                 // 26
 )
 
 // Action represents user operation type and other information to
