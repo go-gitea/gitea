@@ -10,11 +10,11 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Session represents a session compatible for go-macaron session
+// Session represents a session compatible for go-chi session
 type Session struct {
 	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-chi/session
 	Data   []byte             `xorm:"BLOB"`
-	Expiry timeutil.TimeStamp // has to be Expiry to match with go-macaron/session
+	Expiry timeutil.TimeStamp // has to be Expiry to match with go-chi/session
 }
 
 // UpdateSession updates the session with provided id

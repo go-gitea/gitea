@@ -14,23 +14,23 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-// XormStore represents a xorm session store implementation.
-type XormStore struct {
+// DBStore represents a session store implementation based on the DB.
+type DBStore struct {
 	sid  string
 	lock sync.RWMutex
 	data map[interface{}]interface{}
 }
 
-// NewXormStore creates and returns a Xorm session store.
-func NewXormStore(sid string, kv map[interface{}]interface{}) *XormStore {
-	return &XormStore{
+// NewDBStore creates and returns a DB session store.
+func NewDBStore(sid string, kv map[interface{}]interface{}) *DBStore {
+	return &DBStore{
 		sid:  sid,
 		data: kv,
 	}
 }
 
 // Set sets value to given key in session.
-func (s *XormStore) Set(key, val interface{}) error {
+func (s *DBStore) Set(key, val interface{}) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -39,7 +39,7 @@ func (s *XormStore) Set(key, val interface{}) error {
 }
 
 // Get gets value by given key in session.
-func (s *XormStore) Get(key interface{}) interface{} {
+func (s *DBStore) Get(key interface{}) interface{} {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -47,7 +47,7 @@ func (s *XormStore) Get(key interface{}) interface{} {
 }
 
 // Delete delete a key from session.
-func (s *XormStore) Delete(key interface{}) error {
+func (s *DBStore) Delete(key interface{}) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -56,12 +56,12 @@ func (s *XormStore) Delete(key interface{}) error {
 }
 
 // ID returns current session ID.
-func (s *XormStore) ID() string {
+func (s *DBStore) ID() string {
 	return s.sid
 }
 
 // Release releases resource and save data to provider.
-func (s *XormStore) Release() error {
+func (s *DBStore) Release() error {
 	// Skip encoding if the data is empty
 	if len(s.data) == 0 {
 		return nil
@@ -76,7 +76,7 @@ func (s *XormStore) Release() error {
 }
 
 // Flush deletes all session data.
-func (s *XormStore) Flush() error {
+func (s *DBStore) Flush() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -84,20 +84,20 @@ func (s *XormStore) Flush() error {
 	return nil
 }
 
-// XormProvider represents a Xorm session provider implementation.
-type XormProvider struct {
+// DBProvider represents a DB session provider implementation.
+type DBProvider struct {
 	maxLifetime int64
 }
 
-// Init initializes Xorm session provider.
+// Init initializes DB session provider.
 // connStr: username:password@protocol(address)/dbname?param=value
-func (p *XormProvider) Init(maxLifetime int64, connStr string) error {
+func (p *DBProvider) Init(maxLifetime int64, connStr string) error {
 	p.maxLifetime = maxLifetime
 	return nil
 }
 
 // Read returns raw session store by session ID.
-func (p *XormProvider) Read(sid string) (session.RawStore, error) {
+func (p *DBProvider) Read(sid string) (session.RawStore, error) {
 	s, err := models.ReadSession(sid)
 	if err != nil {
 		return nil, err
@@ -113,25 +113,25 @@ func (p *XormProvider) Read(sid string) (session.RawStore, error) {
 		}
 	}
 
-	return NewXormStore(sid, kv), nil
+	return NewDBStore(sid, kv), nil
 }
 
 // Exist returns true if session with given ID exists.
-func (p *XormProvider) Exist(sid string) bool {
+func (p *DBProvider) Exist(sid string) bool {
 	has, err := models.ExistSession(sid)
 	if err != nil {
-		panic("session/Xorm: error checking existence: " + err.Error())
+		panic("session/DB: error checking existence: " + err.Error())
 	}
 	return has
 }
 
 // Destroy deletes a session by session ID.
-func (p *XormProvider) Destroy(sid string) error {
+func (p *DBProvider) Destroy(sid string) error {
 	return models.DestroySession(sid)
 }
 
 // Regenerate regenerates a session store from old session ID to new one.
-func (p *XormProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err error) {
+func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err error) {
 	s, err := models.RegenerateSession(oldsid, sid)
 	if err != nil {
 		return nil, err
@@ -148,25 +148,25 @@ func (p *XormProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err e
 		}
 	}
 
-	return NewXormStore(sid, kv), nil
+	return NewDBStore(sid, kv), nil
 }
 
 // Count counts and returns number of sessions.
-func (p *XormProvider) Count() int {
+func (p *DBProvider) Count() int {
 	total, err := models.CountSessions()
 	if err != nil {
-		panic("session/Xorm: error counting records: " + err.Error())
+		panic("session/DB: error counting records: " + err.Error())
 	}
 	return int(total)
 }
 
 // GC calls GC to clean expired sessions.
-func (p *XormProvider) GC() {
+func (p *DBProvider) GC() {
 	if err := models.CleanupSessions(p.maxLifetime); err != nil {
-		log.Printf("session/Xorm: error garbage collecting: %v", err)
+		log.Printf("session/DB: error garbage collecting: %v", err)
 	}
 }
 
 func init() {
-	session.Register("Xorm", &XormProvider{})
+	session.Register("db", &DBProvider{})
 }
