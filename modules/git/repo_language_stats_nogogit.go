@@ -59,7 +59,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil
 	}
 
-	writeID(commitID)
+	if err := writeID(commitID); err != nil {
+		return nil, err
+	}
 	shaBytes, typ, size, err := ReadBatchLine(batchReader)
 	if typ != "commit" {
 		log("Unable to get commit for: %s. Err: %v", commitID, err)
@@ -99,11 +101,13 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			writeID(f.ID.String())
+			if err := writeID(f.ID.String()); err != nil {
+				return nil, err
+			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				log("Error reading blob: %s Err: %v", f.ID.String(), err)
-				continue
+				return nil, err
 			}
 
 			sizeToRead := size
