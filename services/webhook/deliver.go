@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // Deliver deliver hook task
@@ -141,6 +141,10 @@ func Deliver(t *models.HookTask) error {
 		}
 	}()
 
+	if setting.DisableWebhooks {
+		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
+	}
+
 	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
@@ -201,7 +205,7 @@ func DeliverHooks(ctx context.Context) {
 			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
 			hookQueue.Remove(repoIDStr)
 
-			repoID, err := com.StrTo(repoIDStr).Int64()
+			repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
 			if err != nil {
 				log.Error("Invalid repo ID: %s", repoIDStr)
 				continue

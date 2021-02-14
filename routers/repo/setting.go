@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -59,7 +60,8 @@ func Settings(ctx *context.Context) {
 }
 
 // SettingsPost response for changes of a repository
-func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.RepoSettingForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 
@@ -839,7 +841,8 @@ func DeployKeys(ctx *context.Context) {
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
-func DeployKeysPost(ctx *context.Context, form auth.AddKeyForm) {
+func DeployKeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
@@ -956,9 +959,10 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 }
 
 // SettingsAvatar save new POSTed repository avatar
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	form.Source = auth.AvatarLocal
-	if err := UpdateAvatarSetting(ctx, form); err != nil {
+	if err := UpdateAvatarSetting(ctx, *form); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_avatar_success"))

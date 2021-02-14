@@ -75,6 +75,9 @@ type Group struct {
 	CreatedAt                      *time.Time       `json:"created_at"`
 }
 
+// LDAPGroupLink represents a GitLab LDAP group link.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#ldap-group-links
 type LDAPGroupLink struct {
 	CN          string           `json:"cn"`
 	GroupAccess AccessLevelValue `json:"group_access"`
@@ -263,6 +266,31 @@ func (s *GroupsService) DeleteGroup(gid interface{}, options ...RequestOptionFun
 	return s.client.Do(req, nil)
 }
 
+// RestoreGroup restores a previously deleted group
+//
+// GitLap API docs:
+// https://docs.gitlab.com/ee/api/groups.html#restore-group-marked-for-deletion
+func (s *GroupsService) RestoreGroup(gid interface{}, options ...RequestOptionFunc) (*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/restore", pathEscape(group))
+
+	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := new(Group)
+	resp, err := s.client.Do(req, g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, nil
+}
+
 // SearchGroup get all groups that match your string in their name or path.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#search-for-group
@@ -338,7 +366,7 @@ func (s *GroupsService) ListGroupProjects(gid interface{}, opt *ListGroupProject
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups
 type ListSubgroupsOptions ListGroupsOptions
 
-// ListSubgroups gets a list of subgroups for a given project.
+// ListSubgroups gets a list of subgroups for a given group.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-a-groups-s-subgroups

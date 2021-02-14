@@ -411,7 +411,8 @@ func PrepareCompareDiff(
 	headRepo *models.Repository,
 	headGitRepo *git.Repository,
 	compareInfo *git.CompareInfo,
-	baseBranch, headBranch string) bool {
+	baseBranch, headBranch string,
+	whitespaceBehavior string) bool {
 
 	var (
 		repo  = ctx.Repo.Repository
@@ -442,11 +443,11 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := gitdiff.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(models.RepoPath(headUser.Name, headRepo.Name),
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior)
 	if err != nil {
-		ctx.ServerError("GetDiffRange", err)
+		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return false
 	}
 	ctx.Data["Diff"] = diff
@@ -520,7 +521,7 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 	}
 	defer gitRepo.Close()
 
-	branches, err := gitRepo.GetBranches()
+	branches, _, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
 		return false, nil, err
 	}
@@ -530,18 +531,20 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+
 	if ctx.Written() {
 		return
 	}
 	defer headGitRepo.Close()
 
-	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch)
+	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}
 
 	if ctx.Data["PageIsComparePull"] == true {
-		headBranches, err := headGitRepo.GetBranches()
+		headBranches, _, err := headGitRepo.GetBranches(0, 0)
 		if err != nil {
 			ctx.ServerError("GetBranches", err)
 			return

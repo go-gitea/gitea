@@ -31,19 +31,23 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) != 40 {
-		var err error
-		actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
-		if err != nil {
-			if strings.Contains(err.Error(), "unknown revision or path") ||
-				strings.Contains(err.Error(), "fatal: Needed a single revision") {
-				return SHA1{}, ErrNotExist{commitID, ""}
-			}
-			return SHA1{}, err
+	if len(commitID) == 40 {
+		sha1, err := NewIDFromString(commitID)
+		if err == nil {
+			return sha1, nil
 		}
-		commitID = actualCommitID
 	}
-	return NewIDFromString(commitID)
+
+	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "unknown revision or path") ||
+			strings.Contains(err.Error(), "fatal: Needed a single revision") {
+			return SHA1{}, ErrNotExist{commitID, ""}
+		}
+		return SHA1{}, err
+	}
+
+	return NewIDFromString(actualCommitID)
 }
 
 // GetCommit returns commit object of by ID string.
@@ -109,6 +113,9 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 
 // CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
+
+// BranchesRangeSize the default branches range size
+var BranchesRangeSize = 20
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),

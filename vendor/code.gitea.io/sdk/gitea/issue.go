@@ -121,7 +121,7 @@ func (c *Client) ListIssues(opt ListIssueOption) ([]*Issue, *Response, error) {
 	link, _ := url.Parse("/repos/issues/search")
 	link.RawQuery = opt.QueryEncode()
 	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
-	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil {
+	if e := c.checkServerVersionGreaterThanOrEqual(version1_12_0); e != nil {
 		for i := 0; i < len(issues); i++ {
 			if issues[i].Repository != nil {
 				issues[i].Repository.Owner = strings.Split(issues[i].Repository.FullName, "/")[0]
@@ -139,7 +139,7 @@ func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Iss
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/issues", owner, repo))
 	link.RawQuery = opt.QueryEncode()
 	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &issues)
-	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil {
+	if e := c.checkServerVersionGreaterThanOrEqual(version1_12_0); e != nil {
 		for i := 0; i < len(issues); i++ {
 			if issues[i].Repository != nil {
 				issues[i].Repository.Owner = strings.Split(issues[i].Repository.FullName, "/")[0]
@@ -153,7 +153,7 @@ func (c *Client) ListRepoIssues(owner, repo string, opt ListIssueOption) ([]*Iss
 func (c *Client) GetIssue(owner, repo string, index int64) (*Issue, *Response, error) {
 	issue := new(Issue)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d", owner, repo, index), nil, nil, issue)
-	if e := c.CheckServerVersionConstraint(">=1.12.0"); e != nil && issue.Repository != nil {
+	if e := c.checkServerVersionGreaterThanOrEqual(version1_12_0); e != nil && issue.Repository != nil {
 		issue.Repository.Owner = strings.Split(issue.Repository.FullName, "/")[0]
 	}
 	return issue, resp, err

@@ -2,20 +2,20 @@ Common Public License Version 1.0
 
 THE ACCOMPANYING PROGRAM IS PROVIDED UNDER THE TERMS OF THIS COMMON PUBLIC
 LICENSE ("AGREEMENT"). ANY USE, REPRODUCTION OR DISTRIBUTION OF THE PROGRAM
-CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT. 1.
+CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
 
-DEFINITIONS
+1. DEFINITIONS
 
 "Contribution" means:
 
 a) in the case of the initial Contributor, the initial code and documentation
 distributed under this Agreement, and
 
-   b) in the case of each subsequent Contributor:
+     b) in the case of each subsequent Contributor:
 
-      i) changes to the Program, and
+          i) changes to the Program, and
 
-      ii) additions to the Program;
+          ii) additions to the Program;
 
 where such changes and/or additions to the Program originate from and are
 distributed by that particular Contributor. A Contribution 'originates' from
@@ -34,9 +34,9 @@ combined with the Program.
 "Program" means the Contributions distributed in accordance with this Agreement.
 
 "Recipient" means anyone who receives the Program under this Agreement, including
-all Contributors. 2.
+all Contributors.
 
-GRANT OF RIGHTS
+2. GRANT OF RIGHTS
 
 a) Subject to the terms of this Agreement, each Contributor hereby grants
 Recipient a non-exclusive, worldwide, royalty-free copyright license to reproduce,
@@ -68,16 +68,16 @@ distributing the Program.
 
 d) Each Contributor represents that to its knowledge it has sufficient copyright
 rights in its Contribution, if any, to grant the copyright license set forth
-in this Agreement. 3.
+in this Agreement.
 
-REQUIREMENTS
+3. REQUIREMENTS
 
 A Contributor may choose to distribute the Program in object code form under
 its own license agreement, provided that:
 
-   a) it complies with the terms and conditions of this Agreement; and
+     a) it complies with the terms and conditions of this Agreement; and
 
-   b) its license agreement:
+     b) its license agreement:
 
 i) effectively disclaims on behalf of all Contributors all warranties and
 conditions, express and implied, including warranties or conditions of title
@@ -97,18 +97,18 @@ a medium customarily used for software exchange.
 
 When the Program is made available in source code form:
 
-   a) it must be made available under this Agreement; and
+     a) it must be made available under this Agreement; and
 
-   b) a copy of this Agreement must be included with each copy of the Program.
+b) a copy of this Agreement must be included with each copy of the Program.
 
 Contributors may not remove or alter any copyright notices contained within
 the Program.
 
 Each Contributor must identify itself as the originator of its Contribution,
 if any, in a manner that reasonably allows subsequent Recipients to identify
-the originator of the Contribution. 4.
+the originator of the Contribution.
 
-COMMERCIAL DISTRIBUTION
+4. COMMERCIAL DISTRIBUTION
 
 Commercial distributors of software may accept certain responsibilities with
 respect to end users, business partners and the like. While this license is
@@ -138,9 +138,9 @@ Contributor's responsibility alone. Under this section, the Commercial Contribut
 would have to defend claims against the other Contributors related to those
 performance claims and warranties, and if a court requires any other Contributor
 to pay any damages as a result, the Commercial Contributor must pay those
-damages. 5.
+damages.
 
-NO WARRANTY
+5. NO WARRANTY
 
 EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, THE PROGRAM IS PROVIDED ON
 AN "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS
@@ -151,9 +151,9 @@ using and distributing the Program and assumes all risks associated with its
 exercise of rights under this Agreement, including but not limited to the
 risks and costs of program errors, compliance with applicable laws, damage
 to or loss of data, programs or equipment, and unavailability or interruption
-of operations. 6.
+of operations.
 
-DISCLAIMER OF LIABILITY
+6. DISCLAIMER OF LIABILITY
 
 EXCEPT AS EXPRESSLY SET FORTH IN THIS AGREEMENT, NEITHER RECIPIENT NOR ANY
 CONTRIBUTORS SHALL HAVE ANY LIABILITY FOR ANY DIRECT, INDIRECT, INCIDENTAL,
@@ -161,9 +161,9 @@ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION
 LOST PROFITS), HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
 WAY OUT OF THE USE OR DISTRIBUTION OF THE PROGRAM OR THE EXERCISE OF ANY RIGHTS
-GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. 7.
+GRANTED HEREUNDER, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
 
-GENERAL
+7. GENERAL
 
 If any provision of this Agreement is invalid or unenforceable under applicable
 law, it shall not affect the validity or enforceability of the remainder of

@@ -1,9 +1,11 @@
-Academic Free License ("AFL") v. 3.0 This Academic Free License (the "License")
-applies to any original work of authorship (the "Original Work") whose owner
-(the "Licensor") has placed the following licensing notice adjacent to the
-copyright notice for the Original Work:
+Academic Free License (“AFL”) v. 3.0
 
-Licensed under the Academic Free License version 3.0
+This Academic Free License (the "License") applies to any original work of
+authorship (the "Original Work") whose owner (the "Licensor") has placed the
+following licensing notice adjacent to the copyright notice for the Original
+Work:
+
+     Licensed under the Academic Free License version 3.0
 
 1) Grant of Copyright License. Licensor grants You a worldwide, royalty-free,
 non-exclusive, sublicensable license, for the duration of the copyright, to
@@ -11,19 +13,15 @@ do the following:
 
 a) to reproduce the Original Work in copies, either alone or as part of a
 collective work;
-
 b) to translate, adapt, alter, transform, modify, or arrange the Original
 Work, thereby creating derivative works ("Derivative Works") based upon the
 Original Work;
-
 c) to distribute or communicate copies of the Original Work and Derivative
 Works to the public, under any license of your choice that does not contradict
-the terms and conditions, including Licensor's reserved rights and remedies,
+the terms and conditions, including Licensor’s reserved rights and remedies,
 in this Academic Free License;
-
-      d) to perform the Original Work publicly; and
-
-      e) to display the Original Work publicly.
+     d) to perform the Original Work publicly; and
+     e) to display the Original Work publicly.
 
 2) Grant of Patent License. Licensor grants You a worldwide, royalty-free,
 non-exclusive, sublicensable license, under patent claims owned or controlled
@@ -45,7 +43,7 @@ continues to distribute the Original Work.
 of any contributors to the Original Work, nor any of their trademarks or service
 marks, may be used to endorse or promote products derived from this Original
 Work without express prior permission of the Licensor. Except as expressly
-stated herein, nothing in this License grants any license to Licensor's trademarks,
+stated herein, nothing in this License grants any license to Licensor’s trademarks,
 copyrights, patents, trade secrets or any other intellectual property. No
 patent license is granted to make, use, sell, offer for sale, have made, or
 import embodiments of any patent claims other than the licensed claims defined
@@ -104,7 +102,7 @@ to undertake the activities listed in Section 1, including your right to create
 Derivative Works based upon the Original Work, and doing so without honoring
 these terms and conditions is prohibited by copyright law and international
 treaty. Nothing in this License is intended to affect copyright exceptions
-and limitations (including "fair use" or "fair dealing"). This License shall
+and limitations (including “fair use” or “fair dealing”). This License shall
 terminate immediately and You may no longer exercise any of the rights granted
 to You by this License upon your failure to honor the conditions in Section
 1(c).
@@ -127,7 +125,7 @@ the scope of this License or after its termination shall be subject to the
 requirements and penalties of copyright or patent law in the appropriate jurisdiction.
 This section shall survive the termination of this License.
 
-12) Attorneys' Fees. In any action to enforce the terms of this License or
+12) Attorneys’ Fees. In any action to enforce the terms of this License or
 seeking damages relating thereto, the prevailing party shall be entitled to
 recover its costs and expenses, including, without limitation, reasonable
 attorneys' fees and costs incurred in connection with such action, including
