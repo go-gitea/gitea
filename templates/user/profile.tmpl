@@ -83,7 +83,7 @@
 				</div>
 			</div>
 			<div class="ui eleven wide column">
-				<div class="ui secondary stackable pointing menu">
+				<div class="ui secondary stackable pointing tight menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
 					</a>
