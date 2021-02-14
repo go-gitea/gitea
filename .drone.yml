@@ -231,10 +231,8 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    image: golang:1.15
+    image: a1012112796/gitea_test_env:linux-amd64
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off

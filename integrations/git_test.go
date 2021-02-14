@@ -627,6 +627,10 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			assert.NotEmpty(t, pr2)
 		})
 
+		if pr1 == nil || pr2 == nil {
+			return
+		}
+
 		t.Run("AddCommit2", func(t *testing.T) {
 			err := ioutil.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 2"), 0666)
 			if !assert.NoError(t, err) {
