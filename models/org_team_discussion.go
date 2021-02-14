@@ -2,6 +2,8 @@
 
 package models
 
+import "fmt"
+
 type TeamDiscussion struct {
 	ID               int64 `xorm:"pk autoincr"`
 	PosterID         int64 `xorm:"INDEX"`
@@ -18,6 +20,7 @@ type TeamDiscussion struct {
 	Reactions        ReactionList  `xorm:"-"`
 }
 
-func init() {
-	// DNM-TBD(Krey)
+///! Function used to create a new Team Discussion
+func CreateTeamDiscussion() {
+	fmt.Println("Called from CreateTeamDiscussion")
 }

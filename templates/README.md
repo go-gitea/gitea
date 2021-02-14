@@ -1,1 +1,3 @@
-Directory for 'templates' from which we generate the website content
+# Gitea - templates
+
+Directory dedicated for template files used to generate the static pages through go-templates.
