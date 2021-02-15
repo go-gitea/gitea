@@ -50,6 +50,7 @@ func TestParseTreeEntries(t *testing.T) {
 					ID:        MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
 					name:      "assets",
 					entryMode: EntryModeTree,
+					sized: true,
 				},
 			},
 		},
