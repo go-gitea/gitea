@@ -9,12 +9,12 @@
       "themes": "src/themes/"
     },
     "output": {
-      "packaged": "../../web_src/fomantic/build/",
-      "uncompressed": "../../web_src/fomantic/build/components/",
-      "compressed": "../../web_src/fomantic/build/components/",
-      "themes": "../../web_src/fomantic/build/themes/"
+      "packaged": "../../build/",
+      "uncompressed": "../../build/components/",
+      "compressed": "../../build/components/",
+      "themes": "../../build/themes/"
     },
-    "clean": "../../web_src/fomantic/build/"
+    "clean": "../../build/"
   },
   "permission": false,
   "autoInstall": false,
