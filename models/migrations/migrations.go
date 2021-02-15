@@ -291,6 +291,8 @@ var migrations = []Migration{
 	// v171 -> v172
 	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
 	// v172 -> v173
+	NewMigration("Add sessions table for go-chi/session", addSessionTable),
+	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 }
 
