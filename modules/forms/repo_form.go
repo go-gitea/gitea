@@ -489,10 +489,10 @@ type UserCreateProjectForm struct {
 	UID       int64 `binding:"Required"`
 }
 
-// EditProjectBoardTitleForm is a form for editing the title of a project's
-// board
-type EditProjectBoardTitleForm struct {
-	Title string `binding:"Required;MaxSize(100)"`
+// EditProjectBoardForm is a form for editing a project board
+type EditProjectBoardForm struct {
+	Title   string `binding:"Required;MaxSize(100)"`
+	Sorting int8
 }
 
 //    _____  .__.__                   __
@@ -623,6 +623,12 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 
 	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
+}
+
+// DismissReviewForm for dismissing stale review by repo admin
+type DismissReviewForm struct {
+	ReviewID int64 `binding:"Required"`
+	Message  string
 }
 
 // __________       .__

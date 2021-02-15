@@ -31,19 +31,23 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) != 40 {
-		var err error
-		actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
-		if err != nil {
-			if strings.Contains(err.Error(), "unknown revision or path") ||
-				strings.Contains(err.Error(), "fatal: Needed a single revision") {
-				return SHA1{}, ErrNotExist{commitID, ""}
-			}
-			return SHA1{}, err
+	if len(commitID) == 40 {
+		sha1, err := NewIDFromString(commitID)
+		if err == nil {
+			return sha1, nil
 		}
-		commitID = actualCommitID
 	}
-	return NewIDFromString(commitID)
+
+	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
+	if err != nil {
+		if strings.Contains(err.Error(), "unknown revision or path") ||
+			strings.Contains(err.Error(), "fatal: Needed a single revision") {
+			return SHA1{}, ErrNotExist{commitID, ""}
+		}
+		return SHA1{}, err
+	}
+
+	return NewIDFromString(actualCommitID)
 }
 
 // GetCommit returns commit object of by ID string.

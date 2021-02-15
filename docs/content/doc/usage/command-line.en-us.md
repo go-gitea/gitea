@@ -253,6 +253,7 @@ in the current directory.
   - `--file name`, `-f name`: Name of the dump file with will be created. Optional. (default: gitea-dump-[timestamp].zip).
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
+  - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
 - Examples:
