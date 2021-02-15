@@ -2,11 +2,7 @@
 	<div class="diff-detail-box diff-box sticky">
 		<div>
 			<div class="ui right">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
+				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
@@ -22,11 +18,7 @@
 				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
+				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
@@ -79,7 +71,7 @@
 				</div>
 			{{else}}
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
-					<h4 class="diff-file-header ui top attached normal header df ac sb">
+					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							{{$isImage := false}}
 							{{if $file.IsDeleted}}
