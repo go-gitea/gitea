@@ -10,15 +10,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateCsvReader(t *testing.T) {
-	rd := CreateCsvReader([]byte{}, ',')
+func TestCreateReader(t *testing.T) {
+	rd := CreateReader([]byte{}, ',')
 	assert.Equal(t, ',', rd.Comma)
 }
 
-func TestCreateCsvReaderAndGuessDelimiter(t *testing.T) {
+func TestCreateReaderAndGuessDelimiter(t *testing.T) {
 	input := "a;b;c\n1;2;3\n4;5;6"
 
-	rd := CreateCsvReaderAndGuessDelimiter([]byte(input))
+	rd := CreateReaderAndGuessDelimiter([]byte(input))
 	assert.Equal(t, ';', rd.Comma)
 }
 
