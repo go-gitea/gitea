@@ -635,31 +635,11 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		curentTopicBranch := ""
 		if !gitRepo.IsBranchExist(baseBranchName) {
 			// try match refs/for/<target-branch>/<topic-branch>
-			splits := make([]int, 0, 6)
-			for index, v := range baseBranchName {
-				if v == '/' {
-					if len(splits) >= 6 {
-						break
-					}
-					splits = append(splits, index)
-				}
-			}
-			if len(splits) > 5 {
-				results = append(results, private.HockProcReceiveRefResult{
-					OrignRef: opts.RefFullNames[i],
-					OldOID:   opts.OldCommitIDs[i],
-					NewOID:   opts.NewCommitIDs[i],
-					Err:      fmt.Sprintf("ref 'refs/for/%s' contain too many '/'. \n suggest use 'git push refs/for/<target-branch> -o topic='<topic-branch>'", baseBranchName),
-				})
-				continue
-			}
-			if len(splits) > 0 {
-				for p := len(splits) - 1; p >= 0; p-- {
-					if gitRepo.IsBranchExist(baseBranchName[:splits[p]]) && p != len(baseBranchName)-1 {
-						curentTopicBranch = baseBranchName[splits[p]+1:]
-						baseBranchName = baseBranchName[:splits[p]]
-						break
-					}
+			for p, v := range baseBranchName {
+				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+					curentTopicBranch = baseBranchName[p+1:]
+					baseBranchName = baseBranchName[:p]
+					break
 				}
 			}
 		}

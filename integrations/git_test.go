@@ -624,7 +624,15 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 				Index:      pr1.Index + 1,
 				Style:      models.PullRequestStyleAGit,
 			}).(*models.PullRequest)
-			assert.NotEmpty(t, pr2)
+			if !assert.NotEmpty(t, pr2) {
+				return
+			}
+			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, "user2/test/"+headBranch, pr2.HeadBranch)
+			assert.Equal(t, false, prMsg.HasMerged)
 		})
 
 		if pr1 == nil || pr2 == nil {
@@ -671,7 +679,16 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
 			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
-			assert.NoError(t, err)
+			if !assert.NoError(t, err) {
+				return
+			}
+
+			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, false, prMsg.HasMerged)
+			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
