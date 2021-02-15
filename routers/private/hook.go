@@ -103,6 +103,40 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 			})
 }
 
+func checkPrivateCommitAuthor(sha string, repo *git.Repository, env, emails []string) error {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
+		return err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+	hash := git.MustIDFromString(sha)
+
+	return git.NewCommand("cat-file", "commit", sha).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				_ = stdoutWriter.Close()
+				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
+				if err != nil {
+					return err
+				}
+				for _, email := range emails {
+					if strings.EqualFold(email, commit.Author.Email) {
+						cancel()
+						return &errPrivateCommit{
+							commit.ID.String(),
+							email,
+						}
+					}
+				}
+				return nil
+			})
+}
+
 type errUnverifiedCommit struct {
 	sha string
 }
@@ -116,11 +150,33 @@ func isErrUnverifiedCommit(err error) bool {
 	return ok
 }
 
+type errPrivateCommit struct {
+	sha   string
+	email string
+}
+
+func (e *errPrivateCommit) Error() string {
+	return fmt.Sprintf("Commit with real email (%s) instead of noreply: %s", e.email, e.sha)
+}
+
+func isErrPrivateCommit(err error) bool {
+	_, ok := err.(*errPrivateCommit)
+	return ok
+}
+
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	opts := web.GetForm(ctx).(*private.HookOptions)
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
+	user, err := models.GetUserByName(ownerName)
+	if err != nil {
+		log.Error("Unable to get user: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"err": err.Error(),
+		})
+		return
+	}
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", ownerName, repoName, err)
@@ -161,6 +217,38 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
 
+		// Check if user has email set to private and attempted to commit with real email
+		if user.KeepEmailPrivate {
+			emailAddresses, err := models.GetEmailAddresses(user.ID)
+			if err != nil {
+				msg := fmt.Sprintf("could not get %s emails", user.Name)
+				log.Error(msg)
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": msg,
+				})
+				return
+			}
+			emails := make([]string, len(emailAddresses))
+			for i, ea := range emailAddresses {
+				emails[i] = ea.Email
+			}
+			err = checkPrivateCommitAuthor(newCommitID, gitRepo, env, emails)
+			if err != nil {
+				if isErrPrivateCommit(err) {
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": fmt.Sprintf("you are committing with a real email (%s), however you have indicated you would like to keep it private", err.(*errPrivateCommit).email),
+					})
+					return
+				}
+				log.Error("could not check commit author")
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "could not check commit author",
+				})
+				return
+			}
+		}
+
+		// Cannot delete default branch
 		branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 		if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 			log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)

@@ -32,6 +32,7 @@
 					<div class="ui checkbox" id="keep-email-private">
 						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_email_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_email_private"}}</strong></label>
 						<input name="keep_email_private" type="checkbox" {{if .SignedUser.KeepEmailPrivate}}checked{{end}}>
+						<p>{{$.i18n.Tr "settings.keep_email_private_noreply" .SignedUser.GetEmail | Safe}}</p>
 					</div>
 				</div>
 				<div class="field {{if .Err_Description}}error{{end}}">
