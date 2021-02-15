@@ -42,7 +42,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		return nil, err
 	}
 
-	t.entries, err = parseTreeEntries(stdout, t, true)
+	t.entries, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -60,7 +60,7 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 		return nil, err
 	}
 
-	t.entriesRecursive, err = parseTreeEntries(stdout, t, true)
+	t.entriesRecursive, err = parseTreeEntries(stdout, t)
 	if err == nil {
 		t.entriesRecursiveParsed = true
 	}

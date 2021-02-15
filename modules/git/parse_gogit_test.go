@@ -24,7 +24,7 @@ func TestParseTreeEntries(t *testing.T) {
 			Expected: []*TreeEntry{},
 		},
 		{
-			Input: "100644 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c\texample/file2.txt\n",
+			Input: "100644 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c    1022\texample/file2.txt\n",
 			Expected: []*TreeEntry{
 				{
 					ID: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
@@ -33,12 +33,14 @@ func TestParseTreeEntries(t *testing.T) {
 						Name: "example/file2.txt",
 						Mode: filemode.Regular,
 					},
+					size:  1022,
+					sized: true,
 				},
 			},
 		},
 		{
-			Input: "120000 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c\t\"example/\\n.txt\"\n" +
-				"040000 tree 1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8\texample\n",
+			Input: "120000 blob 61ab7345a1a3bbc590068ccae37b8515cfc5843c  234131\t\"example/\\n.txt\"\n" +
+				"040000 tree 1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8       -\texample\n",
 			Expected: []*TreeEntry{
 				{
 					ID: MustIDFromString("61ab7345a1a3bbc590068ccae37b8515cfc5843c"),
@@ -47,6 +49,8 @@ func TestParseTreeEntries(t *testing.T) {
 						Name: "example/\n.txt",
 						Mode: filemode.Symlink,
 					},
+					size:  234131,
+					sized: true,
 				},
 				{
 					ID: MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),

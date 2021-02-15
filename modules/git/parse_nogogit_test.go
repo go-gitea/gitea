@@ -13,57 +13,6 @@ import (
 )
 
 func TestParseTreeEntries(t *testing.T) {
-	testCases := []struct {
-		Input    string
-		Expected []*TreeEntry
-	}{
-		{
-			Input:    "",
-			Expected: []*TreeEntry{},
-		},
-		{
-			Input: `100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af	README.md
-100644 blob 037f27dc9d353ae4fd50f0474b2194c593914e35	README_ZH.md
-040000 tree 84b90550547016f73c5dd3f50dea662389e67b6d	assets
-100644 blob 9846a94f7e8350a916632929d0fda38c90dd2ca8	atters.md
-`,
-			Expected: []*TreeEntry{
-				{
-					ID:        MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
-					name:      "README.md",
-					entryMode: EntryModeBlob,
-				},
-				{
-					ID:        MustIDFromString("037f27dc9d353ae4fd50f0474b2194c593914e35"),
-					name:      "README_ZH.md",
-					entryMode: EntryModeBlob,
-				},
-				{
-					ID:        MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
-					name:      "assets",
-					entryMode: EntryModeTree,
-				},
-				{
-					ID:        MustIDFromString("9846a94f7e8350a916632929d0fda38c90dd2ca8"),
-					name:      "atters.md",
-					entryMode: EntryModeBlob,
-				},
-			},
-		},
-	}
-	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input))
-		assert.NoError(t, err)
-		assert.EqualValues(t, len(testCase.Expected), len(entries))
-		for i, entry := range entries {
-			assert.EqualValues(t, testCase.Expected[i].ID, entry.ID)
-			assert.EqualValues(t, testCase.Expected[i].name, entry.name)
-			assert.EqualValues(t, testCase.Expected[i].entryMode, entry.entryMode)
-		}
-	}
-}
-
-func TestParseTreeEntriesLong(t *testing.T) {
 
 	testCases := []struct {
 		Input    string
@@ -106,7 +55,7 @@ func TestParseTreeEntriesLong(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		entries, err := ParseTreeEntries([]byte(testCase.Input), true)
+		entries, err := ParseTreeEntries([]byte(testCase.Input))
 		assert.NoError(t, err)
 		assert.EqualValues(t, len(testCase.Expected), len(entries))
 		for i, entry := range entries {

@@ -16,15 +16,15 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// ParseTreeEntries parses the output of a `git ls-tree` command.
-func ParseTreeEntries(data []byte, long ...bool) ([]*TreeEntry, error) {
-	return parseTreeEntries(data, nil, long...)
+// ParseTreeEntries parses the output of a `git ls-tree -l` command.
+func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
+	return parseTreeEntries(data, nil)
 }
 
-func parseTreeEntries(data []byte, ptree *Tree, long ...bool) ([]*TreeEntry, error) {
+func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, 10)
 	for pos := 0; pos < len(data); {
-		// expect line to be of the form "<mode> <type> <sha>\t<filename>"
+		// expect line to be of the form "<mode> <type> <sha> <space-padded-size>\t<filename>"
 		entry := new(TreeEntry)
 		entry.gogitTreeEntry = &object.TreeEntry{}
 		entry.ptree = ptree
@@ -62,20 +62,18 @@ func parseTreeEntries(data []byte, ptree *Tree, long ...bool) ([]*TreeEntry, err
 		entry.gogitTreeEntry.Hash = id
 		pos += 41 // skip over sha and trailing space
 
-		if len(long) > 0 && long[0] {
-			end := pos + bytes.IndexByte(data[pos:], '\t')
-			if end < pos {
-				return nil, fmt.Errorf("Invalid ls-tree -l output: %s", string(data))
-			}
-			entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(data[pos:end])), 10, 64)
-			if entry.size > 0 {
-				entry.sized = true
-			}
-
-			pos = end + 1
+		end := pos + bytes.IndexByte(data[pos:], '\t')
+		if end < pos {
+			return nil, fmt.Errorf("Invalid ls-tree -l output: %s", string(data))
+		}
+		entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(data[pos:end])), 10, 64)
+		if entry.size > 0 {
+			entry.sized = true
 		}
 
-		end := pos + bytes.IndexByte(data[pos:], '\n')
+		pos = end + 1
+
+		end = pos + bytes.IndexByte(data[pos:], '\n')
 		if end < pos {
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
