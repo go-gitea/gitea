@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -119,7 +120,7 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, err
 			}
 
-			return base.CreateCsvReaderAndGuessDelimiter(b), nil
+			return csv_module.CreateReaderAndGuessDelimiter(b), nil
 		}
 
 		baseReader, err := csvReaderFromCommit(baseCommit)
@@ -133,7 +134,7 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
-			errMessage, err := base.FormatCsvError(err, ctx.Locale)
+			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
 				log.Error("RenderCsvDiff failed: %v", err)
 				return CsvDiffResult{nil, ""}

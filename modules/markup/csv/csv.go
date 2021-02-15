@@ -10,7 +10,7 @@ import (
 	"io"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -44,7 +44,7 @@ func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string,
 		return tmpBlock.Bytes()
 	}
 
-	rd := base.CreateCsvReaderAndGuessDelimiter(rawBytes)
+	rd := csv.CreateReaderAndGuessDelimiter(rawBytes)
 
 	writeField := func(element, class, field string) {
 		tmpBlock.WriteString("<")
