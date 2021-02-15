@@ -44,8 +44,6 @@ const (
 	PullRequestStyleGithub PullRequestStyle = iota
 	// PullRequestStyleAGit Agit flow style pull request, head branch is not exist
 	PullRequestStyleAGit
-	// TODO Gerrit style
-	// PullRequestStyleGerrit
 )
 
 // PullRequest represents relation between pull request and repositories.

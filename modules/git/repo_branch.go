@@ -15,8 +15,8 @@ const BranchPrefix = "refs/heads/"
 
 // AGit Flow
 
-// PullRequestPrefix sepcial ref to create a pull request: refs/for/{targe-branch}
-// Note: Different with origin AGit Flow, use push option to set head-branch(topic)
+// PullRequestPrefix sepcial ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
+// or refs/for/<targe-branch> -o topic='<topic-branch>'
 const PullRequestPrefix = "refs/for/"
 
 // TODO: /refs/for-review for suggest change interface
