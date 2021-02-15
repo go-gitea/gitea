@@ -180,7 +180,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 
 	size := update.Size
 
-	if size == 0 {
+	if !update.Sized {
 		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {

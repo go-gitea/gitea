@@ -18,6 +18,7 @@ type fileUpdate struct {
 	Filename string
 	BlobSha  string
 	Size     int64
+	Sized    bool
 }
 
 // repoChanges changes (file additions/updates/removals) to a repo
@@ -79,6 +80,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 				Filename: entry.Name(),
 				BlobSha:  entry.ID.String(),
 				Size:     entry.Size(),
+				Sized:    true,
 			}
 			idxCount++
 		}

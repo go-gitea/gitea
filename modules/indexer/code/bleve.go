@@ -181,7 +181,7 @@ func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *mode
 
 	size := update.Size
 
-	if size == 0 {
+	if !update.Sized {
 		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
 			RunInDir(repo.RepoPath())
 		if err != nil {

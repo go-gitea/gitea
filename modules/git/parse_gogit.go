@@ -67,9 +67,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 			return nil, fmt.Errorf("Invalid ls-tree -l output: %s", string(data))
 		}
 		entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(data[pos:end])), 10, 64)
-		if entry.size > 0 {
-			entry.sized = true
-		}
+		entry.sized = true
 
 		pos = end + 1
 
