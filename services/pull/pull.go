@@ -730,11 +730,17 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	var headCommit *git.Commit
 	if pr.Style == models.PullRequestStyleGithub {
 		headCommit, err = headGitRepo.GetBranchCommit(pr.HeadBranch)
+		if err != nil {
+			return false, err
+		}
 	} else {
-		headCommit, err = headGitRepo.GetCommit(pr.HeadBranch)
-	}
-	if err != nil {
-		return false, err
+		pr.HeadCommitID, err = git.GetRefCommitID(baseGitRepo.Path, pr.GetGitRefName())
+		if err != nil {
+			return false, err
+		}
+		if headCommit, err = baseGitRepo.GetCommit(pr.HeadCommitID); err != nil {
+			return false, err
+		}
 	}
 	return baseCommit.HasPreviousCommit(headCommit.ID)
 }
