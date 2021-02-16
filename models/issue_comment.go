@@ -36,69 +36,71 @@ const (
 
 // Enumerate all the comment types
 const (
-	// Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
+	// 0 Plain comment, can be associated with a commit (CommitID > 0) and a line (LineNum > 0)
 	CommentTypeComment CommentType = iota
-	CommentTypeReopen
-	CommentTypeClose
+	CommentTypeReopen              // 1
+	CommentTypeClose               // 2
 
-	// References.
+	// 3 References.
 	CommentTypeIssueRef
-	// Reference from a commit (not part of a pull request)
+	// 4 Reference from a commit (not part of a pull request)
 	CommentTypeCommitRef
-	// Reference from a comment
+	// 5 Reference from a comment
 	CommentTypeCommentRef
-	// Reference from a pull request
+	// 6 Reference from a pull request
 	CommentTypePullRef
-	// Labels changed
+	// 7 Labels changed
 	CommentTypeLabel
-	// Milestone changed
+	// 8 Milestone changed
 	CommentTypeMilestone
-	// Assignees changed
+	// 9 Assignees changed
 	CommentTypeAssignees
-	// Change Title
+	// 10 Change Title
 	CommentTypeChangeTitle
-	// Delete Branch
+	// 11 Delete Branch
 	CommentTypeDeleteBranch
-	// Start a stopwatch for time tracking
+	// 12 Start a stopwatch for time tracking
 	CommentTypeStartTracking
-	// Stop a stopwatch for time tracking
+	// 13 Stop a stopwatch for time tracking
 	CommentTypeStopTracking
-	// Add time manual for time tracking
+	// 14 Add time manual for time tracking
 	CommentTypeAddTimeManual
-	// Cancel a stopwatch for time tracking
+	// 15 Cancel a stopwatch for time tracking
 	CommentTypeCancelTracking
-	// Added a due date
+	// 16 Added a due date
 	CommentTypeAddedDeadline
-	// Modified the due date
+	// 17 Modified the due date
 	CommentTypeModifiedDeadline
-	// Removed a due date
+	// 18 Removed a due date
 	CommentTypeRemovedDeadline
-	// Dependency added
+	// 19 Dependency added
 	CommentTypeAddDependency
-	//Dependency removed
+	// 20 Dependency removed
 	CommentTypeRemoveDependency
-	// Comment a line of code
+	// 21 Comment a line of code
 	CommentTypeCode
-	// Reviews a pull request by giving general feedback
+	// 22 Reviews a pull request by giving general feedback
 	CommentTypeReview
-	// Lock an issue, giving only collaborators access
+	// 23 Lock an issue, giving only collaborators access
 	CommentTypeLock
-	// Unlocks a previously locked issue
+	// 24 Unlocks a previously locked issue
 	CommentTypeUnlock
-	// Change pull request's target branch
+	// 25 Change pull request's target branch
 	CommentTypeChangeTargetBranch
-	// Delete time manual for time tracking
+	// 26 Delete time manual for time tracking
 	CommentTypeDeleteTimeManual
-	// add or remove Request from one
+	// 27 add or remove Request from one
 	CommentTypeReviewRequest
-	// merge pull request
+	// 28 merge pull request
 	CommentTypeMergePull
-	// push to PR head branch
+	// 29 push to PR head branch
 	CommentTypePullPush
-	// Project changed
+	// 30 Project changed
 	CommentTypeProject
-	// Project board changed
+	// 31 Project board changed
 	CommentTypeProjectBoard
+	// Dismiss Review
+	CommentTypeDismissReview
 )
 
 // CommentTag defines comment tag type
