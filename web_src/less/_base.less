@@ -118,7 +118,7 @@
 @font-face {
   font-family: system-emoji;
   src: local("Apple Color Emoji"), local("Segoe UI Emoji"), local("Noto Color Emoji"), local("Twemoji Mozilla");
-  unicode-range: ~"U+2310-329F, U+FE0?, U+1F000-1FAFF";
+  unicode-range: ~"U+2100-2BFF, U+303?, U+329?, U+FE0?, U+1F000-1FAFF";
 }
 
 textarea {
@@ -1120,10 +1120,18 @@ footer {
     }
   }
 
-  .ui.language .menu {
-    max-height: 500px;
-    overflow-y: auto;
-    margin-bottom: 7px;
+  .ui.language {
+    .menu {
+      max-height: 500px;
+      overflow-y: auto;
+      margin-bottom: 7px;
+    }
+
+    .svg {
+      margin-right: 0.15em;
+      vertical-align: top;
+      margin-top: calc(2em - 16px);
+    }
   }
 
   .ui {
