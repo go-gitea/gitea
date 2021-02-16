@@ -70,7 +70,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/minio/md5-simd v1.1.1 // indirect
-	github.com/minio/minio-go/v7 v7.0.7
+	github.com/minio/minio-go/v7 v7.0.9
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
