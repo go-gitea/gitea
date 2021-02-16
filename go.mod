@@ -46,6 +46,7 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/context v1.1.1
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.8 // indirect
 	github.com/hashicorp/go-version v1.2.1
 	github.com/huandu/xstrings v1.3.2
@@ -98,7 +99,7 @@ require (
 	github.com/unrolled/render v1.0.3
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
-	github.com/xanzy/go-gitlab v0.42.0
+	github.com/xanzy/go-gitlab v0.44.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
@@ -107,7 +108,7 @@ require (
 	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
-	golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
+	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 	golang.org/x/text v0.3.5
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect

@@ -427,7 +427,8 @@ github.com/gorilla/mux
 github.com/gorilla/securecookie
 # github.com/gorilla/sessions v1.2.0
 github.com/gorilla/sessions
-# github.com/hashicorp/go-cleanhttp v0.5.1
+# github.com/hashicorp/go-cleanhttp v0.5.2
+## explicit
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.8
 ## explicit
@@ -755,7 +756,7 @@ github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
 ## explicit
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.42.0
+# github.com/xanzy/go-gitlab v0.44.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -870,7 +871,7 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
+# golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google
