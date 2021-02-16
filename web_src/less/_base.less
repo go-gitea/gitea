@@ -1,10 +1,10 @@
 :root {
   /* documented customizable variables */
-  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", sans-serif;
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans";
   --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
-  --fonts-emoji: system-emoji;
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* other variables */
-  --fonts-regular: var(--fonts-emoji), var(--fonts-proportional);
+  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji), sans-serif;
   --border-radius: .28571429rem;
   --opacity-disabled: .55;
   --color-primary: #4183c4;
@@ -113,12 +113,6 @@
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
-}
-
-@font-face {
-  font-family: system-emoji;
-  src: local("Apple Color Emoji"), local("Segoe UI Emoji"), local("Noto Color Emoji"), local("Twemoji Mozilla");
-  unicode-range: ~"U+2100-2BFF, U+303?, U+329?, U+FE0?, U+1F000-1FAFF";
 }
 
 textarea {
@@ -1857,6 +1851,17 @@ table th[data-sortt-desc] {
   font-style: normal !important;
   font-weight: normal !important;
   vertical-align: -.075em;
+
+  @supports (-webkit-hyphens:none) {
+    & {
+      font-size: inherit;
+      vertical-align: inherit;
+      img {
+        font-size: 1.25em;
+        vertical-align: -.225em !important;
+      }
+    }
+  }
 }
 
 .emoji img,
