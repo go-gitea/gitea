@@ -60,6 +60,8 @@ type InstallForm struct {
 	DefaultEnableTimetracking      bool
 	NoReplyAddress                 string
 
+	PasswordAlgorithm string
+
 	AdminName          string `binding:"OmitEmpty;AlphaDashDot;MaxSize(30)" locale:"install.admin_name"`
 	AdminPasswd        string `binding:"OmitEmpty;MaxSize(255)" locale:"install.admin_password"`
 	AdminConfirmPasswd string
