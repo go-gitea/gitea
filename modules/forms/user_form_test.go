@@ -12,17 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRegisterForm_IsDomainWhiteList_Empty(t *testing.T) {
+func TestRegisterForm_IsDomainAllowed_Empty(t *testing.T) {
 	_ = setting.Service
 
 	setting.Service.EmailDomainWhitelist = []string{}
 
 	form := RegisterForm{}
 
-	assert.True(t, form.IsEmailDomainWhitelisted())
+	assert.True(t, form.IsEmailDomainAllowed())
 }
 
-func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
+func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 	_ = setting.Service
 
 	setting.Service.EmailDomainWhitelist = []string{"gitea.io"}
@@ -37,11 +37,11 @@ func TestRegisterForm_IsDomainWhiteList_InvalidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.False(t, form.IsEmailDomainWhitelisted())
+		assert.False(t, form.IsEmailDomainAllowed())
 	}
 }
 
-func TestRegisterForm_IsDomainWhiteList_ValidEmail(t *testing.T) {
+func TestRegisterForm_IsDomainAllowed_WhitelistedEmail(t *testing.T) {
 	_ = setting.Service
 
 	setting.Service.EmailDomainWhitelist = []string{"gitea.io"}
@@ -59,6 +59,28 @@ func TestRegisterForm_IsDomainWhiteList_ValidEmail(t *testing.T) {
 	for _, v := range tt {
 		form := RegisterForm{Email: v.email}
 
-		assert.Equal(t, v.valid, form.IsEmailDomainWhitelisted())
+		assert.Equal(t, v.valid, form.IsEmailDomainAllowed())
+	}
+}
+
+func TestRegisterForm_IsDomainAllowed_BlocklistedEmail(t *testing.T) {
+	_ = setting.Service
+
+	setting.Service.EmailDomainWhitelist = []string{}
+	setting.Service.EmailDomainBlocklist = []string{"gitea.io"}
+
+	tt := []struct {
+		email string
+		valid bool
+	}{
+		{"security@gitea.io", false},
+		{"security@gitea.example", true},
+		{"hdudhdd", true},
+	}
+
+	for _, v := range tt {
+		form := RegisterForm{Email: v.email}
+
+		assert.Equal(t, v.valid, form.IsEmailDomainAllowed())
 	}
 }
