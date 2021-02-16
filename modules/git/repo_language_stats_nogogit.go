@@ -53,10 +53,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			return err
 		}
 		_, err = batchStdinWriter.Write([]byte{'\n'})
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	}
 
 	if err := writeID(commitID); err != nil {
