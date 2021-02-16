@@ -53,7 +53,7 @@ func TestParseTreeEntries(t *testing.T) {
 					sized: true,
 				},
 				{
-					ID: MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
+					ID:    MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
 					sized: true,
 					gogitTreeEntry: &object.TreeEntry{
 						Hash: MustIDFromString("1d01fb729fb0db5881daaa6030f9f2d3cd3d5ae8"),
