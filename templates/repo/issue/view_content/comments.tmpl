@@ -8,7 +8,8 @@
 	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
 	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
 	 26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
-	 29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED -->
+	 29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED 
+	 32 = DISMISSED_REVIEW -->
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
@@ -251,7 +252,7 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr "repo.issues.delete_branch_at" (.CommitSHA|Escape) $createdStr | Safe}}
+				{{$.i18n.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
 	{{else if eq .Type 12}}
@@ -414,6 +415,9 @@
 						{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
 					{{else}}
 						{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+					{{end}}
+					{{if .Review.Dismissed}}
+						<div class="ui small label">{{$.i18n.Tr "repo.issues.review.dismissed_label"}}</div>
 					{{end}}
 				</span>
 			</div>
@@ -698,5 +702,44 @@
 			</span>
 		</div>
 		{{end}}
+	{{else if eq .Type 32}}
+		<div class="timeline-item-group">
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+					<img src="{{.Poster.RelAvatarLink}}">
+				</a>
+				<span class="badge grey">{{svg "octicon-x" 16}}</span>
+				<span class="text grey">
+					<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+					{{$reviewerName := ""}}
+					{{if eq .Review.OriginalAuthor ""}}
+						{{$reviewerName = .Review.Reviewer.Name}}
+					{{else}}
+						{{$reviewerName = .Review.OriginalAuthor}}
+					{{end}}
+					{{$.i18n.Tr "repo.issues.review.dismissed" $reviewerName $createdStr | Safe}}
+				</span>
+			</div>
+			{{if .Content}}
+				<div class="timeline-item comment">
+					<div class="content">
+						<div class="ui top attached header arrow-top">
+							<span class="text grey">
+								{{$.i18n.Tr "action.review_dismissed_reason"}}
+							</span>
+						</div>
+						<div class="ui attached segment">
+							<div class="render-content markdown">
+								{{if .RenderedContent}}
+									{{.RenderedContent|Str2html}}
+								{{else}}
+									<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+								{{end}}
+							</div>
+						</div>
+					</div>
+				</div>
+			{{end}}
+		</div>
 	{{end}}
 {{end}}
