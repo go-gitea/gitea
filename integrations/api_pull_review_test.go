@@ -111,6 +111,22 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", review.State)
 	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
+	// test dismiss review
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.DismissPullReviewOptions{
+		Message: "test",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.EqualValues(t, true, review.Dismissed)
+
+	// test dismiss review
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/undismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.EqualValues(t, false, review.Dismissed)
+
 	// test DeletePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		Body:  "just a comment",
