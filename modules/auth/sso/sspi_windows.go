@@ -5,6 +5,7 @@
 package sso
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -128,7 +129,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 			log.Error("User '%s' not found", username)
 			return nil
 		}
-		user, err = s.newUser(username, cfg)
+		user, err = s.newUser(req.Context(), username, cfg)
 		if err != nil {
 			log.Error("CreateUser: %v", err)
 			return nil
@@ -177,7 +178,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (s *SSPI) newUser(username string, cfg *models.SSPIConfig) (*models.User, error) {
+func (s *SSPI) newUser(ctx context.Context, username string, cfg *models.SSPIConfig) (*models.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &models.User{
 		Name:                         username,
@@ -190,7 +191,7 @@ func (s *SSPI) newUser(username string, cfg *models.SSPIConfig) (*models.User, e
 		Avatar:                       models.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := models.CreateUser(ctx, user); err != nil {
 		return nil, err
 	}
 	return user, nil
