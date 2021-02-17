@@ -69,6 +69,26 @@ type Context struct {
 	Org  *Organization
 }
 
+// Deadline is part of go's context.Context interface
+func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
+	return ctx.Req.Context().Deadline()
+}
+
+// Done is part of go's context.Context interface
+func (ctx *Context) Done() <-chan struct{} {
+	return ctx.Req.Context().Done()
+}
+
+// Err is part of go's context.Context interface
+func (ctx *Context) Err() error {
+	return ctx.Req.Context().Err()
+}
+
+// Value is part of go's context.Context interface
+func (ctx *Context) Value(key interface{}) interface{} {
+	return ctx.Req.Context().Value(key)
+}
+
 // GetData returns the data
 func (ctx *Context) GetData() map[string]interface{} {
 	return ctx.Data
