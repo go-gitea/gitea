@@ -411,6 +411,7 @@ relation to port exhaustion.
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
+- `MAXIMUM_CONCURRENT_HASHES`: **0**: Only allow a certain number of password hashes to be performed at a time. Set to 0 to have no limit.
 
 ## OpenID (`openid`)
 

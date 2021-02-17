@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -374,7 +375,31 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
+var lock = sync.Mutex{}
+var cond = sync.NewCond(&lock)
+var concurrentHashes = 0
+
 func hashPassword(ctx context.Context, passwd, salt, algo string) (string, error) {
+	if setting.MaximumConcurrentHashes > 0 {
+		cond.L.Lock()
+		for concurrentHashes > setting.MaximumConcurrentHashes {
+			cond.Wait()
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			default:
+			}
+		}
+		concurrentHashes++
+		cond.L.Unlock()
+		defer func() {
+			cond.L.Lock()
+			concurrentHashes--
+			cond.Signal()
+			cond.L.Unlock()
+		}()
+	}
+
 	var tempPasswd []byte
 
 	switch algo {
@@ -426,6 +451,27 @@ func (u *User) ValidatePassword(ctx context.Context, passwd string) bool {
 			return false
 		}
 		return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
+	}
+
+	// Handle maximum concurrent hashes
+	if setting.MaximumConcurrentHashes > 0 {
+		cond.L.Lock()
+		for concurrentHashes > setting.MaximumConcurrentHashes {
+			cond.Wait()
+			select {
+			case <-ctx.Done():
+				return false
+			default:
+			}
+		}
+		concurrentHashes++
+		cond.L.Unlock()
+		defer func() {
+			cond.L.Lock()
+			concurrentHashes--
+			cond.Signal()
+			cond.L.Unlock()
+		}()
 	}
 
 	return bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil

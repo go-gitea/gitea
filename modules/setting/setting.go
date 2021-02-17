@@ -160,6 +160,7 @@ var (
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
+	MaximumConcurrentHashes            int
 	PasswordCheckPwn                   bool
 
 	// UI settings
@@ -805,6 +806,7 @@ func NewContext() {
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	MaximumConcurrentHashes = sec.Key("MAXIMUM_CONCURRENT_HASHES").MustInt(0)
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 
