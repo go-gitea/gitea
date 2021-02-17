@@ -125,7 +125,7 @@ func NewUserPost(ctx *context.Context) {
 		}
 		u.MustChangePassword = form.MustChangePassword
 	}
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(ctx, u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -270,7 +270,7 @@ func EditUserPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err = u.SetPassword(form.Password); err != nil {
+		if err = u.SetPassword(ctx, form.Password); err != nil {
 			ctx.ServerError("SetPassword", err)
 			return
 		}

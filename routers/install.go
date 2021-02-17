@@ -404,7 +404,7 @@ func InstallPost(ctx *context.Context) {
 			IsAdmin:  true,
 			IsActive: true,
 		}
-		if err = models.CreateUser(u); err != nil {
+		if err = models.CreateUser(ctx, u); err != nil {
 			if !models.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true

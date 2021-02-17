@@ -374,13 +374,13 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPassword(passwd, salt, algo string) string {
+func hashPassword(ctx context.Context, passwd, salt, algo string) (string, error) {
 	var tempPasswd []byte
 
 	switch algo {
 	case algoBcrypt:
 		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), bcrypt.DefaultCost)
-		return string(tempPasswd)
+		return string(tempPasswd), nil
 	case algoScrypt:
 		tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), 65536, 16, 2, 50)
 	case algoArgon2:
@@ -391,12 +391,12 @@ func hashPassword(passwd, salt, algo string) string {
 		tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), 10000, 50, sha256.New)
 	}
 
-	return fmt.Sprintf("%x", tempPasswd)
+	return fmt.Sprintf("%x", tempPasswd), nil
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
 // change passwd, salt and passwd_hash_algo fields
-func (u *User) SetPassword(passwd string) (err error) {
+func (u *User) SetPassword(ctx context.Context, passwd string) (err error) {
 	if len(passwd) == 0 {
 		u.Passwd = ""
 		u.Salt = ""
@@ -407,23 +407,28 @@ func (u *User) SetPassword(passwd string) (err error) {
 	if u.Salt, err = GetUserSalt(); err != nil {
 		return err
 	}
+	hashedPassword, err := hashPassword(ctx, passwd, u.Salt, setting.PasswordHashAlgo)
+	if err != nil {
+		return err
+	}
+
+	u.Passwd = hashedPassword
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
-	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
 
 	return nil
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
-func (u *User) ValidatePassword(passwd string) bool {
-	tempHash := hashPassword(passwd, u.Salt, u.PasswdHashAlgo)
+func (u *User) ValidatePassword(ctx context.Context, passwd string) bool {
+	if u.PasswdHashAlgo != algoBcrypt {
+		tempHash, err := hashPassword(ctx, passwd, u.Salt, u.PasswdHashAlgo)
+		if err != nil {
+			return false
+		}
+		return subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1
+	}
 
-	if u.PasswdHashAlgo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
-		return true
-	}
-	if u.PasswdHashAlgo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
-		return true
-	}
-	return false
+	return bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil
 }
 
 // IsPasswordSet checks if the password is set or left empty
@@ -845,12 +850,12 @@ func IsUsableUsername(name string) error {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(u *User) (err error) {
+func CreateUser(ctx context.Context, u *User) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := x.NewSession().Context(ctx)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -895,7 +900,7 @@ func CreateUser(u *User) (err error) {
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if err = u.SetPassword(u.Passwd); err != nil {
+	if err = u.SetPassword(ctx, u.Passwd); err != nil {
 		return err
 	}
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
@@ -1919,7 +1924,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 						IsActive:     true,
 					}
 
-					err = CreateUser(usr)
+					err = CreateUser(ctx, usr)
 
 					if err != nil {
 						log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)

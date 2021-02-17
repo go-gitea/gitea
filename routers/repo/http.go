@@ -237,7 +237,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 			if authUser == nil {
 				// Check username and password
-				authUser, err = models.UserSignIn(authUsername, authPasswd)
+				authUser, err = models.UserSignIn(ctx, authUsername, authPasswd)
 				if err != nil {
 					if models.IsErrUserProhibitLogin(err) {
 						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")

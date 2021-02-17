@@ -30,7 +30,7 @@ func checkIsValidRequest(ctx *context.Context) bool {
 		return false
 	}
 	if !ctx.IsSigned {
-		user, _, _, err := parseToken(ctx.Req.Header.Get("Authorization"))
+		user, _, _, err := parseToken(ctx, ctx.Req.Header.Get("Authorization"))
 		if err != nil {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 			writeStatus(ctx, 401)

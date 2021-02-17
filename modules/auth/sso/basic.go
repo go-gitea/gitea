@@ -98,7 +98,7 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	}
 
 	if u == nil {
-		u, err = models.UserSignIn(uname, passwd)
+		u, err = models.UserSignIn(req.Context(), uname, passwd)
 		if err != nil {
 			if !models.IsErrUserNotExist(err) {
 				log.Error("UserSignIn: %v", err)

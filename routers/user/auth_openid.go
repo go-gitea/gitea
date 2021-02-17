@@ -289,7 +289,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["OpenID"] = oid
 
-	u, err := models.UserSignIn(form.UserName, form.Password)
+	u, err := models.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
@@ -418,7 +418,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	//nolint: dupl
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(ctx, u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true

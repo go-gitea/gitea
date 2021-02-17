@@ -349,7 +349,7 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if err = user.SetPassword(c.String("password")); err != nil {
+	if err = user.SetPassword(context.Background(), c.String("password")); err != nil {
 		return err
 	}
 
@@ -426,7 +426,7 @@ func runCreateUser(c *cli.Context) error {
 		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(context.Background(), u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 

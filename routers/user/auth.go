@@ -171,7 +171,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*auth.SignInForm)
-	u, err := models.UserSignIn(form.UserName, form.Password)
+	u, err := models.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -822,7 +822,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, err := models.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, err := models.UserSignIn(ctx, signInForm.UserName, signInForm.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["user_exists"] = true
@@ -974,7 +974,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	//nolint: dupl
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(ctx, u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -1167,7 +1167,7 @@ func SignUpPost(ctx *context.Context) {
 		Passwd:   form.Password,
 		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(ctx, u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -1267,7 +1267,7 @@ func Activate(ctx *context.Context) {
 			ctx.HTML(200, TplActivate)
 			return
 		}
-		if !user.ValidatePassword(password) {
+		if !user.ValidatePassword(ctx, password) {
 			ctx.Data["IsActivateFailed"] = true
 			ctx.HTML(200, TplActivate)
 			return
@@ -1529,7 +1529,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if err = u.SetPassword(passwd); err != nil {
+	if err = u.SetPassword(ctx, passwd); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -1603,7 +1603,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 	}
 
 	var err error
-	if err = u.SetPassword(form.Password); err != nil {
+	if err = u.SetPassword(ctx, form.Password); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

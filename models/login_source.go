@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -460,7 +461,7 @@ func composeFullName(firstname, surname, username string) string {
 
 // LoginViaLDAP queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*User, error) {
+func LoginViaLDAP(ctx context.Context, user *User, login, password string, source *LoginSource) (*User, error) {
 	sr := source.Cfg.(*LDAPConfig).SearchEntry(login, password, source.Type == LoginDLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
@@ -530,7 +531,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 		IsRestricted: sr.IsRestricted,
 	}
 
-	err := CreateUser(user)
+	err := CreateUser(ctx, user)
 
 	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
 		err = RewriteAllPublicKeys()
@@ -608,7 +609,7 @@ func SMTPAuth(a smtp.Auth, cfg *SMTPConfig) error {
 
 // LoginViaSMTP queries if login/password is valid against the SMTP,
 // and create a local user if success when enabled.
-func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPConfig) (*User, error) {
+func LoginViaSMTP(ctx context.Context, user *User, login, password string, sourceID int64, cfg *SMTPConfig) (*User, error) {
 	// Verify allowed domains.
 	if len(cfg.AllowedDomains) > 0 {
 		idx := strings.Index(login, "@")
@@ -659,7 +660,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 		LoginName:   login,
 		IsActive:    true,
 	}
-	return user, CreateUser(user)
+	return user, CreateUser(ctx, user)
 }
 
 // __________  _____      _____
@@ -671,7 +672,7 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 
 // LoginViaPAM queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMConfig) (*User, error) {
+func LoginViaPAM(ctx context.Context, user *User, login, password string, sourceID int64, cfg *PAMConfig) (*User, error) {
 	pamLogin, err := pam.Auth(cfg.ServiceName, login, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
@@ -701,11 +702,11 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 		LoginName:   login, // This is what the user typed in
 		IsActive:    true,
 	}
-	return user, CreateUser(user)
+	return user, CreateUser(ctx, user)
 }
 
 // ExternalUserLogin attempts a login using external source types.
-func ExternalUserLogin(user *User, login, password string, source *LoginSource) (*User, error) {
+func ExternalUserLogin(ctx context.Context, user *User, login, password string, source *LoginSource) (*User, error) {
 	if !source.IsActived {
 		return nil, ErrLoginSourceNotActived
 	}
@@ -713,11 +714,11 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource) 
 	var err error
 	switch source.Type {
 	case LoginLDAP, LoginDLDAP:
-		user, err = LoginViaLDAP(user, login, password, source)
+		user, err = LoginViaLDAP(ctx, user, login, password, source)
 	case LoginSMTP:
-		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig))
+		user, err = LoginViaSMTP(ctx, user, login, password, source.ID, source.Cfg.(*SMTPConfig))
 	case LoginPAM:
-		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig))
+		user, err = LoginViaPAM(ctx, user, login, password, source.ID, source.Cfg.(*PAMConfig))
 	default:
 		return nil, ErrUnsupportedLoginType
 	}
@@ -736,7 +737,7 @@ func ExternalUserLogin(user *User, login, password string, source *LoginSource) 
 }
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*User, error) {
+func UserSignIn(ctx context.Context, username, password string) (*User, error) {
 	var user *User
 	if strings.Contains(username, "@") {
 		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
@@ -767,11 +768,11 @@ func UserSignIn(username, password string) (*User, error) {
 	if hasUser {
 		switch user.LoginType {
 		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.IsPasswordSet() && user.ValidatePassword(password) {
+			if user.IsPasswordSet() && user.ValidatePassword(ctx, password) {
 
 				// Update password hash if server password hash algorithm have changed
 				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
-					if err = user.SetPassword(password); err != nil {
+					if err = user.SetPassword(ctx, password); err != nil {
 						return nil, err
 					}
 					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
@@ -792,19 +793,19 @@ func UserSignIn(username, password string) (*User, error) {
 
 		default:
 			var source LoginSource
-			hasSource, err := x.ID(user.LoginSource).Get(&source)
+			hasSource, err := x.Context(ctx).ID(user.LoginSource).Get(&source)
 			if err != nil {
 				return nil, err
 			} else if !hasSource {
 				return nil, ErrLoginSourceNotExist{user.LoginSource}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, password, &source)
+			return ExternalUserLogin(ctx, user, user.LoginName, password, &source)
 		}
 	}
 
 	sources := make([]*LoginSource, 0, 5)
-	if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
+	if err = x.Context(ctx).Where("is_actived = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 
@@ -813,7 +814,7 @@ func UserSignIn(username, password string) (*User, error) {
 			// don't try to authenticate against OAuth2 and SSPI sources here
 			continue
 		}
-		authUser, err := ExternalUserLogin(nil, username, password, source)
+		authUser, err := ExternalUserLogin(ctx, nil, username, password, source)
 		if err == nil {
 			return authUser, nil
 		}

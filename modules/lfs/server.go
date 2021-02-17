@@ -5,6 +5,7 @@
 package lfs
 
 import (
+	gocontext "context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -609,7 +610,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return true
 	}
 
-	user, repo, opStr, err := parseToken(authorization)
+	user, repo, opStr, err := parseToken(ctx, authorization)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
 		log.Warn("Authentication failure for provided token with Error: %v", err)
@@ -633,7 +634,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	return false
 }
 
-func parseToken(authorization string) (*models.User, *models.Repository, string, error) {
+func parseToken(ctx gocontext.Context, authorization string) (*models.User, *models.Repository, string, error) {
 	if authorization == "" {
 		return nil, nil, "unknown", fmt.Errorf("No token")
 	}
@@ -681,7 +682,7 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 			log.Error("Unable to GetUserByName[%d]: Error: %v", user, err)
 			return nil, nil, "basic", err
 		}
-		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
+		if !u.IsPasswordSet() || !u.ValidatePassword(ctx, password) {
 			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
 		}
 		return u, nil, "basic", nil

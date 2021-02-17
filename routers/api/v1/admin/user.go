@@ -97,7 +97,7 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(ctx, u); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
@@ -175,7 +175,7 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
-		if err = u.SetPassword(form.Password); err != nil {
+		if err = u.SetPassword(ctx, form.Password); err != nil {
 			ctx.InternalServerError(err)
 			return
 		}

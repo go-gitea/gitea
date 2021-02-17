@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -230,15 +231,15 @@ func TestHashPasswordDeterministic(t *testing.T) {
 			pass := string(b)
 
 			// save the current password in the user - hash it and store the result
-			u.SetPassword(pass)
+			u.SetPassword(context.Background(), pass)
 			r1 := u.Passwd
 
 			// run again
-			u.SetPassword(pass)
+			u.SetPassword(context.Background(), pass)
 			r2 := u.Passwd
 
 			assert.NotEqual(t, r1, r2)
-			assert.True(t, u.ValidatePassword(pass))
+			assert.True(t, u.ValidatePassword(context.Background(), pass))
 		}
 	}
 }
@@ -250,7 +251,7 @@ func BenchmarkHashPassword(b *testing.B) {
 	u := &User{Passwd: pass}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		u.SetPassword(pass)
+		u.SetPassword(context.Background(), pass)
 	}
 }
 
@@ -317,7 +318,7 @@ func TestCreateUser(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	assert.NoError(t, CreateUser(user))
+	assert.NoError(t, CreateUser(context.Background(), user))
 
 	assert.NoError(t, DeleteUser(user))
 }
@@ -332,7 +333,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 		MustChangePassword: false,
 	}
 
-	err := CreateUser(user)
+	err := CreateUser(context.Background(), user)
 	assert.Error(t, err)
 	assert.True(t, IsErrEmailInvalid(err))
 }
@@ -357,7 +358,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
 
-		assert.NoError(t, CreateUser(v.user))
+		assert.NoError(t, CreateUser(context.Background(), v.user))
 
 		u, err := GetUserByEmail(v.user.Email)
 		assert.NoError(t, err)
