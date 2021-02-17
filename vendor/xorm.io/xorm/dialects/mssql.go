@@ -220,6 +220,8 @@ type mssql struct {
 
 func (db *mssql) Init(uri *URI) error {
 	db.quoter = mssqlQuoter
+	db.defaultChar = "CHAR"
+	db.defaultVarchar = "VARCHAR"
 	return db.Base.Init(db, uri)
 }
 
@@ -538,7 +540,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 
 		colName = strings.Trim(colName, "` ")
 		var isRegular bool
-		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
+		if (strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName)) && len(indexName) > (5+len(tableName)) {
 			indexName = indexName[5+len(tableName):]
 			isRegular = true
 		}
