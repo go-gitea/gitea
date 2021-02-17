@@ -76,7 +76,7 @@ func (aReq *ArchiveRequest) IsComplete() bool {
 func (aReq *ArchiveRequest) WaitForCompletion(ctx *context.Context) bool {
 	select {
 	case <-aReq.cchan:
-	case <-ctx.Req.Context().Done():
+	case <-ctx.Done():
 	}
 
 	return aReq.IsComplete()
@@ -92,7 +92,7 @@ func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur tim
 	case <-time.After(dur):
 		timeout = true
 	case <-aReq.cchan:
-	case <-ctx.Req.Context().Done():
+	case <-ctx.Done():
 	}
 
 	return aReq.IsComplete(), timeout
