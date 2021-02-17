@@ -15,6 +15,7 @@
     .fork-flag {
       font-size: 12px;
       margin-top: 2px;
+      line-height: initial;
     }
 
     .repo-buttons .svg {
@@ -30,6 +31,8 @@
   .tabs {
     .navbar {
       justify-content: initial;
+      overflow-x: scroll;
+      overflow-y: hidden;
     }
   }
 
@@ -40,6 +43,10 @@
     .ui.label {
       margin-left: 7px;
       padding: 3px 5px;
+    }
+
+    .active.item {
+      margin-bottom: 0 !important;
     }
   }
 
@@ -179,7 +186,7 @@
     }
 
     &.divider {
-      margin-top: 0;
+      margin-top: -1px;
       margin-bottom: 20px;
     }
   }
@@ -2841,8 +2848,13 @@ tbody.commit-list {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   word-break: break-word;
+  line-height: 32px;
+  margin: -7px 0;
+
+  > * {
+    margin: 7px 0;
+  }
 }
 
 .repo-buttons {
@@ -3109,16 +3121,6 @@ td.blob-excerpt {
 
 .code-diff-split tbody tr td:nth-child(4) {
   border-left: 1px solid var(--color-secondary);
-}
-
-.repository .ui.menu.new-menu {
-  background: none !important;
-
-  @media @mediaLgAndDown {
-    &::after {
-      background: none !important;
-    }
-  }
 }
 
 .repository.migrate .card {
