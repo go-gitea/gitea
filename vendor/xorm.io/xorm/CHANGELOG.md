@@ -3,6 +3,13 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.0.7](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1336) - 2021-01-21
+
+* BUGFIXES
+  * Fix bug for mssql (#1854)
+* MISC
+  * fix_bugs_for_mssql (#1852)
+
 ## [1.0.6](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1308) - 2021-01-05
 
 * BUGFIXES
