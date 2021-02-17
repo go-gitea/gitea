@@ -11,9 +11,9 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var wwwURLRegxp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]+(?:[/#?][-a-zA-Z0-9@:%_\+.~#!?&/=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
+var wwwURLRegxp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-z]+(?:[/#?][-a-zA-Z0-9@:%_\+.~#!?&/=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
 
-var urlRegexp = regexp.MustCompile(`^(?:http|https|ftp)://[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]+(?::\d+)?(?:[/#?][-a-zA-Z0-9@:%_+.~#$!?&/=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
+var urlRegexp = regexp.MustCompile(`^(?:http|https|ftp)://[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-z]+(?::\d+)?(?:[/#?][-a-zA-Z0-9@:%_+.~#$!?&/=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
 
 // An LinkifyConfig struct is a data structure that holds configuration of the
 // Linkify extension.
@@ -24,10 +24,12 @@ type LinkifyConfig struct {
 	EmailRegexp      *regexp.Regexp
 }
 
-const optLinkifyAllowedProtocols parser.OptionName = "LinkifyAllowedProtocols"
-const optLinkifyURLRegexp parser.OptionName = "LinkifyURLRegexp"
-const optLinkifyWWWRegexp parser.OptionName = "LinkifyWWWRegexp"
-const optLinkifyEmailRegexp parser.OptionName = "LinkifyEmailRegexp"
+const (
+	optLinkifyAllowedProtocols parser.OptionName = "LinkifyAllowedProtocols"
+	optLinkifyURLRegexp        parser.OptionName = "LinkifyURLRegexp"
+	optLinkifyWWWRegexp        parser.OptionName = "LinkifyWWWRegexp"
+	optLinkifyEmailRegexp      parser.OptionName = "LinkifyEmailRegexp"
+)
 
 // SetOption implements SetOptioner.
 func (c *LinkifyConfig) SetOption(name parser.OptionName, value interface{}) {
@@ -156,10 +158,12 @@ func (s *linkifyParser) Trigger() []byte {
 	return []byte{' ', '*', '_', '~', '('}
 }
 
-var protoHTTP = []byte("http:")
-var protoHTTPS = []byte("https:")
-var protoFTP = []byte("ftp:")
-var domainWWW = []byte("www.")
+var (
+	protoHTTP  = []byte("http:")
+	protoHTTPS = []byte("https:")
+	protoFTP   = []byte("ftp:")
+	domainWWW  = []byte("www.")
+)
 
 func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	if pc.IsInLinkLabel() {
