@@ -312,7 +312,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 				if asset == nil {
 					if redir != "" {
 						g.sleep()
-						resp, err := http.DefaultClient.Get(redir)
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+						if err != nil {
+							return nil, err
+						}
+						resp, err := http.DefaultClient.Do(req)
 						err1 := g.RefreshRate()
 						if err1 != nil {
 							log.Error("g.client.RateLimits: %s", err1)
