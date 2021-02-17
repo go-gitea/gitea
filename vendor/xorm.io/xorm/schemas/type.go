@@ -68,6 +68,10 @@ func (s *SQLType) IsJson() bool {
 	return s.Name == Json || s.Name == Jsonb
 }
 
+func (s *SQLType) IsXML() bool {
+	return s.Name == XML
+}
+
 var (
 	Bit       = "BIT"
 	TinyInt   = "TINYINT"
@@ -128,6 +132,7 @@ var (
 	Json  = "JSON"
 	Jsonb = "JSONB"
 
+	XML   = "XML"
 	Array = "ARRAY"
 
 	SqlTypes = map[string]int{
@@ -143,6 +148,8 @@ var (
 		Set:   TEXT_TYPE,
 		Json:  TEXT_TYPE,
 		Jsonb: TEXT_TYPE,
+
+		XML: TEXT_TYPE,
 
 		Char:       TEXT_TYPE,
 		NChar:      TEXT_TYPE,
