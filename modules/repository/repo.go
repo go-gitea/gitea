@@ -7,7 +7,9 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -68,6 +70,75 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		Timeout: migrateTimeout,
 	}); err != nil {
 		return repo, fmt.Errorf("Clone: %v", err)
+	}
+
+	if opts.LFS {
+		_, err = git.NewCommand("lfs", "fetch", opts.CloneAddr).RunInDir(repoPath)
+		if err != nil {
+			return repo, fmt.Errorf("LFS fetch failed %s: %v", opts.CloneAddr, err)
+		}
+
+		lfsSrc := path.Join(repoPath, "lfs", "objects")
+		lfsDst := path.Join(setting.LFS.Path)
+
+		// move LFS files
+		err := filepath.Walk(lfsSrc, func(path string, info os.FileInfo, err error) error {
+			var relSrcPath = strings.Replace(path, lfsSrc, "", 1)
+			if relSrcPath == "" {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			lfsSrcFull := filepath.Join(lfsSrc, relSrcPath)
+			lfsDstFull := filepath.Join(lfsDst, relSrcPath)
+
+			if _, err := os.Stat(lfsDstFull); !os.IsNotExist(err) {
+				return nil
+			}
+
+			if info.IsDir() {
+				return os.Mkdir(lfsDstFull, 0755)
+			}
+
+			// generate and associate LFS OIDs
+			file, err := os.Open(lfsSrcFull)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			oid, err := models.GenerateLFSOid(file)
+			if err != nil {
+				return err
+			}
+			fileInfo, err := file.Stat()
+			if err != nil {
+				return err
+			}
+
+			lfsDstFull = filepath.Join(lfsDst, oid[0:2], oid[2:4], oid[4:])
+			err = os.Rename(lfsSrcFull, lfsDstFull)
+			if err != nil {
+				return err
+			}
+
+			_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: repo.ID})
+			if err != nil {
+				log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", oid, fileInfo.Size(), u.Name, repoPath, err)
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			return repo, fmt.Errorf("Failed to move LFS files %s: %v", lfsSrc, err)
+		}
+
+		err = os.RemoveAll(path.Join(repoPath, "lfs"))
+		if err != nil {
+			return repo, fmt.Errorf("Failed to remove LFS files %s: %v", repoPath, err)
+		}
 	}
 
 	if opts.Wiki {

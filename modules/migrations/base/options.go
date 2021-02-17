@@ -20,6 +20,7 @@ type MigrateOptions struct {
 	// required: true
 	RepoName        string `json:"repo_name" binding:"Required"`
 	Mirror          bool   `json:"mirror"`
+	LFS             bool   `json:"lfs"`
 	Private         bool   `json:"private"`
 	Description     string `json:"description"`
 	OriginalURL     string

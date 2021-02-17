@@ -253,6 +253,7 @@ type MigrateRepoOptions struct {
 	AuthToken    string `json:"auth_token"`
 
 	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
 	Private        bool   `json:"private"`
 	Description    string `json:"description" binding:"MaxSize(255)"`
 	Wiki           bool   `json:"wiki"`
