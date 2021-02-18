@@ -123,7 +123,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			}
 		}
 
-		if err = storeMissingLfsObjectsInRepository(repo, gitRepo, opts.CloneAddr); err != nil {
+		if err = StoreMissingLfsObjectsInRepository(repo, gitRepo, opts.CloneAddr); err != nil {
 			log.Error("Failed to store missing LFS objects for repository: %v", err)
 		}
 	}
@@ -307,8 +307,8 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 	return models.SaveOrUpdateTag(repo, &rel)
 }
 
-// TODO use /services/lfs.StoreMissingLfsObjectsInRepository after migrating code to /services
-func storeMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
+// StoreMissingLfsObjectsInRepository downloads missing LFS objects
+func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
 	client := lfs.NewClient(&http.Client{})
 	contentStore := lfs.NewContetStore()
 

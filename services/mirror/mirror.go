@@ -253,13 +253,18 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+	defer gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
-		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
-	gitRepo.Close()
+
+	log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+	lfsAddr, _ := remoteAddress(m.Repo.RepoPath())
+	if err = repo_module.StoreMissingLfsObjectsInRepository(m.Repo, gitRepo, lfsAddr); err != nil { // TODO support custom endpoint
+		log.Error("Failed to synchronize LFS objects for repository: %v", err)
+	}
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
