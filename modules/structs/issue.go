@@ -73,12 +73,6 @@ type Issue struct {
 	Repo        *RepositoryMeta  `json:"repository"`
 }
 
-// ListIssueOption list issue options
-type ListIssueOption struct {
-	Page  int
-	State string
-}
-
 // CreateIssueOption options to create one issue
 type CreateIssueOption struct {
 	// required:true

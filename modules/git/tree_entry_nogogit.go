@@ -87,5 +87,7 @@ func (te *TreeEntry) Blob() *Blob {
 		ID:       te.ID,
 		repoPath: te.ptree.repo.Path,
 		name:     te.Name(),
+		size:     te.size,
+		gotSize:  te.sized,
 	}
 }

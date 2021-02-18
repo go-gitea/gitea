@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -232,7 +233,7 @@ type ListIssuesOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/issues.html#list-issues
 func (s *IssuesService) ListIssues(opt *ListIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
-	req, err := s.client.NewRequest("GET", "issues", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "issues", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -288,7 +289,7 @@ func (s *IssuesService) ListGroupIssues(pid interface{}, opt *ListGroupIssuesOpt
 	}
 	u := fmt.Sprintf("groups/%s/issues", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -328,6 +329,7 @@ type ListProjectIssuesOptions struct {
 	In                 *string    `url:"in,omitempty" json:"in,omitempty"`
 	CreatedAfter       *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
 	CreatedBefore      *time.Time `url:"created_before,omitempty" json:"created_before,omitempty"`
+	DueDate            *string    `url:"due_date,omitempty" json:"due_date,omitempty"`
 	UpdatedAfter       *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
 	UpdatedBefore      *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 	Confidential       *bool      `url:"confidential,omitempty" json:"confidential,omitempty"`
@@ -344,7 +346,7 @@ func (s *IssuesService) ListProjectIssues(pid interface{}, opt *ListProjectIssue
 	}
 	u := fmt.Sprintf("projects/%s/issues", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -368,7 +370,7 @@ func (s *IssuesService) GetIssue(pid interface{}, issue int, options ...RequestO
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -410,7 +412,7 @@ func (s *IssuesService) CreateIssue(pid interface{}, opt *CreateIssueOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/issues", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -454,7 +456,7 @@ func (s *IssuesService) UpdateIssue(pid interface{}, issue int, opt *UpdateIssue
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -478,7 +480,7 @@ func (s *IssuesService) DeleteIssue(pid interface{}, issue int, options ...Reque
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -504,7 +506,7 @@ func (s *IssuesService) MoveIssue(pid interface{}, issue int, opt *MoveIssueOpti
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/move", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -531,7 +533,7 @@ func (s *IssuesService) SubscribeToIssue(pid interface{}, issue int, options ...
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/subscribe", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -558,7 +560,7 @@ func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/unsubscribe", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -591,7 +593,7 @@ func (s *IssuesService) ListMergeRequestsClosingIssue(pid interface{}, issue int
 	}
 	u := fmt.Sprintf("/projects/%s/issues/%d/closed_by", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -627,7 +629,7 @@ func (s *IssuesService) ListMergeRequestsRelatedToIssue(pid interface{}, issue i
 		issue,
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -692,7 +694,7 @@ func (s *IssuesService) GetParticipants(pid interface{}, issue int, options ...R
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/participants", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

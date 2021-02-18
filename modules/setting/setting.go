@@ -804,7 +804,7 @@ func NewContext() {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("argon2")
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 

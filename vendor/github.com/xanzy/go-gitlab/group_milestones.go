@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -75,7 +76,7 @@ func (s *GroupMilestonesService) ListGroupMilestones(gid interface{}, opt *ListG
 	}
 	u := fmt.Sprintf("groups/%s/milestones", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -100,7 +101,7 @@ func (s *GroupMilestonesService) GetGroupMilestone(gid interface{}, milestone in
 	}
 	u := fmt.Sprintf("groups/%s/milestones/%d", pathEscape(group), milestone)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -136,7 +137,7 @@ func (s *GroupMilestonesService) CreateGroupMilestone(gid interface{}, opt *Crea
 	}
 	u := fmt.Sprintf("groups/%s/milestones", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,7 +174,7 @@ func (s *GroupMilestonesService) UpdateGroupMilestone(gid interface{}, milestone
 	}
 	u := fmt.Sprintf("groups/%s/milestones/%d", pathEscape(group), milestone)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -204,7 +205,7 @@ func (s *GroupMilestonesService) GetGroupMilestoneIssues(gid interface{}, milest
 	}
 	u := fmt.Sprintf("groups/%s/milestones/%d/issues", pathEscape(group), milestone)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -237,7 +238,7 @@ func (s *GroupMilestonesService) GetGroupMilestoneMergeRequests(gid interface{},
 	}
 	u := fmt.Sprintf("groups/%s/milestones/%d/merge_requests", pathEscape(group), milestone)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -280,7 +281,7 @@ func (s *GroupMilestonesService) GetGroupMilestoneBurndownChartEvents(gid interf
 	}
 	u := fmt.Sprintf("groups/%s/milestones/%d/burndown_events", pathEscape(group), milestone)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
