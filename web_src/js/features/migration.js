@@ -3,6 +3,8 @@ const $user = $('#auth_username');
 const $pass = $('#auth_password');
 const $token = $('#auth_token');
 const $mirror = $('#mirror');
+const $lfs = $('#lfs');
+const $lfsEndpoint = $('#lfs_endpoint');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
@@ -12,12 +14,14 @@ export default function initMigration() {
   $pass.on('keyup', () => {checkItems(false)});
   $token.on('keyup', () => {checkItems(true)});
   $mirror.on('change', () => {checkItems(true)});
+  $lfs.on('change', () => {$lfsEndpoint.attr('disabled', !$lfs.is(':checked'))});
 
   const $cloneAddr = $('#clone_addr');
   $cloneAddr.on('change', () => {
     const $repoName = $('#repo_name');
     if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+      $lfsEndpoint.attr('placeholder', $cloneAddr.val());
     }
   });
 }

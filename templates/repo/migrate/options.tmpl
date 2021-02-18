@@ -1,0 +1,26 @@
+<div class="inline field">
+	<label>{{.i18n.Tr "repo.migrate_options"}}</label>
+	<div class="ui checkbox">
+		{{if .DisableMirrors}}
+			<input id="mirror" name="mirror" type="checkbox" readonly>
+			<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
+		{{else}}
+			<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+			<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
+		{{end}}
+	</div>
+</div>
+{{if .LFSActive}}
+<div class="inline field">
+	<label></label>
+	<div class="ui checkbox">
+		<input id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
+		<label>{{.i18n.Tr "repo.migrate_options_lfs"}} <a target="_blank" href="https://git-lfs.github.com/">{{svg "octicon-question"}}</a></label>
+	</div>
+</div>
+<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint"}}</span>
+<div class="inline field">
+	<label></label>
+	<input id="lfs_endpoint" name="lfs_endpoint" value="{{.lfs_endpoint}}" {{if not .lfs}}disabled{{end}}>
+</div>
+{{end}}
