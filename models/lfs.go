@@ -12,6 +12,7 @@ import (
 	"io"
 	"path"
 
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -39,6 +40,11 @@ func (m *LFSMetaObject) RelativePath() string {
 // Pointer returns the string representation of an LFS pointer file
 func (m *LFSMetaObject) Pointer() string {
 	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)
+}
+
+func (m *LFSMetaObject) AsPointer() *lfs.Pointer {
+	pointer := &lfs.Pointer{Oid: m.Oid, Size: m.Size}
+	return pointer
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.

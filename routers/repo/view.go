@@ -287,7 +287,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	
 					// OK read the lfs object
 					var err error
-					dataRc, err = lfs.ReadMetaObject(meta)
+					dataRc, err = lfs.ReadMetaObject(pointer)
 					if err != nil {
 						ctx.ServerError("ReadMetaObject", err)
 						return
@@ -411,7 +411,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	
 				// OK read the lfs object
 				var err error
-				dataRc, err = lfs.ReadMetaObject(meta)
+				dataRc, err = lfs.ReadMetaObject(pointer)
 				if err != nil {
 					ctx.ServerError("ReadMetaObject", err)
 					return

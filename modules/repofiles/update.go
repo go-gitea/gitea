@@ -78,7 +78,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 				return "UTF-8", false
 			}
 			if meta != nil {
-				dataRc, err := lfs.ReadMetaObject(meta)
+				dataRc, err := lfs.ReadMetaObject(pointer)
 				if err != nil {
 					// return default
 					return "UTF-8", false
@@ -432,12 +432,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, err
 		}
 		contentStore := lfs.NewContetStore()
-		exist, err := contentStore.Exists(lfsMetaObject)
+		exist, err := contentStore.Exists(lfsMetaObject.AsPointer())
 		if err != nil {
 			return nil, err
 		}
 		if !exist {
-			if err := contentStore.Put(lfsMetaObject, strings.NewReader(opts.Content)); err != nil {
+			if err := contentStore.Put(lfsMetaObject.AsPointer(), strings.NewReader(opts.Content)); err != nil {
 				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}

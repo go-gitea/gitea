@@ -266,7 +266,7 @@ func LFSFileGet(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSFile"] = meta
-	dataRc, err := lfs.ReadMetaObject(meta)
+	dataRc, err := lfs.ReadMetaObject(meta.AsPointer())
 	if err != nil {
 		ctx.ServerError("LFSFileGet", err)
 		return
@@ -548,7 +548,7 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			result.InRepo = true
 		}
 
-		result.Exists, err = contentStore.Exists(&models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size})
+		result.Exists, err = contentStore.Exists(pointer)
 		if err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
 			break

@@ -102,7 +102,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		if meta == nil {
 			return ServeBlob(ctx, blob)
 		}
-		lfsDataRc, err := lfs.ReadMetaObject(meta)
+		lfsDataRc, err := lfs.ReadMetaObject(meta.AsPointer())
 		if err != nil {
 			return err
 		}

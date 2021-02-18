@@ -11,8 +11,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 
-	"code.gitea.io/gitea/models"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -47,50 +48,58 @@ func NewContetStore() *ContentStore {
 	return contentStore
 }
 
+func relativePath(p *lfs_module.Pointer) string {
+	if len(p.Oid) < 5 {
+		return p.Oid
+	}
+
+	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
+}
+
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
-	f, err := s.Open(meta.RelativePath())
+func (s *ContentStore) Get(pointer *lfs_module.Pointer, fromByte int64) (io.ReadCloser, error) {
+	f, err := s.Open(relativePath(pointer))
 	if err != nil {
-		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
+		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
 	}
 	if fromByte > 0 {
-		if fromByte >= meta.Size {
+		if fromByte >= pointer.Size {
 			return nil, ErrRangeNotSatisfiable{
 				FromByte: fromByte,
 			}
 		}
 		_, err = f.Seek(fromByte, io.SeekStart)
 		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
+			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", pointer.Oid, fromByte, err)
 		}
 	}
 	return f, err
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
+func (s *ContentStore) Put(pointer *lfs_module.Pointer, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
-	p := meta.RelativePath()
+	p := relativePath(pointer)
 	written, err := s.Save(p, rd)
 	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, p, err)
+		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
 		return err
 	}
 
-	if written != meta.Size {
+	if written != pointer.Size {
 		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", meta.Oid, err)
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
 		}
 		return errSizeMismatch
 	}
 
 	shaStr := hex.EncodeToString(hash.Sum(nil))
-	if shaStr != meta.Oid {
+	if shaStr != pointer.Oid {
 		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", meta.Oid, err)
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
 		}
 		return errHashMismatch
 	}
@@ -99,8 +108,8 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
-	_, err := s.ObjectStorage.Stat(meta.RelativePath())
+func (s *ContentStore) Exists(pointer *lfs_module.Pointer) (bool, error) {
+	_, err := s.ObjectStorage.Stat(relativePath(pointer))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -111,13 +120,13 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
-	p := meta.RelativePath()
+func (s *ContentStore) Verify(pointer *lfs_module.Pointer) (bool, error) {
+	p := relativePath(pointer)
 	fi, err := s.ObjectStorage.Stat(p)
-	if os.IsNotExist(err) || (err == nil && fi.Size() != meta.Size) {
+	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
 		return false, nil
 	} else if err != nil {
-		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, meta.Oid, err)
+		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
 		return false, err
 	}
 
@@ -125,7 +134,7 @@ func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
-func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
+func ReadMetaObject(pointer *lfs_module.Pointer) (io.ReadCloser, error) {
 	contentStore := NewContetStore()
-	return contentStore.Get(meta, 0)
+	return contentStore.Get(pointer, 0)
 }

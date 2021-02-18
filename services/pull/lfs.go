@@ -108,16 +108,15 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 
 		contentStore := lfs.NewContetStore()
-		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size}
-		exist, _ := contentStore.Exists(meta)
+		exist, _ := contentStore.Exists(pointer)
 		if !exist {
 			continue
 		}
 
 		// Then we need to check that this pointer is in the db
-		if _, err := pr.HeadRepo.GetLFSMetaObjectByOid(meta.Oid); err != nil {
+		if _, err := pr.HeadRepo.GetLFSMetaObjectByOid(pointer.Oid); err != nil {
 			if err == models.ErrLFSObjectNotExist {
-				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, meta.Oid, pr.HeadRepo)
+				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
 			}
 			_ = catFileBatchReader.CloseWithError(err)
@@ -126,6 +125,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
+		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size}
 		meta.RepositoryID = pr.BaseRepoID
 		if _, err := models.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)

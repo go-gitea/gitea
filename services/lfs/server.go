@@ -192,7 +192,7 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	contentStore := NewContetStore()
-	content, err := contentStore.Get(meta, fromByte)
+	content, err := contentStore.Get(meta.AsPointer(), fromByte)
 	if err != nil {
 		if IsErrRangeNotSatisfiable(err) {
 			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
@@ -297,7 +297,7 @@ func PostHandler(ctx *context.Context) {
 
 	sentStatus := 202
 	contentStore := NewContetStore()
-	exist, err := contentStore.Exists(meta)
+	exist, err := contentStore.Exists(meta.AsPointer())
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
 		writeStatus(ctx, 500)
@@ -361,7 +361,7 @@ func BatchHandler(ctx *context.Context) {
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
-			exist, err := contentStore.Exists(meta)
+			exist, err := contentStore.Exists(meta.AsPointer())
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, object.User, object.Repo, err)
 				writeStatus(ctx, 500)
@@ -382,7 +382,7 @@ func BatchHandler(ctx *context.Context) {
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
 		if err == nil {
-			exist, err := contentStore.Exists(meta)
+			exist, err := contentStore.Exists(meta.AsPointer())
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, object.User, object.Repo, err)
 				writeStatus(ctx, 500)
@@ -417,7 +417,7 @@ func PutHandler(ctx *context.Context) {
 
 	contentStore := NewContetStore()
 	defer ctx.Req.Body.Close()
-	if err := contentStore.Put(meta, ctx.Req.Body); err != nil {
+	if err := contentStore.Put(meta.AsPointer(), ctx.Req.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
 		if err == errSizeMismatch || err == errHashMismatch {
@@ -457,7 +457,7 @@ func VerifyHandler(ctx *context.Context) {
 	}
 
 	contentStore := NewContetStore()
-	ok, err := contentStore.Verify(meta)
+	ok, err := contentStore.Verify(meta.AsPointer())
 	if err != nil {
 		// Error will be logged in Verify
 		ctx.Resp.WriteHeader(500)
