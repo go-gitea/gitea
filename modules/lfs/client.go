@@ -41,7 +41,7 @@ func (c *Client) transferNames() []string {
 	return keys
 }
 
-func (c *Client) batch(repositoryUrl, operation string, objects []*LfsObject) (*BatchResponse, error) {
+func (c *Client) batch(repositoryUrl, operation string, objects []*Pointer) (*BatchResponse, error) {
 	url := fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(repositoryUrl, ".git"))
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
@@ -53,8 +53,8 @@ func (c *Client) batch(repositoryUrl, operation string, objects []*LfsObject) (*
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-type", metaMediaType)
-	req.Header.Set("Accept", metaMediaType)
+	req.Header.Set("Content-type", MediaType)
+	req.Header.Set("Accept", MediaType)
 
 	res, err := c.client.Do(req)
 	if err != nil {
@@ -80,8 +80,8 @@ func (c *Client) batch(repositoryUrl, operation string, objects []*LfsObject) (*
 }
 
 func (c *Client) Download(repositoryUrl, oid string, size int64) (io.ReadCloser, error) {
-	var objects []*LfsObject
-	objects = append(objects, &LfsObject{oid, size})
+	var objects []*Pointer
+	objects = append(objects, &Pointer{oid, size})
 	
 	result, err := c.batch(repositoryUrl, "download", objects)
 	if err != nil {

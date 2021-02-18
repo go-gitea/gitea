@@ -9,35 +9,21 @@ import (
 )
 
 const (
-	metaMediaType = "application/vnd.git-lfs+json"
+	MediaType = "application/vnd.git-lfs+json"
 )
 
-// BatchResponse contains multiple object metadata Representation structures
-// for use with the batch API.
-type BatchResponse struct {
-	Transfer string            `json:"transfer,omitempty"`
-	Objects  []*Representation `json:"objects"`
+// BatchRequest contains multiple requests processed in one batch operation.
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#requests
+type BatchRequest struct {
+	Operation string     `json:"operation"`
+	Transfers []string   `json:"transfers,omitempty"`
+	Ref       *Reference `json:"ref,omitempty"`
+	Objects   []*Pointer `json:"objects"`
 }
 
-// Representation is object metadata as seen by clients of the lfs server.
-type Representation struct {
-	Oid     string           `json:"oid"`
-	Size    int64            `json:"size"`
-	Actions map[string]*link `json:"actions"`
-	Error   *ObjectError     `json:"error,omitempty"`
-}
-
-// ObjectError defines the JSON structure returned to the client in case of an error
-type ObjectError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-// link provides a structure used to build a hypermedia representation of an HTTP link.
-type link struct {
-	Href      string            `json:"href"`
-	Header    map[string]string `json:"header,omitempty"`
-	ExpiresAt time.Time         `json:"expires_at,omitempty"`
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#ref-property
+type Reference struct {
+	Name string `json:"name"`
 }
 
 type Pointer struct {
@@ -45,27 +31,31 @@ type Pointer struct {
 	Size int64  `json:"size"`
 }
 
-// BatchVars contains multiple RequestVars processed in one batch operation.
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/batch.md
-type BatchVars struct {
-	Transfers []string       `json:"transfers,omitempty"`
-	Operation string         `json:"operation"`
-	Objects   []*RequestVars `json:"objects"`
+// BatchResponse contains multiple object metadata Representation structures
+// for use with the batch API.
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#successful-responses
+type BatchResponse struct {
+	Transfer string            `json:"transfer,omitempty"`
+	Objects  []*ObjectResponse `json:"objects"`
 }
 
-// TODO replace BatchVars in Server
-type BatchRequest struct {
-	Operation string       `json:"operation"`
-	Transfers []string     `json:"transfers,omitempty"`
-	Ref       *Reference   `json:"ref,omitempty"`
-	Objects   []*LfsObject `json:"objects"`
+// Representation is object metadata as seen by clients of the lfs server.
+type ObjectResponse struct {
+	Oid     string           `json:"oid"`
+	Size    int64            `json:"size"`
+	Actions map[string]*Link `json:"actions"`
+	Error   *ObjectError     `json:"error,omitempty"`
 }
 
-type Reference struct {
-	Name string `json:"name"`
+// Link provides a structure used to build a hypermedia representation of an HTTP link.
+type Link struct {
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
-type LfsObject struct {
-	Oid  string `json:"oid"`
-	Size int64  `json:"size"`
+// ObjectError defines the JSON structure returned to the client in case of an error
+type ObjectError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }

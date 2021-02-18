@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -25,7 +26,7 @@ func checkIsValidRequest(ctx *context.Context) bool {
 		return false
 	}
 	if !MetaMatcher(ctx.Req) {
-		log.Info("Attempt access LOCKs without accepting the correct media type: %s", metaMediaType)
+		log.Info("Attempt access LOCKs without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, 400)
 		return false
 	}
@@ -71,9 +72,9 @@ func GetListLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	rv := unpack(ctx)
+	rv, _ := unpack(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
@@ -158,7 +159,7 @@ func PostLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
@@ -226,7 +227,7 @@ func VerifyLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
@@ -293,7 +294,7 @@ func UnLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")

@@ -12,7 +12,7 @@ import (
 
 type TransferAdapter interface {
 	Name() string
-	Download(r *Representation) (io.ReadCloser, error)
+	Download(r *ObjectResponse) (io.ReadCloser, error)
 	//Upload(reader io.Reader) error
  }
 
@@ -24,7 +24,7 @@ func (a *BasicTransferAdapter) Name() string {
 	return "basic"
 }
 
-func (a *BasicTransferAdapter) Download(r *Representation) (io.ReadCloser, error) {
+func (a *BasicTransferAdapter) Download(r *ObjectResponse) (io.ReadCloser, error) {
 	download, ok := r.Actions["download"]
 	if !ok {
 		return nil, errors.New("Action 'download' not found")
