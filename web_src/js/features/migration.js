@@ -19,8 +19,10 @@ export default function initMigration() {
   const $cloneAddr = $('#clone_addr');
   $cloneAddr.on('change', () => {
     const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
-      $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+    if ($cloneAddr.val().length > 0) {
+      if ($repoName.val().length === 0) { // Only modify if repo_name input is blank
+        $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
+      }
       $lfsEndpoint.attr('placeholder', $cloneAddr.val());
     }
   });
