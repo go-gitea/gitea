@@ -251,6 +251,10 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
+
+	RepoArchive = struct {
+		Storage
+	}{}
 )
 
 func newRepository() {
@@ -328,4 +332,7 @@ func newRepository() {
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
+
+	repoAvatarSec := Cfg.Section("repository.archives")
+	RepoArchive.Storage = getStorage("repo-archive", "", repoAvatarSec)
 }

@@ -6,7 +6,8 @@
 package archiver
 
 import (
-	"io"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 // ArchiveRequest defines the parameters of an archive request, which notably
@@ -109,17 +110,13 @@ func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git
 	return nil
 }
 
-// DeriveRequestFrom creates an archival request, based on the URI.  The
+// NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
-	if ctx.Repo == nil || ctx.Repo.GitRepo == nil {
-		log.Trace("Repo not initialized")
-		return nil
-	}
+func NewRequest(repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
 		uri:  uri,
-		repo: ctx.Repo.GitRepo,
+		repo: repo,
 	}
 
 	switch {
@@ -132,69 +129,46 @@ func DeriveRequestFrom(ctx *context.Context, uri string) *ArchiveRequest {
 		r.archivePath = path.Join(r.repo.Path, "archives/targz")
 		r.archiveType = git.TARGZ
 	default:
-		log.Trace("Unknown format: %s", uri)
-		return nil
+		return nil, fmt.Errorf("Unknown format: %s", uri)
 	}
 
 	r.refName = strings.TrimSuffix(r.uri, r.ext)
-	isDir, err := util.IsDir(r.archivePath)
-	if err != nil {
-		ctx.ServerError("Download -> util.IsDir(archivePath)", err)
-		return nil
-	}
-	if !isDir {
-		if err := os.MkdirAll(r.archivePath, os.ModePerm); err != nil {
-			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
-			return nil
-		}
-	}
+	var err error
 
 	// Get corresponding commit.
 	if r.repo.IsBranchExist(r.refName) {
 		r.commit, err = r.repo.GetBranchCommit(r.refName)
 		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return nil
+			return nil, err
 		}
 	} else if r.repo.IsTagExist(r.refName) {
 		r.commit, err = r.repo.GetTagCommit(r.refName)
 		if err != nil {
-			ctx.ServerError("GetTagCommit", err)
-			return nil
+			return nil, err
 		}
 	} else if shaRegex.MatchString(r.refName) {
 		r.commit, err = r.repo.GetCommit(r.refName)
 		if err != nil {
-			ctx.NotFound("GetCommit", nil)
-			return nil
+			return nil, err
 		}
 	} else {
-		ctx.NotFound("DeriveRequestFrom", nil)
-		return nil
+		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
 	}
 
 	archiveMutex.Lock()
 	defer archiveMutex.Unlock()
 	if rExisting := getArchiveRequest(r.repo, r.commit, r.archiveType); rExisting != nil {
-		return rExisting
+		return rExisting, nil
 	}
 
 	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID.String())+r.ext)
-	r.archiveComplete, err = util.IsFile(r.archivePath)
 	if err != nil {
-		ctx.ServerError("util.IsFile", err)
-		return nil
+		return nil, err
 	}
-	return r
+	return r, nil
 }
 
 func doArchive(r *ArchiveRequest) {
-	var (
-		err         error
-		tmpArchive  *os.File
-		destArchive *os.File
-	)
-
 	// Close the channel to indicate to potential waiters that this request
 	// has finished.
 	defer close(r.cchan)
@@ -203,19 +177,19 @@ func doArchive(r *ArchiveRequest) {
 	// race conditions and difficulties in locking.  Do one last check that
 	// the archive we're referring to doesn't already exist.  If it does exist,
 	// then just mark the request as complete and move on.
-	isFile, err := util.IsFile(r.archivePath)
-	if err != nil {
-		log.Error("Unable to check if %s util.IsFile: %v. Will ignore and recreate.", r.archivePath, err)
-	}
-	if isFile {
+	_, err := storage.RepoArchives.Stat(r.archivePath)
+	if err == nil {
 		r.archiveComplete = true
 		return
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		log.Error("Unable to check if %s util.IsFile: %v. Will ignore and recreate.", r.archivePath, err)
 	}
 
 	// Create a temporary file to use while the archive is being built.  We
 	// will then copy it into place (r.archivePath) once it's fully
 	// constructed.
-	tmpArchive, err = ioutil.TempFile("", "archive")
+	tmpArchive, err := ioutil.TempFile("", "archive")
 	if err != nil {
 		log.Error("Unable to create a temporary archive file! Error: %v", err)
 		return
@@ -233,14 +207,14 @@ func doArchive(r *ArchiveRequest) {
 		return
 	}
 
-	// Now we copy it into place
-	if destArchive, err = os.Create(r.archivePath); err != nil {
-		log.Error("Unable to open archive " + r.archivePath)
+	f, err := os.Open(tmpArchive.Name())
+	if err != nil {
+		log.Error("Unable to open temp archive " + tmpArchive.Name())
 		return
 	}
-	_, err = io.Copy(destArchive, tmpArchive)
-	destArchive.Close()
-	if err != nil {
+	defer f.Close()
+
+	if _, err := storage.RepoArchives.Save(r.archivePath, f); err != nil {
 		log.Error("Unable to write archive " + r.archivePath)
 		return
 	}

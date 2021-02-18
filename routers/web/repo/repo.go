@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/web"
 	archiver_service "code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/forms"
@@ -364,13 +365,59 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(http.StatusNotFound)
 }
 
+// Download an archive of a repository
+func Download(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq, err := archiver_service.NewRequest(ctx.Repo.GitRepo, uri)
+	if err != nil {
+		ctx.ServerError("archiver_service.NewRequest", err)
+		return
+	}
+	if aReq == nil {
+		ctx.Error(http.StatusNotFound)
+		return
+	}
+
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete = aReq.WaitForCompletion(ctx)
+	}
+
+	if complete {
+		if setting.RepoArchive.ServeDirect {
+			//If we have a signed url (S3, object storage), redirect to this directly.
+			u, err := storage.RepoArchives.URL(aReq.GetArchivePath(), downloadName)
+			if u != nil && err == nil {
+				ctx.Redirect(u.String())
+				return
+			}
+		}
+
+		//If we have matched and access to release or issue
+		fr, err := storage.RepoArchives.Open(aReq.GetArchivePath())
+		if err != nil {
+			ctx.ServerError("Open", err)
+			return
+		}
+		defer fr.Close()
+		ctx.ServeStream(fr, downloadName)
+	} else {
+		ctx.Error(http.StatusNotFound)
+	}
+}
+
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
-
+	aReq, err := archiver_service.NewRequest(ctx.Repo.GitRepo, uri)
+	if err != nil {
+		ctx.ServerError("archiver_service.NewRequest", err)
+		return
+	}
 	if aReq == nil {
 		ctx.Error(http.StatusNotFound)
 		return
