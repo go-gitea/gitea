@@ -175,17 +175,48 @@
 
   .ui.tabs {
     &.container {
-      margin-top: 14px;
+      margin-top: 15px;
       margin-bottom: 0;
 
       .ui.menu {
         border-bottom: 0;
-      }
-    }
+        margin: auto -1em;
+        padding-left: 1em;
+        overflow-x: auto;
+        overflow-y: hidden;
 
-    &.divider {
-      margin-top: -1px;
-      margin-bottom: 20px;
+        .spacer:last-child {
+          min-width: 1em;
+        }
+
+        &::before {
+          left: auto !important;
+          margin-left: -1em;
+        }
+
+        &::after {
+          position: sticky !important;
+        }
+      }
+
+      + div {
+        height: 0;
+        margin-bottom: 20px;
+
+        .divider {
+          margin-top: -1px;
+          margin-bottom: 20px;
+          background: var(--color-body);
+
+          @media @mediaSm {
+            width: calc(100% - 2em);
+          }
+
+          &:not(.container) {
+            z-index: 2;
+          }
+        }
+      }
     }
   }
 
@@ -2859,7 +2890,8 @@ tbody.commit-list {
   margin-top: -4px;
 }
 
-.repo-buttons {
+.repo-buttons,
+.repo-buttons > form {
   display: flex;
   align-items: center;
 }

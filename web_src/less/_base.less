@@ -97,6 +97,7 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
+  --color-navbar-transparent: #f8f8f800;
   --color-light: #00000004;
   --color-light-border: #0000001d;
   --color-hover: #0000000d;
@@ -1238,11 +1239,16 @@ footer {
   background: var(--color-navbar);
   border-bottom: 1px solid var(--color-secondary) !important;
   overflow: auto;
-}
 
-@media @mediaSm {
-  .ui.menu.new-menu {
-    overflow: visible !important;
+  @media @mediaSm {
+    & {
+      overflow: visible !important;
+    }
+  }
+
+  &::before,
+  &::after {
+    height: 38px !important;
   }
 }
 
@@ -1260,10 +1266,6 @@ footer {
   }
 }
 
-.ui.menu.new-menu.shadow-body::after {
-  background: linear-gradient(to right, #ffffff00, var(--color-body) 100%);
-}
-
 .ui.menu.new-menu .item {
   margin: 0 !important;
 }
@@ -1278,33 +1280,6 @@ footer {
   padding-right: 30px !important;
 }
 
-.ui.tabs.container .ui.menu {
-  margin: auto -1em;
-  padding-left: 1em;
-  overflow-x: scroll;
-  overflow-y: hidden;
-
-  .spacer:last-child {
-    min-width: 1em;
-  }
-
-  &::before,
-  &::after {
-    height: 40px !important;
-    margin-top: 1px;
-    border-bottom: 1px solid #d8d8d8;
-  }
-
-  &::before {
-    left: auto !important;
-    margin-left: -1em;
-  }
-
-  &::after {
-    position: sticky !important;
-  }
-}
-
 .ui.tabs.container .ui.menu,
 .ui.menu.new-menu {
   &::before,
@@ -1313,19 +1288,19 @@ footer {
     position: absolute;
     display: block;
     min-width: 1em;
-    height: 38px;
+    height: 39px;
     visibility: visible;
     pointer-events: none;
   }
 
   &::before {
-    background: linear-gradient(to left, #ffffff33, var(--color-navbar) 62.5%);
+    background: radial-gradient(circle at 1100% 0, var(--color-navbar-transparent) 90.625%, var(--color-navbar) 95%);
     left: 0;
     z-index: 1;
   }
 
   &::after {
-    background: linear-gradient(to right, #ffffff33, var(--color-navbar) 62.5%);
+    background: radial-gradient(circle at -1000% 0, var(--color-navbar-transparent) 90.625%, var(--color-navbar) 95%);
     right: 0;
   }
 
