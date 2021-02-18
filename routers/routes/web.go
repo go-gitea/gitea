@@ -708,7 +708,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
-		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
+		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
 			m.Group("/{index}", func() {
