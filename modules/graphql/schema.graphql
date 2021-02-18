@@ -1,0 +1,92 @@
+# Copyright 2021 The Gitea Authors. All rights reserved.
+# Use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file.
+
+schema {
+    query: Query
+    mutation: Mutation
+}
+
+# query
+type Query {
+    "get current user message"
+    viewer: User!
+}
+
+# mutation
+type Mutation {
+    "Create a new repository"
+    createRepository(input: CreateRepositoryInput!) :Repository!
+}
+
+# models
+type User {
+    "Identifies the date and time when the object was created"
+    createdAt: Time!
+    "Identifies the primary key from the database"
+    databaseId: ID!
+    "The user's publicly visible profile email"
+    email: String
+    "The username used to login"
+    login: String!
+    "The user's public profile name"
+    name: String!
+}
+
+# inputs
+
+"the input options of CreateRepository"
+input CreateRepositoryInput {
+    "The name of the new repository"
+    name :String!
+    "The name of the owner for the new repository"
+    owner: String
+    "The ID of the owner for the new repository"
+    ownerId: ID
+    "A short description of the new repository"
+    description: String
+    "Whether this repository should be marked as a template"
+    template: Boolean
+    "Indicates the repository's visibility level"
+    visibility: RepositoryVisibility!
+    "Label-Set to use"
+    issue_labels: String
+    "Whether the repository should be auto-intialized?"
+    auto_init: Boolean
+    "Gitignores to use"
+    gitignores: String
+    "License to use"
+    license: String
+    "Readme of the repository to create"
+    readme: String
+    "DefaultBranch of the repository"
+    default_branch: String!
+    "TrustModel of the repository"
+    trust_model: RepositoryTrustModel!
+}
+
+"A repository contains the content for a project"
+type Repository {
+    "The name of the repository"
+    name: String!
+}
+
+# scalars
+scalar Time
+
+# enums
+
+"The repository's visibility level"
+enum RepositoryVisibility {
+    "The repository is visible only to those with explicit access"
+    PRIVATE
+    "The repository is visible to everyone"
+    PUBLIC
+}
+
+enum RepositoryTrustModel {
+    default
+    collaborator
+    committer
+    collaboratorcommitter
+}

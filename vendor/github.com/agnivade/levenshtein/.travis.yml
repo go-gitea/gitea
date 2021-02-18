@@ -1,0 +1,23 @@
+language: go
+
+# See https://travis-ci.community/t/goos-js-goarch-wasm-go-run-fails-panic-newosproc-not-implemented/1651
+#addons:
+#  chrome: stable
+
+before_install:
+- export GO111MODULE=on
+
+#install:
+#- go get github.com/agnivade/wasmbrowsertest
+#- mv $GOPATH/bin/wasmbrowsertest $GOPATH/bin/go_js_wasm_exec
+#- export PATH=$GOPATH/bin:$PATH
+
+go:
+- 1.11.x
+- 1.12.x
+- 1.13.x
+- tip
+
+script:
+#- GOOS=js GOARCH=wasm go test -v
+- go test -v

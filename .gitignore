@@ -40,6 +40,9 @@ coverage.all
 /modules/templates/bindata.go
 /modules/templates/bindata.go.hash
 
+/modules/graphql/interfaces.go
+/modules/graphql/model_gen.go
+
 *.db
 *.log
 

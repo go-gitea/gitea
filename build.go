@@ -29,4 +29,7 @@ import (
 
 	// for swagger
 	_ "github.com/go-swagger/go-swagger/cmd/swagger"
+
+	// for gqlgen
+	_ "github.com/99designs/gqlgen"
 )

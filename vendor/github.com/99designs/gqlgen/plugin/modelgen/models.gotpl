@@ -1,0 +1,85 @@
+{{ reserveImport "context"  }}
+{{ reserveImport "fmt"  }}
+{{ reserveImport "io"  }}
+{{ reserveImport "strconv"  }}
+{{ reserveImport "time"  }}
+{{ reserveImport "sync"  }}
+{{ reserveImport "errors"  }}
+{{ reserveImport "bytes"  }}
+
+{{ reserveImport "github.com/vektah/gqlparser/v2" }}
+{{ reserveImport "github.com/vektah/gqlparser/v2/ast" }}
+{{ reserveImport "github.com/99designs/gqlgen/graphql" }}
+{{ reserveImport "github.com/99designs/gqlgen/graphql/introspection" }}
+
+{{- range $model := .Interfaces }}
+	{{ with .Description }} {{.|prefixLines "// "}} {{ end }}
+	type {{.Name|go }} interface {
+		Is{{.Name|go }}()
+	}
+{{- end }}
+
+{{ range $model := .Models }}
+	{{with .Description }} {{.|prefixLines "// "}} {{end}}
+	type {{ .Name|go }} struct {
+		{{- range $field := .Fields }}
+			{{- with .Description }}
+				{{.|prefixLines "// "}}
+			{{- end}}
+			{{ $field.Name|go }} {{$field.Type | ref}} `{{$field.Tag}}`
+		{{- end }}
+	}
+
+	{{- range $iface := .Implements }}
+		func ({{ $model.Name|go }}) Is{{ $iface|go }}() {}
+	{{- end }}
+{{- end}}
+
+{{ range $enum := .Enums }}
+	{{ with .Description }} {{.|prefixLines "// "}} {{end}}
+	type {{.Name|go }} string
+	const (
+	{{- range $value := .Values}}
+		{{- with .Description}}
+			{{.|prefixLines "// "}}
+		{{- end}}
+		{{ $enum.Name|go }}{{ .Name|go }} {{$enum.Name|go }} = {{.Name|quote}}
+	{{- end }}
+	)
+
+	var All{{.Name|go }} = []{{ .Name|go }}{
+	{{- range $value := .Values}}
+		{{$enum.Name|go }}{{ .Name|go }},
+	{{- end }}
+	}
+
+	func (e {{.Name|go }}) IsValid() bool {
+		switch e {
+		case {{ range $index, $element := .Values}}{{if $index}},{{end}}{{ $enum.Name|go }}{{ $element.Name|go }}{{end}}:
+			return true
+		}
+		return false
+	}
+
+	func (e {{.Name|go }}) String() string {
+		return string(e)
+	}
+
+	func (e *{{.Name|go }}) UnmarshalGQL(v interface{}) error {
+		str, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("enums must be strings")
+		}
+
+		*e = {{ .Name|go }}(str)
+		if !e.IsValid() {
+			return fmt.Errorf("%s is not a valid {{ .Name }}", str)
+		}
+		return nil
+	}
+
+	func (e {{.Name|go }}) MarshalGQL(w io.Writer) {
+		fmt.Fprint(w, strconv.Quote(e.String()))
+	}
+
+{{- end }}

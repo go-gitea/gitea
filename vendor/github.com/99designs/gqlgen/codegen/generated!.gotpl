@@ -1,0 +1,214 @@
+{{ reserveImport "context"  }}
+{{ reserveImport "fmt"  }}
+{{ reserveImport "io"  }}
+{{ reserveImport "strconv"  }}
+{{ reserveImport "time"  }}
+{{ reserveImport "sync"  }}
+{{ reserveImport "sync/atomic" }}
+{{ reserveImport "errors"  }}
+{{ reserveImport "bytes"  }}
+
+{{ reserveImport "github.com/vektah/gqlparser/v2" "gqlparser" }}
+{{ reserveImport "github.com/vektah/gqlparser/v2/ast" }}
+{{ reserveImport "github.com/99designs/gqlgen/graphql" }}
+{{ reserveImport "github.com/99designs/gqlgen/graphql/introspection" }}
+
+
+// NewExecutableSchema creates an ExecutableSchema from the ResolverRoot interface.
+func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
+	return &executableSchema{
+		resolvers: cfg.Resolvers,
+		directives: cfg.Directives,
+		complexity: cfg.Complexity,
+	}
+}
+
+type Config struct {
+	Resolvers  ResolverRoot
+	Directives DirectiveRoot
+	Complexity ComplexityRoot
+}
+
+type ResolverRoot interface {
+{{- range $object := .Objects -}}
+	{{ if $object.HasResolvers -}}
+		{{$object.Name}}() {{$object.Name}}Resolver
+	{{ end }}
+{{- end }}
+}
+
+type DirectiveRoot struct {
+{{ range $directive := .Directives }}
+	{{- $directive.Declaration }}
+{{ end }}
+}
+
+type ComplexityRoot struct {
+{{ range $object := .Objects }}
+	{{ if not $object.IsReserved -}}
+		{{ $object.Name|go }} struct {
+		{{ range $_, $fields := $object.UniqueFields }}
+			{{- $field := index $fields 0 -}}
+			{{ if not $field.IsReserved -}}
+				{{ $field.GoFieldName }} {{ $field.ComplexitySignature }}
+			{{ end }}
+		{{- end }}
+		}
+	{{- end }}
+{{ end }}
+}
+
+{{ range $object := .Objects -}}
+	{{ if $object.HasResolvers }}
+		type {{$object.Name}}Resolver interface {
+		{{ range $field := $object.Fields -}}
+			{{- if $field.IsResolver }}
+				{{- $field.GoFieldName}}{{ $field.ShortResolverDeclaration }}
+			{{- end }}
+		{{ end }}
+		}
+	{{- end }}
+{{- end }}
+
+type executableSchema struct {
+	resolvers  ResolverRoot
+	directives DirectiveRoot
+	complexity ComplexityRoot
+}
+
+func (e *executableSchema) Schema() *ast.Schema {
+	return parsedSchema
+}
+
+func (e *executableSchema) Complexity(typeName, field string, childComplexity int, rawArgs map[string]interface{}) (int, bool) {
+	ec := executionContext{nil, e}
+	_ = ec
+	switch typeName + "." + field {
+	{{ range $object := .Objects }}
+		{{ if not $object.IsReserved }}
+			{{ range $_, $fields := $object.UniqueFields }}
+				{{- $len := len $fields }}
+				{{- range $i, $field := $fields }}
+					{{- $last := eq (add $i 1) $len }}
+					{{- if not $field.IsReserved }}
+						{{- if eq $i 0 }}case {{ end }}"{{$object.Name}}.{{$field.Name}}"{{ if not $last }},{{ else }}:
+							if e.complexity.{{$object.Name|go}}.{{$field.GoFieldName}} == nil {
+								break
+							}
+							{{ if $field.Args }}
+								args, err := ec.{{ $field.ArgsFunc }}(context.TODO(),rawArgs)
+								if err != nil {
+									return 0, false
+								}
+							{{ end }}
+							return e.complexity.{{$object.Name|go}}.{{$field.GoFieldName}}(childComplexity{{if $field.Args}}, {{$field.ComplexityArgs}} {{ end }}), true
+						{{ end }}
+					{{- end }}
+				{{- end }}
+			{{ end }}
+		{{ end }}
+	{{ end }}
+	}
+	return 0, false
+}
+
+func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
+	rc := graphql.GetOperationContext(ctx)
+	ec := executionContext{rc, e}
+	first := true
+
+	switch rc.Operation.Operation {
+	{{- if .QueryRoot }} case ast.Query:
+		return func(ctx context.Context) *graphql.Response {
+			if !first { return nil }
+			first = false
+			{{ if .Directives.LocationDirectives "QUERY" -}}
+				data := ec._queryMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error){
+					return ec._{{.QueryRoot.Name}}(ctx, rc.Operation.SelectionSet), nil
+				})
+			{{- else -}}
+				data := ec._{{.QueryRoot.Name}}(ctx, rc.Operation.SelectionSet)
+			{{- end }}
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data:       buf.Bytes(),
+			}
+		}
+	{{ end }}
+
+	{{- if .MutationRoot }} case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first { return nil }
+			first = false
+			{{ if .Directives.LocationDirectives "MUTATION" -}}
+				data := ec._mutationMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error){
+					return ec._{{.MutationRoot.Name}}(ctx, rc.Operation.SelectionSet), nil
+				})
+			{{- else -}}
+				data := ec._{{.MutationRoot.Name}}(ctx, rc.Operation.SelectionSet)
+			{{- end }}
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data:       buf.Bytes(),
+			}
+		}
+	{{ end }}
+
+	{{- if .SubscriptionRoot }} case ast.Subscription:
+		{{ if .Directives.LocationDirectives "SUBSCRIPTION" -}}
+			next := ec._subscriptionMiddleware(ctx, rc.Operation, func(ctx context.Context) (interface{}, error){
+				return ec._{{.SubscriptionRoot.Name}}(ctx, rc.Operation.SelectionSet),nil
+			})
+		{{- else -}}
+			next := ec._{{.SubscriptionRoot.Name}}(ctx, rc.Operation.SelectionSet)
+		{{- end }}
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next()
+
+			if data == nil {
+				return nil
+			}
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data:       buf.Bytes(),
+			}
+		}
+	{{ end }}
+	default:
+		return graphql.OneShot(graphql.ErrorResponse(ctx, "unsupported GraphQL operation"))
+	}
+}
+
+type executionContext struct {
+	*graphql.OperationContext
+	*executableSchema
+}
+
+func (ec *executionContext) introspectSchema() (*introspection.Schema, error) {
+	if ec.DisableIntrospection {
+		return nil, errors.New("introspection disabled")
+	}
+	return introspection.WrapSchema(parsedSchema), nil
+}
+
+func (ec *executionContext) introspectType(name string) (*introspection.Type, error) {
+	if ec.DisableIntrospection {
+		return nil, errors.New("introspection disabled")
+	}
+	return introspection.WrapTypeFromDef(parsedSchema, parsedSchema.Types[name]), nil
+}
+
+var sources = []*ast.Source{
+{{- range $source := .Config.Sources }}
+	{Name: {{$source.Name|quote}}, Input: {{$source.Input|rawQuote}}, BuiltIn: {{$source.BuiltIn}}},
+{{- end }}
+}
+var parsedSchema = gqlparser.MustLoadSchema(sources...)

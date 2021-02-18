@@ -1,0 +1,5 @@
+coverage.txt
+fuzz/fuzz-fuzz.zip
+fuzz/corpus/corpus/*
+fuzz/corpus/suppressions/*
+fuzz/corpus/crashes/*

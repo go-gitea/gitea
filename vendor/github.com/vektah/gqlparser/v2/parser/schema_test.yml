@@ -1,0 +1,540 @@
+object types:
+  - name: simple
+    input: |
+      type Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+
+  - name: with description
+    input: |
+      "Description"
+      type Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Description: "Description"
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+
+  - name: with block description
+    input: |
+      """
+      Description
+      """
+      # Even with comments between them
+      type Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Description: "Description"
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+  - name: with field arg
+    input: |
+      type Hello {
+        world(flag: Boolean): String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Arguments: [ArgumentDefinition]
+                - <ArgumentDefinition>
+                    Name: "flag"
+                    Type: Boolean
+                Type: String
+
+  - name: with field arg and default value
+    input: |
+      type Hello {
+        world(flag: Boolean = true): String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Arguments: [ArgumentDefinition]
+                - <ArgumentDefinition>
+                    Name: "flag"
+                    DefaultValue: true
+                    Type: Boolean
+                Type: String
+
+  - name: with field list arg
+    input: |
+      type Hello {
+        world(things: [String]): String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Arguments: [ArgumentDefinition]
+                - <ArgumentDefinition>
+                    Name: "things"
+                    Type: [String]
+                Type: String
+
+  - name: with two args
+    input: |
+      type Hello {
+        world(argOne: Boolean, argTwo: Int): String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Arguments: [ArgumentDefinition]
+                - <ArgumentDefinition>
+                    Name: "argOne"
+                    Type: Boolean
+                - <ArgumentDefinition>
+                    Name: "argTwo"
+                    Type: Int
+                Type: String
+  - name: must define one or more fields
+    input: |
+      type Hello {}
+    error:
+      message: "expected at least one definition, found }"
+      locations: [{ line: 1, column: 13 }]
+
+type extensions:
+  - name: Object extension
+    input: |
+      extend type Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Extensions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+
+  - name: without any fields
+    input: "extend type Hello implements Greeting"
+    ast: |
+      <SchemaDocument>
+        Extensions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "Greeting"
+
+  - name: without fields twice
+    input: |
+      extend type Hello implements Greeting
+      extend type Hello implements SecondGreeting
+    ast: |
+      <SchemaDocument>
+        Extensions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "Greeting"
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "SecondGreeting"
+
+  - name: without anything errors
+    input: "extend type Hello"
+    error:
+      message: "Unexpected <EOF>"
+      locations: [{ line: 1, column: 18 }]
+
+  - name: can have descriptions # hmm, this might not be spec compliant...
+    input: |
+      "Description"
+      extend type Hello {
+        world: String
+      }
+    error:
+      message: 'Unexpected String "Description"'
+      locations: [{ line: 1, column: 2 }]
+
+  - name: can not have descriptions on types
+    input: |
+      extend "Description" type Hello {
+        world: String
+      }
+    error:
+      message: Unexpected String "Description"
+      locations: [{ line: 1, column: 9 }]
+
+schema definition:
+  - name: simple
+    input: |
+      schema {
+        query: Query
+      }
+    ast: |
+      <SchemaDocument>
+        Schema: [SchemaDefinition]
+        - <SchemaDefinition>
+            OperationTypes: [OperationTypeDefinition]
+            - <OperationTypeDefinition>
+                Operation: Operation("query")
+                Type: "Query"
+
+schema extensions:
+  - name: simple
+    input: |
+       extend schema {
+         mutation: Mutation
+       }
+    ast: |
+      <SchemaDocument>
+        SchemaExtension: [SchemaDefinition]
+        - <SchemaDefinition>
+            OperationTypes: [OperationTypeDefinition]
+            - <OperationTypeDefinition>
+                Operation: Operation("mutation")
+                Type: "Mutation"
+
+  - name: directive only
+    input: "extend schema @directive"
+    ast: |
+      <SchemaDocument>
+        SchemaExtension: [SchemaDefinition]
+        - <SchemaDefinition>
+            Directives: [Directive]
+            - <Directive>
+                Name: "directive"
+
+  - name: without anything errors
+    input: "extend schema"
+    error:
+      message: "Unexpected <EOF>"
+      locations: [{ line: 1, column: 14}]
+
+type extensions:
+  - name: all can have directives
+    input: |
+      extend scalar Foo @deprecated
+      extend type Foo @deprecated
+      extend interface Foo @deprecated
+      extend union Foo @deprecated
+      extend enum Foo @deprecated
+      extend input Foo @deprecated
+    ast: |
+      <SchemaDocument>
+        Extensions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("SCALAR")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+        - <Definition>
+            Kind: DefinitionKind("INTERFACE")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+        - <Definition>
+            Kind: DefinitionKind("UNION")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+        - <Definition>
+            Kind: DefinitionKind("ENUM")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+        - <Definition>
+            Kind: DefinitionKind("INPUT_OBJECT")
+            Name: "Foo"
+            Directives: [Directive]
+            - <Directive>
+                Name: "deprecated"
+
+
+inheritance:
+  - name: single
+    input: "type Hello implements World { field: String }"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "World"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "field"
+                Type: String
+
+  - name: multi
+    input: "type Hello implements Wo & rld { field: String }"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "Wo"
+            - "rld"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "field"
+                Type: String
+
+  - name: multi with leading amp
+    input: "type Hello implements & Wo & rld { field: String }"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("OBJECT")
+            Name: "Hello"
+            Interfaces: [string]
+            - "Wo"
+            - "rld"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "field"
+                Type: String
+
+enums:
+  - name: single value
+    input: "enum Hello { WORLD }"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("ENUM")
+            Name: "Hello"
+            EnumValues: [EnumValueDefinition]
+            - <EnumValueDefinition>
+                Name: "WORLD"
+
+  - name: double value
+    input: "enum Hello { WO, RLD }"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("ENUM")
+            Name: "Hello"
+            EnumValues: [EnumValueDefinition]
+            - <EnumValueDefinition>
+                Name: "WO"
+            - <EnumValueDefinition>
+                Name: "RLD"
+  - name: must define one or more unique enum values
+    input: |
+      enum Hello {}
+    error:
+      message: "expected at least one definition, found }"
+      locations: [{ line: 1, column: 13 }]
+
+interface:
+  - name: simple
+    input: |
+      interface Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("INTERFACE")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+  - name: must define one or more fields
+    input: |
+      interface Hello {}
+    error:
+      message: "expected at least one definition, found }"
+      locations: [{ line: 1, column: 18 }]
+
+unions:
+  - name: simple
+    input: "union Hello = World"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("UNION")
+            Name: "Hello"
+            Types: [string]
+            - "World"
+
+  - name: with two types
+    input: "union Hello = Wo | Rld"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("UNION")
+            Name: "Hello"
+            Types: [string]
+            - "Wo"
+            - "Rld"
+
+  - name: with leading pipe
+    input: "union Hello = | Wo | Rld"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("UNION")
+            Name: "Hello"
+            Types: [string]
+            - "Wo"
+            - "Rld"
+
+  - name: cant be empty
+    input: "union Hello = || Wo | Rld"
+    error:
+      message: "Expected Name, found |"
+      locations: [{ line: 1, column: 16 }]
+
+  - name: cant double pipe
+    input: "union Hello = Wo || Rld"
+    error:
+      message: "Expected Name, found |"
+      locations: [{ line: 1, column: 19 }]
+
+  - name: cant have trailing pipe
+    input: "union Hello = | Wo | Rld |"
+    error:
+      message: "Expected Name, found <EOF>"
+      locations: [{ line: 1, column: 27 }]
+
+scalar:
+  - name: simple
+    input: "scalar Hello"
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("SCALAR")
+            Name: "Hello"
+
+input object:
+  - name: simple
+    input: |
+      input Hello {
+        world: String
+      }
+    ast: |
+      <SchemaDocument>
+        Definitions: [Definition]
+        - <Definition>
+            Kind: DefinitionKind("INPUT_OBJECT")
+            Name: "Hello"
+            Fields: [FieldDefinition]
+            - <FieldDefinition>
+                Name: "world"
+                Type: String
+
+  - name: can not have args
+    input: |
+      input Hello {
+        world(foo: Int): String
+      }
+    error:
+      message: "Expected :, found ("
+      locations: [{ line: 2, column: 8 }]
+  - name: must define one or more input fields
+    input: |
+      input Hello {}
+    error:
+      message: "expected at least one definition, found }"
+      locations: [{ line: 1, column: 14 }]
+
+directives:
+  - name: simple
+    input: directive @foo on FIELD
+    ast: |
+      <SchemaDocument>
+        Directives: [DirectiveDefinition]
+        - <DirectiveDefinition>
+            Name: "foo"
+            Locations: [DirectiveLocation]
+            - DirectiveLocation("FIELD")
+
+  - name: invalid location
+    input: "directive @foo on FIELD | INCORRECT_LOCATION"
+    error:
+      message: 'Unexpected Name "INCORRECT_LOCATION"'
+      locations: [{ line: 1, column: 27 }]
+
+fuzzer:
+  - name: 1
+    input: "type o{d(g:["
+    error:
+      message: 'Expected Name, found <EOF>'
+      locations: [{ line: 1, column: 13 }]
+  - name: 2
+    input: "\"\"\"\r"
+    error:
+      message: 'Unexpected <Invalid>'
+      locations: [{ line: 1, column: 5 }]

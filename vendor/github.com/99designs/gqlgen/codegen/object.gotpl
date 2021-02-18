@@ -1,0 +1,85 @@
+{{- range $object := .Objects }}
+
+var {{ $object.Name|lcFirst}}Implementors = {{$object.Implementors}}
+
+{{- if .Stream }}
+func (ec *executionContext) _{{$object.Name}}(ctx context.Context, sel ast.SelectionSet) func() graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, {{$object.Name|lcFirst}}Implementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: {{$object.Name|quote}},
+	})
+	if len(fields) != 1 {
+		ec.Errorf(ctx, "must subscribe to exactly one stream")
+		return nil
+	}
+
+	switch fields[0].Name {
+	{{- range $field := $object.Fields }}
+	case "{{$field.Name}}":
+		return ec._{{$object.Name}}_{{$field.Name}}(ctx, fields[0])
+	{{- end }}
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
+	}
+}
+{{- else }}
+func (ec *executionContext) _{{$object.Name}}(ctx context.Context, sel ast.SelectionSet{{ if not $object.Root }},obj {{$object.Reference | ref }}{{ end }}) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, {{$object.Name|lcFirst}}Implementors)
+	{{if $object.Root}}
+		ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+			Object: {{$object.Name|quote}},
+		})
+	{{end}}
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString({{$object.Name|quote}})
+		{{- range $field := $object.Fields }}
+		case "{{$field.Name}}":
+			{{- if $field.IsConcurrent }}
+				field := field
+				out.Concurrently(i, func() (res graphql.Marshaler) {
+					defer func() {
+						if r := recover(); r != nil {
+							ec.Error(ctx, ec.Recover(ctx, r))
+						}
+					}()
+					res = ec._{{$object.Name}}_{{$field.Name}}(ctx, field{{if not $object.Root}}, obj{{end}})
+					{{- if $field.TypeReference.GQL.NonNull }}
+						if res == graphql.Null {
+							{{- if $object.IsConcurrent }}
+								atomic.AddUint32(&invalids, 1)
+							{{- else }}
+								invalids++
+							{{- end }}
+						}
+					{{- end }}
+					return res
+				})
+			{{- else }}
+				out.Values[i] = ec._{{$object.Name}}_{{$field.Name}}(ctx, field{{if not $object.Root}}, obj{{end}})
+				{{- if $field.TypeReference.GQL.NonNull }}
+					if out.Values[i] == graphql.Null {
+						{{- if $object.IsConcurrent }}
+							atomic.AddUint32(&invalids, 1)
+						{{- else }}
+							invalids++
+						{{- end }}
+					}
+				{{- end }}
+			{{- end }}
+		{{- end }}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 { return graphql.Null }
+	return out
+}
+{{- end }}
+
+{{- end }}

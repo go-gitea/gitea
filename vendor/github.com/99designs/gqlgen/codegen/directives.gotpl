@@ -1,0 +1,149 @@
+{{ define "implDirectives" }}{{ $in := .DirectiveObjName }}
+	{{- range $i, $directive := .ImplDirectives -}}
+		directive{{add $i 1}} := func(ctx context.Context) (interface{}, error) {
+			{{- range $arg := $directive.Args }}
+				{{- if notNil "Value" $arg }}
+						{{ $arg.VarName }}, err := ec.{{ $arg.TypeReference.UnmarshalFunc }}(ctx, {{ $arg.Value | dump }})
+						if err != nil{
+							return nil, err
+						}
+					{{- else if notNil "Default" $arg }}
+						{{ $arg.VarName }}, err := ec.{{ $arg.TypeReference.UnmarshalFunc }}(ctx, {{ $arg.Default | dump }})
+						if err != nil{
+							return nil, err
+						}
+					{{- end }}
+			{{- end }}
+			if ec.directives.{{$directive.Name|ucFirst}} == nil {
+				return nil, errors.New("directive {{$directive.Name}} is not implemented")
+			}
+			return ec.directives.{{$directive.Name|ucFirst}}({{$directive.ResolveArgs $in $i }})
+		}
+	{{ end -}}
+{{ end }}
+
+{{define "queryDirectives"}}
+	for _, d := range obj.Directives {
+		switch d.Name {
+		{{- range $directive := . }}
+		case "{{$directive.Name}}":
+			{{- if $directive.Args }}
+				rawArgs := d.ArgumentMap(ec.Variables)
+				args, err := ec.{{ $directive.ArgsFunc }}(ctx,rawArgs)
+				if err != nil {
+					ec.Error(ctx, err)
+					return graphql.Null
+				}
+			{{- end }}
+			n := next
+			next = func(ctx context.Context) (interface{}, error) {
+				if ec.directives.{{$directive.Name|ucFirst}} == nil {
+					return nil, errors.New("directive {{$directive.Name}} is not implemented")
+				}
+				return ec.directives.{{$directive.Name|ucFirst}}({{$directive.CallArgs}})
+			}
+		{{- end }}
+		}
+	}
+	tmp, err := next(ctx)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if data, ok := tmp.(graphql.Marshaler); ok {
+		return data
+	}
+	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
+	return graphql.Null
+{{end}}
+
+{{ if .Directives.LocationDirectives "QUERY" }}
+func (ec *executionContext) _queryMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
+	{{ template "queryDirectives" .Directives.LocationDirectives "QUERY" }}
+}
+{{ end }}
+
+{{ if .Directives.LocationDirectives "MUTATION" }}
+func (ec *executionContext) _mutationMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) graphql.Marshaler {
+	{{ template "queryDirectives" .Directives.LocationDirectives "MUTATION" }}
+}
+{{ end }}
+
+{{ if .Directives.LocationDirectives "SUBSCRIPTION" }}
+func (ec *executionContext) _subscriptionMiddleware(ctx context.Context, obj *ast.OperationDefinition, next func(ctx context.Context) (interface{}, error)) func() graphql.Marshaler {
+	for _, d := range obj.Directives {
+		switch d.Name {
+		{{- range $directive := .Directives.LocationDirectives "SUBSCRIPTION" }}
+		case "{{$directive.Name}}":
+			{{- if $directive.Args }}
+				rawArgs := d.ArgumentMap(ec.Variables)
+				args, err := ec.{{ $directive.ArgsFunc }}(ctx,rawArgs)
+				if err != nil {
+					ec.Error(ctx, err)
+					return func() graphql.Marshaler {
+						return graphql.Null
+					}
+				}
+			{{- end }}
+			n := next
+			next = func(ctx context.Context) (interface{}, error) {
+				if ec.directives.{{$directive.Name|ucFirst}} == nil {
+					return nil, errors.New("directive {{$directive.Name}} is not implemented")
+				}
+				return ec.directives.{{$directive.Name|ucFirst}}({{$directive.CallArgs}})
+			}
+		{{- end }}
+		}
+	}
+	tmp, err := next(ctx)
+	if err != nil {
+		ec.Error(ctx, err)
+		return func() graphql.Marshaler {
+			return graphql.Null
+		}
+	}
+	if data, ok := tmp.(func() graphql.Marshaler); ok {
+		return data
+	}
+	ec.Errorf(ctx, `unexpected type %T from directive, should be graphql.Marshaler`, tmp)
+	return func() graphql.Marshaler {
+		return graphql.Null
+	}
+}
+{{ end }}
+
+{{ if .Directives.LocationDirectives "FIELD" }}
+	func (ec *executionContext) _fieldMiddleware(ctx context.Context, obj interface{}, next graphql.Resolver) interface{} {
+		{{- if .Directives.LocationDirectives "FIELD" }}
+		fc := graphql.GetFieldContext(ctx)
+		for _, d := range fc.Field.Directives {
+			switch d.Name {
+			{{- range $directive := .Directives.LocationDirectives "FIELD" }}
+			case "{{$directive.Name}}":
+				{{- if $directive.Args }}
+					rawArgs := d.ArgumentMap(ec.Variables)
+					args, err := ec.{{ $directive.ArgsFunc }}(ctx,rawArgs)
+					if err != nil {
+						ec.Error(ctx, err)
+						return nil
+					}
+				{{- end }}
+				n := next
+				next = func(ctx context.Context) (interface{}, error) {
+					if ec.directives.{{$directive.Name|ucFirst}} == nil {
+						return nil, errors.New("directive {{$directive.Name}} is not implemented")
+					}
+					return ec.directives.{{$directive.Name|ucFirst}}({{$directive.CallArgs}})
+				}
+			{{- end }}
+			}
+		}
+		{{- end }}
+		res, err := ec.ResolverMiddleware(ctx, next)
+		if err != nil {
+			ec.Error(ctx, err)
+			return nil
+		}
+		return res
+	}
+{{ end }}

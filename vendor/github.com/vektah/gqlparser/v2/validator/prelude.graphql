@@ -1,0 +1,119 @@
+# This file defines all the implicitly declared types that are required by the graphql spec. It is implicitly included by calls to LoadSchema
+
+"The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1."
+scalar Int
+
+"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](http://en.wikipedia.org/wiki/IEEE_floating_point)."
+scalar Float
+
+"The `String`scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text."
+scalar String
+
+"The `Boolean` scalar type represents `true` or `false`."
+scalar Boolean
+
+"""The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as "4") or integer (such as 4) input value will be accepted as an ID."""
+scalar ID
+
+"The @include directive may be provided for fields, fragment spreads, and inline fragments, and allows for conditional inclusion during execution as described by the if argument."
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"The @skip directive may be provided for fields, fragment spreads, and inline fragments, and allows for conditional exclusion during execution as described by the if argument."
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"The @deprecated directive is used within the type system definition language to indicate deprecated portions of a GraphQL service’s schema, such as deprecated fields on a type or deprecated enum values."
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ENUM_VALUE
+
+type __Schema {
+    types: [__Type!]!
+    queryType: __Type!
+    mutationType: __Type
+    subscriptionType: __Type
+    directives: [__Directive!]!
+}
+
+type __Type {
+    kind: __TypeKind!
+    name: String
+    description: String
+
+    # OBJECT and INTERFACE only
+    fields(includeDeprecated: Boolean = false): [__Field!]
+
+    # OBJECT only
+    interfaces: [__Type!]
+
+    # INTERFACE and UNION only
+    possibleTypes: [__Type!]
+
+    # ENUM only
+    enumValues(includeDeprecated: Boolean = false): [__EnumValue!]
+
+    # INPUT_OBJECT only
+    inputFields: [__InputValue!]
+
+    # NON_NULL and LIST only
+    ofType: __Type
+}
+
+type __Field {
+    name: String!
+    description: String
+    args: [__InputValue!]!
+    type: __Type!
+    isDeprecated: Boolean!
+    deprecationReason: String
+}
+
+type __InputValue {
+    name: String!
+    description: String
+    type: __Type!
+    defaultValue: String
+}
+
+type __EnumValue {
+    name: String!
+    description: String
+    isDeprecated: Boolean!
+    deprecationReason: String
+}
+
+enum __TypeKind {
+    SCALAR
+    OBJECT
+    INTERFACE
+    UNION
+    ENUM
+    INPUT_OBJECT
+    LIST
+    NON_NULL
+}
+
+type __Directive {
+    name: String!
+    description: String
+    locations: [__DirectiveLocation!]!
+    args: [__InputValue!]!
+}
+
+enum __DirectiveLocation {
+    QUERY
+    MUTATION
+    SUBSCRIPTION
+    FIELD
+    FRAGMENT_DEFINITION
+    FRAGMENT_SPREAD
+    INLINE_FRAGMENT
+    SCHEMA
+    SCALAR
+    OBJECT
+    FIELD_DEFINITION
+    ARGUMENT_DEFINITION
+    INTERFACE
+    UNION
+    ENUM
+    ENUM_VALUE
+    INPUT_OBJECT
+    INPUT_FIELD_DEFINITION
+}

@@ -1,0 +1,123 @@
+{{- range $object := .Objects }}{{- range $field := $object.Fields }}
+
+func (ec *executionContext) _{{$object.Name}}_{{$field.Name}}(ctx context.Context, field graphql.CollectedField{{ if not $object.Root }}, obj {{$object.Reference | ref}}{{end}}) (ret {{ if $object.Stream }}func(){{ end }}graphql.Marshaler) {
+	{{- $null := "graphql.Null" }}
+	{{- if $object.Stream }}
+		{{- $null = "nil" }}
+	{{- end }}
+	defer func () {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = {{ $null }}
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object: {{$object.Name|quote}},
+		Field: field,
+		Args:  nil,
+		IsMethod: {{or $field.IsMethod $field.IsResolver}},
+		IsResolver: {{ $field.IsResolver }},
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	{{- if $field.Args }}
+		rawArgs := field.ArgumentMap(ec.Variables)
+		args, err := ec.{{ $field.ArgsFunc }}(ctx,rawArgs)
+		if err != nil {
+			ec.Error(ctx, err)
+			return {{ $null }}
+		}
+		fc.Args = args
+	{{- end }}
+	{{- if  $.Directives.LocationDirectives "FIELD" }}
+		resTmp := ec._fieldMiddleware(ctx, {{if $object.Root}}nil{{else}}obj{{end}}, func(rctx context.Context) (interface{}, error) {
+			{{ template "field" $field }}
+		})
+	{{ else }}
+		resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+			{{ template "field" $field }}
+		})
+		if err != nil {
+			ec.Error(ctx, err)
+			return {{ $null }}
+		}
+	{{- end }}
+	if resTmp == nil {
+		{{- if $field.TypeReference.GQL.NonNull }}
+			if !graphql.HasFieldError(ctx, fc) {
+				ec.Errorf(ctx, "must not be null")
+			}
+		{{- end }}
+		return {{ $null }}
+	}
+	{{- if $object.Stream }}
+		return func() graphql.Marshaler {
+			res, ok := <-resTmp.(<-chan {{$field.TypeReference.GO | ref}})
+			if !ok {
+				return nil
+			}
+			return graphql.WriterFunc(func(w io.Writer) {
+				w.Write([]byte{'{'})
+				graphql.MarshalString(field.Alias).MarshalGQL(w)
+				w.Write([]byte{':'})
+				ec.{{ $field.TypeReference.MarshalFunc }}(ctx, field.Selections, res).MarshalGQL(w)
+				w.Write([]byte{'}'})
+			})
+		}
+	{{- else }}
+		res := resTmp.({{$field.TypeReference.GO | ref}})
+		fc.Result = res
+		return ec.{{ $field.TypeReference.MarshalFunc }}(ctx, field.Selections, res)
+	{{- end }}
+}
+
+{{- end }}{{- end}}
+
+{{ define "field" }}
+	{{- if .HasDirectives -}}
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx  // use context from middleware stack in children
+			{{ template "fieldDefinition" . }}
+		}
+		{{ template "implDirectives" . }}
+		tmp, err := directive{{.ImplDirectives|len}}(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+		    return nil, nil
+		}
+		if data, ok := tmp.({{if .Stream}}<-chan {{end}}{{ .TypeReference.GO | ref }}) ; ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be {{if .Stream}}<-chan {{end}}{{ .TypeReference.GO }}`, tmp)
+	{{- else -}}
+		ctx = rctx  // use context from middleware stack in children
+		{{ template "fieldDefinition" . }}
+	{{- end -}}
+{{ end }}
+
+{{ define "fieldDefinition" }}
+	{{- if .IsResolver -}}
+		return ec.resolvers.{{ .ShortInvocation }}
+	{{- else if .IsMap -}}
+		switch v := {{.GoReceiverName}}[{{.Name|quote}}].(type) {
+		case {{if .Stream}}<-chan {{end}}{{.TypeReference.GO | ref}}:
+			return v, nil
+		case {{if .Stream}}<-chan {{end}}{{.TypeReference.Elem.GO | ref}}:
+			return &v, nil
+		case nil:
+			return ({{.TypeReference.GO | ref}})(nil), nil
+		default:
+			return nil, fmt.Errorf("unexpected type %T for field %s", v, {{ .Name | quote}})
+		}
+	{{- else if .IsMethod -}}
+		{{- if .NoErr -}}
+			return {{.GoReceiverName}}.{{.GoFieldName}}({{ .CallArgs }}), nil
+		{{- else -}}
+			return {{.GoReceiverName}}.{{.GoFieldName}}({{ .CallArgs }})
+		{{- end -}}
+	{{- else if .IsVariable -}}
+		return {{.GoReceiverName}}.{{.GoFieldName}}, nil
+	{{- end }}
+{{- end }}

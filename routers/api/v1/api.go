@@ -76,6 +76,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/graphql"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
@@ -572,7 +573,10 @@ func Routes() *web.Route {
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
-	m.Group("", func() {
+	m.Get("/graphql/explore", graphql.PlaygroundHandler)
+	m.Post("/graphql", graphql.Handler)
+
+	m.Group("/v1", func() {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {

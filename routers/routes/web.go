@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
-	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	api "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/events"
@@ -99,8 +99,8 @@ func NormalRoutes() *web.Route {
 	}
 
 	r.Mount("/", WebRoutes())
-	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
+	r.Mount("/api", api.Routes())
 	return r
 }
 

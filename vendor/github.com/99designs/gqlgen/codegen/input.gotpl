@@ -1,0 +1,51 @@
+{{- range $input := .Inputs }}
+	{{- if not .HasUnmarshal }}
+	func (ec *executionContext) unmarshalInput{{ .Name }}(ctx context.Context, obj interface{}) ({{.Type | ref}}, error) {
+		var it {{.Type | ref}}
+		var asMap = obj.(map[string]interface{})
+		{{ range $field := .Fields}}
+			{{- if $field.Default}}
+				if _, present := asMap[{{$field.Name|quote}}] ; !present {
+					asMap[{{$field.Name|quote}}] = {{ $field.Default | dump }}
+				}
+			{{- end}}
+		{{- end }}
+
+		for k, v := range asMap {
+			switch k {
+			{{- range $field := .Fields }}
+			case {{$field.Name|quote}}:
+				var err error
+
+				ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField({{$field.Name|quote}}))
+				{{- if $field.ImplDirectives }}
+					directive0 := func(ctx context.Context) (interface{}, error) { return ec.{{ $field.TypeReference.UnmarshalFunc }}(ctx, v) }
+					{{ template "implDirectives" $field }}
+					tmp, err := directive{{$field.ImplDirectives|len}}(ctx)
+					if err != nil {
+						return it, graphql.ErrorOnPath(ctx, err)
+					}
+					if data, ok := tmp.({{ $field.TypeReference.GO | ref }}) ; ok {
+						it.{{$field.GoFieldName}} = data
+					{{- if $field.TypeReference.IsNilable }}
+						} else if tmp == nil {
+							it.{{$field.GoFieldName}} = nil
+					{{- end }}
+					} else {
+						err := fmt.Errorf(`unexpected type %T from directive, should be {{ $field.TypeReference.GO }}`, tmp)
+						return it, graphql.ErrorOnPath(ctx, err)
+					}
+				{{- else }}
+					it.{{$field.GoFieldName}}, err = ec.{{ $field.TypeReference.UnmarshalFunc }}(ctx, v)
+					if err != nil {
+						return it, err
+					}
+				{{- end }}
+			{{- end }}
+			}
+		}
+
+		return it, nil
+	}
+	{{- end }}
+{{ end }}

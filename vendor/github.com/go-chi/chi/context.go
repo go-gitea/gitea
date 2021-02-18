@@ -2,38 +2,10 @@ package chi
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"strings"
-	"time"
 )
-
-// URLParam returns the url parameter from a http.Request object.
-func URLParam(r *http.Request, key string) string {
-	if rctx := RouteContext(r.Context()); rctx != nil {
-		return rctx.URLParam(key)
-	}
-	return ""
-}
-
-// URLParamFromCtx returns the url parameter from a http.Request Context.
-func URLParamFromCtx(ctx context.Context, key string) string {
-	if rctx := RouteContext(ctx); rctx != nil {
-		return rctx.URLParam(key)
-	}
-	return ""
-}
-
-// RouteContext returns chi's routing Context object from a
-// http.Request Context.
-func RouteContext(ctx context.Context) *Context {
-	val, _ := ctx.Value(RouteCtxKey).(*Context)
-	return val
-}
-
-// NewRouteContext returns a new routing Context object.
-func NewRouteContext() *Context {
-	return &Context{}
-}
 
 var (
 	// RouteCtxKey is the context.Context key to store the request context.
@@ -72,11 +44,11 @@ type Context struct {
 
 	// methodNotAllowed hint
 	methodNotAllowed bool
+}
 
-	// parentCtx is the parent of this one, for using Context as a
-	// context.Context directly. This is an optimization that saves
-	// 1 allocation.
-	parentCtx context.Context
+// NewRouteContext returns a new routing Context object.
+func NewRouteContext() *Context {
+	return &Context{}
 }
 
 // Reset a routing context to its initial state.
@@ -92,7 +64,6 @@ func (x *Context) Reset() {
 	x.routeParams.Keys = x.routeParams.Keys[:0]
 	x.routeParams.Values = x.routeParams.Values[:0]
 	x.methodNotAllowed = false
-	x.parentCtx = nil
 }
 
 // URLParam returns the corresponding URL parameter value from the request
@@ -113,26 +84,38 @@ func (x *Context) URLParam(key string) string {
 //
 // For example,
 //
-//   func Instrument(next http.Handler) http.Handler {
-//     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//       next.ServeHTTP(w, r)
-//       routePattern := chi.RouteContext(r.Context()).RoutePattern()
-//       measure(w, r, routePattern)
-//   	 })
-//   }
+// func Instrument(next http.Handler) http.Handler {
+//   return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//     next.ServeHTTP(w, r)
+//     routePattern := chi.RouteContext(r.Context()).RoutePattern()
+//     measure(w, r, routePattern)
+// 	 })
+// }
 func (x *Context) RoutePattern() string {
 	routePattern := strings.Join(x.RoutePatterns, "")
-	return replaceWildcards(routePattern)
+	return strings.Replace(routePattern, "/*/", "/", -1)
 }
 
-// replaceWildcards takes a route pattern and recursively replaces all
-// occurrences of "/*/" to "/".
-func replaceWildcards(p string) string {
-	if strings.Contains(p, "/*/") {
-		return replaceWildcards(strings.Replace(p, "/*/", "/", -1))
-	}
+// RouteContext returns chi's routing Context object from a
+// http.Request Context.
+func RouteContext(ctx context.Context) *Context {
+	return ctx.Value(RouteCtxKey).(*Context)
+}
 
-	return p
+// URLParam returns the url parameter from a http.Request object.
+func URLParam(r *http.Request, key string) string {
+	if rctx := RouteContext(r.Context()); rctx != nil {
+		return rctx.URLParam(key)
+	}
+	return ""
+}
+
+// URLParamFromCtx returns the url parameter from a http.Request Context.
+func URLParamFromCtx(ctx context.Context, key string) string {
+	if rctx := RouteContext(ctx); rctx != nil {
+		return rctx.URLParam(key)
+	}
+	return ""
 }
 
 // RouteParams is a structure to track URL routing parameters efficiently.
@@ -142,34 +125,28 @@ type RouteParams struct {
 
 // Add will append a URL parameter to the end of the route param
 func (s *RouteParams) Add(key, value string) {
-	s.Keys = append(s.Keys, key)
-	s.Values = append(s.Values, value)
+	(*s).Keys = append((*s).Keys, key)
+	(*s).Values = append((*s).Values, value)
 }
 
-// directContext provides direct access to the routing *Context object,
-// while implementing the context.Context interface, thereby allowing
-// us to saving 1 allocation during routing.
-type directContext Context
+// ServerBaseContext wraps an http.Handler to set the request context to the
+// `baseCtx`.
+func ServerBaseContext(baseCtx context.Context, h http.Handler) http.Handler {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		baseCtx := baseCtx
 
-var _ context.Context = (*directContext)(nil)
+		// Copy over default net/http server context keys
+		if v, ok := ctx.Value(http.ServerContextKey).(*http.Server); ok {
+			baseCtx = context.WithValue(baseCtx, http.ServerContextKey, v)
+		}
+		if v, ok := ctx.Value(http.LocalAddrContextKey).(net.Addr); ok {
+			baseCtx = context.WithValue(baseCtx, http.LocalAddrContextKey, v)
+		}
 
-func (d *directContext) Deadline() (deadline time.Time, ok bool) {
-	return d.parentCtx.Deadline()
-}
-
-func (d *directContext) Done() <-chan struct{} {
-	return d.parentCtx.Done()
-}
-
-func (d *directContext) Err() error {
-	return d.parentCtx.Err()
-}
-
-func (d *directContext) Value(key interface{}) interface{} {
-	if key == RouteCtxKey {
-		return (*Context)(d)
-	}
-	return d.parentCtx.Value(key)
+		h.ServeHTTP(w, r.WithContext(baseCtx))
+	})
+	return fn
 }
 
 // contextKey is a value for use with context.WithValue. It's used as

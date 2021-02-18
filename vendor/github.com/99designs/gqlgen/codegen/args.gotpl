@@ -1,0 +1,36 @@
+{{ range $name, $args := .Args }}
+func (ec *executionContext) {{ $name }}(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	{{- range $i, $arg := . }}
+		var arg{{$i}} {{ $arg.TypeReference.GO | ref}}
+		if tmp, ok := rawArgs[{{$arg.Name|quote}}]; ok {
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField({{$arg.Name|quote}}))
+			{{- if $arg.ImplDirectives }}
+				directive0 := func(ctx context.Context) (interface{}, error) { return ec.{{ $arg.TypeReference.UnmarshalFunc }}(ctx, tmp) }
+				{{ template "implDirectives" $arg }}
+				tmp, err = directive{{$arg.ImplDirectives|len}}(ctx)
+				if err != nil {
+					return nil, graphql.ErrorOnPath(ctx, err)
+				}
+				if data, ok := tmp.({{ $arg.TypeReference.GO | ref }}) ; ok {
+					arg{{$i}} = data
+				{{- if $arg.TypeReference.IsNilable }}
+					} else if tmp == nil {
+						arg{{$i}} = nil
+				{{- end }}
+				} else {
+					return nil, graphql.ErrorOnPath(ctx, fmt.Errorf(`unexpected type %T from directive, should be {{ $arg.TypeReference.GO }}`, tmp))
+				}
+			{{- else }}
+				arg{{$i}}, err = ec.{{ $arg.TypeReference.UnmarshalFunc }}(ctx, tmp)
+				if err != nil {
+					return nil, err
+				}
+			{{- end }}
+		}
+		args[{{$arg.Name|quote}}] = arg{{$i}}
+	{{- end }}
+	return args, nil
+}
+{{ end }}

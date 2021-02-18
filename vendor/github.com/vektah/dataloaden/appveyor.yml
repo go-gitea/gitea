@@ -1,0 +1,32 @@
+version: "{build}"
+
+# Source Config
+
+skip_branch_with_pr: true
+clone_folder: c:\projects\dataloaden
+
+# Build host
+
+environment:
+  GOPATH: c:\gopath
+  GOVERSION: 1.11.5
+  PATH: '%PATH%;c:\gopath\bin'
+
+init:
+  - git config --global core.autocrlf input
+
+# Build
+
+install:
+  # Install the specific Go version.
+  - rmdir c:\go /s /q
+  - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.msi
+  - msiexec /i go%GOVERSION%.windows-amd64.msi /q
+  - go version
+
+build: false
+deploy: false
+
+test_script:
+  - go generate ./...
+  - go test  -parallel 8 ./...

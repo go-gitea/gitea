@@ -1,0 +1,14 @@
+# Where should any generated models go?
+model:
+  filename: model_gen.go
+  package: graphql
+
+# Where should the generated server code go?
+exec:
+  filename: interfaces.go
+  package: graphql
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int64

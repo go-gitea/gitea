@@ -177,6 +177,7 @@ help:
 	@echo " - generate-license                 update license files"
 	@echo " - generate-gitignore               update gitignore files"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
+	@echo " - generate-graphql                 generate the grapql code from defines"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - revive                           run revive linter"
@@ -272,6 +273,12 @@ errcheck:
 	fi
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
+
+.PHONY: generate-graphql
+generate-graphql:
+	cd modules/graphql && \
+	mod=vendor $(GO) run github.com/99designs/gqlgen genrate && \
+	cd ../..
 
 .PHONY: revive
 revive:

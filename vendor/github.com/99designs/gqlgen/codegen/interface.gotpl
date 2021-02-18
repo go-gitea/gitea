@@ -1,0 +1,21 @@
+{{- range $interface := .Interfaces }}
+
+func (ec *executionContext) _{{$interface.Name}}(ctx context.Context, sel ast.SelectionSet, obj {{$interface.Type | ref}}) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	{{- range $implementor := $interface.Implementors }}
+		case {{$implementor.Type | ref}}:
+			{{- if $implementor.CanBeNil }}
+				if obj == nil {
+					return graphql.Null
+				}
+			{{- end }}
+			return ec._{{$implementor.Name}}(ctx, sel, {{ if $implementor.TakeRef }}&{{ end }}obj)
+	{{- end }}
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+{{- end }}

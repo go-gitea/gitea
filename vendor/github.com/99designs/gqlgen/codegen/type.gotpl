@@ -1,0 +1,151 @@
+{{- range $type := .ReferencedTypes }}
+	{{ with $type.UnmarshalFunc }}
+		func (ec *executionContext) {{ . }}(ctx context.Context, v interface{}) ({{ $type.GO | ref }}, error) {
+			{{- if and $type.IsNilable (not $type.GQL.NonNull) }}
+				if v == nil { return nil, nil }
+			{{- end }}
+			{{- if $type.IsSlice }}
+				var vSlice []interface{}
+				if v != nil {
+					if tmp1, ok := v.([]interface{}); ok {
+						vSlice = tmp1
+					} else {
+						vSlice = []interface{}{ v }
+					}
+				}
+				var err error
+				res := make([]{{$type.GO.Elem | ref}}, len(vSlice))
+				for i := range vSlice {
+					ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+					res[i], err = ec.{{ $type.Elem.UnmarshalFunc }}(ctx, vSlice[i])
+					if err != nil {
+						return nil, err
+					}
+				}
+				return res, nil
+			{{- else }}
+				{{- if $type.Unmarshaler }}
+					{{- if $type.CastType }}
+						tmp, err := {{ $type.Unmarshaler | call }}(v)
+						{{- if $type.IsNilable }}
+							res := {{ $type.Elem.GO | ref }}(tmp)
+						{{- else}}
+							res := {{ $type.GO | ref }}(tmp)
+						{{- end }}
+					{{- else}}
+						res, err := {{ $type.Unmarshaler | call }}(v)
+					{{- end }}
+					{{- if and $type.IsTargetNilable (not $type.IsNilable) }}
+						return *res, graphql.ErrorOnPath(ctx, err)
+					{{- else if and (not $type.IsTargetNilable) $type.IsNilable }}
+						return &res, graphql.ErrorOnPath(ctx, err)
+					{{- else}}
+						return res, graphql.ErrorOnPath(ctx, err)
+					{{- end }}
+				{{- else if eq ($type.GO | ref) "map[string]interface{}" }}
+					return v.(map[string]interface{}), nil
+				{{- else if $type.IsMarshaler }}
+					{{- if $type.IsNilable }}
+						var res = new({{ $type.Elem.GO | ref }})
+					{{- else}}
+						var res {{ $type.GO | ref }}
+					{{- end }}
+					err := res.UnmarshalGQL(v)
+					return res, graphql.ErrorOnPath(ctx, err)
+				{{- else }}
+					res, err := ec.unmarshalInput{{ $type.GQL.Name }}(ctx, v)
+					{{- if $type.IsNilable }}
+						return &res, graphql.ErrorOnPath(ctx, err)
+					{{- else}}
+						return res, graphql.ErrorOnPath(ctx, err)
+					{{- end }}
+				{{- end }}
+			{{- end }}
+		}
+	{{- end }}
+
+	{{ with $type.MarshalFunc }}
+		func (ec *executionContext) {{ . }}(ctx context.Context, sel ast.SelectionSet, v {{ $type.GO | ref }}) graphql.Marshaler {
+			{{- if $type.IsSlice }}
+				{{- if not $type.GQL.NonNull }}
+					if v == nil {
+						return graphql.Null
+					}
+				{{- end }}
+				ret := make(graphql.Array, len(v))
+				{{- if not $type.IsScalar }}
+					var wg sync.WaitGroup
+					isLen1 := len(v) == 1
+					if !isLen1 {
+						wg.Add(len(v))
+					}
+				{{- end }}
+				for i := range v {
+					{{- if not $type.IsScalar }}
+						i := i
+						fc := &graphql.FieldContext{
+							Index: &i,
+							Result: &v[i],
+						}
+						ctx := graphql.WithFieldContext(ctx, fc)
+						f := func(i int) {
+							defer func() {
+                        		if r := recover(); r != nil {
+                        			ec.Error(ctx, ec.Recover(ctx, r))
+                        			ret = nil
+                        		}
+                        	}()
+							if !isLen1 {
+								defer wg.Done()
+							}
+							ret[i] = ec.{{ $type.Elem.MarshalFunc }}(ctx, sel, v[i])
+						}
+						if isLen1 {
+							f(i)
+						} else {
+							go f(i)
+						}
+					{{ else }}
+						ret[i] = ec.{{ $type.Elem.MarshalFunc }}(ctx, sel, v[i])
+					{{- end}}
+				}
+				{{ if not $type.IsScalar }} wg.Wait() {{ end }}
+				return ret
+			{{- else }}
+				{{- if $type.IsNilable }}
+					if v == nil {
+						{{- if $type.GQL.NonNull }}
+							if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+								ec.Errorf(ctx, "must not be null")
+							}
+						{{- end }}
+						return graphql.Null
+					}
+				{{- end }}
+				{{- if $type.IsMarshaler }}
+					return v
+				{{- else if $type.Marshaler }}
+					{{- $v := "v" }}
+					{{- if and $type.IsTargetNilable (not $type.IsNilable) }}
+						{{- $v = "&v" }}
+					{{- else if and (not $type.IsTargetNilable) $type.IsNilable }}
+						{{- $v = "*v" }}
+					{{- end }}
+					{{- if $type.GQL.NonNull }}
+							res := {{ $type.Marshaler | call }}({{- if $type.CastType }}{{ $type.CastType | ref }}({{ $v }}){{else}}{{ $v }}{{- end }})
+							if res == graphql.Null {
+								if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+									ec.Errorf(ctx, "must not be null")
+								}
+							}
+							return res
+					{{- else }}
+						return {{ $type.Marshaler | call }}({{- if $type.CastType }}{{ $type.CastType | ref }}({{ $v }}){{else}}{{ $v }}{{- end }})
+					{{- end }}
+				{{- else }}
+					return ec._{{$type.Definition.Name}}(ctx, sel, {{ if not $type.IsNilable}}&{{end}} v)
+				{{- end }}
+			{{- end }}
+		}
+	{{- end }}
+{{- end }}

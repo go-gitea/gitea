@@ -1,0 +1,69 @@
+{{ reserveImport "context"  }}
+{{ reserveImport "errors"  }}
+{{ reserveImport "fmt"  }}
+{{ reserveImport "strings"  }}
+
+{{ reserveImport "github.com/99designs/gqlgen/plugin/federation/fedruntime" }}
+
+func (ec *executionContext) __resolve__service(ctx context.Context) (fedruntime.Service, error) {
+	if ec.DisableIntrospection {
+		return fedruntime.Service{}, errors.New("federated introspection disabled")
+	}
+
+	var sdl []string
+
+	for _, src := range sources {
+		if src.BuiltIn {
+			continue
+		}
+		sdl = append(sdl, src.Input)
+	}
+
+	return fedruntime.Service{
+		SDL: strings.Join(sdl, "\n"),
+	}, nil
+}
+
+{{if .Entities}}
+func (ec *executionContext) __resolve_entities(ctx context.Context, representations []map[string]interface{}) ([]fedruntime.Entity, error) {
+	list := []fedruntime.Entity{}
+	for _, rep := range representations {
+		typeName, ok := rep["__typename"].(string)
+		if !ok {
+			return nil, errors.New("__typename must be an existing string")
+		}
+		switch typeName {
+		{{ range .Entities }}
+			{{ if .ResolverName }}
+			case "{{.Def.Name}}":
+				{{ range $i, $keyField := .KeyFields -}}
+					id{{$i}}, err := ec.{{.TypeReference.UnmarshalFunc}}(ctx, rep["{{$keyField.Field.Name}}"])
+					if err != nil {
+						return nil, errors.New(fmt.Sprintf("Field %s undefined in schema.", "{{$keyField.Field.Name}}"))
+					}
+				{{end}}
+	
+				entity, err := ec.resolvers.Entity().{{.ResolverName | go}}(ctx,
+					{{ range $i, $_ := .KeyFields -}} id{{$i}}, {{end}})
+				if err != nil {
+					return nil, err
+				}
+	
+				{{ range .Requires }}
+					{{ range .Fields}}
+						entity.{{.NameGo}}, err = ec.{{.TypeReference.UnmarshalFunc}}(ctx, rep["{{.Name}}"])
+						if err != nil {
+							return nil, err
+						}
+					{{ end }}
+				{{ end }}
+				list = append(list, entity)
+			{{ end }}
+		{{ end }}
+		default:
+			return nil, errors.New("unknown type: "+typeName)
+		}
+	}
+	return list, nil
+}
+{{end}}

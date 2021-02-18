@@ -1,0 +1,598 @@
+types:
+  - name: cannot be redeclared
+    input: |
+      type A {
+        name: String
+      }
+      type A {
+        name: String
+      }
+    error:
+      message: "Cannot redeclare type A."
+      locations: [{line: 4, column: 6}]
+  - name: cannot be duplicated field at same definition 1
+    input: |
+      type A {
+        name: String
+        name: String
+      }
+    error:
+      message: "Field A.name can only be defined once."
+      locations: [{line: 3, column: 3}]
+  - name: cannot be duplicated field at same definition 2
+    input: |
+      type A {
+        name: String
+      }
+      extend type A {
+        name: String
+      }
+    error:
+      message: "Field A.name can only be defined once."
+      locations: [{line: 5, column: 3}]
+  - name: cannot be duplicated field at same definition 3
+    input: |
+      type A {
+        name: String
+      }
+      extend type A {
+        age: Int
+        age: Int
+      }
+    error:
+      message: "Field A.age can only be defined once."
+      locations: [{line: 6, column: 3}]
+
+object types:
+  - name: must define one or more fields
+    input: |
+      directive @D on OBJECT
+
+      # This pattern rejected by parser
+      # type InvalidObject1 {}
+
+      type InvalidObject2 @D
+
+      type ValidObject {
+        id: ID
+      }
+      extend type ValidObject @D
+      extend type ValidObject {
+        b: Int
+      }
+    error:
+      message: 'OBJECT must define one or more fields.'
+      locations: [{line: 6, column: 6}]
+  - name: check reserved names on type name
+    input: |
+      type __FooBar {
+        id: ID
+      }
+    error:
+      message: 'Name "__FooBar" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 1, column: 6}]
+  - name: check reserved names on type field
+    input: |
+      type FooBar {
+        __id: ID
+      }
+    error:
+      message: 'Name "__id" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 2, column: 3}]
+
+  - name: check reserved names on type field argument
+    input: |
+      type FooBar {
+        foo(__bar: ID): ID
+      }
+    error:
+      message: 'Name "__bar" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 2, column: 7}]
+
+  - name: must not allow input object as field type 
+    input: |
+      input Input {
+        id: ID
+      }
+      type Query {
+        input: Input!
+      }
+    error:
+      message: 'OBJECT field must be one of SCALAR, OBJECT, INTERFACE, UNION, ENUM.'
+      locations: [{line: 5, column: 3}]
+
+interfaces:
+  - name: must exist
+    input: |
+      type Thing implements Object {
+        id: ID!
+      }
+
+      type Query {
+        Things: [Thing!]!
+      }
+    error:
+      message: 'Undefined type "Object".'
+      locations: [{line: 1, column: 6}]
+
+  - name: must be an interface
+    input: |
+      type Thing implements Object {
+        id: ID!
+      }
+
+      type Query {
+        Things: [Thing!]!
+      }
+
+      type Object {
+        name: String
+      }
+    error:
+      message: '"Object" is a non interface type OBJECT.'
+      locations: [{line: 1, column: 6}]
+
+  - name: must define one or more fields
+    input: |
+      directive @D on INTERFACE
+
+      # This pattern rejected by parser
+      # interface InvalidInterface1 {}
+
+      interface InvalidInterface2 @D
+
+      interface ValidInterface {
+        id: ID
+      }
+      extend interface ValidInterface @D
+      extend interface ValidInterface {
+        b: Int
+      }
+    error:
+      message: 'INTERFACE must define one or more fields.'
+      locations: [{line: 6, column: 11}]
+  - name: check reserved names on type name
+    input: |
+      interface __FooBar {
+        id: ID
+      }
+    error:
+      message: 'Name "__FooBar" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 1, column: 11}]
+
+  - name: must not allow input object as field type 
+    input: |
+      input Input {
+        id: ID
+      }
+      type Query {
+        foo: Foo!
+      }
+      interface Foo {
+        input: Input!
+      }
+    error:
+      message: 'INTERFACE field must be one of SCALAR, OBJECT, INTERFACE, UNION, ENUM.'
+      locations: [{line: 8, column: 3}]
+
+  - name: must have all fields from interface
+    input: |
+      type Bar implements BarInterface {
+          someField: Int!
+      }
+
+      interface BarInterface {
+          id: ID!
+      }
+    error:
+      message: 'For Bar to implement BarInterface it must have a field called id.'
+      locations: [{line: 1, column: 6}]
+
+  - name: must have same type of fields
+    input: |
+      type Bar implements BarInterface {
+          id: Int!
+      }
+
+      interface BarInterface {
+          id: ID!
+      }
+    error:
+      message: 'For Bar to implement BarInterface the field id must have type ID!.'
+      locations: [{line: 2, column: 5}]
+
+  - name: must have all required arguments
+    input: |
+      type Bar implements BarInterface {
+          id: ID!
+      }
+
+      interface BarInterface {
+          id(ff: Int!): ID!
+      }
+    error:
+      message: 'For Bar to implement BarInterface the field id must have the same arguments but it is missing ff.'
+      locations: [{line: 2, column: 5}]
+
+  - name: must have same argument types
+    input: |
+      type Bar implements BarInterface {
+          id(ff: ID!): ID!
+      }
+
+      interface BarInterface {
+          id(ff: Int!): ID!
+      }
+    error:
+      message: 'For Bar to implement BarInterface the field id must have the same arguments but ff has the wrong type.'
+      locations: [{line: 2, column: 8}]
+
+  - name: may defined additional nullable arguments
+    input: |
+      type Bar implements BarInterface {
+          id(opt: Int): ID!
+      }
+
+      interface BarInterface {
+          id: ID!
+      }
+
+  - name: may defined additional required arguments with defaults
+    input: |
+      type Bar implements BarInterface {
+          id(opt: Int! = 1): ID!
+      }
+
+      interface BarInterface {
+          id: ID!
+      }
+
+  - name: must not define additional required arguments without defaults
+    input: |
+      type Bar implements BarInterface {
+          id(opt: Int!): ID!
+      }
+
+      interface BarInterface {
+          id: ID!
+      }
+    error:
+      message: 'For Bar to implement BarInterface any additional arguments on id must be optional or have a default value but opt is required.'
+      locations: [{line: 2, column: 8}]
+
+  - name: can have covariant argument types
+    input: |
+      union U = A|B
+
+      type A { name: String }
+      type B { name: String }
+
+      type Bar implements BarInterface {
+          f: A!
+      }
+
+      interface BarInterface {
+          f: U!
+      }
+
+inputs:
+  - name: must define one or more input fields
+    input: |
+      directive @D on INPUT_OBJECT
+
+      # This pattern rejected by parser
+      # input InvalidInput1 {}
+
+      input InvalidInput2 @D
+
+      input ValidInput {
+        id: ID
+      }
+      extend input ValidInput @D
+      extend input ValidInput {
+        b: Int
+      }
+    error:
+      message: 'INPUT_OBJECT must define one or more input fields.'
+      locations: [{line: 6, column: 7}]
+  - name: check reserved names on type name
+    input: |
+      input __FooBar {
+        id: ID
+      }
+    error:
+      message: 'Name "__FooBar" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 1, column: 7}]
+
+  - name: fields cannot be Objects
+    input: |
+      type Object { id: ID }
+      input Foo { a: Object! }
+    error:
+      message: INPUT_OBJECT field must be one of SCALAR, ENUM, INPUT_OBJECT.
+      locations: [{line: 2, column: 13}]
+
+  - name: fields cannot be Interfaces
+    input: |
+      interface Interface { id: ID! }
+      input Foo { a: Interface! }
+    error:
+      message: INPUT_OBJECT field must be one of SCALAR, ENUM, INPUT_OBJECT.
+      locations: [{line: 2, column: 13}]
+
+  - name: fields cannot be Unions
+    input: |
+      type Object { id: ID }
+      union Union = Object
+      input Foo { a: Union! }
+    error:
+      message: INPUT_OBJECT field must be one of SCALAR, ENUM, INPUT_OBJECT.
+      locations: [{line: 3, column: 13}]
+
+args:
+  - name: Valid arg types
+    input: |
+        input Input { id: ID }
+        enum Enum { A }
+        scalar Scalar
+
+        type Query {
+          f(a: Input, b: Scalar, c: Enum): Boolean!
+        }
+
+  - name: Objects not allowed
+    input: |
+      type Object { id: ID }
+      type Query { f(a: Object): Boolean! }
+
+    error:
+      message: 'cannot use Object as argument a because OBJECT is not a valid input type'
+      locations: [{line: 2, column: 16}]
+
+  - name: Union not allowed
+    input: |
+      type Object { id: ID }
+      union Union = Object
+      type Query { f(a: Union): Boolean! }
+
+    error:
+      message: 'cannot use Union as argument a because UNION is not a valid input type'
+      locations: [{line: 3, column: 16}]
+
+  - name: Interface not allowed
+    input: |
+      interface Interface { id: ID }
+      type Query { f(a: Interface): Boolean! }
+
+    error:
+      message: 'cannot use Interface as argument a because INTERFACE is not a valid input type'
+      locations: [{line: 2, column: 16}]
+
+enums:
+  - name: must define one or more unique enum values
+    input: |
+      directive @D on ENUM
+
+      # This pattern rejected by parser
+      # enum InvalidEmum1 {}
+
+      enum InvalidEnum2 @D
+
+      enum ValidEnum {
+        FOO
+      }
+      extend enum ValidEnum @D
+      extend enum ValidEnum {
+        BAR
+      }
+    error:
+      message: 'ENUM must define one or more unique enum values.'
+      locations: [{line: 6, column: 6}]
+  - name: check reserved names on type name
+    input: |
+      enum __FooBar {
+        A
+        B
+      }
+    error:
+      message: 'Name "__FooBar" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 1, column: 6}]
+
+unions:
+  - name: union types must be defined
+    input: |
+      union Foo = Bar | Baz
+      type Bar {
+        id: ID
+      }
+    error:
+      message: "Undefined type \"Baz\"."
+      locations: [{line: 1, column: 7}]
+  - name: union types must be objects
+    input: |
+      union Foo = Baz
+      interface Baz {
+        id: ID
+      }
+    error:
+      message: "UNION type \"Baz\" must be OBJECT."
+      locations: [{line: 1, column: 7}]
+
+  - name: unions of pure type extensions are valid
+    input: |
+
+      type Review {
+          body: String!
+          author: User! @provides(fields: "username")
+          product: Product!
+      }
+
+      extend type User @key(fields: "id") {
+        id: ID! @external
+        reviews: [Review]
+      }
+
+      extend type Product @key(fields: "upc") {
+        upc: String! @external
+        reviews: [Review]
+      }
+
+      union Foo = User | Product
+      scalar _Any
+      scalar _FieldSet
+      directive @external on FIELD_DEFINITION
+      directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
+      directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
+      directive @key(fields: _FieldSet!) on OBJECT | INTERFACE
+      directive @extends on OBJECT
+
+
+
+type extensions:
+  - name: can extend non existant types
+    input: |
+      extend type A {
+        name: String
+      }
+
+
+  - name: cannot extend incorret type existant types
+    input: |
+      scalar A
+      extend type A {
+        name: String
+      }
+    error:
+      message: "Cannot extend type A because the base type is a SCALAR, not OBJECT."
+      locations: [{line: 2, column: 13}]
+
+directives:
+  - name: cannot redeclare directives
+    input: |
+      directive @A on FIELD_DEFINITION
+      directive @A on FIELD_DEFINITION
+    error:
+      message: "Cannot redeclare directive A."
+      locations: [{line: 2, column: 12}]
+
+  - name: must be declared
+    input: |
+      type User {
+        name: String @foo
+      }
+    error:
+      message: "Undefined directive foo."
+      locations: [{line: 2, column: 17}]
+
+  - name: cannot be self-referential
+    input: |
+      directive @A(foo: Int! @A) on FIELD_DEFINITION
+    error:
+      message: "Directive A cannot refer to itself."
+      locations: [{line: 1, column: 25}]
+  - name: check reserved names on type name
+    input: |
+      directive @__A on FIELD_DEFINITION
+    error:
+      message: 'Name "__A" must not begin with "__", which is reserved by GraphQL introspection.'
+      locations: [{line: 1, column: 12}]
+
+  - name: Valid arg types
+    input: |
+      input Input { id: ID }
+      enum Enum { A }
+      scalar Scalar
+
+      directive @A(a: Input, b: Scalar, c: Enum) on FIELD_DEFINITION
+
+  - name: Objects not allowed
+    input: |
+      type Object { id: ID }
+      directive @A(a: Object) on FIELD_DEFINITION
+
+    error:
+      message: 'cannot use Object as argument a because OBJECT is not a valid input type'
+      locations: [{line: 2, column: 14}]
+
+  - name: Union not allowed
+    input: |
+      type Object { id: ID }
+      union Union = Object
+      directive @A(a: Union) on FIELD_DEFINITION
+
+    error:
+      message: 'cannot use Union as argument a because UNION is not a valid input type'
+      locations: [{line: 3, column: 14}]
+
+  - name: Interface not allowed
+    input: |
+      interface Interface { id: ID }
+      directive @A(a: Interface) on FIELD_DEFINITION
+
+    error:
+      message: 'cannot use Interface as argument a because INTERFACE is not a valid input type'
+      locations: [{line: 2, column: 14}]
+
+entry points:
+  - name: multiple schema entry points
+    input: |
+      schema {
+        query: Query
+      }
+      schema {
+        query: Query
+      }
+      scalar Query
+    error:
+      message: "Cannot have multiple schema entry points, consider schema extensions instead."
+      locations: [{line: 4, column: 8}]
+
+  - name: Undefined schema entrypoint
+    input: |
+      schema {
+        query: Query
+      }
+    error:
+      message: "Schema root query refers to a type Query that does not exist."
+      locations: [{line: 2, column: 3}]
+
+entry point extensions:
+  - name: Undefined schema entrypoint
+    input: |
+      schema {
+        query: Query
+      }
+      scalar Query
+      extend schema {
+        mutation: Mutation
+      }
+    error:
+      message: "Schema root mutation refers to a type Mutation that does not exist."
+      locations: [{line: 6, column: 3}]
+
+type references:
+  - name: Field types
+    input: |
+      type User {
+        posts: Post
+      }
+    error:
+      message: "Undefined type Post."
+      locations: [{line: 2, column: 10}]
+
+  - name: Arg types
+    input: |
+      type User {
+        posts(foo: FooBar): String
+      }
+    error:
+      message: "Undefined type FooBar."
+      locations: [{line: 2, column: 14}]
+
+  - name: Directive arg types
+    input: |
+      directive @Foo(foo: FooBar) on FIELD_DEFINITION
+
+    error:
+      message: "Undefined type FooBar."
+      locations: [{line: 1, column: 21}]
