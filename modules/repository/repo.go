@@ -7,12 +7,14 @@ package repository
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -119,6 +121,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			if err = SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
+		}
+
+		if err = storeMissingLfsObjectsInRepository(repo, gitRepo, opts.CloneAddr); err != nil {
+			log.Error("Failed to store missing LFS objects for repository: %v", err)
 		}
 	}
 
@@ -299,4 +305,54 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 	}
 
 	return models.SaveOrUpdateTag(repo, &rel)
+}
+
+// TODO use /services/lfs.StoreMissingLfsObjectsInRepository after migrating code to /services
+func storeMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
+	client := lfs.NewClient(&http.Client{})
+	contentStore := lfs.NewContetStore()
+
+	pointers, err := lfs.SearchPointerFiles(gitRepo)
+	if err != nil {
+		return err
+	}
+
+	for _, pointer := range pointers {
+		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size, RepositoryID: repo.ID}
+		meta, err = models.NewLFSMetaObject(meta)
+		if err != nil {
+			return err
+		}
+		if meta.Existing {
+			continue
+		}
+
+		log.Trace("LFS OID[%s] not present in repository %v", pointer.Oid, repo)
+
+		exist, err := contentStore.Exists(pointer)
+		if err != nil {
+			return err
+		}
+		if !exist {
+			if setting.LFS.MaxFileSize > 0 && pointer.Size > setting.LFS.MaxFileSize {
+				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointer.Oid, setting.LFS.MaxFileSize, pointer.Size)
+				continue
+			}
+
+			stream, err := client.Download(lfsAddr, pointer.Oid, pointer.Size)
+			if err != nil {
+				return err
+			}
+			defer stream.Close()
+
+			if err := contentStore.Put(pointer, stream); err != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
+					return err2
+				}
+				return err
+			}
+		}
+	}
+
+	return nil
 }
