@@ -304,11 +304,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommit(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if err != nil {
-		ctx.NotFound("GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
 	}
 
