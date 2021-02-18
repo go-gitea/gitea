@@ -24,11 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/lfs"
 )
 
 const (
@@ -274,7 +273,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		// FIXME: what happens when README file is an image?
 		if isTextFile && setting.LFS.StartServer {
-			pointer := lfs_module.TryReadPointerFromBuffer(buf)
+			pointer := lfs.TryReadPointerFromBuffer(buf)
 			if pointer != nil {
 				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
@@ -399,7 +398,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
-		pointer := lfs_module.TryReadPointerFromBuffer(buf)
+		pointer := lfs.TryReadPointerFromBuffer(buf)
 		if pointer != nil {
 			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {

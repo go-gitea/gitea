@@ -14,12 +14,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/services/lfs"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -70,7 +69,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	buf = buf[:n]
 
 	if setting.LFS.StartServer {
-		pointer := lfs_module.TryReadPointerFromBuffer(buf)
+		pointer := lfs.TryReadPointerFromBuffer(buf)
 		if pointer != nil {
 			meta, err := repo.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {

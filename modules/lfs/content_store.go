@@ -13,14 +13,13 @@ import (
 	"os"
 	"path"
 
-	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
 
 var (
-	errHashMismatch = errors.New("Content hash does not match OID")
-	errSizeMismatch = errors.New("Content size does not match")
+	ErrHashMismatch = errors.New("Content hash does not match OID")
+	ErrSizeMismatch = errors.New("Content size does not match")
 )
 
 // ErrRangeNotSatisfiable represents an error which request range is not satisfiable.
@@ -30,12 +29,6 @@ type ErrRangeNotSatisfiable struct {
 
 func (err ErrRangeNotSatisfiable) Error() string {
 	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
-}
-
-// IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
-func IsErrRangeNotSatisfiable(err error) bool {
-	_, ok := err.(ErrRangeNotSatisfiable)
-	return ok
 }
 
 // ContentStore provides a simple file system based storage.
@@ -48,7 +41,7 @@ func NewContetStore() *ContentStore {
 	return contentStore
 }
 
-func relativePath(p *lfs_module.Pointer) string {
+func relativePath(p *Pointer) string {
 	if len(p.Oid) < 5 {
 		return p.Oid
 	}
@@ -58,7 +51,7 @@ func relativePath(p *lfs_module.Pointer) string {
 
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(pointer *lfs_module.Pointer, fromByte int64) (io.ReadCloser, error) {
+func (s *ContentStore) Get(pointer *Pointer, fromByte int64) (io.ReadCloser, error) {
 	f, err := s.Open(relativePath(pointer))
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
@@ -79,7 +72,7 @@ func (s *ContentStore) Get(pointer *lfs_module.Pointer, fromByte int64) (io.Read
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(pointer *lfs_module.Pointer, r io.Reader) error {
+func (s *ContentStore) Put(pointer *Pointer, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
 	p := relativePath(pointer)
@@ -93,7 +86,7 @@ func (s *ContentStore) Put(pointer *lfs_module.Pointer, r io.Reader) error {
 		if err := s.Delete(p); err != nil {
 			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
 		}
-		return errSizeMismatch
+		return ErrSizeMismatch
 	}
 
 	shaStr := hex.EncodeToString(hash.Sum(nil))
@@ -101,14 +94,14 @@ func (s *ContentStore) Put(pointer *lfs_module.Pointer, r io.Reader) error {
 		if err := s.Delete(p); err != nil {
 			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
 		}
-		return errHashMismatch
+		return ErrHashMismatch
 	}
 
 	return nil
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(pointer *lfs_module.Pointer) (bool, error) {
+func (s *ContentStore) Exists(pointer *Pointer) (bool, error) {
 	_, err := s.ObjectStorage.Stat(relativePath(pointer))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -120,7 +113,7 @@ func (s *ContentStore) Exists(pointer *lfs_module.Pointer) (bool, error) {
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(pointer *lfs_module.Pointer) (bool, error) {
+func (s *ContentStore) Verify(pointer *Pointer) (bool, error) {
 	p := relativePath(pointer)
 	fi, err := s.ObjectStorage.Stat(p)
 	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
@@ -134,7 +127,7 @@ func (s *ContentStore) Verify(pointer *lfs_module.Pointer) (bool, error) {
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
-func ReadMetaObject(pointer *lfs_module.Pointer) (io.ReadCloser, error) {
+func ReadMetaObject(pointer *Pointer) (io.ReadCloser, error) {
 	contentStore := NewContetStore()
 	return contentStore.Get(pointer, 0)
 }

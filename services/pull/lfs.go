@@ -13,9 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git/pipeline"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/lfs"
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
@@ -102,7 +101,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs_module.TryReadPointerFromBuffer(pointerBuf)
+		pointer := lfs.TryReadPointerFromBuffer(pointerBuf)
 		if pointer == nil {
 			continue
 		}

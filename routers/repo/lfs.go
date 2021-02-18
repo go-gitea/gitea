@@ -22,11 +22,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/services/lfs"
 )
 
 const (
@@ -527,7 +526,7 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs_module.TryReadPointerFromBuffer(pointerBuf)
+		pointer := lfs.TryReadPointerFromBuffer(pointerBuf)
 		if pointer == nil {
 			continue
 		}

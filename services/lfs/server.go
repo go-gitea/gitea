@@ -7,6 +7,7 @@ package lfs
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -191,10 +193,11 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := NewContetStore()
+	contentStore := lfs_module.NewContetStore()
 	content, err := contentStore.Get(meta.AsPointer(), fromByte)
 	if err != nil {
-		if IsErrRangeNotSatisfiable(err) {
+		var rerr *lfs_module.ErrRangeNotSatisfiable
+		if errors.As(err, &rerr) {
 			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
 		} else {
 			// Errors are logged in contentStore.Get
@@ -296,7 +299,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := NewContetStore()
+	contentStore := lfs_module.NewContetStore()
 	exist, err := contentStore.Exists(meta.AsPointer())
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
@@ -357,7 +360,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := NewContetStore()
+		contentStore := lfs_module.NewContetStore()
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
@@ -415,12 +418,12 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := NewContetStore()
+	contentStore := lfs_module.NewContetStore()
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.AsPointer(), ctx.Req.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
-		if err == errSizeMismatch || err == errHashMismatch {
+		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
 			fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
 		} else {
 			fmt.Fprintf(ctx.Resp, `{"message":"Internal Server Error"}`)
@@ -456,7 +459,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := NewContetStore()
+	contentStore := lfs_module.NewContetStore()
 	ok, err := contentStore.Verify(meta.AsPointer())
 	if err != nil {
 		// Error will be logged in Verify
