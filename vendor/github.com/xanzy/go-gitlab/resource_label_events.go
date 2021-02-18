@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -77,7 +78,7 @@ func (s *ResourceLabelEventsService) ListIssueLabelEvents(pid interface{}, issue
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events", pathEscape(project), issue)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -102,7 +103,7 @@ func (s *ResourceLabelEventsService) GetIssueLabelEvent(pid interface{}, issue i
 	}
 	u := fmt.Sprintf("projects/%s/issues/%d/resource_label_events/%d", pathEscape(project), issue, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,7 +129,7 @@ func (s *ResourceLabelEventsService) ListGroupEpicLabelEvents(gid interface{}, e
 	}
 	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events", pathEscape(group), epic)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -153,7 +154,7 @@ func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epi
 	}
 	u := fmt.Sprintf("groups/%s/epics/%d/resource_label_events/%d", pathEscape(group), epic, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -179,7 +180,7 @@ func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, reque
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events", pathEscape(project), request)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -204,7 +205,7 @@ func (s *ResourceLabelEventsService) GetMergeRequestLabelEvent(pid interface{}, 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/resource_label_events/%d", pathEscape(project), request, event)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

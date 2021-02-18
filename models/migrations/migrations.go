@@ -290,6 +290,8 @@ var migrations = []Migration{
 	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
 	// v171 -> v172
 	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
+	// v172 -> v173
+	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 }
 
 // GetCurrentDBVersion returns the current db version

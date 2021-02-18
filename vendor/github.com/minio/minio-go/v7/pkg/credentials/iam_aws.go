@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -82,7 +83,11 @@ func (m *IAM) Retrieve() (Value, error) {
 	case len(os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")) > 0:
 		if len(endpoint) == 0 {
 			if len(os.Getenv("AWS_REGION")) > 0 {
-				endpoint = "https://sts." + os.Getenv("AWS_REGION") + ".amazonaws.com"
+				if strings.HasPrefix(os.Getenv("AWS_REGION"), "cn-") {
+					endpoint = "https://sts." + os.Getenv("AWS_REGION") + ".amazonaws.com.cn"
+				} else {
+					endpoint = "https://sts." + os.Getenv("AWS_REGION") + ".amazonaws.com"
+				}
 			} else {
 				endpoint = defaultSTSRoleEndpoint
 			}
