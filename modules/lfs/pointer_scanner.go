@@ -7,22 +7,40 @@
 package lfs
 
 import (
+	"io"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-const blobSizeCutoff = 1024
+const (
+	blobSizeCutoff = 1024
 
-// TODO Combine with methods in pointers.go
-// TryReadPointer will return a pointer if the provided byte slice is a pointer file or nil otherwise.
-func TryReadPointer(buf []byte) *Pointer {
+	// TODO remove duplicate from models
+
+	// LFSMetaFileIdentifier is the string appearing at the first line of LFS pointer files.
+	// https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
+	LFSMetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
+
+	// LFSMetaFileOidPrefix appears in LFS pointer files on a line before the sha256 hash.
+	LFSMetaFileOidPrefix = "oid sha256:"
+)
+
+func TryReadPointer(reader io.Reader) *Pointer {
+	buf := make([]byte, blobSizeCutoff)
+	n, _ := reader.Read(buf)
+	buf = buf[:n]
+
+	return TryReadPointerFromBuffer(buf)
+}
+
+// TryReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or nil otherwise.
+func TryReadPointerFromBuffer(buf []byte) *Pointer {
 	headString := string(buf)
-	if !strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
+	if !strings.HasPrefix(headString, LFSMetaFileIdentifier) {
 		return nil
 	}
 
@@ -31,7 +49,7 @@ func TryReadPointer(buf []byte) *Pointer {
 		return nil
 	}
 
-	oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
+	oid := strings.TrimPrefix(splitLines[1], LFSMetaFileOidPrefix)
 	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
 	if len(oid) != 64 || err != nil {
 		return nil
@@ -61,11 +79,7 @@ func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
 		}
 		defer reader.Close()
 
-		buf := make([]byte, blobSizeCutoff)
-		n, _ := reader.Read(buf)
-		buf = buf[:n]
-
-		pointer := TryReadPointer(buf)
+		pointer := TryReadPointer(reader)
 		if pointer != nil {
 			pointers = append(pointers, pointer)
 		}
