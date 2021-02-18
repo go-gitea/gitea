@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -192,7 +191,7 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := NewContetStore()
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
 		if IsErrRangeNotSatisfiable(err) {
@@ -297,7 +296,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := NewContetStore()
 	exist, err := contentStore.Exists(meta)
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
@@ -358,7 +357,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := &ContentStore{ObjectStorage: storage.LFS}
+		contentStore := NewContetStore()
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
@@ -416,7 +415,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := NewContetStore()
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta, ctx.Req.Body); err != nil {
 		// Put will log the error itself
@@ -457,7 +456,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := NewContetStore()
 	ok, err := contentStore.Verify(meta)
 	if err != nil {
 		// Error will be logged in Verify

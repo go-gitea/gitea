@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/git/pipeline"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/lfs"
 )
 
@@ -108,7 +107,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			continue
 		}
 
-		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		contentStore := lfs.NewContetStore()
 		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size}
 		exist, _ := contentStore.Exists(meta)
 		if !exist {

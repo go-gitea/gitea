@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/lfs"
 
@@ -432,7 +431,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		contentStore := lfs.NewContetStore()
 		exist, err := contentStore.Exists(lfsMetaObject)
 		if err != nil {
 			return nil, err

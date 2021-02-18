@@ -42,6 +42,11 @@ type ContentStore struct {
 	storage.ObjectStorage
 }
 
+func NewContetStore() *ContentStore {
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	return contentStore
+}
+
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
 func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
@@ -121,6 +126,6 @@ func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := NewContetStore()
 	return contentStore.Get(meta, 0)
 }

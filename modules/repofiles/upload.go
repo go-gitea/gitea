@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/lfs"
 )
 
@@ -165,7 +164,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	// OK now we can insert the data into the store - there's no way to clean up the store
 	// once it's in there, it's in there.
-	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+	contentStore := lfs.NewContetStore()
 	for _, uploadInfo := range infos {
 		if uploadInfo.lfsMetaObject == nil {
 			continue
