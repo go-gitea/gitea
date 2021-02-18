@@ -301,6 +301,8 @@ func setMergeTarget(ctx *context.Context, pull *models.PullRequest) {
 		ctx.Data["HeadTarget"] = pull.MustHeadUserName() + "/" + pull.HeadRepo.Name + ":" + pull.HeadBranch
 	}
 	ctx.Data["BaseTarget"] = pull.BaseBranch
+	ctx.Data["HeadBranchHTMLURL"] = pull.GetHeadBranchHTMLURL()
+	ctx.Data["BaseBranchHTMLURL"] = pull.GetBaseBranchHTMLURL()
 }
 
 // PrepareMergedViewPullInfo show meta information for a merged pull request view page
