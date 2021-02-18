@@ -47,8 +47,7 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
-	ctx.Data["LFS"] = ctx.Query("lfs") == "1"
-	ctx.Data["LFSEndpoint"] = ctx.Query("lfs_endpoint")
+	ctx.Data["lfs"] = ctx.Query("lfs") == "1"
 	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
 	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
 	ctx.Data["labels"] = ctx.Query("labels") == "1"
@@ -166,6 +165,11 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
+	lfsEndpoint := remoteAddr
+	if len(form.LFSEndpoint) > 0 {
+		lfsEndpoint = form.LFSEndpoint
+	}
+
 	var opts = migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: structs.GitServiceType(form.Service),
@@ -175,7 +179,7 @@ func MigratePost(ctx *context.Context) {
 		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
+		LFSEndpoint:    lfsEndpoint,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,

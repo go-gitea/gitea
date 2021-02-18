@@ -128,6 +128,11 @@ func Migrate(ctx *context.APIContext) {
 		return
 	}
 
+	lfsEndpoint := remoteAddr
+	if len(form.LFSEndpoint) > 0 {
+		lfsEndpoint = form.LFSEndpoint
+	}
+
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -135,7 +140,7 @@ func Migrate(ctx *context.APIContext) {
 		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror,
 		LFS:            form.LFS,
-		LFSEndpoint:    form.LFSEndpoint,
+		LFSEndpoint:    lfsEndpoint,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,

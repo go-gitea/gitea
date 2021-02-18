@@ -329,7 +329,7 @@ func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Re
 			continue
 		}
 
-		log.Trace("LFS OID[%s] not present in repository %v", pointer.Oid, repo)
+		log.Trace("LFS OID[%s] not present in repository %s", pointer.Oid, repo.FullName())
 
 		exist, err := contentStore.Exists(pointer)
 		if err != nil {
@@ -343,7 +343,8 @@ func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Re
 
 			stream, err := client.Download(lfsAddr, pointer.Oid, pointer.Size)
 			if err != nil {
-				return err
+				log.Error("LFS OID[%s] failed to download: %v", err)
+				continue
 			}
 			defer stream.Close()
 
@@ -353,6 +354,8 @@ func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Re
 				}
 				return err
 			}
+		} else {
+			log.Trace("LFS OID[%s] already present in content store", pointer.Oid)
 		}
 	}
 
