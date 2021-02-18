@@ -14,7 +14,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -23,10 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/dgrijalva/jwt-go"
-)
-
-const (
-	metaMediaType = "application/vnd.git-lfs+json"
 )
 
 // RequestVars contain variables from the HTTP request. Variables from routing, json body decoding, and
@@ -38,35 +33,6 @@ type RequestVars struct {
 	Password      string
 	Repo          string
 	Authorization string
-}
-
-// BatchVars contains multiple RequestVars processed in one batch operation.
-// https://github.com/git-lfs/git-lfs/blob/master/docs/api/batch.md
-type BatchVars struct {
-	Transfers []string       `json:"transfers,omitempty"`
-	Operation string         `json:"operation"`
-	Objects   []*RequestVars `json:"objects"`
-}
-
-// BatchResponse contains multiple object metadata Representation structures
-// for use with the batch API.
-type BatchResponse struct {
-	Transfer string            `json:"transfer,omitempty"`
-	Objects  []*Representation `json:"objects"`
-}
-
-// Representation is object metadata as seen by clients of the lfs server.
-type Representation struct {
-	Oid     string           `json:"oid"`
-	Size    int64            `json:"size"`
-	Actions map[string]*link `json:"actions"`
-	Error   *ObjectError     `json:"error,omitempty"`
-}
-
-// ObjectError defines the JSON structure returned to the client in case of an error
-type ObjectError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
 }
 
 // Claims is a JWT Token Claims
@@ -85,13 +51,6 @@ func (v *RequestVars) ObjectLink() string {
 // VerifyLink builds a URL for verifying the object.
 func (v *RequestVars) VerifyLink() string {
 	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
-}
-
-// link provides a structure used to build a hypermedia representation of an HTTP link.
-type link struct {
-	Href      string            `json:"href"`
-	Header    map[string]string `json:"header,omitempty"`
-	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
 var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
@@ -528,19 +487,19 @@ func unpack(ctx *context.Context) *RequestVars {
 	}
 
 	if r.Method == "POST" { // Maybe also check if +json
-		var p RequestVars
+		var o LfsObject
 		bodyReader := r.Body
 		defer bodyReader.Close()
 		dec := json.NewDecoder(bodyReader)
-		err := dec.Decode(&p)
+		err := dec.Decode(&o)
 		if err != nil {
 			// The error is logged as a WARN here because this may represent misbehaviour rather than a true error
 			log.Warn("Unable to decode POST request vars for LFS OID[%s] in %s/%s: Error: %v", rv.Oid, rv.User, rv.Repo, err)
 			return rv
 		}
 
-		rv.Oid = p.Oid
-		rv.Size = p.Size
+		rv.Oid = o.Oid
+		rv.Size = o.Size
 	}
 
 	return rv
