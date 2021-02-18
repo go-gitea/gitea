@@ -31,8 +31,6 @@
   .tabs {
     .navbar {
       justify-content: initial;
-      overflow-x: scroll;
-      overflow-y: hidden;
     }
   }
 
@@ -44,10 +42,10 @@
       margin-left: 7px;
       padding: 3px 5px;
     }
+  }
 
-    .active.item {
-      margin-bottom: 0 !important;
-    }
+  .menu.new-menu.navbar {
+    margin-top: -8px !important;
   }
 
   .owner.dropdown {
@@ -2849,12 +2847,16 @@ tbody.commit-list {
   align-items: center;
   justify-content: space-between;
   word-break: break-word;
-  line-height: 32px;
+  line-height: 40px;
   margin: -7px 0;
 
   > * {
     margin: 7px 0;
   }
+}
+
+.repo-icon .svg {
+  margin-top: -4px;
 }
 
 .repo-buttons {

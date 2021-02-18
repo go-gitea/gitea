@@ -1260,20 +1260,8 @@ footer {
   }
 }
 
-.ui.menu.new-menu::after {
-  position: absolute;
-  display: block;
-  background: linear-gradient(to right, transparent, var(--color-navbar) 100%);
-  content: '';
-  right: 0;
-  height: 39px;
-  width: 60px;
-  visibility: visible;
-  pointer-events: none;
-}
-
 .ui.menu.new-menu.shadow-body::after {
-  background: linear-gradient(to right, transparent, var(--color-body) 100%);
+  background: linear-gradient(to right, #ffffff00, var(--color-body) 100%);
 }
 
 .ui.menu.new-menu .item {
@@ -1290,21 +1278,73 @@ footer {
   padding-right: 30px !important;
 }
 
-.ui.menu.new-menu::-webkit-scrollbar {
-  height: 6px;
-  display: none;
+.ui.tabs.container .ui.menu {
+  margin: auto -1em;
+  padding-left: 1em;
+  overflow-x: scroll;
+  overflow-y: hidden;
+
+  .spacer:last-child {
+    min-width: 1em;
+  }
+
+  &::before,
+  &::after {
+    height: 40px !important;
+    margin-top: 1px;
+    border-bottom: 1px solid #d8d8d8;
+  }
+
+  &::before {
+    left: auto !important;
+    margin-left: -1em;
+  }
+
+  &::after {
+    position: sticky !important;
+  }
 }
 
-.ui.menu.new-menu::-webkit-scrollbar-track {
-  background: none !important;
-}
+.ui.tabs.container .ui.menu,
+.ui.menu.new-menu {
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    display: block;
+    min-width: 1em;
+    height: 38px;
+    visibility: visible;
+    pointer-events: none;
+  }
 
-.ui.menu.new-menu::-webkit-scrollbar-thumb {
-  box-shadow: none !important;
-}
+  &::before {
+    background: linear-gradient(to left, #ffffff33, var(--color-navbar) 62.5%);
+    left: 0;
+    z-index: 1;
+  }
 
-.ui.menu.new-menu:hover::-webkit-scrollbar {
-  display: block;
+  &::after {
+    background: linear-gradient(to right, #ffffff33, var(--color-navbar) 62.5%);
+    right: 0;
+  }
+
+  &::-webkit-scrollbar {
+    height: 6px;
+    display: none;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: none !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    box-shadow: none !important;
+  }
+
+  &:hover::-webkit-scrollbar {
+    display: block;
+  }
 }
 
 [v-cloak] {
@@ -1326,7 +1366,7 @@ footer {
   display: flex;
   align-items: center;
   flex: 1;
-  word-break: break-all;
+  word-break: break-word;
   color: var(--color-text-light);
 
   .avatar {
@@ -1335,6 +1375,7 @@ footer {
   }
 
   .labels {
+    margin-top: -.25rem;
     margin-left: .5rem;
 
     > * + * {

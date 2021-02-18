@@ -12,16 +12,16 @@
 					{{else}}
 						{{template "repo/icon" .}}
 					{{end}}
-					<div class="df ac fw">
+					<div class="df fw">
 						<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 						<div class="mx-2">/</div>
 					</div>
-					<div class="df ac fw">
+					<div class="di fw">
 						<a href="{{$.RepoLink}}">{{.Name}}</a>
-						{{if $.PageIsSettings}}
-							<div class="mx-2">/</div><span>{{$.i18n.Tr "repo.settings"}}</span>
-						{{else}}
-							<div class="labels df ac fw">
+						{{- if $.PageIsSettings -}}
+							<div class="di mx-2">/</div><span class="mr-2">{{$.i18n.Tr "repo.settings"}}</span>
+						{{- else -}}
+							<div class="labels dif ac fw vm">
 								{{if .IsTemplate}}
 									{{if .IsPrivate}}
 										<span class="ui basic label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
@@ -115,7 +115,7 @@
 
 				{{if .Permission.CanRead $.UnitTypeExternalTracker}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
-						{{svg "octicon-link-external"}} {{.i18n.Tr "repo.issues"}} </span>
+						{{svg "octicon-link-external"}} {{.i18n.Tr "repo.issues"}}
 					</a>
 				{{end}}
 
@@ -159,6 +159,8 @@
 				{{end}}
 
 				{{template "custom/extra_tabs" .}}
+
+				<div class="spacer"></div>
 			</div>
 		{{end}}
 	</div>
