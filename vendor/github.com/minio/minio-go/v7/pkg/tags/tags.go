@@ -136,12 +136,11 @@ type tagSet struct {
 }
 
 func (tags tagSet) String() string {
-	s := []string{}
+	vals := make(url.Values)
 	for key, value := range tags.tagMap {
-		s = append(s, key+"="+value)
+		vals.Set(key, value)
 	}
-
-	return strings.Join(s, "&")
+	return vals.Encode()
 }
 
 func (tags *tagSet) remove(key string) {

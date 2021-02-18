@@ -2408,18 +2408,23 @@ $(document).ready(async () => {
   });
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown();
+  $('.dropdown:not(.custom)').dropdown({
+    fullTextSearch: 'exact'
+  });
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
       $('.poping.up').popup('hide');
-    }
+    },
+    fullTextSearch: 'exact'
   });
   $('.slide.up.dropdown').dropdown({
-    transition: 'slide up'
+    transition: 'slide up',
+    fullTextSearch: 'exact'
   });
   $('.upward.dropdown').dropdown({
-    direction: 'upward'
+    direction: 'upward',
+    fullTextSearch: 'exact'
   });
   $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
@@ -3465,6 +3470,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
+    fullTextSearch: 'exact',
     fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {

@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 )
 
@@ -68,7 +69,7 @@ func (s *RepositoriesService) ListTree(pid interface{}, opt *ListTreeOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/repository/tree", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +95,7 @@ func (s *RepositoriesService) Blob(pid interface{}, sha string, options ...Reque
 	}
 	u := fmt.Sprintf("projects/%s/repository/blobs/%s", pathEscape(project), url.PathEscape(sha))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -119,7 +120,7 @@ func (s *RepositoriesService) RawBlobContent(pid interface{}, sha string, option
 	}
 	u := fmt.Sprintf("projects/%s/repository/blobs/%s/raw", pathEscape(project), url.PathEscape(sha))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -158,7 +159,7 @@ func (s *RepositoriesService) Archive(pid interface{}, opt *ArchiveOptions, opti
 		u = fmt.Sprintf("%s.%s", u, *opt.Format)
 	}
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -189,7 +190,7 @@ func (s *RepositoriesService) StreamArchive(pid interface{}, w io.Writer, opt *A
 		u = fmt.Sprintf("%s.%s", u, *opt.Format)
 	}
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +235,7 @@ func (s *RepositoriesService) Compare(pid interface{}, opt *CompareOptions, opti
 	}
 	u := fmt.Sprintf("projects/%s/repository/compare", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -282,7 +283,7 @@ func (s *RepositoriesService) Contributors(pid interface{}, opt *ListContributor
 	}
 	u := fmt.Sprintf("projects/%s/repository/contributors", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -316,7 +317,7 @@ func (s *RepositoriesService) MergeBase(pid interface{}, opt *MergeBaseOptions, 
 	}
 	u := fmt.Sprintf("projects/%s/repository/merge_base", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
