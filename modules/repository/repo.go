@@ -123,8 +123,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			}
 		}
 
-		if err = StoreMissingLfsObjectsInRepository(repo, gitRepo, opts.CloneAddr); err != nil {
-			log.Error("Failed to store missing LFS objects for repository: %v", err)
+		if opts.LFS {
+			if err = StoreMissingLfsObjectsInRepository(repo, gitRepo, opts.LFSEndpoint); err != nil {
+				log.Error("Failed to store missing LFS objects for repository: %v", err)
+			}
 		}
 	}
 

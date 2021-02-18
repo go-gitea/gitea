@@ -73,6 +73,8 @@ type MigrateRepoForm struct {
 	// required: true
 	RepoName       string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
 	Description    string `json:"description" binding:"MaxSize(255)"`
 	Wiki           bool   `json:"wiki"`
