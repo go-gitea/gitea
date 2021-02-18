@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -70,30 +71,29 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	buf = buf[:n]
 
 	if setting.LFS.StartServer {
-		meta := lfs.IsPointerFile(&buf)
-		if meta != nil {
-			meta, err = repo.GetLFSMetaObjectByOid(meta.Oid)
+		pointer := lfs_module.TryReadPointerFromBuffer(buf)
+		if pointer != nil {
+			meta, err := repo.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				// return default
 				return "UTF-8", false
 			}
-		}
-		if meta != nil {
-			dataRc, err := lfs.ReadMetaObject(meta)
-			if err != nil {
-				// return default
-				return "UTF-8", false
+			if meta != nil {
+				dataRc, err := lfs.ReadMetaObject(meta)
+				if err != nil {
+					// return default
+					return "UTF-8", false
+				}
+				defer dataRc.Close()
+				buf = make([]byte, 1024)
+				n, err = dataRc.Read(buf)
+				if err != nil {
+					// return default
+					return "UTF-8", false
+				}
+				buf = buf[:n]
 			}
-			defer dataRc.Close()
-			buf = make([]byte, 1024)
-			n, err = dataRc.Read(buf)
-			if err != nil {
-				// return default
-				return "UTF-8", false
-			}
-			buf = buf[:n]
 		}
-
 	}
 
 	encoding, err := charset.DetectEncoding(buf)

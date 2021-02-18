@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/lfs"
 )
@@ -96,8 +97,8 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	if meta, _ := lfs.ReadPointerFile(dataRc); meta != nil {
-		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+	if pointer := lfs_module.TryReadPointer(dataRc); pointer != nil {
+		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 		if meta == nil {
 			return ServeBlob(ctx, blob)
 		}

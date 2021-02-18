@@ -118,3 +118,9 @@ func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
 
 	return true, nil
 }
+
+// ReadMetaObject will read a models.LFSMetaObject and return a reader
+func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	return contentStore.Get(meta, 0)
+}

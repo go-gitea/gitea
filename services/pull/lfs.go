@@ -13,7 +13,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git/pipeline"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/services/lfs"
 )
 
@@ -101,14 +103,22 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs.IsPointerFile(&pointerBuf)
+		pointer := lfs_module.TryReadPointerFromBuffer(pointerBuf)
 		if pointer == nil {
 			continue
 		}
+
+		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size}
+		exist, _ := contentStore.Exists(meta)
+		if !exist {
+			continue
+		}
+
 		// Then we need to check that this pointer is in the db
-		if _, err := pr.HeadRepo.GetLFSMetaObjectByOid(pointer.Oid); err != nil {
+		if _, err := pr.HeadRepo.GetLFSMetaObjectByOid(meta.Oid); err != nil {
 			if err == models.ErrLFSObjectNotExist {
-				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
+				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, meta.Oid, pr.HeadRepo)
 				continue
 			}
 			_ = catFileBatchReader.CloseWithError(err)
@@ -117,8 +127,8 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		pointer.RepositoryID = pr.BaseRepoID
-		if _, err := models.NewLFSMetaObject(pointer); err != nil {
+		meta.RepositoryID = pr.BaseRepoID
+		if _, err := models.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
