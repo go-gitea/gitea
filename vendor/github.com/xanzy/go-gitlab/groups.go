@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -106,7 +107,7 @@ type ListGroupsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/groups.html#list-project-groups
 func (s *GroupsService) ListGroups(opt *ListGroupsOptions, options ...RequestOptionFunc) ([]*Group, *Response, error) {
-	req, err := s.client.NewRequest("GET", "groups", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "groups", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -130,7 +131,7 @@ func (s *GroupsService) GetGroup(gid interface{}, options ...RequestOptionFunc) 
 	}
 	u := fmt.Sprintf("groups/%s", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -173,7 +174,7 @@ type CreateGroupOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#new-group
 func (s *GroupsService) CreateGroup(opt *CreateGroupOptions, options ...RequestOptionFunc) (*Group, *Response, error) {
-	req, err := s.client.NewRequest("POST", "groups", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "groups", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -203,7 +204,7 @@ func (s *GroupsService) TransferGroup(gid interface{}, pid interface{}, options 
 	}
 	u := fmt.Sprintf("groups/%s/projects/%s", pathEscape(group), pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,7 +235,7 @@ func (s *GroupsService) UpdateGroup(gid interface{}, opt *UpdateGroupOptions, op
 	}
 	u := fmt.Sprintf("groups/%s", pathEscape(group))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +259,7 @@ func (s *GroupsService) DeleteGroup(gid interface{}, options ...RequestOptionFun
 	}
 	u := fmt.Sprintf("groups/%s", pathEscape(group))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +278,7 @@ func (s *GroupsService) RestoreGroup(gid interface{}, options ...RequestOptionFu
 	}
 	u := fmt.Sprintf("groups/%s/restore", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -300,7 +301,7 @@ func (s *GroupsService) SearchGroup(query string, options ...RequestOptionFunc) 
 	}
 	q.Search = query
 
-	req, err := s.client.NewRequest("GET", "groups", &q, options)
+	req, err := s.client.NewRequest(http.MethodGet, "groups", &q, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -320,19 +321,21 @@ func (s *GroupsService) SearchGroup(query string, options ...RequestOptionFunc) 
 // https://docs.gitlab.com/ce/api/groups.html#list-a-group-39-s-projects
 type ListGroupProjectsOptions struct {
 	ListOptions
-	Archived                 *bool            `url:"archived,omitempty" json:"archived,omitempty"`
-	Visibility               *VisibilityValue `url:"visibility,omitempty" json:"visibility,omitempty"`
-	OrderBy                  *string          `url:"order_by,omitempty" json:"order_by,omitempty"`
-	Sort                     *string          `url:"sort,omitempty" json:"sort,omitempty"`
-	Search                   *string          `url:"search,omitempty" json:"search,omitempty"`
-	Simple                   *bool            `url:"simple,omitempty" json:"simple,omitempty"`
-	Owned                    *bool            `url:"owned,omitempty" json:"owned,omitempty"`
-	Starred                  *bool            `url:"starred,omitempty" json:"starred,omitempty"`
-	WithIssuesEnabled        *bool            `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
-	WithMergeRequestsEnabled *bool            `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
-	WithShared               *bool            `url:"with_shared,omitempty" json:"with_shared,omitempty"`
-	IncludeSubgroups         *bool            `url:"include_subgroups,omitempty" json:"include_subgroups,omitempty"`
-	WithCustomAttributes     *bool            `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
+	Archived                 *bool             `url:"archived,omitempty" json:"archived,omitempty"`
+	Visibility               *VisibilityValue  `url:"visibility,omitempty" json:"visibility,omitempty"`
+	OrderBy                  *string           `url:"order_by,omitempty" json:"order_by,omitempty"`
+	Sort                     *string           `url:"sort,omitempty" json:"sort,omitempty"`
+	Search                   *string           `url:"search,omitempty" json:"search,omitempty"`
+	Simple                   *bool             `url:"simple,omitempty" json:"simple,omitempty"`
+	Owned                    *bool             `url:"owned,omitempty" json:"owned,omitempty"`
+	Starred                  *bool             `url:"starred,omitempty" json:"starred,omitempty"`
+	WithIssuesEnabled        *bool             `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
+	WithMergeRequestsEnabled *bool             `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
+	WithShared               *bool             `url:"with_shared,omitempty" json:"with_shared,omitempty"`
+	IncludeSubgroups         *bool             `url:"include_subgroups,omitempty" json:"include_subgroups,omitempty"`
+	MinAccessLevel           *AccessLevelValue `url:"min_access_level,omitempty" json:"min_access_level,omitempty"`
+	WithCustomAttributes     *bool             `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
+	WithSecurityReports      *bool             `url:"with_security_reports,omitempty" json:"with_security_reports,omitempty"`
 }
 
 // ListGroupProjects get a list of group projects
@@ -346,7 +349,7 @@ func (s *GroupsService) ListGroupProjects(gid interface{}, opt *ListGroupProject
 	}
 	u := fmt.Sprintf("groups/%s/projects", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -377,7 +380,7 @@ func (s *GroupsService) ListSubgroups(gid interface{}, opt *ListSubgroupsOptions
 	}
 	u := fmt.Sprintf("groups/%s/subgroups", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -409,7 +412,7 @@ func (s *GroupsService) ListDescendantGroups(gid interface{}, opt *ListDescendan
 	}
 	u := fmt.Sprintf("groups/%s/descendant_groups", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -435,7 +438,7 @@ func (s *GroupsService) ListGroupLDAPLinks(gid interface{}, options ...RequestOp
 	}
 	u := fmt.Sprintf("groups/%s/ldap_group_links", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -471,7 +474,7 @@ func (s *GroupsService) AddGroupLDAPLink(gid interface{}, opt *AddGroupLDAPLinkO
 	}
 	u := fmt.Sprintf("groups/%s/ldap_group_links", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -497,7 +500,7 @@ func (s *GroupsService) DeleteGroupLDAPLink(gid interface{}, cn string, options 
 	}
 	u := fmt.Sprintf("groups/%s/ldap_group_links/%s", pathEscape(group), pathEscape(cn))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +525,61 @@ func (s *GroupsService) DeleteGroupLDAPLinkForProvider(gid interface{}, provider
 		pathEscape(cn),
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// ShareGroupWithGroupOptions represents the available ShareGroupWithGroup() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#share-groups-with-groups
+type ShareGroupWithGroupOptions struct {
+	GroupID     *int              `url:"group_id,omitempty" json:"group_id,omitempty"`
+	GroupAccess *AccessLevelValue `url:"group_access,omitempty" json:"group_access,omitempty"`
+	ExpiresAt   *ISOTime          `url:"expires_at,omitempty" json:"expires_at,omitempty"`
+}
+
+// ShareGroupWithGroup shares a group with another group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#create-a-link-to-share-a-group-with-another-group
+func (s *GroupsService) ShareGroupWithGroup(gid interface{}, opt *ShareGroupWithGroupOptions, options ...RequestOptionFunc) (*Group, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/share", pathEscape(group))
+
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := new(Group)
+	resp, err := s.client.Do(req, g)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return g, resp, err
+}
+
+// UnshareGroupFromGroup unshares a group from another group.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#delete-link-sharing-group-with-another-group
+func (s *GroupsService) UnshareGroupFromGroup(gid interface{}, groupID int, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/share/%d", pathEscape(group), groupID)
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +618,7 @@ func (s *GroupsService) GetGroupPushRules(gid interface{}, options ...RequestOpt
 	}
 	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -605,7 +662,7 @@ func (s *GroupsService) AddGroupPushRule(gid interface{}, opt *AddGroupPushRuleO
 	}
 	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -649,7 +706,7 @@ func (s *GroupsService) EditGroupPushRule(gid interface{}, opt *EditGroupPushRul
 	}
 	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -674,7 +731,7 @@ func (s *GroupsService) DeleteGroupPushRule(gid interface{}, options ...RequestO
 	}
 	u := fmt.Sprintf("groups/%s/push_rule", pathEscape(group))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

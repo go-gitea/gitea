@@ -65,7 +65,11 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 
 // ListGPGKeys returns a list of public keys belongs to given user.
 func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
-	sess := x.Where("owner_id=? AND primary_key_id=''", uid)
+	return listGPGKeys(x, uid, listOptions)
+}
+
+func listGPGKeys(e Engine, uid int64, listOptions ListOptions) ([]*GPGKey, error) {
+	sess := e.Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 	}

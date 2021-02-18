@@ -229,6 +229,9 @@ func NewFuncMap() []template.FuncMap {
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
 		},
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
+		},
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
 		},
@@ -371,6 +374,10 @@ func NewFuncMap() []template.FuncMap {
 		"RenderLabels": func(labels []*models.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
+				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+				if label == nil {
+					continue
+				}
 				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
 					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
@@ -794,6 +801,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "diff"
 	case models.ActionPublishRelease:
 		return "tag"
+	case models.ActionPullReviewDismissed:
+		return "x"
 	default:
 		return "question"
 	}

@@ -277,6 +277,10 @@ a.muted:hover,
 
 .ui.menu .item {
   color: var(--color-text);
+
+  .svg {
+    margin-right: .35em;
+  }
 }
 
 .ui.menu .item > .label {
@@ -379,6 +383,11 @@ a.muted:hover,
 .ui.secondary.menu .active.item:hover {
   color: var(--color-text);
   background: var(--color-active);
+}
+
+.ui.secondary.menu.tight .item {
+  padding-left: .85714286em;
+  padding-right: .85714286em;
 }
 
 .ui.menu .dropdown.item .menu {
@@ -1823,6 +1832,10 @@ table th[data-sortt-desc] {
 .ui.button.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
   float: right !important;
+
+  @media (max-width: 480px) {
+    display: none;
+  }
 }
 .ui.selection.dropdown > .search.icon,
 .ui.selection.dropdown > .delete.icon,
@@ -1990,4 +2003,17 @@ table th[data-sortt-desc] {
 .flash-error details code {
   display: block;
   text-align: left;
+}
+
+.truncated-item-container {
+  display: flex !important;
+}
+
+.truncated-item-name {
+  line-height: 2em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: -.5em;
+  margin-bottom: -.5em;
 }

@@ -140,7 +140,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	var c *git.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
 	}
 
 	var latestCommit *git.Commit
@@ -385,7 +385,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
-	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
@@ -395,21 +394,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	isTextFile := base.IsTextFile(buf)
 	isLFSFile := false
-	ctx.Data["IsTextFile"] = isTextFile
-
 	isDisplayingSource := ctx.Query("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
-	isRepresentableAsText := base.IsRepresentableAsText(buf)
-	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
-	if !isRepresentableAsText {
-		// If we can't show plain text, always try to render.
-		isDisplayingSource = false
-		isDisplayingRendered = true
-	}
-	ctx.Data["IsDisplayingSource"] = isDisplayingSource
-	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
-
-	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
@@ -422,7 +408,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 		}
 		if meta != nil {
-			ctx.Data["IsLFSFile"] = true
 			isLFSFile = true
 
 			// OK read the lfs object
@@ -445,14 +430,25 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf = buf[:n]
 
 			isTextFile = base.IsTextFile(buf)
-			ctx.Data["IsTextFile"] = isTextFile
-
 			fileSize = meta.Size
-			ctx.Data["FileSize"] = meta.Size
-			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+			ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 		}
 	}
+
+	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	if !isRepresentableAsText {
+		// If we can't show plain text, always try to render.
+		isDisplayingSource = false
+		isDisplayingRendered = true
+	}
+	ctx.Data["IsLFSFile"] = isLFSFile
+	ctx.Data["FileSize"] = fileSize
+	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
+	ctx.Data["IsDisplayingSource"] = isDisplayingSource
+	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
+	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
+
 	// Check LFS Lock
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
@@ -542,7 +538,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
 		}
-
 	}
 
 	if ctx.Repo.CanEnableEditor() {
@@ -713,7 +708,10 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{Page: pager.Paginater.Current()})
+	items, err := getter(models.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: models.ItemsPerPage,
+	})
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
@@ -744,6 +742,7 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
+	// TODO: need pagination
 	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
