@@ -264,7 +264,7 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 		repo.Name)
 }
 
-// IsBeingMigrated indicates that repository is being migtated
+// IsBeingMigrated indicates that repository is being migrated
 func (repo *Repository) IsBeingMigrated() bool {
 	return repo.Status == RepositoryBeingMigrated
 }
