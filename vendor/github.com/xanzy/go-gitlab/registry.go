@@ -1,7 +1,24 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -17,11 +34,14 @@ type ContainerRegistryService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/container_registry.html
 type RegistryRepository struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Path      string     `json:"path"`
-	Location  string     `json:"location"`
-	CreatedAt *time.Time `json:"created_at"`
+	ID                    int                      `json:"id"`
+	Name                  string                   `json:"name"`
+	Path                  string                   `json:"path"`
+	Location              string                   `json:"location"`
+	CreatedAt             *time.Time               `json:"created_at"`
+	CreatePolicyStartedAt *time.Time               `json:"cleanup_policy_started_at"`
+	TagsCount             int                      `json:"tags_count"`
+	Tags                  []*RegistryRepositoryTag `json:"tags"`
 }
 
 func (s RegistryRepository) String() string {
@@ -51,7 +71,11 @@ func (s RegistryRepositoryTag) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/container_registry.html#list-registry-repositories
-type ListRegistryRepositoriesOptions ListOptions
+type ListRegistryRepositoriesOptions struct {
+	ListOptions
+	Tags      *bool `url:"tags,omitempty" json:"tags,omitempty"`
+	TagsCount *bool `url:"tags_count,omitempty" json:"tags_count,omitempty"`
+}
 
 // ListRegistryRepositories gets a list of registry repositories in a project.
 //
@@ -64,7 +88,7 @@ func (s *ContainerRegistryService) ListRegistryRepositories(pid interface{}, opt
 	}
 	u := fmt.Sprintf("projects/%s/registry/repositories", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -89,7 +113,7 @@ func (s *ContainerRegistryService) DeleteRegistryRepository(pid interface{}, rep
 	}
 	u := fmt.Sprintf("projects/%s/registry/repositories/%d", pathEscape(project), repository)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +142,7 @@ func (s *ContainerRegistryService) ListRegistryRepositoryTags(pid interface{}, r
 		repository,
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,7 +171,7 @@ func (s *ContainerRegistryService) GetRegistryRepositoryTagDetail(pid interface{
 		tagName,
 	)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -176,7 +200,7 @@ func (s *ContainerRegistryService) DeleteRegistryRepositoryTag(pid interface{}, 
 		tagName,
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +238,7 @@ func (s *ContainerRegistryService) DeleteRegistryRepositoryTags(pid interface{},
 		repository,
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, opt, options)
 	if err != nil {
 		return nil, err
 	}

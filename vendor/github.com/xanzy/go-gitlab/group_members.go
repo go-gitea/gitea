@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // GroupMembersService handles communication with the group members
@@ -76,7 +77,7 @@ func (s *GroupsService) ListGroupMembers(gid interface{}, opt *ListGroupMembersO
 	}
 	u := fmt.Sprintf("groups/%s/members", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -102,7 +103,7 @@ func (s *GroupsService) ListAllGroupMembers(gid interface{}, opt *ListGroupMembe
 	}
 	u := fmt.Sprintf("groups/%s/members/all", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -137,7 +138,7 @@ func (s *GroupMembersService) GetGroupMember(gid interface{}, user int, options 
 	}
 	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -151,6 +152,56 @@ func (s *GroupMembersService) GetGroupMember(gid interface{}, user int, options 
 	return gm, resp, err
 }
 
+// BillableGroupMember represents a GitLab billable group member.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+type BillableGroupMember struct {
+	ID             int     `json:"id"`
+	Username       string  `json:"username"`
+	Name           string  `json:"name"`
+	State          string  `json:"state"`
+	AvatarURL      string  `json:"avatar_url"`
+	WebURL         string  `json:"web_url"`
+	Email          string  `json:"email"`
+	LastActivityOn ISOTime `json:"last_activity_on"`
+}
+
+// ListBillableGroupMembersOptions represents the available ListBillableGroupMembers() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+type ListBillableGroupMembersOptions struct {
+	ListOptions
+	Search *string `url:"search,omitempty" json:"search,omitempty"`
+	Sort   *string `url:"sort,omitempty" json:"sort,omitempty"`
+}
+
+// ListBillableGroupMembers Gets a list of group members that count as billable.
+// The list includes members in the subgroup or subproject.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/members.html#list-all-billable-members-of-a-group
+func (s *GroupsService) ListBillableGroupMembers(gid interface{}, opt *ListBillableGroupMembersOptions, options ...RequestOptionFunc) ([]*BillableGroupMember, *Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("groups/%s/billable_members", pathEscape(group))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var bgm []*BillableGroupMember
+	resp, err := s.client.Do(req, &bgm)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return bgm, resp, err
+}
+
 // AddGroupMember adds a user to the list of group members.
 //
 // GitLab API docs:
@@ -162,7 +213,7 @@ func (s *GroupMembersService) AddGroupMember(gid interface{}, opt *AddGroupMembe
 	}
 	u := fmt.Sprintf("groups/%s/members", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -187,7 +238,7 @@ func (s *GroupMembersService) ShareWithGroup(gid interface{}, opt *ShareWithGrou
 	}
 	u := fmt.Sprintf("groups/%s/share", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -212,7 +263,7 @@ func (s *GroupMembersService) DeleteShareWithGroup(gid interface{}, groupID int,
 	}
 	u := fmt.Sprintf("groups/%s/share/%d", pathEscape(group), groupID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +292,7 @@ func (s *GroupMembersService) EditGroupMember(gid interface{}, user int, opt *Ed
 	}
 	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,7 +317,7 @@ func (s *GroupMembersService) RemoveGroupMember(gid interface{}, user int, optio
 	}
 	u := fmt.Sprintf("groups/%s/members/%d", pathEscape(group), user)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
