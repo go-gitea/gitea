@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -72,6 +73,34 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		return repo, fmt.Errorf("Clone: %v", err)
 	}
 
+	if opts.Wiki {
+		wikiPath := models.WikiPath(u.Name, opts.RepoName)
+		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
+		if len(wikiRemotePath) > 0 {
+			if err := util.RemoveAll(wikiPath); err != nil {
+				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+			}
+
+			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:  true,
+				Quiet:   true,
+				Timeout: migrateTimeout,
+				Branch:  "master",
+			}); err != nil {
+				log.Warn("Clone wiki: %v", err)
+				if err := util.RemoveAll(wikiPath); err != nil {
+					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+				}
+			}
+		}
+	}
+
+	gitRepo, err := git.OpenRepository(repoPath)
+	if err != nil {
+		return repo, fmt.Errorf("OpenRepository: %v", err)
+	}
+	defer gitRepo.Close()
+
 	if opts.LFS {
 		lfsFetchDir := filepath.Join(setting.LFS.Path, "tmp")
 		_, err = git.NewCommand("config", "lfs.storage", lfsFetchDir).RunInDir(repoPath)
@@ -79,7 +108,47 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			return repo, fmt.Errorf("Failed `git config lfs.storage lfsFetchDir`: %v", err)
 		}
 
-		_, err = git.NewCommand("lfs", "fetch", opts.CloneAddr).RunInDir(repoPath)
+		excludedPointersPaths := []string{}
+
+		// scan repo for pointer files, exclude those exceeding MaxFileSize from being downloaded
+		if setting.LFS.MaxFileSize > 0 {
+			headBranch, _ := gitRepo.GetHEADBranch()
+			headCommit, _ := gitRepo.GetCommit(headBranch.Name)
+			entries, err := headCommit.Tree.ListEntriesRecursive()
+			if err != nil {
+				return repo, fmt.Errorf("Failed to access git files: %v", err)
+			}
+
+			for _, entry := range entries {
+				entryString, _ := entry.Blob().GetBlobContent()
+
+				if !strings.HasPrefix(entryString, models.LFSMetaFileIdentifier) {
+					continue
+				}
+
+				splitLines := strings.Split(entryString, "\n")
+				if len(splitLines) < 3 {
+					continue
+				}
+
+				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+				if err != nil {
+					continue
+				}
+
+				if size > setting.LFS.MaxFileSize {
+					excludedPointersPaths = append(excludedPointersPaths, entry.Name())
+					log.Info("Denied LFS[%s] download of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", entry.Name(), entry.Blob().Size(), u.Name, repo.Name, setting.LFS.MaxFileSize)
+				}
+			}
+		}
+
+		// fetch LFS files
+		cmd := git.NewCommand("lfs", "fetch", opts.CloneAddr)
+		if len(excludedPointersPaths) > 0 {
+			cmd.AddArguments("--exclude", strings.Join(excludedPointersPaths, ","))
+		}
+		_, err = cmd.RunInDir(repoPath)
 		if err != nil {
 			return repo, fmt.Errorf("Failed `lfs fetch` %s: %v", opts.CloneAddr, err)
 		}
@@ -88,7 +157,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		lfsDst := path.Join(setting.LFS.Path)
 
 		// rename LFS files
-		err := filepath.Walk(lfsSrc, func(path string, info os.FileInfo, err error) error {
+		err = filepath.Walk(lfsSrc, func(path string, info os.FileInfo, err error) error {
 			var relSrcPath = strings.Replace(path, lfsSrc, "", 1)
 			if relSrcPath == "" {
 				return nil
@@ -143,37 +212,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 
 		err = os.RemoveAll(lfsFetchDir)
 		if err != nil {
-			return repo, fmt.Errorf("Failed to remove LFS files %s: %v", repoPath, err)
+			return repo, fmt.Errorf("Failed to delete temporary LFS directories %s: %v", repoPath, err)
 		}
 	}
-
-	if opts.Wiki {
-		wikiPath := models.WikiPath(u.Name, opts.RepoName)
-		wikiRemotePath := WikiRemoteURL(opts.CloneAddr)
-		if len(wikiRemotePath) > 0 {
-			if err := util.RemoveAll(wikiPath); err != nil {
-				return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-			}
-
-			if err = git.CloneWithContext(ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
-			}); err != nil {
-				log.Warn("Clone wiki: %v", err)
-				if err := util.RemoveAll(wikiPath); err != nil {
-					return repo, fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
-				}
-			}
-		}
-	}
-
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return repo, fmt.Errorf("OpenRepository: %v", err)
-	}
-	defer gitRepo.Close()
 
 	repo.IsEmpty, err = gitRepo.IsEmpty()
 	if err != nil {
