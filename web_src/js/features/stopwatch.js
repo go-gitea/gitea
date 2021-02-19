@@ -17,7 +17,58 @@ export async function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
-  if (!stopwatchEl || NotificationSettings.MinTimeout <= 0) {
+  if (!stopwatchEl) {
+    return;
+  }
+
+  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+    // Try to connect to the event source via the shared worker first
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    worker.addEventListener('error', (event) => {
+      console.error(event);
+    });
+    worker.port.onmessageerror = () => {
+      console.error('Unable to deserialize message');
+    };
+    worker.port.postMessage({
+      type: 'start',
+      url: `${window.location.origin}${AppSubUrl}/user/events`,
+    });
+    worker.port.addEventListener('message', (event) => {
+      if (!event.data || !event.data.type) {
+        console.error(event);
+        return;
+      }
+      if (event.data.type === 'stopwatches') {
+        updateStopwatchData(JSON.parse(event.data.data));
+      } else if (event.data.type === 'error') {
+        console.error(event.data);
+      } else if (event.data.type === 'logout') {
+        if (event.data !== 'here') {
+          return;
+        }
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
+        window.location.href = AppSubUrl;
+      }
+    });
+    worker.port.addEventListener('error', (e) => {
+      console.error(e);
+    });
+    worker.port.start();
+    window.addEventListener('beforeunload', () => {
+      worker.port.postMessage({
+        type: 'close',
+      });
+      worker.port.close();
+    });
+
+    return;
+  }
+
+  if (NotificationSettings.MinTimeout <= 0) {
     return;
   }
 
@@ -59,6 +110,10 @@ async function updateStopwatch() {
     updateTimeInterval = null;
   }
 
+  return updateStopwatchData(data);
+}
+
+async function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {

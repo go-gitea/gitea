@@ -2408,18 +2408,23 @@ $(document).ready(async () => {
   });
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown();
+  $('.dropdown:not(.custom)').dropdown({
+    fullTextSearch: 'exact'
+  });
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
       $('.poping.up').popup('hide');
-    }
+    },
+    fullTextSearch: 'exact'
   });
   $('.slide.up.dropdown').dropdown({
-    transition: 'slide up'
+    transition: 'slide up',
+    fullTextSearch: 'exact'
   });
   $('.upward.dropdown').dropdown({
-    direction: 'upward'
+    direction: 'upward',
+    fullTextSearch: 'exact'
   });
   $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
@@ -3198,18 +3203,32 @@ function initVueApp() {
 
 function initIssueTimetracking() {
   $(document).on('click', '.issue-add-time', () => {
-    $('.mini.modal').modal({
+    $('.issue-start-time-modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
+    $('.issue-start-time-modal input').on('keydown', (e) => {
+      if ((e.keyCode || e.key) === 13) {
+        $('#add_time_manual_form').trigger('submit');
+      }
+    });
   });
   $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
     $('#toggle_stopwatch_form').trigger('submit');
   });
   $(document).on('click', '.issue-cancel-time', () => {
     $('#cancel_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', 'button.issue-delete-time', function () {
+    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
+    $(sel).modal({
+      duration: 200,
+      onApprove() {
+        $(`${sel} form`).trigger('submit');
+      }
+    }).modal('show');
   });
 }
 
@@ -3466,6 +3485,7 @@ function initTopicbar() {
   topicDropdown.dropdown({
     allowAdditions: true,
     forceSelection: false,
+    fullTextSearch: 'exact',
     fields: {name: 'description', value: 'data-value'},
     saveRemoteData: false,
     label: {

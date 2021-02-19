@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // PullRequestType defines pull request type
@@ -637,4 +638,28 @@ func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
+}
+
+// GetBaseBranchHTMLURL returns the HTML URL of the base branch
+func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo == nil {
+		return ""
+	}
+	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+}
+
+// GetHeadBranchHTMLURL returns the HTML URL of the head branch
+func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return ""
+	}
+	if pr.HeadRepo == nil {
+		return ""
+	}
+	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }
