@@ -4,17 +4,17 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"code.gitea.io/gitea/modules/timeutil"
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID         int64      `xorm:"pk autoincr"`
-		PullID     int64      `xorm:"BIGINT"`
-		DoerID     int64      `xorm:"BIGINT"`
-		MergeStyle MergeStyle `xorm:"varchar(50)"`
-		Message    string     `xorm:"TEXT"`
+	"xorm.io/xorm"
+)
+
+func addSessionTable(x *xorm.Engine) error {
+	type Session struct {
+		Key         string `xorm:"pk CHAR(16)"`
+		Data        []byte `xorm:"BLOB"`
+		CreatedUnix timeutil.TimeStamp
 	}
-
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	return x.Sync2(new(Session))
 }

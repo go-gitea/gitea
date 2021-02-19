@@ -10,13 +10,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/web"
 )
 
 // AddTimeManually tracks time manually
 func AddTimeManually(c *context.Context) {
-	form := web.GetForm(c).(*auth.AddTimeManuallyForm)
+	form := web.GetForm(c).(*forms.AddTimeManuallyForm)
 	issue := GetActionIssue(c)
 	if c.Written() {
 		return
@@ -47,4 +47,40 @@ func AddTimeManually(c *context.Context) {
 	}
 
 	c.Redirect(url, http.StatusSeeOther)
+}
+
+// DeleteTime deletes tracked time
+func DeleteTime(c *context.Context) {
+	issue := GetActionIssue(c)
+	if c.Written() {
+		return
+	}
+	if !c.Repo.CanUseTimetracker(issue, c.User) {
+		c.NotFound("CanUseTimetracker", nil)
+		return
+	}
+
+	t, err := models.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
+	if err != nil {
+		if models.IsErrNotExist(err) {
+			c.NotFound("time not found", err)
+			return
+		}
+		c.Error(http.StatusInternalServerError, "GetTrackedTimeByID", err.Error())
+		return
+	}
+
+	// only OP or admin may delete
+	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.User.ID != t.UserID) {
+		c.Error(http.StatusForbidden, "not allowed")
+		return
+	}
+
+	if err = models.DeleteTime(t); err != nil {
+		c.ServerError("DeleteTime", err)
+		return
+	}
+
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", models.SecToTime(t.Time)))
+	c.Redirect(issue.HTMLURL())
 }
