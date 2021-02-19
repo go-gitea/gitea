@@ -6,11 +6,9 @@
 package migrations
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -65,6 +63,7 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
+	base.NullDownloader
 	ctx        context.Context
 	client     *github.Client
 	repoOwner  string
@@ -291,7 +290,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
-		r.Assets = append(r.Assets, base.ReleaseAsset{
+		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
+		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            *asset.ID,
 			Name:          *asset.Name,
 			ContentType:   asset.ContentType,
@@ -299,6 +299,37 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,
 			Updated:       asset.UpdatedAt.Time,
+			DownloadFunc: func() (io.ReadCloser, error) {
+				g.sleep()
+				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
+				if err != nil {
+					return nil, err
+				}
+				err = g.RefreshRate()
+				if err != nil {
+					log.Error("g.client.RateLimits: %s", err)
+				}
+				if asset == nil {
+					if redir != "" {
+						g.sleep()
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+						if err != nil {
+							return nil, err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						err1 := g.RefreshRate()
+						if err1 != nil {
+							log.Error("g.client.RateLimits: %s", err1)
+						}
+						if err != nil {
+							return nil, err
+						}
+						return resp.Body, nil
+					}
+					return nil, fmt.Errorf("No release asset found for %d", assetID)
+				}
+				return asset, nil
+			},
 		})
 	}
 	return r
@@ -330,18 +361,6 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	return releases, nil
 }
 
-// GetAsset returns an asset
-func (g *GithubDownloaderV3) GetAsset(_ string, _, id int64) (io.ReadCloser, error) {
-	asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, id, http.DefaultClient)
-	if err != nil {
-		return nil, err
-	}
-	if asset == nil {
-		return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
-	}
-	return asset, nil
-}
-
 // GetIssues returns issues according start and limit
 func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
@@ -363,6 +382,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
+	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
 	g.rate = &resp.Rate
 	for _, issue := range issues {
 		if issue.IsPullRequest() {

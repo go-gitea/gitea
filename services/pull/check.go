@@ -21,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 // prQueue represents a queue to handle update pull request tests
@@ -203,14 +201,13 @@ func InitializePullRequests(ctx context.Context) {
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
 	for _, datum := range data {
-		prID := datum.(string)
-		id := com.StrTo(prID).MustInt64()
+		id, _ := strconv.ParseInt(datum.(string), 10, 64)
 
 		log.Trace("Testing PR ID %d from the pull requests patch checking queue", id)
 
 		pr, err := models.GetPullRequestByID(id)
 		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
+			log.Error("GetPullRequestByID[%s]: %v", datum, err)
 			continue
 		} else if pr.HasMerged {
 			continue

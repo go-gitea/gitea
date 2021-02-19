@@ -8,11 +8,12 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 )
 
 const (
@@ -20,7 +21,8 @@ const (
 )
 
 // OAuthApplicationsPost response for adding a oauth2 application
-func OAuthApplicationsPost(ctx *context.Context, form auth.EditOAuth2ApplicationForm) {
+func OAuthApplicationsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditOAuth2ApplicationForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
@@ -51,7 +53,8 @@ func OAuthApplicationsPost(ctx *context.Context, form auth.EditOAuth2Application
 }
 
 // OAuthApplicationsEdit response for editing oauth2 application
-func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2ApplicationForm) {
+func OAuthApplicationsEdit(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditOAuth2ApplicationForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 

@@ -49,6 +49,25 @@ func GenerateSupport(name string, modelNames, operationIDs []string, opts *GenOp
 	return generator.GenerateSupport(nil)
 }
 
+// GenerateMarkdown documentation for a swagger specification
+func GenerateMarkdown(output string, modelNames, operationIDs []string, opts *GenOpts) error {
+	if output == "." || output == "" {
+		output = "markdown.md"
+	}
+
+	if err := opts.EnsureDefaults(); err != nil {
+		return err
+	}
+	MarkdownSectionOpts(opts, output)
+
+	generator, err := newAppGenerator("", modelNames, operationIDs, opts)
+	if err != nil {
+		return err
+	}
+
+	return generator.GenerateMarkdown()
+}
+
 func newAppGenerator(name string, modelNames, operationIDs []string, opts *GenOpts) (*appGenerator, error) {
 	if err := opts.CheckOpts(); err != nil {
 		return nil, err
@@ -142,7 +161,8 @@ func (a *appGenerator) Generate() error {
 	// templates are now lazy loaded so there is concurrent map access I can't guard
 	if a.GenOpts.IncludeModel {
 		log.Printf("rendering %d models", len(app.Models))
-		for _, mod := range app.Models {
+		for _, md := range app.Models {
+			mod := md
 			mod.IncludeModel = true
 			mod.IncludeValidator = a.GenOpts.IncludeValidator
 			if err := a.GenOpts.renderDefinition(&mod); err != nil {
@@ -153,9 +173,11 @@ func (a *appGenerator) Generate() error {
 
 	if a.GenOpts.IncludeHandler {
 		log.Printf("rendering %d operation groups (tags)", app.OperationGroups.Len())
-		for _, opg := range app.OperationGroups {
+		for _, g := range app.OperationGroups {
+			opg := g
 			log.Printf("rendering %d operations for %s", opg.Operations.Len(), opg.Name)
-			for _, op := range opg.Operations {
+			for _, p := range opg.Operations {
+				op := p
 				if err := a.GenOpts.renderOperation(&op); err != nil {
 					return err
 				}
@@ -190,9 +212,21 @@ func (a *appGenerator) GenerateSupport(ap *GenApp) error {
 	baseImport := a.GenOpts.LanguageOpts.baseImport(a.Target)
 	serverPath := path.Join(baseImport,
 		a.GenOpts.LanguageOpts.ManglePackagePath(a.ServerPackage, defaultServerTarget))
-	app.DefaultImports[importAlias(serverPath)] = serverPath
+
+	pkgAlias := deconflictPkg(importAlias(serverPath), renameServerPackage)
+	app.DefaultImports[pkgAlias] = serverPath
+	app.ServerPackageAlias = pkgAlias
 
 	return a.GenOpts.renderApplication(app)
+}
+
+func (a *appGenerator) GenerateMarkdown() error {
+	app, err := a.makeCodegenApp()
+	if err != nil {
+		return err
+	}
+
+	return a.GenOpts.renderApplication(&app)
 }
 
 func (a *appGenerator) makeSecuritySchemes() GenSecuritySchemes {
@@ -202,7 +236,7 @@ func (a *appGenerator) makeSecuritySchemes() GenSecuritySchemes {
 			requiredSecuritySchemes[scheme] = *req
 		}
 	}
-	return gatherSecuritySchemes(requiredSecuritySchemes, a.Name, a.Principal, a.Receiver)
+	return gatherSecuritySchemes(requiredSecuritySchemes, a.Name, a.Principal, a.Receiver, a.GenOpts.PrincipalIsNullable())
 }
 
 func (a *appGenerator) makeCodegenApp() (GenApp, error) {
@@ -219,9 +253,14 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 
 	baseImport := a.GenOpts.LanguageOpts.baseImport(a.Target)
 	defaultImports := a.GenOpts.defaultImports()
-	imports := a.GenOpts.initImports(a.OperationsPackage)
 
-	log.Println("planning definitions")
+	imports := make(map[string]string, 50)
+	alias := deconflictPkg(a.GenOpts.LanguageOpts.ManglePackageName(a.OperationsPackage, defaultOperationsTarget), renameAPIPackage)
+	imports[alias] = path.Join(
+		baseImport,
+		a.GenOpts.LanguageOpts.ManglePackagePath(a.OperationsPackage, defaultOperationsTarget))
+
+	log.Printf("planning definitions (found: %d)", len(a.Models))
 
 	genModels := make(GenDefinitions, 0, len(a.Models))
 	for mn, m := range a.Models {
@@ -250,7 +289,7 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	}
 	sort.Sort(genModels)
 
-	log.Println("planning operations")
+	log.Printf("planning operations (found: %d)", len(a.Operations))
 
 	genOps := make(GenOperations, 0, len(a.Operations))
 	for operationName, opp := range a.Operations {
@@ -318,15 +357,16 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	}
 	sort.Sort(genOps)
 
-	log.Println("grouping operations into packages")
-
 	opsGroupedByPackage := make(map[string]GenOperations, len(genOps))
 	for _, operation := range genOps {
 		opsGroupedByPackage[operation.PackageAlias] = append(opsGroupedByPackage[operation.PackageAlias], operation)
 	}
 
+	log.Printf("grouping operations into packages (packages: %d)", len(opsGroupedByPackage))
+
 	opGroups := make(GenOperationGroups, 0, len(opsGroupedByPackage))
 	for k, v := range opsGroupedByPackage {
+		log.Printf("operations for package packages %q (found: %d)", k, len(v))
 		sort.Sort(v)
 		// trim duplicate extra schemas within the same package
 		vv := make(GenOperations, 0, len(v))
@@ -368,8 +408,7 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 
 	log.Println("planning meta data and facades")
 
-	var collectedSchemes []string
-	var extraSchemes []string
+	var collectedSchemes, extraSchemes []string
 	for _, op := range genOps {
 		collectedSchemes = concatUnique(collectedSchemes, op.Schemes)
 		extraSchemes = concatUnique(extraSchemes, op.ExtraSchemes)
@@ -395,31 +434,36 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			Copyright:        a.GenOpts.Copyright,
 			TargetImportPath: baseImport,
 		},
-		APIPackage:          a.GenOpts.LanguageOpts.ManglePackageName(a.ServerPackage, defaultServerTarget),
-		Package:             a.Package,
-		ReceiverName:        receiver,
-		Name:                a.Name,
-		Host:                host,
-		BasePath:            basePath,
-		Schemes:             schemeOrDefault(collectedSchemes, a.DefaultScheme),
-		ExtraSchemes:        extraSchemes,
-		ExternalDocs:        sw.ExternalDocs,
-		Info:                sw.Info,
-		Consumes:            consumes,
-		Produces:            produces,
-		DefaultConsumes:     a.DefaultConsumes,
-		DefaultProduces:     a.DefaultProduces,
-		DefaultImports:      defaultImports,
-		Imports:             imports,
-		SecurityDefinitions: security,
-		Models:              genModels,
-		Operations:          genOps,
-		OperationGroups:     opGroups,
-		Principal:           a.GenOpts.PrincipalAlias(),
-		SwaggerJSON:         generateReadableSpec(jsonb),
-		FlatSwaggerJSON:     generateReadableSpec(flatjsonb),
-		ExcludeSpec:         a.GenOpts.ExcludeSpec,
-		GenOpts:             a.GenOpts,
+		APIPackage:           a.GenOpts.LanguageOpts.ManglePackageName(a.ServerPackage, defaultServerTarget),
+		APIPackageAlias:      alias,
+		Package:              a.Package,
+		ReceiverName:         receiver,
+		Name:                 a.Name,
+		Host:                 host,
+		BasePath:             basePath,
+		Schemes:              schemeOrDefault(collectedSchemes, a.DefaultScheme),
+		ExtraSchemes:         extraSchemes,
+		ExternalDocs:         trimExternalDoc(sw.ExternalDocs),
+		Tags:                 trimTags(sw.Tags),
+		Info:                 trimInfo(sw.Info),
+		Consumes:             consumes,
+		Produces:             produces,
+		DefaultConsumes:      a.DefaultConsumes,
+		DefaultProduces:      a.DefaultProduces,
+		DefaultImports:       defaultImports,
+		Imports:              imports,
+		SecurityDefinitions:  security,
+		SecurityRequirements: securityRequirements(a.SpecDoc.Spec().Security), // top level securityRequirements
+		Models:               genModels,
+		Operations:           genOps,
+		OperationGroups:      opGroups,
+		Principal:            a.GenOpts.PrincipalAlias(),
+		SwaggerJSON:          generateReadableSpec(jsonb),
+		FlatSwaggerJSON:      generateReadableSpec(flatjsonb),
+		ExcludeSpec:          a.GenOpts.ExcludeSpec,
+		GenOpts:              a.GenOpts,
+
+		PrincipalIsNullable: a.GenOpts.PrincipalIsNullable(),
 	}, nil
 }
 
@@ -437,4 +481,53 @@ func generateReadableSpec(spec []byte) string {
 		}
 	}
 	return buf.String()
+}
+
+func trimExternalDoc(in *spec.ExternalDocumentation) *spec.ExternalDocumentation {
+	if in == nil {
+		return nil
+	}
+
+	return &spec.ExternalDocumentation{
+		URL:         in.URL,
+		Description: trimBOM(in.Description),
+	}
+}
+
+func trimInfo(in *spec.Info) *spec.Info {
+	if in == nil {
+		return nil
+	}
+
+	return &spec.Info{
+		InfoProps: spec.InfoProps{
+			Contact:        in.Contact,
+			Title:          trimBOM(in.Title),
+			Description:    trimBOM(in.Description),
+			TermsOfService: trimBOM(in.TermsOfService),
+			License:        in.License,
+			Version:        in.Version,
+		},
+		VendorExtensible: in.VendorExtensible,
+	}
+}
+
+func trimTags(in []spec.Tag) []spec.Tag {
+	if in == nil {
+		return nil
+	}
+
+	tags := make([]spec.Tag, 0, len(in))
+
+	for _, tag := range in {
+		tags = append(tags, spec.Tag{
+			TagProps: spec.TagProps{
+				Name:         tag.Name,
+				Description:  trimBOM(tag.Description),
+				ExternalDocs: trimExternalDoc(tag.ExternalDocs),
+			},
+		})
+	}
+
+	return tags
 }

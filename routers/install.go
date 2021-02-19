@@ -5,24 +5,29 @@
 package routers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
-	"github.com/unknwon/com"
+	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
 )
 
@@ -33,17 +38,40 @@ const (
 )
 
 // InstallInit prepare for rendering installation page
-func InstallInit(ctx *context.Context) {
-	if setting.InstallLock {
-		ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-		ctx.HTML(200, tplPostInstall)
-		return
-	}
+func InstallInit(next http.Handler) http.Handler {
+	var rnd = templates.HTMLRenderer()
 
-	ctx.Data["Title"] = ctx.Tr("install.install")
-	ctx.Data["PageIsInstall"] = true
-
-	ctx.Data["DbOptions"] = setting.SupportedDatabases
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		if setting.InstallLock {
+			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
+			return
+		}
+		var locale = middleware.Locale(resp, req)
+		var startTime = time.Now()
+		var ctx = context.Context{
+			Resp:    context.NewResponse(resp),
+			Flash:   &middleware.Flash{},
+			Locale:  locale,
+			Render:  rnd,
+			Session: session.GetSession(req),
+			Data: map[string]interface{}{
+				"Title":         locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"DbOptions":     setting.SupportedDatabases,
+				"i18n":          locale,
+				"Language":      locale.Language(),
+				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+				"PageStartTime": startTime,
+				"TmplLoadTimes": func() string {
+					return time.Since(startTime).String()
+				},
+				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
+			},
+		}
+		ctx.Req = context.WithContext(req, &ctx)
+		next.ServeHTTP(resp, ctx.Req)
+	})
 }
 
 // Install render installation page
@@ -115,13 +143,15 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
+	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
-	auth.AssignForm(form, ctx.Data)
+	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
 }
 
 // InstallPost response for submit install items
-func InstallPost(ctx *context.Context, form auth.InstallForm) {
+func InstallPost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
@@ -156,6 +186,8 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	setting.Database.SSLMode = form.SSLMode
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
+
+	setting.PasswordHashAlgo = form.PasswordAlgorithm
 
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
@@ -294,7 +326,7 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("true")
 	} else {
 		cfg.Section("server").Key("DISABLE_SSH").SetValue("false")
-		cfg.Section("server").Key("SSH_PORT").SetValue(com.ToStr(form.SSHPort))
+		cfg.Section("server").Key("SSH_PORT").SetValue(fmt.Sprint(form.SSHPort))
 	}
 
 	if form.LFSRootPath != "" {
@@ -319,22 +351,22 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	} else {
 		cfg.Section("mailer").Key("ENABLED").SetValue("false")
 	}
-	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(com.ToStr(form.RegisterConfirm))
-	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(com.ToStr(form.MailNotify))
+	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(fmt.Sprint(form.RegisterConfirm))
+	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
-	cfg.Section("server").Key("OFFLINE_MODE").SetValue(com.ToStr(form.OfflineMode))
-	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(com.ToStr(form.DisableGravatar))
-	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(com.ToStr(form.EnableFederatedAvatar))
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(com.ToStr(form.EnableOpenIDSignIn))
-	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(com.ToStr(form.EnableOpenIDSignUp))
-	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(com.ToStr(form.DisableRegistration))
-	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(com.ToStr(form.AllowOnlyExternalRegistration))
-	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(com.ToStr(form.EnableCaptcha))
-	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(com.ToStr(form.RequireSignInView))
-	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(com.ToStr(form.DefaultKeepEmailPrivate))
-	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(com.ToStr(form.DefaultAllowCreateOrganization))
-	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(com.ToStr(form.DefaultEnableTimetracking))
-	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(com.ToStr(form.NoReplyAddress))
+	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
+	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(fmt.Sprint(form.DisableGravatar))
+	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
+	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))
+	cfg.Section("service").Key("DISABLE_REGISTRATION").SetValue(fmt.Sprint(form.DisableRegistration))
+	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(fmt.Sprint(form.AllowOnlyExternalRegistration))
+	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(fmt.Sprint(form.EnableCaptcha))
+	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(fmt.Sprint(form.RequireSignInView))
+	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(fmt.Sprint(form.DefaultKeepEmailPrivate))
+	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
+	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
+	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
@@ -343,8 +375,6 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 	cfg.Section("log").Key("MODE").SetValue("console")
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
-	cfg.Section("log").Key("MACARON").SetValue("console")
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
@@ -354,6 +384,9 @@ func InstallPost(ctx *context.Context, form auth.InstallForm) {
 		return
 	}
 	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+	if len(form.PasswordAlgorithm) > 0 {
+		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
+	}
 
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {

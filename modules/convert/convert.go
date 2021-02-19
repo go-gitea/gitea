@@ -17,8 +17,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/webhook"
-
-	"github.com/unknwon/com"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
@@ -169,7 +167,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:          key.ID,
 		Key:         key.Content,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Fingerprint: key.Fingerprint,
 		Created:     key.CreatedUnix.AsTime(),
@@ -263,7 +261,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		KeyID:       key.KeyID,
 		Key:         key.Content,
 		Fingerprint: key.Fingerprint,
-		URL:         apiLink + com.ToStr(key.ID),
+		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
 		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.

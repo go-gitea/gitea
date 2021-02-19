@@ -16,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-
-	"github.com/unknwon/com"
 )
 
 // Search search users
@@ -62,7 +60,7 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchUserOptions{
 		Keyword:                  strings.Trim(ctx.Query("q"), " "),
-		UID:                      com.StrTo(ctx.Query("uid")).MustInt64(),
+		UID:                      ctx.QueryInt64("uid"),
 		Type:                     models.UserTypeIndividual,
 		ListOptions:              listOptions,
 		OnlyUsersWithPublicRepos: setting.UI.Explore.OnlyShowUsersWithPublicRepos && !ctx.IsSigned,
@@ -111,13 +109,8 @@ func GetInfo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
+	u := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -157,18 +150,12 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// Get the user to throw an error if it does not exist
-	user, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Status(http.StatusNotFound)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
+	user := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	heatmap, err := models.GetUserHeatmapDataByUser(user)
+	heatmap, err := models.GetUserHeatmapDataByUser(user, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserHeatmapDataByUser", err)
 		return

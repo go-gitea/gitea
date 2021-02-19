@@ -1,4 +1,6 @@
-NRL License COPYRIGHT NOTICE
+NRL License
+
+COPYRIGHT NOTICE
 
 All of the documentation and software included in this software distribution
 from the US Naval Research Laboratory (NRL) are copyrighted by their respective
@@ -17,30 +19,25 @@ people. Those developers have each copyrighted the portions that they developed
 at NRL and have assigned All Rights for those portions to NRL. Outside the
 USA, NRL has copyright on some of the software developed at NRL. The affected
 files all contain specific copyright notices and those notices must be retained
-in any derived work. NRL LICENSE
+in any derived work.
+
+NRL LICENSE
 
 NRL grants permission for redistribution and use in source and binary forms,
 with or without modification, of the software and documentation created at
 NRL provided that the following conditions are met:
 
-   1. All terms of the UC Berkeley copyright and license must be followed.
-
+     1. All terms of the UC Berkeley copyright and license must be followed.
 2. Redistributions of source code must retain the above copyright notice,
 this list of conditions and the following disclaimer.
-
 3. Redistributions in binary form must reproduce the above copyright notice,
 this list of conditions and the following disclaimer in the documentation
 and/or other materials provided with the distribution.
-
 4. All advertising materials mentioning features or use of this software must
 display the following acknowledgements:
 
-      
-
 This product includes software developed by the University of California,
 Berkeley and its contributors.
-
-      
 
 This product includes software developed at the Information Technology Division,
 US Naval Research Laboratory.

@@ -104,9 +104,23 @@ func (c Client) GetObject(ctx context.Context, bucketName, objectName string, op
 						// reached our EOF.
 						size, err := readFull(httpReader, req.Buffer)
 						if size > 0 && err == io.ErrUnexpectedEOF {
-							// If an EOF happens after reading some but not
-							// all the bytes ReadFull returns ErrUnexpectedEOF
-							err = io.EOF
+							if int64(size) < objectInfo.Size {
+								// In situations when returned size
+								// is less than the expected content
+								// length set by the server, make sure
+								// we return io.ErrUnexpectedEOF
+								err = io.ErrUnexpectedEOF
+							} else {
+								// If an EOF happens after reading some but not
+								// all the bytes ReadFull returns ErrUnexpectedEOF
+								err = io.EOF
+							}
+						} else if size == 0 && err == io.EOF && objectInfo.Size > 0 {
+							// Special cases when server writes more data
+							// than the content-length, net/http response
+							// body returns an error, instead of converting
+							// it to io.EOF - return unexpected EOF.
+							err = io.ErrUnexpectedEOF
 						}
 						// Send back the first response.
 						resCh <- getResponse{

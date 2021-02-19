@@ -33,7 +33,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 
 	bufReader := bufio.NewReader(stdoutReader)
 	// ignore the SHA
-	_, typ, _, err := ReadBatchLine(bufReader)
+	_, typ, size, err := ReadBatchLine(bufReader)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	switch typ {
 	case "tag":
 		resolvedID := id
-		data, err := ioutil.ReadAll(bufReader)
+		data, err := ioutil.ReadAll(io.LimitReader(bufReader, size))
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +57,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 		log("tag.commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
 		return &commit.Tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, bufReader)
+		commit, err := CommitFromReader(repo, id, io.LimitReader(bufReader, size))
 		if err != nil {
 			_ = stdoutReader.CloseWithError(err)
 			return nil, err

@@ -10,17 +10,17 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
-	"github.com/unknwon/com"
 	"xorm.io/xorm/convert"
 )
 
@@ -178,6 +178,7 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 		ClientSecret:                  form.Oauth2Secret,
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
+		IconURL:                       form.Oauth2IconURL,
 	}
 }
 
@@ -206,7 +207,8 @@ func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*model
 }
 
 // NewAuthSourcePost response for adding an auth source
-func NewAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
+func NewAuthSourcePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
@@ -312,7 +314,8 @@ func EditAuthSource(ctx *context.Context) {
 }
 
 // EditAuthSourcePost response for editing auth source
-func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
+func EditAuthSourcePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
@@ -373,7 +376,7 @@ func EditAuthSourcePost(ctx *context.Context, form auth.AuthenticationForm) {
 	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + com.ToStr(form.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + fmt.Sprint(form.ID))
 }
 
 // DeleteAuthSource response for deleting an auth source

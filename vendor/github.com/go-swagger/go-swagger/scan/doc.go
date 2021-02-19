@@ -16,6 +16,8 @@
 
 /*Package scan provides a scanner for go files that produces a swagger spec document.
 
+This package is intended for pre-go1.11 versions, and does not support go modules.
+
 You give it a main file and it will parse all the files that are required by that main
 package to produce a swagger specification.
 

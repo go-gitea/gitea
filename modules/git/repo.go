@@ -15,8 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/unknwon/com"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -309,21 +307,24 @@ func parseSize(objects string) *CountObject {
 	for _, line := range strings.Split(objects, "\n") {
 		switch {
 		case strings.HasPrefix(line, statCount):
-			repoSize.Count = com.StrTo(line[7:]).MustInt64()
+			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSize):
-			repoSize.Size = com.StrTo(line[6:]).MustInt64() * 1024
+			repoSize.Size, _ = strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size *= 1024
 		case strings.HasPrefix(line, statInpack):
-			repoSize.InPack = com.StrTo(line[9:]).MustInt64()
+			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statPacks):
-			repoSize.Packs = com.StrTo(line[7:]).MustInt64()
+			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSizePack):
-			repoSize.SizePack = com.StrTo(line[11:]).MustInt64() * 1024
+			repoSize.Count, _ = strconv.ParseInt(line[11:], 10, 64)
+			repoSize.Count *= 1024
 		case strings.HasPrefix(line, statPrunePackage):
-			repoSize.PrunePack = com.StrTo(line[16:]).MustInt64()
+			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
 		case strings.HasPrefix(line, statGarbage):
-			repoSize.Garbage = com.StrTo(line[9:]).MustInt64()
+			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statSizeGarbage):
-			repoSize.SizeGarbage = com.StrTo(line[14:]).MustInt64() * 1024
+			repoSize.SizeGarbage, _ = strconv.ParseInt(line[14:], 10, 64)
+			repoSize.SizeGarbage *= 1024
 		}
 	}
 	return repoSize

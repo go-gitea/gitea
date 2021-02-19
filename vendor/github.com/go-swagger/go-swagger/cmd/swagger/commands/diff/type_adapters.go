@@ -1,8 +1,6 @@
 package diff
 
 import (
-	"fmt"
-
 	"github.com/go-openapi/spec"
 )
 
@@ -32,8 +30,28 @@ func forItems(items *spec.Items) *spec.Schema {
 	return &schema
 }
 
-func forParam(param spec.Parameter) spec.SchemaProps {
-	return spec.SchemaProps{
+func forHeader(header spec.Header) *spec.SchemaProps {
+	return &spec.SchemaProps{
+		Type:             []string{header.Type},
+		Format:           header.Format,
+		Items:            &spec.SchemaOrArray{Schema: forItems(header.Items)},
+		Maximum:          header.Maximum,
+		ExclusiveMaximum: header.ExclusiveMaximum,
+		Minimum:          header.Minimum,
+		ExclusiveMinimum: header.ExclusiveMinimum,
+		MaxLength:        header.MaxLength,
+		MinLength:        header.MinLength,
+		Pattern:          header.Pattern,
+		MaxItems:         header.MaxItems,
+		MinItems:         header.MinItems,
+		UniqueItems:      header.UniqueItems,
+		MultipleOf:       header.MultipleOf,
+		Enum:             header.Enum,
+	}
+}
+
+func forParam(param spec.Parameter) *spec.SchemaProps {
+	return &spec.SchemaProps{
 		Type:             []string{param.Type},
 		Format:           param.Format,
 		Items:            &spec.SchemaOrArray{Schema: forItems(param.Items)},
@@ -95,76 +113,51 @@ func getURLMethodsFor(spec *spec.Swagger) URLMethods {
 	return returnURLMethods
 }
 
-func sliceToStrMap(elements []string) map[string]bool {
-	elementMap := make(map[string]bool)
-	for _, s := range elements {
-		elementMap[s] = true
-	}
-	return elementMap
-}
-
 func isStringType(typeName string) bool {
 	return typeName == "string" || typeName == "password"
 }
 
-const objType = "obj"
+// SchemaFromRefFn define this to get a schema for a ref
+type SchemaFromRefFn func(spec.Ref) (*spec.Schema, string)
 
-func getTypeHierarchyChange(type1, type2 string) TypeDiff {
-	if type1 == type2 {
-		return TypeDiff{Change: NoChangeDetected, Description: ""}
+func propertiesFor(schema *spec.Schema, getRefFn SchemaFromRefFn) PropertyMap {
+	if isRefType(schema) {
+		schema, _ = getRefFn(schema.Ref)
 	}
-	fromType := type1
-	if fromType == "" {
-		fromType = objType
+	props := PropertyMap{}
+
+	requiredProps := schema.Required
+	requiredMap := map[string]bool{}
+	for _, prop := range requiredProps {
+		requiredMap[prop] = true
 	}
-	toType := type2
-	if toType == "" {
-		toType = objType
-	}
-	diffDescription := fmt.Sprintf("%s -> %s", fromType, toType)
-	if isStringType(type1) && !isStringType(type2) {
-		return TypeDiff{Change: NarrowedType, Description: diffDescription}
-	}
-	if !isStringType(type1) && isStringType(type2) {
-		return TypeDiff{Change: WidenedType, Description: diffDescription}
-	}
-	type1Wideness, type1IsNumeric := numberWideness[type1]
-	type2Wideness, type2IsNumeric := numberWideness[type2]
-	if type1IsNumeric && type2IsNumeric {
-		if type1Wideness == type2Wideness {
-			return TypeDiff{Change: ChangedToCompatibleType, Description: diffDescription}
-		}
-		if type1Wideness > type2Wideness {
-			return TypeDiff{Change: NarrowedType, Description: diffDescription}
-		}
-		if type1Wideness < type2Wideness {
-			return TypeDiff{Change: WidenedType, Description: diffDescription}
+
+	if schema.Properties != nil {
+		for name, prop := range schema.Properties {
+			prop := prop
+			required := requiredMap[name]
+			props[name] = PropertyDefn{Schema: &prop, Required: required}
 		}
 	}
-	return TypeDiff{Change: ChangedType, Description: diffDescription}
+	for _, e := range schema.AllOf {
+		eachAllOf := e
+		allOfMap := propertiesFor(&eachAllOf, getRefFn)
+		for name, prop := range allOfMap {
+			props[name] = prop
+		}
+	}
+	return props
 }
 
-func compareFloatValues(fieldName string, val1 *float64, val2 *float64, ifGreaterCode SpecChangeCode, ifLessCode SpecChangeCode) TypeDiff {
-	if val1 != nil && val2 != nil {
-		if *val2 > *val1 {
-			return TypeDiff{Change: ifGreaterCode, Description: fmt.Sprintf("%s %f->%f", fieldName, *val1, *val2)}
-		}
-		if *val2 < *val1 {
-			return TypeDiff{Change: ifLessCode, Description: fmt.Sprintf("%s %f->%f", fieldName, *val1, *val2)}
-		}
+func getRef(item interface{}) spec.Ref {
+	switch s := item.(type) {
+	case *spec.Refable:
+		return s.Ref
+	case *spec.Schema:
+		return s.Ref
+	case *spec.SchemaProps:
+		return s.Ref
+	default:
+		return spec.Ref{}
 	}
-	return TypeDiff{Change: NoChangeDetected, Description: ""}
-}
-
-func compareIntValues(fieldName string, val1 *int64, val2 *int64, ifGreaterCode SpecChangeCode, ifLessCode SpecChangeCode) TypeDiff {
-	if val1 != nil && val2 != nil {
-		if *val2 > *val1 {
-			return TypeDiff{Change: ifGreaterCode, Description: fmt.Sprintf("%s %d->%d", fieldName, *val1, *val2)}
-		}
-		if *val2 < *val1 {
-			return TypeDiff{Change: ifLessCode, Description: fmt.Sprintf("%s %d->%d", fieldName, *val1, *val2)}
-		}
-
-	}
-	return TypeDiff{Change: NoChangeDetected, Description: ""}
 }
