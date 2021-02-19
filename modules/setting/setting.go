@@ -25,11 +25,13 @@ import (
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
+	"golang.org/x/crypto/bcrypt"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
@@ -161,6 +163,34 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	PasswordUpdateAlgoToCurrent        bool
+
+	// BCryptParams stores parameters for bcrypt algo
+	BCryptParams = structs.CryptBCrypt{
+		Cost: bcrypt.DefaultCost,
+	}
+
+	// SCryptParams stores parameters for scrypt algo
+	SCryptParams = structs.CryptSCrypt{
+		N:         65536,
+		R:         16,
+		P:         2,
+		KeyLength: 50,
+	}
+
+	// Argon2Params stores params for argon2 algo
+	Argon2Params = structs.CryptArgon2{
+		Iterations:  2,
+		Memory:      65536,
+		Parallelism: 8,
+		KeyLength:   50,
+	}
+
+	// Pbkdf2Params stores parameters for pbkdf2 algo
+	Pbkdf2Params = structs.CryptPbkdf2{
+		Iterations: 10000,
+		KeyLength:  50,
+	}
 
 	// UI settings
 	UI = struct {

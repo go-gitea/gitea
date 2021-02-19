@@ -136,13 +136,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 31})
 
 	testUserSuccess(&SearchUserOptions{ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
 	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28, 29, 30})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28, 29, 30, 31})
 
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -241,6 +241,66 @@ func TestHashPasswordDeterministic(t *testing.T) {
 			assert.True(t, u.ValidatePassword(pass))
 		}
 	}
+}
+
+func TestOldPasswordMatchAndUpdate(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	u := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+
+	setting.PasswordHashAlgo = algoArgon2
+
+	matchingPass := "password"
+	oldPass := u.Passwd
+
+	// Without update function
+	setting.PasswordUpdateAlgoToCurrent = false
+	validates := u.ValidatePassword(matchingPass)
+	newPass := u.Passwd
+	// Should match with old algo
+	assert.True(t, validates)
+	// Should not be updated to new format
+	assert.Equal(t, oldPass, newPass)
+
+	// With update function
+	setting.PasswordUpdateAlgoToCurrent = true
+	validates = u.ValidatePassword(matchingPass)
+	newPass = u.Passwd
+
+	// Should match with old algo
+	assert.True(t, validates)
+	// Should be updated to new format
+	assert.NotEqual(t, oldPass, newPass)
+}
+
+func TestNewPasswordMatch(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	u := AssertExistsAndLoadBean(t, &User{ID: 31}).(*User)
+
+	setting.PasswordHashAlgo = algoArgon2
+
+	matchingPass := "password"
+	oldPass := u.Passwd
+
+	// Without update function
+	setting.PasswordUpdateAlgoToCurrent = false
+	validates := u.ValidatePassword(matchingPass)
+	newPass := u.Passwd
+
+	// Should match
+	assert.True(t, validates)
+	// Should not be updated
+	assert.Equal(t, oldPass, newPass)
+
+	// With update function and different default HashAlgo
+	setting.PasswordUpdateAlgoToCurrent = true
+	setting.PasswordHashAlgo = algoBcrypt
+	passwordMatches := u.ValidatePassword(matchingPass)
+	newPass = u.Passwd
+
+	// Should match
+	assert.True(t, passwordMatches)
+	// Should not be updated
+	assert.NotEqual(t, oldPass, newPass)
 }
 
 func BenchmarkHashPassword(b *testing.B) {
