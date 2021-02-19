@@ -7,7 +7,6 @@ package lfs
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -146,8 +145,7 @@ func getContentHandler(ctx *context.Context) {
 	contentStore := lfs_module.NewContentStore()
 	content, err := contentStore.Get(meta.AsPointer(), fromByte)
 	if err != nil {
-		var rerr *lfs_module.ErrRangeNotSatisfiable
-		if errors.As(err, &rerr) {
+		if lfs_module.IsErrRangeNotSatisfiable(err) {
 			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
 		} else {
 			// Errors are logged in contentStore.Get

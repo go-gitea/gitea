@@ -29,6 +29,12 @@ type ErrRangeNotSatisfiable struct {
 	FromByte int64
 }
 
+// IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
+func IsErrRangeNotSatisfiable(err error) bool {
+	_, ok := err.(ErrRangeNotSatisfiable)
+	return ok
+}
+
 func (err ErrRangeNotSatisfiable) Error() string {
 	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
 }
