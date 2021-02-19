@@ -542,4 +542,5 @@
   avatar: avatar29
   avatar_email: user30@example.com
   num_repos: 2
+  num_public_repos: 2
   is_active: true
