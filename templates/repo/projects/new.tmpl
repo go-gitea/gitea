@@ -29,8 +29,8 @@
 					<input name="title" placeholder="{{.i18n.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 				</div>
 				<div class="field">
-					<label>{{.i18n.Tr "repo.projects.desc"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					<label>{{.i18n.Tr "repo.projects.description"}}</label>
+					<textarea name="content" placeholder="{{.i18n.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
 				</div>
 
 				{{if not .PageIsEditProjects}}

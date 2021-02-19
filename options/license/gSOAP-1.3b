@@ -1,10 +1,12 @@
 gSOAP Public License
 
-Version 1.3b The gSOAP public license is derived from the Mozilla Public License
-(MPL1.1). The sections that were deleted from the original MPL1.1 text are
-1.0.1, 2.1.(c),(d), 2.2.(c),(d), 8.2.(b), 10, and 11. Section 3.8 was added.
-The modified sections are 2.1.(b), 2.2.(b), 3.2 (simplified), 3.5 (deleted
-the last sentence), and 3.6 (simplified).
+Version 1.3b
+
+The gSOAP public license is derived from the Mozilla Public License (MPL1.1).
+The sections that were deleted from the original MPL1.1 text are 1.0.1, 2.1.(c),(d),
+2.2.(c),(d), 8.2.(b), 10, and 11. Section 3.8 was added. The modified sections
+are 2.1.(b), 2.2.(b), 3.2 (simplified), 3.5 (deleted the last sentence), and
+3.6 (simplified).
 
 This license applies to the gSOAP software package, with the exception of
 the soapcpp2 and wsdl2h source code located in gsoap/src and gsoap/wsdl, all
@@ -13,10 +15,9 @@ the Web server sample source code samples/webserver. To use any of these softwar
 tools and components commercially, a commercial license is required and can
 be obtained from www.genivia.com.
 
-   1 DEFINITIONS.
+1  DEFINITIONS.
 
-      1.0.1.
-
+1.0.1.
 1.1. "Contributor" means each entity that creates or contributes to the creation
 of Modifications.
 
@@ -30,7 +31,7 @@ of the Original Code, and Modifications, in each case including portions thereof
 1.4. "Electronic Distribution Mechanism" means a mechanism generally accepted
 in the software development community for the electronic transfer of data.
 
-      1.5. "Executable" means Covered Code in any form other than Source Code.
+     1.5. "Executable" means Covered Code in any form other than Source Code.
 
 1.6. "Initial Developer" means the individual or entity identified as the
 Initial Developer in the Source Code notice required by Exhibit A.
@@ -38,7 +39,7 @@ Initial Developer in the Source Code notice required by Exhibit A.
 1.7. "Larger Work" means a work which combines Covered Code or portions thereof
 with code not governed by the terms of this License.
 
-      1.8. "License" means this document.
+     1.8. "License" means this document.
 
 1.8.1. "Licensable" means having the right to grant, to the maximum extent
 possible, whether at the time of the initial grant or subsequently acquired,
@@ -47,11 +48,10 @@ any and all of the rights conveyed herein.
 1.9. "Modifications" means any addition to or deletion from the substance
 or structure of either the Original Code or any previous Modifications. When
 Covered Code is released as a series of files, a Modification is:
-
-A. Any addition to or deletion from the contents of a file containing Original
+A.  Any addition to or deletion from the contents of a file containing Original
 Code or previous Modifications.
-
-B. Any new file that contains any part of the Original Code, or previous Modifications.
+B.  Any new file that contains any part of the Original Code, or previous
+Modifications.
 
 1.10. "Original Code" means Source Code of computer software code which is
 described in the Source Code notice required by Exhibit A as Original Code,
@@ -80,54 +80,43 @@ or indirect, to cause the direction or management of such entity, whether
 by contract or otherwise, or (b) ownership of more than fifty percent (50%)
 of the outstanding shares or beneficial ownership of such entity.
 
-   2 SOURCE CODE LICENSE.
+2  SOURCE CODE LICENSE.
 
-      2.1. The Initial Developer Grant.
-
+2.1. The Initial Developer Grant.
 The Initial Developer hereby grants You a world-wide, royalty-free, non-exclusive
 license, subject to third party intellectual property claims:
-
-(a) under intellectual property rights (other than patent or trademark) Licensable
+(a)  under intellectual property rights (other than patent or trademark) Licensable
 by Initial Developer to use, reproduce, modify, display, perform, sublicense
 and distribute the Original Code (or portions thereof) with or without Modifications,
 and/or as part of a Larger Work; and
-
-(b) under patents now or hereafter owned or controlled by Initial Developer,
+(b)  under patents now or hereafter owned or controlled by Initial Developer,
 to make, have made, use and sell ("offer to sell and import") the Original
 Code, Modifications, or portions thereof, but solely to the extent that any
 such patent is reasonably necessary to enable You to utilize, alone or in
 combination with other software, the Original Code, Modifications, or any
 combination or portions thereof.
+     (c)
+     (d)
 
-         (c)
-
-         (d)
-
-      2.2. Contributor Grant.
-
+2.2. Contributor Grant.
 Subject to third party intellectual property claims, each Contributor hereby
 grants You a world-wide, royalty-free, non-exclusive license
-
-(a) under intellectual property rights (other than patent or trademark) Licensable
-by Contributor, to use, reproduce, modify, display, perform, sublicense and
-distribute the Modifications created by such Contributor (or portions thereof)
-either on an unmodified basis, with other Modifications, as Covered Code and/or
-as part of a Larger Work; and
-
-(b) under patents now or hereafter owned or controlled by Contributor, to
+(a)  under intellectual property rights (other than patent or trademark) Licensable
+by Contributor, to use, reproduce, modify, display, perform,   sublicense
+and distribute the Modifications created by such Contributor (or portions
+thereof) either on an unmodified basis, with other Modifications, as Covered
+Code and/or as part of a Larger Work; and
+(b)  under patents now or hereafter owned or controlled by Contributor, to
 make, have made, use and sell ("offer to sell and import") the Contributor
 Version (or portions thereof), but solely to the extent that any such patent
 is reasonably necessary to enable You to utilize, alone or in combination
 with other software, the Contributor Version (or portions thereof).
+     (c)
+     (d)
 
-         (c)
+3  DISTRIBUTION OBLIGATIONS.
 
-         (d)
-
-   3 DISTRIBUTION OBLIGATIONS.
-
-      3.1. Application of License.
-
+3.1. Application of License.
 The Modifications which You create or to which You contribute are governed
 by the terms of this License, including without limitation Section 2.2. The
 Source Code version of Covered Code may be distributed only under the terms
@@ -138,13 +127,11 @@ version that alters or restricts the applicable version of this License or
 the recipients' rights hereunder. However, You may include an additional document
 offering the additional rights described in Section 3.5.
 
-      3.2. Availability of Source Code.
-
-Any Modification created by You shall be provided to the Initial Developer
+3.2. Availability of Source Code.
+Any Modification created by You will be provided to the Initial Developer
 in Source Code form and are subject to the terms of the License.
 
-      3.3. Description of Modifications.
-
+3.3. Description of Modifications.
 You must cause all Covered Code to which You contribute to contain a file
 documenting the changes You made to create that Covered Code and the date
 of any change. You must include a prominent statement that the Modification
@@ -153,8 +140,7 @@ Developer and including the name of the Initial Developer in (a) the Source
 Code, and (b) in any notice in an Executable version or related documentation
 in which You describe the origin or ownership of the Covered Code.
 
-      3.4. Intellectual Property Matters.
-
+3.4. Intellectual Property Matters.
 (a) Third Party Claims. If Contributor has knowledge that a license under
 a third party's intellectual property rights is required to exercise the rights
 granted by such Contributor under Sections 2.1 or 2.2, Contributor must include
@@ -177,8 +163,7 @@ to Section 3.4(a) above, Contributor believes that Contributor's Modifications
 are Contributor's original creation(s) and/or Contributor has sufficient rights
 to grant the rights conveyed by this License.
 
-      3.5. Required Notices.
-
+3.5. Required Notices.
 You must duplicate the notice in Exhibit A in each file of the Source Code.
 If it is not possible to put such notice in a particular Source Code file
 due to its structure, then You must include such notice in a location (such
@@ -191,8 +176,7 @@ to charge a fee for, warranty, support, indemnity or liability obligations
 to one or more recipients of Covered Code. However, You may do so only on
 Your own behalf, and not on behalf of the Initial Developer or any Contributor.
 
-      3.6. Distribution of Executable Versions.
-
+3.6. Distribution of Executable Versions.
 You may distribute Covered Code in Executable form only if the requirements
 of Section 3.1-3.5 have been met for that Covered Code. You may distribute
 the Executable version of Covered Code or ownership rights under a license
@@ -207,19 +191,17 @@ you distribute executable versions containing Covered Code as part of a product,
 you must reproduce the notice in Exhibit B in the documentation and/or other
 materials provided with the product.
 
-      3.7. Larger Works.
-
+3.7. Larger Works.
 You may create a Larger Work by combining Covered Code with other code not
 governed by the terms of this License and distribute the Larger Work as a
 single product. In such a case, You must make sure the requirements of this
 License are fulfilled for the Covered Code.
 
-      3.8. Restrictions.
-
+3.8. Restrictions.
 You may not remove any product identification, copyright, proprietary notices
 or labels from gSOAP.
 
-   4 INABILITY TO COMPLY DUE TO STATUTE OR REGULATION.
+4  INABILITY TO COMPLY DUE TO STATUTE OR REGULATION.
 
 If it is impossible for You to comply with any of the terms of this License
 with respect to some or all of the Covered Code due to statute, judicial order,
@@ -231,27 +213,24 @@ Except to the extent prohibited by statute or regulation, such description
 must be sufficiently detailed for a recipient of ordinary skill to be able
 to understand it.
 
-   5 APPLICATION OF THIS LICENSE.
+5  APPLICATION OF THIS LICENSE.
 
 This License applies to code to which the Initial Developer has attached the
 notice in Exhibit A and to related Covered Code.
 
-   6 VERSIONS OF THE LICENSE.
+6  VERSIONS OF THE LICENSE.
 
-      6.1. New Versions.
-
+6.1. New Versions.
 Grantor may publish revised and/or new versions of the License from time to
 time. Each version will be given a distinguishing version number.
 
-      6.2. Effect of New Versions.
-
+6.2. Effect of New Versions.
 Once Covered Code has been published under a particular version of the License,
 You may always continue to use it under the terms of that version. You may
 also choose to use such Covered Code under the terms of any subsequent version
 of the License.
 
-      6.3. Derivative Works.
-
+6.3. Derivative Works.
 If You create or use a modified version of this License (which you may only
 do in order to apply it to code which is not already Covered Code governed
 by this License), You must (a) rename Your license so that the phrase "gSOAP"
@@ -262,7 +241,7 @@ gSOAP Public License. (Filling in the name of the Initial Developer, Original
 Code or Contributor in the notice described in Exhibit A shall not of themselves
 be deemed to be modifications of this License.)
 
-   7 DISCLAIMER OF WARRANTY.
+7  DISCLAIMER OF WARRANTY.
 
 COVERED CODE IS PROVIDED UNDER THIS LICENSE ON AN "AS IS" BASIS, WITHOUT WARRANTY
 OF ANY KIND, WHETHER EXPRESS, IMPLIED OR STATUTORY, INCLUDING, WITHOUT LIMITATION,
@@ -296,7 +275,7 @@ IN PHYSICAL INJURY OR LOSS OF HUMAN LIFE. THIS DISCLAIMER OF WARRANTY CONSTITUTE
 AN ESSENTIAL PART OF THIS LICENSE. NO USE OF ANY COVERED CODE IS AUTHORIZED
 HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
 
-   8 TERMINATION.
+8  TERMINATION.
 
 8.1. This License and the rights granted hereunder will terminate automatically
 if You fail to comply with terms herein and fail to cure such breach within
@@ -305,7 +284,7 @@ which are properly granted shall survive any termination of this License.
 Provisions which, by their nature, must remain in effect beyond the termination
 of this License shall survive.
 
-      8.2.
+8.2.
 
 8.3. If You assert a patent infringement claim against Participant alleging
 that such Participant's Contributor Version directly or indirectly infringes
@@ -320,7 +299,7 @@ user license agreements (excluding distributors and resellers) which have
 been validly granted by You or any distributor hereunder prior to termination
 shall survive termination.
 
-   9 LIMITATION OF LIABILITY.
+9  LIMITATION OF LIABILITY.
 
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL YOU, THE INITIAL DEVELOPER, ANY
@@ -336,11 +315,11 @@ SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL
 OR CONSEQUENTIAL DAMAGES, SO THIS EXCLUSION AND LIMITATION MAY NOT APPLY TO
 YOU.
 
-   10 U.S. GOVERNMENT END USERS.
+10  U.S. GOVERNMENT END USERS.
 
-   11 MISCELLANEOUS.
+11  MISCELLANEOUS.
 
-   12 RESPONSIBILITY FOR CLAIMS.
+12  RESPONSIBILITY FOR CLAIMS.
 
 As between Initial Developer and the Contributors, each party is responsible
 for claims and damages arising, directly or indirectly, out of its utilization
@@ -349,48 +328,35 @@ and Contributors to distribute such responsibility on an equitable basis.
 Nothing herein is intended or shall be deemed to constitute any admission
 of liability.
 
-   
-
-   EXHIBIT A.
+EXHIBIT A.
 
 "The contents of this file are subject to the gSOAP Public License Version
 1.3 (the "License"); you may not use this file except in compliance with the
 License. You may obtain a copy of the License at
-
-   http://www.cs.fsu.edu/ engelen/soaplicense.html
-
+http://www.cs.fsu.edu/ engelen/soaplicense.html
 Software distributed under the License is distributed on an "AS IS" basis,
 WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
 the specific language governing rights and limitations under the License.
-
 The Original Code of the gSOAP Software is: stdsoap.h, stdsoap2.h, stdsoap.c,
 stdsoap2.c, stdsoap.cpp, stdsoap2.cpp, soapcpp2.h, soapcpp2.c, soapcpp2_lex.l,
 soapcpp2_yacc.y, error2.h, error2.c, symbol2.c, init2.c, soapdoc2.html, and
 soapdoc2.pdf, httpget.h, httpget.c, stl.h, stldeque.h, stllist.h, stlvector.h,
 stlset.h.
-
 The Initial Developer of the Original Code is Robert A. van Engelen. Portions
 created by Robert A. van Engelen are Copyright (C) 2001-2004 Robert A. van
 Engelen, Genivia inc. All Rights Reserved.
-
-   Contributor(s):
-
-   "________________________."
-
+Contributor(s):
+"________________________."
 [Note: The text of this Exhibit A may differ slightly form the text of the
 notices in the Source Code files of the Original code. You should use the
 text of this Exhibit A rather than the text found in the Original Code Source
 Code for Your Modifications.]
 
-   
+EXHIBIT B.
 
-   EXHIBIT B.
-
-   "Part of the software embedded in this product is gSOAP software.
-
+"Part of the software embedded in this product is gSOAP software.
 Portions created by gSOAP are Copyright (C) 2001-2009 Robert A. van Engelen,
 Genivia inc. All Rights Reserved.
-
 THE SOFTWARE IN THIS PRODUCT WAS IN PART PROVIDED BY GENIVIA INC AND ANY EXPRESS
 OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
 OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN

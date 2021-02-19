@@ -267,7 +267,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Components
 
-* Web framework: [Macaron](http://go-macaron.com/)
+* Web framework: [Chi](http://github.com/go-chi/chi)
 * ORM: [XORM](https://xorm.io)
 * UI components:
   * [Semantic UI](http://semantic-ui.com/)

@@ -15,7 +15,7 @@ type PropertyDrawer struct {
 }
 
 var beginDrawerRegexp = regexp.MustCompile(`^(\s*):(\S+):\s*$`)
-var endDrawerRegexp = regexp.MustCompile(`^(\s*):END:\s*$`)
+var endDrawerRegexp = regexp.MustCompile(`(?i)^(\s*):END:\s*$`)
 var propertyRegexp = regexp.MustCompile(`^(\s*):(\S+):(\s+(.*)$|$)`)
 
 func lexDrawer(line string) (token, bool) {

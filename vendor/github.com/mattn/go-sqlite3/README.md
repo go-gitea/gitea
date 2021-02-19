@@ -15,7 +15,7 @@ Latest stable version is v1.14 or later not v2.
 
 sqlite3 driver conforming to the built-in database/sql interface
 
-Supported Golang version: See .github/workflows/go.yaml
+Supported Golang version: See [.github/workflows/go.yaml](./.github/workflows/go.yaml)
 
 [This package follows the official Golang Release Policy.](https://golang.org/doc/devel/release.html#policy)
 
@@ -125,6 +125,8 @@ Boolean values can be one of:
 | Time Zone Location | `_loc` | auto | Specify location of time format. |
 | Transaction Lock | `_txlock` | <ul><li>immediate</li><li>deferred</li><li>exclusive</li></ul> | Specify locking behavior for transactions. |
 | Writable Schema | `_writable_schema` | `Boolean` | When this pragma is on, the SQLITE_MASTER tables in which database can be changed using ordinary UPDATE, INSERT, and DELETE statements. Warning: misuse of this pragma can easily result in a corrupt database file. |
+| Cache Size | `_cache_size` | `int` | Maximum cache size; default is 2000K (2M). See [PRAGMA cache_size](https://sqlite.org/pragma.html#pragma_cache_size) |
+
 
 ## DSN Examples
 

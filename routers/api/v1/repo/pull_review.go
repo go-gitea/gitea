@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -258,7 +259,7 @@ func DeletePullReview(ctx *context.APIContext) {
 }
 
 // CreatePullReview create a review to an pull request
-func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions) {
+func CreatePullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews repository repoCreatePullReview
 	// ---
 	// summary: Create a review to an pull request
@@ -294,6 +295,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -373,7 +375,7 @@ func CreatePullReview(ctx *context.APIContext, opts api.CreatePullReviewOptions)
 }
 
 // SubmitPullReview submit a pending review to an pull request
-func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions) {
+func SubmitPullReview(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoSubmitPullReview
 	// ---
 	// summary: Submit a pending review to an pull request
@@ -415,6 +417,7 @@ func SubmitPullReview(ctx *context.APIContext, opts api.SubmitPullReviewOptions)
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	opts := web.GetForm(ctx).(*api.SubmitPullReviewOptions)
 	review, pr, isWrong := prepareSingleReview(ctx)
 	if isWrong {
 		return
@@ -542,7 +545,7 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 }
 
 // CreateReviewRequests create review requests to an pull request
-func CreateReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+func CreateReviewRequests(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoCreatePullReviewRequests
 	// ---
 	// summary: create review requests for a pull request
@@ -577,11 +580,13 @@ func CreateReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	apiReviewRequest(ctx, opts, true)
+
+	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	apiReviewRequest(ctx, *opts, true)
 }
 
 // DeleteReviewRequests delete review requests to an pull request
-func DeleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOptions) {
+func DeleteReviewRequests(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/requested_reviewers repository repoDeletePullReviewRequests
 	// ---
 	// summary: cancel review requests for a pull request
@@ -616,7 +621,8 @@ func DeleteReviewRequests(ctx *context.APIContext, opts api.PullReviewRequestOpt
 	//     "$ref": "#/responses/validationError"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	apiReviewRequest(ctx, opts, false)
+	opts := web.GetForm(ctx).(*api.PullReviewRequestOptions)
+	apiReviewRequest(ctx, *opts, false)
 }
 
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
@@ -750,4 +756,130 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		ctx.Status(http.StatusNoContent)
 		return
 	}
+}
+
+// DismissPullReview dismiss a review for a pull request
+func DismissPullReview(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals repository repoDismissPullReview
+	// ---
+	// summary: Dismiss a review for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/DismissPullReviewOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
+	dismissReview(ctx, opts.Message, true)
+}
+
+// UnDismissPullReview cancel to dismiss a review for a pull request
+func UnDismissPullReview(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/undismissals repository repoUnDismissPullReview
+	// ---
+	// summary: Cancel to dismiss a review for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	dismissReview(ctx, "", false)
+}
+
+func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
+	if !ctx.Repo.IsAdmin() {
+		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
+		return
+	}
+	review, pr, isWrong := prepareSingleReview(ctx)
+	if isWrong {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
+		return
+	}
+
+	if pr.Issue.IsClosed {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
+		return
+	}
+
+	_, err := pull_service.DismissReview(review.ID, msg, ctx.User, isDismiss)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
+		return
+	}
+
+	if review, err = models.GetReviewByID(review.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
+		return
+	}
+
+	// convert response
+	apiReview, err := convert.ToPullReview(review, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
 }

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 )
 
@@ -279,6 +280,20 @@ var migrations = []Migration{
 	NewMigration("Convert hook task type from char(16) to varchar(16) and trim the column", convertHookTaskTypeToVarcharAndTrim),
 	// v166 -> v167
 	NewMigration("Where Password is Valid with Empty String delete it", recalculateUserEmptyPWD),
+	// v167 -> v168
+	NewMigration("Add user redirect", addUserRedirect),
+	// v168 -> v169
+	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	// v169 -> v170
+	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	// v170 -> v171
+	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
+	// v171 -> v172
+	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
+	// v172 -> v173
+	NewMigration("Add sessions table for go-chi/session", addSessionTable),
+	// v173 -> v174
+	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -329,6 +344,8 @@ func EnsureUpToDate(x *xorm.Engine) error {
 
 // Migrate database to current version
 func Migrate(x *xorm.Engine) error {
+	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
+	x.SetMapper(names.GonicMapper{})
 	if err := x.Sync(new(Version)); err != nil {
 		return fmt.Errorf("sync: %v", err)
 	}
@@ -367,6 +384,8 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 	// Migrate
 	for i, m := range migrations[v-minDBVersion:] {
 		log.Info("Migration[%d]: %s", v+int64(i), m.Description())
+		// Reset the mapper between each migration - migrations are not supposed to depend on each other
+		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
 			return fmt.Errorf("do migrate: %v", err)
 		}

@@ -21,6 +21,7 @@ const (
 func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["RequireU2F"] = true
 
 	if ctx.Query("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
@@ -68,7 +69,6 @@ func loadSecurityData(ctx *context.Context) {
 			ctx.ServerError("GetU2FRegistrationsByUID", err)
 			return
 		}
-		ctx.Data["RequireU2F"] = true
 	}
 
 	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
