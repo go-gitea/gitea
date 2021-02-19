@@ -42,6 +42,7 @@
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
 			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
