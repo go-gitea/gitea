@@ -178,14 +178,20 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 		return nil, nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 

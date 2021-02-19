@@ -66,6 +66,7 @@ func InstallInit(next http.Handler) http.Handler {
 				"TmplLoadTimes": func() string {
 					return time.Since(startTime).String()
 				},
+				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
 			},
 		}
 		ctx.Req = context.WithContext(req, &ctx)
@@ -142,6 +143,7 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
+	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
@@ -184,6 +186,8 @@ func InstallPost(ctx *context.Context) {
 	setting.Database.SSLMode = form.SSLMode
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
+
+	setting.PasswordHashAlgo = form.PasswordAlgorithm
 
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
@@ -380,6 +384,9 @@ func InstallPost(ctx *context.Context) {
 		return
 	}
 	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+	if len(form.PasswordAlgorithm) > 0 {
+		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
+	}
 
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {

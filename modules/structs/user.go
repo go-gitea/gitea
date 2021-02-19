@@ -30,6 +30,8 @@ type User struct {
 	LastLogin time.Time `json:"last_login,omitempty"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created,omitempty"`
+	// Is user restricted
+	Restricted bool `json:"restricted"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

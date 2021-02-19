@@ -423,18 +423,7 @@ func PrepareCompareDiff(
 	// Get diff information.
 	ctx.Data["CommitRepoLink"] = headRepo.Link()
 
-	headCommitID := headBranch
-	if ctx.Data["HeadIsCommit"] == false {
-		if ctx.Data["HeadIsTag"] == true {
-			headCommitID, err = headGitRepo.GetTagCommitID(headBranch)
-		} else {
-			headCommitID, err = headGitRepo.GetBranchCommitID(headBranch)
-		}
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return false
-		}
-	}
+	headCommitID := compareInfo.HeadCommitID
 
 	ctx.Data["AfterCommitID"] = headCommitID
 
@@ -460,18 +449,7 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := baseBranch
-	if ctx.Data["BaseIsCommit"] == false {
-		if ctx.Data["BaseIsTag"] == true {
-			baseCommitID, err = baseGitRepo.GetTagCommitID(baseBranch)
-		} else {
-			baseCommitID, err = baseGitRepo.GetBranchCommitID(baseBranch)
-		}
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return false
-		}
-	}
+	baseCommitID := compareInfo.BaseCommitID
 
 	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
 	if err != nil {

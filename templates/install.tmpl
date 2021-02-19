@@ -267,6 +267,20 @@
 								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 								<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>
 							</div>
+							<div class="inline field">
+								<label for="password_algorithm">{{.i18n.Tr "install.password_algorithm"}}</label>
+								<div class="ui selection dropdown">
+									<input id="password_algorithm" type="hidden" name="password_algorithm" value="{{.password_algorithm}}">
+									<div class="text">{{.password_algorithm}}</div>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<div class="menu">
+										{{range .PasswordHashAlgorithms}}
+											<div class="item" data-value="{{.}}">{{.}}</div>
+										{{end}}
+									</div>
+								</div>
+								<span class="help">{{.i18n.Tr "install.password_algorithm_helper"}}</span>
+							</div>
 						</div>
 					</div>
 
