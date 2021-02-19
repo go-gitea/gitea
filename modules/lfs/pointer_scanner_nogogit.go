@@ -7,9 +7,19 @@
 package lfs
 
 import (
+	"io"
+
 	"code.gitea.io/gitea/modules/git"
 )
 
+func TryReadPointer(reader io.Reader) *Pointer {
+	return nil
+}
+
+func TryReadPointerFromBuffer(buf []byte) *Pointer {
+	return nil
+}
+
 func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
-	return []*Pointer, nil
+	return []*Pointer{}, nil
 }
