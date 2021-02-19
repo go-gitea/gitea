@@ -73,15 +73,21 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	}
 
 	if opts.LFS {
-		_, err = git.NewCommand("lfs", "fetch", opts.CloneAddr).RunInDir(repoPath)
+		lfsFetchDir := filepath.Join(setting.LFS.Path, "tmp")
+		_, err = git.NewCommand("config", "lfs.storage", lfsFetchDir).RunInDir(repoPath)
 		if err != nil {
-			return repo, fmt.Errorf("LFS fetch failed %s: %v", opts.CloneAddr, err)
+			return repo, fmt.Errorf("Failed `git config lfs.storage lfsFetchDir`: %v", err)
 		}
 
-		lfsSrc := path.Join(repoPath, "lfs", "objects")
+		_, err = git.NewCommand("lfs", "fetch", opts.CloneAddr).RunInDir(repoPath)
+		if err != nil {
+			return repo, fmt.Errorf("Failed `lfs fetch` %s: %v", opts.CloneAddr, err)
+		}
+
+		lfsSrc := path.Join(lfsFetchDir, "objects")
 		lfsDst := path.Join(setting.LFS.Path)
 
-		// move LFS files
+		// rename LFS files
 		err := filepath.Walk(lfsSrc, func(path string, info os.FileInfo, err error) error {
 			var relSrcPath = strings.Replace(path, lfsSrc, "", 1)
 			if relSrcPath == "" {
@@ -135,7 +141,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			return repo, fmt.Errorf("Failed to move LFS files %s: %v", lfsSrc, err)
 		}
 
-		err = os.RemoveAll(path.Join(repoPath, "lfs"))
+		err = os.RemoveAll(lfsFetchDir)
 		if err != nil {
 			return repo, fmt.Errorf("Failed to remove LFS files %s: %v", repoPath, err)
 		}
