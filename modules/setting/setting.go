@@ -110,7 +110,7 @@ var (
 	GracefulHammerTime         time.Duration
 	StartupTimeout             time.Duration
 	StaticURLPrefix            string
-  AbsoluteAssetURL           string
+	AbsoluteAssetURL           string
 
 	SSH = struct {
 		Disabled                       bool              `ini:"DISABLE_SSH"`
