@@ -81,5 +81,6 @@ func DeleteTime(c *context.Context) {
 		return
 	}
 
-	c.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", models.SecToTime(t.Time)))
+	c.Redirect(issue.HTMLURL())
 }
