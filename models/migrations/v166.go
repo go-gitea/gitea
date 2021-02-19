@@ -111,5 +111,5 @@ func recalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return nil
 }
