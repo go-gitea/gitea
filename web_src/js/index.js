@@ -1521,7 +1521,7 @@ function initWikiForm() {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
       const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
       const $toolbar = $('.editor-toolbar');
-      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bPreview = $('.editor-toolbar button.preview');
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
       $bEdit.on('click', () => {
         if ($toolbar.hasClass('disabled-for-preview')) {
