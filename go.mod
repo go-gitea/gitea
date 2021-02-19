@@ -46,6 +46,8 @@ require (
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/context v1.1.1
+	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.8 // indirect
 	github.com/hashicorp/go-version v1.2.1
 	github.com/huandu/xstrings v1.3.2
@@ -57,7 +59,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.11.7
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/lafriks/xormstore v1.3.2
+	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.9.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.66.1
@@ -69,7 +71,7 @@ require (
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.4
 	github.com/minio/md5-simd v1.1.1 // indirect
-	github.com/minio/minio-go/v7 v7.0.7
+	github.com/minio/minio-go/v7 v7.0.9
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20200810204841-913b8f8cdf8b
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
@@ -80,7 +82,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.3.0
-	github.com/prometheus/client_golang v1.8.0
+	github.com/prometheus/client_golang v1.9.0
 	github.com/quasoft/websspi v1.0.0
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sergi/go-diff v1.1.0
@@ -98,16 +100,16 @@ require (
 	github.com/unrolled/render v1.0.3
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
-	github.com/xanzy/go-gitlab v0.42.0
+	github.com/xanzy/go-gitlab v0.44.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.3.1
+	github.com/yuin/goldmark v1.3.2
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
-	golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
+	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 	golang.org/x/text v0.3.5
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
@@ -118,8 +120,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.7
-	xorm.io/xorm v1.0.6
+	xorm.io/builder v0.3.9
+	xorm.io/xorm v1.0.7
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4

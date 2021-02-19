@@ -695,8 +695,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(ignSignIn, repo.SetDiffViewStyle, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
+			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 	}, context.RepoAssignment(), context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
@@ -708,7 +708,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
-		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
+		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
 			m.Group("/{index}", func() {
@@ -723,6 +723,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/comments").Post(repo.MustAllowUserComment, bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
+					m.Post("/{timeid}/delete", repo.DeleteTime)
 					m.Group("/stopwatch", func() {
 						m.Post("/toggle", repo.IssueStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
@@ -885,7 +886,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{page}", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
@@ -977,7 +978,7 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {
