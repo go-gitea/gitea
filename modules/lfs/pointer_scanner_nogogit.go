@@ -7,20 +7,8 @@
 package lfs
 
 import (
-	"io"
-
 	"code.gitea.io/gitea/modules/git"
 )
-
-// TryReadPointer not implemented
-func TryReadPointer(reader io.Reader) *Pointer {
-	return nil
-}
-
-// TryReadPointerFromBuffer not implemented
-func TryReadPointerFromBuffer(buf []byte) *Pointer {
-	return nil
-}
 
 // SearchPointerFiles not implemented
 func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
