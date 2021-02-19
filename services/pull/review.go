@@ -57,7 +57,12 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment)
+		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -226,7 +231,76 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm)
+	ctx := models.DefaultDBContext()
+	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, codeComment := range comments {
+				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				if err != nil {
+					return nil, nil, err
+				}
+				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+			}
+		}
+	}
 
 	return review, comm, nil
+}
+
+// DismissReview dismissing stale review by repo admin
+func DismissReview(reviewID int64, message string, doer *models.User, isDismiss bool) (comment *models.Comment, err error) {
+	review, err := models.GetReviewByID(reviewID)
+	if err != nil {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+	}
+
+	if err = models.DismissReview(review, isDismiss); err != nil {
+		return
+	}
+
+	if !isDismiss {
+		return nil, nil
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadPullRequest(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadAttributes(); err != nil {
+		return
+	}
+
+	comment, err = models.CreateComment(&models.CreateCommentOptions{
+		Doer:     doer,
+		Content:  message,
+		Type:     models.CommentTypeDismissReview,
+		ReviewID: review.ID,
+		Issue:    review.Issue,
+		Repo:     review.Issue.Repo,
+	})
+	if err != nil {
+		return
+	}
+
+	comment.Review = review
+	comment.Poster = doer
+	comment.Issue = review.Issue
+
+	notification.NotifyPullRevieweDismiss(doer, review, comment)
+
+	return
 }

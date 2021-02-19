@@ -1,6 +1,8 @@
 LaTeX Project Public License
 
-LPPL Version 1.0 1999-03-01 Copyright 1999 LaTeX3 Project
+LPPL Version 1.0 1999-03-01
+
+Copyright 1999 LaTeX3 Project
 
 Everyone is permitted to copy and distribute verbatim copies of this license
 document, but modification is not allowed.
@@ -21,17 +23,12 @@ to this license.
 
 A typical example would be
 
-%% pig.sty
+     %% pig.sty %% Copyright 2001 M. Y. Name
 
-%% Copyright 2001 M. Y. Name
-
-% This program can redistributed and/or modified under the terms
-
-% of the LaTeX Project Public License Distributed from CTAN
-
-% archives in directory macros/latex/base/lppl.txt; either
-
-% version 1 of the License, or (at your option) any later version.
+     % This program can redistributed and/or modified under the terms
+     % of the LaTeX Project Public License Distributed from CTAN
+     % archives in directory macros/latex/base/lppl.txt; either
+     % version 1 of the License, or (at your option) any later version.
 
 Given such a notice in the file, the conditions of this document would apply,
 with:
@@ -56,16 +53,13 @@ use the parts of the text of LPPL as a model for your own license, but your
 license should not directly refer to the LPPL or otherwise give the impression
 that The Program is distributed under the LPPL.
 
-The LaTeX Project Public License
-
+ The LaTeX Project Public License
 ================================
-
 Terms And Conditions For Copying, Distribution And Modification
-
 ===============================================================
 
-WARRANTY
 
+WARRANTY
 ========
 
 There is no warranty for The Program, to the extent permitted by applicable
@@ -86,8 +80,8 @@ third parties as a result of a failure of The Program to operate with any
 other programs), even if such holder or other party has been advised of the
 possibility of such damages.
 
-DISTRIBUTION
 
+DISTRIBUTION
 ============
 
 Redistribution of unchanged files is allowed provided that all files that
@@ -157,7 +151,6 @@ the latest version of that file in The Program.
 ========================================================================
 
 NOTES
-
 =====
 
 We believe that these requirements give you the freedom you to make modifications
@@ -177,7 +170,6 @@ to LaTeX, the argument in modguide.tex may still apply, and should be read
 before a modified version of The Program is distributed.
 
 Conditions on individual files
-
 ==============================
 
 The individual files may bear additional conditions which supersede the general

@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
-	"github.com/unknwon/com"
 )
 
 // ProtectedBranch struct
@@ -158,7 +157,8 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true)
+		And("official = ?", true).
+		And("dismissed = ?", false)
 	if protectBranch.DismissStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
@@ -179,6 +179,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
+		And("dismissed = ?", false).
 		Exist(new(Review))
 	if err != nil {
 		log.Error("MergeBlockedByRejectedReview: %v", err)
@@ -483,7 +484,7 @@ func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 
 	whitelist = make([]int64, 0, len(teams))
 	for i := range teams {
-		if com.IsSliceContainsInt64(newWhitelist, teams[i].ID) {
+		if util.IsInt64InSlice(teams[i].ID, newWhitelist) {
 			whitelist = append(whitelist, teams[i].ID)
 		}
 	}

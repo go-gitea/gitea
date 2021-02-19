@@ -127,12 +127,33 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	}
 
 	if opts.Mirror {
-		if err = models.InsertMirror(&models.Mirror{
+		mirrorModel := models.Mirror{
 			RepoID:         repo.ID,
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-		}); err != nil {
+		}
+
+		if opts.MirrorInterval != "" {
+			parsedInterval, err := time.ParseDuration(opts.MirrorInterval)
+			if err != nil {
+				log.Error("Failed to set Interval: %v", err)
+				return repo, err
+			}
+			if parsedInterval == 0 {
+				mirrorModel.Interval = 0
+				mirrorModel.NextUpdateUnix = 0
+			} else if parsedInterval < setting.Mirror.MinInterval {
+				err := fmt.Errorf("Interval %s is set below Minimum Interval of %s", parsedInterval, setting.Mirror.MinInterval)
+				log.Error("Interval: %s is too frequent", opts.MirrorInterval)
+				return repo, err
+			} else {
+				mirrorModel.Interval = parsedInterval
+				mirrorModel.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(parsedInterval)
+			}
+		}
+
+		if err = models.InsertMirror(&mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 

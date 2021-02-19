@@ -36,6 +36,7 @@ type PullReview struct {
 	CommitID          string          `json:"commit_id"`
 	Stale             bool            `json:"stale"`
 	Official          bool            `json:"official"`
+	Dismissed         bool            `json:"dismissed"`
 	CodeCommentsCount int             `json:"comments_count"`
 	// swagger:strfmt date-time
 	Submitted time.Time `json:"submitted_at"`
@@ -90,6 +91,11 @@ type CreatePullReviewComment struct {
 type SubmitPullReviewOptions struct {
 	Event ReviewStateType `json:"event"`
 	Body  string          `json:"body"`
+}
+
+// DismissPullReviewOptions are options to dismiss a pull review
+type DismissPullReviewOptions struct {
+	Message string `json:"message"`
 }
 
 // PullReviewRequestOptions are options to add or remove pull review requests

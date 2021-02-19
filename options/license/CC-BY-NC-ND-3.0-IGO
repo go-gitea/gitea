@@ -20,7 +20,7 @@ BE BOUND BY THE TERMS OF THIS LICENSE. THE LICENSOR GRANTS YOU THE RIGHTS
 CONTAINED HERE IN CONSIDERATION FOR YOUR ACCEPTANCE AND AGREEMENT TO THE TERMS
 OF THE LICENSE.
 
-   1. Definitions
+1. Definitions
 
 a. "IGO" means, solely and exclusively for purposes of this License, an organization
 established by a treaty or other instrument governed by international law
@@ -86,14 +86,15 @@ to exercise the rights in the Work as follows:
 
 a. to Reproduce, Distribute and Publicly Perform the Work, to incorporate
 the Work into one or more Collections, and to Reproduce, Distribute and Publicly
-Perform the Work as incorporated in the Collections. This License lasts for
-the duration of the term of the copyright in the Work licensed by the Licensor.
-The above rights may be exercised in all media and formats whether now known
-or hereafter devised. The above rights include the right to make such modifications
-as are technically necessary to exercise the rights in other media and formats,
-but otherwise you have no rights to make Adaptations. All rights not expressly
-granted by the Licensor are hereby reserved, including but not limited to
-the rights set forth in Section 4(d).
+Perform the Work as incorporated in the Collections.
+
+This License lasts for the duration of the term of the copyright in the Work
+licensed by the Licensor. The above rights may be exercised in all media and
+formats whether now known or hereafter devised. The above rights include the
+right to make such modifications as are technically necessary to exercise
+the rights in other media and formats, but otherwise you have no rights to
+make Adaptations. All rights not expressly granted by the Licensor are hereby
+reserved, including but not limited to the rights set forth in Section 4(d).
 
 4. Restrictions. The license granted in Section 3 above is expressly made
 subject to and limited by the following restrictions:
@@ -145,7 +146,7 @@ connection with, sponsorship or endorsement by the Licensor or others designated
 for attribution, of You or Your use of the Work, without the separate, express
 prior written permission of the Licensor or such others.
 
-      d. For the avoidance of doubt:
+    d. For the avoidance of doubt:
 
 i. Non-waivable Compulsory License Schemes. In those jurisdictions in which
 the right to collect royalties through any statutory or compulsory licensing
@@ -172,19 +173,22 @@ Collections, You must not distort, mutilate, modify or take other derogatory
 action in relation to the Work which would be prejudicial to the honor or
 reputation of the Licensor where moral rights apply.
 
-5. Representations, Warranties and Disclaimer THE LICENSOR OFFERS THE WORK
-AS-IS AND MAKES NO REPRESENTATIONS OR WARRANTIES OF ANY KIND CONCERNING THE
-WORK, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE, INCLUDING, WITHOUT LIMITATION,
-WARRANTIES OF TITLE, MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NONINFRINGEMENT,
-OR THE ABSENCE OF LATENT OR OTHER DEFECTS, ACCURACY, OR THE PRESENCE OF ERRORS,
-WHETHER OR NOT DISCOVERABLE.
+5. Representations, Warranties and Disclaimer
 
-6. Limitation on Liability IN NO EVENT WILL THE LICENSOR BE LIABLE TO YOU
-ON ANY LEGAL THEORY FOR ANY SPECIAL, INCIDENTAL, CONSEQUENTIAL, PUNITIVE OR
-EXEMPLARY DAMAGES ARISING OUT OF THIS LICENSE OR THE USE OF THE WORK, EVEN
-IF THE LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+THE LICENSOR OFFERS THE WORK AS-IS AND MAKES NO REPRESENTATIONS OR WARRANTIES
+OF ANY KIND CONCERNING THE WORK, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE,
+INCLUDING, WITHOUT LIMITATION, WARRANTIES OF TITLE, MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR THE ABSENCE OF LATENT OR OTHER
+DEFECTS, ACCURACY, OR THE PRESENCE OF ERRORS, WHETHER OR NOT DISCOVERABLE.
 
-   7. Termination
+6. Limitation on Liability
+
+IN NO EVENT WILL THE LICENSOR BE LIABLE TO YOU ON ANY LEGAL THEORY FOR ANY
+SPECIAL, INCIDENTAL, CONSEQUENTIAL, PUNITIVE OR EXEMPLARY DAMAGES ARISING
+OUT OF THIS LICENSE OR THE USE OF THE WORK, EVEN IF THE LICENSOR HAS BEEN
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+7. Termination
 
 a. Subject to the terms and conditions set forth in this License, the license
 granted here lasts for the duration of the term of the copyright in the Work
@@ -208,7 +212,7 @@ of You discovering the violation, or upon express reinstatement by the Licensor.
 For the avoidance of doubt, this Section 7(b) does not affect any rights the
 Licensor may have to seek remedies for violations of this License by You.
 
-   8. Miscellaneous
+8. Miscellaneous
 
 a. Each time You Distribute or Publicly Perform the Work or a Collection,
 the Licensor offers to the recipient a license to the Work on the same terms

@@ -1,9 +1,7 @@
 OCLC Research Public License 2.0
-
 Terms & Conditions Of Use
-
-May, 2002 Copyright © 2002. OCLC Online Computer Library Center, Inc. All
-Rights Reserved
+May, 2002
+Copyright © 2002. OCLC Online Computer Library Center, Inc. All Rights Reserved
 
 PLEASE READ THIS DOCUMENT CAREFULLY. BY DOWNLOADING OR USING THE CODE BASE
 AND/OR DOCUMENTATION ACCOMPANYING THIS LICENSE (THE "License"), YOU AGREE
@@ -33,11 +31,10 @@ parents or being result of multiple lines of code development.
 
 Section 3. Distribution Licensing Terms
 
-   A. General Requirements
-
+A. General Requirements
 Except as necessary to recognize third-party rights or third-party restriction
 (see below), a distribution of the Program in any of the forms listed below
-must not put any further restrictions on the recipient's exercise of the rights
+must not put any further restrictions on the recipient’s exercise of the rights
 granted herein.
 
 As a Contributor, you represent that your Modification(s) are your original
@@ -71,15 +68,14 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THE PROGRAM, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGES. YOU HEREBY WAIVE ANY CLAIMS FOR DAMAGES
 OF ANY KIND AGAINST CONTRIBUTORS WHICH MAY RESULT FROM YOUR USE OF THE PROGRAM.
 
-   B. Requirements for a Distribution of Modifiable Code
-
+B. Requirements for a Distribution of Modifiable Code
 If you distribute the Program in a form to which the recipient can make Modifications
 (e.g. source code), the terms of this license apply to use by recipient. In
 addition, each source and data file of the Program and any Modification you
 distribute must contain the following notice:
 
 "Copyright (c) 2000- (insert then current year) OCLC Online Computer Library
-Center, Inc. and other contributors . All rights reserved. The contents of
+Center, Inc. and other contributors. All rights reserved. The contents of
 this file, as updated from time to time by the OCLC Office of Research, are
 subject to OCLC Research Public License Version 2.0 (the "License"); you may
 not use this file except in compliance with the License. You may obtain a
@@ -89,13 +85,12 @@ WARRANTY OF ANY KIND, either express or implied. See the License for the specifi
 language governing rights and limitations under the License. This software
 consists of voluntary contributions made by many individuals on behalf of
 OCLC Research. For more information on OCLC Research, please see http://www.oclc.org/research/.
-The Original Code is ______________________________ . The Initial Developer
-of the Original Code is ________________________ . Portions created by ______________________
-are Copyright (C) ____________________________ . All Rights Reserved. Contributor(s):
-______________________________________ ."
+The Original Code is ______________________________. The Initial Developer
+of the Original Code is ________________________. Portions created by ______________________
+are Copyright (C) _____ _______________________. All Rights Reserved. Contributor(s):
+______________________________________."
 
-   C. Requirements for a Distribution of Non-modifiable Code
-
+C. Requirements for a Distribution of Non-modifiable Code
 If you distribute the Program in a form to which the recipient cannot make
 Modifications (e.g. object code), the terms of this license apply to use by
 recipient and you must include the following statement in appropriate and
@@ -107,8 +102,7 @@ Center, Inc. and other contributors. All rights reserved."
 In addition, the source code must be included with the object code distribution
 or the distributor must provide the source code to the recipient upon request.
 
-   D. Requirements for a Combined Work Distribution
-
+D. Requirements for a Combined Work Distribution
 Distributions of Combined Works are subject to the terms of this license and
 must be made at no charge to the recipient beyond the costs of physically
 transferring the files to recipient.
@@ -125,7 +119,7 @@ Work. However, the Program contained in an Aggregate Work is subject to this
 License. Also, should the Program be extracted from an Aggregate Work, this
 License applies to any use of the Program apart from the Aggregate Work.
 
-   Section 4. License Grant
+Section 4. License Grant
 
 For purposes of permitting use of your Modifications by OCLC and other licensees
 hereunder, you hereby grant to OCLC and such other licensees the non-exclusive,

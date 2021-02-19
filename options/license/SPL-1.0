@@ -1,6 +1,6 @@
 SUN PUBLIC LICENSE Version 1.0
 
-   1. Definitions.
+1. Definitions.
 
 1.0.1. "Commercial Use" means distribution or otherwise making the Covered
 Code available to a third party.
@@ -19,7 +19,7 @@ and corresponding documentation released with the source code.
 1.4. "Electronic Distribution Mechanism" means a mechanism generally accepted
 in the software development community for the electronic transfer of data.
 
-      1.5. "Executable" means Covered Code in any form other than Source Code.
+     1.5. "Executable" means Covered Code in any form other than Source Code.
 
 1.6. "Initial Developer" means the individual or entity identified as the
 Initial Developer in the Source Code notice required by Exhibit A.
@@ -27,7 +27,7 @@ Initial Developer in the Source Code notice required by Exhibit A.
 1.7. "Larger Work" means a work which combines Covered Code or portions thereof
 with code not governed by the terms of this License.
 
-      1.8. "License" means this document.
+     1.8. "License" means this document.
 
 1.8.1. "Licensable" means having the right to grant, to the maximum extent
 possible, whether at the time of the initial grant or subsequently acquired,
@@ -69,11 +69,11 @@ or indirect, to cause the direction or management of such entity, whether
 by contract or otherwise, or (b) ownership of more than fifty percent (50%)
 of the outstanding shares or beneficial ownership of such entity.
 
-   2. Source Code License.
+2. Source Code License.
 
-2.1 The Initial Developer Grant. The Initial Developer hereby grants You a
-world-wide, royalty-free, non-exclusive license, subject to third party intellectual
-property claims:
+2.1 The Initial Developer Grant.  The Initial Developer hereby grants You
+a world-wide, royalty-free, non-exclusive license, subject to third party
+intellectual property claims:
 
 (a) under intellectual property rights (other than patent or trademark) Licensable
 by Initial Developer to use, reproduce, modify, display, perform, sublicense
@@ -92,11 +92,11 @@ this License.
 for code that You delete from the Original Code; 2) separate from the Original
 Code; or 3) for infringements caused by:
 
-            i) the modification of the Original Code or
+               i) the modification of the Original Code or
 
 ii) the combination of the Original Code with other software or devices.
 
-2.2. Contributor Grant. Subject to third party intellectual property claims,
+2.2. Contributor Grant.  Subject to third party intellectual property claims,
 each Contributor hereby grants You a world-wide, royalty-free, non-exclusive
 license
 
@@ -124,7 +124,7 @@ Modifications made by that Contributor with other software (except as part
 of the Contributor Version) or other devices; or 4) under Patent Claims infringed
 by Covered Code in the absence of Modifications made by that Contributor.
 
-   3. Distribution Obligations.
+3. Distribution Obligations.
 
 3.1. Application of License. The Modifications which You create or to which
 You contribute are governed by the terms of this License, including without
@@ -157,7 +157,7 @@ Developer in (a) the Source Code, and (b) in any notice in an Executable version
 or related documentation in which You describe the origin or ownership of
 the Covered Code.
 
-      3.4. Intellectual Property Matters.
+     3.4. Intellectual Property Matters.
 
 (a) Third Party Claims. If Contributor has knowledge that a license under
 a third party's intellectual property rights is required to exercise the rights
@@ -223,7 +223,7 @@ with other code not governed by the terms of this License and distribute the
 Larger Work as a single product. In such a case, You must make sure the requirements
 of this License are fulfilled for the Covered Code.
 
-   4. Inability to Comply Due to Statute or Regulation.
+4. Inability to Comply Due to Statute or Regulation.
 
 If it is impossible for You to comply with any of the terms of this License
 with respect to some or all of the Covered Code due to statute, judicial order,
@@ -235,12 +235,12 @@ Except to the extent prohibited by statute or regulation, such description
 must be sufficiently detailed for a recipient of ordinary skill to be able
 to understand it.
 
-   5. Application of this License.
+5. Application of this License.
 
 This License applies to code to which the Initial Developer has attached the
 notice in Exhibit A and to related Covered Code.
 
-   6. Versions of the License.
+6. Versions of the License.
 
 6.1. New Versions. Sun Microsystems, Inc. ("Sun") may publish revised and/or
 new versions of the License from time to time. Each version will be given
@@ -264,7 +264,7 @@ in the name of the Initial Developer, Original Code or Contributor in the
 notice described in Exhibit A shall not of themselves be deemed to be modifications
 of this License.)
 
-   7. DISCLAIMER OF WARRANTY.
+7. DISCLAIMER OF WARRANTY.
 
 COVERED CODE IS PROVIDED UNDER THIS LICENSE ON AN "../AS IS'' BASIS, WITHOUT
 WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, WITHOUT LIMITATION,
@@ -276,7 +276,7 @@ ASSUME THE COST OF ANY NECESSARY SERVICING, REPAIR OR CORRECTION. THIS DISCLAIME
 OF WARRANTY CONSTITUTES AN ESSENTIAL PART OF THIS LICENSE. NO USE OF ANY COVERED
 CODE IS AUTHORIZED HEREUNDER EXCEPT UNDER THIS DISCLAIMER.
 
-   8. TERMINATION.
+8. TERMINATION.
 
 8.1. This License and the rights granted hereunder will terminate automatically
 if You fail to comply with terms herein and fail to cure such breach within
@@ -322,7 +322,7 @@ user license agreements (excluding distributors and resellers) which have
 been validly granted by You or any distributor hereunder prior to termination
 shall survive termination.
 
-   9. LIMITATION OF LIABILITY.
+9. LIMITATION OF LIABILITY.
 
 UNDER NO CIRCUMSTANCES AND UNDER NO LEGAL THEORY, WHETHER TORT (INCLUDING
 NEGLIGENCE), CONTRACT, OR OTHERWISE, SHALL YOU, THE INITIAL DEVELOPER, ANY
@@ -338,7 +338,7 @@ SOME JURISDICTIONS DO NOT ALLOW THE EXCLUSION OR LIMITATION OF INCIDENTAL
 OR CONSEQUENTIAL DAMAGES, SO THIS EXCLUSION AND LIMITATION MAY NOT APPLY TO
 YOU.
 
-   10. U.S. GOVERNMENT END USERS.
+10. U.S. GOVERNMENT END USERS.
 
 The Covered Code is a "commercial item," as that term is defined in 48 C.F.R.
 2.101 (Oct. 1995), consisting of "commercial computer software" and "commercial
@@ -347,7 +347,7 @@ computer software documentation,"../ as such terms are used in 48 C.F.R. 12.212
 227.7202-4 (June 1995), all U.S. Government End Users acquire Covered Code
 with only those rights set forth herein.
 
-   11. MISCELLANEOUS.
+11. MISCELLANEOUS.
 
 This License represents the complete agreement concerning subject matter hereof.
 If any provision of this License is held to be unenforceable, such provision
@@ -365,7 +365,7 @@ on Contracts for the International Sale of Goods is expressly excluded. Any
 law or regulation which provides that the language of a contract shall be
 construed against the drafter shall not apply to this License.
 
-   12. RESPONSIBILITY FOR CLAIMS.
+12. RESPONSIBILITY FOR CLAIMS.
 
 As between Initial Developer and the Contributors, each party is responsible
 for claims and damages arising, directly or indirectly, out of its utilization
@@ -374,35 +374,35 @@ and Contributors to distribute such responsibility on an equitable basis.
 Nothing herein is intended or shall be deemed to constitute any admission
 of liability.
 
-   13. MULTIPLE-LICENSED CODE.
+13. MULTIPLE-LICENSED CODE.
 
 Initial Developer may designate portions of the Covered Code as ?Multiple-Licensed?.
 ?Multiple-Licensed? means that the Initial Developer permits you to utilize
 portions of the Covered Code under Your choice of the alternative licenses,
 if any, specified by the Initial Developer in the file described in Exhibit
-A. Exhibit A -Sun Public License Notice.
+A.
+
+Exhibit A -Sun Public License Notice.
 
 The contents of this file are subject to the Sun Public License Version 1.0
 (the License); you may not use this file except in compliance with the License.
 A copy of the License is available at http://www.sun.com/
 
-The Original Code is _________________ . The Initial Developer of the Original
-Code is ___________ . Portions created by ______ are Copyright (C) _________
-. All Rights Reserved.
+The Original Code is _________________. The Initial Developer of the  Original
+Code is ___________. Portions created by ______ are Copyright (C)_________.
+All Rights Reserved.
 
-Contributor(s): ______________________________________ .
+Contributor(s): ______________________________________.
 
 Alternatively, the contents of this file may be used under the terms of the
-_____ license (the ?[___] License? ), in which case the provisions of [______]
+_____ license (the ?[___] License?), in which case the provisions of [______]
 License are applicable instead of those above. If you wish to allow use of
 your version of this file only under the terms of the [____] License and not
 to allow others to use your version of this file under the SPL, indicate your
 decision by deleting the provisions above and replace them with the notice
 and other provisions required by the [___] License. If you do not delete the
 provisions above, a recipient may use your version of this file under either
-the SPL or the [___] License.
-
-[NOTE: The text of this Exhibit A may differ slightly from the text of the
-notices in the Source Code files of the Original Code. You should use the
-text of this Exhibit A rather than the text found in the Original Code Source
-Code for Your Modifications.]
+the SPL or the [___] License. [NOTE: The text of this Exhibit A may differ
+slightly from the text of the notices in the Source Code files of the Original
+Code. You should use the text of this Exhibit A rather than the text found
+in the Original Code Source Code for Your Modifications.]

@@ -60,7 +60,7 @@ The front page, a repository view or issue list is dynamic content.
 
 Nginx can serve static resources directly and proxy only the dynamic requests to gitea.
 Nginx is optimized for serving static content, while the proxying of large responses might be the opposite of that
-(see https://serverfault.com/q/587386).
+(see [https://serverfault.com/q/587386](https://serverfault.com/q/587386)).
 
 Download a snapshot of the Gitea source repository to `/path/to/gitea/`.
 After this, run `make frontend` in the repository directory to generate the static resources. We are only interested in the `public/` directory for this task, so you can delete the rest.

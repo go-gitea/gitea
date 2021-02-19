@@ -8,8 +8,6 @@
 		</h4>
 		<div class="ui attached table segment">
 			<form method="post" action="{{AppSubUrl}}/admin">
-				<input type="hidden" name="from" value="monitor"/>
-				{{.CsrfTokenHtml}}
 				<table class="ui very basic striped table">
 					<thead>
 						<tr>
@@ -34,6 +32,8 @@
 						{{end}}
 					</tbody>
 				</table>
+				<input type="hidden" name="from" value="monitor"/>
+				{{.CsrfTokenHtml}}
 			</form>
 		</div>
 

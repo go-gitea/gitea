@@ -43,7 +43,7 @@ var (
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
@@ -317,9 +317,6 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-var byteBodyTag = []byte("<body>")
-var byteBodyTagClosing = []byte("</body>")
-
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
@@ -327,9 +324,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 
 	// give a generous extra 50 bytes
 	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, byteBodyTag...)
-	res = append(res, rawHTML...)
-	res = append(res, byteBodyTagClosing...)
+
+	// prepend "<html><body>"
+	res = append(res, "<html><body>"...)
+
+	// Strip out nuls - they're always invalid
+	start := bytes.IndexByte(rawHTML, '\000')
+	if start >= 0 {
+		res = append(res, rawHTML[:start]...)
+		start++
+		for start < len(rawHTML) {
+			end := bytes.IndexByte(rawHTML[start:], '\000')
+			if end < 0 {
+				res = append(res, rawHTML[start:]...)
+				break
+			} else if end > 0 {
+				res = append(res, rawHTML[start:start+end]...)
+			}
+			start += end + 1
+		}
+	} else {
+		res = append(res, rawHTML...)
+	}
+
+	// close the tags
+	res = append(res, "</body></html>"...)
 
 	// parse the HTML
 	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
@@ -340,6 +359,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	for _, node := range nodes {
 		ctx.visitNode(node, true)
 	}
+
+	newNodes := make([]*html.Node, 0, len(nodes))
+
+	for _, node := range nodes {
+		if node.Data == "html" {
+			node = node.FirstChild
+			for node != nil && node.Data != "body" {
+				node = node.NextSibling
+			}
+		}
+		if node == nil {
+			continue
+		}
+		if node.Data == "body" {
+			child := node.FirstChild
+			for child != nil {
+				newNodes = append(newNodes, child)
+				child = child.NextSibling
+			}
+		} else {
+			newNodes = append(newNodes, node)
+		}
+	}
+
+	nodes = newNodes
 
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
@@ -353,12 +397,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	// remove initial parts - because Render creates a whole HTML page.
-	res = buf.Bytes()
-	res = res[bytes.Index(res, byteBodyTag)+len(byteBodyTag) : bytes.LastIndex(res, byteBodyTagClosing)]
-
 	// Everything done successfully, return parsed data.
-	return res, nil
+	return buf.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {

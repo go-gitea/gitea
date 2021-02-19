@@ -72,7 +72,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	link, exists := htmlDoc.doc.Find("form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
