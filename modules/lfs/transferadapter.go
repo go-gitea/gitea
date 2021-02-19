@@ -10,20 +10,24 @@ import (
 	"net/http"
 )
 
+// TransferAdapter represents an adapter for downloading/uploading LFS objects
 type TransferAdapter interface {
 	Name() string
 	Download(r *ObjectResponse) (io.ReadCloser, error)
 	//Upload(reader io.Reader) error
- }
+}
 
+// BasicTransferAdapter implements the "basic" adapter
 type BasicTransferAdapter struct {
 	client *http.Client
 }
 
+// Name returns the name of the adapter
 func (a *BasicTransferAdapter) Name() string {
 	return "basic"
 }
 
+// Download reads the download location and downloads the data
 func (a *BasicTransferAdapter) Download(r *ObjectResponse) (io.ReadCloser, error) {
 	download, ok := r.Actions["download"]
 	if !ok {
@@ -37,7 +41,7 @@ func (a *BasicTransferAdapter) Download(r *ObjectResponse) (io.ReadCloser, error
 	for key, value := range download.Header {
 		req.Header.Set(key, value)
 	}
-	
+
 	res, err := a.client.Do(req)
 	if err != nil {
 		return nil, err

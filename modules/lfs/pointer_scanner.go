@@ -29,6 +29,7 @@ const (
 	LFSMetaFileOidPrefix = "oid sha256:"
 )
 
+// TryReadPointer tries to read LFS pointer data from the reader
 func TryReadPointer(reader io.Reader) *Pointer {
 	buf := make([]byte, blobSizeCutoff)
 	n, _ := reader.Read(buf)
@@ -58,6 +59,7 @@ func TryReadPointerFromBuffer(buf []byte) *Pointer {
 	return &Pointer{Oid: oid, Size: size}
 }
 
+// SearchPointerFiles scans the whole repository for LFS pointer files
 func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
 	gitRepo := repo.GoGitRepo()
 

@@ -283,7 +283,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				if meta != nil {
 					ctx.Data["IsLFSFile"] = true
 					isLFSFile = true
-	
+
 					// OK read the lfs object
 					var err error
 					dataRc, err = lfs.ReadMetaObject(pointer)
@@ -292,7 +292,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 						return
 					}
 					defer dataRc.Close()
-	
+
 					buf = make([]byte, 1024)
 					n, err = dataRc.Read(buf)
 					if err != nil {
@@ -300,10 +300,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 						return
 					}
 					buf = buf[:n]
-	
+
 					isTextFile = base.IsTextFile(buf)
 					ctx.Data["IsTextFile"] = isTextFile
-	
+
 					fileSize = meta.Size
 					ctx.Data["FileSize"] = meta.Size
 					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
@@ -407,7 +407,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			if meta != nil {
 				isLFSFile = true
-	
+
 				// OK read the lfs object
 				var err error
 				dataRc, err = lfs.ReadMetaObject(pointer)
@@ -416,7 +416,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					return
 				}
 				defer dataRc.Close()
-	
+
 				buf = make([]byte, 1024)
 				n, err = dataRc.Read(buf)
 				// Error EOF don't mean there is an error, it just means we read to
@@ -426,7 +426,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					return
 				}
 				buf = buf[:n]
-	
+
 				isTextFile = base.IsTextFile(buf)
 				fileSize = meta.Size
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)

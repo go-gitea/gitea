@@ -312,7 +312,7 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
 func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
 	client := lfs.NewClient(&http.Client{})
-	contentStore := lfs.NewContetStore()
+	contentStore := lfs.NewContentStore()
 
 	pointers, err := lfs.SearchPointerFiles(gitRepo)
 	if err != nil {

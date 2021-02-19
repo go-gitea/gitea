@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	// MediaType contains the media type for LFS server requests
 	MediaType = "application/vnd.git-lfs+json"
 )
 
@@ -21,11 +22,13 @@ type BatchRequest struct {
 	Objects   []*Pointer `json:"objects"`
 }
 
+// Reference contains a git reference.
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md#ref-property
 type Reference struct {
 	Name string `json:"name"`
 }
 
+// Pointer contains LFS pointer data
 type Pointer struct {
 	Oid  string `json:"oid"`
 	Size int64  `json:"size"`
@@ -39,7 +42,7 @@ type BatchResponse struct {
 	Objects  []*ObjectResponse `json:"objects"`
 }
 
-// Representation is object metadata as seen by clients of the lfs server.
+// ObjectResponse is object metadata as seen by clients of the LFS server.
 type ObjectResponse struct {
 	Oid     string           `json:"oid"`
 	Size    int64            `json:"size"`

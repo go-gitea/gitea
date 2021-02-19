@@ -49,11 +49,12 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	lfsID++
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
-	contentStore := lfs.NewContetStore()
-	exist, err := contentStore.Exists(lfsMetaObject)
+	pointer := lfsMetaObject.AsPointer()
+	contentStore := lfs.NewContentStore()
+	exist, err := contentStore.Exists(pointer)
 	assert.NoError(t, err)
 	if !exist {
-		err := contentStore.Put(lfsMetaObject, bytes.NewReader(*content))
+		err := contentStore.Put(pointer, bytes.NewReader(*content))
 		assert.NoError(t, err)
 	}
 	return oid

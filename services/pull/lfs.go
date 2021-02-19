@@ -106,7 +106,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 			continue
 		}
 
-		contentStore := lfs.NewContetStore()
+		contentStore := lfs.NewContentStore()
 		exist, _ := contentStore.Exists(pointer)
 		if !exist {
 			continue

@@ -18,7 +18,9 @@ import (
 )
 
 var (
+	// ErrHashMismatch occurs if the content has does not match OID
 	ErrHashMismatch = errors.New("Content hash does not match OID")
+	// ErrSizeMismatch occurs if the content size does not match
 	ErrSizeMismatch = errors.New("Content size does not match")
 )
 
@@ -36,7 +38,8 @@ type ContentStore struct {
 	storage.ObjectStorage
 }
 
-func NewContetStore() *ContentStore {
+// NewContentStore creates the default ContentStore
+func NewContentStore() *ContentStore {
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
 	return contentStore
 }
@@ -128,6 +131,6 @@ func (s *ContentStore) Verify(pointer *Pointer) (bool, error) {
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(pointer *Pointer) (io.ReadCloser, error) {
-	contentStore := NewContetStore()
+	contentStore := NewContentStore()
 	return contentStore.Get(pointer, 0)
 }

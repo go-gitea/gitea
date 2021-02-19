@@ -42,6 +42,7 @@ func (m *LFSMetaObject) Pointer() string {
 	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)
 }
 
+// AsPointer creates a Pointer with Oid and Size
 func (m *LFSMetaObject) AsPointer() *lfs.Pointer {
 	pointer := &lfs.Pointer{Oid: m.Oid, Size: m.Size}
 	return pointer

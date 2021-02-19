@@ -430,7 +430,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := lfs.NewContetStore()
+		contentStore := lfs.NewContentStore()
 		exist, err := contentStore.Exists(lfsMetaObject.AsPointer())
 		if err != nil {
 			return nil, err

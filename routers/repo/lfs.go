@@ -493,7 +493,7 @@ type pointerResult struct {
 func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
-	contentStore := lfs.NewContetStore()
+	contentStore := lfs.NewContentStore()
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)

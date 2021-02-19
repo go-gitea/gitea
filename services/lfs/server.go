@@ -143,7 +143,7 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := lfs_module.NewContetStore()
+	contentStore := lfs_module.NewContentStore()
 	content, err := contentStore.Get(meta.AsPointer(), fromByte)
 	if err != nil {
 		var rerr *lfs_module.ErrRangeNotSatisfiable
@@ -249,7 +249,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	sentStatus := 202
-	contentStore := lfs_module.NewContetStore()
+	contentStore := lfs_module.NewContentStore()
 	exist, err := contentStore.Exists(p)
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", p.Oid, rc.User, rc.Repo, err)
@@ -316,7 +316,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := lfs_module.NewContetStore()
+		contentStore := lfs_module.NewContentStore()
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
@@ -374,7 +374,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContetStore()
+	contentStore := lfs_module.NewContentStore()
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.AsPointer(), ctx.Req.Body); err != nil {
 		// Put will log the error itself
@@ -415,7 +415,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContetStore()
+	contentStore := lfs_module.NewContentStore()
 	ok, err := contentStore.Verify(meta.AsPointer())
 	if err != nil {
 		// Error will be logged in Verify

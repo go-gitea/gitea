@@ -14,11 +14,13 @@ import (
 	"strings"
 )
 
+// Client is used to communicate with the LFS server
 type Client struct {
 	client    *http.Client
 	transfers map[string]TransferAdapter
 }
 
+// NewClient creates a LFS client
 func NewClient(hc *http.Client) *Client {
 	client := &Client{hc, make(map[string]TransferAdapter)}
 
@@ -41,13 +43,16 @@ func (c *Client) transferNames() []string {
 	return keys
 }
 
-func (c *Client) batch(repositoryUrl, operation string, objects []*Pointer) (*BatchResponse, error) {
-	url := fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(repositoryUrl, ".git"))
+func (c *Client) batch(url, operation string, objects []*Pointer) (*BatchResponse, error) {
+	url = fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(url, ".git"))
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 
 	payload := new(bytes.Buffer)
-	json.NewEncoder(payload).Encode(request)
+	err := json.NewEncoder(payload).Encode(request)
+	if err != nil {
+		return nil, err
+	}
 
 	req, err := http.NewRequest("POST", url, payload)
 	if err != nil {
@@ -63,7 +68,7 @@ func (c *Client) batch(repositoryUrl, operation string, objects []*Pointer) (*Ba
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(fmt.Sprintf("Unexpected servers response: %s", res.Status))
+		return nil, fmt.Errorf("Unexpected servers response: %s", res.Status)
 	}
 
 	var response BatchResponse
@@ -79,11 +84,12 @@ func (c *Client) batch(repositoryUrl, operation string, objects []*Pointer) (*Ba
 	return &response, nil
 }
 
-func (c *Client) Download(repositoryUrl, oid string, size int64) (io.ReadCloser, error) {
+// Download reads the specific LFS object from the LFS server
+func (c *Client) Download(url, oid string, size int64) (io.ReadCloser, error) {
 	var objects []*Pointer
 	objects = append(objects, &Pointer{oid, size})
-	
-	result, err := c.batch(repositoryUrl, "download", objects)
+
+	result, err := c.batch(url, "download", objects)
 	if err != nil {
 		return nil, err
 	}
