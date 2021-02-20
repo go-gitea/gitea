@@ -1,11 +1,14 @@
 import prettyMilliseconds from 'pretty-ms';
-const {AppSubUrl, csrf, NotificationSettings} = window.config;
+const {AppSubUrl, csrf, NotificationSettings, EnableTimetracking} = window.config;
 
 let updateTimeInterval = null; // holds setInterval id when active
 
 export async function initStopwatch() {
-  const stopwatchEl = $('.active-stopwatch-trigger');
+  if (!EnableTimetracking) {
+    return;
+  }
 
+  const stopwatchEl = $('.active-stopwatch-trigger');
   stopwatchEl.removeAttr('href'); // intended for noscript mode only
   stopwatchEl.popup({
     position: 'bottom right',
