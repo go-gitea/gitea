@@ -55,7 +55,6 @@ func TestGetIssuesByIDs(t *testing.T) {
 			actualIssueIDs[i] = issue.ID
 		}
 		assert.Equal(t, expectedIssueIDs, actualIssueIDs)
-
 	}
 	testSuccess([]int64{1, 2, 3}, []int64{})
 	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
@@ -87,7 +86,7 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 }
 
 func TestIssue_ClearLabels(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID int64
 		doerID  int64
 	}{
@@ -342,7 +341,7 @@ func testInsertIssue(t *testing.T, title, content string) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	var issue = Issue{
+	issue := Issue{
 		RepoID:   repo.ID,
 		PosterID: user.ID,
 		Title:    title,

@@ -218,7 +218,7 @@ func (a *Action) getCommentLink(e Engine) string {
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
 	}
-	//Return link to issue
+	// Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 	if err != nil {

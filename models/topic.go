@@ -171,7 +171,7 @@ type FindTopicOptions struct {
 }
 
 func (opts *FindTopicOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_topic.repo_id": opts.RepoID})
 	}
@@ -199,8 +199,9 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 	return getRepoTopicByName(x, repoID, topicName)
 }
+
 func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error) {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	var topic Topic
 	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
 	sess := e.Table("topic").Where(cond)

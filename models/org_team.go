@@ -61,7 +61,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		opts.PageSize = 10
 	}
 
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -80,7 +80,6 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	count, err := sess.
 		Where(cond).
 		Count(new(Team))
-
 	if err != nil {
 		return nil, 0, err
 	}
@@ -109,7 +108,6 @@ func (t *Team) ColorFormat(s fmt.State) {
 		t.Name,
 		log.NewColoredIDValue(t.OrgID),
 		t.Authorize)
-
 }
 
 // GetUnits return a list of available units for a team

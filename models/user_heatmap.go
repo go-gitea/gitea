@@ -33,7 +33,7 @@ func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData,
 	}
 
 	var groupBy string
-	var groupByName = "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
+	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
 	case setting.Database.UseSQLite3:
 		groupBy = "strftime('%s', strftime('%Y-%m-%d', created_unix, 'unixepoch'))"

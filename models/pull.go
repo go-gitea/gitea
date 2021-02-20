@@ -241,7 +241,6 @@ func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
-
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
 		log.Error("Unable to getReviewedByLines: Error: %v", err)

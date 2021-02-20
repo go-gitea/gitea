@@ -102,8 +102,8 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		return nil, nil, err
 	}
 
-	var ids = make([]int64, len(ous))
-	var idsIsPublic = make(map[int64]bool, len(ous))
+	ids := make([]int64, len(ous))
+	idsIsPublic := make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
 		idsIsPublic[ou.UID] = ou.IsPublic
@@ -205,7 +205,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
 	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
@@ -813,7 +813,7 @@ func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if env.team != nil {
 		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
 	} else {

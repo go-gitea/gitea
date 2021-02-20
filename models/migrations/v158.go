@@ -52,8 +52,8 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 		AND comment.commit_sha != first.commit_sha`
 
 	var sqlCmd string
-	var start = 0
-	var batchSize = 100
+	start := 0
+	batchSize := 100
 	sess := x.NewSession()
 	defer sess.Close()
 	for {
@@ -68,7 +68,7 @@ func updateCodeCommentReplies(x *xorm.Engine) error {
 			}
 		}
 
-		var comments = make([]*Comment, 0, batchSize)
+		comments := make([]*Comment, 0, batchSize)
 
 		switch {
 		case setting.Database.UseMySQL:

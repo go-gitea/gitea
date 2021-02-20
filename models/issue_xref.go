@@ -115,7 +115,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 		if ctx.OrigComment != nil {
 			refCommentID = ctx.OrigComment.ID
 		}
-		var opts = &CreateCommentOptions{
+		opts := &CreateCommentOptions{
 			Type:         ctx.Type,
 			Doer:         ctx.Doer,
 			Repo:         xref.Issue.Repo,
@@ -194,7 +194,6 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 // verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
 func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository,
 	ref references.IssueReference) (*Issue, references.XRefAction, error) {
-
 	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
 

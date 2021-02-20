@@ -77,9 +77,11 @@ var (
 	issueTasksDonePat *regexp.Regexp
 )
 
-const issueTasksRegexpStr = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
-const issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
-const issueMaxDupIndexAttempts = 3
+const (
+	issueTasksRegexpStr      = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
+	issueTasksDoneRegexpStr  = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
+	issueMaxDupIndexAttempts = 3
+)
 
 func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
@@ -714,7 +716,7 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:     CommentTypeChangeTitle,
 		Doer:     doer,
 		Repo:     issue.Repo,
@@ -759,7 +761,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:   CommentTypeDeleteBranch,
 		Doer:   doer,
 		Repo:   repo,
@@ -914,7 +916,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 			return err
 		}
 
-		var opts = &CreateCommentOptions{
+		opts := &CreateCommentOptions{
 			Type:           CommentTypeMilestone,
 			Doer:           doer,
 			Repo:           opts.Repo,
@@ -1083,7 +1085,7 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 }
 
 func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
-	var ids = make([]int64, 0, 10)
+	ids := make([]int64, 0, 10)
 	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
 	return ids, err
 }
@@ -1719,10 +1721,16 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 // SearchIssueIDsByKeyword search issues on database
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
+<<<<<<< HEAD
 	var repoCond = builder.In("repo_id", repoIDs)
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
 	kw = strings.ToUpper(kw)
 	var cond = builder.And(
+=======
+	repoCond := builder.In("repo_id", repoIDs)
+	subQuery := builder.Select("id").From("issue").Where(repoCond)
+	cond := builder.And(
+>>>>>>> 366a59461... chore: rewrite format.
 		repoCond,
 		builder.Or(
 			builder.Like{"UPPER(name)", kw},
@@ -1738,6 +1746,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		),
 	)
 
+
 	var ids = make([]int64, 0, limit)
 	var res = make([]struct {
 		ID          int64
@@ -1746,6 +1755,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	err := x.Distinct("id", "updated_unix").Table("issue").Where(cond).
 		OrderBy("`updated_unix` DESC").Limit(limit, start).
 		Find(&res)
+
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1790,7 +1800,7 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, t
 
 	titleChanged = currentIssue.Title != issue.Title
 	if titleChanged {
-		var opts = &CreateCommentOptions{
+		opts := &CreateCommentOptions{
 			Type:     CommentTypeChangeTitle,
 			Doer:     doer,
 			Repo:     issue.Repo,
@@ -1819,7 +1829,6 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, t
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
 func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *User) (err error) {
-
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
@@ -1879,7 +1888,7 @@ func (issue *Issue) getBlockedByDependencies(e Engine) (issueDeps []*DependencyI
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
-		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
@@ -1891,7 +1900,7 @@ func (issue *Issue) getBlockingDependencies(e Engine) (issueDeps []*DependencyIn
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
-		//sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
 }
