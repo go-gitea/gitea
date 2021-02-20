@@ -6,6 +6,7 @@ package lfs
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,7 +44,7 @@ func (c *Client) transferNames() []string {
 	return keys
 }
 
-func (c *Client) batch(url, operation string, objects []*Pointer) (*BatchResponse, error) {
+func (c *Client) batch(ctx context.Context, url, operation string, objects []*Pointer) (*BatchResponse, error) {
 	url = fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(url, ".git"))
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
@@ -54,7 +55,7 @@ func (c *Client) batch(url, operation string, objects []*Pointer) (*BatchRespons
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, payload)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -63,6 +64,11 @@ func (c *Client) batch(url, operation string, objects []*Pointer) (*BatchRespons
 
 	res, err := c.client.Do(req)
 	if err != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -85,11 +91,11 @@ func (c *Client) batch(url, operation string, objects []*Pointer) (*BatchRespons
 }
 
 // Download reads the specific LFS object from the LFS server
-func (c *Client) Download(url, oid string, size int64) (io.ReadCloser, error) {
+func (c *Client) Download(ctx context.Context, url, oid string, size int64) (io.ReadCloser, error) {
 	var objects []*Pointer
 	objects = append(objects, &Pointer{oid, size})
 
-	result, err := c.batch(url, "download", objects)
+	result, err := c.batch(ctx, url, "download", objects)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +109,7 @@ func (c *Client) Download(url, oid string, size int64) (io.ReadCloser, error) {
 		return nil, errors.New("No objects in result")
 	}
 
-	content, err := transferAdapter.Download(result.Objects[0])
+	content, err := transferAdapter.Download(ctx, result.Objects[0])
 	if err != nil {
 		return nil, err
 	}

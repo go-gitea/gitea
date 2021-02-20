@@ -206,7 +206,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 // runSync returns true if sync finished without error.
-func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -262,7 +262,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 	lfsAddr, _ := remoteAddress(m.Repo.RepoPath())
-	if err = repo_module.StoreMissingLfsObjectsInRepository(m.Repo, gitRepo, lfsAddr); err != nil { // TODO support custom endpoint
+	if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsAddr); err != nil { // TODO support custom endpoint
 		log.Error("Failed to synchronize LFS objects for repository: %v", err)
 	}
 
@@ -383,12 +383,12 @@ func SyncMirrors(ctx context.Context) {
 			mirrorQueue.Close()
 			return
 		case repoID := <-mirrorQueue.Queue():
-			syncMirror(repoID)
+			syncMirror(ctx, repoID)
 		}
 	}
 }
 
-func syncMirror(repoID string) {
+func syncMirror(ctx context.Context, repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -408,7 +408,7 @@ func syncMirror(repoID string) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
-	results, ok := runSync(m)
+	results, ok := runSync(ctx, m)
 	if !ok {
 		return
 	}

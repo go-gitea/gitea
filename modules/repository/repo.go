@@ -124,7 +124,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 
 		if opts.LFS {
-			if err = StoreMissingLfsObjectsInRepository(repo, gitRepo, opts.LFSEndpoint); err != nil {
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, opts.LFSEndpoint); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
@@ -310,7 +310,7 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
-func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
 	client := lfs.NewClient(&http.Client{})
 	contentStore := lfs.NewContentStore()
 
@@ -320,6 +320,13 @@ func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Re
 	}
 
 	for _, pointer := range pointers {
+		select {
+		case <-ctx.Done():
+			log.Info("StoreMissingLfsObjectsInRepository aborted before completion")
+			return nil
+		default:
+		}
+
 		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size, RepositoryID: repo.ID}
 		meta, err = models.NewLFSMetaObject(meta)
 		if err != nil {
@@ -341,8 +348,14 @@ func StoreMissingLfsObjectsInRepository(repo *models.Repository, gitRepo *git.Re
 				continue
 			}
 
-			stream, err := client.Download(lfsAddr, pointer.Oid, pointer.Size)
+			stream, err := client.Download(ctx, lfsAddr, pointer.Oid, pointer.Size)
 			if err != nil {
+				select {
+				case <-ctx.Done():
+					log.Info("StoreMissingLfsObjectsInRepository aborted before completion")
+					return nil
+				default:
+				}
 				log.Error("LFS OID[%s] failed to download: %v", err)
 				continue
 			}
