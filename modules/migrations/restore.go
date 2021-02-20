@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
@@ -20,10 +21,11 @@ import (
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
 	base.NullDownloader
-	ctx       context.Context
-	baseDir   string
-	repoOwner string
-	repoName  string
+	ctx         context.Context
+	baseDir     string
+	repoOwner   string
+	repoName    string
+	serviceType structs.GitServiceType
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
@@ -68,6 +70,8 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 	}
 
 	isPrivate, _ := strconv.ParseBool(opts["is_private"])
+	tp, _ := strconv.Atoi(opts["service_type"])
+	r.serviceType = structs.GitServiceType(tp)
 
 	return &base.Repository{
 		Owner:         r.repoOwner,

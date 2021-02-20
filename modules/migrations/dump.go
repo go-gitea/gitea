@@ -573,19 +573,20 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 		return err
 	}
 	if err = migrateRepository(downloader, uploader, base.MigrateOptions{
-		Wiki:          true,
-		Issues:        true,
-		Milestones:    true,
-		Labels:        true,
-		Releases:      true,
-		Comments:      true,
-		PullRequests:  true,
-		ReleaseAssets: true,
+		Wiki:           true,
+		Issues:         true,
+		Milestones:     true,
+		Labels:         true,
+		Releases:       true,
+		Comments:       true,
+		PullRequests:   true,
+		ReleaseAssets:  true,
+		GitServiceType: downloader.serviceType,
 	}); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
 		return err
 	}
-	return nil
+	return updateMigrationPosterIDByGitService(ctx, downloader.serviceType)
 }
