@@ -188,6 +188,10 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
+			ctx.PlainText(http.StatusInternalServerError, []byte("Unable to find status/500 template"))
+			return
+		}
 		ctx.ServerError("Render failed", err)
 	}
 }
