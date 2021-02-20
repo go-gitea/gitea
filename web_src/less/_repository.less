@@ -39,8 +39,9 @@
     justify-content: space-between;
 
     .ui.label {
-      margin-left: 7px;
-      padding: 3px 5px;
+      margin: -3px 0;
+      margin-left: 7px !important;
+      padding: 3px 5px !important;
     }
   }
 
@@ -185,8 +186,11 @@
         overflow-x: auto;
         overflow-y: hidden;
 
-        .spacer:last-child {
-          min-width: 1em;
+        /* Firefox and Safari < 14 need a spacer */
+        @supports (-moz-appearance:none) or (not (text-orientation:inherit)) {
+          .spacer:last-child {
+            min-width: 1em;
+          }
         }
 
         &::before {
@@ -212,7 +216,12 @@
             width: calc(100% - 2em);
           }
 
-          &:not(.container) {
+          &.spacer {
+            width: 1.25em;
+          }
+
+          &:first-child,
+          &:last-child {
             z-index: 2;
           }
         }

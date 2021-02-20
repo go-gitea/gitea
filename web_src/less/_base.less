@@ -249,12 +249,12 @@ a.muted:hover,
 
 .page-content {
   margin-top: 15px;
-}
 
-.page-content .header-wrapper,
-.page-content .new-menu {
-  margin-top: -15px !important;
-  padding-top: 15px !important;
+  .header-wrapper,
+  .new-menu {
+    margin-top: -15px !important;
+    padding-top: 15px !important;
+  }
 }
 
 .ui.input.focus > input,
@@ -1238,35 +1238,33 @@ footer {
   margin-bottom: 15px;
   background: var(--color-navbar);
   border-bottom: 1px solid var(--color-secondary) !important;
-  overflow: auto;
+  overflow-y: visible;
 
-  @media @mediaSm {
-    & {
-      overflow: visible !important;
+  .new-menu-inner {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin-left: auto;
+    margin-right: auto;
+
+    @media @mediaSm {
+      & {
+        flex-wrap: wrap;
+        overflow: visible !important;
+        margin-left: 0;
+        margin-right: 0;
+      }
     }
-  }
 
-  &::before,
-  &::after {
-    height: 38px !important;
-  }
-}
-
-.ui.menu.new-menu .new-menu-inner {
-  display: flex;
-  margin-left: auto;
-  margin-right: auto;
-
-  @media @mediaSm {
-    & {
-      flex-wrap: wrap;
-      margin-left: 0;
-      margin-right: 0;
+    &::before,
+    &::after {
+      height: 38px !important;
     }
   }
 }
 
 .ui.menu.new-menu .item {
+  height: 40px;
   margin: 0 !important;
 }
 
@@ -1276,12 +1274,8 @@ footer {
   }
 }
 
-.ui.menu.new-menu .item:last-child {
-  padding-right: 30px !important;
-}
-
 .ui.tabs.container .ui.menu,
-.ui.menu.new-menu {
+.ui.menu.new-menu .new-menu-inner {
   &::before,
   &::after {
     content: "";
@@ -1294,31 +1288,34 @@ footer {
   }
 
   &::before {
-    background: radial-gradient(circle at 1100% 0, var(--color-navbar-transparent) 90.625%, var(--color-navbar) 95%);
+    background: linear-gradient(to left, var(--color-navbar-transparent), var(--color-navbar) 75%);
     left: 0;
     z-index: 1;
   }
 
   &::after {
-    background: radial-gradient(circle at -1000% 0, var(--color-navbar-transparent) 90.625%, var(--color-navbar) 95%);
+    background: linear-gradient(to right, var(--color-navbar-transparent), var(--color-navbar) 75%);
     right: 0;
   }
 
   &::-webkit-scrollbar {
-    height: 6px;
+    height: 10px;
     display: none;
   }
 
   &::-webkit-scrollbar-track {
-    background: none !important;
+    background: none;
   }
+  /* Exclude Firefox */
+  @supports (-webkit-appearance:none) and (not (-moz-appearance:none)) {
+    &:hover {
+      overflow-x: scroll !important;
+      margin-bottom: -10px !important;
 
-  &::-webkit-scrollbar-thumb {
-    box-shadow: none !important;
-  }
-
-  &:hover::-webkit-scrollbar {
-    display: block;
+      &::-webkit-scrollbar {
+        display: block;
+      }
+    }
   }
 }
 
