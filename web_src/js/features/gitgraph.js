@@ -74,6 +74,7 @@ export default async function initGitGraph() {
   $('#flow-select-refs-dropdown').dropdown('set selected', dropdownSelected);
   $('#flow-select-refs-dropdown').dropdown({
     clearable: true,
+    fullTextSeach: 'exact',
     onRemove(toRemove) {
       if (toRemove === '...flow-hide-pr-refs') {
         params.delete('hide-pr-refs');

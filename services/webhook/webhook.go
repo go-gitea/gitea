@@ -120,6 +120,11 @@ func checkBranch(w *models.Webhook, branch string) bool {
 }
 
 func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.HookEventType, p api.Payloader) error {
+	// Skip sending if webhooks are disabled.
+	if setting.DisableWebhooks {
+		return nil
+	}
+
 	for _, e := range w.EventCheckers() {
 		if event == e.Type {
 			if !e.Has() {
