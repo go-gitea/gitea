@@ -1521,7 +1521,7 @@ function initWikiForm() {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
       const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
       const $toolbar = $('.editor-toolbar');
-      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bPreview = $('.editor-toolbar button.preview');
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
       $bEdit.on('click', () => {
         if ($toolbar.hasClass('disabled-for-preview')) {
@@ -3218,18 +3218,32 @@ function initVueApp() {
 
 function initIssueTimetracking() {
   $(document).on('click', '.issue-add-time', () => {
-    $('.mini.modal').modal({
+    $('.issue-start-time-modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
+    $('.issue-start-time-modal input').on('keydown', (e) => {
+      if ((e.keyCode || e.key) === 13) {
+        $('#add_time_manual_form').trigger('submit');
+      }
+    });
   });
   $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
     $('#toggle_stopwatch_form').trigger('submit');
   });
   $(document).on('click', '.issue-cancel-time', () => {
     $('#cancel_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', 'button.issue-delete-time', function () {
+    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
+    $(sel).modal({
+      duration: 200,
+      onApprove() {
+        $(`${sel} form`).trigger('submit');
+      }
+    }).modal('show');
   });
 }
 

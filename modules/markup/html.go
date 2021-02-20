@@ -89,11 +89,7 @@ func isLinkStr(link string) bool {
 
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
-		appURL := setting.AppURL
-		if len(appURL) > 0 && appURL[len(appURL)-1] != '/' {
-			appURL += "/"
-		}
-		issueFullPattern = regexp.MustCompile(appURL +
+		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 	}
 	return issueFullPattern
@@ -636,6 +632,9 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
+	// FIXME: util.URLJoin may not be necessary here:
+	// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
+	// is an AppSubURL link we can probably fallback to concatenation.
 	// team mention should follow @orgName/teamName style
 	if ok && strings.Contains(mention, "/") {
 		mentionOrgAndTeam := strings.Split(mention, "/")
