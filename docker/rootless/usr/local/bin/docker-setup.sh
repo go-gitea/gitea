@@ -47,5 +47,5 @@ if [ ! -f ${GITEA_APP_INI} ]; then
     envsubst < /etc/templates/app.ini > ${GITEA_APP_INI}
 fi
 
-# Replace app.ini settings with env variables in the form GITEA__section_name__KEY_NAME
+# Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
 environment-to-ini --config ${GITEA_APP_INI}

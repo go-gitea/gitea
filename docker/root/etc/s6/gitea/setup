@@ -48,7 +48,7 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
 
-# Replace app.ini settings with env variables in the form GITEA__section_name__KEY_NAME
+# Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
 environment-to-ini --config ${GITEA_CUSTOM}/conf/app.ini
 
 # only chown if current owner is not already the gitea ${USER}. No recursive check to save time
