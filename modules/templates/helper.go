@@ -174,6 +174,9 @@ func NewFuncMap() []template.FuncMap {
 		"UseServiceWorker": func() bool {
 			return setting.UI.UseServiceWorker
 		},
+		"EnableTimetracking": func() bool {
+			return setting.Service.EnableTimetracking
+		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
