@@ -13,6 +13,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Client is used to communicate with the LFS server
@@ -52,12 +54,14 @@ func (c *Client) batch(ctx context.Context, url, operation string, objects []*Po
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lfs.Client.batch json.Encode: %w", err)
 	}
+
+	log.Trace("lfs.Client.batch NewRequestWithContext: %s", url)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lfs.Client.batch http.NewRequestWithContext: %w", err)
 	}
 	req.Header.Set("Content-type", MediaType)
 	req.Header.Set("Accept", MediaType)
@@ -69,18 +73,18 @@ func (c *Client) batch(ctx context.Context, url, operation string, objects []*Po
 			return nil, ctx.Err()
 		default:
 		}
-		return nil, err
+		return nil, fmt.Errorf("lfs.Client.batch http.Do: %w", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Unexpected servers response: %s", res.Status)
+		return nil, fmt.Errorf("lfs.Client.batch: Unexpected servers response: %s", res.Status)
 	}
 
 	var response BatchResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lfs.Client.batch json.Decode: %w", err)
 	}
 
 	if len(response.Transfer) == 0 {
@@ -102,11 +106,11 @@ func (c *Client) Download(ctx context.Context, url, oid string, size int64) (io.
 
 	transferAdapter, ok := c.transfers[result.Transfer]
 	if !ok {
-		return nil, fmt.Errorf("Transferadapter not found: %s", result.Transfer)
+		return nil, fmt.Errorf("lfs.Client.Download Transferadapter not found: %s", result.Transfer)
 	}
 
 	if len(result.Objects) == 0 {
-		return nil, errors.New("No objects in result")
+		return nil, errors.New("lfs.Client.Download: No objects in result")
 	}
 
 	content, err := transferAdapter.Download(ctx, result.Objects[0])

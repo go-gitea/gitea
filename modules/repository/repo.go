@@ -330,17 +330,17 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 		meta := &models.LFSMetaObject{Oid: pointerBlob.Pointer.Oid, Size: pointerBlob.Pointer.Size, RepositoryID: repo.ID}
 		meta, err = models.NewLFSMetaObject(meta)
 		if err != nil {
-			return err
+			return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
 		}
 		if meta.Existing {
 			continue
 		}
 
-		log.Trace("LFS OID[%s] not present in repository %s", pointerBlob.Pointer.Oid, repo.FullName())
+		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Pointer.Oid, repo.FullName())
 
 		exist, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
-			return err
+			return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
 		}
 		if !exist {
 			if setting.LFS.MaxFileSize > 0 && pointerBlob.Pointer.Size > setting.LFS.MaxFileSize {
@@ -356,19 +356,17 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 					return nil
 				default:
 				}
-				log.Error("LFS OID[%s] failed to download: %v", err)
+				log.Error("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %v", err)
 				continue
 			}
 			defer stream.Close()
 
 			if err := contentStore.Put(pointerBlob.Pointer, stream); err != nil {
 				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
-					return err2
+					return fmt.Errorf("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid: %w", err2)
 				}
-				return err
+				return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Put: %w", err)
 			}
-		} else {
-			log.Trace("LFS OID[%s] already present in content store", pointerBlob.Pointer.Oid)
 		}
 	}
 

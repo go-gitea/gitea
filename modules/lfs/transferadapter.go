@@ -7,6 +7,7 @@ package lfs
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -32,12 +33,12 @@ func (a *BasicTransferAdapter) Name() string {
 func (a *BasicTransferAdapter) Download(ctx context.Context, r *ObjectResponse) (io.ReadCloser, error) {
 	download, ok := r.Actions["download"]
 	if !ok {
-		return nil, errors.New("Action 'download' not found")
+		return nil, errors.New("lfs.BasicTransferAdapter.Download: Action 'download' not found")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "GET", download.Href, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lfs.BasicTransferAdapter.Download http.NewRequestWithContext: %w", err)
 	}
 	for key, value := range download.Header {
 		req.Header.Set(key, value)
@@ -50,7 +51,7 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, r *ObjectResponse) 
 			return nil, ctx.Err()
 		default:
 		}
-		return nil, err
+		return nil, fmt.Errorf("lfs.BasicTransferAdapter.Download http.Do: %w", err)
 	}
 
 	return res.Body, nil

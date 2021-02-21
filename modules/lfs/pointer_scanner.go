@@ -7,6 +7,8 @@
 package lfs
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -18,7 +20,7 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 
 	blobs, err := gitRepo.BlobObjects()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("lfs.SearchPointerBlobs BlobObjects: %w", err)
 	}
 
 	var pointers []PointerBlob
@@ -30,7 +32,7 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 
 		reader, err := blob.Reader()
 		if err != nil {
-			return nil
+			return fmt.Errorf("lfs.SearchPointerBlobs blob.Reader: %w", err)
 		}
 		defer reader.Close()
 
