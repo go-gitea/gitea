@@ -12,8 +12,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// SearchPointerFiles scans the whole repository for LFS pointer files
-func SearchPointerFiles(repo *git.Repository) ([]PointerBlob, error) {
+// SearchPointerBlobs scans the whole repository for LFS pointer files
+func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 	gitRepo := repo.GoGitRepo()
 
 	blobs, err := gitRepo.BlobObjects()

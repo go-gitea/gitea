@@ -314,7 +314,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 	client := lfs.NewClient(&http.Client{})
 	contentStore := lfs.NewContentStore()
 
-	pointerBlobs, err := lfs.SearchPointerFiles(gitRepo)
+	pointerBlobs, err := lfs.SearchPointerBlobs(gitRepo)
 	if err != nil {
 		return err
 	}

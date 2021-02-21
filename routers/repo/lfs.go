@@ -419,7 +419,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
 	err = func() error {
-		pointerBlobs, err := lfs.SearchPointerFiles(ctx.Repo.GitRepo)
+		pointerBlobs, err := lfs.SearchPointerBlobs(ctx.Repo.GitRepo)
 		if err != nil {
 			return err
 		}
@@ -443,8 +443,8 @@ func LFSPointerFiles(ctx *context.Context) {
 
 		for i, pointerBlob := range pointerBlobs {
 			result := pointerResult{
-				SHA: pointerBlob.Hash,
-				Oid: pointerBlob.Pointer.Oid,
+				SHA:  pointerBlob.Hash,
+				Oid:  pointerBlob.Pointer.Oid,
 				Size: pointerBlob.Pointer.Size,
 			}
 
@@ -455,12 +455,12 @@ func LFSPointerFiles(ctx *context.Context) {
 			} else {
 				result.InRepo = true
 			}
-		
+
 			result.Exists, err = contentStore.Exists(pointerBlob.Pointer)
 			if err != nil {
 				return err
 			}
-		
+
 			if result.Exists {
 				if !result.InRepo {
 					// Can we fix?

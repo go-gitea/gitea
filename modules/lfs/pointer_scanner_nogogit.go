@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/git/pipeline"
 )
 
-// SearchPointerFiles scans the whole repository for LFS pointer files
-func SearchPointerFiles(repo *git.Repository) ([]PointerBlob, error) {
+// SearchPointerBlobs scans the whole repository for LFS pointer files
+func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 	basePath := repo.Path
 
 	pointerChan := make(chan PointerBlob)
