@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
@@ -572,6 +574,12 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	if err != nil {
 		return err
 	}
+	opts, err := downloader.getRepoOptions()
+	if err != nil {
+		return err
+	}
+	tp, _ := strconv.Atoi(opts["service_type"])
+
 	if err = migrateRepository(downloader, uploader, base.MigrateOptions{
 		Wiki:           true,
 		Issues:         true,
@@ -581,12 +589,12 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 		Comments:       true,
 		PullRequests:   true,
 		ReleaseAssets:  true,
-		GitServiceType: downloader.serviceType,
+		GitServiceType: structs.GitServiceType(tp),
 	}); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
 		return err
 	}
-	return updateMigrationPosterIDByGitService(ctx, downloader.serviceType)
+	return updateMigrationPosterIDByGitService(ctx, structs.GitServiceType(tp))
 }

@@ -13,7 +13,6 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
@@ -21,11 +20,10 @@ import (
 // RepositoryRestorer implements an Downloader from the local directory
 type RepositoryRestorer struct {
 	base.NullDownloader
-	ctx         context.Context
-	baseDir     string
-	repoOwner   string
-	repoName    string
-	serviceType structs.GitServiceType
+	ctx       context.Context
+	baseDir   string
+	repoOwner string
+	repoName  string
 }
 
 // NewRepositoryRestorer creates a repository restorer which could restore repository from a dumped folder
@@ -55,8 +53,7 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
 }
 
-// GetRepoInfo returns a repository information
-func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 	p := filepath.Join(r.baseDir, "repo.yml")
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -68,10 +65,17 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 	if err != nil {
 		return nil, err
 	}
+	return opts, nil
+}
+
+// GetRepoInfo returns a repository information
+func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+	opts, err := r.getRepoOptions()
+	if err != nil {
+		return nil, err
+	}
 
 	isPrivate, _ := strconv.ParseBool(opts["is_private"])
-	tp, _ := strconv.Atoi(opts["service_type"])
-	r.serviceType = structs.GitServiceType(tp)
 
 	return &base.Repository{
 		Owner:         r.repoOwner,
