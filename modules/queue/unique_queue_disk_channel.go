@@ -149,6 +149,11 @@ func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 	if err != nil || has {
 		return has, err
 	}
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return false, nil
+	}
 	return q.internal.(UniqueQueue).Has(data)
 }
 

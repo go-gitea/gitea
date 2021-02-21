@@ -248,6 +248,14 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	// webhooksEnabled requires webhooks to be enabled by admin.
+	webhooksEnabled := func(ctx *context.Context) {
+		if setting.DisableWebhooks {
+			ctx.Error(403)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -446,7 +454,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/matrix/{id}", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 			m.Post("/msteams/{id}", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 			m.Post("/feishu/{id}", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-		})
+		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {
 			m.Get("/{type}/new", repo.WebhooksNew)
@@ -568,7 +576,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/matrix/{id}", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 					m.Post("/msteams/{id}", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 					m.Post("/feishu/{id}", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-				})
+				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
 					m.Get("", org.RetrieveLabels, org.Labels)
@@ -621,6 +629,12 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(auth.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
 
+			m.Group("/hooks/git", func() {
+				m.Get("", repo.GitHooks)
+				m.Combo("/{name}").Get(repo.GitHooksEdit).
+					Post(repo.GitHooksEditPost)
+			}, context.GitHookService())
+
 			m.Group("/hooks", func() {
 				m.Get("", repo.Webhooks)
 				m.Post("/delete", repo.DeleteWebhook)
@@ -645,13 +659,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/matrix/{id}", bindIgnErr(auth.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 				m.Post("/msteams/{id}", bindIgnErr(auth.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 				m.Post("/feishu/{id}", bindIgnErr(auth.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-
-				m.Group("/git", func() {
-					m.Get("", repo.GitHooks)
-					m.Combo("/{name}").Get(repo.GitHooksEdit).
-						Post(repo.GitHooksEditPost)
-				}, context.GitHookService())
-			})
+			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
 				m.Combo("").Get(repo.DeployKeys).
@@ -687,8 +695,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(ignSignIn, repo.SetDiffViewStyle, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.CompareAndPullRequestPost)
+			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
+			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(auth.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
 	}, context.RepoAssignment(), context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
@@ -700,7 +708,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
-		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
+		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
 			m.Group("/{index}", func() {
@@ -715,6 +723,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/comments").Post(repo.MustAllowUserComment, bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
+					m.Post("/{timeid}/delete", repo.DeleteTime)
 					m.Group("/stopwatch", func() {
 						m.Post("/toggle", repo.IssueStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
@@ -734,6 +743,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/projects", reqRepoIssuesOrPullsWriter, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
+			m.Post("/dismiss_review", reqRepoAdmin, bindIgnErr(auth.DismissReviewForm{}), repo.DismissReview)
 			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
 			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
@@ -853,7 +863,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/new", repo.NewProject)
 				m.Post("/new", bindIgnErr(auth.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.AddBoardToProjectPost)
+					m.Post("", bindIgnErr(auth.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
 					m.Post("/delete", repo.DeleteProject)
 
 					m.Get("/edit", repo.EditProject)
@@ -861,7 +871,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
 					m.Group("/{boardID}", func() {
-						m.Put("", bindIgnErr(auth.EditProjectBoardTitleForm{}), repo.EditProjectBoardTitle)
+						m.Put("", bindIgnErr(auth.EditProjectBoardForm{}), repo.EditProjectBoard)
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
 
@@ -876,7 +886,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{page}", repo.Wiki)
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
@@ -968,7 +978,7 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("", func() {
 			m.Get("/graph", repo.Graph)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.Diff)
+			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {

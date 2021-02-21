@@ -8,6 +8,34 @@ export default async function initProject() {
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
   const boardColumns = document.getElementsByClassName('board-column');
 
+  new Sortable(
+    document.getElementsByClassName('board')[0],
+    {
+      group: 'board-column',
+      draggable: '.board-column',
+      animation: 150,
+      onSort: () => {
+        const board = document.getElementsByClassName('board')[0];
+        const boardColumns = board.getElementsByClassName('board-column');
+
+        boardColumns.forEach((column, i) => {
+          if (parseInt($(column).data('sorting')) !== i) {
+            $.ajax({
+              url: $(column).data('url'),
+              data: JSON.stringify({sorting: i}),
+              headers: {
+                'X-Csrf-Token': csrf,
+                'X-Remote': true,
+              },
+              contentType: 'application/json',
+              method: 'PUT',
+            });
+          }
+        });
+      },
+    },
+  );
+
   for (const column of boardColumns) {
     new Sortable(
       column.getElementsByClassName('board')[0],
@@ -74,6 +102,7 @@ export default async function initProject() {
 
     window.location.reload();
   });
+
   $('.delete-project-board').each(function () {
     $(this).click(function (e) {
       e.preventDefault();
