@@ -26,7 +26,7 @@ const (
 // TryReadPointer tries to read LFS pointer data from the reader
 func TryReadPointer(reader io.Reader) *Pointer {
 	buf := make([]byte, blobSizeCutoff)
-	n, _ := reader.Read(buf)
+	n, _ := io.ReadFull(reader, buf)
 	buf = buf[:n]
 
 	return TryReadPointerFromBuffer(buf)
