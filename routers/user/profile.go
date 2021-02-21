@@ -202,6 +202,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
+			Date:            ctx.Query("date"),
 		})
 		if ctx.Written() {
 			return
