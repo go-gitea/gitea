@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -215,7 +216,7 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			assert.Contains(t, resp.Body.String(), lfs.MetaFileIdentifier)
 		}
 
 		if !testing.Short() {
@@ -227,7 +228,7 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, bigSize, resp.Body.Len())
-				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				assert.Contains(t, resp.Body.String(), lfs.MetaFileIdentifier)
 			}
 		}
 	})

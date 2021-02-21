@@ -39,7 +39,7 @@ func (m *LFSMetaObject) RelativePath() string {
 
 // Pointer returns the string representation of an LFS pointer file
 func (m *LFSMetaObject) Pointer() string {
-	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)
+	return fmt.Sprintf("%s\n%s%s\nsize %d\n", lfs.MetaFileIdentifier, lfs.MetaFileOidPrefix, m.Oid, m.Size)
 }
 
 // AsPointer creates a Pointer with Oid and Size
@@ -60,15 +60,6 @@ var (
 	// ErrLFSObjectNotExist is returned from lfs models functions in order
 	// to differentiate between database and missing object errors.
 	ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
-)
-
-const (
-	// LFSMetaFileIdentifier is the string appearing at the first line of LFS pointer files.
-	// https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
-	LFSMetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
-
-	// LFSMetaFileOidPrefix appears in LFS pointer files on a line before the sha256 hash.
-	LFSMetaFileOidPrefix = "oid sha256:"
 )
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
