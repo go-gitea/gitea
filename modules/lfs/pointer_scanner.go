@@ -13,7 +13,7 @@ import (
 )
 
 // SearchPointerFiles scans the whole repository for LFS pointer files
-func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
+func SearchPointerFiles(repo *git.Repository) ([]PointerBlob, error) {
 	gitRepo := repo.GoGitRepo()
 
 	blobs, err := gitRepo.BlobObjects()
@@ -21,7 +21,7 @@ func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
 		return nil, err
 	}
 
-	var pointers []*Pointer
+	var pointers []PointerBlob
 
 	err = blobs.ForEach(func(blob *object.Blob) error {
 		if blob.Size > blobSizeCutoff {
@@ -36,7 +36,7 @@ func SearchPointerFiles(repo *git.Repository) ([]*Pointer, error) {
 
 		pointer := TryReadPointer(reader)
 		if pointer != nil {
-			pointers = append(pointers, pointer)
+			pointers = append(pointers, PointerBlob{Hash: blob.Hash.String(), Pointer: pointer})
 		}
 
 		return nil

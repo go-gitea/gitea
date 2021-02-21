@@ -62,3 +62,9 @@ type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
+
+// PointerBlob associates a Git blob with a Pointer.
+type PointerBlob struct {
+	Hash    string
+	Pointer *Pointer
+}
