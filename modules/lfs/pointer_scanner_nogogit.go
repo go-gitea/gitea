@@ -29,6 +29,9 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 	wg := sync.WaitGroup{}
 	wg.Add(5)
 
+	// Create the go-routines in reverse order.
+
+	// 5. Copy the results from the channel into the result array
 	pointers := make([]PointerBlob, 0, 50)
 
 	go func() {
@@ -37,9 +40,18 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 			pointers = append(pointers, pointer)
 		}
 	}()
+
+	// 4. Take the output of cat-file --batch and check if each file in turn
+	// to see if they're pointers to files in the LFS store
 	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan)
+
+	// 3. Take the shas of the blobs and batch read them
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
+
+	// 2. From the provided objects restrict to blobs <=1k
 	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
+
+	// 1. Run batch-check on all objects in the repository
 	if git.CheckGitVersionAtLeast("2.6.0") != nil {
 		revListReader, revListWriter := io.Pipe()
 		shasToCheckReader, shasToCheckWriter := io.Pipe()
