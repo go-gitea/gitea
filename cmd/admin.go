@@ -353,7 +353,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = models.UpdateUserCols(user, "passwd", "salt"); err != nil {
 		return err
 	}
 

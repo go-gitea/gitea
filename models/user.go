@@ -6,10 +6,9 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/auth/db"
 	"container/list"
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -17,7 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -33,10 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
 )
@@ -53,14 +47,6 @@ const (
 )
 
 const (
-	algoBcrypt   = "bcrypt"
-	algoScrypt   = "scrypt"
-	formatScrypt = "$%s$%d$%d$%d$%d$%x"
-	algoArgon2   = "argon2"
-	formatArgon2 = "$%s$%d$%d$%d$%d$%x"
-	algoPbkdf2   = "pbkdf2"
-	formatPbkdf2 = "$%s$%d$%d$%x"
-
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
@@ -103,7 +89,6 @@ type User struct {
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
-	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -378,146 +363,12 @@ func (u *User) NewGitSig() *git.Signature {
 	}
 }
 
-func hashPasswordBcrypt(passwd string, params structs.CryptBCrypt) (string, string) {
-	var tempPasswd []byte
-	tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(passwd), params.Cost)
-	return string(tempPasswd),
-		string(tempPasswd)
-}
-func hashPasswordScrypt(passwd string, salt string, params structs.CryptSCrypt) (string, string) {
-	var tempPasswd []byte
-	tempPasswd, _ = scrypt.Key([]byte(passwd), []byte(salt), params.N, params.R, params.P, params.KeyLength)
-	return fmt.Sprintf(formatScrypt, algoScrypt, params.N, params.R, params.P, params.KeyLength, tempPasswd),
-		fmt.Sprintf("%x", tempPasswd)
-}
-func hashPasswordArgon2(passwd string, salt string, params structs.CryptArgon2) (string, string) {
-	var tempPasswd = argon2.IDKey([]byte(passwd), []byte(salt), params.Iterations, params.Memory, params.Parallelism, params.KeyLength)
-	return fmt.Sprintf(formatArgon2, algoArgon2, params.Memory, params.Iterations, params.Parallelism, params.KeyLength, tempPasswd),
-		fmt.Sprintf("%x", tempPasswd)
-}
-func hashPasswordPbkdf2(passwd string, salt string, params structs.CryptPbkdf2) (string, string) {
-	var tempPasswd = pbkdf2.Key([]byte(passwd), []byte(salt), params.Iterations, params.KeyLength, sha256.New)
-	return fmt.Sprintf(formatPbkdf2, algoPbkdf2, params.Iterations, params.KeyLength, tempPasswd),
-		fmt.Sprintf("%x", tempPasswd)
-}
-
-func hashPasswordWithConfig(passwd, salt, algo string) (string, string) {
-	switch algo {
-	case algoBcrypt:
-		return hashPasswordBcrypt(passwd, setting.BCryptParams)
-	case algoScrypt:
-		return hashPasswordScrypt(passwd, salt, setting.SCryptParams)
-	case algoArgon2:
-		return hashPasswordArgon2(passwd, salt, setting.Argon2Params)
-	case algoPbkdf2:
-		fallthrough
-	default:
-		return hashPasswordPbkdf2(passwd, salt, setting.Pbkdf2Params)
-	}
-}
-func hashPasswordWithFallbackDefaults(passwd, salt, algo string) (string, string) {
-	switch algo {
-	case algoBcrypt:
-		return hashPasswordBcrypt(passwd, structs.BCryptFallback)
-	case algoScrypt:
-		return hashPasswordScrypt(passwd, salt, structs.SCryptFallback)
-	case algoArgon2:
-		return hashPasswordArgon2(passwd, salt, structs.Argon2Fallback)
-	case algoPbkdf2:
-		fallthrough
-	default:
-		return hashPasswordPbkdf2(passwd, salt, structs.Pbkdf2Fallback)
-	}
-}
-
-func hashPasswordWithCurrentDefaults(passwd string, u *User) (string, string, bool) {
-	currentPasswd := u.Passwd
-	salt := u.Salt
-	algo := u.PasswdHashAlgo
-	split := strings.Split(currentPasswd, "$")
-
-	var hash string
-	var matchesActiveSettings bool
-
-	switch algo {
-	case algoBcrypt:
-		cost, _ := strconv.Atoi(split[2])
-
-		params := structs.CryptBCrypt{
-			Cost: cost,
-		}
-		matchesActiveSettings = u.PasswdHashAlgo == algo && setting.BCryptParams == params
-		hash, _ = hashPasswordBcrypt(passwd, params)
-
-	case algoScrypt:
-		var n, r, p, keyLength int
-
-		n, _ = strconv.Atoi(split[2])
-		r, _ = strconv.Atoi(split[3])
-		p, _ = strconv.Atoi(split[4])
-		keyLength, _ = strconv.Atoi(split[5])
-
-		params := structs.CryptSCrypt{
-			N:         n,
-			R:         r,
-			P:         p,
-			KeyLength: keyLength,
-		}
-		matchesActiveSettings = u.PasswdHashAlgo == algo && setting.SCryptParams == params
-		hash, _ = hashPasswordScrypt(passwd, salt, params)
-
-	case algoArgon2:
-		var iterations, memory, keyLength uint32
-		var parallelism uint8
-		var tempInt int
-
-		tempInt, _ = strconv.Atoi(split[2])
-		memory = uint32(tempInt)
-
-		tempInt, _ = strconv.Atoi(split[3])
-		iterations = uint32(tempInt)
-
-		tempInt, _ = strconv.Atoi(split[4])
-		parallelism = uint8(tempInt)
-
-		tempInt, _ = strconv.Atoi(split[5])
-		keyLength = uint32(tempInt)
-
-		params := structs.CryptArgon2{
-			Iterations:  iterations,
-			Memory:      memory,
-			Parallelism: parallelism,
-			KeyLength:   keyLength,
-		}
-		matchesActiveSettings = u.PasswdHashAlgo == algo && setting.Argon2Params == params
-		hash, _ = hashPasswordArgon2(passwd, salt, params)
-
-	case algoPbkdf2:
-		fallthrough
-	default:
-		var iterations, keyLength int
-
-		iterations, _ = strconv.Atoi(split[2])
-		keyLength, _ = strconv.Atoi(split[3])
-
-		params := structs.CryptPbkdf2{
-			Iterations: iterations,
-			KeyLength:  keyLength,
-		}
-		matchesActiveSettings = u.PasswdHashAlgo == algo && setting.Pbkdf2Params == params
-		hash, _ = hashPasswordPbkdf2(passwd, salt, params)
-	}
-
-	return hash, algo, matchesActiveSettings
-}
-
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
-// change passwd, salt and passwd_hash_algo fields
+// change passwd and salt fields
 func (u *User) SetPassword(passwd string) (err error) {
 	if len(passwd) == 0 {
 		u.Passwd = ""
 		u.Salt = ""
-		u.PasswdHashAlgo = ""
 		return nil
 	}
 
@@ -525,41 +376,14 @@ func (u *User) SetPassword(passwd string) (err error) {
 		return err
 	}
 
-	// Force algo Update
-	u.PasswdHashAlgo = setting.PasswordHashAlgo
-	u.Passwd, _ = hashPasswordWithConfig(passwd, u.Salt, u.PasswdHashAlgo)
+	u.Passwd, _ = db.DefaultHasher.HashPassword(passwd, u.Salt, "")
 
 	return nil
 }
 
 // ValidatePassword checks if given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	var tempHash, algo string
-	var matchesSettings bool
-	if u.Passwd[:1] == "$" {
-		// Hash with known settings
-		tempHash, algo, matchesSettings = hashPasswordWithCurrentDefaults(passwd, u)
-	} else {
-		// Hash with defaults
-		algo = u.PasswdHashAlgo
-		matchesSettings = false // always false, because new password format should be enforced
-		_, tempHash = hashPasswordWithFallbackDefaults(passwd, u.Salt, u.PasswdHashAlgo)
-	}
-
-	matches := false
-	if algo != algoBcrypt && subtle.ConstantTimeCompare([]byte(u.Passwd), []byte(tempHash)) == 1 {
-		matches = true
-	}
-	if algo == algoBcrypt && bcrypt.CompareHashAndPassword([]byte(u.Passwd), []byte(passwd)) == nil {
-		matches = true
-	}
-
-	if matches && setting.PasswordUpdateAlgoToCurrent && (!matchesSettings || algo != setting.PasswordHashAlgo) {
-		// @todo: need to handle this error? As far as I can see, passwd is always set at this point...
-		_ = u.SetPassword(passwd)
-	}
-
-	return matches
+	return db.DefaultHasher.Validate(passwd, u.Salt, u.Passwd)
 }
 
 // IsPasswordSet checks if the password is set or left empty

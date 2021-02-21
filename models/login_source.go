@@ -6,6 +6,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/modules/auth/db"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -770,11 +770,11 @@ func UserSignIn(username, password string) (*User, error) {
 			if user.IsPasswordSet() && user.ValidatePassword(password) {
 
 				// Update password hash if server password hash algorithm have changed
-				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+				if db.DefaultHasher.PasswordNeedUpdate(user.Passwd) {
 					if err = user.SetPassword(password); err != nil {
 						return nil, err
 					}
-					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+					if err = UpdateUserCols(user, "passwd", "salt"); err != nil {
 						return nil, err
 					}
 				}

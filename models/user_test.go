@@ -223,7 +223,7 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	u := &User{}
 	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
 	for j := 0; j < len(algos); j++ {
-		u.PasswdHashAlgo = algos[j]
+		setting.PasswordHashAlgo = algos[j]
 		for i := 0; i < 50; i++ {
 			// generate a random password
 			rand.Read(b)
@@ -245,61 +245,34 @@ func TestHashPasswordDeterministic(t *testing.T) {
 
 func TestOldPasswordMatchAndUpdate(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	u := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	u := AssertExistsAndLoadBean(t, &User{ID: 31}).(*User)
 
-	setting.PasswordHashAlgo = algoArgon2
+	setting.PasswordHashAlgo = "argon2"
 
 	matchingPass := "password"
 	oldPass := u.Passwd
 
-	// Without update function
-	setting.PasswordUpdateAlgoToCurrent = false
 	validates := u.ValidatePassword(matchingPass)
 	newPass := u.Passwd
-	// Should match with old algo
+	// Should match even with not matching current config
 	assert.True(t, validates)
-	// Should not be updated to new format
+	// Should not be altered
 	assert.Equal(t, oldPass, newPass)
 
 	// With update function
-	setting.PasswordUpdateAlgoToCurrent = true
-	validates = u.ValidatePassword(matchingPass)
-	newPass = u.Passwd
+	setting.Argon2Iterations = 2
+	setting.Argon2Memory = 65536
+	setting.Argon2Parallelism = 8
+	setting.Argon2KeyLength = 50
 
-	// Should match with old algo
+	user, _ := UserSignIn("user31", matchingPass)
+
+	validates = user.ValidatePassword(matchingPass)
+	newPass = user.Passwd
+
+	// Should still match after config update
 	assert.True(t, validates)
-	// Should be updated to new format
-	assert.NotEqual(t, oldPass, newPass)
-}
-
-func TestNewPasswordMatch(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	u := AssertExistsAndLoadBean(t, &User{ID: 31}).(*User)
-
-	setting.PasswordHashAlgo = algoArgon2
-
-	matchingPass := "password"
-	oldPass := u.Passwd
-
-	// Without update function
-	setting.PasswordUpdateAlgoToCurrent = false
-	validates := u.ValidatePassword(matchingPass)
-	newPass := u.Passwd
-
-	// Should match
-	assert.True(t, validates)
-	// Should not be updated
-	assert.Equal(t, oldPass, newPass)
-
-	// With update function and different default HashAlgo
-	setting.PasswordUpdateAlgoToCurrent = true
-	setting.PasswordHashAlgo = algoBcrypt
-	passwordMatches := u.ValidatePassword(matchingPass)
-	newPass = u.Passwd
-
-	// Should match
-	assert.True(t, passwordMatches)
-	// Should not be updated
+	// Should be updated to new config
 	assert.NotEqual(t, oldPass, newPass)
 }
 
