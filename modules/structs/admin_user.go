@@ -41,4 +41,5 @@ type EditUserOption struct {
 	MaxRepoCreation         *int    `json:"max_repo_creation"`
 	ProhibitLogin           *bool   `json:"prohibit_login"`
 	AllowCreateOrganization *bool   `json:"allow_create_organization"`
+	Restricted              *bool   `json:"restricted"`
 }
