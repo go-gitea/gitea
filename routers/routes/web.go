@@ -245,7 +245,7 @@ func goGet(ctx *context.Context) {
 		ctx.Status(400)
 		return
 	}
-	branchName := "master"
+	branchName := setting.Repository.DefaultBranch
 
 	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err == nil && len(repo.DefaultBranch) > 0 {
