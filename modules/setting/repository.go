@@ -43,7 +43,7 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
 		DisableMigrations                       bool
-		DisableStars                            bool      `ini:"DISABLE_STARS"`
+		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
