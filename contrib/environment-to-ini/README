@@ -22,6 +22,8 @@ The environment variables should be of the form:
 
 	GITEA__SECTION_NAME__KEY_NAME
 
+Note, SECTION_NAME in the notation above is case-insensitive.
+
 Environment variables are usually restricted to a reduced character
 set "0-9A-Z_" - in order to allow the setting of sections with
 characters outside of that set, they should be escaped as following:
