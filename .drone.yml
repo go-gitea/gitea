@@ -391,7 +391,7 @@ steps:
 
 ---
 kind: pipeline
-name: translations
+name: update_translations
 
 platform:
   os: linux
@@ -405,7 +405,9 @@ trigger:
   branch:
     - master
   event:
-    - push
+    - cron
+  cron:
+    - update_translations
 
 steps:
   - name: download
@@ -512,7 +514,6 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - translations
 
 steps:
   - name: fetch-tags
@@ -946,7 +947,6 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - translations
   - release-version
   - release-latest
   - docker-linux-amd64-release
