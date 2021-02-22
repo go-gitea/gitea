@@ -189,7 +189,7 @@ func getMetaHandler(ctx *context.Context) {
 
 	if ctx.Req.Method == "GET" {
 		enc := json.NewEncoder(ctx.Resp)
-		if err := enc.Encode(represent(rc, meta, true, false)); err != nil {
+		if err := enc.Encode(represent(rc, meta.Pointer, true, false)); err != nil {
 			log.Error("Failed to encode representation as json. Error: %v", err)
 		}
 	}
@@ -260,7 +260,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.WriteHeader(sentStatus)
 
 	enc := json.NewEncoder(ctx.Resp)
-	if err := enc.Encode(represent(rc, meta, meta.Existing, true)); err != nil {
+	if err := enc.Encode(represent(rc, meta.Pointer, meta.Existing, true)); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}
 	logRequest(ctx.Req, sentStatus)
@@ -325,7 +325,7 @@ func BatchHandler(ctx *context.Context) {
 				return
 			}
 			if exist {
-				responseObjects = append(responseObjects, represent(reqCtx, meta, true, false))
+				responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, true, false))
 				continue
 			}
 		}
@@ -345,7 +345,7 @@ func BatchHandler(ctx *context.Context) {
 				writeStatus(ctx, 500)
 				return
 			}
-			responseObjects = append(responseObjects, represent(reqCtx, meta, meta.Existing, !exist))
+			responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, meta.Existing, !exist))
 		} else {
 			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", object.Oid, object.Size, reqCtx.User, reqCtx.Repo, err)
 		}
@@ -431,10 +431,9 @@ func VerifyHandler(ctx *context.Context) {
 
 // represent takes a requestContext and Meta and turns it into a ObjectResponse suitable
 // for json encoding
-func represent(rc *requestContext, meta *models.LFSMetaObject, download, upload bool) *lfs_module.ObjectResponse {
+func represent(rc *requestContext, pointer lfs_module.Pointer, download, upload bool) *lfs_module.ObjectResponse {
 	rep := &lfs_module.ObjectResponse{
-		Oid:     meta.Oid,
-		Size:    meta.Size,
+		Pointer: pointer,
 		Actions: make(map[string]*lfs_module.Link),
 	}
 
@@ -448,11 +447,11 @@ func represent(rc *requestContext, meta *models.LFSMetaObject, download, upload 
 	}
 
 	if download {
-		rep.Actions["download"] = &lfs_module.Link{Href: rc.ObjectLink(meta.Oid), Header: header}
+		rep.Actions["download"] = &lfs_module.Link{Href: rc.ObjectLink(pointer.Oid), Header: header}
 	}
 
 	if upload {
-		rep.Actions["upload"] = &lfs_module.Link{Href: rc.ObjectLink(meta.Oid), Header: header}
+		rep.Actions["upload"] = &lfs_module.Link{Href: rc.ObjectLink(pointer.Oid), Header: header}
 	}
 
 	if upload && !download {

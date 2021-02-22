@@ -44,8 +44,7 @@ type BatchResponse struct {
 
 // ObjectResponse is object metadata as seen by clients of the LFS server.
 type ObjectResponse struct {
-	Oid     string           `json:"oid"`
-	Size    int64            `json:"size"`
+	Pointer
 	Actions map[string]*Link `json:"actions"`
 	Error   *ObjectError     `json:"error,omitempty"`
 }
@@ -65,6 +64,6 @@ type ObjectError struct {
 
 // PointerBlob associates a Git blob with a Pointer.
 type PointerBlob struct {
-	Hash    string
-	Pointer Pointer
+	Hash string
+	Pointer
 }
