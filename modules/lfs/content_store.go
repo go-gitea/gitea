@@ -51,7 +51,7 @@ func NewContentStore() *ContentStore {
 
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(pointer *Pointer, fromByte int64) (io.ReadCloser, error) {
+func (s *ContentStore) Get(pointer Pointer, fromByte int64) (io.ReadCloser, error) {
 	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
@@ -72,7 +72,7 @@ func (s *ContentStore) Get(pointer *Pointer, fromByte int64) (io.ReadCloser, err
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(pointer *Pointer, r io.Reader) error {
+func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
 	p := pointer.RelativePath()
@@ -101,7 +101,7 @@ func (s *ContentStore) Put(pointer *Pointer, r io.Reader) error {
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(pointer *Pointer) (bool, error) {
+func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
 	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -113,7 +113,7 @@ func (s *ContentStore) Exists(pointer *Pointer) (bool, error) {
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(pointer *Pointer) (bool, error) {
+func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 	p := pointer.RelativePath()
 	fi, err := s.ObjectStorage.Stat(p)
 	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
@@ -127,7 +127,7 @@ func (s *ContentStore) Verify(pointer *Pointer) (bool, error) {
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
-func ReadMetaObject(pointer *Pointer) (io.ReadCloser, error) {
+func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer, 0)
 }

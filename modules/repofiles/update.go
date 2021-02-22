@@ -69,8 +69,8 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	buf = buf[:n]
 
 	if setting.LFS.StartServer {
-		pointer := lfs.TryReadPointerFromBuffer(buf)
-		if pointer != nil {
+		pointer, err := lfs.ReadPointerFromBuffer(buf)
+		if err == nil {
 			meta, err := repo.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				// return default
@@ -431,12 +431,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, err
 		}
 		contentStore := lfs.NewContentStore()
-		exist, err := contentStore.Exists(lfsMetaObject.AsPointer())
+		exist, err := contentStore.Exists(lfsMetaObject.Pointer)
 		if err != nil {
 			return nil, err
 		}
 		if !exist {
-			if err := contentStore.Put(lfsMetaObject.AsPointer(), strings.NewReader(opts.Content)); err != nil {
+			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
 				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}

@@ -46,7 +46,7 @@ func (c *Client) transferNames() []string {
 	return keys
 }
 
-func (c *Client) batch(ctx context.Context, url, operation string, objects []*Pointer) (*BatchResponse, error) {
+func (c *Client) batch(ctx context.Context, url, operation string, objects []Pointer) (*BatchResponse, error) {
 	url = fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(url, ".git"))
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
@@ -96,8 +96,8 @@ func (c *Client) batch(ctx context.Context, url, operation string, objects []*Po
 
 // Download reads the specific LFS object from the LFS server
 func (c *Client) Download(ctx context.Context, url, oid string, size int64) (io.ReadCloser, error) {
-	var objects []*Pointer
-	objects = append(objects, &Pointer{oid, size})
+	var objects []Pointer
+	objects = append(objects, Pointer{oid, size})
 
 	result, err := c.batch(ctx, url, "download", objects)
 	if err != nil {

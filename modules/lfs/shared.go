@@ -19,7 +19,7 @@ type BatchRequest struct {
 	Operation string     `json:"operation"`
 	Transfers []string   `json:"transfers,omitempty"`
 	Ref       *Reference `json:"ref,omitempty"`
-	Objects   []*Pointer `json:"objects"`
+	Objects   []Pointer  `json:"objects"`
 }
 
 // Reference contains a git reference.
@@ -66,5 +66,5 @@ type ObjectError struct {
 // PointerBlob associates a Git blob with a Pointer.
 type PointerBlob struct {
 	Hash    string
-	Pointer *Pointer
+	Pointer Pointer
 }

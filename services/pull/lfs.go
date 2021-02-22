@@ -70,6 +70,8 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 
+	contentStore := lfs.NewContentStore()
+
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
 	for {
@@ -101,12 +103,11 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs.TryReadPointerFromBuffer(pointerBuf)
-		if pointer == nil {
+		pointer, err := lfs.ReadPointerFromBuffer(pointerBuf)
+		if err != nil {
 			continue
 		}
 
-		contentStore := lfs.NewContentStore()
 		exist, _ := contentStore.Exists(pointer)
 		if !exist {
 			continue
@@ -124,7 +125,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		meta := &models.LFSMetaObject{Pointer: *pointer}
+		meta := &models.LFSMetaObject{Pointer: pointer}
 		meta.RepositoryID = pr.BaseRepoID
 		if _, err := models.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)

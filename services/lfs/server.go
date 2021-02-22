@@ -80,7 +80,7 @@ func ObjectOidHandler(ctx *context.Context) {
 	writeStatus(ctx, 404)
 }
 
-func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p *lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
+func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !isOidValid(p.Oid) {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatus(ctx, 404)
@@ -143,7 +143,7 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	contentStore := lfs_module.NewContentStore()
-	content, err := contentStore.Get(meta.AsPointer(), fromByte)
+	content, err := contentStore.Get(meta.Pointer, fromByte)
 	if err != nil {
 		if lfs_module.IsErrRangeNotSatisfiable(err) {
 			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
@@ -237,7 +237,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: *p, RepositoryID: repository.ID})
+	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 	if err != nil {
 		log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", p.Oid, p.Size, rc.User, rc.Repo, err)
 		writeStatus(ctx, 404)
@@ -318,7 +318,7 @@ func BatchHandler(ctx *context.Context) {
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
-			exist, err := contentStore.Exists(meta.AsPointer())
+			exist, err := contentStore.Exists(meta.Pointer)
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
 				writeStatus(ctx, 500)
@@ -337,9 +337,9 @@ func BatchHandler(ctx *context.Context) {
 		}
 
 		// Object is not found
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: *object, RepositoryID: repository.ID})
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: object, RepositoryID: repository.ID})
 		if err == nil {
-			exist, err := contentStore.Exists(meta.AsPointer())
+			exist, err := contentStore.Exists(meta.Pointer)
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
 				writeStatus(ctx, 500)
@@ -374,7 +374,7 @@ func PutHandler(ctx *context.Context) {
 
 	contentStore := lfs_module.NewContentStore()
 	defer ctx.Req.Body.Close()
-	if err := contentStore.Put(meta.AsPointer(), ctx.Req.Body); err != nil {
+	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
 		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
@@ -414,7 +414,7 @@ func VerifyHandler(ctx *context.Context) {
 	}
 
 	contentStore := lfs_module.NewContentStore()
-	ok, err := contentStore.Verify(meta.AsPointer())
+	ok, err := contentStore.Verify(meta.Pointer)
 	if err != nil {
 		// Error will be logged in Verify
 		ctx.Resp.WriteHeader(500)
@@ -479,14 +479,14 @@ func MetaMatcher(r *http.Request) bool {
 	return mt == lfs_module.MediaType
 }
 
-func unpack(ctx *context.Context) (*requestContext, *lfs_module.Pointer) {
+func unpack(ctx *context.Context) (*requestContext, lfs_module.Pointer) {
 	r := ctx.Req
 	rc := &requestContext{
 		User:          ctx.Params("username"),
 		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
 		Authorization: r.Header.Get("Authorization"),
 	}
-	p := &lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
 
 	if r.Method == "POST" { // Maybe also check if +json
 		var p2 lfs_module.Pointer

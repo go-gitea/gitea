@@ -263,7 +263,7 @@ func LFSFileGet(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSFile"] = meta
-	dataRc, err := lfs.ReadMetaObject(meta.AsPointer())
+	dataRc, err := lfs.ReadMetaObject(meta.Pointer)
 	if err != nil {
 		ctx.ServerError("LFSFileGet", err)
 		return

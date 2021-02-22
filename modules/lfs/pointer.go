@@ -7,6 +7,7 @@ package lfs
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"path"
@@ -25,34 +26,56 @@ const (
 	MetaFileOidPrefix = "oid sha256:"
 )
 
-// TryReadPointer tries to read LFS pointer data from the reader
-func TryReadPointer(reader io.Reader) *Pointer {
+var (
+	// ErrMissingPrefix occurs if the content lacks the LFS prefix
+	ErrMissingPrefix = errors.New("Content lacks the LFS prefix")
+
+	// ErrInvalidStructure occurs if the content has an invalid structure
+	ErrInvalidStructure = errors.New("Content has an invalid structure")
+
+	// ErrInvalidOIDLength occurs if the oid has an invalid length
+	ErrInvalidOIDLength = errors.New("OID has an invalid length")
+)
+
+// ReadPointer tries to read LFS pointer data from the reader
+func ReadPointer(reader io.Reader) (Pointer, error) {
 	buf := make([]byte, blobSizeCutoff)
-	n, _ := io.ReadFull(reader, buf)
+	n, err := io.ReadFull(reader, buf)
+	if err != nil {
+		return Pointer{}, err
+	}
 	buf = buf[:n]
 
-	return TryReadPointerFromBuffer(buf)
+	return ReadPointerFromBuffer(buf)
 }
 
-// TryReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or nil otherwise.
-func TryReadPointerFromBuffer(buf []byte) *Pointer {
+// ReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or an error otherwise.
+func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
+	var p Pointer
+
 	headString := string(buf)
 	if !strings.HasPrefix(headString, MetaFileIdentifier) {
-		return nil
+		return p, ErrMissingPrefix
 	}
 
 	splitLines := strings.Split(headString, "\n")
 	if len(splitLines) < 3 {
-		return nil
+		return p, ErrInvalidStructure
 	}
 
 	oid := strings.TrimPrefix(splitLines[1], MetaFileOidPrefix)
+	if len(oid) != 64 {
+		return p, ErrInvalidOIDLength
+	}
 	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-	if len(oid) != 64 || err != nil {
-		return nil
+	if err != nil {
+		return p, err
 	}
 
-	return &Pointer{oid, size}
+	p.Oid = oid
+	p.Size = size
+
+	return p, nil
 }
 
 // StringContent returns the string representation of the pointer

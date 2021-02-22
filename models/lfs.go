@@ -22,12 +22,6 @@ type LFSMetaObject struct {
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
-// AsPointer creates a Pointer with Oid and Size
-func (m *LFSMetaObject) AsPointer() *lfs.Pointer {
-	pointer := &lfs.Pointer{Oid: m.Oid, Size: m.Size}
-	return pointer
-}
-
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
 // This structure is fetched via SSH and passed by the Git LFS client to the server
 // endpoint for authorization.

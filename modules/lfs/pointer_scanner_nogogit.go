@@ -110,8 +110,8 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 		pointerBuf = pointerBuf[:size]
 		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := TryReadPointerFromBuffer(pointerBuf)
-		if pointer == nil {
+		pointer, err := ReadPointerFromBuffer(pointerBuf)
+		if err != nil {
 			continue
 		}
 

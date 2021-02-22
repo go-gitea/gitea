@@ -36,8 +36,8 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 		}
 		defer reader.Close()
 
-		pointer := TryReadPointer(reader)
-		if pointer != nil {
+		pointer, err := ReadPointer(reader)
+		if err == nil {
 			pointers = append(pointers, PointerBlob{Hash: blob.Hash.String(), Pointer: pointer})
 		}
 

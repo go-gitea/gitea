@@ -327,7 +327,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 		default:
 		}
 
-		meta := &models.LFSMetaObject{Pointer: *pointerBlob.Pointer, RepositoryID: repo.ID}
+		meta := &models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID}
 		meta, err = models.NewLFSMetaObject(meta)
 		if err != nil {
 			return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
