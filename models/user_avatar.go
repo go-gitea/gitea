@@ -63,7 +63,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // the local explore page. Function returns immediately.
 // When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
-	return strings.TrimSuffix(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+	return setting.AppSubURL + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
 }
 
 // RealSizedAvatarLink returns a link to the user's avatar. When
