@@ -363,9 +363,15 @@ a.muted:hover,
   background: var(--color-hover);
 }
 
-.ui.menu .ui.dropdown .menu > .selected.item {
-  color: var(--color-text) !important;
-  background: var(--color-hover) !important;
+.ui.menu .ui.dropdown .menu  {
+  > .selected.item {
+    color: var(--color-text) !important;
+    background: var(--color-hover) !important;
+  }
+
+  > .item > i.icon:not(.dropdown) {
+    margin-right: calc(.35em - 1px) !important;
+  }
 }
 
 .ui.dropdown .menu > .message:not(.ui) {
@@ -601,10 +607,6 @@ a.ui.card:hover,
 
   .fitted .svg {
     margin-right: 0;
-  }
-
-  .svg {
-    margin-right: .75em;
   }
 
   .searchbox {
