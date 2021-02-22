@@ -237,7 +237,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: p.Oid, Size: p.Size, RepositoryID: repository.ID})
+	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: *p, RepositoryID: repository.ID})
 	if err != nil {
 		log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", p.Oid, p.Size, rc.User, rc.Repo, err)
 		writeStatus(ctx, 404)
@@ -337,7 +337,7 @@ func BatchHandler(ctx *context.Context) {
 		}
 
 		// Object is not found
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: object.Oid, Size: object.Size, RepositoryID: repository.ID})
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: *object, RepositoryID: repository.ID})
 		if err == nil {
 			exist, err := contentStore.Exists(meta.AsPointer())
 			if err != nil {

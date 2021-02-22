@@ -30,8 +30,8 @@ type Reference struct {
 
 // Pointer contains LFS pointer data
 type Pointer struct {
-	Oid  string `json:"oid"`
-	Size int64  `json:"size"`
+	Oid  string `json:"oid" xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size int64  `json:"size" xorm:"NOT NULL"`
 }
 
 // BatchResponse contains multiple object metadata Representation structures

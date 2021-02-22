@@ -20,9 +20,8 @@ import (
 
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
-	ID           int64              `xorm:"pk autoincr"`
-	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size         int64              `xorm:"NOT NULL"`
+	ID           int64 `xorm:"pk autoincr"`
+	lfs.Pointer  `xorm:"extends"`
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
@@ -30,16 +29,16 @@ type LFSMetaObject struct {
 
 // RelativePath returns the relative path of the lfs object
 func (m *LFSMetaObject) RelativePath() string {
-	if len(m.Oid) < 5 {
-		return m.Oid
+	if len(m.Pointer.Oid) < 5 {
+		return m.Pointer.Oid
 	}
 
-	return path.Join(m.Oid[0:2], m.Oid[2:4], m.Oid[4:])
+	return path.Join(m.Pointer.Oid[0:2], m.Pointer.Oid[2:4], m.Pointer.Oid[4:])
 }
 
-// Pointer returns the string representation of an LFS pointer file
-func (m *LFSMetaObject) Pointer() string {
-	return fmt.Sprintf("%s\n%s%s\nsize %d\n", lfs.MetaFileIdentifier, lfs.MetaFileOidPrefix, m.Oid, m.Size)
+// PointerS returns the string representation of an LFS pointer file
+func (m *LFSMetaObject) PointerS() string {
+	return fmt.Sprintf("%s\n%s%s\nsize %d\n", lfs.MetaFileIdentifier, lfs.MetaFileOidPrefix, m.Pointer.Oid, m.Pointer.Size)
 }
 
 // AsPointer creates a Pointer with Oid and Size
@@ -108,7 +107,7 @@ func (repo *Repository) GetLFSMetaObjectByOid(oid string) (*LFSMetaObject, error
 		return nil, ErrLFSObjectNotExist
 	}
 
-	m := &LFSMetaObject{Oid: oid, RepositoryID: repo.ID}
+	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
 	has, err := x.Get(m)
 	if err != nil {
 		return nil, err
@@ -131,12 +130,12 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 		return -1, err
 	}
 
-	m := &LFSMetaObject{Oid: oid, RepositoryID: repo.ID}
+	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
 	if _, err := sess.Delete(m); err != nil {
 		return -1, err
 	}
 
-	count, err := sess.Count(&LFSMetaObject{Oid: oid})
+	count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	if err != nil {
 		return count, err
 	}
@@ -168,11 +167,11 @@ func (repo *Repository) CountLFSMetaObjects() (int64, error) {
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
 func LFSObjectAccessible(user *User, oid string) (bool, error) {
 	if user.IsAdmin {
-		count, err := x.Count(&LFSMetaObject{Oid: oid})
+		count, err := x.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return (count > 0), err
 	}
 	cond := accessibleRepositoryCondition(user)
-	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Oid: oid})
+	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return (count > 0), err
 }
 
@@ -187,7 +186,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 	oids := make([]interface{}, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
-		oids[i] = meta.Oid
+		oids[i] = meta.Pointer.Oid
 		oidMap[meta.Oid] = meta
 	}
 
@@ -201,7 +200,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 		return err
 	}
 	for i := range newMetas {
-		newMetas[i].Size = oidMap[newMetas[i].Oid].Size
+		newMetas[i].Size = oidMap[newMetas[i].Pointer.Oid].Pointer.Size
 		newMetas[i].RepositoryID = repoID
 	}
 	if _, err := sess.InsertMulti(newMetas); err != nil {

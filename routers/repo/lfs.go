@@ -382,8 +382,8 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	var hash git.SHA1
 	if len(sha) == 0 {
-		meta := models.LFSMetaObject{Oid: oid, Size: size}
-		pointer := meta.Pointer()
+		meta := models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: size}}
+		pointer := meta.PointerS()
 		hash = git.ComputeBlobHash([]byte(pointer))
 		sha = hash.String()
 	} else {

@@ -41,9 +41,9 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	var lfsMetaObject *models.LFSMetaObject
 
 	if setting.Database.UsePostgreSQL {
-		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Pointer: lfs.Pointer{Oid: oid, Size: int64(len(*content))}, RepositoryID: repositoryID}
 	} else {
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+		lfsMetaObject = &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: int64(len(*content))}, RepositoryID: repositoryID}
 	}
 
 	lfsID++

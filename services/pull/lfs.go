@@ -124,7 +124,7 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		meta := &models.LFSMetaObject{Oid: pointer.Oid, Size: pointer.Size}
+		meta := &models.LFSMetaObject{Pointer: *pointer}
 		meta.RepositoryID = pr.BaseRepoID
 		if _, err := models.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
