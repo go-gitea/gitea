@@ -60,8 +60,12 @@ func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc
 
 // DeleteRepository deletes a repository for a user or organization.
 func DeleteRepository(doer *models.User, repo *models.Repository) error {
-	if err := pull_service.CloseRepoBranchesPulls(doer, repo); err != nil {
-		log.Error("CloseRepoBranchesPulls failed: %v", err)
+	// Only when deleting a fork repository, we should close all PRs related
+	// For un-fork repository, close pulls is unnecessary
+	if repo.IsFork {
+		if err := pull_service.CloseRepoBranchesPulls(doer, repo); err != nil {
+			log.Error("CloseRepoBranchesPulls failed: %v", err)
+		}
 	}
 
 	// If the repo itself has webhooks, we need to trigger them before deleting it...
