@@ -7,6 +7,7 @@ package lfs
 import (
 	"fmt"
 	"io"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -56,4 +57,13 @@ func TryReadPointerFromBuffer(buf []byte) *Pointer {
 // https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md#the-pointer
 func (p Pointer) StringContent() string {
 	return fmt.Sprintf("%s\n%s%s\nsize %d\n", MetaFileIdentifier, MetaFileOidPrefix, p.Oid, p.Size)
+}
+
+// RelativePath returns the relative storage path of the pointer
+func (p Pointer) RelativePath() string {
+	if len(p.Oid) < 5 {
+		return p.Oid
+	}
+
+	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
 }

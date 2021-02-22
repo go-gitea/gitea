@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-	"path"
 
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,15 +23,6 @@ type LFSMetaObject struct {
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
-}
-
-// RelativePath returns the relative path of the lfs object
-func (m *LFSMetaObject) RelativePath() string {
-	if len(m.Pointer.Oid) < 5 {
-		return m.Pointer.Oid
-	}
-
-	return path.Join(m.Pointer.Oid[0:2], m.Pointer.Oid[2:4], m.Pointer.Oid[4:])
 }
 
 // AsPointer creates a Pointer with Oid and Size

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -50,18 +49,10 @@ func NewContentStore() *ContentStore {
 	return contentStore
 }
 
-func relativePath(p *Pointer) string {
-	if len(p.Oid) < 5 {
-		return p.Oid
-	}
-
-	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
-}
-
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
 func (s *ContentStore) Get(pointer *Pointer, fromByte int64) (io.ReadCloser, error) {
-	f, err := s.Open(relativePath(pointer))
+	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
@@ -84,7 +75,7 @@ func (s *ContentStore) Get(pointer *Pointer, fromByte int64) (io.ReadCloser, err
 func (s *ContentStore) Put(pointer *Pointer, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
-	p := relativePath(pointer)
+	p := pointer.RelativePath()
 	written, err := s.Save(p, rd)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
@@ -111,7 +102,7 @@ func (s *ContentStore) Put(pointer *Pointer, r io.Reader) error {
 
 // Exists returns true if the object exists in the content store.
 func (s *ContentStore) Exists(pointer *Pointer) (bool, error) {
-	_, err := s.ObjectStorage.Stat(relativePath(pointer))
+	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -123,7 +114,7 @@ func (s *ContentStore) Exists(pointer *Pointer) (bool, error) {
 
 // Verify returns true if the object exists in the content store and size is correct.
 func (s *ContentStore) Verify(pointer *Pointer) (bool, error) {
-	p := relativePath(pointer)
+	p := pointer.RelativePath()
 	fi, err := s.ObjectStorage.Stat(p)
 	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
 		return false, nil
