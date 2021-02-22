@@ -116,7 +116,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: fileInfo.Size()}, RepositoryID: t.repo.ID}
 
-			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.PointerS())); err != nil {
+			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.Pointer.StringContent())); err != nil {
 				return err
 			}
 			infos[i] = uploadInfo

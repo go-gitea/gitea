@@ -387,7 +387,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 				return nil, err
 			}
 			lfsMetaObject = &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: int64(len(opts.Content))}, RepositoryID: repo.ID}
-			content = lfsMetaObject.PointerS()
+			content = lfsMetaObject.Pointer.StringContent()
 		}
 	}
 	// Add the object to the database

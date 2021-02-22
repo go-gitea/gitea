@@ -5,6 +5,7 @@
 package lfs
 
 import (
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -48,5 +49,11 @@ func TryReadPointerFromBuffer(buf []byte) *Pointer {
 		return nil
 	}
 
-	return &Pointer{Oid: oid, Size: size}
+	return &Pointer{oid, size}
+}
+
+// StringContent returns the string representation of the pointer
+// https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md#the-pointer
+func (p Pointer) StringContent() string {
+	return fmt.Sprintf("%s\n%s%s\nsize %d\n", MetaFileIdentifier, MetaFileOidPrefix, p.Oid, p.Size)
 }

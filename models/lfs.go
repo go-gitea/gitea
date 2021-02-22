@@ -8,7 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
 	"path"
 
@@ -34,11 +33,6 @@ func (m *LFSMetaObject) RelativePath() string {
 	}
 
 	return path.Join(m.Pointer.Oid[0:2], m.Pointer.Oid[2:4], m.Pointer.Oid[4:])
-}
-
-// PointerS returns the string representation of an LFS pointer file
-func (m *LFSMetaObject) PointerS() string {
-	return fmt.Sprintf("%s\n%s%s\nsize %d\n", lfs.MetaFileIdentifier, lfs.MetaFileOidPrefix, m.Pointer.Oid, m.Pointer.Size)
 }
 
 // AsPointer creates a Pointer with Oid and Size
