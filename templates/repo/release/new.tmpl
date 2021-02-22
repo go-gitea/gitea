@@ -44,9 +44,18 @@
 					<label>{{.i18n.Tr "repo.release.title"}}</label>
 					<input name="title" placeholder="{{.i18n.Tr "repo.release.title"}}" value="{{.title}}" autofocus required maxlength="255">
 				</div>
-				<div class="field">
+				<div class="field content-editor">
 					<label>{{.i18n.Tr "repo.release.content"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					<div class="ui top tabular menu" data-write="write" data-preview="preview">
+						<a class="active write item" data-tab="write">{{$.i18n.Tr "write"}}</a>
+						<a class="preview item" data-tab="preview" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+					</div>
+					<div class="ui bottom active tab" data-tab="write">
+						<textarea name="content">{{.content}}</textarea>
+					</div>
+					<div class="ui bottom tab markdown" data-tab="preview">
+						{{$.i18n.Tr "loading"}}
+					</div>
 				</div>
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
