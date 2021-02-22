@@ -1734,6 +1734,20 @@ async function initEditor() {
   });
 }
 
+function initReleaseEditor() {
+  const $editor = $('.repository.new.release .content-editor');
+  if ($editor.length === 0) {
+    return false;
+  }
+
+  const $textarea = $editor.find('textarea');
+  attachTribute($textarea.get(), {mentions: false, emoji: true});
+  const $files = $editor.parent().find('.files');
+  const $simplemde = setCommentSimpleMDE($textarea);
+  initCommentPreviewTab($editor);
+  initSimpleMDEImagePaste($simplemde, $files);
+}
+
 function initOrganization() {
   if ($('.organization').length === 0) {
     return;
@@ -2653,6 +2667,7 @@ $(document).ready(async () => {
   initTableSort();
   initNotificationsTable();
   initPullRequestMergeInstruction();
+  initReleaseEditor();
 
   const routes = {
     'div.user.settings': initUserSettings,
