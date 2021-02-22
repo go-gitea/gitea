@@ -1662,7 +1662,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.Pointer.RelativePath())
+		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {

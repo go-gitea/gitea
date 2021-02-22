@@ -443,11 +443,11 @@ func LFSPointerFiles(ctx *context.Context) {
 		for i, pointerBlob := range pointerBlobs {
 			result := pointerResult{
 				SHA:  pointerBlob.Hash,
-				Oid:  pointerBlob.Pointer.Oid,
-				Size: pointerBlob.Pointer.Size,
+				Oid:  pointerBlob.Oid,
+				Size: pointerBlob.Size,
 			}
 
-			if _, err := repo.GetLFSMetaObjectByOid(pointerBlob.Pointer.Oid); err != nil {
+			if _, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid); err != nil {
 				if err != models.ErrLFSObjectNotExist {
 					return err
 				}
@@ -465,7 +465,7 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Pointer.Oid)
+					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}

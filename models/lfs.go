@@ -151,7 +151,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 	oids := make([]interface{}, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
 	for i, meta := range metas {
-		oids[i] = meta.Pointer.Oid
+		oids[i] = meta.Oid
 		oidMap[meta.Oid] = meta
 	}
 
@@ -165,7 +165,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 		return err
 	}
 	for i := range newMetas {
-		newMetas[i].Size = oidMap[newMetas[i].Pointer.Oid].Pointer.Size
+		newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 		newMetas[i].RepositoryID = repoID
 	}
 	if _, err := sess.InsertMulti(newMetas); err != nil {

@@ -336,19 +336,19 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 			continue
 		}
 
-		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Pointer.Oid, repo.FullName())
+		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
 
 		exist, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
 			return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
 		}
 		if !exist {
-			if setting.LFS.MaxFileSize > 0 && pointerBlob.Pointer.Size > setting.LFS.MaxFileSize {
-				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Pointer.Oid, setting.LFS.MaxFileSize, pointerBlob.Pointer.Size)
+			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
 				continue
 			}
 
-			stream, err := client.Download(ctx, lfsAddr, pointerBlob.Pointer.Oid, pointerBlob.Pointer.Size)
+			stream, err := client.Download(ctx, lfsAddr, pointerBlob.Oid, pointerBlob.Size)
 			if err != nil {
 				select {
 				case <-ctx.Done():
