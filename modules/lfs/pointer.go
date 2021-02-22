@@ -5,6 +5,8 @@
 package lfs
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"path"
@@ -66,4 +68,15 @@ func (p Pointer) RelativePath() string {
 	}
 
 	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
+}
+
+// GeneratePointer generates a pointer for arbitrary content
+func GeneratePointer(content io.Reader) (Pointer, error) {
+	h := sha256.New()
+	c, err := io.Copy(h, content)
+	if err != nil {
+		return Pointer{}, err
+	}
+	sum := h.Sum(nil)
+	return Pointer{Oid: hex.EncodeToString(sum), Size: c}, nil
 }

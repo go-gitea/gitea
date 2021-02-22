@@ -5,10 +5,7 @@
 package models
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"io"
 
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -71,16 +68,6 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	}
 
 	return m, sess.Commit()
-}
-
-// GenerateLFSOid generates a Sha256Sum to represent an oid for arbitrary content
-func GenerateLFSOid(content io.Reader) (string, error) {
-	h := sha256.New()
-	if _, err := io.Copy(h, content); err != nil {
-		return "", err
-	}
-	sum := h.Sum(nil)
-	return hex.EncodeToString(sum), nil
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.

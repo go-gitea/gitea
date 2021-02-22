@@ -105,18 +105,14 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		if setting.LFS.StartServer && filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
 			// Handle LFS
 			// FIXME: Inefficient! this should probably happen in models.Upload
-			oid, err := models.GenerateLFSOid(file)
-			if err != nil {
-				return err
-			}
-			fileInfo, err := file.Stat()
+			pointer, err := lfs.GeneratePointer(file)
 			if err != nil {
 				return err
 			}
 
-			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: fileInfo.Size()}, RepositoryID: t.repo.ID}
+			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
 
-			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.Pointer.StringContent())); err != nil {
+			if objectHash, err = t.HashObject(strings.NewReader(pointer.StringContent())); err != nil {
 				return err
 			}
 			infos[i] = uploadInfo

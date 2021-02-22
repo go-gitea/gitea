@@ -382,12 +382,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 		if filename2attribute2info[treePath] != nil && filename2attribute2info[treePath]["filter"] == "lfs" {
 			// OK so we are supposed to LFS this data!
-			oid, err := models.GenerateLFSOid(strings.NewReader(opts.Content))
+			pointer, err := lfs.GeneratePointer(strings.NewReader(opts.Content))
 			if err != nil {
 				return nil, err
 			}
-			lfsMetaObject = &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid, Size: int64(len(opts.Content))}, RepositoryID: repo.ID}
-			content = lfsMetaObject.Pointer.StringContent()
+			lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repo.ID}
+			content = pointer.StringContent()
 		}
 	}
 	// Add the object to the database
