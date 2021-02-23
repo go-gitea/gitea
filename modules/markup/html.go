@@ -89,11 +89,7 @@ func isLinkStr(link string) bool {
 
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
-		appURL := setting.AppURL
-		if len(appURL) > 0 && appURL[len(appURL)-1] != '/' {
-			appURL += "/"
-		}
-		issueFullPattern = regexp.MustCompile(appURL +
+		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 	}
 	return issueFullPattern
@@ -317,9 +313,6 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-var byteBodyTag = []byte("<body>")
-var byteBodyTagClosing = []byte("</body>")
-
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
@@ -327,9 +320,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 
 	// give a generous extra 50 bytes
 	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, byteBodyTag...)
-	res = append(res, rawHTML...)
-	res = append(res, byteBodyTagClosing...)
+
+	// prepend "<html><body>"
+	res = append(res, "<html><body>"...)
+
+	// Strip out nuls - they're always invalid
+	start := bytes.IndexByte(rawHTML, '\000')
+	if start >= 0 {
+		res = append(res, rawHTML[:start]...)
+		start++
+		for start < len(rawHTML) {
+			end := bytes.IndexByte(rawHTML[start:], '\000')
+			if end < 0 {
+				res = append(res, rawHTML[start:]...)
+				break
+			} else if end > 0 {
+				res = append(res, rawHTML[start:start+end]...)
+			}
+			start += end + 1
+		}
+	} else {
+		res = append(res, rawHTML...)
+	}
+
+	// close the tags
+	res = append(res, "</body></html>"...)
 
 	// parse the HTML
 	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
@@ -340,6 +355,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	for _, node := range nodes {
 		ctx.visitNode(node, true)
 	}
+
+	newNodes := make([]*html.Node, 0, len(nodes))
+
+	for _, node := range nodes {
+		if node.Data == "html" {
+			node = node.FirstChild
+			for node != nil && node.Data != "body" {
+				node = node.NextSibling
+			}
+		}
+		if node == nil {
+			continue
+		}
+		if node.Data == "body" {
+			child := node.FirstChild
+			for child != nil {
+				newNodes = append(newNodes, child)
+				child = child.NextSibling
+			}
+		} else {
+			newNodes = append(newNodes, node)
+		}
+	}
+
+	nodes = newNodes
 
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
@@ -353,12 +393,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	// remove initial parts - because Render creates a whole HTML page.
-	res = buf.Bytes()
-	res = res[bytes.Index(res, byteBodyTag)+len(byteBodyTag) : bytes.LastIndex(res, byteBodyTagClosing)]
-
 	// Everything done successfully, return parsed data.
-	return res, nil
+	return buf.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
@@ -596,6 +632,9 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
+	// FIXME: util.URLJoin may not be necessary here:
+	// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
+	// is an AppSubURL link we can probably fallback to concatenation.
 	// team mention should follow @orgName/teamName style
 	if ok && strings.Contains(mention, "/") {
 		mentionOrgAndTeam := strings.Split(mention, "/")

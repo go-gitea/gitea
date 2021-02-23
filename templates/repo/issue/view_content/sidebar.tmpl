@@ -348,7 +348,7 @@
 							{{end}}
 							<div class="ui buttons two fluid">
 								<button class="ui button poping up issue-start-time" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
-								<div class="ui mini modal">
+								<div class="ui mini modal issue-start-time-modal">
 									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
 									<div class="content">
 										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
@@ -527,18 +527,15 @@
 			{{ if and .IsRepoAdmin (not .Repository.IsArchived) }}
 			<div class="ui divider"></div>
 			<div class="ui watching">
-				<div>
-					<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
-							{{if .Issue.IsLocked}}
-								{{svg "octicon-key"}}
-								{{.i18n.Tr "repo.issues.unlock"}}
-							{{else}}
-								{{svg "octicon-lock"}}
-								{{.i18n.Tr "repo.issues.lock"}}
-							{{end}}
-						</button>
-					</form>
-				</div>
+				<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
+					{{if .Issue.IsLocked}}
+						{{svg "octicon-key"}}
+						{{.i18n.Tr "repo.issues.unlock"}}
+					{{else}}
+						{{svg "octicon-lock"}}
+						{{.i18n.Tr "repo.issues.lock"}}
+					{{end}}
+				</button>
 			</div>
 
 

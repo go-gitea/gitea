@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -90,7 +91,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 }
 
 // PostIssueCommentReaction add a reaction to a comment of an issue
-func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption) {
+func PostIssueCommentReaction(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issuePostCommentReaction
 	// ---
 	// summary: Add a reaction to a comment of an issue
@@ -127,11 +128,13 @@ func PostIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOpti
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	changeIssueCommentReaction(ctx, form, true)
+	form := web.GetForm(ctx).(*api.EditReactionOption)
+
+	changeIssueCommentReaction(ctx, *form, true)
 }
 
 // DeleteIssueCommentReaction remove a reaction from a comment of an issue
-func DeleteIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption) {
+func DeleteIssueCommentReaction(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id}/reactions issue issueDeleteCommentReaction
 	// ---
 	// summary: Remove a reaction from a comment of an issue
@@ -166,7 +169,9 @@ func DeleteIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	changeIssueCommentReaction(ctx, form, false)
+	form := web.GetForm(ctx).(*api.EditReactionOption)
+
+	changeIssueCommentReaction(ctx, *form, false)
 }
 
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
@@ -304,7 +309,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 }
 
 // PostIssueReaction add a reaction to an issue
-func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
+func PostIssueReaction(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/reactions issue issuePostIssueReaction
 	// ---
 	// summary: Add a reaction to an issue
@@ -340,12 +345,12 @@ func PostIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	//     "$ref": "#/responses/Reaction"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	changeIssueReaction(ctx, form, true)
+	form := web.GetForm(ctx).(*api.EditReactionOption)
+	changeIssueReaction(ctx, *form, true)
 }
 
 // DeleteIssueReaction remove a reaction from an issue
-func DeleteIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
+func DeleteIssueReaction(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/reactions issue issueDeleteIssueReaction
 	// ---
 	// summary: Remove a reaction from an issue
@@ -379,8 +384,8 @@ func DeleteIssueReaction(ctx *context.APIContext, form api.EditReactionOption) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	changeIssueReaction(ctx, form, false)
+	form := web.GetForm(ctx).(*api.EditReactionOption)
+	changeIssueReaction(ctx, *form, false)
 }
 
 func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {

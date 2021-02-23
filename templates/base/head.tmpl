@@ -36,13 +36,13 @@
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
-			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			NotificationSettings: {
 				MinTimeout: {{NotificationSettings.MinTimeout}},
 				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
 			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([

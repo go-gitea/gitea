@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type Deployment struct {
 	IID         int          `json:"iid"`
 	Ref         string       `json:"ref"`
 	SHA         string       `json:"sha"`
+	Status      string       `json:"status"`
 	CreatedAt   *time.Time   `json:"created_at"`
 	UpdatedAt   *time.Time   `json:"updated_at"`
 	User        *ProjectUser `json:"user"`
@@ -53,10 +55,12 @@ type Deployment struct {
 		User       *User      `json:"user"`
 		Commit     *Commit    `json:"commit"`
 		Pipeline   struct {
-			ID     int    `json:"id"`
-			SHA    string `json:"sha"`
-			Ref    string `json:"ref"`
-			Status string `json:"status"`
+			ID        int        `json:"id"`
+			SHA       string     `json:"sha"`
+			Ref       string     `json:"ref"`
+			Status    string     `json:"status"`
+			CreatedAt *time.Time `json:"created_at"`
+			UpdatedAt *time.Time `json:"updated_at"`
 		} `json:"pipeline"`
 		Runner *Runner `json:"runner"`
 	} `json:"deployable"`
@@ -86,7 +90,7 @@ func (s *DeploymentsService) ListProjectDeployments(pid interface{}, opts *ListP
 	}
 	u := fmt.Sprintf("projects/%s/deployments", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -110,7 +114,7 @@ func (s *DeploymentsService) GetProjectDeployment(pid interface{}, deployment in
 	}
 	u := fmt.Sprintf("projects/%s/deployments/%d", pathEscape(project), deployment)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -146,7 +150,7 @@ func (s *DeploymentsService) CreateProjectDeployment(pid interface{}, opt *Creat
 	}
 	u := fmt.Sprintf("projects/%s/deployments", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -178,7 +182,7 @@ func (s *DeploymentsService) UpdateProjectDeployment(pid interface{}, deployment
 	}
 	u := fmt.Sprintf("projects/%s/deployments/%d", pathEscape(project), deployment)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

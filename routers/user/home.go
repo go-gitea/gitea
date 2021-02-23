@@ -156,6 +156,7 @@ func Dashboard(ctx *context.Context) {
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
+		Date:            ctx.Query("date"),
 	})
 
 	if ctx.Written() {

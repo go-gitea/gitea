@@ -12,6 +12,7 @@ class Source {
     this.listen('open');
     this.listen('logout');
     this.listen('notification-count');
+    this.listen('stopwatches');
     this.listen('error');
   }
 

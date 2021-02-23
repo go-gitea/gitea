@@ -5,10 +5,20 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
-					<button class="ui button" type="submit">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-					</button>
+					<div class="twelve wide field">
+						<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+					</div>
+					<div class="two wide field">
+						<select name="t">
+							<option value="">{{.i18n.Tr "repo.search.fuzzy"}}</option>
+							<option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "repo.search.match"}}</option>
+						</select>
+					</div>
+					<div class="three field">
+					  <button class="ui button" type="submit">
+						  <i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+					  </button>
+					</div>
 				</div>
 			</form>
 		</div>
@@ -18,7 +28,7 @@
 			</h3>
 			<div class="df ac fw">
 				{{range $term := .SearchResultLanguages}}
-				<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{EscapePound $.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}">
+				<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{EscapePound $.SourcePath}}/search?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
 					<i class="color-icon mr-3" style="background-color: {{$term.Color}}"></i>
 					{{$term.Language}}
 					<div class="detail">{{$term.Count}}</div>

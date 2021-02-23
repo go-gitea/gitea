@@ -171,6 +171,10 @@ func CreateOrganization(org, owner *User) (err error) {
 		return err
 	}
 
+	if err = deleteUserRedirect(sess, org.Name); err != nil {
+		return err
+	}
+
 	if _, err = sess.Insert(org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}

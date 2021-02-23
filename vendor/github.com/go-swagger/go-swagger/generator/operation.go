@@ -193,7 +193,8 @@ func (o *operationGenerator) Generate() error {
 	operations = append(operations, op)
 	sort.Sort(operations)
 
-	for _, op := range operations {
+	for _, pp := range operations {
+		op := pp
 		if o.GenOpts.DumpData {
 			_ = dumpData(swag.ToDynamicJSON(op))
 			continue
@@ -312,7 +313,7 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 	//
 	// In all cases, resetting definitions to the _original_ (untransformed) spec is not an option:
 	// we take from there the spec possibly already transformed by the GenDefinitions stage.
-	resolver := newTypeResolver(b.GenOpts.LanguageOpts.ManglePackageName(b.ModelsPackage, defaultModelsTarget), b.Doc)
+	resolver := newTypeResolver(b.GenOpts.LanguageOpts.ManglePackageName(b.ModelsPackage, defaultModelsTarget), b.DefaultImports[b.ModelsPackage], b.Doc)
 	receiver := "o"
 
 	operation := b.Operation
@@ -399,6 +400,7 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 			defaultResponse = &gr
 		}
 	}
+
 	// Always render a default response, even when no responses were defined
 	if operation.Responses == nil || (operation.Responses.Default == nil && len(srs) == 0) {
 		gr, err := b.MakeResponse(receiver, b.Name+" default", false, resolver, -1, spec.Response{})
@@ -408,44 +410,41 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 		defaultResponse = &gr
 	}
 
-	if b.Principal == "" {
-		b.Principal = iface
-	}
-
 	swsp := resolver.Doc.Spec()
-	var extraSchemes []string
-	if ess, ok := operation.Extensions.GetStringSlice(xSchemes); ok {
-		extraSchemes = append(extraSchemes, ess...)
-	}
 
-	if ess1, ok := swsp.Extensions.GetStringSlice(xSchemes); ok {
-		extraSchemes = concatUnique(ess1, extraSchemes)
-	}
-	sort.Strings(extraSchemes)
-	schemes := concatUnique(swsp.Schemes, operation.Schemes)
-	sort.Strings(schemes)
+	schemes, extraSchemes := gatherURISchemes(swsp, operation)
+	originalSchemes := operation.Schemes
+	originalExtraSchemes := getExtraSchemes(operation.Extensions)
+
 	produces := producesOrDefault(operation.Produces, swsp.Produces, b.DefaultProduces)
 	sort.Strings(produces)
+
 	consumes := producesOrDefault(operation.Consumes, swsp.Consumes, b.DefaultConsumes)
 	sort.Strings(consumes)
 
-	var hasStreamingResponse bool
-	if defaultResponse != nil && defaultResponse.Schema != nil && defaultResponse.Schema.IsStream {
-		hasStreamingResponse = true
-	}
 	var successResponse *GenResponse
-	for _, sr := range successResponses {
+	for _, resp := range successResponses {
+		sr := resp
 		if sr.IsSuccess {
 			successResponse = &sr
 			break
 		}
 	}
-	for _, sr := range successResponses {
-		if !hasStreamingResponse && sr.Schema != nil && sr.Schema.IsStream {
-			hasStreamingResponse = true
-			break
+
+	var hasStreamingResponse bool
+	if defaultResponse != nil && defaultResponse.Schema != nil && defaultResponse.Schema.IsStream {
+		hasStreamingResponse = true
+	}
+
+	if !hasStreamingResponse {
+		for _, sr := range successResponses {
+			if !hasStreamingResponse && sr.Schema != nil && sr.Schema.IsStream {
+				hasStreamingResponse = true
+				break
+			}
 		}
 	}
+
 	if !hasStreamingResponse {
 		for _, r := range responses {
 			if r.Schema != nil && r.Schema.IsStream {
@@ -488,8 +487,9 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 		HasBodyParams:        hasBodyParams,
 		HasStreamingResponse: hasStreamingResponse,
 		Authorized:           b.Authed,
-		Security:             b.makeSecurityRequirements(receiver),
+		Security:             b.makeSecurityRequirements(receiver), // resolved security requirements, for codegen
 		SecurityDefinitions:  b.makeSecuritySchemes(receiver),
+		SecurityRequirements: securityRequirements(operation.Security), // raw security requirements, for doc
 		Principal:            b.Principal,
 		Responses:            responses,
 		DefaultResponse:      defaultResponse,
@@ -497,12 +497,19 @@ func (b *codeGenOpBuilder) MakeOperation() (GenOperation, error) {
 		SuccessResponses:     successResponses,
 		ExtraSchemas:         gatherExtraSchemas(b.ExtraSchemas),
 		Schemes:              schemeOrDefault(schemes, b.DefaultScheme),
-		ProducesMediaTypes:   produces,
-		ConsumesMediaTypes:   consumes,
-		ExtraSchemes:         extraSchemes,
+		SchemeOverrides:      originalSchemes,      // raw operation schemes, for doc
+		ProducesMediaTypes:   produces,             // resolved produces, for codegen
+		ConsumesMediaTypes:   consumes,             // resolved consumes, for codegen
+		Produces:             operation.Produces,   // for doc
+		Consumes:             operation.Consumes,   // for doc
+		ExtraSchemes:         extraSchemes,         // resolved schemes, for codegen
+		ExtraSchemeOverrides: originalExtraSchemes, // raw operation extra schemes, for doc
 		TimeoutName:          timeoutName,
 		Extensions:           operation.Extensions,
 		StrictResponders:     b.GenOpts.StrictResponders,
+
+		PrincipalIsNullable: b.GenOpts.PrincipalIsNullable(),
+		ExternalDocs:        trimExternalDoc(operation.ExternalDocs),
 	}, nil
 }
 
@@ -523,26 +530,15 @@ func schemeOrDefault(schemes []string, defaultScheme string) []string {
 	return schemes
 }
 
-func concatUnique(collections ...[]string) []string {
-	resultSet := make(map[string]struct{})
-	for _, c := range collections {
-		for _, i := range c {
-			if _, ok := resultSet[i]; !ok {
-				resultSet[i] = struct{}{}
-			}
-		}
-	}
-	var result []string
-	for k := range resultSet {
-		result = append(result, k)
-	}
-	return result
-}
-
 func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, resolver *typeResolver, code int, resp spec.Response) (GenResponse, error) {
 	debugLog("[%s %s] making id %q", b.Method, b.Path, b.Operation.ID)
 
 	// assume minimal flattening has been carried on, so there is not $ref in response (but some may remain in response schema)
+	examples := make(GenResponseExamples, 0, len(resp.Examples))
+	for k, v := range resp.Examples {
+		examples = append(examples, GenResponseExample{MediaType: k, Example: v})
+	}
+	sort.Sort(examples)
 
 	res := GenResponse{
 		Package:          b.GenOpts.LanguageOpts.ManglePackageName(b.APIPackage, defaultOperationsTarget),
@@ -559,6 +555,7 @@ func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, r
 		Extensions:       resp.Extensions,
 		StrictResponders: b.GenOpts.StrictResponders,
 		OperationName:    b.Name,
+		Examples:         examples,
 	}
 
 	// prepare response headers
@@ -583,26 +580,29 @@ func (b *codeGenOpBuilder) MakeResponse(receiver, name string, isSuccess bool, r
 }
 
 func (b *codeGenOpBuilder) MakeHeader(receiver, name string, hdr spec.Header) (GenHeader, error) {
-	tpe := typeForHeader(hdr) //simpleResolvedType(hdr.Type, hdr.Format, hdr.Items)
+	tpe := simpleResolvedType(hdr.Type, hdr.Format, hdr.Items, &hdr.CommonValidations)
 
 	id := swag.ToGoName(name)
 	res := GenHeader{
-		sharedValidations: sharedValidationsFromSimple(hdr.CommonValidations, true), // NOTE: Required is not defined by the Swagger schema for header. Set arbitrarily to true for convenience in templates.
-		resolvedType:      tpe,
-		Package:           b.GenOpts.LanguageOpts.ManglePackageName(b.APIPackage, defaultOperationsTarget),
-		ReceiverName:      receiver,
-		ID:                id,
-		Name:              name,
-		Path:              fmt.Sprintf("%q", name),
-		ValueExpression:   fmt.Sprintf("%s.%s", receiver, id),
-		Description:       trimBOM(hdr.Description),
-		Default:           hdr.Default,
-		HasDefault:        hdr.Default != nil,
-		Converter:         stringConverters[tpe.GoType],
-		Formatter:         stringFormatters[tpe.GoType],
-		ZeroValue:         tpe.Zero(),
-		CollectionFormat:  hdr.CollectionFormat,
-		IndexVar:          "i",
+		sharedValidations: sharedValidations{
+			Required:          true,
+			SchemaValidations: hdr.Validations(), // NOTE: Required is not defined by the Swagger schema for header. Set arbitrarily to true for convenience in templates.
+		},
+		resolvedType:     tpe,
+		Package:          b.GenOpts.LanguageOpts.ManglePackageName(b.APIPackage, defaultOperationsTarget),
+		ReceiverName:     receiver,
+		ID:               id,
+		Name:             name,
+		Path:             fmt.Sprintf("%q", name),
+		ValueExpression:  fmt.Sprintf("%s.%s", receiver, id),
+		Description:      trimBOM(hdr.Description),
+		Default:          hdr.Default,
+		HasDefault:       hdr.Default != nil,
+		Converter:        stringConverters[tpe.GoType],
+		Formatter:        stringFormatters[tpe.GoType],
+		ZeroValue:        tpe.Zero(),
+		CollectionFormat: hdr.CollectionFormat,
+		IndexVar:         "i",
 	}
 	res.HasValidations, res.HasSliceValidations = b.HasValidations(hdr.CommonValidations, res.resolvedType)
 
@@ -625,8 +625,12 @@ func (b *codeGenOpBuilder) MakeHeader(receiver, name string, hdr spec.Header) (G
 
 func (b *codeGenOpBuilder) MakeHeaderItem(receiver, paramName, indexVar, path, valueExpression string, items, parent *spec.Items) (GenItems, error) {
 	var res GenItems
-	res.resolvedType = simpleResolvedType(items.Type, items.Format, items.Items)
-	res.sharedValidations = sharedValidationsFromSimple(items.CommonValidations, false)
+	res.resolvedType = simpleResolvedType(items.Type, items.Format, items.Items, &items.CommonValidations)
+
+	res.sharedValidations = sharedValidations{
+		Required:          false,
+		SchemaValidations: items.Validations(),
+	}
 	res.Name = paramName
 	res.Path = path
 	res.Location = "header"
@@ -656,18 +660,20 @@ func (b *codeGenOpBuilder) MakeHeaderItem(receiver, paramName, indexVar, path, v
 
 // HasValidations resolves the validation status for simple schema objects
 func (b *codeGenOpBuilder) HasValidations(sh spec.CommonValidations, rt resolvedType) (hasValidations bool, hasSliceValidations bool) {
-	hasNumberValidation := sh.Maximum != nil || sh.Minimum != nil || sh.MultipleOf != nil
-	hasStringValidation := sh.MaxLength != nil || sh.MinLength != nil || sh.Pattern != ""
-	hasSliceValidations = sh.MaxItems != nil || sh.MinItems != nil || sh.UniqueItems || len(sh.Enum) > 0
-	hasValidations = hasNumberValidation || hasStringValidation || hasSliceValidations || hasFormatValidation(rt)
+	hasSliceValidations = sh.HasArrayValidations() || sh.HasEnum()
+	hasValidations = sh.HasNumberValidations() || sh.HasStringValidations() || hasSliceValidations || hasFormatValidation(rt)
 	return
 }
 
 func (b *codeGenOpBuilder) MakeParameterItem(receiver, paramName, indexVar, path, valueExpression, location string, resolver *typeResolver, items, parent *spec.Items) (GenItems, error) {
 	debugLog("making parameter item recv=%s param=%s index=%s valueExpr=%s path=%s location=%s", receiver, paramName, indexVar, valueExpression, path, location)
 	var res GenItems
-	res.resolvedType = simpleResolvedType(items.Type, items.Format, items.Items)
-	res.sharedValidations = sharedValidationsFromSimple(items.CommonValidations, false)
+	res.resolvedType = simpleResolvedType(items.Type, items.Format, items.Items, &items.CommonValidations)
+
+	res.sharedValidations = sharedValidations{
+		Required:          false,
+		SchemaValidations: items.Validations(),
+	}
 	res.Name = paramName
 	res.Path = path
 	res.Location = location
@@ -741,8 +747,11 @@ func (b *codeGenOpBuilder) MakeParameter(receiver string, resolver *typeResolver
 		}
 	} else {
 		// Process parameters declared in other inputs: path, query, header (SimpleSchema)
-		res.resolvedType = simpleResolvedType(param.Type, param.Format, param.Items)
-		res.sharedValidations = sharedValidationsFromSimple(param.CommonValidations, param.Required)
+		res.resolvedType = simpleResolvedType(param.Type, param.Format, param.Items, &param.CommonValidations)
+		res.sharedValidations = sharedValidations{
+			Required:          param.Required,
+			SchemaValidations: param.Validations(),
+		}
 
 		res.ZeroValue = res.resolvedType.Zero()
 
@@ -960,7 +969,7 @@ func (b *codeGenOpBuilder) setBodyParamValidation(p *GenParameter) {
 
 // makeSecuritySchemes produces a sorted list of security schemes for this operation
 func (b *codeGenOpBuilder) makeSecuritySchemes(receiver string) GenSecuritySchemes {
-	return gatherSecuritySchemes(b.SecurityDefinitions, b.Name, b.Principal, receiver)
+	return gatherSecuritySchemes(b.SecurityDefinitions, b.Name, b.Principal, receiver, b.GenOpts.PrincipalIsNullable())
 }
 
 // makeSecurityRequirements produces a sorted list of security requirements for this operation.
@@ -1006,7 +1015,7 @@ func (b *codeGenOpBuilder) saveResolveContext(resolver *typeResolver, schema *sp
 	if b.PristineDoc == nil {
 		b.PristineDoc = b.Doc.Pristine()
 	}
-	rslv := newTypeResolver(b.GenOpts.LanguageOpts.ManglePackageName(resolver.ModelsPackage, defaultModelsTarget), b.PristineDoc)
+	rslv := newTypeResolver(b.GenOpts.LanguageOpts.ManglePackageName(resolver.ModelsPackage, defaultModelsTarget), b.DefaultImports[b.ModelsPackage], b.PristineDoc)
 
 	return rslv, b.cloneSchema(schema)
 }
@@ -1026,7 +1035,7 @@ func (b *codeGenOpBuilder) liftExtraSchemas(resolver, rslv *typeResolver, bs *sp
 	pkg := b.GenOpts.LanguageOpts.ManglePackageName(resolver.ModelsPackage, defaultModelsTarget)
 
 	// make a resolver for current package (i.e. operations)
-	pg.TypeResolver = newTypeResolver("", rslv.Doc).withKeepDefinitionsPackage(pkg)
+	pg.TypeResolver = newTypeResolver("", b.DefaultImports[b.APIPackage], rslv.Doc).withKeepDefinitionsPackage(pkg)
 	pg.ExtraSchemas = make(map[string]GenSchema, len(sc.ExtraSchemas))
 	pg.UseContainerInName = true
 
@@ -1062,7 +1071,10 @@ func (b *codeGenOpBuilder) buildOperationSchema(schemaPath, containerName, schem
 	if sch == nil {
 		sch = &spec.Schema{}
 	}
-	rslv := resolver
+	shallowClonedResolver := *resolver
+	shallowClonedResolver.ModelsFullPkg = b.DefaultImports[b.ModelsPackage]
+	rslv := &shallowClonedResolver
+
 	sc := schemaGenContext{
 		Path:                       schemaPath,
 		Name:                       containerName,
@@ -1203,7 +1215,7 @@ func (b *codeGenOpBuilder) analyzeTags() (string, []string, bool) {
 		}
 	}
 	if tag == b.APIPackage {
-		// confict with "operations" package is handled separately
+		// conflict with "operations" package is handled separately
 		tag = renameOperationPackage(intersected, tag)
 	}
 	b.APIPackage = b.GenOpts.LanguageOpts.ManglePackageName(tag, b.APIPackage) // actual package name
@@ -1238,11 +1250,14 @@ func deconflictPrincipal(pkg string) string {
 // deconflictPkg renames package names which conflict with standard imports
 func deconflictPkg(pkg string, renamer func(string) string) string {
 	switch pkg {
-	case "api", "httptransport", "formats":
+	// package conflict with variables
+	case "api", "httptransport", "formats", "server":
 		fallthrough
+	// package conflict with go-openapi imports
 	case "errors", "runtime", "middleware", "security", "spec", "strfmt", "loads", "swag", "validate":
 		fallthrough
-	case "tls", "http", "fmt", "strings", "log":
+	// package conflict with stdlib/other lib imports
+	case "tls", "http", "fmt", "strings", "log", "flags", "pflag", "json", "time":
 		return renamer(pkg)
 	}
 	return pkg
@@ -1260,5 +1275,16 @@ func renameOperationPackage(seenTags []string, pkg string) string {
 }
 
 func renamePrincipalPackage(pkg string) string {
+	// favors readability over perfect deconfliction
 	return "auth"
+}
+
+func renameServerPackage(pkg string) string {
+	// favors readability over perfect deconfliction
+	return "swagger" + pkg + "srv"
+}
+
+func renameAPIPackage(pkg string) string {
+	// favors readability over perfect deconfliction
+	return "swagger" + pkg
 }

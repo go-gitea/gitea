@@ -16,20 +16,20 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 const (
@@ -132,7 +132,8 @@ func Dashboard(ctx *context.Context) {
 }
 
 // DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+func DashboardPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
@@ -239,7 +240,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(macaron.Env)
+	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}
@@ -307,7 +308,6 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["EnvVars"] = envVars
 	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
@@ -364,7 +364,7 @@ func WorkerCancel(ctx *context.Context) {
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
+		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }
 
@@ -387,7 +387,7 @@ func Flush(ctx *context.Context) {
 			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
 		}
 	}()
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // AddWorkers adds workers to a worker group
@@ -401,23 +401,23 @@ func AddWorkers(ctx *context.Context) {
 	number := ctx.QueryInt("number")
 	if number < 1 {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.Query("timeout"))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	mq.AddWorkers(number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // SetQueueSettings sets the maximum number of workers and other settings for this queue
@@ -430,7 +430,7 @@ func SetQueueSettings(ctx *context.Context) {
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 
@@ -445,7 +445,7 @@ func SetQueueSettings(ctx *context.Context) {
 		maxNumber, err = strconv.Atoi(maxNumberStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 		if maxNumber < -1 {
@@ -459,7 +459,7 @@ func SetQueueSettings(ctx *context.Context) {
 		number, err = strconv.Atoi(numberStr)
 		if err != nil || number < 0 {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -470,7 +470,7 @@ func SetQueueSettings(ctx *context.Context) {
 		timeout, err = time.ParseDuration(timeoutStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -479,5 +479,5 @@ func SetQueueSettings(ctx *context.Context) {
 
 	mq.SetPoolSettings(maxNumber, number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }

@@ -30,7 +30,8 @@ Let's start with an example that shows the sessions API in a nutshell:
 	// environmental variable, or flag (or both), and don't accidentally commit it
 	// alongside your code. Ensure your key is sufficiently random - i.e. use Go's
 	// crypto/rand or securecookie.GenerateRandomKey(32) and persist the result.
-	var store = sessions.NewCookieStore(os.Getenv("SESSION_KEY"))
+	// Ensure SESSION_KEY exists in the environment, or sessions will fail.
+	var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 
 	func MyHandler(w http.ResponseWriter, r *http.Request) {
 		// Get a session. Get() always returns a session, even if empty.
@@ -44,7 +45,11 @@ Let's start with an example that shows the sessions API in a nutshell:
 		session.Values["foo"] = "bar"
 		session.Values[42] = 43
 		// Save it before we write to the response/return from the handler.
-		session.Save(r, w)
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 First we initialize a session store calling NewCookieStore() and passing a
@@ -82,7 +87,11 @@ flashes, call session.Flashes(). Here is an example:
 			// Set a new flash.
 			session.AddFlash("Hello, flash messages world!")
 		}
-		session.Save(r, w)
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 Flash messages are useful to set information to be read after a redirection,
@@ -185,7 +194,11 @@ at once: it's sessions.Save(). Here's an example:
 		session2, _ := store.Get(r, "session-two")
 		session2.Values[42] = 43
 		// Save all sessions.
-		sessions.Save(r, w)
+		err = sessions.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 This is possible because when we call Get() from a session store, it adds the

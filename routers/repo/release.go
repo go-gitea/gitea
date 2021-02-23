@@ -9,14 +9,15 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/web"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -209,6 +210,8 @@ func LatestRelease(ctx *context.Context) {
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.Query("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
@@ -230,9 +233,12 @@ func NewRelease(ctx *context.Context) {
 }
 
 // NewReleasePost response for creating a release
-func NewReleasePost(ctx *context.Context, form auth.NewReleaseForm) {
+func NewReleasePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 
 	if ctx.HasError() {
 		ctx.HTML(200, tplReleaseNew)
@@ -311,6 +317,8 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
 
@@ -336,10 +344,13 @@ func EditRelease(ctx *context.Context) {
 }
 
 // EditReleasePost response for edit release
-func EditReleasePost(ctx *context.Context, form auth.EditReleaseForm) {
+func EditReleasePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
+	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireTribute"] = true
 
 	tagName := ctx.Params("*")
 	rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)

@@ -1,5 +1,4 @@
 GNU GENERAL PUBLIC LICENSE
-
 Version 1, February 1989
 
 Copyright (C) 1989 Free Software Foundation, Inc. 51 Franklin St, Fifth Floor,
@@ -49,16 +48,12 @@ follow.
 GNU GENERAL PUBLIC LICENSE TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION
 AND MODIFICATION
 
-   
-
 0. This License Agreement applies to any program or other work which contains
 a notice placed by the copyright holder saying it may be distributed under
 the terms of this General Public License. The "Program", below, refers to
 any such program or work, and a "work based on the Program" means either the
 Program or any work containing the Program or a portion of it, either verbatim
 or with modifications. Each licensee is addressed as "you".
-
-   
 
 1. You may copy and distribute verbatim copies of the Program's source code
 as you receive it, in any medium, provided that you conspicuously and appropriately
@@ -67,8 +62,6 @@ keep intact all the notices that refer to this General Public License and
 to the absence of any warranty; and give any other recipients of the Program
 a copy of this General Public License along with the Program. You may charge
 a fee for the physical act of transferring a copy.
-
-   
 
 2. You may modify your copy or copies of the Program or any portion of it,
 and copy and distribute such modifications under the terms of Paragraph 1
@@ -98,8 +91,6 @@ Mere aggregation of another independent work with the Program (or its derivative
 on a volume of a storage or distribution medium does not bring the other work
 under the scope of these terms.
 
-   
-
 3. You may copy and distribute the Program (or a portion or derivative of
 it, under Paragraph 2) in object code or executable form under the terms of
 Paragraphs 1 and 2 above provided that you also do one of the following:
@@ -124,8 +115,6 @@ source code for modules which are standard libraries that accompany the operatin
 system on which the executable file runs, or for standard header files or
 definitions files that accompany that operating system.
 
-   
-
 4. You may not copy, modify, sublicense, distribute or transfer the Program
 except as expressly provided under this General Public License. Any attempt
 otherwise to copy, modify, sublicense, distribute or transfer the Program
@@ -134,21 +123,15 @@ this License. However, parties who have received copies, or rights to use
 copies, from you under this General Public License will not have their licenses
 terminated so long as such parties remain in full compliance.
 
-   
-
 5. By copying, distributing or modifying the Program (or any work based on
 the Program) you indicate your acceptance of this license to do so, and all
 its terms and conditions.
-
-   
 
 6. Each time you redistribute the Program (or any work based on the Program),
 the recipient automatically receives a license from the original licensor
 to copy, distribute or modify the Program subject to these terms and conditions.
 You may not impose any further restrictions on the recipients' exercise of
 the rights granted herein.
-
-   
 
 7. The Free Software Foundation may publish revised and/or new versions of
 the General Public License from time to time. Such new versions will be similar
@@ -162,8 +145,6 @@ or of any later version published by the Free Software Foundation. If the
 Program does not specify a version number of the license, you may choose any
 version ever published by the Free Software Foundation.
 
-   
-
 8. If you wish to incorporate parts of the Program into other free programs
 whose distribution conditions are different, write to the author to ask for
 permission. For software which is copyrighted by the Free Software Foundation,
@@ -172,9 +153,7 @@ Our decision will be guided by the two goals of preserving the free status
 of all derivatives of our free software and of promoting the sharing and reuse
 of software generally.
 
-   
-
-   NO WARRANTY
+NO WARRANTY
 
 9. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR
 THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
@@ -185,8 +164,6 @@ FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
 OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME
 THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
-   
-
 10. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
 WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR REDISTRIBUTE
 THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
@@ -195,6 +172,7 @@ OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF DATA
 OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES
 OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH
 HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
 END OF TERMS AND CONDITIONS
 
 Appendix: How to Apply These Terms to Your New Programs
@@ -246,6 +224,6 @@ Yoyodyne, Inc., hereby disclaims all copyright interest in the program `Gnomovis
 (a program to direct compilers to make passes at assemblers) written by James
 Hacker.
 
-<signature of Ty Coon>, 1 April 1989 Ty Coon, President of Vice
+     <signature of Ty Coon>, 1 April 1989 Ty Coon, President of Vice
 
 That's all there is to it!

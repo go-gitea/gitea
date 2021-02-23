@@ -4,6 +4,38 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.2](https://github.com/go-gitea/gitea/releases/tag/v1.13.2) - 2021-01-31
+
+* SECURITY
+  * Prevent panic on fuzzer provided string (#14405) (#14409)
+  * Add secure/httpOnly attributes to the lang cookie (#14279) (#14280)
+* API
+  * If release publisher is deleted use ghost user (#14375)
+* BUGFIXES
+  * Internal ssh server respect Ciphers, MACs and KeyExchanges settings (#14523) (#14530)
+  * Set the name Mapper in migrations (#14526) (#14529)
+  * Fix wiki preview (#14515)
+  * Update code.gitea.io/sdk/gitea v0.13.1 -> v0.13.2 (#14497)
+  * ChangeUserName: rename user files back on DB issue (#14447)
+  * Fix lfs preview bug (#14428) (#14433)
+  * Ensure timeout error is shown on u2f timeout (#14417) (#14431)
+  * Fix Deadlock & Delete affected reactions on comment deletion (#14392) (#14425)
+  * Use path not filepath in routers/editor (#14390) (#14396)
+  * Check if label template exist first (#14384) (#14389)
+  * Fix migration v141 (#14387) (#14388)
+  * Use Request.URL.RequestURI() for fcgi (#14347)
+  * Use ServerError provided by Context (#14333) (#14345)
+  * Fix edit-label form init (#14337)
+  * Fix mailIssueCommentBatch for pull request (#14252) (#14296)
+  * Render links for commit hashes followed by comma (#14224) (#14227)
+  * Send notifications for mentions in pulls, issues, (code-)comments (#14218) (#14221)
+  * Fix avatar bugs (#14217) (#14220)
+  * Ensure that schema search path is set with every connection on postgres (#14131) (#14216)
+  * Fix dashboard issues labels filter bug (#14210) (#14214)
+  * When visit /favicon.ico but the static file is not exist return 404 but not continue to handle the route (#14211) (#14213)
+  * Fix branch selector on new issue page (#14194) (#14207)
+  * Check for notExist on profile repository page (#14197) (#14203)
+
 ## [1.13.1](https://github.com/go-gitea/gitea/releases/tag/v1.13.1) - 2020-12-29
 
 * SECURITY
