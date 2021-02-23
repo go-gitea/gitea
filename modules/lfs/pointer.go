@@ -41,7 +41,7 @@ var (
 func ReadPointer(reader io.Reader) (Pointer, error) {
 	buf := make([]byte, blobSizeCutoff)
 	n, err := io.ReadFull(reader, buf)
-	if err != nil {
+	if err != nil && err != io.ErrUnexpectedEOF {
 		return Pointer{}, err
 	}
 	buf = buf[:n]
