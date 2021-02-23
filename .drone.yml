@@ -731,6 +731,9 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
 
 steps:
   - name: fetch-tags
@@ -833,6 +836,10 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
+
 steps:
   - name: fetch-tags
     image: docker:git
@@ -917,6 +924,9 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
 
 depends_on:
   - docker-linux-amd64-release
