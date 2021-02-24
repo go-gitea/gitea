@@ -3,14 +3,16 @@
 		<div class="item">
 			<div class="ui header df ac">
 				<div class="repo-title di">
+				{{- /* begin inline block */ -}}
 					{{$avatar := (repoAvatar . 32 "mr-3")}}
 					{{if $avatar}}
 						{{$avatar}}
 					{{end}}
 					<a class="name" href="{{.Link}}">
 						{{- if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name -}}
-					</a><!--
-					--><div class="labels dif ac fw vm">
+					</a>
+				{{- /* end inline block */ -}}
+					<div class="labels dif ac fw vm">
 						{{if .IsArchived}}
 							<span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
 						{{end}}

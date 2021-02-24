@@ -17,10 +17,12 @@
 						<div class="mx-2">/</div>
 					</div>
 					<div class="di">
+					{{- /* begin inline block */ -}}
 						<a href="{{$.RepoLink}}">{{.Name}}</a>
 						{{- if $.PageIsSettings -}}
 							<div class="di mx-2">/</div><span class="dib mr-2">{{$.i18n.Tr "repo.settings"}}</span>
 						{{- else -}}
+					{{- /* end inline block */ -}}
 							<div class="labels dif ac fw vm">
 								{{if .IsTemplate}}
 									{{if .IsPrivate}}
