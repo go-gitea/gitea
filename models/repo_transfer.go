@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"os"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
+	"xorm.io/xorm"
 )
 
 // TransferStatus determines the current state of a transfer
@@ -259,7 +260,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err := newOwner.getTeams(sess); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range newOwner.Teams {
@@ -305,7 +306,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(oldOwner.Name, repo.Name)
-	if com.IsExist(wikiPath) {
+	isExist, err := util.IsExist(wikiPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+		return err
+	}
+	if isExist {
 		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -320,8 +326,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("NewRepoRedirect: %v", err)
+	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
 	return sess.Commit()
