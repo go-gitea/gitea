@@ -35,28 +35,15 @@ RUN apk --no-cache add \
     ca-certificates \
     gettext \
     git \
-    gnupg
-
-RUN addgroup \
-    -S -g 1000 \
-    git && \
-  adduser \
-    -S -H -D \
-    -h /var/lib/gitea/git \
-    -s /bin/bash \
-    -u 1000 \
-    -G git \
-    git && \
-  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
+    gnupg \
+    su-exec
 
 RUN mkdir -p /var/lib/gitea /etc/gitea
-RUN chown git:git /var/lib/gitea /etc/gitea
 
 COPY docker/rootless /
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/gitea /usr/local/bin/gitea
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
 
-USER git:git
 ENV GITEA_WORK_DIR /var/lib/gitea
 ENV GITEA_CUSTOM /var/lib/gitea/custom
 ENV GITEA_TEMP /tmp/gitea
