@@ -31,7 +31,7 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make lint-backend
     environment:
@@ -41,7 +41,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make golangci-lint vet
     environment:
@@ -53,7 +53,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make lint-backend
     environment:
@@ -69,7 +69,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -91,7 +91,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -104,7 +104,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -116,7 +116,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -195,7 +195,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make backend
     environment:
@@ -210,7 +210,7 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -221,7 +221,7 @@ steps:
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -231,7 +231,7 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -246,7 +246,7 @@ steps:
       - build
 
   - name: test-mysql8
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -260,7 +260,7 @@ steps:
       - build
 
   - name: test-mssql
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -274,7 +274,7 @@ steps:
       - build
 
   - name: generate-coverage
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make coverage
     environment:
@@ -352,7 +352,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make backend
     environment:
@@ -361,7 +361,7 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: test-sqlite
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -375,7 +375,7 @@ steps:
       - build
 
   - name: test-pgsql
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
       - apt-get install -y git-lfs
@@ -475,7 +475,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 
@@ -523,7 +523,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.15.x
+    image: techknowlogick/xgo:go-1.16.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -619,7 +619,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.15.x
+    image: techknowlogick/xgo:go-1.16.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
