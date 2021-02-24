@@ -725,6 +725,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:               true,
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
+					DefaultMergeStyle:         models.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -744,6 +745,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.DefaultMergeStyle != nil {
+				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)
 			}
 
 			units = append(units, models.RepoUnit{
