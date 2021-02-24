@@ -19,7 +19,6 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	index "github.com/blevesearch/bleve_index_api"
-	"github.com/couchbase/vellum"
 )
 
 var ErrClosed = fmt.Errorf("index closed")
@@ -63,7 +62,7 @@ type PersistedSegment interface {
 type TermDictionary interface {
 	PostingsList(term []byte, except *roaring.Bitmap, prealloc PostingsList) (PostingsList, error)
 
-	AutomatonIterator(a vellum.Automaton,
+	AutomatonIterator(a Automaton,
 		startKeyInclusive, endKeyExclusive []byte) DictionaryIterator
 
 	Contains(key []byte) (bool, error)

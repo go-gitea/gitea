@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build aix || (darwin && !race) || (linux && !race) || (freebsd && !race) || netbsd || openbsd || solaris || dragonfly
 // +build aix darwin,!race linux,!race freebsd,!race netbsd openbsd solaris dragonfly
 
 package unix

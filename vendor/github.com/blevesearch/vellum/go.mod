@@ -1,4 +1,4 @@
-module github.com/couchbase/vellum
+module github.com/blevesearch/vellum
 
 go 1.12
 

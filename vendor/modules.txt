@@ -89,7 +89,7 @@ github.com/asaskevich/govalidator
 github.com/aymerick/douceur/css
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve/v2 v2.0.1
+# github.com/blevesearch/bleve/v2 v2.0.2
 ## explicit
 github.com/blevesearch/bleve/v2
 github.com/blevesearch/bleve/v2/analysis
@@ -133,8 +133,8 @@ github.com/blevesearch/bleve_index_api
 github.com/blevesearch/go-porterstemmer
 # github.com/blevesearch/mmap-go v1.0.2
 github.com/blevesearch/mmap-go
-# github.com/blevesearch/scorch_segment_api v1.0.0
-github.com/blevesearch/scorch_segment_api
+# github.com/blevesearch/scorch_segment_api/v2 v2.0.1
+github.com/blevesearch/scorch_segment_api/v2
 # github.com/blevesearch/segment v0.9.0
 github.com/blevesearch/segment
 # github.com/blevesearch/snowballstem v0.9.0
@@ -142,15 +142,20 @@ github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
 # github.com/blevesearch/upsidedown_store_api v1.0.1
 github.com/blevesearch/upsidedown_store_api
-# github.com/blevesearch/zapx/v11 v11.1.10
+# github.com/blevesearch/vellum v1.0.3
+github.com/blevesearch/vellum
+github.com/blevesearch/vellum/levenshtein
+github.com/blevesearch/vellum/regexp
+github.com/blevesearch/vellum/utf8
+# github.com/blevesearch/zapx/v11 v11.2.0
 github.com/blevesearch/zapx/v11
-# github.com/blevesearch/zapx/v12 v12.1.10
+# github.com/blevesearch/zapx/v12 v12.2.0
 github.com/blevesearch/zapx/v12
-# github.com/blevesearch/zapx/v13 v13.1.10
+# github.com/blevesearch/zapx/v13 v13.2.0
 github.com/blevesearch/zapx/v13
-# github.com/blevesearch/zapx/v14 v14.1.10
+# github.com/blevesearch/zapx/v14 v14.2.0
 github.com/blevesearch/zapx/v14
-# github.com/blevesearch/zapx/v15 v15.1.10
+# github.com/blevesearch/zapx/v15 v15.2.0
 github.com/blevesearch/zapx/v15
 # github.com/boombuler/barcode v1.0.1
 ## explicit
@@ -174,11 +179,6 @@ github.com/couchbase/gomemcached/client
 # github.com/couchbase/goutils v0.0.0-20201030094643-5e82bb967e67
 github.com/couchbase/goutils/logging
 github.com/couchbase/goutils/scramsha
-# github.com/couchbase/vellum v1.0.2
-github.com/couchbase/vellum
-github.com/couchbase/vellum/levenshtein
-github.com/couchbase/vellum/regexp
-github.com/couchbase/vellum/utf8
 # github.com/cpuguy83/go-md2man/v2 v2.0.0
 ## explicit
 github.com/cpuguy83/go-md2man/v2/md2man
@@ -236,7 +236,7 @@ github.com/fsnotify/fsnotify
 # github.com/gliderlabs/ssh v0.3.1
 ## explicit
 github.com/gliderlabs/ssh
-# github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a
+# github.com/glycerine/go-unsnap-stream v0.0.0-20210130063903-47dfef350d96
 ## explicit
 github.com/glycerine/go-unsnap-stream
 # github.com/go-asn1-ber/asn1-ber v1.5.1
@@ -880,7 +880,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
+# golang.org/x/sys v0.0.0-20210223212115-eede4237b368
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
