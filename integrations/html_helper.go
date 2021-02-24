@@ -37,6 +37,13 @@ func (doc *HTMLDoc) GetInputValueByName(name string) string {
 	return text
 }
 
+// Find gets the descendants of each element in the current set of
+// matched elements, filtered by a selector. It returns a new Selection
+// object containing these matched elements.
+func (doc *HTMLDoc) Find(selector string) *goquery.Selection {
+	return doc.doc.Find(selector)
+}
+
 // GetCSRF for get CSRC token value from input
 func (doc *HTMLDoc) GetCSRF() string {
 	return doc.GetInputValueByName("_csrf")

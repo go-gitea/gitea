@@ -22,14 +22,16 @@ import (
 	"strings"
 
 	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/swag"
 
 	"github.com/go-openapi/analysis"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/loads"
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/runtime/middleware/denco"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
+
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/middleware/denco"
 )
 
 // RouteParam is a object to capture route params in a framework agnostic way.
@@ -290,7 +292,7 @@ type routeEntry struct {
 	Parameters     map[string]spec.Parameter
 	Handler        http.Handler
 	Formats        strfmt.Registry
-	Binder         *untypedRequestBinder
+	Binder         *UntypedRequestBinder
 	Authenticators RouteAuthenticators
 	Authorizer     runtime.Authorizer
 }
@@ -417,6 +419,15 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 		produces := d.analyzer.ProducesFor(operation)
 		parameters := d.analyzer.ParamsFor(method, strings.TrimPrefix(path, bp))
 
+		// add API defaults if not part of the spec
+		if defConsumes := d.api.DefaultConsumes(); defConsumes != "" && !swag.ContainsStringsCI(consumes, defConsumes) {
+			consumes = append(consumes, defConsumes)
+		}
+
+		if defProduces := d.api.DefaultProduces(); defProduces != "" && !swag.ContainsStringsCI(produces, defProduces) {
+			produces = append(produces, defProduces)
+		}
+
 		record := denco.NewRecord(pathConverter.ReplaceAllString(path, ":$1"), &routeEntry{
 			BasePath:       bp,
 			PathPattern:    path,
@@ -428,7 +439,7 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 			Producers:      d.api.ProducersFor(normalizeOffers(produces)),
 			Parameters:     parameters,
 			Formats:        d.api.Formats(),
-			Binder:         newUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats()),
+			Binder:         NewUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats()),
 			Authenticators: d.buildAuthenticators(operation),
 			Authorizer:     d.api.Authorizer(),
 		})

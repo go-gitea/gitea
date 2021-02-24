@@ -31,6 +31,7 @@ import (
 	"image"
 	"net/url"
 	"strings"
+	"strconv"
 )
 
 // Error when attempting to convert the secret from base32 to raw bytes.
@@ -54,17 +55,19 @@ type Key struct {
 // NewKeyFromURL creates a new Key from an TOTP or HOTP url.
 //
 // The URL format is documented here:
-//   https://code.google.com/p/google-authenticator/wiki/KeyUriFormat
+//   https://github.com/google/google-authenticator/wiki/Key-Uri-Format
 //
 func NewKeyFromURL(orig string) (*Key, error) {
-	u, err := url.Parse(orig)
+	s := strings.TrimSpace(orig)
+
+	u, err := url.Parse(s)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &Key{
-		orig: orig,
+		orig: s,
 		url:  u,
 	}, nil
 }
@@ -136,11 +139,31 @@ func (k *Key) Secret() string {
 	return q.Get("secret")
 }
 
+// Period returns a tiny int representing the rotation time in seconds.
+func (k *Key) Period() uint64 {
+	q := k.url.Query()
+
+	if u, err := strconv.ParseUint(q.Get("period"), 10, 64); err == nil {
+		return u
+	}
+	
+	// If no period is defined 30 seconds is the default per (rfc6238)
+	return 30
+}
+
+// URL returns the OTP URL as a string
+func (k *Key) URL() string {
+	return k.url.String()
+}
+
 // Algorithm represents the hashing function to use in the HMAC
 // operation needed for OTPs.
 type Algorithm int
 
 const (
+	// AlgorithmSHA1 should be used for compatibility with Google Authenticator.
+	//
+	// See https://github.com/pquerna/otp/issues/55 for additional details.
 	AlgorithmSHA1 Algorithm = iota
 	AlgorithmSHA256
 	AlgorithmSHA512

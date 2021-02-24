@@ -13,17 +13,19 @@ import (
 )
 
 // UpdateMigrationPosterID updates all migrated repositories' issues and comments posterID
-func UpdateMigrationPosterID(ctx context.Context) {
+func UpdateMigrationPosterID(ctx context.Context) error {
 	for _, gitService := range structs.SupportedFullGitService {
 		select {
 		case <-ctx.Done():
-			log.Warn("UpdateMigrationPosterID aborted due to shutdown before %s", gitService.Name())
+			log.Warn("UpdateMigrationPosterID aborted before %s", gitService.Name())
+			return models.ErrCancelledf("during UpdateMigrationPosterID before %s", gitService.Name())
 		default:
 		}
 		if err := updateMigrationPosterIDByGitService(ctx, gitService); err != nil {
 			log.Error("updateMigrationPosterIDByGitService failed: %v", err)
 		}
 	}
+	return nil
 }
 
 func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServiceType) error {
@@ -37,7 +39,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 	for {
 		select {
 		case <-ctx.Done():
-			log.Warn("UpdateMigrationPosterIDByGitService(%s) aborted due to shutdown", tp.Name())
+			log.Warn("UpdateMigrationPosterIDByGitService(%s) cancelled", tp.Name())
 			return nil
 		default:
 		}
@@ -54,7 +56,7 @@ func updateMigrationPosterIDByGitService(ctx context.Context, tp structs.GitServ
 		for _, user := range users {
 			select {
 			case <-ctx.Done():
-				log.Warn("UpdateMigrationPosterIDByGitService(%s) aborted due to shutdown", tp.Name())
+				log.Warn("UpdateMigrationPosterIDByGitService(%s) cancelled", tp.Name())
 				return nil
 			default:
 			}

@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package models
 
 import (
@@ -22,7 +26,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
 	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	action := &Action{RepoID: repo.ID}
-	setting.AppSubURL = "/suburl/"
+	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
 }

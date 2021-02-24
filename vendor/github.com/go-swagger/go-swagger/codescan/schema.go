@@ -65,9 +65,15 @@ func (st schemaTypable) AdditionalProperties() swaggerTypable {
 	st.schema.Typed("object", "")
 	return schemaTypable{st.schema.AdditionalProperties.Schema, st.level + 1}
 }
+
 func (st schemaTypable) Level() int { return st.level }
+
 func (st schemaTypable) AddExtension(key string, value interface{}) {
 	addExtension(&st.schema.VendorExtensible, key, value)
+}
+
+func (st schemaTypable) WithEnum(values ...interface{}) {
+	st.schema.WithEnum(values...)
 }
 
 type schemaValidations struct {
@@ -182,8 +188,8 @@ func (s *schemaBuilder) buildFromDecl(decl *entityDecl, schema *spec.Schema) err
 		debugLog("map: %v -> [%v]%v", s.decl.Ident.Name, tpe.Key().String(), tpe.Elem().String())
 	case *types.Named:
 		o := tpe.Obj()
-		debugLog("got the named type object: %s.%s | isAlias: %t | exported: %t", o.Pkg().Path(), o.Name(), o.IsAlias(), o.Exported())
 		if o != nil {
+			debugLog("got the named type object: %s.%s | isAlias: %t | exported: %t", o.Pkg().Path(), o.Name(), o.IsAlias(), o.Exported())
 			if o.Pkg().Name() == "time" && o.Name() == "Time" {
 				schema.Typed("string", "date-time")
 				return nil
@@ -232,7 +238,7 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 	case *types.Array:
 		return s.buildFromType(titpe.Elem(), tgt.Items())
 	case *types.Map:
-		//debugLog("map: %v -> [%v]%v", fld.Name(), ftpe.Key().String(), ftpe.Elem().String())
+		// debugLog("map: %v -> [%v]%v", fld.Name(), ftpe.Key().String(), ftpe.Elem().String())
 		// check if key is a string type, if not print a message
 		// and skip the map property. Only maps with string keys can go into additional properties
 		sch := tgt.Schema()
@@ -261,6 +267,10 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 		}
 		if pkg.Name == "time" && tio.Name() == "Time" {
 			tgt.Typed("string", "date-time")
+			return nil
+		}
+		if pkg.PkgPath == "encoding/json" && tio.Name() == "RawMessage" {
+			tgt.Typed("object", "")
 			return nil
 		}
 		cmt, hasComments := s.ctx.FindComments(pkg, tio.Name())
@@ -298,7 +308,12 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 			}
 
 			if enumName, ok := enumName(cmt); ok {
-				debugLog(enumName)
+				enumValues, _ := s.ctx.FindEnumValues(pkg, enumName)
+				if len(enumValues) > 0 {
+					tgt.WithEnum(enumValues...)
+					enumTypeName := reflect.TypeOf(enumValues[0]).String()
+					_ = swaggerSchemaForType(enumTypeName, tgt)
+				}
 				return nil
 			}
 
@@ -372,7 +387,6 @@ func (s *schemaBuilder) buildFromType(tpe types.Type, tgt swaggerTypable) error 
 			return nil
 		}
 	default:
-		//log.Printf("WARNING: can't determine refined type %s (%T)", titpe.String(), titpe)
 		panic(fmt.Sprintf("WARNING: can't determine refined type %s (%T)", titpe.String(), titpe))
 	}
 
@@ -414,7 +428,7 @@ func (s *schemaBuilder) buildFromInterface(decl *entityDecl, it *types.Interface
 					continue
 				}
 
-				//decl.
+				// decl.
 				debugLog("maybe interface field %s: %s(%T)", o.Name(), o.Type().String(), o.Type())
 				afld = an
 				break
@@ -499,7 +513,7 @@ func (s *schemaBuilder) buildFromInterface(decl *entityDecl, it *types.Interface
 
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {
@@ -585,7 +599,7 @@ func (s *schemaBuilder) buildFromStruct(decl *entityDecl, st *types.Struct, sche
 		debugLog("maybe allof field(%t) %s: %s (%T) [%q](anon: %t, embedded: %t)", fld.IsField(), fld.Name(), fld.Type().String(), fld.Type(), tg, fld.Anonymous(), fld.Embedded())
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {
@@ -681,7 +695,7 @@ func (s *schemaBuilder) buildFromStruct(decl *entityDecl, st *types.Struct, sche
 
 		var afld *ast.Field
 		ans, _ := astutil.PathEnclosingInterval(decl.File, fld.Pos(), fld.Pos())
-		//debugLog("got %d nodes (exact: %t)", len(ans), isExact)
+		// debugLog("got %d nodes (exact: %t)", len(ans), isExact)
 		for _, an := range ans {
 			at, valid := an.(*ast.Field)
 			if !valid {
@@ -691,6 +705,11 @@ func (s *schemaBuilder) buildFromStruct(decl *entityDecl, st *types.Struct, sche
 			debugLog("field %s: %s(%T) [%q] ==> %s", fld.Name(), fld.Type().String(), fld.Type(), tg, at.Doc.Text())
 			afld = at
 			break
+		}
+
+		if afld == nil {
+			debugLog("can't find source associated with %s", fld.String())
+			continue
 		}
 
 		// if the field is annotated with swagger:ignore, ignore it
@@ -973,6 +992,21 @@ func schemaVendorExtensibleSetter(meta *spec.Schema) func(json.RawMessage) error
 	}
 }
 
+type tagOptions []string
+
+func (t tagOptions) Contain(option string) bool {
+	for i := 1; i < len(t); i++ {
+		if t[i] == option {
+			return true
+		}
+	}
+	return false
+}
+
+func (t tagOptions) Name() string {
+	return t[0]
+}
+
 func parseJSONTag(field *ast.Field) (name string, ignore bool, isString bool, err error) {
 	if len(field.Names) > 0 {
 		name = field.Names[0].Name
@@ -988,19 +1022,21 @@ func parseJSONTag(field *ast.Field) (name string, ignore bool, isString bool, er
 
 	if strings.TrimSpace(tv) != "" {
 		st := reflect.StructTag(tv)
-		jsonParts := strings.Split(st.Get("json"), ",")
-		jsonName := jsonParts[0]
+		jsonParts := tagOptions(strings.Split(st.Get("json"), ","))
 
-		if len(jsonParts) > 1 && jsonParts[1] == "string" {
+		if jsonParts.Contain("string") {
 			// Need to check if the field type is a scalar. Otherwise, the
 			// ",string" directive doesn't apply.
 			isString = isFieldStringable(field.Type)
 		}
 
-		if jsonName == "-" {
+		switch jsonParts.Name() {
+		case "-":
 			return name, true, isString, nil
-		} else if jsonName != "" {
-			return jsonName, false, isString, nil
+		case "":
+			return name, false, isString, nil
+		default:
+			return jsonParts.Name(), false, isString, nil
 		}
 	}
 	return name, false, false, nil

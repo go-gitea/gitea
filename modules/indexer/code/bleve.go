@@ -19,27 +19,23 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/blevesearch/bleve"
-	analyzer_custom "github.com/blevesearch/bleve/analysis/analyzer/custom"
-	analyzer_keyword "github.com/blevesearch/bleve/analysis/analyzer/keyword"
-	"github.com/blevesearch/bleve/analysis/token/lowercase"
-	"github.com/blevesearch/bleve/analysis/token/unicodenorm"
-	"github.com/blevesearch/bleve/analysis/tokenizer/unicode"
-	"github.com/blevesearch/bleve/index/upsidedown"
-	"github.com/blevesearch/bleve/mapping"
-	"github.com/blevesearch/bleve/search/query"
+	"github.com/blevesearch/bleve/v2"
+	analyzer_custom "github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
+	analyzer_keyword "github.com/blevesearch/bleve/v2/analysis/analyzer/keyword"
+	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
+	"github.com/blevesearch/bleve/v2/analysis/token/unicodenorm"
+	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
+	"github.com/blevesearch/bleve/v2/index/upsidedown"
+	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/ethantkoenig/rupture"
-	"github.com/src-d/enry/v2"
+	"github.com/go-enry/go-enry/v2"
 )
 
 const unicodeNormalizeName = "unicodeNormalize"
 const maxBatchSize = 16
-
-// indexerID a bleve-compatible unique identifier for an integer id
-func indexerID(id int64) string {
-	return strconv.FormatInt(id, 36)
-}
 
 // numericEqualityQuery a numeric equality query for the given value and field
 func numericEqualityQuery(value int64, field string) *query.NumericRangeQuery {
@@ -57,10 +53,10 @@ func addUnicodeNormalizeTokenFilter(m *mapping.IndexMappingImpl) error {
 	})
 }
 
-// openIndexer open the index at the specified path, checking for metadata
+// openBleveIndexer open the index at the specified path, checking for metadata
 // updates and bleve version updates.  If index needs to be created (or
 // re-created), returns (nil, nil)
-func openIndexer(path string, latestVersion int) (bleve.Index, error) {
+func openBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	_, err := os.Stat(path)
 	if err != nil && os.IsNotExist(err) {
 		return nil, nil
@@ -75,14 +71,14 @@ func openIndexer(path string, latestVersion int) (bleve.Index, error) {
 	if metadata.Version < latestVersion {
 		// the indexer is using a previous version, so we should delete it and
 		// re-populate
-		return nil, os.RemoveAll(path)
+		return nil, util.RemoveAll(path)
 	}
 
 	index, err := bleve.Open(path)
 	if err != nil && err == upsidedown.IncompatibleVersion {
 		// the indexer was built with a previous version of bleve, so we should
 		// delete it and re-populate
-		return nil, os.RemoveAll(path)
+		return nil, util.RemoveAll(path)
 	} else if err != nil {
 		return nil, err
 	}
@@ -103,54 +99,14 @@ func (d *RepoIndexerData) Type() string {
 	return repoIndexerDocType
 }
 
-func addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
-	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
-		return nil
-	}
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return err
-	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
-		return addDelete(update.Filename, repo, batch)
-	}
-
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
-	if err != nil {
-		return err
-	} else if !base.IsTextFile(fileContents) {
-		// FIXME: UTF-16 files will probably fail here
-		return nil
-	}
-
-	id := filenameIndexerID(repo.ID, update.Filename)
-	return batch.Index(id, &RepoIndexerData{
-		RepoID:    repo.ID,
-		CommitID:  commitSha,
-		Content:   string(charset.ToUTF8DropErrors(fileContents)),
-		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
-		UpdatedAt: time.Now().UTC(),
-	})
-}
-
-func addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
-	id := filenameIndexerID(repo.ID, filename)
-	return batch.Delete(id)
-}
-
 const (
 	repoIndexerAnalyzer      = "repoIndexerAnalyzer"
 	repoIndexerDocType       = "repoIndexerDocType"
 	repoIndexerLatestVersion = 5
 )
 
-// createRepoIndexer create a repo indexer if one does not already exist
-func createRepoIndexer(path string, latestVersion int) (bleve.Index, error) {
+// createBleveIndexer create a bleve repo indexer if one does not already exist
+func createBleveIndexer(path string, latestVersion int) (bleve.Index, error) {
 	docMapping := bleve.NewDocumentMapping()
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	numericFieldMapping.IncludeInAll = false
@@ -198,18 +154,6 @@ func createRepoIndexer(path string, latestVersion int) (bleve.Index, error) {
 	return indexer, nil
 }
 
-func filenameIndexerID(repoID int64, filename string) string {
-	return indexerID(repoID) + "_" + filename
-}
-
-func filenameOfIndexerID(indexerID string) string {
-	index := strings.IndexByte(indexerID, '_')
-	if index == -1 {
-		log.Error("Unexpected ID in repo indexer: %s", indexerID)
-	}
-	return indexerID[index+1:]
-}
-
 var (
 	_ Indexer = &BleveIndexer{}
 )
@@ -229,10 +173,57 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
+func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+	// Ignore vendored files in code search
+	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+		return nil
+	}
+
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
+	}
+
+	if size > setting.Indexer.MaxIndexerFileSize {
+		return b.addDelete(update.Filename, repo, batch)
+	}
+
+	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
+		RunInDirBytes(repo.RepoPath())
+	if err != nil {
+		return err
+	} else if !base.IsTextFile(fileContents) {
+		// FIXME: UTF-16 files will probably fail here
+		return nil
+	}
+
+	id := filenameIndexerID(repo.ID, update.Filename)
+	return batch.Index(id, &RepoIndexerData{
+		RepoID:    repo.ID,
+		CommitID:  commitSha,
+		Content:   string(charset.ToUTF8DropErrors(fileContents)),
+		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
+		UpdatedAt: time.Now().UTC(),
+	})
+}
+
+func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
+	id := filenameIndexerID(repo.ID, filename)
+	return batch.Delete(id)
+}
+
 // init init the indexer
 func (b *BleveIndexer) init() (bool, error) {
 	var err error
-	b.indexer, err = openIndexer(b.indexDir, repoIndexerLatestVersion)
+	b.indexer, err = openBleveIndexer(b.indexDir, repoIndexerLatestVersion)
 	if err != nil {
 		return false, err
 	}
@@ -240,7 +231,7 @@ func (b *BleveIndexer) init() (bool, error) {
 		return false, nil
 	}
 
-	b.indexer, err = createRepoIndexer(b.indexDir, repoIndexerLatestVersion)
+	b.indexer, err = createBleveIndexer(b.indexDir, repoIndexerLatestVersion)
 	if err != nil {
 		return false, err
 	}
@@ -261,38 +252,19 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repoID int64) error {
-	repo, err := models.GetRepositoryByID(repoID)
-	if err != nil {
-		return err
-	}
-
-	sha, err := getDefaultBranchSha(repo)
-	if err != nil {
-		return err
-	}
-	changes, err := getRepoChanges(repo, sha)
-	if err != nil {
-		return err
-	} else if changes == nil {
-		return nil
-	}
-
+func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, update := range changes.Updates {
-		if err := addUpdate(sha, update, repo, batch); err != nil {
+		if err := b.addUpdate(sha, update, repo, batch); err != nil {
 			return err
 		}
 	}
 	for _, filename := range changes.RemovedFilenames {
-		if err := addDelete(filename, repo, batch); err != nil {
+		if err := b.addDelete(filename, repo, batch); err != nil {
 			return err
 		}
 	}
-	if err = batch.Flush(); err != nil {
-		return err
-	}
-	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+	return batch.Flush()
 }
 
 // Delete deletes indexes by ids
@@ -314,12 +286,23 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	phraseQuery := bleve.NewMatchPhraseQuery(keyword)
-	phraseQuery.FieldVal = "Content"
-	phraseQuery.Analyzer = repoIndexerAnalyzer
+func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	var (
+		indexerQuery query.Query
+		keywordQuery query.Query
+	)
 
-	var indexerQuery query.Query
+	if isMatch {
+		prefixQuery := bleve.NewPrefixQuery(keyword)
+		prefixQuery.FieldVal = "Content"
+		keywordQuery = prefixQuery
+	} else {
+		phraseQuery := bleve.NewMatchPhraseQuery(keyword)
+		phraseQuery.FieldVal = "Content"
+		phraseQuery.Analyzer = repoIndexerAnalyzer
+		keywordQuery = phraseQuery
+	}
+
 	if len(repoIDs) > 0 {
 		var repoQueries = make([]query.Query, 0, len(repoIDs))
 		for _, repoID := range repoIDs {
@@ -328,10 +311,10 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 		indexerQuery = bleve.NewConjunctionQuery(
 			bleve.NewDisjunctionQuery(repoQueries...),
-			phraseQuery,
+			keywordQuery,
 		)
 	} else {
-		indexerQuery = phraseQuery
+		indexerQuery = keywordQuery
 	}
 
 	// Save for reuse without language filter

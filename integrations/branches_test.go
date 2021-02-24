@@ -32,14 +32,14 @@ func TestDeleteBranch(t *testing.T) {
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	defer prepareTestEnv(t)()
-
-	deleteBranch(t)
-	htmlDoc, name := branchAction(t, ".undo-button")
-	assert.Contains(t,
-		htmlDoc.doc.Find(".ui.positive.message").Text(),
-		i18n.Tr("en", "repo.branch.restore_success", name),
-	)
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		deleteBranch(t)
+		htmlDoc, name := branchAction(t, ".undo-button")
+		assert.Contains(t,
+			htmlDoc.doc.Find(".ui.positive.message").Text(),
+			i18n.Tr("en", "repo.branch.restore_success", name),
+		)
+	})
 }
 
 func deleteBranch(t *testing.T) {
@@ -57,7 +57,9 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(button).Attr("data-url")
-	assert.True(t, exists, "The template has changed")
+	if !assert.True(t, exists, "The template has changed") {
+		t.Skip()
+	}
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": getCsrf(t, htmlDoc.doc),
@@ -69,7 +71,7 @@ func branchAction(t *testing.T, button string) (*HTMLDoc, string) {
 	req = NewRequest(t, "GET", "/user2/repo1/branches")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
-	return NewHTMLParser(t, resp.Body), url.Query()["name"][0]
+	return NewHTMLParser(t, resp.Body), url.Query().Get("name")
 }
 
 func getCsrf(t *testing.T, doc *goquery.Document) string {

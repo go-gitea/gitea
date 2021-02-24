@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="user settings applications">
+<div class="page-content user settings applications">
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -15,6 +15,7 @@
 					<div class="item">
 						<div class="right floated content">
 								<button class="ui red tiny button delete-button" id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
+									{{svg "octicon-trashcan" 16 "mr-2"}}
 									{{$.i18n.Tr "settings.delete_token"}}
 								</button>
 						</div>
@@ -22,7 +23,7 @@
 						<div class="content">
 							<strong>{{.Name}}</strong>
 							<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info" 16}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 					</div>
@@ -55,7 +56,7 @@
 
 <div class="ui small basic delete modal" id="delete-token">
 	<div class="ui icon header">
-		<i class="trash icon"></i>
+		{{svg "octicon-trashcan"}}
 		{{.i18n.Tr "settings.access_token_deletion"}}
 	</div>
 	<div class="content">

@@ -6,6 +6,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -13,10 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/webhook"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/services/webhook"
 )
 
 // GetOrgHook get an organization's webhook. If there is an error, write to
@@ -52,8 +52,8 @@ func GetRepoHook(ctx *context.APIContext, repoID, hookID int64) (*models.Webhook
 // CheckCreateHookOption check if a CreateHookOption form is valid. If invalid,
 // write the appropriate error to `ctx`. Return whether the form is valid
 func CheckCreateHookOption(ctx *context.APIContext, form *api.CreateHookOption) bool {
-	if !models.IsValidHookTaskType(form.Type) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Invalid hook type")
+	if !webhook.IsValidHookTaskType(form.Type) {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Invalid hook type: %s", form.Type))
 		return false
 	}
 	for _, name := range []string{"url", "content_type"} {
@@ -88,11 +88,11 @@ func AddRepoHook(ctx *context.APIContext, form *api.CreateHookOption) {
 }
 
 func issuesHook(events []string, event string) bool {
-	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventIssues))
+	return util.IsStringInSlice(event, events, true) || util.IsStringInSlice(string(models.HookEventIssues), events, true)
 }
 
 func pullHook(events []string, event string) bool {
-	return com.IsSliceContainsStr(events, event) || com.IsSliceContainsStr(events, string(models.HookEventPullRequest))
+	return util.IsStringInSlice(event, events, true) || util.IsStringInSlice(string(models.HookEventPullRequest), events, true)
 }
 
 // addHook add the hook specified by `form`, `orgID` and `repoID`. If there is
@@ -111,15 +111,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		HookEvent: &models.HookEvent{
 			ChooseEvents: true,
 			HookEvents: models.HookEvents{
-				Create:               com.IsSliceContainsStr(form.Events, string(models.HookEventCreate)),
-				Delete:               com.IsSliceContainsStr(form.Events, string(models.HookEventDelete)),
-				Fork:                 com.IsSliceContainsStr(form.Events, string(models.HookEventFork)),
+				Create:               util.IsStringInSlice(string(models.HookEventCreate), form.Events, true),
+				Delete:               util.IsStringInSlice(string(models.HookEventDelete), form.Events, true),
+				Fork:                 util.IsStringInSlice(string(models.HookEventFork), form.Events, true),
 				Issues:               issuesHook(form.Events, "issues_only"),
 				IssueAssign:          issuesHook(form.Events, string(models.HookEventIssueAssign)),
 				IssueLabel:           issuesHook(form.Events, string(models.HookEventIssueLabel)),
 				IssueMilestone:       issuesHook(form.Events, string(models.HookEventIssueMilestone)),
 				IssueComment:         issuesHook(form.Events, string(models.HookEventIssueComment)),
-				Push:                 com.IsSliceContainsStr(form.Events, string(models.HookEventPush)),
+				Push:                 util.IsStringInSlice(string(models.HookEventPush), form.Events, true),
 				PullRequest:          pullHook(form.Events, "pull_request_only"),
 				PullRequestAssign:    pullHook(form.Events, string(models.HookEventPullRequestAssign)),
 				PullRequestLabel:     pullHook(form.Events, string(models.HookEventPullRequestLabel)),
@@ -127,15 +127,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(models.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(models.HookEventPullRequestSync)),
-				Repository:           com.IsSliceContainsStr(form.Events, string(models.HookEventRepository)),
-				Release:              com.IsSliceContainsStr(form.Events, string(models.HookEventRelease)),
+				Repository:           util.IsStringInSlice(string(models.HookEventRepository), form.Events, true),
+				Release:              util.IsStringInSlice(string(models.HookEventRelease), form.Events, true),
 			},
 			BranchFilter: form.BranchFilter,
 		},
-		IsActive:     form.Active,
-		HookTaskType: models.ToHookTaskType(form.Type),
+		IsActive: form.Active,
+		Type:     models.HookTaskType(form.Type),
 	}
-	if w.HookTaskType == models.SLACK {
+	if w.Type == models.SLACK {
 		channel, ok := form.Config["channel"]
 		if !ok {
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
@@ -219,7 +219,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 			w.ContentType = models.ToHookContentType(ct)
 		}
 
-		if w.HookTaskType == models.SLACK {
+		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
@@ -243,18 +243,18 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 	w.PushOnly = false
 	w.SendEverything = false
 	w.ChooseEvents = true
-	w.Create = com.IsSliceContainsStr(form.Events, string(models.HookEventCreate))
-	w.Push = com.IsSliceContainsStr(form.Events, string(models.HookEventPush))
-	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
-	w.Create = com.IsSliceContainsStr(form.Events, string(models.HookEventCreate))
-	w.Delete = com.IsSliceContainsStr(form.Events, string(models.HookEventDelete))
-	w.Fork = com.IsSliceContainsStr(form.Events, string(models.HookEventFork))
-	w.Issues = com.IsSliceContainsStr(form.Events, string(models.HookEventIssues))
-	w.IssueComment = com.IsSliceContainsStr(form.Events, string(models.HookEventIssueComment))
-	w.Push = com.IsSliceContainsStr(form.Events, string(models.HookEventPush))
-	w.PullRequest = com.IsSliceContainsStr(form.Events, string(models.HookEventPullRequest))
-	w.Repository = com.IsSliceContainsStr(form.Events, string(models.HookEventRepository))
-	w.Release = com.IsSliceContainsStr(form.Events, string(models.HookEventRelease))
+	w.Create = util.IsStringInSlice(string(models.HookEventCreate), form.Events, true)
+	w.Push = util.IsStringInSlice(string(models.HookEventPush), form.Events, true)
+	w.PullRequest = util.IsStringInSlice(string(models.HookEventPullRequest), form.Events, true)
+	w.Create = util.IsStringInSlice(string(models.HookEventCreate), form.Events, true)
+	w.Delete = util.IsStringInSlice(string(models.HookEventDelete), form.Events, true)
+	w.Fork = util.IsStringInSlice(string(models.HookEventFork), form.Events, true)
+	w.Issues = util.IsStringInSlice(string(models.HookEventIssues), form.Events, true)
+	w.IssueComment = util.IsStringInSlice(string(models.HookEventIssueComment), form.Events, true)
+	w.Push = util.IsStringInSlice(string(models.HookEventPush), form.Events, true)
+	w.PullRequest = util.IsStringInSlice(string(models.HookEventPullRequest), form.Events, true)
+	w.Repository = util.IsStringInSlice(string(models.HookEventRepository), form.Events, true)
+	w.Release = util.IsStringInSlice(string(models.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
 
 	if err := w.UpdateEvent(); err != nil {

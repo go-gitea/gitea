@@ -120,3 +120,59 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 
 	createNewReleaseUsingAPI(t, session, token, owner, repo, "v0.0.1", "", "v0.0.1", "test")
 }
+
+func TestAPIGetReleaseByTag(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+
+	tag := "v1.1"
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
+		owner.Name, repo.Name, tag)
+
+	req := NewRequestf(t, "GET", urlStr)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	var release *api.Release
+	DecodeJSON(t, resp, &release)
+
+	assert.Equal(t, "testing-release", release.Title)
+
+	nonexistingtag := "nonexistingtag"
+
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s",
+		owner.Name, repo.Name, nonexistingtag)
+
+	req = NewRequestf(t, "GET", urlStr)
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
+
+	var err *api.APIError
+	DecodeJSON(t, resp, &err)
+	assert.EqualValues(t, "Not Found", err.Message)
+}
+
+func TestAPIDeleteReleaseByTagName(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+
+	// delete release
+	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
+
+	// make sure release is deleted
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	_ = session.MakeRequest(t, req, http.StatusNotFound)
+
+	// delete release tag too
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
+}

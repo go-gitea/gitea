@@ -7,18 +7,20 @@ package user
 import (
 	"encoding/base64"
 	"fmt"
+	"html"
 	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 
-	"gitea.com/macaron/binding"
+	"gitea.com/go-chi/binding"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -106,9 +108,10 @@ type AccessTokenResponse struct {
 	TokenType    TokenType `json:"token_type"`
 	ExpiresIn    int64     `json:"expires_in"`
 	RefreshToken string    `json:"refresh_token"`
+	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(); err != nil {
 			return nil, &AccessTokenError{
@@ -152,18 +155,48 @@ func newAccessTokenResponse(grant *models.OAuth2Grant) (*AccessTokenResponse, *A
 		}
 	}
 
+	// generate OpenID Connect id_token
+	signedIDToken := ""
+	if grant.ScopeContains("openid") {
+		app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+		if err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "cannot find application",
+			}
+		}
+		idToken := &models.OIDCToken{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: expirationDate.AsTime().Unix(),
+				Issuer:    setting.AppURL,
+				Audience:  app.ClientID,
+				Subject:   fmt.Sprint(grant.UserID),
+			},
+			Nonce: grant.Nonce,
+		}
+		signedIDToken, err = idToken.SignToken(clientSecret)
+		if err != nil {
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "cannot sign token",
+			}
+		}
+	}
+
 	return &AccessTokenResponse{
 		AccessToken:  signedAccessToken,
 		TokenType:    TokenTypeBearer,
 		ExpiresIn:    setting.OAuth2.AccessTokenExpirationTime,
 		RefreshToken: signedRefreshToken,
+		IDToken:      signedIDToken,
 	}, nil
 }
 
 // AuthorizeOAuth manages authorize requests
-func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
+func AuthorizeOAuth(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AuthorizationForm)
 	errs := binding.Errors{}
-	errs = form.Validate(ctx.Context, errs)
+	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
 		errstring := ""
 		for _, e := range errs {
@@ -229,6 +262,11 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			}, form.RedirectURI)
 			return
 		}
+		// Here we're just going to try to release the session early
+		if err := ctx.Session.Release(); err != nil {
+			// we'll tolerate errors here as they *should* get saved elsewhere
+			log.Error("Unable to save changes to the session: %v", err)
+		}
 	case "":
 		break
 	default:
@@ -258,6 +296,13 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
 		}
+		// Update nonce to reflect the new session
+		if len(form.Nonce) > 0 {
+			err := grant.SetNonce(form.Nonce)
+			if err != nil {
+				log.Error("Unable to update nonce: %v", err)
+			}
+		}
 		ctx.Redirect(redirect.String(), 302)
 		return
 	}
@@ -266,8 +311,10 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 	ctx.Data["Application"] = app
 	ctx.Data["RedirectURI"] = form.RedirectURI
 	ctx.Data["State"] = form.State
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + setting.AppURL + app.User.LowerName + "\">@" + app.User.Name + "</a>"
-	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + form.RedirectURI + "</strong>"
+	ctx.Data["Scope"] = form.Scope
+	ctx.Data["Nonce"] = form.Nonce
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(app.User.LowerName)) + "\">@" + html.EscapeString(app.User.Name) + "</a>"
+	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
 	if err != nil {
@@ -287,11 +334,17 @@ func AuthorizeOAuth(ctx *context.Context, form auth.AuthorizationForm) {
 		log.Error(err.Error())
 		return
 	}
+	// Here we're just going to try to release the session early
+	if err := ctx.Session.Release(); err != nil {
+		// we'll tolerate errors here as they *should* get saved elsewhere
+		log.Error("Unable to save changes to the session: %v", err)
+	}
 	ctx.HTML(200, tplGrantAccess)
 }
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
-func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm) {
+func GrantApplicationOAuth(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.Error(400)
@@ -302,7 +355,7 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.User.ID)
+	grant, err := app.CreateGrant(ctx.User.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
@@ -310,6 +363,12 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 			ErrorCode:        ErrorCodeServerError,
 		}, form.RedirectURI)
 		return
+	}
+	if len(form.Nonce) > 0 {
+		err := grant.SetNonce(form.Nonce)
+		if err != nil {
+			log.Error("Unable to update nonce: %v", err)
+		}
 	}
 
 	var codeChallenge, codeChallengeMethod string
@@ -330,7 +389,8 @@ func GrantApplicationOAuth(ctx *context.Context, form auth.GrantApplicationForm)
 }
 
 // AccessTokenOAuth manages all access token requests by the client
-func AccessTokenOAuth(ctx *context.Context, form auth.AccessTokenForm) {
+func AccessTokenOAuth(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*auth.AccessTokenForm)
 	if form.ClientID == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)
@@ -398,7 +458,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-	accessToken, tokenErr := newAccessTokenResponse(grant)
+	accessToken, tokenErr := newAccessTokenResponse(grant, form.ClientSecret)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -460,7 +520,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, form.ClientSecret)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return

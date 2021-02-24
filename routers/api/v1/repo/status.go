@@ -10,13 +10,15 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // NewCommitStatus creates a new CommitStatus
-func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
+func NewCommitStatus(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/statuses/{sha} repository repoCreateStatus
 	// ---
 	// summary: Create a commit status
@@ -44,10 +46,11 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 	//     "$ref": "#/definitions/CreateStatusOption"
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CommitStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*api.CreateStatusOption)
 	sha := ctx.Params("sha")
 	if len(sha) == 0 {
 		ctx.Error(http.StatusBadRequest, "sha not given", nil)
@@ -64,7 +67,7 @@ func NewCommitStatus(ctx *context.APIContext, form api.CreateStatusOption) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, status.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToCommitStatus(status))
 }
 
 // GetCommitStatuses returns all statuses for any given commit hash
@@ -108,11 +111,11 @@ func GetCommitStatuses(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -160,11 +163,11 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/StatusList"
+	//     "$ref": "#/responses/CommitStatusList"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -208,8 +211,10 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	}
 	repo := ctx.Repo.Repository
 
-	statuses, _, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
-		ListOptions: utils.GetListOptions(ctx),
+	listOptions := utils.GetListOptions(ctx)
+
+	statuses, maxResults, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
+		ListOptions: listOptions,
 		SortType:    ctx.QueryTrim("sort"),
 		State:       ctx.QueryTrim("state"),
 	})
@@ -218,27 +223,21 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 		return
 	}
 
-	apiStatuses := make([]*api.Status, 0, len(statuses))
+	apiStatuses := make([]*api.CommitStatus, 0, len(statuses))
 	for _, status := range statuses {
-		apiStatuses = append(apiStatuses, status.APIFormat())
+		apiStatuses = append(apiStatuses, convert.ToCommitStatus(status))
 	}
+
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 
 	ctx.JSON(http.StatusOK, apiStatuses)
 }
 
-type combinedCommitStatus struct {
-	State      api.CommitStatusState `json:"state"`
-	SHA        string                `json:"sha"`
-	TotalCount int                   `json:"total_count"`
-	Statuses   []*api.Status         `json:"statuses"`
-	Repo       *api.Repository       `json:"repository"`
-	CommitURL  string                `json:"commit_url"`
-	URL        string                `json:"url"`
-}
-
 // GetCombinedCommitStatusByRef returns the combined status for any given commit hash
 func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/statuses repository repoGetCombinedStatusByRef
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{ref}/status repository repoGetCombinedStatusByRef
 	// ---
 	// summary: Get a commit's combined status, by branch/tag/commit reference
 	// produces:
@@ -261,12 +260,15 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   required: true
 	// - name: page
 	//   in: query
-	//   description: page number of results
+	//   description: page number of results to return (1-based)
 	//   type: integer
-	//   required: false
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Status"
+	//     "$ref": "#/responses/CombinedStatus"
 	//   "400":
 	//     "$ref": "#/responses/error"
 
@@ -277,33 +279,18 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	}
 	repo := ctx.Repo.Repository
 
-	page := ctx.QueryInt("page")
-
-	statuses, err := models.GetLatestCommitStatus(repo, sha, page)
+	statuses, err := models.GetLatestCommitStatus(repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s, %d]: %v", repo.FullName(), sha, page, err))
+		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %v", repo.FullName(), sha, err))
 		return
 	}
 
 	if len(statuses) == 0 {
-		ctx.Status(http.StatusOK)
+		ctx.JSON(http.StatusOK, &api.CombinedStatus{})
 		return
 	}
 
-	retStatus := &combinedCommitStatus{
-		SHA:        sha,
-		TotalCount: len(statuses),
-		Repo:       repo.APIFormat(ctx.Repo.AccessMode),
-		URL:        "",
-	}
+	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
-	retStatus.Statuses = make([]*api.Status, 0, len(statuses))
-	for _, status := range statuses {
-		retStatus.Statuses = append(retStatus.Statuses, status.APIFormat())
-		if status.State.NoBetterThan(retStatus.State) {
-			retStatus.State = status.State
-		}
-	}
-
-	ctx.JSON(http.StatusOK, retStatus)
+	ctx.JSON(http.StatusOK, combiStatus)
 }

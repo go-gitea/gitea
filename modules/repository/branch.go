@@ -9,11 +9,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 )
 
 // GetBranch returns a branch by its name
 func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
+	if len(branch) == 0 {
+		return nil, fmt.Errorf("GetBranch: empty string for branch")
+	}
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -23,9 +25,10 @@ func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
 	return gitRepo.GetBranch(branch)
 }
 
-// GetBranches returns all the branches of a repository
-func GetBranches(repo *models.Repository) ([]*git.Branch, error) {
-	return git.GetBranchesByPath(repo.RepoPath())
+// GetBranches returns branches from the repository, skipping skip initial branches and
+// returning at most limit branches, or all branches if limit is 0.
+func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
+	return git.GetBranchesByPath(repo.RepoPath(), skip, limit)
 }
 
 // checkBranchName validates branch name with existing repository branches
@@ -36,7 +39,7 @@ func checkBranchName(repo *models.Repository, name string) error {
 	}
 	defer gitRepo.Close()
 
-	branches, err := GetBranches(repo)
+	branches, _, err := GetBranches(repo, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -71,42 +74,14 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 	}
 
 	if !git.IsBranchExist(repo.RepoPath(), oldBranchName) {
-		return fmt.Errorf("OldBranch: %s does not exist. Cannot create new branch from this", oldBranchName)
-	}
-
-	basePath, err := models.CreateTemporaryPath("branch-maker")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
-			log.Error("CreateNewBranch: RemoveTemporaryPath: %s", err)
+		return models.ErrBranchDoesNotExist{
+			BranchName: oldBranchName,
 		}
-	}()
-
-	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
-		Bare:   true,
-		Shared: true,
-	}); err != nil {
-		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepository(basePath)
-	if err != nil {
-		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
-	}
-	defer gitRepo.Close()
-
-	if err = gitRepo.CreateBranch(branchName, oldBranchName); err != nil {
-		log.Error("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
-		return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, oldBranchName, err)
-	}
-
-	if err = git.Push(basePath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
+	if err := git.Push(repo.RepoPath(), git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
@@ -124,39 +99,10 @@ func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commi
 	if err := checkBranchName(repo, branchName); err != nil {
 		return err
 	}
-	basePath, err := models.CreateTemporaryPath("branch-maker")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
-			log.Error("CreateNewBranchFromCommit: RemoveTemporaryPath: %s", err)
-		}
-	}()
 
-	if err := git.Clone(repo.RepoPath(), basePath, git.CloneRepoOptions{
-		Bare:   true,
-		Shared: true,
-	}); err != nil {
-		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
-		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
-	}
-
-	gitRepo, err := git.OpenRepository(basePath)
-	if err != nil {
-		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
-		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
-	}
-	defer gitRepo.Close()
-
-	if err = gitRepo.CreateBranch(branchName, commit); err != nil {
-		log.Error("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
-		return fmt.Errorf("Unable to create branch: %s from %s. (%v)", branchName, commit, err)
-	}
-
-	if err = git.Push(basePath, git.PushOptions{
-		Remote: "origin",
-		Branch: branchName,
+	if err := git.Push(repo.RepoPath(), git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {

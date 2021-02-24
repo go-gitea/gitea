@@ -97,6 +97,11 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 func (log *SMTPLogger) Flush() {
 }
 
+// ReleaseReopen does nothing
+func (log *SMTPLogger) ReleaseReopen() error {
+	return nil
+}
+
 // GetName returns the default name for this implementation
 func (log *SMTPLogger) GetName() string {
 	return "smtp"

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -235,6 +236,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	if subject == "" {
 		subject = fallback
 	}
+
+	subject = emoji.ReplaceAliases(subject)
+
 	mailMeta["Subject"] = subject
 
 	var mailBody bytes.Buffer
@@ -302,6 +306,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "reopen"
 	case models.ActionMergePullRequest:
 		name = "merge"
+	case models.ActionPullReviewDismissed:
+		name = "review_dismissed"
 	default:
 		switch commentType {
 		case models.CommentTypeReview:
@@ -317,6 +323,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 			name = "code"
 		case models.CommentTypeAssignees:
 			name = "assigned"
+		case models.CommentTypePullPush:
+			name = "push"
 		default:
 			name = "default"
 		}

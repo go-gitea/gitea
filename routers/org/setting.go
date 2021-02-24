@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -38,7 +39,8 @@ func Settings(ctx *context.Context) {
 }
 
 // SettingsPost response for settings change submited
-func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UpdateOrgSettingForm)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -85,19 +87,38 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	org.Visibility = form.Visibility
 	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
+
+	visibilityChanged := form.Visibility != org.Visibility
+	org.Visibility = form.Visibility
+
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
+
+	// update forks visibility
+	if visibilityChanged {
+		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+			ctx.ServerError("GetRepositories", err)
+			return
+		}
+		for _, repo := range org.Repos {
+			if err := models.UpdateRepository(repo, true); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
+	}
+
 	log.Trace("Organization setting updated: %s", org.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsAvatar response for change avatar on settings page
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	form.Source = auth.AvatarLocal
 	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -155,6 +176,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
+	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})
@@ -184,7 +206,6 @@ func DeleteWebhook(ctx *context.Context) {
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireMinicolors"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.HTML(200, tplSettingsLabels)

@@ -20,18 +20,26 @@ import (
 )
 
 // ServeData download file from io.Reader
-func ServeData(ctx *context.Context, name string, reader io.Reader) error {
+func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, _ := reader.Read(buf)
+	n, err := reader.Read(buf)
+	if err != nil && err != io.EOF {
+		return err
+	}
 	if n >= 0 {
 		buf = buf[:n]
 	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+	if size >= 0 {
+		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
+	} else {
+		log.Error("ServeData called to serve data: %s with size < 0: %d", name, size)
+	}
 	name = path.Base(name)
 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
-	name = strings.Replace(name, ",", " ", -1)
+	name = strings.ReplaceAll(name, ",", " ")
 
 	if base.IsTextFile(buf) || ctx.QueryBool("render") {
 		cs, err := charset.DetectEncoding(buf)
@@ -42,11 +50,18 @@ func ServeData(ctx *context.Context, name string, reader io.Reader) error {
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
 	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
+		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		if base.IsSVGImageFile(buf) {
+			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+			ctx.Resp.Header().Set("Content-Type", base.SVGMimeType)
+		}
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	_, err := ctx.Resp.Write(buf)
+	_, err = ctx.Resp.Write(buf)
 	if err != nil {
 		return err
 	}
@@ -66,7 +81,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	return ServeData(ctx, ctx.Repo.TreePath, dataRc)
+	return ServeData(ctx, ctx.Repo.TreePath, blob.Size(), dataRc)
 }
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
@@ -95,7 +110,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 		}()
-		return ServeData(ctx, ctx.Repo.TreePath, lfsDataRc)
+		return ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
 	}
 
 	return ServeBlob(ctx, blob)

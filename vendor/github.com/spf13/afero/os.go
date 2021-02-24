@@ -99,3 +99,11 @@ func (OsFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	fi, err := os.Lstat(name)
 	return fi, true, err
 }
+
+func (OsFs) SymlinkIfPossible(oldname, newname string) error {
+	return os.Symlink(oldname, newname)
+}
+
+func (OsFs) ReadlinkIfPossible(name string) (string, error) {
+	return os.Readlink(name)
+}

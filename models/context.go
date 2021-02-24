@@ -23,7 +23,7 @@ func DefaultDBContext() DBContext {
 // Committer represents an interface to Commit or Close the dbcontext
 type Committer interface {
 	Commit() error
-	Close()
+	Close() error
 }
 
 // TxDBContext represents a transaction DBContext

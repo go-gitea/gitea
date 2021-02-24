@@ -12,6 +12,9 @@ import (
 	"github.com/msteinert/pam"
 )
 
+// Supported is true when built with PAM
+var Supported = true
+
 // Auth pam auth service
 func Auth(serviceName, userName, passwd string) (string, error) {
 	t, err := pam.StartFunc(serviceName, userName, func(s pam.Style, msg string) (string, error) {

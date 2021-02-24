@@ -5,7 +5,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -20,6 +19,7 @@ import (
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
 	var members []*models.User
+
 	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
@@ -34,6 +34,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	for i, member := range members {
 		apiMembers[i] = convert.ToUser(member, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
 	}
+
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 
@@ -56,7 +57,7 @@ func ListMembers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -91,7 +92,7 @@ func ListPublicMembers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// produces:
 	// - application/json
@@ -151,8 +152,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := fmt.Sprintf("%sapi/v1/orgs/%s/public_members/%s",
-		setting.AppURL, ctx.Org.Organization.Name, userToCheck.Name)
+	redirectURL := setting.AppURL + "api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
 	ctx.Redirect(redirectURL, 302)
 }
 

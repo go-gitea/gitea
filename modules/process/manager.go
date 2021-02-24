@@ -25,6 +25,7 @@ var (
 	// ErrExecTimeout represent a timeout error
 	ErrExecTimeout = errors.New("Process execution timeout")
 	manager        *Manager
+	managerInit    sync.Once
 
 	// DefaultContext is the default context to run processing commands in
 	DefaultContext = context.Background()
@@ -48,11 +49,11 @@ type Manager struct {
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
-	if manager == nil {
+	managerInit.Do(func() {
 		manager = &Manager{
 			processes: make(map[int64]*Process),
 		}
-	}
+	})
 	return manager
 }
 
@@ -157,7 +158,14 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	pm.Remove(pid)
 
 	if err != nil {
-		err = fmt.Errorf("exec(%d:%s) failed: %v(%v) stdout: %v stderr: %v", pid, desc, err, ctx.Err(), stdOut, stdErr)
+		err = &Error{
+			PID:         pid,
+			Description: desc,
+			Err:         err,
+			CtxErr:      ctx.Err(),
+			Stdout:      stdOut.String(),
+			Stderr:      stdErr.String(),
+		}
 	}
 
 	return stdOut.String(), stdErr.String(), err
@@ -175,4 +183,23 @@ func (l processList) Less(i, j int) bool {
 
 func (l processList) Swap(i, j int) {
 	l[i], l[j] = l[j], l[i]
+}
+
+// Error is a wrapped error describing the error results of Process Execution
+type Error struct {
+	PID         int64
+	Description string
+	Err         error
+	CtxErr      error
+	Stdout      string
+	Stderr      string
+}
+
+func (err *Error) Error() string {
+	return fmt.Sprintf("exec(%d:%s) failed: %v(%v) stdout: %s stderr: %s", err.PID, err.Description, err.Err, err.CtxErr, err.Stdout, err.Stderr)
+}
+
+// Unwrap implements the unwrappable implicit interface for go1.13 Unwrap()
+func (err *Error) Unwrap() error {
+	return err.Err
 }

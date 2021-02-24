@@ -59,6 +59,10 @@ func (pt paramTypable) AddExtension(key string, value interface{}) {
 	}
 }
 
+func (pt paramTypable) WithEnum(values ...interface{}) {
+	pt.param.WithEnum(values...)
+}
+
 type itemsTypable struct {
 	items *spec.Items
 	level int
@@ -88,6 +92,10 @@ func (pt itemsTypable) Items() swaggerTypable {
 
 func (pt itemsTypable) AddExtension(key string, value interface{}) {
 	pt.items.AddExtension(key, value)
+}
+
+func (pt itemsTypable) WithEnum(values ...interface{}) {
+	pt.items.WithEnum(values...)
 }
 
 type paramValidations struct {
@@ -252,9 +260,6 @@ func (p *parameterBuilder) buildFromField(fld *types.Var, tpe types.Type, typabl
 				typable.Typed("string", sfnm)
 				return nil
 			}
-			//if err := r.makeRef(decl, typable); err != nil {
-			//	return err
-			//}
 			sb := &schemaBuilder{ctx: p.ctx, decl: decl}
 			sb.inferNames()
 			if err := sb.buildFromType(decl.Type, typable); err != nil {
@@ -283,6 +288,11 @@ func (p *parameterBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, 
 			if err := p.buildFromType(fld.Type(), op, seen); err != nil {
 				return err
 			}
+			continue
+		}
+
+		if !fld.Exported() {
+			debugLog("skipping field %s because it's not exported", fld.Name())
 			continue
 		}
 

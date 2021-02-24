@@ -6,12 +6,15 @@ package mdstripper
 
 import (
 	"bytes"
+	"net/url"
+	"strings"
 	"sync"
 
 	"io"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -22,9 +25,15 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
+var (
+	giteaHostInit sync.Once
+	giteaHost     *url.URL
+)
+
 type stripRenderer struct {
-	links []string
-	empty bool
+	localhost *url.URL
+	links     []string
+	empty     bool
 }
 
 func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
@@ -50,7 +59,8 @@ func (r *stripRenderer) Render(w io.Writer, source []byte, doc ast.Node) error {
 			r.processLink(w, v.Destination)
 			return ast.WalkSkipChildren, nil
 		case *ast.AutoLink:
-			r.processLink(w, v.URL(source))
+			// This could be a reference to an issue or pull - if so convert it
+			r.processAutoLink(w, v.URL(source))
 			return ast.WalkSkipChildren, nil
 		}
 		return ast.WalkContinue, nil
@@ -70,6 +80,50 @@ func (r *stripRenderer) processString(w io.Writer, text []byte, coalesce bool) {
 	}
 	_, _ = w.Write(text)
 	r.empty = false
+}
+
+// ProcessAutoLinks to detect and handle links to issues and pulls
+func (r *stripRenderer) processAutoLink(w io.Writer, link []byte) {
+	linkStr := string(link)
+	u, err := url.Parse(linkStr)
+	if err != nil {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	// Note: we're not attempting to match the URL scheme (http/https)
+	host := strings.ToLower(u.Host)
+	if host != "" && host != strings.ToLower(r.localhost.Host) {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	// We want: /user/repo/issues/3
+	parts := strings.Split(strings.TrimPrefix(u.EscapedPath(), r.localhost.EscapedPath()), "/")
+	if len(parts) != 5 || parts[0] != "" {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	var sep string
+	if parts[3] == "issues" {
+		sep = "#"
+	} else if parts[3] == "pulls" {
+		sep = "!"
+	} else {
+		// Process out of band
+		r.links = append(r.links, linkStr)
+		return
+	}
+
+	_, _ = w.Write([]byte(parts[1]))
+	_, _ = w.Write([]byte("/"))
+	_, _ = w.Write([]byte(parts[2]))
+	_, _ = w.Write([]byte(sep))
+	_, _ = w.Write([]byte(parts[4]))
 }
 
 func (r *stripRenderer) processLink(w io.Writer, link []byte) {
@@ -120,8 +174,9 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 		stripParser = gdMarkdown.Parser()
 	})
 	stripper := &stripRenderer{
-		links: make([]string, 0, 10),
-		empty: true,
+		localhost: getGiteaHost(),
+		links:     make([]string, 0, 10),
+		empty:     true,
 	}
 	reader := text.NewReader(rawBytes)
 	doc := stripParser.Parse(reader)
@@ -130,4 +185,15 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 		log.Error("Unable to strip: %v", err)
 	}
 	return buf.Bytes(), stripper.GetLinks()
+}
+
+// getGiteaHostName returns a normalized string with the local host name, with no scheme or port information
+func getGiteaHost() *url.URL {
+	giteaHostInit.Do(func() {
+		var err error
+		if giteaHost, err = url.Parse(setting.AppURL); err != nil {
+			giteaHost = &url.URL{}
+		}
+	})
+	return giteaHost
 }

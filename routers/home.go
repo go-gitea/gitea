@@ -194,7 +194,6 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	if opts.Page <= 1 {
 		opts.Page = 1
 	}
-	opts.Actor = ctx.User
 
 	var (
 		users   []*models.User
@@ -234,6 +233,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
+	ctx.Data["UsersTwoFaStatus"] = models.UserList(users).GetTwoFaStatus()
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
@@ -252,6 +252,7 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
+		Actor:       ctx.User,
 		Type:        models.UserTypeIndividual,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    util.OptionalBoolTrue,
@@ -272,6 +273,7 @@ func ExploreOrganizations(ctx *context.Context) {
 	}
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
+		Actor:       ctx.User,
 		Type:        models.UserTypeOrganization,
 		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,
@@ -297,14 +299,15 @@ func ExploreCode(ctx *context.Context) {
 		page = 1
 	}
 
+	queryType := strings.TrimSpace(ctx.Query("t"))
+	isMatch := queryType == "match"
+
 	var (
 		repoIDs []int64
 		err     error
 		isAdmin bool
-		userID  int64
 	)
 	if ctx.User != nil {
-		userID = ctx.User.ID
 		isAdmin = ctx.User.IsAdmin
 	}
 
@@ -334,7 +337,7 @@ func ExploreCode(ctx *context.Context) {
 		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(userID, isAdmin, models.UnitTypeCode) {
+			if repo.CheckUnitUser(ctx.User, models.UnitTypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}
@@ -342,14 +345,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -380,6 +383,7 @@ func ExploreCode(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true

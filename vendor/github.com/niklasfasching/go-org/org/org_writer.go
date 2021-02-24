@@ -2,6 +2,7 @@ package org
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -15,6 +16,8 @@ type OrgWriter struct {
 	strings.Builder
 	indent string
 }
+
+var exampleBlockUnescapeRegexp = regexp.MustCompile(`(^|\n)([ \t]*)(\*|,\*|#\+|,#\+)`)
 
 var emphasisOrgBorders = map[string][]string{
 	"_":   []string{"_", "_"},
@@ -90,11 +93,42 @@ func (w *OrgWriter) WriteBlock(b Block) {
 	if isRawTextBlock(b.Name) {
 		w.WriteString(w.indent)
 	}
-	WriteNodes(w, b.Children...)
+	content := w.WriteNodesAsString(b.Children...)
+	if b.Name == "EXAMPLE" || (b.Name == "SRC" && len(b.Parameters) >= 1 && b.Parameters[0] == "org") {
+		content = exampleBlockUnescapeRegexp.ReplaceAllString(content, "$1$2,$3")
+	}
+	w.WriteString(content)
 	if !isRawTextBlock(b.Name) {
 		w.WriteString(w.indent)
 	}
 	w.WriteString("#+END_" + b.Name + "\n")
+
+	if b.Result != nil {
+		w.WriteString("\n")
+		WriteNodes(w, b.Result)
+	}
+}
+
+func (w *OrgWriter) WriteResult(r Result) {
+	w.WriteString("#+RESULTS:\n")
+	WriteNodes(w, r.Node)
+}
+
+func (w *OrgWriter) WriteInlineBlock(b InlineBlock) {
+	switch b.Name {
+	case "src":
+		w.WriteString(b.Name + "_" + b.Parameters[0])
+		if len(b.Parameters) > 1 {
+			w.WriteString("[" + strings.Join(b.Parameters[1:], " ") + "]")
+		}
+		w.WriteString("{")
+		WriteNodes(w, b.Children...)
+		w.WriteString("}")
+	case "export":
+		w.WriteString("@@" + b.Parameters[0] + ":")
+		WriteNodes(w, b.Children...)
+		w.WriteString("@@")
+	}
 }
 
 func (w *OrgWriter) WriteDrawer(d Drawer) {
@@ -173,7 +207,7 @@ func (w *OrgWriter) WriteNodeWithName(n NodeWithName) {
 }
 
 func (w *OrgWriter) WriteComment(c Comment) {
-	w.WriteString(w.indent + "#" + c.Content + "\n")
+	w.WriteString(w.indent + "# " + c.Content + "\n")
 }
 
 func (w *OrgWriter) WriteList(l List) { WriteNodes(w, l.Items...) }
@@ -325,4 +359,8 @@ func (w *OrgWriter) WriteRegularLink(l RegularLink) {
 	} else {
 		w.WriteString(fmt.Sprintf("[[%s][%s]]", l.URL, w.WriteNodesAsString(l.Description...)))
 	}
+}
+
+func (w *OrgWriter) WriteMacro(m Macro) {
+	w.WriteString(fmt.Sprintf("{{{%s(%s)}}}", m.Name, strings.Join(m.Parameters, ",")))
 }

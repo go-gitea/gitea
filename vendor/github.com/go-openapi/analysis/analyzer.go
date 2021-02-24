@@ -212,7 +212,7 @@ func (s *Spec) initialize() {
 		}
 	}
 	for path, pathItem := range s.AllPaths() {
-		s.analyzeOperations(path, &pathItem)
+		s.analyzeOperations(path, &pathItem) //#nosec
 	}
 
 	for name, parameter := range s.spec.Parameters {
@@ -221,7 +221,7 @@ func (s *Spec) initialize() {
 			s.analyzeItems("items", parameter.Items, refPref, "parameter")
 		}
 		if parameter.In == "body" && parameter.Schema != nil {
-			s.analyzeSchema("schema", *parameter.Schema, refPref)
+			s.analyzeSchema("schema", parameter.Schema, refPref)
 		}
 		if parameter.Pattern != "" {
 			s.patterns.addParameterPattern(refPref, parameter.Pattern)
@@ -246,12 +246,13 @@ func (s *Spec) initialize() {
 			}
 		}
 		if response.Schema != nil {
-			s.analyzeSchema("schema", *response.Schema, refPref)
+			s.analyzeSchema("schema", response.Schema, refPref)
 		}
 	}
 
-	for name, schema := range s.spec.Definitions {
-		s.analyzeSchema(name, schema, "/definitions")
+	for name := range s.spec.Definitions {
+		schema := s.spec.Definitions[name]
+		s.analyzeSchema(name, &schema, "/definitions")
 	}
 	// TODO: after analyzing all things and flattening schemas etc
 	// resolve all the collected references to their final representations
@@ -276,7 +277,7 @@ func (s *Spec) analyzeOperations(path string, pi *spec.PathItem) {
 	for i, param := range op.Parameters {
 		refPref := slashpath.Join("/paths", jsonpointer.Escape(path), "parameters", strconv.Itoa(i))
 		if param.Ref.String() != "" {
-			s.references.addParamRef(refPref, &param)
+			s.references.addParamRef(refPref, &param) //#nosec
 		}
 		if param.Pattern != "" {
 			s.patterns.addParameterPattern(refPref, param.Pattern)
@@ -288,7 +289,7 @@ func (s *Spec) analyzeOperations(path string, pi *spec.PathItem) {
 			s.analyzeItems("items", param.Items, refPref, "parameter")
 		}
 		if param.Schema != nil {
-			s.analyzeSchema("schema", *param.Schema, refPref)
+			s.analyzeSchema("schema", param.Schema, refPref)
 		}
 	}
 }
@@ -334,7 +335,7 @@ func (s *Spec) analyzeOperation(method, path string, op *spec.Operation) {
 	for i, param := range op.Parameters {
 		refPref := slashpath.Join(prefix, "parameters", strconv.Itoa(i))
 		if param.Ref.String() != "" {
-			s.references.addParamRef(refPref, &param)
+			s.references.addParamRef(refPref, &param) //#nosec
 		}
 		if param.Pattern != "" {
 			s.patterns.addParameterPattern(refPref, param.Pattern)
@@ -344,7 +345,7 @@ func (s *Spec) analyzeOperation(method, path string, op *spec.Operation) {
 		}
 		s.analyzeItems("items", param.Items, refPref, "parameter")
 		if param.In == "body" && param.Schema != nil {
-			s.analyzeSchema("schema", *param.Schema, refPref)
+			s.analyzeSchema("schema", param.Schema, refPref)
 		}
 	}
 	if op.Responses != nil {
@@ -361,13 +362,13 @@ func (s *Spec) analyzeOperation(method, path string, op *spec.Operation) {
 				}
 			}
 			if op.Responses.Default.Schema != nil {
-				s.analyzeSchema("schema", *op.Responses.Default.Schema, refPref)
+				s.analyzeSchema("schema", op.Responses.Default.Schema, refPref)
 			}
 		}
 		for k, res := range op.Responses.StatusCodeResponses {
 			refPref := slashpath.Join(prefix, "responses", strconv.Itoa(k))
 			if res.Ref.String() != "" {
-				s.references.addResponseRef(refPref, &res)
+				s.references.addResponseRef(refPref, &res) //#nosec
 			}
 			for k, v := range res.Headers {
 				hRefPref := slashpath.Join(refPref, "headers", k)
@@ -380,17 +381,17 @@ func (s *Spec) analyzeOperation(method, path string, op *spec.Operation) {
 				}
 			}
 			if res.Schema != nil {
-				s.analyzeSchema("schema", *res.Schema, refPref)
+				s.analyzeSchema("schema", res.Schema, refPref)
 			}
 		}
 	}
 }
 
-func (s *Spec) analyzeSchema(name string, schema spec.Schema, prefix string) {
+func (s *Spec) analyzeSchema(name string, schema *spec.Schema, prefix string) {
 	refURI := slashpath.Join(prefix, jsonpointer.Escape(name))
 	schRef := SchemaRef{
 		Name:     name,
-		Schema:   &schema,
+		Schema:   schema,
 		Ref:      spec.MustCreateRef("#" + refURI),
 		TopLevel: prefix == "/definitions",
 	}
@@ -408,28 +409,34 @@ func (s *Spec) analyzeSchema(name string, schema spec.Schema, prefix string) {
 	}
 
 	for k, v := range schema.Definitions {
-		s.analyzeSchema(k, v, slashpath.Join(refURI, "definitions"))
+		v := v
+		s.analyzeSchema(k, &v, slashpath.Join(refURI, "definitions"))
 	}
 	for k, v := range schema.Properties {
-		s.analyzeSchema(k, v, slashpath.Join(refURI, "properties"))
+		v := v
+		s.analyzeSchema(k, &v, slashpath.Join(refURI, "properties"))
 	}
 	for k, v := range schema.PatternProperties {
+		v := v
 		// NOTE: swagger 2.0 does not support PatternProperties.
 		// However it is possible to analyze this in a schema
-		s.analyzeSchema(k, v, slashpath.Join(refURI, "patternProperties"))
+		s.analyzeSchema(k, &v, slashpath.Join(refURI, "patternProperties"))
 	}
-	for i, v := range schema.AllOf {
+	for i := range schema.AllOf {
+		v := &schema.AllOf[i]
 		s.analyzeSchema(strconv.Itoa(i), v, slashpath.Join(refURI, "allOf"))
 	}
 	if len(schema.AllOf) > 0 {
 		s.allOfs["#"+refURI] = schRef
 	}
-	for i, v := range schema.AnyOf {
+	for i := range schema.AnyOf {
+		v := &schema.AnyOf[i]
 		// NOTE: swagger 2.0 does not support anyOf constructs.
 		// However it is possible to analyze this in a schema
 		s.analyzeSchema(strconv.Itoa(i), v, slashpath.Join(refURI, "anyOf"))
 	}
-	for i, v := range schema.OneOf {
+	for i := range schema.OneOf {
+		v := &schema.OneOf[i]
 		// NOTE: swagger 2.0 does not support oneOf constructs.
 		// However it is possible to analyze this in a schema
 		s.analyzeSchema(strconv.Itoa(i), v, slashpath.Join(refURI, "oneOf"))
@@ -437,21 +444,22 @@ func (s *Spec) analyzeSchema(name string, schema spec.Schema, prefix string) {
 	if schema.Not != nil {
 		// NOTE: swagger 2.0 does not support "not" constructs.
 		// However it is possible to analyze this in a schema
-		s.analyzeSchema("not", *schema.Not, refURI)
+		s.analyzeSchema("not", schema.Not, refURI)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.Schema != nil {
-		s.analyzeSchema("additionalProperties", *schema.AdditionalProperties.Schema, refURI)
+		s.analyzeSchema("additionalProperties", schema.AdditionalProperties.Schema, refURI)
 	}
 	if schema.AdditionalItems != nil && schema.AdditionalItems.Schema != nil {
 		// NOTE: swagger 2.0 does not support AdditionalItems.
 		// However it is possible to analyze this in a schema
-		s.analyzeSchema("additionalItems", *schema.AdditionalItems.Schema, refURI)
+		s.analyzeSchema("additionalItems", schema.AdditionalItems.Schema, refURI)
 	}
 	if schema.Items != nil {
 		if schema.Items.Schema != nil {
-			s.analyzeSchema("items", *schema.Items.Schema, refURI)
+			s.analyzeSchema("items", schema.Items.Schema, refURI)
 		}
-		for i, sch := range schema.Items.Schemas {
+		for i := range schema.Items.Schemas {
+			sch := &schema.Items.Schemas[i]
 			s.analyzeSchema(strconv.Itoa(i), sch, slashpath.Join(refURI, "items"))
 		}
 	}
@@ -657,25 +665,25 @@ func (s *Spec) SafeParametersFor(operationID string, callmeOnError ErrorOnParamF
 	}
 	for _, pi := range s.spec.Paths.Paths {
 		if pi.Get != nil && pi.Get.ID == operationID {
-			return gatherParams(&pi, pi.Get)
+			return gatherParams(&pi, pi.Get) //#nosec
 		}
 		if pi.Head != nil && pi.Head.ID == operationID {
-			return gatherParams(&pi, pi.Head)
+			return gatherParams(&pi, pi.Head) //#nosec
 		}
 		if pi.Options != nil && pi.Options.ID == operationID {
-			return gatherParams(&pi, pi.Options)
+			return gatherParams(&pi, pi.Options) //#nosec
 		}
 		if pi.Post != nil && pi.Post.ID == operationID {
-			return gatherParams(&pi, pi.Post)
+			return gatherParams(&pi, pi.Post) //#nosec
 		}
 		if pi.Patch != nil && pi.Patch.ID == operationID {
-			return gatherParams(&pi, pi.Patch)
+			return gatherParams(&pi, pi.Patch) //#nosec
 		}
 		if pi.Put != nil && pi.Put.ID == operationID {
-			return gatherParams(&pi, pi.Put)
+			return gatherParams(&pi, pi.Put) //#nosec
 		}
 		if pi.Delete != nil && pi.Delete.ID == operationID {
-			return gatherParams(&pi, pi.Delete)
+			return gatherParams(&pi, pi.Delete) //#nosec
 		}
 	}
 	return nil

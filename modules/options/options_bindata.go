@@ -6,4 +6,4 @@
 
 package options
 
-//go:generate go run -mod=vendor ../../scripts/generate-bindata.go ../../options options bindata.go
+//go:generate go run -mod=vendor ../../build/generate-bindata.go ../../options options bindata.go

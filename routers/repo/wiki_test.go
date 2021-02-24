@@ -10,9 +10,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
@@ -114,11 +115,12 @@ func TestNewWikiPost(t *testing.T) {
 		ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		NewWikiPost(ctx, auth.NewWikiForm{
+		web.SetForm(ctx, &auth.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,
 		})
+		NewWikiPost(ctx)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
@@ -131,11 +133,12 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
-	NewWikiPost(ctx, auth.NewWikiForm{
+	web.SetForm(ctx, &auth.NewWikiForm{
 		Title:   "_edit",
 		Content: content,
 		Message: message,
 	})
+	NewWikiPost(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, ctx.Tr("repo.wiki.reserved_page"), ctx.Flash.ErrorMsg)
 	assertWikiNotExists(t, ctx.Repo.Repository, "_edit")
@@ -164,11 +167,12 @@ func TestEditWikiPost(t *testing.T) {
 		ctx.SetParams(":page", "Home")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		EditWikiPost(ctx, auth.NewWikiForm{
+		web.SetForm(ctx, &auth.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,
 		})
+		EditWikiPost(ctx)
 		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)

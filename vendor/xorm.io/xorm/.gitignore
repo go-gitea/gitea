@@ -34,3 +34,5 @@ test.db.sql
 .idea/
 
 *coverage.out
+test.db
+integrations/*.sql

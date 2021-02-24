@@ -4,16 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-openapi/spec"
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"path"
 	"strconv"
 
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/spec"
 	"github.com/go-openapi/swag"
 	"github.com/gorilla/handlers"
 	"github.com/toqueteos/webbrowser"
@@ -28,7 +27,7 @@ type ServeCmd struct {
 	NoUI     bool   `long:"no-ui" description:"when present, only the swagger spec will be served"`
 	Flatten  bool   `long:"flatten" description:"when present, flatten the swagger spec before serving it"`
 	Port     int    `long:"port" short:"p" description:"the port to serve this site" env:"PORT"`
-	Host     string `long:"host" description:"the interface to serve this site, defaults to 0.0.0.0" env:"HOST"`
+	Host     string `long:"host" description:"the interface to serve this site, defaults to 0.0.0.0" default:"0.0.0.0" env:"HOST"`
 }
 
 // Execute the serve command
@@ -43,7 +42,6 @@ func (s *ServeCmd) Execute(args []string) error {
 	}
 
 	if s.Flatten {
-		var err error
 		specDoc, err = specDoc.Expanded(&spec.ExpandOptions{
 			SkipSchemas:         false,
 			ContinueOnError:     true,
@@ -88,17 +86,12 @@ func (s *ServeCmd) Execute(args []string) error {
 			}, handler)
 			visit = fmt.Sprintf("http://%s:%d%s", sh, sp, path.Join(basePath, "docs"))
 		} else if visit != "" || s.Flavor == "swagger" {
-			if visit == "" {
-				visit = "http://petstore.swagger.io/"
-			}
-			u, err := url.Parse(visit)
-			if err != nil {
-				return err
-			}
-			q := u.Query()
-			q.Add("url", fmt.Sprintf("http://%s:%d%s", sh, sp, path.Join(basePath, "swagger.json")))
-			u.RawQuery = q.Encode()
-			visit = u.String()
+			handler = middleware.SwaggerUI(middleware.SwaggerUIOpts{
+				BasePath: basePath,
+				SpecURL:  path.Join(basePath, "swagger.json"),
+				Path:     "docs",
+			}, handler)
+			visit = fmt.Sprintf("http://%s:%d%s", sh, sp, path.Join(basePath, "docs"))
 		}
 	}
 

@@ -173,4 +173,3 @@ func (w *filterCommitIter) addToQueue(
 
 	return nil
 }
-

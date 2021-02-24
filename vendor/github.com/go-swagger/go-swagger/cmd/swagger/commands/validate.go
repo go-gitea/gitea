@@ -26,7 +26,7 @@ import (
 
 const (
 	// Output messages
-	missingArgMsg  = "The validate command requires the swagger document url to be specified"
+	missingArgMsg  = "the validate command requires the swagger document url to be specified"
 	validSpecMsg   = "\nThe swagger spec at %q is valid against swagger specification %s\n"
 	invalidSpecMsg = "\nThe swagger spec at %q is invalid against swagger specification %s.\nSee errors below:\n"
 	warningSpecMsg = "\nThe swagger spec at %q showed up some valid but possibly unwanted constructs."

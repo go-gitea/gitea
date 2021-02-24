@@ -1,0 +1,5 @@
+# GoLand
+.idea/
+
+# Binaries
+/gitea-vet*

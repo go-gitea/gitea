@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cgo
-
-// This file handles cgo preprocessing of files containing `import "C"`.
+// Package cgo handles cgo preprocessing of files containing `import "C"`.
 //
 // DESIGN
 //
@@ -51,16 +49,18 @@ package cgo
 // its handling of function calls, analogous to the treatment of map
 // lookups in which y=m[k] and y,ok=m[k] are both legal.
 
+package cgo
+
 import (
 	"fmt"
 	"go/ast"
 	"go/build"
 	"go/parser"
 	"go/token"
+	exec "golang.org/x/sys/execabs"
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"

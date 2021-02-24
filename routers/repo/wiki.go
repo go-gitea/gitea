@@ -13,15 +13,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -209,7 +210,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	metas := ctx.Repo.Repository.ComposeMetas()
+	metas := ctx.Repo.Repository.ComposeDocumentMetas()
 	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
 	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
@@ -245,6 +246,8 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Title"] = pageName
 	ctx.Data["title"] = pageName
 	ctx.Data["RequireHighlightJS"] = true
+	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
@@ -554,7 +557,8 @@ func NewWiki(ctx *context.Context) {
 }
 
 // NewWikiPost response for wiki create request
-func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
+func NewWikiPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -570,6 +574,11 @@ func NewWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 	}
 
 	wikiName := wiki_service.NormalizeWikiName(form.Title)
+
+	if len(form.Message) == 0 {
+		form.Message = ctx.Tr("repo.editor.add", form.Title)
+	}
+
 	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
@@ -606,7 +615,8 @@ func EditWiki(ctx *context.Context) {
 }
 
 // EditWikiPost response for wiki modify request
-func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
+func EditWikiPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -618,6 +628,10 @@ func EditWikiPost(ctx *context.Context, form auth.NewWikiForm) {
 
 	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params(":page"))
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
+
+	if len(form.Message) == 0 {
+		form.Message = ctx.Tr("repo.editor.update", form.Title)
+	}
 
 	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.ServerError("EditWikiPage", err)

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 const (
@@ -27,7 +28,13 @@ type UniqueQueue struct {
 func OpenUnique(dataDir string) (*UniqueQueue, error) {
 	db, err := leveldb.OpenFile(dataDir, nil)
 	if err != nil {
-		return nil, err
+		if !errors.IsCorrupted(err) {
+			return nil, err
+		}
+		db, err = leveldb.RecoverFile(dataDir, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return NewUniqueQueue(db, []byte{}, []byte(uniqueQueuePrefixStr), true)
 }

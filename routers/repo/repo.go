@@ -8,30 +8,23 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"os"
-	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/task"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	archiver_service "code.gitea.io/gitea/services/archiver"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"github.com/unknwon/com"
 )
 
 const (
-	tplCreate  base.TplName = "repo/create"
-	tplMigrate base.TplName = "repo/migrate"
+	tplCreate       base.TplName = "repo/create"
+	tplAlertDetails base.TplName = "base/alert_details"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -62,7 +55,18 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
-	ctx.Data["Orgs"] = orgs
+
+	if !ctx.User.IsAdmin {
+		orgsAvailable := []*models.User{}
+		for i := 0; i < len(orgs); i++ {
+			if orgs[i].CanCreateRepo() {
+				orgsAvailable = append(orgsAvailable, orgs[i])
+			}
+		}
+		ctx.Data["Orgs"] = orgsAvailable
+	} else {
+		ctx.Data["Orgs"] = orgs
+	}
 
 	// Not equal means current user is an organization.
 	if uid == ctx.User.ID || uid == 0 {
@@ -93,6 +97,8 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 			ctx.Error(403)
 			return nil
 		}
+	} else {
+		ctx.Data["Orgs"] = orgs
 	}
 	return org
 }
@@ -112,10 +118,6 @@ func getRepoPrivate(ctx *context.Context) bool {
 
 // Create render creating repository page
 func Create(ctx *context.Context) {
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	}
-
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
@@ -126,6 +128,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -137,11 +140,14 @@ func Create(ctx *context.Context) {
 	templateID := ctx.QueryInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser.ID, ctxUser.IsAdmin, models.UnitTypeCode) {
+		if err == nil && templateRepo.CheckUnitUser(ctxUser, models.UnitTypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
 	}
+
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
 
 	ctx.HTML(200, tplCreate)
 }
@@ -153,6 +159,18 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Data["Err_RepoName"] = true
+		switch {
+		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt_or_delete"), tpl, form)
+		case setting.Repository.AllowAdoptionOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.adopt"), tpl, form)
+		case setting.Repository.AllowDeleteOfUnadoptedRepositories:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist.delete"), tpl, form)
+		default:
+			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
+		}
 	case models.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
@@ -165,7 +183,8 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 }
 
 // CreatePost response for creating repository
-func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
+func CreatePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores
@@ -231,6 +250,8 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 			IsPrivate:     form.Private || setting.Repository.ForcePrivate,
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
+			IsTemplate:    form.Template,
+			TrustModel:    models.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -240,147 +261,6 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	}
 
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
-}
-
-// Migrate render migration of repository page
-func Migrate(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
-	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
-	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
-	ctx.Data["labels"] = ctx.Query("labels") == "1"
-	ctx.Data["issues"] = ctx.Query("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.Query("releases") == "1"
-	ctx.Data["LFSActive"] = setting.LFS.StartServer
-
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["ContextUser"] = ctxUser
-
-	ctx.HTML(200, tplMigrate)
-}
-
-func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
-	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
-	case models.IsErrNameReserved(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
-	default:
-		remoteAddr, _ := form.ParseRemoteAddr(owner)
-		err = util.URLSanitizedError(err, remoteAddr)
-		if strings.Contains(err.Error(), "Authentication failed") ||
-			strings.Contains(err.Error(), "Bad credentials") ||
-			strings.Contains(err.Error(), "could not read Username") {
-			ctx.Data["Err_Auth"] = true
-			ctx.RenderWithErr(ctx.Tr("form.auth_failed", err.Error()), tpl, form)
-		} else if strings.Contains(err.Error(), "fatal:") {
-			ctx.Data["Err_CloneAddr"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.migrate.failed", err.Error()), tpl, form)
-		} else {
-			ctx.ServerError(name, err)
-		}
-	}
-}
-
-// MigratePost response for migrating from external git repository
-func MigratePost(ctx *context.Context, form auth.MigrateRepoForm) {
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
-
-	ctxUser := checkContextUser(ctx, form.UID)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["ContextUser"] = ctxUser
-
-	if ctx.HasError() {
-		ctx.HTML(200, tplMigrate)
-		return
-	}
-
-	remoteAddr, err := form.ParseRemoteAddr(ctx.User)
-	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			ctx.Data["Err_CloneAddr"] = true
-			addrErr := err.(models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tplMigrate, &form)
-			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplMigrate, &form)
-			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplMigrate, &form)
-			default:
-				ctx.ServerError("Unknown error", err)
-			}
-		} else {
-			ctx.ServerError("ParseRemoteAddr", err)
-		}
-		return
-	}
-
-	var gitServiceType = structs.PlainGitService
-	u, err := url.Parse(form.CloneAddr)
-	if err == nil && strings.EqualFold(u.Host, "github.com") {
-		gitServiceType = structs.GithubService
-	}
-
-	var opts = migrations.MigrateOptions{
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		CloneAddr:      remoteAddr,
-		RepoName:       form.RepoName,
-		Description:    form.Description,
-		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror,
-		AuthUsername:   form.AuthUsername,
-		AuthPassword:   form.AuthPassword,
-		Wiki:           form.Wiki,
-		Issues:         form.Issues,
-		Milestones:     form.Milestones,
-		Labels:         form.Labels,
-		Comments:       true,
-		PullRequests:   form.PullRequests,
-		Releases:       form.Releases,
-	}
-	if opts.Mirror {
-		opts.Issues = false
-		opts.Milestones = false
-		opts.Labels = false
-		opts.Comments = false
-		opts.PullRequests = false
-		opts.Releases = false
-	}
-
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName)
-	if err != nil {
-		handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
-		return
-	}
-
-	err = task.MigrateRepository(ctx.User, ctxUser, opts)
-	if err == nil {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.RepoName)
-		return
-	}
-
-	handleMigrateError(ctx, ctxUser, err, "MigratePost", tplMigrate, &form)
 }
 
 // Action response for actions to a repository
@@ -496,94 +376,49 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(404)
 }
 
-// Download download an archive of a repository
+// Download an archive of a repository
 func Download(ctx *context.Context) {
-	var (
-		uri         = ctx.Params("*")
-		refName     string
-		ext         string
-		archivePath string
-		archiveType git.ArchiveType
-	)
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
-	switch {
-	case strings.HasSuffix(uri, ".zip"):
-		ext = ".zip"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/zip")
-		archiveType = git.ZIP
-	case strings.HasSuffix(uri, ".tar.gz"):
-		ext = ".tar.gz"
-		archivePath = path.Join(ctx.Repo.GitRepo.Path, "archives/targz")
-		archiveType = git.TARGZ
-	default:
-		log.Trace("Unknown format: %s", uri)
+	if aReq == nil {
 		ctx.Error(404)
 		return
 	}
-	refName = strings.TrimSuffix(uri, ext)
 
-	if !com.IsDir(archivePath) {
-		if err := os.MkdirAll(archivePath, os.ModePerm); err != nil {
-			ctx.ServerError("Download -> os.MkdirAll(archivePath)", err)
-			return
-		}
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete = aReq.WaitForCompletion(ctx)
 	}
 
-	// Get corresponding commit.
-	var (
-		commit *git.Commit
-		err    error
-	)
-	gitRepo := ctx.Repo.GitRepo
-	if gitRepo.IsBranchExist(refName) {
-		commit, err = gitRepo.GetBranchCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetBranchCommit", err)
-			return
-		}
-	} else if gitRepo.IsTagExist(refName) {
-		commit, err = gitRepo.GetTagCommit(refName)
-		if err != nil {
-			ctx.ServerError("GetTagCommit", err)
-			return
-		}
-	} else if len(refName) >= 4 && len(refName) <= 40 {
-		commit, err = gitRepo.GetCommit(refName)
-		if err != nil {
-			ctx.NotFound("GetCommit", nil)
-			return
-		}
+	if complete {
+		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.NotFound("Download", nil)
-		return
+		ctx.Error(404)
 	}
-
-	archivePath = path.Join(archivePath, base.ShortSha(commit.ID.String())+ext)
-	if !com.IsFile(archivePath) {
-		if err := commit.CreateArchive(archivePath, git.CreateArchiveOpts{
-			Format: archiveType,
-			Prefix: setting.Repository.PrefixArchiveFiles,
-		}); err != nil {
-			ctx.ServerError("Download -> CreateArchive "+archivePath, err)
-			return
-		}
-	}
-
-	ctx.ServeFile(archivePath, ctx.Repo.Repository.Name+"-"+refName+ext)
 }
 
-// Status returns repository's status
-func Status(ctx *context.Context) {
-	task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
-			"err": err,
-		})
+// InitiateDownload will enqueue an archival request, as needed.  It may submit
+// a request that's already in-progress, but the archiver service will just
+// kind of drop it on the floor if this is the case.
+func InitiateDownload(ctx *context.Context) {
+	uri := ctx.Params("*")
+	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
+
+	if aReq == nil {
+		ctx.Error(404)
 		return
+	}
+
+	complete := aReq.IsComplete()
+	if !complete {
+		aReq = archiver_service.ArchiveRepository(aReq)
+		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
 	ctx.JSON(200, map[string]interface{}{
-		"status": ctx.Repo.Repository.Status,
-		"err":    task.Errors,
+		"complete": complete,
 	})
 }

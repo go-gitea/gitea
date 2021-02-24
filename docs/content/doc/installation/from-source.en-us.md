@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Installation from source"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -33,14 +33,18 @@ executable path, you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required. However, it is recommended to
 obtain the same version as our continuous integration, see the advice given in
-<a href='{{< relref "doc/advanced/hacking-on-gitea.en-us.md" >}}'>Hacking on
+<a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}'>Hacking on
 Gitea</a>
+
+**Table of Contents**
+
+{{< toc >}}
 
 ## Download
 
 First, we must retrieve the source code. Since, the advent of go modules, the
 simplest way of doing this is to use git directly as we no longer have to have
-gitea built from within the GOPATH. 
+gitea built from within the GOPATH.
 
 ```bash
 git clone https://github.com/go-gitea/gitea
@@ -83,23 +87,26 @@ To build from source, the following programs must be present on the system:
 
 - `go` {{< min-go-version >}} or higher, see [here](https://golang.org/dl/)
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
-- `make`, see <a href='{{< relref "doc/advanced/make.en-us.md" >}}'>here</a>
+- `make`, see <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make'>here</a>
 
 Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
 are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
 
-* `bindata`: Build a single monolithic binary, with all assets included.
-* `sqlite sqlite_unlock_notify`: Enable support for a
+- `bindata`: Build a single monolithic binary, with all assets included.
+- `sqlite sqlite_unlock_notify`: Enable support for a
   [SQLite3](https://sqlite.org/) database. Suggested only for tiny
   installations.
-* `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
+- `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
+* `gogit`: (EXPERIMENTAL) Use go-git variants of git commands.
 
-Bundling assets into the binary using the `bindata` build tag can make
-development and testing easier, but is not ideal for a production deployment.
+Bundling assets into the binary using the `bindata` build tag is recommended for
+production deployments. It is possible to serve the static assets directly via a reverse proxy,
+but in most cases it is not necessary, and assets should still be bundled in the binary.
+You may want to exclude bindata while developing/testing Gitea.
 To include assets, add the `bindata` tag:
 
 ```bash
@@ -135,13 +142,13 @@ launched manually from command line, it can be killed by pressing `Ctrl + C`.
 ./gitea web
 ```
 
-## Changing the default CustomPath, CustomConf and AppWorkPath
+## Changing default paths
 
 Gitea will search for a number of things from the `CustomPath`. By default this is
 the `custom/` directory in the current working directory when running Gitea. It will also
 look for its configuration file `CustomConf` in `$CustomPath/conf/app.ini`, and will use the
 current working directory as the relative base path `AppWorkPath` for a number configurable
-values.
+values. Finally the static files will be served from `StaticRootPath` which defaults to the `AppWorkPath`.
 
 These values, although useful when developing, may conflict with downstream users preferences.
 
@@ -149,11 +156,41 @@ One option is to use a script file to shadow the `gitea` binary and create an ap
 environment before running Gitea. However, when building you can change these defaults
 using the `LDFLAGS` environment variable for `make`. The appropriate settings are as follows
 
-* To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
-* For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
-* For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+- To set the `CustomPath` use `LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.CustomPath=custom-path\""`
+- For `CustomConf` you should use `-X \"code.gitea.io/gitea/modules/setting.CustomConf=conf.ini\"`
+- For `AppWorkPath` you should use `-X \"code.gitea.io/gitea/modules/setting.AppWorkPath=working-path\"`
+- For `StaticRootPath` you should use `-X \"code.gitea.io/gitea/modules/setting.StaticRootPath=static-root-path\"`
+- To change the default PID file location use `-X \"code.gitea.io/gitea/modules/setting.PIDFile=/run/gitea.pid\"`
 
 Add as many of the strings with their preceding `-X` to the `LDFLAGS` variable and run `make build`
 with the appropriate `TAGS` as above.
 
 Running `gitea help` will allow you to review what the computed settings will be for your `gitea`.
+
+## Cross Build
+
+The `go` compiler toolchain supports cross-compiling to different architecture targets that are supported by the toolchain. See [`GOOS` and `GOARCH` environment variable](https://golang.org/doc/install/source#environment) for the list of supported targets. Cross compilation is helpful if you want to build Gitea for less-powerful systems (such as Raspberry Pi).
+
+To cross build Gitea with build tags (`TAGS`), you also need a C cross compiler which targets the same architecture as selected by the `GOOS` and `GOARCH` variables. For example, to cross build for Linux ARM64 (`GOOS=linux` and `GOARCH=arm64`), you need the `aarch64-unknown-linux-gnu-gcc` cross compiler. This is required because Gitea build tags uses `cgo`'s foreign-function interface (FFI).
+
+Cross-build Gitea for Linux ARM64, without any tags:
+
+```
+GOOS=linux GOARCH=arm64 make build
+```
+
+Cross-build Gitea for Linux ARM64, with recommended build tags:
+
+```
+CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sqlite_unlock_notify" make build
+```
+
+Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
+
+You will sometimes need to build a static compiled image. To do this you will need to add:
+
+```
+LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo $TAGS" make build
+```
+
+This can be combined with `CC`, `GOOS`, and `GOARCH` as above.

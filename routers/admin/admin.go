@@ -16,22 +16,20 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 const (
@@ -39,10 +37,6 @@ const (
 	tplConfig    base.TplName = "admin/config"
 	tplMonitor   base.TplName = "admin/monitor"
 	tplQueue     base.TplName = "admin/queue"
-)
-
-var (
-	startTime = time.Now()
 )
 
 var sysStatus struct {
@@ -87,7 +81,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -124,22 +118,6 @@ func updateSystemStatus() {
 	sysStatus.NumGC = m.NumGC
 }
 
-// Operation Operation types.
-type Operation int
-
-const (
-	cleanInactivateUser Operation = iota + 1
-	cleanRepoArchives
-	cleanMissingRepos
-	gitGCRepos
-	syncSSHAuthorizedKey
-	syncRepositoryUpdateHook
-	reinitMissingRepository
-	syncExternalUsers
-	gitFsck
-	deleteGeneratedRepositoryAvatars
-)
-
 // Dashboard show admin panel dashboard
 func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
@@ -149,11 +127,13 @@ func Dashboard(ctx *context.Context) {
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
+	ctx.Data["SSH"] = setting.SSH
 	ctx.HTML(200, tplDashboard)
 }
 
 // DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+func DashboardPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
@@ -162,52 +142,20 @@ func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
 	ctx.Data["SysStatus"] = sysStatus
 
 	// Run operation.
-	if form.Op > 0 {
-		var err error
-		var success string
-		shutdownCtx := graceful.GetManager().ShutdownContext()
-
-		switch Operation(form.Op) {
-		case cleanInactivateUser:
-			success = ctx.Tr("admin.dashboard.delete_inactivate_accounts_success")
-			err = models.DeleteInactivateUsers()
-		case cleanRepoArchives:
-			success = ctx.Tr("admin.dashboard.delete_repo_archives_success")
-			err = models.DeleteRepositoryArchives()
-		case cleanMissingRepos:
-			success = ctx.Tr("admin.dashboard.delete_missing_repos_success")
-			err = repo_module.DeleteMissingRepositories(ctx.User)
-		case gitGCRepos:
-			success = ctx.Tr("admin.dashboard.git_gc_repos_success")
-			err = repo_module.GitGcRepos(shutdownCtx)
-		case syncSSHAuthorizedKey:
-			success = ctx.Tr("admin.dashboard.resync_all_sshkeys_success")
-			err = models.RewriteAllPublicKeys()
-		case syncRepositoryUpdateHook:
-			success = ctx.Tr("admin.dashboard.resync_all_hooks_success")
-			err = repo_module.SyncRepositoryHooks(shutdownCtx)
-		case reinitMissingRepository:
-			success = ctx.Tr("admin.dashboard.reinit_missing_repos_success")
-			err = repo_module.ReinitMissingRepositories()
-		case syncExternalUsers:
-			success = ctx.Tr("admin.dashboard.sync_external_users_started")
-			go graceful.GetManager().RunWithShutdownContext(models.SyncExternalUsers)
-		case gitFsck:
-			success = ctx.Tr("admin.dashboard.git_fsck_started")
-			err = repo_module.GitFsck(shutdownCtx)
-		case deleteGeneratedRepositoryAvatars:
-			success = ctx.Tr("admin.dashboard.delete_generated_repository_avatars_success")
-			err = models.RemoveRandomAvatars()
-		}
-
-		if err != nil {
-			ctx.Flash.Error(err.Error())
+	if form.Op != "" {
+		task := cron.GetTask(form.Op)
+		if task != nil {
+			go task.RunWithUser(ctx.User, nil)
+			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 		} else {
-			ctx.Flash.Success(success)
+			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
 		}
 	}
-
-	ctx.Redirect(setting.AppSubURL + "/admin")
+	if form.From == "monitor" {
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor")
+	} else {
+		ctx.Redirect(setting.AppSubURL + "/admin")
+	}
 }
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -292,8 +240,10 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(macaron.Env)
-	ctx.Data["GitVersion"], _ = git.BinVersion()
+	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
+	if version, err := git.LocalVersion(); err == nil {
+		ctx.Data["GitVersion"] = version.Original()
+	}
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath
@@ -357,8 +307,7 @@ func Config(ctx *context.Context) {
 	}
 
 	ctx.Data["EnvVars"] = envVars
-	ctx.Data["Loggers"] = setting.LogDescriptions
-	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
+	ctx.Data["Loggers"] = setting.GetLogDescriptions()
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
@@ -384,7 +333,7 @@ func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": ctx.Repo.RepoLink + "/admin/monitor",
+		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
 
@@ -415,7 +364,7 @@ func WorkerCancel(ctx *context.Context) {
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
 	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
+		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }
 
@@ -438,7 +387,7 @@ func Flush(ctx *context.Context) {
 			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
 		}
 	}()
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // AddWorkers adds workers to a worker group
@@ -452,23 +401,23 @@ func AddWorkers(ctx *context.Context) {
 	number := ctx.QueryInt("number")
 	if number < 1 {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.Query("timeout"))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	mq.AddWorkers(number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // SetQueueSettings sets the maximum number of workers and other settings for this queue
@@ -481,7 +430,7 @@ func SetQueueSettings(ctx *context.Context) {
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 
@@ -496,7 +445,7 @@ func SetQueueSettings(ctx *context.Context) {
 		maxNumber, err = strconv.Atoi(maxNumberStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 		if maxNumber < -1 {
@@ -510,7 +459,7 @@ func SetQueueSettings(ctx *context.Context) {
 		number, err = strconv.Atoi(numberStr)
 		if err != nil || number < 0 {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -521,7 +470,7 @@ func SetQueueSettings(ctx *context.Context) {
 		timeout, err = time.ParseDuration(timeoutStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -530,5 +479,5 @@ func SetQueueSettings(ctx *context.Context) {
 
 	mq.SetPoolSettings(maxNumber, number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }

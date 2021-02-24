@@ -6,6 +6,7 @@ package markup
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
@@ -41,7 +43,7 @@ var (
 	// sha1CurrentPattern matches string that represents a commit SHA, e.g. d8a994ef243349f321568f9e36d5c3f444b99cae
 	// Although SHA1 hashes are 40 chars long, the regex matches the hash from 7 to 40 chars in length
 	// so that abbreviated hash links can be used as well. This matches git and github useability.
-	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|\.(\s|$))`)
+	sha1CurrentPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-f]{7,40})(?:\s|$|\)|\]|[.,](\s|$))`)
 
 	// shortLinkPattern matches short but difficult to parse [[name|link|arg=test]] syntax
 	shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
@@ -60,6 +62,9 @@ var (
 
 	// blackfriday extensions create IDs like fn:user-content-footnote
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
+
+	// EmojiShortCodeRegex find emoji by alias like :smile:
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -84,11 +89,7 @@ func isLinkStr(link string) bool {
 
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
-		appURL := setting.AppURL
-		if len(appURL) > 0 && appURL[len(appURL)-1] != '/' {
-			appURL += "/"
-		}
-		issueFullPattern = regexp.MustCompile(appURL +
+		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 	}
 	return issueFullPattern
@@ -154,6 +155,8 @@ var defaultProcessors = []processor{
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
+	emojiProcessor,
+	emojiShortCodeProcessor,
 }
 
 type postProcessCtx struct {
@@ -194,6 +197,8 @@ var commitMessageProcessors = []processor{
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
 	emailAddressProcessor,
+	emojiProcessor,
+	emojiShortCodeProcessor,
 }
 
 // RenderCommitMessage will use the same logic as PostProcess, but will disable
@@ -226,6 +231,13 @@ var commitMessageSubjectProcessors = []processor{
 	mentionProcessor,
 	issueIndexPatternProcessor,
 	sha1CurrentPatternProcessor,
+	emojiShortCodeProcessor,
+	emojiProcessor,
+}
+
+var emojiProcessors = []processor{
+	emojiShortCodeProcessor,
+	emojiProcessor,
 }
 
 // RenderCommitMessageSubject will use the same logic as PostProcess and
@@ -252,6 +264,25 @@ func RenderCommitMessageSubject(
 	return ctx.postProcess(rawHTML)
 }
 
+// RenderIssueTitle to process title on individual issue/pull page
+func RenderIssueTitle(
+	rawHTML []byte,
+	urlPrefix string,
+	metas map[string]string,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		metas:     metas,
+		urlPrefix: urlPrefix,
+		procs: []processor{
+			issueIndexPatternProcessor,
+			sha1CurrentPatternProcessor,
+			emojiShortCodeProcessor,
+			emojiProcessor,
+		},
+	}
+	return ctx.postProcess(rawHTML)
+}
+
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(
@@ -264,13 +295,23 @@ func RenderDescriptionHTML(
 		urlPrefix: urlPrefix,
 		procs: []processor{
 			descriptionLinkProcessor,
+			emojiShortCodeProcessor,
+			emojiProcessor,
 		},
 	}
 	return ctx.postProcess(rawHTML)
 }
 
-var byteBodyTag = []byte("<body>")
-var byteBodyTagClosing = []byte("</body>")
+// RenderEmoji for when we want to just process emoji and shortcodes
+// in various places it isn't already run through the normal markdown procesor
+func RenderEmoji(
+	rawHTML []byte,
+) ([]byte, error) {
+	ctx := &postProcessCtx{
+		procs: emojiProcessors,
+	}
+	return ctx.postProcess(rawHTML)
+}
 
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
@@ -279,9 +320,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 
 	// give a generous extra 50 bytes
 	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, byteBodyTag...)
-	res = append(res, rawHTML...)
-	res = append(res, byteBodyTagClosing...)
+
+	// prepend "<html><body>"
+	res = append(res, "<html><body>"...)
+
+	// Strip out nuls - they're always invalid
+	start := bytes.IndexByte(rawHTML, '\000')
+	if start >= 0 {
+		res = append(res, rawHTML[:start]...)
+		start++
+		for start < len(rawHTML) {
+			end := bytes.IndexByte(rawHTML[start:], '\000')
+			if end < 0 {
+				res = append(res, rawHTML[start:]...)
+				break
+			} else if end > 0 {
+				res = append(res, rawHTML[start:start+end]...)
+			}
+			start += end + 1
+		}
+	} else {
+		res = append(res, rawHTML...)
+	}
+
+	// close the tags
+	res = append(res, "</body></html>"...)
 
 	// parse the HTML
 	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
@@ -292,6 +355,31 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	for _, node := range nodes {
 		ctx.visitNode(node, true)
 	}
+
+	newNodes := make([]*html.Node, 0, len(nodes))
+
+	for _, node := range nodes {
+		if node.Data == "html" {
+			node = node.FirstChild
+			for node != nil && node.Data != "body" {
+				node = node.NextSibling
+			}
+		}
+		if node == nil {
+			continue
+		}
+		if node.Data == "body" {
+			child := node.FirstChild
+			for child != nil {
+				newNodes = append(newNodes, child)
+				child = child.NextSibling
+			}
+		} else {
+			newNodes = append(newNodes, node)
+		}
+	}
+
+	nodes = newNodes
 
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
@@ -305,12 +393,8 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	// remove initial parts - because Render creates a whole HTML page.
-	res = buf.Bytes()
-	res = res[bytes.Index(res, byteBodyTag)+len(byteBodyTag) : bytes.LastIndex(res, byteBodyTagClosing)]
-
 	// Everything done successfully, return parsed data.
-	return res, nil
+	return buf.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
@@ -319,7 +403,12 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
 			node.Attr[idx].Val = "user-content-" + attr.Val
 		}
+
+		if attr.Key == "class" && attr.Val == "emoji" {
+			visitText = false
+		}
 	}
+
 	// We ignore code, pre and already generated links.
 	switch node.Type {
 	case html.TextNode:
@@ -351,6 +440,27 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 			visitText = false
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
+		} else if node.Data == "i" {
+			for _, attr := range node.Attr {
+				if attr.Key != "class" {
+					continue
+				}
+				classes := strings.Split(attr.Val, " ")
+				for i, class := range classes {
+					if class == "icon" {
+						classes[0], classes[i] = classes[i], classes[0]
+						attr.Val = strings.Join(classes, " ")
+
+						// Remove all children of icons
+						child := node.FirstChild
+						for child != nil {
+							node.RemoveChild(child)
+							child = node.FirstChild
+						}
+						break
+					}
+				}
+			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
 			ctx.visitNode(n, visitText)
@@ -382,6 +492,55 @@ func createKeyword(content string) *html.Node {
 	}
 	span.AppendChild(text)
 
+	return span
+}
+
+func createEmoji(content, class, name string) *html.Node {
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	if class != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
+	}
+	if name != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
+	}
+
+	text := &html.Node{
+		Type: html.TextNode,
+		Data: content,
+	}
+
+	span.AppendChild(text)
+	return span
+}
+
+func createCustomEmoji(alias, class string) *html.Node {
+
+	span := &html.Node{
+		Type: html.ElementNode,
+		Data: atom.Span.String(),
+		Attr: []html.Attribute{},
+	}
+	if class != "" {
+		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
+		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
+	}
+
+	img := &html.Node{
+		Type:     html.ElementNode,
+		DataAtom: atom.Img,
+		Data:     "img",
+		Attr:     []html.Attribute{},
+	}
+	if class != "" {
+		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
+		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
+	}
+
+	span.AppendChild(img)
 	return span
 }
 
@@ -473,11 +632,18 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
-	if ok && strings.Contains(teams, ","+strings.ToLower(mention[1:])+",") {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mention[1:]), mention, "mention"))
-	} else {
-		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+	// FIXME: util.URLJoin may not be necessary here:
+	// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
+	// is an AppSubURL link we can probably fallback to concatenation.
+	// team mention should follow @orgName/teamName style
+	if ok && strings.Contains(mention, "/") {
+		mentionOrgAndTeam := strings.Split(mention, "/")
+		if mentionOrgAndTeam[0][1:] == ctx.metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+		}
+		return
 	}
+	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
 func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
@@ -528,16 +694,18 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 			// When parsing HTML, x/net/html will change all quotes which are
 			// not used for syntax into UTF-8 quotes. So checking val[0] won't
 			// be enough, since that only checks a single byte.
-			if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
-				(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
-				const lenQuote = len("‘")
-				val = val[lenQuote : len(val)-lenQuote]
-			} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
-				(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
-				val = val[1 : len(val)-1]
-			} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
-				const lenQuote = len("‘")
-				val = val[1 : len(val)-lenQuote]
+			if len(val) > 1 {
+				if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
+					(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
+					const lenQuote = len("‘")
+					val = val[lenQuote : len(val)-lenQuote]
+				} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+					(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+					val = val[1 : len(val)-1]
+				} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+					const lenQuote = len("‘")
+					val = val[1 : len(val)-lenQuote]
+				}
 			}
 			props[key] = val
 		}
@@ -579,9 +747,9 @@ func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
 	absoluteLink := isLinkStr(link)
 	if !absoluteLink {
 		if image {
-			link = strings.Replace(link, " ", "+", -1)
+			link = strings.ReplaceAll(link, " ", "+")
 		} else {
-			link = strings.Replace(link, " ", "-", -1)
+			link = strings.ReplaceAll(link, " ", "-")
 		}
 		if !strings.Contains(link, "/") {
 			link = url.PathEscape(link)
@@ -787,6 +955,44 @@ func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
 	}
 
 	replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+}
+
+// emojiShortCodeProcessor for rendering text like :smile: into emoji
+func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
+
+	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
+	if m == nil {
+		return
+	}
+
+	alias := node.Data[m[0]:m[1]]
+	alias = strings.ReplaceAll(alias, ":", "")
+	converted := emoji.FromAlias(alias)
+	if converted == nil {
+		// check if this is a custom reaction
+		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
+		if strings.Contains(s, alias) {
+			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+			return
+		}
+		return
+	}
+
+	replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+}
+
+// emoji processor to match emoji and add emoji class
+func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
+	m := emoji.FindEmojiSubmatchIndex(node.Data)
+	if m == nil {
+		return
+	}
+
+	codepoint := node.Data[m[0]:m[1]]
+	val := emoji.FromCode(codepoint)
+	if val != nil {
+		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+	}
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that

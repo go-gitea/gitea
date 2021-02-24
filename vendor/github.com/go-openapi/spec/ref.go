@@ -48,7 +48,7 @@ type Ref struct {
 // RemoteURI gets the remote uri part of the ref
 func (r *Ref) RemoteURI() string {
 	if r.String() == "" {
-		return r.String()
+		return ""
 	}
 
 	u := *r.GetURL()
@@ -68,10 +68,12 @@ func (r *Ref) IsValidURI(basepaths ...string) bool {
 	}
 
 	if r.HasFullURL {
+		//nolint:noctx,gosec
 		rr, err := http.Get(v)
 		if err != nil {
 			return false
 		}
+		defer rr.Body.Close()
 
 		return rr.StatusCode/100 == 2
 	}

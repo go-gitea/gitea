@@ -1,12 +1,13 @@
 after_success:
 - bash <(curl -s https://codecov.io/bash)
 go:
-- 1.11.x
-- 1.12.x
+- 1.14.x
+- 1.x
+arch:
+  - amd64
+  - ppc64le
 install:
-- GO111MODULE=off go get -u gotest.tools/gotestsum
-env:
-- GO111MODULE=on
+- go get -u gotest.tools/gotestsum
 language: go
 notifications:
   slack:

@@ -201,7 +201,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
@@ -237,7 +237,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
@@ -272,7 +272,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 
@@ -287,7 +287,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 			t.Fatalf("expected git.ErrNotExist, got:%v", err)
 		}
 		toEntry, err := commit.GetTreeEntryByPath(opts.TreePath)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Nil(t, fromEntry)  // Should no longer exist here
 		assert.NotNil(t, toEntry) // Should exist here
 		// assert SHA has remained the same but paths use the new file name
@@ -322,7 +322,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		gitRepo, _ := git.OpenRepository(repo.RepoPath())
 		defer gitRepo.Close()
 

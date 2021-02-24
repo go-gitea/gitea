@@ -1,3 +1,7 @@
+// Copyright 2020 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package process
 
 import (
@@ -7,6 +11,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestGetManager(t *testing.T) {
+	go func() {
+		// test race protection
+		_ = GetManager()
+	}()
+	pm := GetManager()
+	assert.NotNil(t, pm)
+}
 
 func TestManager_Add(t *testing.T) {
 	pm := Manager{processes: make(map[int64]*Process)}

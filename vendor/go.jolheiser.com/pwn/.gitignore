@@ -1,0 +1,6 @@
+# GoLand
+.idea/
+
+# Binaries
+/pwn
+/pwn.exe

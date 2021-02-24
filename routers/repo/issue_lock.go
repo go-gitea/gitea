@@ -8,14 +8,15 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // LockIssue locks an issue. This would limit commenting abilities to
 // users with write access to the repo.
-func LockIssue(ctx *context.Context, form auth.IssueLockForm) {
-
+func LockIssue(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.IssueLockForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
