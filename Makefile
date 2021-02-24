@@ -224,7 +224,8 @@ clean:
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini man/
+		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini \
+		man/
 
 .PHONY: fmt
 fmt:
@@ -709,7 +710,13 @@ generate-manpage:
 	@mkdir -p man/man1/ man/man5
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
-	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as config man page
+	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as man page
+	@tail -n +36 docs/content/doc/advanced/config-cheat-sheet.en-us.md > man/man5/gitea.app.ini.5.md
+	@hash go-md2man > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+	  GO111MODULE=off $(GO) get -u github.com/cpuguy83/go-md2man; \
+	fi
+	@go-md2man -in man/man5/gitea.app.ini.5.md | gzip -9 > man/man5/gitea.app.ini.5.gz && echo man/man5/gitea.app.ini.5.gz created
+	@rm man/man5/gitea.app.ini.5.md
 
 .PHONY: pr\#%
 pr\#%: clean-all
