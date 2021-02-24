@@ -264,7 +264,7 @@ func (repo *Repository) ColorFormat(s fmt.State) {
 		repo.Name)
 }
 
-// IsBeingMigrated indicates that repository is being migtated
+// IsBeingMigrated indicates that repository is being migrated
 func (repo *Repository) IsBeingMigrated() bool {
 	return repo.Status == RepositoryBeingMigrated
 }
@@ -318,7 +318,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + path.Join("api/v1/repos", repo.FullName())
+	return setting.AppURL + "api/v1/repos/" + repo.FullName()
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -613,7 +613,7 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 // * for private repositories this returns all users that have read access or higher to the repository.
 // * for public repositories this returns all users that have write access or higher to the repository,
 // and all repo watchers.
-// TODO: may be we should hava a busy choice for users to block review request to them.
+// TODO: may be we should have a busy choice for users to block review request to them.
 func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
 	return repo.getReviewers(x, doerID, posterID)
 }
@@ -1312,8 +1312,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := NewRepoRedirect(DBContext{sess}, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("NewRepoRedirect: %v", err)
+	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
 	return sess.Commit()
@@ -1361,12 +1361,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, repo.OwnerID, newRepoName); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
-	}
-
-	if err := NewRepoRedirect(DBContext{sess}, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 

@@ -27,6 +27,10 @@ import (
 
 const (
 	esRepoIndexerLatestVersion = 1
+	// multi-match-types, currently only 2 types are used
+	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
+	esMultiMatchTypeBestFields   = "best_fields"
+	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
 var (
@@ -174,14 +178,20 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 		return nil, nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
@@ -330,8 +340,13 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
+func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	searchType := esMultiMatchTypeBestFields
+	if isMatch {
+		searchType = esMultiMatchTypePhrasePrefix
+	}
+
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {

@@ -116,9 +116,7 @@ func runPR() {
 	//routers.GlobalInit()
 	external.RegisterParsers()
 	markup.Init()
-	c := routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c := routes.NormalRoutes()
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

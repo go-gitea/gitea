@@ -182,6 +182,8 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
+
+var unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
 var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
 var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
 
@@ -196,9 +198,217 @@ func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
 	return false
 }
 
+func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
+
+	// Create a new array to store our fixed up blocks
+	fixedup := make([]diffmatchpatch.Diff, 0, len(diffs))
+
+	// semantically label some numbers
+	const insert, delete, equal = 0, 1, 2
+
+	// record the positions of the last type of each block in the fixedup blocks
+	last := []int{-1, -1, -1}
+	operation := []diffmatchpatch.Operation{diffmatchpatch.DiffInsert, diffmatchpatch.DiffDelete, diffmatchpatch.DiffEqual}
+
+	// create a writer for insert and deletes
+	toWrite := []strings.Builder{
+		{},
+		{},
+	}
+
+	// make some flags for insert and delete
+	unfinishedTag := []bool{false, false}
+	unfinishedEnt := []bool{false, false}
+
+	// store stores the provided text in the writer for the typ
+	store := func(text string, typ int) {
+		(&(toWrite[typ])).WriteString(text)
+	}
+
+	// hasStored returns true if there is stored content
+	hasStored := func(typ int) bool {
+		return (&toWrite[typ]).Len() > 0
+	}
+
+	// stored will return that content
+	stored := func(typ int) string {
+		return (&toWrite[typ]).String()
+	}
+
+	// empty will empty the stored content
+	empty := func(typ int) {
+		(&toWrite[typ]).Reset()
+	}
+
+	// pop will remove the stored content appending to a diff block for that typ
+	pop := func(typ int, fixedup []diffmatchpatch.Diff) []diffmatchpatch.Diff {
+		if hasStored(typ) {
+			if last[typ] > last[equal] {
+				fixedup[last[typ]].Text += stored(typ)
+			} else {
+				fixedup = append(fixedup, diffmatchpatch.Diff{
+					Type: operation[typ],
+					Text: stored(typ),
+				})
+			}
+			empty(typ)
+		}
+		return fixedup
+	}
+
+	// Now we walk the provided diffs and check the type of each block in turn
+	for _, diff := range diffs {
+
+		typ := delete // flag for handling insert or delete typs
+		switch diff.Type {
+		case diffmatchpatch.DiffEqual:
+			// First check if there is anything stored
+			if hasStored(insert) || hasStored(delete) {
+				// There are two reasons for storing content:
+				// 1. Unfinished Entity <- Could be more efficient here by not doing this if we're looking for a tag
+				if unfinishedEnt[insert] || unfinishedEnt[delete] {
+					// we look for a ';' to finish an entity
+					idx := strings.IndexRune(diff.Text, ';')
+					if idx >= 0 {
+						// if we find a ';' store the preceding content to both insert and delete
+						store(diff.Text[:idx+1], insert)
+						store(diff.Text[:idx+1], delete)
+
+						// and remove it from this block
+						diff.Text = diff.Text[idx+1:]
+
+						// reset the ent flags
+						unfinishedEnt[insert] = false
+						unfinishedEnt[delete] = false
+					} else {
+						// otherwise store it all on insert and delete
+						store(diff.Text, insert)
+						store(diff.Text, delete)
+						// and empty this block
+						diff.Text = ""
+					}
+				}
+				// 2. Unfinished Tag
+				if unfinishedTag[insert] || unfinishedTag[delete] {
+					// we look for a '>' to finish a tag
+					idx := strings.IndexRune(diff.Text, '>')
+					if idx >= 0 {
+						store(diff.Text[:idx+1], insert)
+						store(diff.Text[:idx+1], delete)
+						diff.Text = diff.Text[idx+1:]
+						unfinishedTag[insert] = false
+						unfinishedTag[delete] = false
+					} else {
+						store(diff.Text, insert)
+						store(diff.Text, delete)
+						diff.Text = ""
+					}
+				}
+
+				// If we've completed the required tag/entities
+				if !(unfinishedTag[insert] || unfinishedTag[delete] || unfinishedEnt[insert] || unfinishedEnt[delete]) {
+					// pop off the stack
+					fixedup = pop(insert, fixedup)
+					fixedup = pop(delete, fixedup)
+				}
+
+				// If that has left this diff block empty then shortcut
+				if len(diff.Text) == 0 {
+					continue
+				}
+			}
+
+			// check if this block ends in an unfinished tag?
+			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
+			if idx != nil {
+				unfinishedTag[insert] = true
+				unfinishedTag[delete] = true
+			} else {
+				// otherwise does it end in an unfinished entity?
+				idx = entityRegex.FindStringIndex(diff.Text)
+				if idx != nil {
+					unfinishedEnt[insert] = true
+					unfinishedEnt[delete] = true
+				}
+			}
+
+			// If there is an unfinished component
+			if idx != nil {
+				// Store the fragment
+				store(diff.Text[idx[0]:], insert)
+				store(diff.Text[idx[0]:], delete)
+				// and remove it from this block
+				diff.Text = diff.Text[:idx[0]]
+			}
+
+			// If that hasn't left the block empty
+			if len(diff.Text) > 0 {
+				// store the position of the last equal block and store it in our diffs
+				last[equal] = len(fixedup)
+				fixedup = append(fixedup, diff)
+			}
+			continue
+		case diffmatchpatch.DiffInsert:
+			typ = insert
+			fallthrough
+		case diffmatchpatch.DiffDelete:
+			// First check if there is anything stored for this type
+			if hasStored(typ) {
+				// if there is prepend it to this block, empty the storage and reset our flags
+				diff.Text = stored(typ) + diff.Text
+				empty(typ)
+				unfinishedEnt[typ] = false
+				unfinishedTag[typ] = false
+			}
+
+			// check if this block ends in an unfinished tag
+			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
+			if idx != nil {
+				unfinishedTag[typ] = true
+			} else {
+				// otherwise does it end in an unfinished entity
+				idx = entityRegex.FindStringIndex(diff.Text)
+				if idx != nil {
+					unfinishedEnt[typ] = true
+				}
+			}
+
+			// If there is an unfinished component
+			if idx != nil {
+				// Store the fragment
+				store(diff.Text[idx[0]:], typ)
+				// and remove it from this block
+				diff.Text = diff.Text[:idx[0]]
+			}
+
+			// If that hasn't left the block empty
+			if len(diff.Text) > 0 {
+				// if the last block of this type was after the last equal block
+				if last[typ] > last[equal] {
+					// store this blocks content on that block
+					fixedup[last[typ]].Text += diff.Text
+				} else {
+					// otherwise store the position of the last block of this type and store the block
+					last[typ] = len(fixedup)
+					fixedup = append(fixedup, diff)
+				}
+			}
+			continue
+		}
+	}
+
+	// pop off any remaining stored content
+	fixedup = pop(insert, fixedup)
+	fixedup = pop(delete, fixedup)
+
+	return fixedup
+}
+
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 	match := ""
+
+	diffs = fixupBrokenSpans(diffs)
 
 	for _, diff := range diffs {
 		if shouldWriteInline(diff, lineType) {
@@ -967,7 +1177,13 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 
 // GetDiffCommit builds a Diff representing the given commitID.
 func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles)
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, "")
+}
+
+// GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
+// The whitespaceBehavior is either an empty string or a git flag
+func GetDiffCommitWithWhitespaceBehavior(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
 }
 
 // CommentAsDiff returns c.Patch as *Diff
@@ -994,4 +1210,15 @@ func CommentMustAsDiff(c *models.Comment) *Diff {
 		log.Warn("CommentMustAsDiff: %v", err)
 	}
 	return diff
+}
+
+// GetWhitespaceFlag returns git diff flag for treating whitespaces
+func GetWhitespaceFlag(whiteSpaceBehavior string) string {
+	whitespaceFlags := map[string]string{
+		"ignore-all":    "-w",
+		"ignore-change": "-b",
+		"ignore-eol":    "--ignore-space-at-eol",
+		"":              ""}
+
+	return whitespaceFlags[whiteSpaceBehavior]
 }

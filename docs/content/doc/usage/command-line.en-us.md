@@ -232,7 +232,7 @@ Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in 
 directory and will overwrite any existing files.
 
 - Options:
-  - `--host value`: Comma seperated hostnames and ips which this certificate is valid for.
+  - `--host value`: Comma separated hostnames and ips which this certificate is valid for.
     Wildcards are supported. Required.
   - `--ecdsa-curve value`: ECDSA curve to use to generate a key. Optional. Valid options
     are P224, P256, P384, P521.
@@ -253,6 +253,7 @@ in the current directory.
   - `--file name`, `-f name`: Name of the dump file with will be created. Optional. (default: gitea-dump-[timestamp].zip).
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
+  - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
 - Examples:
