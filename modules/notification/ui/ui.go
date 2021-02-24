@@ -27,7 +27,7 @@ type (
 )
 
 var (
-	_ base.Notifier = (*notificationService)(nil)
+	_ base.Notifier = &notificationService{}
 )
 
 // NewNotifier create a new notificationService notifier

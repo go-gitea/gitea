@@ -21,9 +21,6 @@ var (
 func (*NullNotifier) Run() {
 }
 
-// NotifyTransferRepository places a place holder function
-func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, _ string) {}
-
 // NotifyCreateIssueComment places a place holder function
 func (*NullNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
@@ -152,6 +149,10 @@ func (*NullNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository,
 
 // NotifyRenameRepository places a place holder function
 func (*NullNotifier) NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string) {
+}
+
+// NotifyTransferRepository places a place holder function
+func (*NullNotifier) NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string) {
 }
 
 // NotifySyncPushCommits places a place holder function

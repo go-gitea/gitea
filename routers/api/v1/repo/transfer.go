@@ -73,7 +73,6 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	var teams []*models.Team
-
 	if opts.TeamIDs != nil {
 		if !newOwner.IsOrganization() {
 			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
