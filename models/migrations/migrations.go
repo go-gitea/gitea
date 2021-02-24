@@ -294,6 +294,8 @@ var migrations = []Migration{
 	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	// v174 -> v178
+	NewMigration("Add org_id to hook_task table", addOrgIDHookTaskColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

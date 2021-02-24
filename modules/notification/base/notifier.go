@@ -57,4 +57,12 @@ type Notifier interface {
 	NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
 	NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 	NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+
+	// org
+	NotifyAddOrgMember(doer, org, member *models.User)
+	NotifyRemoveOrgMember(doer, org, member *models.User)
+	NotifyAddOrgTeam(doer, org *models.User, team *models.Team)
+	NotifyRemoveOrgTeam(doer, org *models.User, team *models.Team)
+	NotifyAddTeamMember(doer, org, member *models.User, team *models.Team)
+	NotifyRemoveTeamMember(doer, org, member *models.User, team *models.Team)
 }

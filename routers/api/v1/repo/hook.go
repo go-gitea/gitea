@@ -140,7 +140,7 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
-	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
+	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, nil, models.HookEventPush, &api.PushPayload{
 		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before: ctx.Repo.Commit.ID.String(),
 		After:  ctx.Repo.Commit.ID.String(),

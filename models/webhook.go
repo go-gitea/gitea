@@ -97,6 +97,9 @@ type HookEvents struct {
 	PullRequestSync      bool `json:"pull_request_sync"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
+	Organization         bool `json:"organization"`
+	Team                 bool `json:"team"`
+	TeamMember           bool `json:"membership"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -282,6 +285,33 @@ func (w *Webhook) HasRepositoryEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Repository)
 }
 
+// HasOrgEvent returns if hook enabled org event.
+func (w *Webhook) HasOrgEvent() bool {
+	if w.RepoID != 0 {
+		return false
+	}
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Organization)
+}
+
+// HasTeamEvent returns if hook enabled team event.
+func (w *Webhook) HasTeamEvent() bool {
+	if w.RepoID != 0 {
+		return false
+	}
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Team)
+}
+
+// HasTeamMemberEvent returns if hook enabled team member event.
+func (w *Webhook) HasTeamMemberEvent() bool {
+	if w.RepoID != 0 {
+		return false
+	}
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.TeamMember)
+}
+
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
@@ -311,6 +341,9 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
+		{w.HasOrgEvent, HookEventOrg},
+		{w.HasTeamEvent, HookEventTeam},
+		{w.HasTeamMemberEvent, HookEventTeamMember},
 	}
 }
 
@@ -596,6 +629,9 @@ const (
 	HookEventPullRequestSync           HookEventType = "pull_request_sync"
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
+	HookEventOrg                       HookEventType = "organization"
+	HookEventTeam                      HookEventType = "team"
+	HookEventTeamMember                HookEventType = "membership"
 )
 
 // Event returns the HookEventType as an event string
@@ -626,8 +662,36 @@ func (h HookEventType) Event() string {
 		return "repository"
 	case HookEventRelease:
 		return "release"
+	case HookEventOrg:
+		return "organization"
+	case HookEventTeam:
+		return "team"
+	case HookEventTeamMember:
+		return "membership"
 	}
 	return ""
+}
+
+// HookEventLevel leve of a hook event
+type HookEventLevel int64
+
+const (
+	// HookEventLevelRepo all hook types can be used
+	HookEventLevelRepo HookEventLevel = iota
+	// HookEventLevelOrg org and system hook can be used
+	HookEventLevelOrg
+	// HookEventLevelSys only system hook can be used
+	// HookEventLevelSys
+)
+
+// EventLevel got last leve of this event
+func (h HookEventType) EventLevel() HookEventLevel {
+	if h == HookEventOrg ||
+		h == HookEventTeam ||
+		h == HookEventTeamMember {
+		return HookEventLevelOrg
+	}
+	return HookEventLevelRepo
 }
 
 // HookRequest represents hook task request information.
@@ -646,6 +710,7 @@ type HookResponse struct {
 type HookTask struct {
 	ID              int64 `xorm:"pk autoincr"`
 	RepoID          int64 `xorm:"INDEX"`
+	OrgID           int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 	HookID          int64
 	UUID            string
 	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
@@ -755,6 +820,15 @@ func FindUndeliveredHookTasks() ([]*HookTask, error) {
 func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 5)
 	if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// FindOrgUndeliveredHookTasks represents find the undelivered hook tasks of one org
+func FindOrgUndeliveredHookTasks(orgID int64) ([]*HookTask, error) {
+	tasks := make([]*HookTask, 0, 5)
+	if err := x.Where("org_id=? AND is_delivered=?", orgID, false).Find(&tasks); err != nil {
 		return nil, err
 	}
 	return tasks, nil
