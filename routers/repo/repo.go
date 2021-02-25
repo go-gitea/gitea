@@ -291,8 +291,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if !repoTransfer.IsTransferForUser(ctx.User) {
-			ctx.NotFound("IsTransferForUser", errors.New("user does not have enough permissions"))
+		if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+			ctx.NotFound("CanUserAcceptTransfer", errors.New("user does not have enough permissions"))
 			return
 		}
 
@@ -317,8 +317,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if !repoTransfer.IsTransferForUser(ctx.User) {
-			ctx.NotFound("IsTransferForUser", errors.New("user does not have enough permissions"))
+		if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+			ctx.NotFound("CanUserAcceptTransfer", errors.New("user does not have enough permissions"))
 			return
 		}
 
@@ -333,6 +333,11 @@ func Action(ctx *context.Context) {
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
 		ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+		return
+	case "desc": // FIXME: this is not used
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+		}
 		return
 	}
 

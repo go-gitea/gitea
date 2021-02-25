@@ -67,10 +67,10 @@ func (r *RepoTransfer) LoadAttributes() error {
 	return nil
 }
 
-// IsTransferForUser checks if the user has the rights to accept/decline a repo
-// transfer.
+// CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
+// For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) IsTransferForUser(u *User) bool {
+func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 	if err := r.LoadAttributes(); err != nil {
 		return false
 	}
