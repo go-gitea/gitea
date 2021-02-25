@@ -67,13 +67,6 @@
                                         {{$repoOwner.Name}}/{{$repo.Name}}
                                     </a>
                                 </td>
-																<td class="collapsing">
-																		{{if eq $notification.Source 4}}
-																			<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
-																				{{ $.i18n.Tr "mail.repo_transfer_notify"}}
-																			</a>
-																		{{end}}
-																</td>
                                 <td class="collapsing">
                                     {{if ne .Status 3}}
                                         <form action="{{AppSubUrl}}/notifications/status" method="POST">
