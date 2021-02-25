@@ -445,7 +445,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		expectedStatus int
 	}{
 		{ctxUserID: 1, newOwner: "user2", teams: nil, expectedStatus: http.StatusAccepted},
-		{ctxUserID: 2, newOwner: "user1", teams: nil, expectedStatus: http.StatusAccepted},
+		{ctxUserID: 2, newOwner: "user1", teams: nil, expectedStatus: http.StatusForbidden},
 		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusForbidden},
 		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
