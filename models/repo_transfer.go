@@ -153,9 +153,48 @@ func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
 	return err
 }
 
-// StartRepositoryTransfer marks the repository transfer as "pending". It
-// doesn't actually transfer the repository until the user acks the transfer.
+// TestRepositoryReadyForTransfer make sure repo is ready to transfer
+func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
+	switch status {
+	case RepositoryBeingMigrated:
+		return fmt.Errorf("repo is not ready, currently migrating")
+	case RepositoryPendingTransfer:
+		return ErrRepoTransferInProgress{}
+	}
+	return nil
+}
+
+// StartRepositoryTransfer transfer a repo from one owner to a new one.
+// it marks the repository transfer as "pending",
+// if the new owner is a user or if he dont have access to the new place.
 func StartRepositoryTransfer(doer, newOwner *User, repo *Repository, teams []*Team) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
+	if err := startRepositoryTransfer(sess, doer, newOwner, repo.ID, teams); err != nil {
+		return err
+	}
+	return sess.Commit()
+}
+
+func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams []*Team) error {
+	repo, err := getRepositoryByID(e, repoID)
+	if err != nil {
+		return err
+	}
+
+	// Make sure repo is ready to transfer
+	if err = TestRepositoryReadyForTransfer(repo.Status); err != nil {
+		return err
+	}
+
+	repo.Status = RepositoryPendingTransfer
+	if err = updateRepositoryCols(e, repo, "status"); err != nil {
+		return err
+	}
+
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
 	// It has to be cancelled for a new one to occur
