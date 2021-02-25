@@ -312,7 +312,7 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err = repoTransfer.LoadAttributes(); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 			return
 		}
@@ -322,7 +322,7 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(repoTransfer); err != nil {
+		if err = models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Redirect(ctx.Repo.Repository.HTMLURL())
 			} else {

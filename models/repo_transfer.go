@@ -13,18 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// TransferStatus determines the current state of a transfer
-type TransferStatus uint8
-
-const (
-	// Pending is the default repo transfer state. All initiated transfers
-	// automatically get this status.
-	Pending TransferStatus = iota
-	// Rejected is a status for transfers that get cancelled by either the
-	// recipient or the user who initiated the transfer
-	Rejected
-)
-
 // RepoTransfer is used to manage repository transfers
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
@@ -35,7 +23,6 @@ type RepoTransfer struct {
 	RepoID      int64
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
-	Status      TransferStatus
 	TeamIDs     []int64
 	Teams       []*Team `xorm:"-"`
 }
@@ -118,8 +105,7 @@ func (r *RepoTransfer) IsTransferForUser(u *User) bool {
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	var transfer = new(RepoTransfer)
 
-	has, err := x.Where("status = ? AND repo_id = ? ", Pending, repo.ID).
-		Get(transfer)
+	has, err := x.Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -138,12 +124,23 @@ func deleteRepositoryTransfer(e Engine, repoID int64) error {
 
 // CancelRepositoryTransfer makes sure to set the transfer process as
 // "rejected". Thus ending the transfer process
-func CancelRepositoryTransfer(repoTransfer *RepoTransfer) error {
-	repoTransfer.Status = Rejected
-	repoTransfer.UpdatedUnix = timeutil.TimeStampNow()
-	_, err := x.ID(repoTransfer.ID).Cols("updated_unix", "status").
-		Update(repoTransfer)
-	return err
+func CancelRepositoryTransfer(repo *Repository) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
+
+	repo.Status = RepositoryReady
+	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
+		return err
+	}
+
+	if err := deleteRepositoryTransfer(sess, repo.ID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // TestRepositoryReadyForTransfer make sure repo is ready to transfer
@@ -188,19 +185,6 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 		return err
 	}
 
-	// Make sure the repo isn't being transferred to someone currently
-	// Only one transfer process can be initiated at a time.
-	// It has to be cancelled for a new one to occur
-	n, err := e.Where("status = ? AND repo_id = ?", Pending, repo.ID).
-		Count(new(RepoTransfer))
-	if err != nil {
-		return err
-	}
-
-	if n > 0 {
-		return ErrRepoTransferInProgress{newOwner.LowerName, repo.Name}
-	}
-
 	// Check if new owner has repository with same name.
 	has, err := IsRepositoryExist(newOwner, repo.Name)
 	if err != nil {
@@ -212,7 +196,6 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 	transfer := &RepoTransfer{
 		RepoID:      repo.ID,
 		RecipientID: newOwner.ID,
-		Status:      Pending,
 		CreatedUnix: timeutil.TimeStampNow(),
 		UpdatedUnix: timeutil.TimeStampNow(),
 		UserID:      doer.ID,

@@ -43,5 +43,5 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Error(t, err)
 
 	// Cancel transfer
-	assert.NoError(t, CancelRepositoryTransfer(transfer))
+	assert.NoError(t, CancelRepositoryTransfer(repo))
 }

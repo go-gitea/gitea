@@ -524,12 +524,12 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err = repoTransfer.LoadAttributes(); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
 
-		if err := models.CancelRepositoryTransfer(repoTransfer); err != nil {
+		if err = models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}
