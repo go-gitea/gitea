@@ -71,8 +71,8 @@ export default async function initImageDiff() {
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }
 
-      $container.find('.loader').hide();
-      $container.find('.hide').removeClass('hide');
+      $container.find('> .loader').hide();
+      $container.find('> .hide').removeClass('hide');
     }
 
     function initSideBySide(sizes) {
