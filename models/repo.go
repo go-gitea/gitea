@@ -139,8 +139,9 @@ type RepositoryStatus int
 
 // all kinds of RepositoryStatus
 const (
-	RepositoryReady         RepositoryStatus = iota // a normal repository
-	RepositoryBeingMigrated                         // repository is migrating
+	RepositoryReady           RepositoryStatus = iota // a normal repository
+	RepositoryBeingMigrated                           // repository is migrating
+	RepositoryPendingTransfer                         // repository pending in ownership transfer state
 )
 
 // TrustModelType defines the types of trust model for this repository
