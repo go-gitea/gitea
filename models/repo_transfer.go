@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
 // TransferStatus determines the current state of a transfer
@@ -136,10 +134,8 @@ func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	return transfer, nil
 }
 
-func acceptRepositoryTransfer(sess *xorm.Session, repo *Repository) error {
-	_, err := sess.Where("repo_id = ?", repo.ID).Cols("status").Update(&RepoTransfer{
-		Status: Accepted,
-	})
+func deleteRepositoryTransfer(e Engine, repoID int64) error {
+	_, err := e.Where("repo_id = ?", repoID).Delete(&RepoTransfer{})
 	return err
 }
 
@@ -198,7 +194,7 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 	// Make sure the repo isn't being transferred to someone currently
 	// Only one transfer process can be initiated at a time.
 	// It has to be cancelled for a new one to occur
-	n, err := x.Where("status = ? AND repo_id = ?", Pending, repo.ID).
+	n, err := e.Where("status = ? AND repo_id = ?", Pending, repo.ID).
 		Count(new(RepoTransfer))
 	if err != nil {
 		return err
@@ -230,7 +226,7 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
 	}
 
-	_, err = x.Insert(transfer)
+	_, err = e.Insert(transfer)
 	return err
 }
 
@@ -356,7 +352,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		}
 	}
 
-	if err := acceptRepositoryTransfer(sess, repo); err != nil {
+	if err = deleteRepositoryTransfer(sess, repo.ID); err != nil {
 		return fmt.Errorf("accept repository transfer: %v", err)
 	}
 
