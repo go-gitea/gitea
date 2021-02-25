@@ -93,7 +93,12 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 		}
 	}
 
-	if err = repo_service.TransferOwnership(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+		if models.IsErrCancelled(err) {
+			ctx.Error(http.StatusForbidden, "transfer", "user has no right to create repo for new owner")
+			return
+		}
+
 		ctx.InternalServerError(err)
 		return
 	}
