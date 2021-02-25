@@ -123,9 +123,9 @@
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
 						<a class="repo-list-link df ac sb" :href="suburl + '/' + repo.full_name">
-							<div class="f1">
+							<div class="text truncate item-name f1">
 								<component v-bind:is="repoIcon(repo)" size="16"></component>
-								<strong class="text truncate item-name">${repo.full_name}</strong>
+								<strong>${repo.full_name}</strong>
 								<span v-if="repo.archived">
 									{{svg "octicon-archive" 16 "ml-2"}}
 								</span>
@@ -175,9 +175,9 @@
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
 						<a class="repo-list-link df ac sb" :href="suburl + '/' + org.name">
-							<div class="f1">
+							<div class="text truncate item-name f1">
 								{{svg "octicon-organization" 16 "mr-2"}}
-								<strong class="text truncate item-name">${org.name}</strong>
+								<strong>${org.name}</strong>
 							</div>
 							<div class="text light grey df ac">
 								${org.num_repos}
