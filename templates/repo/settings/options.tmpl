@@ -444,19 +444,19 @@
 			{{end}}
 			<div class="item">
 				<div class="ui right">
-					{{ if .IsRepoTransferInProgress }}
+					{{if .RepoTransfer}}
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="cancel_transfer">
 							<button class="ui red button">{{.i18n.Tr "repo.settings.abort_transfer"}}</button>
-			</form>
-				        {{ else }}
-					<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.i18n.Tr "repo.settings.transfer"}}</button>
-				         {{ end }}
+						</form>
+					{{ else }}
+						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.i18n.Tr "repo.settings.transfer"}}</button>
+					{{ end }}
 				</div>
 				<div>
 					<h5>{{.i18n.Tr "repo.settings.transfer"}}</h5>
-					{{if .IsRepoTransferInProgress }}
+					{{if .RepoTransfer}}
 					<p>{{.i18n.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.Name}}</p>
 				        {{else}}
 					<p>{{.i18n.Tr "repo.settings.transfer_desc"}}</p>

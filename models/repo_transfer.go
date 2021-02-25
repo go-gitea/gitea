@@ -191,6 +191,9 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 	if _, err = sess.Insert(transfer); err != nil {
 		return err
 	}
+
+	// TODO: user witch have "create repo"-access to new place
+
 	return sess.Commit()
 }
 

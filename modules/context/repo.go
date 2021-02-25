@@ -600,6 +600,18 @@ func RepoAssignment() func(http.Handler) http.Handler {
 			ctx.Data["CanCompareOrPull"] = canCompare
 			ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
+			if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
+				repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+				if err == nil {
+					if err := repoTransfer.LoadAttributes(); err != nil {
+						ctx.ServerError("LoadRecipient", err)
+						return
+					}
+
+					ctx.Data["RepoTransfer"] = repoTransfer
+				}
+			}
+
 			repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 			if err == nil {
 				if err := repoTransfer.LoadAttributes(); err != nil {

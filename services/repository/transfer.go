@@ -72,8 +72,7 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 }
 
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
-// it marks the repository transfer as "pending",
-// if the new owner is a user or if he dont have access to the new place.
+// it make repository into pending transfer state, if doer can not create repo for new owner.
 func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
 	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
