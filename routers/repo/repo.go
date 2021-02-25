@@ -286,7 +286,7 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := repoTransfer.LoadAttributes(); err != nil {
+		if err = repoTransfer.LoadAttributes(); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 			return
 		}
@@ -296,7 +296,7 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		if err := repo_service.TransferOwnership(repoTransfer.User, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+		if err = repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 			return
 		}
@@ -332,7 +332,7 @@ func Action(ctx *context.Context) {
 		}
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
-		ctx.Redirect(setting.AppSubURL + "/")
+		ctx.Redirect(ctx.Repo.Repository.HTMLURL())
 		return
 	}
 

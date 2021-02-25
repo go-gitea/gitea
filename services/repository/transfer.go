@@ -79,9 +79,20 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 		return err
 	}
 
-	// if user is allowed to directly transfer, do it
-	if doer.IsAdmin || newOwner.IsOrganization() && newOwner.HasMemberWithUserID(doer.ID) {
+	// Admin is always allowed to transfer
+	if doer.IsAdmin {
 		return TransferOwnership(doer, newOwner, repo, teams)
+	}
+
+	// If new owner is an org and user can create repos he can transfer directly too
+	if newOwner.IsOrganization() {
+		allowed, err := models.CanCreateOrgRepo(newOwner.ID, doer.ID)
+		if err != nil {
+			return err
+		}
+		if allowed {
+			return TransferOwnership(doer, newOwner, repo, teams)
+		}
 	}
 
 	// Make repo as pending for transfer

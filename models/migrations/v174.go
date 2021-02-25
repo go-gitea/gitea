@@ -13,7 +13,7 @@ import (
 func addRepoTransfer(x *xorm.Engine) error {
 	type RepoTransfer struct {
 		ID          int64 `xorm:"pk autoincr"`
-		UserID      int64
+		DoerID      int64
 		RecipientID int64
 		RepoID      int64
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`

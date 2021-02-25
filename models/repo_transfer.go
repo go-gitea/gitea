@@ -16,23 +16,20 @@ import (
 // RepoTransfer is used to manage repository transfers
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64
-	User        *User `xorm:"-"`
+	DoerID      int64
+	Doer        *User `xorm:"-"`
 	RecipientID int64
 	Recipient   *User `xorm:"-"`
 	RepoID      int64
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 	TeamIDs     []int64
 	Teams       []*Team `xorm:"-"`
+
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 }
 
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
-	if r.Recipient != nil && r.User != nil && (len(r.TeamIDs) > 0 && len(r.Teams) == len(r.TeamIDs)) {
-		return nil
-	}
-
 	if r.Recipient == nil {
 		u, err := GetUserByID(r.RecipientID)
 		if err != nil {
@@ -58,13 +55,13 @@ func (r *RepoTransfer) LoadAttributes() error {
 		}
 	}
 
-	if r.User == nil {
-		u, err := GetUserByID(r.UserID)
+	if r.Doer == nil {
+		u, err := GetUserByID(r.DoerID)
 		if err != nil {
 			return err
 		}
 
-		r.User = u
+		r.Doer = u
 	}
 
 	return nil
@@ -72,7 +69,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 // IsTransferForUser checks if the user has the rights to accept/decline a repo
 // transfer.
-// For organizations, this check if the user is a member of the owners team
+// For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) IsTransferForUser(u *User) bool {
 	if err := r.LoadAttributes(); err != nil {
 		return false
@@ -82,22 +79,13 @@ func (r *RepoTransfer) IsTransferForUser(u *User) bool {
 		return r.RecipientID == u.ID
 	}
 
-	t, err := r.Recipient.getOwnerTeam(x)
+	allowed, err := CanCreateOrgRepo(r.RecipientID, u.ID)
 	if err != nil {
+		log.Error("CanCreateOrgRepo: %v", err)
 		return false
 	}
 
-	if err := t.GetMembers(&SearchMembersOptions{}); err != nil {
-		return false
-	}
-
-	for k := range t.Members {
-		if t.Members[k].ID == u.ID {
-			return true
-		}
-	}
-
-	return false
+	return allowed
 }
 
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
@@ -198,7 +186,7 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 		RecipientID: newOwner.ID,
 		CreatedUnix: timeutil.TimeStampNow(),
 		UpdatedUnix: timeutil.TimeStampNow(),
-		UserID:      doer.ID,
+		DoerID:      doer.ID,
 		TeamIDs:     []int64{},
 	}
 
