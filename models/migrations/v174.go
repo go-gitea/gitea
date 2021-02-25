@@ -18,7 +18,7 @@ func addRepoTransfer(x *xorm.Engine) error {
 		RepoID      int64
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
-		Status      bool
+		Status      uint8
 		TeamIDs     []int64
 	}
 

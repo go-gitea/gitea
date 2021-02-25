@@ -23,9 +23,6 @@ const (
 	// Rejected is a status for transfers that get cancelled by either the
 	// recipient or the user who initiated the transfer
 	Rejected
-	// Accepted is a repo transfer state for repository transfers that have
-	// been acknowledged by the recipient
-	Accepted
 )
 
 // RepoTransfer is used to manage repository transfers
