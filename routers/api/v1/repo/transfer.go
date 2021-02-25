@@ -102,6 +102,11 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "CreatePendingRepositoryTransfer", err)
+			return
+		}
+
 		ctx.InternalServerError(err)
 		return
 	}
