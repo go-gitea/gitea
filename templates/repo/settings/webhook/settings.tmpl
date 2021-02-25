@@ -217,7 +217,7 @@
 				</div>
 			</div>
 		</div>
-		{{if .PageIsOrgHooks }}
+		{{if or .PageIsOrgHooks .PageIsAdminSystemHooks}}
 			<!-- org hooks -->
 			<div class="fourteen wide column">
 				<label>{{.i18n.Tr "repo.settings.event_header_org"}}</label>

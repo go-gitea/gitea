@@ -288,11 +288,18 @@ func DeleteTeam(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     description: team deleted
-
 	if err := models.DeleteTeam(ctx.Org.Team); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTeam", err)
 		return
 	}
+	var err error
+	ctx.Org.Organization, err = models.GetUserByID(ctx.Org.Team.OrgID)
+	if err != nil {
+		log.Error("GetUserByID: %v", err)
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
 	notification.NotifyRemoveOrgTeam(ctx.User, ctx.Org.Organization, ctx.Org.Team)
 	ctx.Status(http.StatusNoContent)
 }
@@ -415,6 +422,13 @@ func AddTeamMember(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
+	var err error
+	ctx.Org.Organization, err = models.GetUserByID(ctx.Org.Team.OrgID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "AddMember", err)
+		return
+	}
+
 	isOrgMember, err2 := models.IsOrganizationMember(ctx.Org.Organization.ID, u.ID)
 	if err2 != nil {
 		log.Error("IsOrganizationMember : %v", err2)
@@ -461,6 +475,12 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	}
 
 	if err := ctx.Org.Team.RemoveMember(u.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
+		return
+	}
+	var err error
+	ctx.Org.Organization, err = models.GetUserByID(ctx.Org.Team.OrgID)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "RemoveMember", err)
 		return
 	}
