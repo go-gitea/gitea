@@ -85,5 +85,6 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 	}
 
 	// Make repo as pending for transfer
-	return models.StartRepositoryTransfer(doer, newOwner, repo, teams)
+	repo.Status = models.RepositoryPendingTransfer
+	return models.StartRepositoryTransfer(doer, newOwner, repo.ID, teams)
 }

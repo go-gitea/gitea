@@ -106,6 +106,12 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+	if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
+		log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
+		return
+	}
+
+	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
 	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
 }

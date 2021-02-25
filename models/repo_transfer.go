@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -160,13 +160,13 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending",
 // if the new owner is a user or if he dont have access to the new place.
-func StartRepositoryTransfer(doer, newOwner *User, repo *Repository, teams []*Team) error {
+func StartRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 	defer sess.Close()
-	if err := startRepositoryTransfer(sess, doer, newOwner, repo.ID, teams); err != nil {
+	if err := startRepositoryTransfer(sess, doer, newOwner, repoID, teams); err != nil {
 		return err
 	}
 	return sess.Commit()
