@@ -6,11 +6,9 @@
 package migrations
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -292,6 +290,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
+		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            *asset.ID,
 			Name:          *asset.Name,
@@ -302,7 +301,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			Updated:       asset.UpdatedAt.Time,
 			DownloadFunc: func() (io.ReadCloser, error) {
 				g.sleep()
-				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, *asset.ID, http.DefaultClient)
+				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -311,7 +310,23 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 					log.Error("g.client.RateLimits: %s", err)
 				}
 				if asset == nil {
-					return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
+					if redir != "" {
+						g.sleep()
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+						if err != nil {
+							return nil, err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						err1 := g.RefreshRate()
+						if err1 != nil {
+							log.Error("g.client.RateLimits: %s", err1)
+						}
+						if err != nil {
+							return nil, err
+						}
+						return resp.Body, nil
+					}
+					return nil, fmt.Errorf("No release asset found for %d", assetID)
 				}
 				return asset, nil
 			},

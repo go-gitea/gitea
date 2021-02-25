@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"golang.org/x/oauth2"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -77,13 +78,27 @@ type CredentialSource struct {
 }
 
 // parse determines the type of CredentialSource needed
-func (c *Config) parse(ctx context.Context) baseCredentialSource {
-	if c.CredentialSource.File != "" {
-		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}
+func (c *Config) parse(ctx context.Context) (baseCredentialSource, error) {
+	if len(c.CredentialSource.EnvironmentID) > 3 && c.CredentialSource.EnvironmentID[:3] == "aws" {
+		if awsVersion, err := strconv.Atoi(c.CredentialSource.EnvironmentID[3:]); err == nil {
+			if awsVersion != 1 {
+				return nil, fmt.Errorf("oauth2/google: aws version '%d' is not supported in the current build", awsVersion)
+			}
+			return awsCredentialSource{
+				EnvironmentID:               c.CredentialSource.EnvironmentID,
+				RegionURL:                   c.CredentialSource.RegionURL,
+				RegionalCredVerificationURL: c.CredentialSource.RegionalCredVerificationURL,
+				CredVerificationURL:         c.CredentialSource.URL,
+				TargetResource:              c.Audience,
+				ctx:                         ctx,
+			}, nil
+		}
+	} else if c.CredentialSource.File != "" {
+		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}, nil
 	} else if c.CredentialSource.URL != "" {
-		return urlCredentialSource{URL: c.CredentialSource.URL, Format: c.CredentialSource.Format, ctx: ctx}
+		return urlCredentialSource{URL: c.CredentialSource.URL, Format: c.CredentialSource.Format, ctx: ctx}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("oauth2/google: unable to parse credential source")
 }
 
 type baseCredentialSource interface {
@@ -100,11 +115,12 @@ type tokenSource struct {
 func (ts tokenSource) Token() (*oauth2.Token, error) {
 	conf := ts.conf
 
-	credSource := conf.parse(ts.ctx)
-	if credSource == nil {
-		return nil, fmt.Errorf("oauth2/google: unable to parse credential source")
+	credSource, err := conf.parse(ts.ctx)
+	if err != nil {
+		return nil, err
 	}
 	subjectToken, err := credSource.subjectToken()
+
 	if err != nil {
 		return nil, err
 	}

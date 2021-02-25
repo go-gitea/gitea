@@ -66,17 +66,31 @@ const (
 
 // settings
 var (
-	// AppVer settings
-	AppVer         string
-	AppBuiltWith   string
-	AppStartTime   time.Time
-	AppName        string
-	AppURL         string
-	AppSubURL      string
-	AppSubURLDepth int // Number of slashes
-	AppPath        string
-	AppDataPath    string
-	AppWorkPath    string
+	// AppVer is the version of the current build of Gitea. It is set in main.go from main.Version.
+	AppVer string
+	// AppBuiltWith represents a human readable version go runtime build version and build tags. (See main.go formatBuiltWith().)
+	AppBuiltWith string
+	// AppStartTime store time gitea has started
+	AppStartTime time.Time
+	// AppName is the Application name, used in the page title.
+	// It maps to ini:"APP_NAME"
+	AppName string
+	// AppURL is the Application ROOT_URL. It always has a '/' suffix
+	// It maps to ini:"ROOT_URL"
+	AppURL string
+	// AppSubURL represents the sub-url mounting point for gitea. It is either "" or starts with '/' and ends without '/', such as '/{subpath}'.
+	// This value is empty if site does not have sub-url.
+	AppSubURL string
+	// AppPath represents the path to the gitea binary
+	AppPath string
+	// AppWorkPath is the "working directory" of Gitea. It maps to the environment variable GITEA_WORK_DIR.
+	// If that is not set it is the default set here by the linker or failing that the directory of AppPath.
+	//
+	// AppWorkPath is used as the base path for several other paths.
+	AppWorkPath string
+	// AppDataPath is the default path for storing data.
+	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
+	AppDataPath string
 
 	// Server settings
 	Protocol             Scheme
@@ -594,8 +608,9 @@ func NewContext() {
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
 		defaultAppURL += ":" + HTTPPort
 	}
-	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL)
-	AppURL = strings.TrimSuffix(AppURL, "/") + "/"
+	AppURL = sec.Key("ROOT_URL").MustString(defaultAppURL + "/")
+	// This should be TrimRight to ensure that there is only a single '/' at the end of AppURL.
+	AppURL = strings.TrimRight(AppURL, "/") + "/"
 
 	// Check if has app suburl.
 	appURL, err := url.Parse(AppURL)
@@ -606,7 +621,7 @@ func NewContext() {
 	// This value is empty if site does not have sub-url.
 	AppSubURL = strings.TrimSuffix(appURL.Path, "/")
 	StaticURLPrefix = strings.TrimSuffix(sec.Key("STATIC_URL_PREFIX").MustString(AppSubURL), "/")
-	AppSubURLDepth = strings.Count(AppSubURL, "/")
+
 	// Check if Domain differs from AppURL domain than update it to AppURL's domain
 	urlHostname := appURL.Hostname()
 	if urlHostname != Domain && net.ParseIP(urlHostname) == nil && urlHostname != "" {

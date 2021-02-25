@@ -1,0 +1,21 @@
+{{ if .comment.Time }} {{/* compatibility with time comments made before v1.14 */}}
+	{{ if (not .comment.Time.Deleted) }}
+		{{ if (or .ctx.IsAdmin (and .ctx.IsSigned (eq .ctx.SignedUserID .comment.PosterID))) }}
+			<span class="ui float right">
+				<div class="ui mini modal issue-delete-time-modal" data-id="{{.comment.Time.ID}}">
+					<form method="POST" class="delete-time-form" action="{{.ctx.RepoLink}}/issues/{{.ctx.Issue.Index}}/times/{{.comment.TimeID}}/delete">
+						{{.ctx.CsrfTokenHtml}}
+					</form>
+					<div class="header">{{.ctx.i18n.Tr "repo.issues.del_time"}}</div>
+					<div class="actions">
+						<div class="ui red approve button">{{.ctx.i18n.Tr "repo.issues.context.delete"}}</div>
+						<div class="ui cancel button">{{.ctx.i18n.Tr "repo.issues.add_time_cancel"}}</div>
+					</div>
+				</div>
+				<button class="ui icon button compact mini issue-delete-time poping up" data-id="{{.comment.Time.ID}}" data-content="{{.ctx.i18n.Tr "repo.issues.del_time"}}" data-position="top right" data-variation="tiny inverted">
+					{{svg "octicon-trashcan"}}
+				</button>
+			</span>
+		{{end}}
+	{{end}}
+{{end}}

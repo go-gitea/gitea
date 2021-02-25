@@ -425,9 +425,11 @@ github.com/gorilla/handlers
 github.com/gorilla/mux
 # github.com/gorilla/securecookie v1.1.1
 github.com/gorilla/securecookie
-# github.com/gorilla/sessions v1.2.0
+# github.com/gorilla/sessions v1.2.1
+## explicit
 github.com/gorilla/sessions
-# github.com/hashicorp/go-cleanhttp v0.5.1
+# github.com/hashicorp/go-cleanhttp v0.5.2
+## explicit
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.8
 ## explicit
@@ -506,7 +508,7 @@ github.com/klauspost/pgzip
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.3.2
+# github.com/lafriks/xormstore v1.4.0
 ## explicit
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
@@ -579,7 +581,7 @@ github.com/miekg/dns
 # github.com/minio/md5-simd v1.1.1
 ## explicit
 github.com/minio/md5-simd
-# github.com/minio/minio-go/v7 v7.0.7
+# github.com/minio/minio-go/v7 v7.0.9
 ## explicit
 github.com/minio/minio-go/v7
 github.com/minio/minio-go/v7/pkg/credentials
@@ -650,14 +652,14 @@ github.com/pmezard/go-difflib/difflib
 github.com/pquerna/otp
 github.com/pquerna/otp/hotp
 github.com/pquerna/otp/totp
-# github.com/prometheus/client_golang v1.8.0
+# github.com/prometheus/client_golang v1.9.0
 ## explicit
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
 # github.com/prometheus/client_model v0.2.0
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.14.0
+# github.com/prometheus/common v0.15.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 github.com/prometheus/common/model
@@ -755,7 +757,7 @@ github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
 ## explicit
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.42.0
+# github.com/xanzy/go-gitlab v0.44.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.2.1
@@ -765,7 +767,7 @@ github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.3.1
+# github.com/yuin/goldmark v1.3.2
 ## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
@@ -870,7 +872,7 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.0.0-20210126194326-f9ce19ea3013
+# golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google
@@ -1008,10 +1010,10 @@ mvdan.cc/xurls/v2
 # strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 ## explicit
 strk.kbt.io/projects/go/libravatar
-# xorm.io/builder v0.3.7
+# xorm.io/builder v0.3.9
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.0.6
+# xorm.io/xorm v1.0.7
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches
