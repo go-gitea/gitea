@@ -5,8 +5,6 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
@@ -16,9 +14,9 @@ func addRepoTransfer(x *xorm.Engine) error {
 		DoerID      int64
 		RecipientID int64
 		RepoID      int64
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 		TeamIDs     []int64
+		CreatedUnix int64 `xorm:"INDEX NOT NULL created"`
+		UpdatedUnix int64 `xorm:"INDEX NOT NULL updated"`
 	}
 
 	return x.Sync(new(RepoTransfer))
