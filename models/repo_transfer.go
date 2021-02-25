@@ -72,6 +72,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 // For organizations, it checks if the user is able to create repos
 func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 	if err := r.LoadAttributes(); err != nil {
+		log.Error("LoadAttributes: %v", err)
 		return false
 	}
 
@@ -98,7 +99,7 @@ func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 		return nil, err
 	}
 
-	if transfer.ID == 0 || !has {
+	if !has {
 		return nil, ErrNoPendingRepoTransfer{RepoID: repo.ID}
 	}
 
@@ -150,14 +151,8 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := createPendingRepositoryTransfer(sess, doer, newOwner, repoID, teams); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
 
-func createPendingRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams []*Team) error {
-	repo, err := getRepositoryByID(e, repoID)
+	repo, err := getRepositoryByID(sess, repoID)
 	if err != nil {
 		return err
 	}
@@ -168,12 +163,12 @@ func createPendingRepositoryTransfer(e Engine, doer, newOwner *User, repoID int6
 	}
 
 	repo.Status = RepositoryPendingTransfer
-	if err = updateRepositoryCols(e, repo, "status"); err != nil {
+	if err = updateRepositoryCols(sess, repo, "status"); err != nil {
 		return err
 	}
 
 	// Check if new owner has repository with same name.
-	has, err := IsRepositoryExist(newOwner, repo.Name)
+	has, err := isRepositoryExist(sess, newOwner, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -193,8 +188,10 @@ func createPendingRepositoryTransfer(e Engine, doer, newOwner *User, repoID int6
 		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
 	}
 
-	_, err = e.Insert(transfer)
-	return err
+	if _, err = sess.Insert(transfer); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // TransferOwnership transfers all corresponding setting from old user to new one.

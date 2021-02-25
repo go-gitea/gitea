@@ -18,6 +18,13 @@ func TestRepositoryTransfer(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 
 	transfer, err := GetPendingRepositoryTransfer(repo)
+	assert.NoError(t, err)
+	assert.NotNil(t, transfer)
+
+	// Cancel transfer
+	assert.NoError(t, CancelRepositoryTransfer(repo))
+
+	transfer, err = GetPendingRepositoryTransfer(repo)
 	assert.Error(t, err)
 	assert.Nil(t, transfer)
 	assert.True(t, IsErrNoPendingTransfer(err))
