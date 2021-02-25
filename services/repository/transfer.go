@@ -72,3 +72,31 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 
 	return nil
 }
+
+// StartRepositoryTransfer transfer a repo from one owner to a new one.
+// it make repository into pending transfer state, if doer can not create repo for new owner.
+func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
+	if repo.Status != models.RepositoryReady {
+		return fmt.Errorf("repository is not ready for transfer")
+	}
+
+	// Admin is always allowed to transfer
+	if doer.IsAdmin {
+		return TransferOwnership(doer, newOwner, repo, teams)
+	}
+
+	// If new owner is an org and user can create repos he can transfer directly too
+	if newOwner.IsOrganization() {
+		allowed, err := models.CanCreateOrgRepo(newOwner.ID, doer.ID)
+		if err != nil {
+			return err
+		}
+		if allowed {
+			return TransferOwnership(doer, newOwner, repo, teams)
+		}
+	}
+
+	// Block Transfer, new feature will come in v1.14.0
+	// https://github.com/go-gitea/gitea/pull/14792
+	return models.ErrCancelled{}
+}

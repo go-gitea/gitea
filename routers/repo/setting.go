@@ -475,9 +475,12 @@ func SettingsPost(ctx *context.Context, form auth.RepoSettingForm) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
+		if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			} else if models.IsErrCancelled(err) {
+				// this err msg is not translated, since it was introduced in a backport
+				ctx.RenderWithErr("user has no right to create repo for new owner", tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
