@@ -24,7 +24,7 @@ func TestRepositoryTransfer(t *testing.T) {
 
 	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	assert.NoError(t, StartRepositoryTransfer(doer, user2, repo.ID, nil))
+	assert.NoError(t, CreatePendingRepositoryTransfer(doer, user2, repo.ID, nil))
 
 	transfer, err = GetPendingRepositoryTransfer(repo)
 	assert.Nil(t, err)
@@ -34,12 +34,12 @@ func TestRepositoryTransfer(t *testing.T) {
 	user6 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	// Only transfer can be started at any given time
-	err = StartRepositoryTransfer(doer, user6, repo.ID, nil)
+	err = CreatePendingRepositoryTransfer(doer, user6, repo.ID, nil)
 	assert.Error(t, err)
 	assert.True(t, IsErrRepoTransferInProgress(err))
 
 	// Unknown user
-	err = StartRepositoryTransfer(doer, &User{ID: 1000, LowerName: "user1000"}, repo.ID, nil)
+	err = CreatePendingRepositoryTransfer(doer, &User{ID: 1000, LowerName: "user1000"}, repo.ID, nil)
 	assert.Error(t, err)
 
 	// Cancel transfer

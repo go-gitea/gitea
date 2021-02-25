@@ -142,22 +142,21 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 	return nil
 }
 
-// StartRepositoryTransfer transfer a repo from one owner to a new one.
-// it marks the repository transfer as "pending",
-// if the new owner is a user or if he dont have access to the new place.
-func StartRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
+// CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
+// it marks the repository transfer as "pending"
+func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	defer sess.Close()
-	if err := startRepositoryTransfer(sess, doer, newOwner, repoID, teams); err != nil {
+	if err := createPendingRepositoryTransfer(sess, doer, newOwner, repoID, teams); err != nil {
 		return err
 	}
 	return sess.Commit()
 }
 
-func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams []*Team) error {
+func createPendingRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams []*Team) error {
 	repo, err := getRepositoryByID(e, repoID)
 	if err != nil {
 		return err
@@ -200,23 +199,23 @@ func startRepositoryTransfer(e Engine, doer, newOwner *User, repoID int64, teams
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
 func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
-	newOwner, err := GetUserByName(newOwnerName)
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return fmt.Errorf("sess.Begin: %v", err)
+	}
+
+	newOwner, err := getUserByName(sess, newOwnerName)
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
 
 	// Check if new owner has repository with same name.
-	has, err := IsRepositoryExist(newOwner, repo.Name)
+	has, err := isRepositoryExist(sess, newOwner, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
 	}
 
 	oldOwner := repo.Owner
@@ -228,7 +227,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	repo.OwnerName = newOwner.Name
 
 	// Update repository.
-	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
+	if _, err = sess.ID(repo.ID).Update(repo); err != nil {
 		return fmt.Errorf("update owner: %v", err)
 	}
 

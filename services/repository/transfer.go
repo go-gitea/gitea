@@ -41,7 +41,7 @@ func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, tea
 	}
 
 	for _, team := range teams {
-		if err := team.AddRepository(newRepo); err != nil {
+		if err = team.AddRepository(newRepo); err != nil {
 			return err
 		}
 	}
@@ -97,5 +97,5 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 
 	// Make repo as pending for transfer
 	repo.Status = models.RepositoryPendingTransfer
-	return models.StartRepositoryTransfer(doer, newOwner, repo.ID, teams)
+	return models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams)
 }

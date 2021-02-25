@@ -1,6 +1,6 @@
 -
   id: 1
-  user_id: 3
+  doer_id: 3
   recipient_id: 1
   repo_id: 3
   created_unix: 1553610671

@@ -98,7 +98,7 @@ func Transfer(ctx *context.APIContext) {
 
 	if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if models.IsErrRepoTransferInProgress(err) {
-			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
+			ctx.Error(http.StatusConflict, "CreatePendingRepositoryTransfer", err)
 			return
 		}
 
