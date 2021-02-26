@@ -80,8 +80,8 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 		return fmt.Errorf("repository is not ready for transfer")
 	}
 
-	// Admin is always allowed to transfer
-	if doer.IsAdmin {
+	// Admin is always allowed to transfer || user transfer repo back to his account
+	if doer.IsAdmin || doer.ID == newOwner.ID {
 		return TransferOwnership(doer, newOwner, repo, teams)
 	}
 
