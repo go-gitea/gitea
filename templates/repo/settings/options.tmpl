@@ -448,7 +448,7 @@
 						<form class="ui form" action="{{.Link}}" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="action" value="cancel_transfer">
-							<button class="ui red button">{{.i18n.Tr "repo.settings.abort_transfer"}}</button>
+							<button class="ui red button">{{.i18n.Tr "repo.settings.transfer_abort"}}</button>
 						</form>
 					{{ else }}
 						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.i18n.Tr "repo.settings.transfer"}}</button>
@@ -611,7 +611,7 @@
 
 				<div class="text right actions">
 					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-					<button class="ui red button">{{.i18n.Tr "repo.settings.make_transfer"}}</button>
+					<button class="ui red button">{{.i18n.Tr "repo.settings.transfer_perform"}}</button>
 				</div>
 			</form>
 		</div>

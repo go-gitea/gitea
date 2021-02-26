@@ -503,7 +503,7 @@ func SettingsPost(ctx *context.Context) {
 		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
-				ctx.Flash.Error("repo.settings.abort_transfer_invalid")
+				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
 				ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
 			} else {
 				ctx.ServerError("GetPendingRepositoryTransfer", err)
@@ -523,7 +523,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
-		ctx.Flash.Success(ctx.Tr("repo.settings.abort_transfer_success", repoTransfer.Recipient.Name))
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "delete":
