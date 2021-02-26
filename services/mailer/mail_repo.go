@@ -13,22 +13,11 @@ import (
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a repository transfer is initiated
 func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
-	data := map[string]interface{}{
-		//"Subject":             locale.Tr("mail.repo_transfer_notify"),
-		"Subject":             "mail.repo_transfer_notify",
-		"RepoName":            repo.FullName(),
-		"Link":                repo.HTMLURL(),
-		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
-		"DeclineTransferLink": repo.HTMLURL() + "/action/reject_transfer",
-	}
-
-	var content bytes.Buffer
-
-	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-		return err
-	}
-
-	var emails []string
+	var (
+		emails      []string
+		destination string
+		content     bytes.Buffer
+	)
 
 	if newOwner.IsOrganization() {
 		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
@@ -39,8 +28,24 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 		for i := range users {
 			emails = append(emails, users[i].Email)
 		}
+		destination = newOwner.DisplayName()
 	} else {
 		emails = []string{newOwner.Email}
+		destination = "you"
+	}
+
+	data := map[string]interface{}{
+		"Doer":    doer,
+		"User":    repo.Owner,
+		"Repo":    repo.FullName(),
+		"Link":    repo.HTMLURL(),
+		"Subject": fmt.Sprintf("%s like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination),
+
+		"Destination": destination,
+	}
+
+	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
+		return err
 	}
 
 	// msg := NewMessage([]string{email}, locale.Tr("mail.repo_transfer_notify"), content.String())
