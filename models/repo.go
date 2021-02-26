@@ -869,6 +869,11 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
+// ReadBy sets repo to be visited by given user.
+func (repo *Repository) ReadBy(userID int64) error {
+	return setRepoNotificationStatusReadIfUnread(x, userID, repo.ID)
+}
+
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,

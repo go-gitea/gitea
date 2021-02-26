@@ -735,7 +735,7 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
-func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
+func setIssueNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	// ignore if not exists
 	if err != nil {
@@ -749,6 +749,13 @@ func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification.Status = NotificationStatusRead
 
 	_, err = e.ID(notification.ID).Update(notification)
+	return err
+}
+
+func setRepoNotificationStatusReadIfUnread(e Engine, userID, repoID int64) error {
+	_, err := e.Where(builder.Eq{"user_id": userID}.And(builder.Eq{"status": NotificationStatusUnread}).And(
+		builder.Eq{"source": NotificationSourceRepository})).Cols("status").
+		Update(&Notification{Status: NotificationStatusRead})
 	return err
 }
 
