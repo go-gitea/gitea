@@ -423,52 +423,7 @@ func PrepareCompareDiff(
 	// Get diff information.
 	ctx.Data["CommitRepoLink"] = headRepo.Link()
 
-	headCommitID := headBranch
-
-	var (
-		headIsTag    bool
-		headIsBranch bool
-		headIsCommit bool
-		has          bool
-	)
-	if _, has = ctx.Data["HeadIsTag"]; !has {
-		headIsTag = false
-	} else {
-		headIsTag = ctx.Data["HeadIsTag"].(bool)
-	}
-
-	if !headIsTag {
-		if _, has = ctx.Data["HeadIsBranch"]; !has {
-			headIsBranch = false
-		} else {
-			headIsBranch = ctx.Data["HeadIsBranch"].(bool)
-		}
-	}
-
-	if !headIsTag && !headIsBranch {
-		if _, has = ctx.Data["HeadIsCommit"]; !has {
-			headIsCommit = false
-		} else {
-			headIsCommit = ctx.Data["HeadIsCommit"].(bool)
-		}
-	}
-
-	if headIsTag {
-		headCommitID, err = headGitRepo.GetTagCommitID(headBranch)
-		if err != nil {
-			ctx.ServerError("GetTagCommitID", err)
-			return false
-		}
-	} else if headIsBranch {
-		headCommitID, err = headGitRepo.GetBranchCommitID(headBranch)
-		if err != nil {
-			ctx.ServerError("GetBranchCommitID", err)
-			return false
-		}
-	} else if !headIsCommit {
-		ctx.NotFound("HeadCommit", nil)
-		return false
-	}
+	headCommitID := compareInfo.HeadCommitID
 
 	ctx.Data["AfterCommitID"] = headCommitID
 
@@ -502,18 +457,7 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := baseBranch
-	if ctx.Data["BaseIsCommit"] == false {
-		if ctx.Data["BaseIsTag"] == true {
-			baseCommitID, err = baseGitRepo.GetTagCommitID(baseBranch)
-		} else {
-			baseCommitID, err = baseGitRepo.GetBranchCommitID(baseBranch)
-		}
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return false
-		}
-	}
+	baseCommitID := compareInfo.BaseCommitID
 
 	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
 	if err != nil {

@@ -13806,6 +13806,10 @@
           "type": "boolean",
           "x-go-name": "ProhibitLogin"
         },
+        "restricted": {
+          "type": "boolean",
+          "x-go-name": "Restricted"
+        },
         "source_id": {
           "type": "integer",
           "format": "int64",
@@ -14107,6 +14111,10 @@
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
         },
+        "lfs_disabled": {
+          "type": "boolean",
+          "x-go-name": "LFSDisabled"
+        },
         "migrations_disabled": {
           "type": "boolean",
           "x-go-name": "MigrationsDisabled"
@@ -14114,6 +14122,10 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "time_tracking_disabled": {
+          "type": "boolean",
+          "x-go-name": "TimeTrackingDisabled"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16223,6 +16235,11 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "restricted": {
+          "description": "Is user restricted",
+          "type": "boolean",
+          "x-go-name": "Restricted"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

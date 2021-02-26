@@ -280,7 +280,7 @@ markdown := goldmark.New(
                 []byte("https:"),
             }),
             extension.WithLinkifyURLRegexp(
-                xurls.Strict(),
+                xurls.Strict,
             ),
         ),
     ),
