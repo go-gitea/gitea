@@ -203,7 +203,6 @@ func (ns *notificationService) NotifyPullReviewRequest(doer *models.User, issue 
 }
 
 func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
-	// TODO: use Queue
 	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}

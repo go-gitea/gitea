@@ -405,7 +405,7 @@ func (n *Notification) loadRepo(e Engine) (err error) {
 }
 
 func (n *Notification) loadIssue(e Engine) (err error) {
-	if n.Issue == nil {
+	if n.Issue == nil && n.IssueID != 0 {
 		n.Issue, err = getIssueByID(e, n.IssueID)
 		if err != nil {
 			return fmt.Errorf("getIssueByID [%d]: %v", n.IssueID, err)
@@ -416,7 +416,7 @@ func (n *Notification) loadIssue(e Engine) (err error) {
 }
 
 func (n *Notification) loadComment(e Engine) (err error) {
-	if n.Comment == nil && n.CommentID > 0 {
+	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
 			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
@@ -447,10 +447,18 @@ func (n *Notification) GetIssue() (*Issue, error) {
 
 // HTMLURL formats a URL-string to the notification
 func (n *Notification) HTMLURL() string {
-	if n.Comment != nil {
-		return n.Comment.HTMLURL()
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		if n.Comment != nil {
+			return n.Comment.HTMLURL()
+		}
+		return n.Issue.HTMLURL()
+	case NotificationSourceCommit:
+		return n.Repository.HTMLURL() + "/commit/" + n.CommitID
+	case NotificationSourceRepository:
+		return n.Repository.HTMLURL()
 	}
-	return n.Issue.HTMLURL()
+	return ""
 }
 
 // APIURL formats a URL-string to the notification
@@ -604,8 +612,10 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		if notification.Issue == nil {
 			notification.Issue = issues[notification.IssueID]
 			if notification.Issue == nil {
-				log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
-				failures = append(failures, i)
+				if notification.IssueID != 0 {
+					log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
+					failures = append(failures, i)
+				}
 				continue
 			}
 			notification.Issue.Repo = notification.Repository
