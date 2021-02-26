@@ -5,7 +5,7 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
-					<a class="item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}">
+					<a class="item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.Total}}</strong>
 					</a>
@@ -25,7 +25,7 @@
 										{{$Repo.ID}}%2C
 									{{end}}
 								{{end}}
-								]&sort={{$.SortType}}&state={{$.State}}" title="{{.FullName}}">
+								]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
