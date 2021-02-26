@@ -19,7 +19,7 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 		"RepoName":            repo.FullName(),
 		"Link":                repo.HTMLURL(),
 		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
-		"DeclineTransferLink": repo.HTMLURL() + "/action/decline_transfer",
+		"DeclineTransferLink": repo.HTMLURL() + "/action/reject_transfer",
 	}
 
 	var content bytes.Buffer
