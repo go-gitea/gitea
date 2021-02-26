@@ -9,14 +9,13 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
 )
 
-// SendRepoTransferNotifyMail triggers a notification e-mail when a repository
-// transfer is initiated
-func SendRepoTransferNotifyMail(locale Locale, u *models.User, repo *models.Repository) {
+// SendRepoTransferNotifyMail triggers a notification e-mail when a repository transfer is initiated
+func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
 	data := map[string]interface{}{
-		"Subject":             locale.Tr("mail.repo_transfer_notify"),
+		//"Subject":             locale.Tr("mail.repo_transfer_notify"),
+		"Subject":             "mail.repo_transfer_notify",
 		"RepoName":            repo.FullName(),
 		"Link":                repo.HTMLURL(),
 		"AcceptTransferLink":  repo.HTMLURL() + "/action/accept_transfer",
@@ -26,30 +25,28 @@ func SendRepoTransferNotifyMail(locale Locale, u *models.User, repo *models.Repo
 	var content bytes.Buffer
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
-		log.Error("Template: %v", err)
-		return
+		return err
 	}
 
-	var email = u.Email
+	var emails []string
 
-	if u.IsOrganization() && u.Email == "" {
-		t, err := u.GetOwnerTeam()
+	if newOwner.IsOrganization() {
+		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
 		if err != nil {
-			log.Error("Could not retrieve owners team for organization", err)
-			return
+			return err
 		}
 
-		if err := t.GetMembers(&models.SearchMembersOptions{}); err != nil {
-			log.Error("Could not retrieve members of the owners team", err)
-			return
+		for i := range users {
+			emails = append(emails, users[i].Email)
 		}
-
-		// Just use the email address of the first user
-		email = t.Members[0].Email
+	} else {
+		emails = []string{newOwner.Email}
 	}
 
-	msg := NewMessage([]string{email}, locale.Tr("mail.repo_transfer_notify"), content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", u.ID)
+	// msg := NewMessage([]string{email}, locale.Tr("mail.repo_transfer_notify"), content.String())
+	msg := NewMessage(emails, "mail.repo_transfer_notify", content.String())
+	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", newOwner.ID)
 
 	SendAsync(msg)
+	return nil
 }

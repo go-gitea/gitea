@@ -490,16 +490,11 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if setting.Service.EnableNotifyMail {
-			mailer.SendRepoTransferNotifyMail(ctx.Locale, ctx.Repo.Owner, ctx.Repo.Repository)
-		}
-
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.LowerName))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "cancel_transfer":
-
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(404)
 			return
