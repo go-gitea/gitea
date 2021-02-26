@@ -223,6 +223,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	repo.OwnerID = newOwner.ID
 	repo.Owner = newOwner
 	repo.OwnerName = newOwner.Name
+	// 	if status was RepositoryPendingTransfer set it back to RepositoryReady
+	repo.Status = RepositoryReady
 
 	// Update repository.
 	if _, err = sess.ID(repo.ID).Update(repo); err != nil {
@@ -318,7 +320,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	if err = deleteRepositoryTransfer(sess, repo.ID); err != nil {
-		return fmt.Errorf("accept repository transfer: %v", err)
+		return fmt.Errorf("deleteRepositoryTransfer: %v", err)
 	}
 
 	// If there was previously a redirect at this location, remove it.
