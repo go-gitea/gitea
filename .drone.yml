@@ -427,6 +427,11 @@ steps:
     image: alpine:3.13
     commands:
       - ./build/update-locales.sh
+  
+  - name: test-locales
+    image: golang:1.15
+    commands:
+      - make test-locales
 
   - name: push
     pull: always
@@ -440,6 +445,24 @@ steps:
     environment:
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
+    depends_on: [test-locales]
+    when:
+      status:
+      - success
+
+  - name: notfiy_if_failed
+    pull: always
+    image: appleboy/drone-discord:1.2.4
+    settings:
+      message: "❌ locales files from crowdin has format error"
+      webhook_id:
+        from_secret: discord_webhook_id
+      webhook_token:
+        from_secret: discord_webhook_token
+    depends_on: [test-locales]
+    when:
+      status:
+      - failure
 
   - name: upload_translations
     pull: always

@@ -734,3 +734,7 @@ docker-build:
 
 # This endif closes the if at the top of the file
 endif
+
+.PHONY: test-locales
+test-locales:
+	$(GO) run -mod=vendor build/test-locales.go
