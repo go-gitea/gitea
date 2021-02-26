@@ -602,29 +602,17 @@ func RepoAssignment() func(http.Handler) http.Handler {
 
 			if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
 				repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
-				if err == nil {
-					if err := repoTransfer.LoadAttributes(); err != nil {
-						ctx.ServerError("LoadRecipient", err)
-						return
-					}
-
-					ctx.Data["RepoTransfer"] = repoTransfer
+				if err != nil {
+					ctx.ServerError("GetPendingRepositoryTransfer", err)
+					return
 				}
-			}
 
-			repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
-			if err == nil {
 				if err = repoTransfer.LoadAttributes(); err != nil {
 					ctx.ServerError("LoadRecipient", err)
 					return
 				}
 
 				ctx.Data["RepoTransfer"] = repoTransfer
-			}
-
-			if err != nil && !models.IsErrNoPendingTransfer(err) {
-				ctx.ServerError("GetPendingRepositoryTransfer", err)
-				return
 			}
 
 			if ctx.Query("go-get") == "1" {
