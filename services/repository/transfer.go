@@ -96,7 +96,11 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 
 	// Make repo as pending for transfer
 	repo.Status = models.RepositoryPendingTransfer
-	return models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams)
+	if err := models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams); err != nil {
+		return err
+	}
 
 	// TODO notify users who are able to accept / reject transfer
+	// mail & ui -> add new api nto notifier
+	return models.CreateRepoTransferNotification(doer, newOwner, repo)
 }

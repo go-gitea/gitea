@@ -635,3 +635,7 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	assert.Equal(t, test2, false) // user not a part of org
 	assert.Equal(t, test3, false) // logged out user
 }
+
+func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
+	// TODO write test!
+}

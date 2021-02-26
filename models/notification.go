@@ -40,8 +40,7 @@ const (
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
 	// NotificationSourceRepoTransfer is a notification for a repository
-	// transfer
-	NotificationSourceRepoTransfer
+	NotificationSourceRepository
 )
 
 // Notification represents a notification
@@ -123,22 +122,39 @@ func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
-func CreateRepoTransferNotification(doerID, recipientID int64, repo *Repository) error {
+func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
+	var notify []*Notification
 
-	notification := &Notification{
-		UserID:    recipientID,
-		RepoID:    repo.ID,
-		Status:    NotificationStatusUnread,
-		UpdatedBy: doerID,
-		Source:    NotificationSourceRepoTransfer,
+	if newOwner.IsOrganization() {
+		users, err := GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		if err != nil || len(users) == 0 {
+			return err
+		}
+		for i := range users {
+			notify = append(notify, &Notification{
+				UserID:    users[i].ID,
+				RepoID:    repo.ID,
+				Status:    NotificationStatusUnread,
+				UpdatedBy: doer.ID,
+				Source:    NotificationSourceRepository,
+			})
+		}
+	} else {
+		notify = []*Notification{{
+			UserID:    newOwner.ID,
+			RepoID:    repo.ID,
+			Status:    NotificationStatusUnread,
+			UpdatedBy: doer.ID,
+			Source:    NotificationSourceRepository,
+		}}
 	}
 
-	if _, err := sess.Insert(notification); err != nil {
+	if _, err := sess.InsertMulti(notify); err != nil {
 		return err
 	}
 
