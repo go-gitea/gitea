@@ -45,16 +45,16 @@
 					{{if $.RepoTransfer}}
 					<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled green button poping up" data-content="{{$.i18n.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}" data-position="bottom center" data-variation="tiny">
-							<button type="submit" class="ui compact small basic button"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+						<div class="ui poping up" data-content="{{$.i18n.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}" data-position="bottom center" data-variation="tiny">
+							<button type="submit" class="ui button green ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 								{{$.i18n.Tr "repo.transfer.accept"}}
 							</button>
 						</div>
 					</form>
 					<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled red button">
-							<button type="submit" class="ui compact small basic button"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+						<div class="ui poping up" data-content="{{$.i18n.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}" data-position="bottom center" data-variation="tiny">
+							<button type="submit" class="ui button red ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 								{{$.i18n.Tr "repo.transfer.reject"}}
 							</button>
 						</div>
