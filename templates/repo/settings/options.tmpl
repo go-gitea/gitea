@@ -457,7 +457,7 @@
 				<div>
 					<h5>{{.i18n.Tr "repo.settings.transfer"}}</h5>
 					{{if .RepoTransfer}}
-					<p>{{.i18n.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.Name}}</p>
+					<p>{{.i18n.Tr "repo.settings.transfer_started" .RepoTransfer.Recipient.DisplayName}}</p>
 				        {{else}}
 					<p>{{.i18n.Tr "repo.settings.transfer_desc"}}</p>
 					{{end}}

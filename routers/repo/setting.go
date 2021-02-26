@@ -491,7 +491,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.LowerName))
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
 		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "cancel_transfer":
