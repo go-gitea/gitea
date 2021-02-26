@@ -64,22 +64,16 @@ func CreateAuthSource(ctx *context.APIContext) {
 			switch key {
 			case models.LoginLDAP:
 				config = &models.LDAPConfig{}
-				break
 			case models.LoginSMTP:
 				config = &models.SMTPConfig{}
-				break
 			case models.LoginPAM:
 				config = &models.PAMConfig{}
-				break
 			case models.LoginDLDAP:
 				config = &models.LDAPConfig{}
-				break
 			case models.LoginOAuth2:
 				config = &models.OAuth2Config{}
-				break
 			case models.LoginSSPI:
 				config = &models.SSPIConfig{}
-				break
 			}
 			break
 		}
