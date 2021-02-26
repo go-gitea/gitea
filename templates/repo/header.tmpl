@@ -58,7 +58,7 @@
 				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
 			{{if not .IsBeingCreated}}
-				<div class="repo-buttons">
+				<div class="repo-buttons fw">
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
