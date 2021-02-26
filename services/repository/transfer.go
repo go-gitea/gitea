@@ -103,7 +103,7 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 	}
 
 	// notify users who are able to accept / reject transfer
-	// TODO mail & ui -> add new api nto notifier
+	// TODO mail & ui -> add new api to notifier
 	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		return err
 	}

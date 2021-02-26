@@ -39,7 +39,7 @@ const (
 	NotificationSourcePullRequest
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
-	// NotificationSourceRepoTransfer is a notification for a repository
+	// NotificationSourceRepository is a notification for a repository
 	NotificationSourceRepository
 )
 
