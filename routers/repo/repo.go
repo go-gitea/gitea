@@ -337,8 +337,12 @@ func Action(ctx *context.Context) {
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(404)
+			return
 		}
-		return
+
+		ctx.Repo.Repository.Description = ctx.Query("desc")
+		ctx.Repo.Repository.Website = ctx.Query("site")
+		err = models.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
