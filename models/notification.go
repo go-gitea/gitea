@@ -6,7 +6,7 @@ package models
 
 import (
 	"fmt"
-	"path"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -413,7 +413,7 @@ func (n *Notification) HTMLURL() string {
 
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
-	return setting.AppURL + path.Join("api/v1/notifications/threads", fmt.Sprintf("%d", n.ID))
+	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
 }
 
 // NotificationList contains a list of notifications

@@ -293,6 +293,8 @@ var migrations = []Migration{
 	// v172 -> v173
 	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 	// v173 -> v174
+	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	// v174 -> v175
 	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
 }
 
