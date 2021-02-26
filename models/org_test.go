@@ -637,5 +637,19 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 }
 
 func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
-	// TODO write test!
+	assert.NoError(t, PrepareTestDatabase())
+
+	users, err := GetUsersWhoCanCreateOrgRepo(3)
+	assert.NoError(t, err)
+	assert.Len(t, users, 2)
+	var ids []int64
+	for i := range users {
+		ids = append(ids, users[i].ID)
+	}
+	assert.ElementsMatch(t, ids, []int64{2, 28})
+
+	users, err = GetUsersWhoCanCreateOrgRepo(7)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	assert.EqualValues(t, 5, users[0].ID)
 }

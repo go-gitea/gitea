@@ -397,9 +397,8 @@ func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
 	return users, x.
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where(builder.Eq{"team.can_create_org_repo": true}).And("team_user.org_id = ?", orgID).
-		Asc("`user`.name").
-		Find(&users)
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
