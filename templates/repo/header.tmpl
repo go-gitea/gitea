@@ -45,15 +45,15 @@
 					{{if $.RepoTransfer}}
 					<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
+						<div class="ui labeled green button poping up" data-content="Transfer to &quot;{{$.RepoTransfer.Recipient.DisplayName}}&quot;" data-position="bottom center" data-variation="tiny">
 							<button type="submit" class="ui compact small basic button"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
-								ACCEPT Transfer TODO: show new owner on mouse hover over
+								ACCEPT Transfer
 							</button>
 						</div>
 					</form>
 					<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
+						<div class="ui labeled red button">
 							<button type="submit" class="ui compact small basic button"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
 								REJECT Transfer
 							</button>
