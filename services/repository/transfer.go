@@ -9,9 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
@@ -103,13 +101,7 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 	}
 
 	// notify users who are able to accept / reject transfer
-	// TODO mail & ui -> add new api to notifier
-	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
-		return err
-	}
-	if setting.Service.EnableNotifyMail {
-		return mailer.SendRepoTransferNotifyMail(doer, newOwner, repo)
-	}
+	notification.NotifyRepoPendingTransfer(doer, newOwner, repo)
 
 	return nil
 }
