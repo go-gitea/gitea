@@ -1,13 +1,19 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package admin
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	"net/http"
+
 	xorm "xorm.io/xorm/convert"
 )
 
@@ -57,7 +63,7 @@ func CreateAuthSource(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	authSource := web.GetForm(ctx).(*api.CreateAuthSource)
 	var config xorm.Conversion
-	var loginType models.LoginType = 0
+	var loginType models.LoginType
 	for key, val := range models.LoginNames {
 		if authSource.Type == val {
 			loginType = key
