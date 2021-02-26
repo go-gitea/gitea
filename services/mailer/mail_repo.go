@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 )
 
-// SendRepoTransferNotifyMail triggers a notification e-mail when a repository transfer is initiated
+// SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
 	var (
 		emails      []string
@@ -34,12 +34,13 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 		destination = "you"
 	}
 
+	subject := fmt.Sprintf("%s like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination)
 	data := map[string]interface{}{
 		"Doer":    doer,
 		"User":    repo.Owner,
 		"Repo":    repo.FullName(),
 		"Link":    repo.HTMLURL(),
-		"Subject": fmt.Sprintf("%s like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination),
+		"Subject": subject,
 
 		"Destination": destination,
 	}
@@ -48,9 +49,8 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 		return err
 	}
 
-	// msg := NewMessage([]string{email}, locale.Tr("mail.repo_transfer_notify"), content.String())
-	msg := NewMessage(emails, "mail.repo_transfer_notify", content.String())
-	msg.Info = fmt.Sprintf("UID: %d, repository transfer notification", newOwner.ID)
+	msg := NewMessage(emails, subject, content.String())
+	msg.Info = fmt.Sprintf("UID: %d, repository pending transfer notification", newOwner.ID)
 
 	SendAsync(msg)
 	return nil
