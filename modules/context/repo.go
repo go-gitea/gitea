@@ -614,13 +614,12 @@ func RepoAssignment() func(http.Handler) http.Handler {
 
 			repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 			if err == nil {
-				if err := repoTransfer.LoadAttributes(); err != nil {
+				if err = repoTransfer.LoadAttributes(); err != nil {
 					ctx.ServerError("LoadRecipient", err)
 					return
 				}
 
 				ctx.Data["RepoTransfer"] = repoTransfer
-				ctx.Data["IsRepoTransferInProgress"] = true
 			}
 
 			if err != nil && !models.IsErrNoPendingTransfer(err) {

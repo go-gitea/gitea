@@ -192,12 +192,10 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 		return err
 	}
 
-	// TODO: user witch have "create repo"-access to new place
-
 	return sess.Commit()
 }
 
-// TransferOwnership transfers all corresponding setting from old user to new one.
+// TransferOwnership transfers all corresponding repository items from old user to new one.
 func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
 	sess := x.NewSession()
 	defer sess.Close()
