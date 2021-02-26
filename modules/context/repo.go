@@ -613,6 +613,9 @@ func RepoAssignment() func(http.Handler) http.Handler {
 				}
 
 				ctx.Data["RepoTransfer"] = repoTransfer
+				if ctx.User != nil {
+					ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.User)
+				}
 			}
 
 			if ctx.Query("go-get") == "1" {

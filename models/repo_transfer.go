@@ -111,8 +111,8 @@ func deleteRepositoryTransfer(e Engine, repoID int64) error {
 	return err
 }
 
-// CancelRepositoryTransfer makes sure to set the transfer process as
-// "rejected". Thus ending the transfer process
+// CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
+// thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *Repository) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
