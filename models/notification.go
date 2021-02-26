@@ -754,8 +754,8 @@ func setIssueNotificationStatusReadIfUnread(e Engine, userID, issueID int64) err
 
 func setRepoNotificationStatusReadIfUnread(e Engine, userID, repoID int64) error {
 	_, err := e.Where(builder.Eq{"user_id": userID}.And(builder.Eq{"status": NotificationStatusUnread}).And(
-		builder.Eq{"source": NotificationSourceRepository})).Cols("status").
-		Update(&Notification{Status: NotificationStatusRead})
+		builder.Eq{"source": NotificationSourceRepository}).And(builder.Eq{"repo_id": repoID})).
+		Cols("status").Update(&Notification{Status: NotificationStatusRead})
 	return err
 }
 
