@@ -386,9 +386,7 @@ func CreateBranch(ctx *context.Context) {
 	var err error
 
 	if form.CreateTag {
-		if ctx.Repo.IsViewBranch {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
-		} else if ctx.Repo.IsViewTag {
+		if ctx.Repo.IsViewTag {
 			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName, "")
 		} else {
 			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
