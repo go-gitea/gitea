@@ -232,7 +232,7 @@ Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in 
 directory and will overwrite any existing files.
 
 - Options:
-  - `--host value`: Comma seperated hostnames and ips which this certificate is valid for.
+  - `--host value`: Comma separated hostnames and ips which this certificate is valid for.
     Wildcards are supported. Required.
   - `--ecdsa-curve value`: ECDSA curve to use to generate a key. Optional. Valid options
     are P224, P256, P384, P521.
