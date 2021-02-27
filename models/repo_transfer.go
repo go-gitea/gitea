@@ -181,7 +181,7 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 		CreatedUnix: timeutil.TimeStampNow(),
 		UpdatedUnix: timeutil.TimeStampNow(),
 		DoerID:      doer.ID,
-		TeamIDs:     []int64{},
+		TeamIDs:     make([]int64, 0, len(teams)),
 	}
 
 	for k := range teams {

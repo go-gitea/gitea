@@ -48,7 +48,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 				result.Subject.LatestCommentURL = comment.APIURL()
 			}
 		}
-	case models.NotificationSourceCommit: //unused until now
+	case models.NotificationSourceCommit:
 		result.Subject = &api.NotificationSubject{
 			Type:  "Commit",
 			Title: n.CommitID,

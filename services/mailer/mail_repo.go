@@ -34,7 +34,7 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 		destination = "you"
 	}
 
-	subject := fmt.Sprintf("%s like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination)
+	subject := fmt.Sprintf("%s would like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination)
 	data := map[string]interface{}{
 		"Doer":    doer,
 		"User":    repo.Owner,
