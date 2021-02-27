@@ -232,6 +232,14 @@ favorite browser to finalize the installation. Visit http://server-ip:3000 and f
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
+## Create admin user using environment variables
+
+- `GITEA_ADMIN_USER`: If defined, admin username to create at the very first app run. Will be honored if and only if:
+  - `GITEA_ADMIN_EMAIL` is defined as well
+  - No users exist already
+- `GITEA_ADMIN_EMAIL`: Email address of the user admin to create (see `GITEA_ADMIN_USER`)
+- `GITEA_ADMIN_PASSWORD`: Password of the user admin to create (see `GITEA_ADMIN_USER`). If not defined, a random generated password will be set.
+
 # Customization
 
 Customization files described [here](https://docs.gitea.io/en-us/customizing-gitea/) should
