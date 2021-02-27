@@ -6,13 +6,14 @@
 package pull
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -179,11 +180,24 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 		if len(commitID) == 0 {
 			commitID = headCommitID
 		}
-		patchBuf := new(bytes.Buffer)
-		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err)
+		reader, writer := io.Pipe()
+		defer func() {
+			_ = reader.Close()
+			_ = writer.Close()
+		}()
+		go func() {
+			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
+				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
+				return
+			}
+			_ = writer.Close()
+		}()
+
+		patch, err = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		if err != nil {
+			log.Error("Error whilst generating patch: %v", err)
+			return nil, err
 		}
-		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 	}
 	return models.CreateComment(&models.CreateCommentOptions{
 		Type:        models.CommentTypeCode,
