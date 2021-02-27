@@ -126,7 +126,6 @@ var hunkRegex = regexp.MustCompile(`^@@ -(?P<beginOld>[0-9]+)(,(?P<endOld>[0-9]+
 const cmdDiffHead = "diff --git "
 
 func isHeader(lof string, inHunk bool) bool {
-
 	return strings.HasPrefix(lof, cmdDiffHead) || (!inHunk && (strings.HasPrefix(lof, "---") || strings.HasPrefix(lof, "+++")))
 }
 
