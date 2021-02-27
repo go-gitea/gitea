@@ -478,7 +478,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err = repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -512,12 +512,12 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = repoTransfer.LoadAttributes(); err != nil {
+		if err := repoTransfer.LoadAttributes(); err != nil {
 			ctx.ServerError("LoadRecipient", err)
 			return
 		}
 
-		if err = models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
 			ctx.ServerError("CancelRepositoryTransfer", err)
 			return
 		}

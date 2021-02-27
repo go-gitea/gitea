@@ -607,7 +607,7 @@ func RepoAssignment() func(http.Handler) http.Handler {
 					return
 				}
 
-				if err = repoTransfer.LoadAttributes(); err != nil {
+				if err := repoTransfer.LoadAttributes(); err != nil {
 					ctx.ServerError("LoadRecipient", err)
 					return
 				}

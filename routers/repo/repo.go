@@ -304,7 +304,7 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if err = repoTransfer.LoadAttributes(); err != nil {
+	if err := repoTransfer.LoadAttributes(); err != nil {
 		return err
 	}
 
@@ -313,12 +313,12 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 	}
 
 	if accept {
-		if err = repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
 	} else {
-		if err = models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
 			return err
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
