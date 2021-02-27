@@ -20,6 +20,7 @@ import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
+import initImageDiff from './features/imagediff.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
@@ -2693,6 +2694,7 @@ $(document).ready(async () => {
     initStopwatch(),
     renderMarkdownContent(),
     initGithook(),
+    initImageDiff(),
   ]);
 });
 
