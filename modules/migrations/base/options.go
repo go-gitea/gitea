@@ -21,6 +21,8 @@ type MigrateOptions struct {
 	RepoName        string `json:"repo_name" binding:"Required"`
 	Mirror          bool   `json:"mirror"`
 	LFS             bool   `json:"lfs"`
+	LFSServer       string `json:"lfs_server"`
+	LFSFetchOlder   bool   `json:"lfs_fetch_older"`
 	Private         bool   `json:"private"`
 	Description     string `json:"description"`
 	OriginalURL     string

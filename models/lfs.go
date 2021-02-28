@@ -27,6 +27,12 @@ type LFSMetaObject struct {
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
+// LFSMetaObjectBasic represents basic LFS metadata.
+type LFSMetaObjectBasic struct {
+	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size         int64              `xorm:"NOT NULL"`
+}
+
 // RelativePath returns the relative path of the lfs object
 func (m *LFSMetaObject) RelativePath() string {
 	if len(m.Oid) < 5 {

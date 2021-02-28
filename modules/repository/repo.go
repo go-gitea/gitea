@@ -7,10 +7,7 @@ package repository
 import (
 	"context"
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/lfsclient"
 
 	"gopkg.in/ini.v1"
 )
@@ -102,117 +100,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	defer gitRepo.Close()
 
 	if opts.LFS {
-		lfsFetchDir := filepath.Join(setting.LFS.Path, "tmp")
-		_, err = git.NewCommand("config", "lfs.storage", lfsFetchDir).RunInDir(repoPath)
+		err := FetchLFSFilesToContentStore(ctx, repo, u.Name, gitRepo, opts.LFSServer, opts.LFSFetchOlder)
 		if err != nil {
-			return repo, fmt.Errorf("Failed `git config lfs.storage lfsFetchDir`: %v", err)
-		}
-
-		excludedPointersPaths := []string{}
-
-		// scan repo for pointer files, exclude those exceeding MaxFileSize from being downloaded
-		if setting.LFS.MaxFileSize > 0 {
-			headBranch, _ := gitRepo.GetHEADBranch()
-			headCommit, _ := gitRepo.GetCommit(headBranch.Name)
-			entries, err := headCommit.Tree.ListEntriesRecursive()
-			if err != nil {
-				return repo, fmt.Errorf("Failed to access git files: %v", err)
-			}
-
-			for _, entry := range entries {
-				entryString, _ := entry.Blob().GetBlobContent()
-
-				if !strings.HasPrefix(entryString, models.LFSMetaFileIdentifier) {
-					continue
-				}
-
-				splitLines := strings.Split(entryString, "\n")
-				if len(splitLines) < 3 {
-					continue
-				}
-
-				size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-				if err != nil {
-					continue
-				}
-
-				if size > setting.LFS.MaxFileSize {
-					excludedPointersPaths = append(excludedPointersPaths, entry.Name())
-					log.Info("Denied LFS[%s] download of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", entry.Name(), entry.Blob().Size(), u.Name, repo.Name, setting.LFS.MaxFileSize)
-				}
-			}
-		}
-
-		// fetch LFS files
-		cmd := git.NewCommand("lfs", "fetch", opts.CloneAddr)
-		if len(excludedPointersPaths) > 0 {
-			cmd.AddArguments("--exclude", strings.Join(excludedPointersPaths, ","))
-		}
-		_, err = cmd.RunInDir(repoPath)
-		if err != nil {
-			return repo, fmt.Errorf("Failed `lfs fetch` %s: %v", opts.CloneAddr, err)
-		}
-
-		lfsSrc := path.Join(lfsFetchDir, "objects")
-		lfsDst := path.Join(setting.LFS.Path)
-
-		// rename LFS files
-		err = filepath.Walk(lfsSrc, func(path string, info os.FileInfo, err error) error {
-			var relSrcPath = strings.Replace(path, lfsSrc, "", 1)
-			if relSrcPath == "" {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			lfsSrcFull := filepath.Join(lfsSrc, relSrcPath)
-			lfsDstFull := filepath.Join(lfsDst, relSrcPath)
-
-			if _, err := os.Stat(lfsDstFull); !os.IsNotExist(err) {
-				return nil
-			}
-
-			if info.IsDir() {
-				return os.Mkdir(lfsDstFull, 0755)
-			}
-
-			// generate and associate LFS OIDs
-			file, err := os.Open(lfsSrcFull)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-
-			oid, err := models.GenerateLFSOid(file)
-			if err != nil {
-				return err
-			}
-			fileInfo, err := file.Stat()
-			if err != nil {
-				return err
-			}
-
-			lfsDstFull = filepath.Join(lfsDst, oid[0:2], oid[2:4], oid[4:])
-			err = os.Rename(lfsSrcFull, lfsDstFull)
-			if err != nil {
-				return err
-			}
-
-			_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: repo.ID})
-			if err != nil {
-				log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", oid, fileInfo.Size(), u.Name, repoPath, err)
-				return err
-			}
-
-			return nil
-		})
-		if err != nil {
-			return repo, fmt.Errorf("Failed to move LFS files %s: %v", lfsSrc, err)
-		}
-
-		err = os.RemoveAll(lfsFetchDir)
-		if err != nil {
-			return repo, fmt.Errorf("Failed to delete temporary LFS directories %s: %v", repoPath, err)
+			return repo, fmt.Errorf("Failed to fetch LFS files: %v", err)
 		}
 	}
 
@@ -282,6 +172,78 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	}
 
 	return repo, err
+}
+
+func FetchLFSFilesToContentStore(ctx context.Context, repo *models.Repository, userName string, gitRepo *git.Repository, LFSServer string, LFSFetchOlder bool) error {
+	fetchingMetaObjects := []*models.LFSMetaObject{}
+	var err error
+
+	// scan repo for pointer files
+	headBranch, _ := gitRepo.GetHEADBranch()
+	headCommit, _ := gitRepo.GetCommit(headBranch.Name)
+
+	err = FindLFSMetaObjectsBelowMaxFileSize(headCommit, userName, repo, &fetchingMetaObjects)
+	if err != nil {
+		log.Error("Failed to access git LFS meta objects on commit %s: %v", headCommit.ID.String(), err)
+		return err
+	}
+
+	if LFSFetchOlder {
+		opts := git.NewSearchCommitsOptions("before:" + headCommit.ID.String(), true)
+		commitIDsList, _ := headCommit.SearchCommits(opts)
+		var commitIDs = []string{}
+		for e := commitIDsList.Front(); e != nil; e = e.Next() {
+			commitIDs = append(commitIDs, e.Value.(string))
+		}
+		commitsList := gitRepo.GetCommitsFromIDs(commitIDs)
+
+		for e := commitsList.Front(); e != nil; e = e.Next() {
+			commit := e.Value.(*git.Commit)
+			err = FindLFSMetaObjectsBelowMaxFileSize(commit, userName, repo, &fetchingMetaObjects)
+			if err != nil {
+				log.Error("Failed to access git LFS meta objects on commit %s: %v", commit.ID.String(), err)
+				return err
+			}
+		}
+	}
+
+	// fetch LFS files from external server
+	err = lfsclient.FetchLFSFilesToContentStore(ctx, fetchingMetaObjects, userName, repo, LFSServer)
+	if err != nil {
+		log.Error("Unable to fetch LFS files in %v/%v to content store. Error: %v", userName, repo.Name, err)
+		return err
+	}
+
+	return nil
+}
+
+func FindLFSMetaObjectsBelowMaxFileSize(commit *git.Commit, userName string, repo *models.Repository, fetchingMetaObjects *[]*models.LFSMetaObject) error {
+	entries, err := commit.Tree.ListEntriesRecursive()
+	if err != nil {
+		log.Error("Failed to access git commit %s tree: %v", commit.ID.String(), err)
+		return err
+	}
+
+	for _, entry := range entries {
+		buf, _ := entry.Blob().GetBlobFirstBytes(1024)
+		meta := models.IsPointerFile(&buf)
+		if meta == nil {
+			continue
+		}
+
+		if setting.LFS.MaxFileSize > 0 && meta.Size > setting.LFS.MaxFileSize {
+			log.Info("Denied LFS oid[%s] download of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", meta.Oid, meta.Size, userName, repo.Name, setting.LFS.MaxFileSize)
+			continue
+		}
+
+		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: meta.Oid, Size: meta.Size, RepositoryID: repo.ID})
+		if err != nil {
+			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", meta.Oid, meta.Size, userName, repo.Name, err)
+			return err
+		}
+		*fetchingMetaObjects = append(*fetchingMetaObjects, meta)
+	}
+	return nil
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".

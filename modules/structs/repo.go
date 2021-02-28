@@ -254,6 +254,8 @@ type MigrateRepoOptions struct {
 
 	Mirror         bool   `json:"mirror"`
 	LFS            bool   `json:"lfs"`
+	LFSServer      string `json:"lfs_server"`
+	LFSFetchOlder  bool   `json:"lfs_fetch_older"`
 	Private        bool   `json:"private"`
 	Description    string `json:"description" binding:"MaxSize(255)"`
 	Wiki           bool   `json:"wiki"`
