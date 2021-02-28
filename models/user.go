@@ -6,7 +6,6 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/auth/db"
 	"container/list"
 	"context"
 	"encoding/hex"
@@ -20,6 +19,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"code.gitea.io/gitea/modules/auth/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
@@ -104,6 +104,7 @@ type User struct {
 	KeepEmailPrivate             bool
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
+	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
 	// is to change his/her password after registration.
@@ -379,10 +380,11 @@ func (u *User) NewGitSig() *git.Signature {
 }
 
 // SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
-// change passwd and salt fields
+// change passwd, salt and passwd_hash_algo fields
 func (u *User) SetPassword(passwd string) (err error) {
 	if len(passwd) == 0 {
 		u.Passwd = ""
+		u.PasswdHashAlgo = ""
 		u.Salt = ""
 		return nil
 	}
@@ -391,14 +393,14 @@ func (u *User) SetPassword(passwd string) (err error) {
 		return err
 	}
 
-	u.Passwd, _ = db.DefaultHasher.HashPassword(passwd, u.Salt, "")
+	u.Passwd, u.PasswdHashAlgo, _ = db.DefaultHasher.HashPassword(passwd, u.Salt, "")
 
 	return nil
 }
 
 // ValidatePassword checks if given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	return db.DefaultHasher.Validate(passwd, u.Salt, u.Passwd)
+	return db.DefaultHasher.Validate(passwd, u.Passwd, u.Salt, u.PasswdHashAlgo)
 }
 
 // IsPasswordSet checks if the password is set or left empty

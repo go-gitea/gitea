@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+// Argon2Hasher is a Hash implementation for Argon2
 type Argon2Hasher struct {
 	Iterations  uint32
 	Memory      uint32
@@ -22,11 +23,17 @@ type Argon2Hasher struct {
 	KeyLength   uint32
 }
 
-func (h Argon2Hasher) HashPassword(password, salt, config string) (string, error) {
+// HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
+func (h Argon2Hasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
+	if config == "fallback" {
+		config = "2$65536$8$50"
+	}
+
 	split := strings.Split(config, "$")
 	if len(split) != 4 {
-		return h.HashPassword(password, salt, h.getConfigFromSetting())
+		fmt.Printf("Take from Config: %v", h.getConfigFromSetting())
+		split = strings.Split(h.getConfigFromSetting(), "$")
 	}
 
 	var iterations, memory, keyLength uint32
@@ -36,41 +43,41 @@ func (h Argon2Hasher) HashPassword(password, salt, config string) (string, error
 	var err error
 
 	if tmp, err = strconv.Atoi(split[0]); err != nil {
-		return "", err
-	} else {
-		iterations = uint32(tmp)
+		return "", "", err
 	}
+	iterations = uint32(tmp)
+
 	if tmp, err = strconv.Atoi(split[1]); err != nil {
-		return "", err
-	} else {
-		memory = uint32(tmp)
+		return "", "", err
 	}
+	memory = uint32(tmp)
 	if tmp, err = strconv.Atoi(split[2]); err != nil {
-		return "", err
-	} else {
-		parallelism = uint8(tmp)
+		return "", "", err
 	}
+	parallelism = uint8(tmp)
 	if tmp, err = strconv.Atoi(split[3]); err != nil {
-		return "", err
-	} else {
-		keyLength = uint32(tmp)
+		return "", "", err
 	}
+	keyLength = uint32(tmp)
 
 	tempPasswd = argon2.IDKey([]byte(password), []byte(salt), iterations, memory, parallelism, keyLength)
-	return fmt.Sprintf("$argon2$%d$%d$%d$%d$%x", iterations, memory, parallelism, keyLength, tempPasswd), nil
+	return fmt.Sprintf("%x", tempPasswd),
+		fmt.Sprintf("argon2$%d$%d$%d$%d", iterations, memory, parallelism, keyLength),
+		nil
 }
 
-func (h Argon2Hasher) Validate(password, salt, hash string) bool {
-	tempHash, _ := h.HashPassword(password, salt, h.getConfigFromHash(hash))
-	if subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1 {
-		return true
+// Validate validates a plain-text password
+func (h Argon2Hasher) Validate(password, hash, salt, config string) bool {
+	tempHash, _, _ := h.HashPassword(password, salt, config)
+	return subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1
+}
+
+func (h Argon2Hasher) getConfigFromAlgo(algo string) string {
+	split := strings.SplitN(algo, "$", 2)
+	if len(split) == 1 {
+		split[1] = "fallback"
 	}
-	return false
-}
-
-func (h Argon2Hasher) getConfigFromHash(hash string) string {
-	configEnd := strings.LastIndex(hash, "$")
-	return hash[8:configEnd]
+	return split[1]
 }
 
 func (h Argon2Hasher) getConfigFromSetting() string {

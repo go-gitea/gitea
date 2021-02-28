@@ -232,12 +232,16 @@ func TestHashPasswordDeterministic(t *testing.T) {
 			// save the current password in the user - hash it and store the result
 			u.SetPassword(pass)
 			r1 := u.Passwd
+			a1 := u.PasswdHashAlgo
 
 			// run again
 			u.SetPassword(pass)
 			r2 := u.Passwd
+			a2 := u.PasswdHashAlgo
 
 			assert.NotEqual(t, r1, r2)
+			assert.NotEqual(t, a2, algos[j])
+			assert.Equal(t, a1, a2)
 			assert.True(t, u.ValidatePassword(pass))
 		}
 	}
@@ -251,6 +255,7 @@ func TestOldPasswordMatchAndUpdate(t *testing.T) {
 
 	matchingPass := "password"
 	oldPass := u.Passwd
+	oldAlgo := u.PasswdHashAlgo
 
 	validates := u.ValidatePassword(matchingPass)
 	newPass := u.Passwd
@@ -269,11 +274,14 @@ func TestOldPasswordMatchAndUpdate(t *testing.T) {
 
 	validates = user.ValidatePassword(matchingPass)
 	newPass = user.Passwd
+	newAlgo := user.PasswdHashAlgo
 
 	// Should still match after config update
 	assert.True(t, validates)
 	// Should be updated to new config
 	assert.NotEqual(t, oldPass, newPass)
+	// Should not be equal - test users Parallelism is not matching
+	assert.NotEqual(t, oldAlgo, newAlgo)
 }
 
 func BenchmarkHashPassword(b *testing.B) {

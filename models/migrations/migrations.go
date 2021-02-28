@@ -294,9 +294,6 @@ var migrations = []Migration{
 	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
-	// v174 -> v175
-	NewMigration("Update User passwords to new format", updateUserPasswords),
-	NewMigration("Remove User passwordHashAlgo field", removeUserHashAlgo),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -14,34 +14,36 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// BCryptHasher is a Hash implementation for BCrypt
 type BCryptHasher struct {
 	Cost int
 }
 
-func (h BCryptHasher) HashPassword(password, salt, config string) (string, error) {
-	if config == "" {
-		return h.HashPassword(password, salt, h.getConfigFromSetting())
+// HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
+func (h BCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
+	if config == "fallback" {
+		config = "10"
+	} else if config == "" {
+		config = h.getConfigFromSetting()
 	}
-	if cost, err := strconv.Atoi(config); err == nil {
+
+	cost, err := strconv.Atoi(config)
+	if err == nil {
 		var tempPasswd []byte
 		tempPasswd, _ = bcrypt.GenerateFromPassword([]byte(password), cost)
-		return fmt.Sprintf("$bcrypt$%s", tempPasswd), nil
-	} else {
-		return "", err
+		return string(tempPasswd), fmt.Sprintf("bcrypt$%d", cost), nil
 	}
+	return "", "", err
 }
 
-func (h BCryptHasher) Validate(password, salt, hash string) bool {
-	split := strings.SplitN(hash[1:], "$", 2)
-	if bcrypt.CompareHashAndPassword([]byte(split[1]), []byte(password)) == nil {
-		return true
-	}
-	return false
+// Validate validates a plain-text password
+func (h BCryptHasher) Validate(password, hash, salt, config string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-func (h BCryptHasher) getConfigFromHash(hash string) string {
-	split := strings.SplitN(hash[1:], "$", 5)
-	return split[3]
+func (h BCryptHasher) getConfigFromAlgo(algo string) string {
+	split := strings.SplitN(algo, "$", 2)
+	return split[1]
 }
 
 func (h BCryptHasher) getConfigFromSetting() string {

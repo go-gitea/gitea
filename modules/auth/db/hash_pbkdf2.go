@@ -16,43 +16,52 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
+// Pbkdf2Hasher is a Hash implementation for Pbkdf2
 type Pbkdf2Hasher struct {
 	Iterations int
 	KeyLength  int
 }
 
-func (h Pbkdf2Hasher) HashPassword(password, salt, config string) (string, error) {
+// HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
+func (h Pbkdf2Hasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
+	if config == "fallback" {
+		config = "10000$50"
+	}
+
 	split := strings.Split(config, "$")
 	if len(split) != 2 {
-		return h.HashPassword(password, salt, h.getConfigFromSetting())
+		split = strings.Split(h.getConfigFromSetting(), "$")
 	}
 
 	var iterations, parallelism int
 	var err error
 
 	if iterations, err = strconv.Atoi(split[0]); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if parallelism, err = strconv.Atoi(split[1]); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	tempPasswd = pbkdf2.Key([]byte(password), []byte(salt), iterations, parallelism, sha256.New)
-	return fmt.Sprintf("$pbkdf2$%d$%d$%x", iterations, parallelism, tempPasswd), nil
+	return fmt.Sprintf("%x", tempPasswd),
+		fmt.Sprintf("pbkdf2$%d$%d", iterations, parallelism),
+		nil
 }
 
-func (h Pbkdf2Hasher) Validate(password, salt, hash string) bool {
-	tempHash, _ := h.HashPassword(password, salt, h.getConfigFromHash(hash))
-	if subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1 {
-		return true
+// Validate validates a plain-text password
+func (h Pbkdf2Hasher) Validate(password, hash, salt, config string) bool {
+	tempHash, _, _ := h.HashPassword(password, salt, config)
+	return subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1
+}
+
+func (h Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
+	split := strings.SplitN(algo, "$", 2)
+	if len(split) == 1 {
+		split[1] = "fallback"
 	}
-	return false
-}
-
-func (h Pbkdf2Hasher) getConfigFromHash(hash string) string {
-	configEnd := strings.LastIndex(hash, "$")
-	return hash[8:configEnd]
+	return split[1]
 }
 
 func (h Pbkdf2Hasher) getConfigFromSetting() string {

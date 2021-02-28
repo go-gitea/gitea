@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/scrypt"
 )
 
+// SCryptHasher is a Hash implementation for SCrypt
 type SCryptHasher struct {
 	N         int
 	R         int
@@ -22,44 +23,52 @@ type SCryptHasher struct {
 	KeyLength int
 }
 
-func (h SCryptHasher) HashPassword(password, salt, config string) (string, error) {
+// HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
+func (h SCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
+	if config == "fallback" {
+		config = "65536$16$2$50"
+	}
+
 	split := strings.Split(config, "$")
 	if len(split) != 4 {
-		return h.HashPassword(password, salt, h.getConfigFromSetting())
+		split = strings.Split(h.getConfigFromSetting(), "$")
 	}
 
 	var n, r, p, keyLength int
 	var err error
 
 	if n, err = strconv.Atoi(split[0]); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if r, err = strconv.Atoi(split[1]); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if p, err = strconv.Atoi(split[2]); err != nil {
-		return "", err
+		return "", "", err
 	}
 	if keyLength, err = strconv.Atoi(split[3]); err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	tempPasswd, _ = scrypt.Key([]byte(password), []byte(salt), n, r, p, keyLength)
-	return fmt.Sprintf("$scrypt$%d$%d$%d$%d$%x", n, r, p, keyLength, tempPasswd), nil
+	return fmt.Sprintf("%x", tempPasswd),
+		fmt.Sprintf("scrypt$%d$%d$%d$%d", n, r, p, keyLength),
+		nil
 }
 
-func (h SCryptHasher) Validate(password, salt, hash string) bool {
-	tempHash, _ := h.HashPassword(password, salt, h.getConfigFromHash(hash))
-	if subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1 {
-		return true
+// Validate validates a plain-text password
+func (h SCryptHasher) Validate(password, hash, salt, config string) bool {
+	tempHash, _, _ := h.HashPassword(password, salt, config)
+	return subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1
+}
+
+func (h SCryptHasher) getConfigFromAlgo(algo string) string {
+	split := strings.SplitN(algo, "$", 2)
+	if len(split) == 1 {
+		split[1] = "fallback"
 	}
-	return false
-}
-
-func (h SCryptHasher) getConfigFromHash(hash string) string {
-	configEnd := strings.LastIndex(hash, "$")
-	return hash[8:configEnd]
+	return split[1]
 }
 
 func (h SCryptHasher) getConfigFromSetting() string {
