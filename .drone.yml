@@ -346,7 +346,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: test-sqlite
     image: golang:1.16
@@ -356,8 +356,8 @@ steps:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
-      TAGS: bindata sqlite sqlite_unlock_notify
-      TEST_TAGS: sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
@@ -370,8 +370,8 @@ steps:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
-      TAGS: bindata
-      TEST_TAGS:
+      TAGS: bindata gogit
+      TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
