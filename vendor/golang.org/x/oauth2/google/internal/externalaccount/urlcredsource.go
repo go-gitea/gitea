@@ -39,15 +39,18 @@ func (cs urlCredentialSource) subjectToken() (string, error) {
 	}
 	defer resp.Body.Close()
 
-	tokenBytes, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	respBody, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return "", fmt.Errorf("oauth2/google: invalid body in subject token URL query: %v", err)
+	}
+	if c := resp.StatusCode; c < 200 || c > 299 {
+		return "", fmt.Errorf("oauth2/google: status code %d: %s", c, respBody)
 	}
 
 	switch cs.Format.Type {
 	case "json":
 		jsonData := make(map[string]interface{})
-		err = json.Unmarshal(tokenBytes, &jsonData)
+		err = json.Unmarshal(respBody, &jsonData)
 		if err != nil {
 			return "", fmt.Errorf("oauth2/google: failed to unmarshal subject token file: %v", err)
 		}
@@ -61,9 +64,9 @@ func (cs urlCredentialSource) subjectToken() (string, error) {
 		}
 		return token, nil
 	case "text":
-		return string(tokenBytes), nil
+		return string(respBody), nil
 	case "":
-		return string(tokenBytes), nil
+		return string(respBody), nil
 	default:
 		return "", errors.New("oauth2/google: invalid credential_source file format type")
 	}

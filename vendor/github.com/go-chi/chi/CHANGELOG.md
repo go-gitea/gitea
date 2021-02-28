@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.5.4 (2021-02-27)
+
+- Undo prior retraction in v1.5.3 as we prepare for v5.0.0 release
+- History of changes: see https://github.com/go-chi/chi/compare/v1.5.3...v1.5.4
+
+
+## v1.5.3 (2021-02-21)
+
+- Update go.mod to go 1.16 with new retract directive marking all versions without prior go.mod support
+- History of changes: see https://github.com/go-chi/chi/compare/v1.5.2...v1.5.3
+
+
+## v1.5.2 (2021-02-10)
+
+- Reverting allocation optimization as a precaution as go test -race fails.
+- Minor improvements, see history below
+- History of changes: see https://github.com/go-chi/chi/compare/v1.5.1...v1.5.2
+
+
 ## v1.5.1 (2020-12-06)
 
 - Performance improvement: removing 1 allocation by foregoing context.WithValue, thank you @bouk for

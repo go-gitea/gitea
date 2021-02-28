@@ -24,7 +24,7 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.15.x
+XGO_VERSION := go-1.16.x
 MIN_GO_VERSION := 001014000
 MIN_NODE_VERSION := 010013000
 
@@ -596,7 +596,7 @@ release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/amd64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
