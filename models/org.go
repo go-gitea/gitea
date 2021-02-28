@@ -393,6 +393,10 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
 func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
+	return getUsersWhoCanCreateOrgRepo(x, orgID)
+}
+
+func getUsersWhoCanCreateOrgRepo(e Engine, orgID int64) ([]*User, error) {
 	users := make([]*User, 0, 10)
 	return users, x.
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").

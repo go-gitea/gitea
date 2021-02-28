@@ -131,7 +131,7 @@ func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) erro
 	var notify []*Notification
 
 	if newOwner.IsOrganization() {
-		users, err := GetUsersWhoCanCreateOrgRepo(newOwner.ID)
+		users, err := getUsersWhoCanCreateOrgRepo(sess, newOwner.ID)
 		if err != nil || len(users) == 0 {
 			return err
 		}
