@@ -47,8 +47,34 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		return err
+	}
+
+	attrChecker, err := git.LoadAttrbutCheckerFromCommit(commit)
+	if err != nil {
+		return err
+	}
+
 	// Calculate and save language statistics to database
-	stats, err := gitRepo.GetLanguageStats(commitID)
+	stats, err := gitRepo.GetLanguageStats(commitID, func(path string) (string, bool) {
+		// get language follow linguist rulers
+		// linguist-language=<lang> attribute to an language
+		// linguist-vendored attribute to vendor or un-vendor paths
+
+		if attrChecker == nil {
+			return "", false
+		}
+
+		r := attrChecker.Check("linguist-vendored", path)
+		if r.IsSet() || r.Value() == "true" {
+			return "", true
+		}
+
+		r = attrChecker.Check("linguist-language", path)
+		return r.Value(), false
+	})
 	if err != nil {
 		log.Error("Unable to get language stats for ID %s for defaultbranch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
