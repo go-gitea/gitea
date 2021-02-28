@@ -63,7 +63,7 @@ func (p *MeterProvider) Meter(instrumentationName string, opts ...metric.MeterOp
 // ErrMetricKindMismatch is the standard error for mismatched metric
 // instrument definitions.
 var ErrMetricKindMismatch = fmt.Errorf(
-	"A metric was already registered by this name with another kind or number type")
+	"a metric was already registered by this name with another kind or number type")
 
 // NewUniqueInstrumentMeterImpl returns a wrapped metric.MeterImpl with
 // the addition of uniqueness checking.
@@ -90,7 +90,7 @@ func keyOf(descriptor metric.Descriptor) key {
 // NewMetricKindMismatchError formats an error that describes a
 // mismatched metric instrument definition.
 func NewMetricKindMismatchError(desc metric.Descriptor) error {
-	return fmt.Errorf("Metric was %s (%s %s)registered as a %s %s: %w",
+	return fmt.Errorf("metric was %s (%s %s)registered as a %s %s: %w",
 		desc.Name(),
 		desc.InstrumentationName(),
 		desc.InstrumentationVersion(),

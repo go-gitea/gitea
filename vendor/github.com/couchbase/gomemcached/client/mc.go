@@ -44,6 +44,7 @@ type ClientIface interface {
 	GetSubdoc(vb uint16, key string, subPaths []string, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	Hijack() io.ReadWriteCloser
 	Incr(vb uint16, key string, amt, def uint64, exp int, context ...*ClientContext) (uint64, error)
+	LastBucket() string
 	Observe(vb uint16, key string) (result ObserveResult, err error)
 	ObserveSeq(vb uint16, vbuuid uint64) (result *ObserveSeqResult, err error)
 	Receive() (*gomemcached.MCResponse, error)
@@ -56,6 +57,7 @@ type ClientIface interface {
 	SelectBucket(bucket string) (*gomemcached.MCResponse, error)
 	SetCas(vb uint16, key string, flags int, exp int, cas uint64, body []byte, context ...*ClientContext) (*gomemcached.MCResponse, error)
 	Stats(key string) ([]StatValue, error)
+	StatsFunc(key string, fn func(key, val []byte)) error
 	StatsMap(key string) (map[string]string, error)
 	StatsMapForSpecifiedStats(key string, statsMap map[string]string) error
 	Transmit(req *gomemcached.MCRequest) error
@@ -73,6 +75,9 @@ type ClientIface interface {
 type ClientContext struct {
 	// Collection-based context
 	CollId uint32
+
+	// Impersonate context
+	User string
 
 	// VB-state related context
 	// nil means not used in this context
@@ -147,6 +152,7 @@ type Client struct {
 
 	collectionsEnabled uint32
 	deadline           time.Time
+	bucket             string
 }
 
 var (
@@ -204,6 +210,13 @@ func (c *Client) SetDeadline(t time.Time) {
 	}
 	c.conn.SetDeadline(t)
 	c.deadline = t
+}
+
+func (c *Client) getOpaque() uint32 {
+	if c.opaque >= math.MaxInt32 {
+		c.opaque = uint32(1)
+	}
+	return c.opaque + 1
 }
 
 // Wrap an existing transport.
@@ -356,12 +369,21 @@ func (c *Client) EnableFeatures(features Features) (*gomemcached.MCResponse, err
 	return rv, err
 }
 
-// Sets collection info for a request
-func (c *Client) setCollection(req *gomemcached.MCRequest, context ...*ClientContext) error {
+// Sets collection and user info for a request
+func (c *Client) setContext(req *gomemcached.MCRequest, context ...*ClientContext) error {
 	req.CollIdLen = 0
+	req.UserLen = 0
 	collectionId := uint32(0)
 	if len(context) > 0 {
 		collectionId = context[0].CollId
+		uLen := len(context[0].User)
+		if uLen > 0 {
+			if uLen > gomemcached.MAX_USER_LEN {
+				uLen = gomemcached.MAX_USER_LEN
+			}
+			req.UserLen = uLen
+			copy(req.Username[:uLen], context[0].User)
+		}
 	}
 
 	// if the optional collection is specified, it must be default for clients that haven't turned on collections
@@ -376,10 +398,16 @@ func (c *Client) setCollection(req *gomemcached.MCRequest, context ...*ClientCon
 }
 
 // Sets collection info in extras
-func (c *Client) setExtrasCollection(req *gomemcached.MCRequest, context ...*ClientContext) error {
+func (c *Client) setExtrasContext(req *gomemcached.MCRequest, context ...*ClientContext) error {
 	collectionId := uint32(0)
+	req.UserLen = 0
 	if len(context) > 0 {
 		collectionId = context[0].CollId
+		uLen := len(context[0].User)
+		if uLen > 0 {
+			req.UserLen = uLen
+			copy(req.Username[:], context[0].User)
+		}
 	}
 
 	// if the optional collection is specified, it must be default for clients that haven't turned on collections
@@ -426,8 +454,9 @@ func (c *Client) Get(vb uint16, key string, context ...*ClientContext) (*gomemca
 		Opcode:  gomemcached.GET,
 		VBucket: vb,
 		Key:     []byte(key),
+		Opaque:  c.getOpaque(),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -443,8 +472,9 @@ func (c *Client) GetSubdoc(vb uint16, key string, subPaths []string, context ...
 		Key:     []byte(key),
 		Extras:  extraBuf,
 		Body:    valueBuf,
+		Opaque:  c.getOpaque(),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -462,6 +492,7 @@ func (c *Client) GetCollectionsManifest() (*gomemcached.MCResponse, error) {
 
 	res, err := c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.GET_COLLECTIONS_MANIFEST,
+		Opaque: c.getOpaque(),
 	})
 
 	if err != nil && IfResStatusError(res) {
@@ -476,6 +507,7 @@ func (c *Client) CollectionsGetCID(scope string, collection string) (*gomemcache
 	res, err := c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.COLLECTIONS_GET_CID,
 		Key:    []byte(scope + "." + collection),
+		Opaque: c.getOpaque(),
 	})
 
 	if err != nil && IfResStatusError(res) {
@@ -497,8 +529,9 @@ func (c *Client) GetAndTouch(vb uint16, key string, exp int, context ...*ClientC
 		VBucket: vb,
 		Key:     []byte(key),
 		Extras:  extraBuf,
+		Opaque:  c.getOpaque(),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -511,8 +544,9 @@ func (c *Client) GetMeta(vb uint16, key string, context ...*ClientContext) (*gom
 		Opcode:  gomemcached.GET_META,
 		VBucket: vb,
 		Key:     []byte(key),
+		Opaque:  c.getOpaque(),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -525,8 +559,9 @@ func (c *Client) Del(vb uint16, key string, context ...*ClientContext) (*gomemca
 		Opcode:  gomemcached.DELETE,
 		VBucket: vb,
 		Key:     []byte(key),
+		Opaque:  c.getOpaque(),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -537,8 +572,9 @@ func (c *Client) Del(vb uint16, key string, context ...*ClientContext) (*gomemca
 func (c *Client) GetRandomDoc(context ...*ClientContext) (*gomemcached.MCResponse, error) {
 	req := &gomemcached.MCRequest{
 		Opcode: 0xB6,
+		Opaque: c.getOpaque(),
 	}
-	err := c.setExtrasCollection(req, context...)
+	err := c.setExtrasContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -638,9 +674,17 @@ func (c *Client) AuthPlain(user, pass string) (*gomemcached.MCResponse, error) {
 
 // select bucket
 func (c *Client) SelectBucket(bucket string) (*gomemcached.MCResponse, error) {
-	return c.Send(&gomemcached.MCRequest{
+	res, err := c.Send(&gomemcached.MCRequest{
 		Opcode: gomemcached.SELECT_BUCKET,
 		Key:    []byte(bucket)})
+	if res != nil {
+		c.bucket = bucket
+	}
+	return res, err
+}
+
+func (c *Client) LastBucket() string {
+	return c.bucket
 }
 
 func (c *Client) store(opcode gomemcached.CommandCode, vb uint16,
@@ -650,11 +694,11 @@ func (c *Client) store(opcode gomemcached.CommandCode, vb uint16,
 		VBucket: vb,
 		Key:     []byte(key),
 		Cas:     0,
-		Opaque:  0,
+		Opaque:  c.getOpaque(),
 		Extras:  []byte{0, 0, 0, 0, 0, 0, 0, 0},
 		Body:    body}
 
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -669,11 +713,11 @@ func (c *Client) storeCas(opcode gomemcached.CommandCode, vb uint16,
 		VBucket: vb,
 		Key:     []byte(key),
 		Cas:     cas,
-		Opaque:  0,
+		Opaque:  c.getOpaque(),
 		Extras:  []byte{0, 0, 0, 0, 0, 0, 0, 0},
 		Body:    body}
 
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -691,7 +735,7 @@ func (c *Client) Incr(vb uint16, key string,
 		Key:     []byte(key),
 		Extras:  make([]byte, 8+8+4),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return 0, err
 	}
@@ -717,7 +761,7 @@ func (c *Client) Decr(vb uint16, key string,
 		Key:     []byte(key),
 		Extras:  make([]byte, 8+8+4),
 	}
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return 0, err
 	}
@@ -759,10 +803,10 @@ func (c *Client) Append(vb uint16, key string, data []byte, context ...*ClientCo
 		VBucket: vb,
 		Key:     []byte(key),
 		Cas:     0,
-		Opaque:  0,
+		Opaque:  c.getOpaque(),
 		Body:    data}
 
-	err := c.setCollection(req, context...)
+	err := c.setContext(req, context...)
 	if err != nil {
 		return nil, err
 	}
@@ -839,7 +883,7 @@ func (c *Client) GetBulk(vb uint16, keys []string, rv map[string]*gomemcached.MC
 		Opcode:  gomemcached.GET,
 		VBucket: vb,
 	}
-	err := c.setCollection(memcachedReqPkt, context...)
+	err := c.setContext(memcachedReqPkt, context...)
 	if err != nil {
 		return err
 	}
@@ -1214,6 +1258,34 @@ func (c *Client) Stats(key string) ([]StatValue, error) {
 		})
 	}
 	return rv, nil
+}
+
+// Stats requests server-side stats.
+//
+// Use "" as the stat key for toplevel stats.
+func (c *Client) StatsFunc(key string, fn func(key, val []byte)) error {
+	req := &gomemcached.MCRequest{
+		Opcode: gomemcached.STAT,
+		Key:    []byte(key),
+		Opaque: 918494,
+	}
+
+	err := c.Transmit(req)
+	if err != nil {
+		return err
+	}
+
+	for {
+		res, _, err := getResponse(c.conn, c.hdrBuf)
+		if err != nil {
+			return err
+		}
+		if len(res.Key) == 0 {
+			break
+		}
+		fn(res.Key, res.Body)
+	}
+	return nil
 }
 
 // StatsMap requests server-side stats similarly to Stats, but returns

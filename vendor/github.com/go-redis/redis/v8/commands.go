@@ -788,6 +788,56 @@ func (c cmdable) Set(ctx context.Context, key string, value interface{}, expirat
 	return cmd
 }
 
+// SetArgs provides arguments for the SetArgs function.
+type SetArgs struct {
+	// Mode can be `NX` or `XX` or empty.
+	Mode string
+
+	// Zero `TTL` or `Expiration` means that the key has no expiration time.
+	TTL      time.Duration
+	ExpireAt time.Time
+
+	// When Get is true, the command returns the old value stored at key, or nil when key did not exist.
+	Get bool
+
+	// KeepTTL is a Redis KEEPTTL option to keep existing TTL.
+	KeepTTL bool
+}
+
+// SetArgs supports all the options that the SET command supports.
+// It is the alternative to the Set function when you want
+// to have more control over the options.
+func (c cmdable) SetArgs(ctx context.Context, key string, value interface{}, a SetArgs) *StatusCmd {
+	args := []interface{}{"set", key, value}
+
+	if a.KeepTTL {
+		args = append(args, "keepttl")
+	}
+
+	if !a.ExpireAt.IsZero() {
+		args = append(args, "exat", a.ExpireAt.Unix())
+	}
+	if a.TTL > 0 {
+		if usePrecise(a.TTL) {
+			args = append(args, "px", formatMs(ctx, a.TTL))
+		} else {
+			args = append(args, "ex", formatSec(ctx, a.TTL))
+		}
+	}
+
+	if a.Mode != "" {
+		args = append(args, a.Mode)
+	}
+
+	if a.Get {
+		args = append(args, "get")
+	}
+
+	cmd := NewStatusCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 // Redis `SETEX key expiration value` command.
 func (c cmdable) SetEX(ctx context.Context, key string, value interface{}, expiration time.Duration) *StatusCmd {
 	cmd := NewStatusCmd(ctx, "setex", key, formatSec(ctx, expiration), value)
@@ -1748,6 +1798,12 @@ func (c cmdable) XTrim(ctx context.Context, key string, maxLen int64) *IntCmd {
 
 func (c cmdable) XTrimApprox(ctx context.Context, key string, maxLen int64) *IntCmd {
 	cmd := NewIntCmd(ctx, "xtrim", key, "maxlen", "~", maxLen)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+func (c cmdable) XInfoConsumers(ctx context.Context, key string, group string) *XInfoConsumersCmd {
+	cmd := NewXInfoConsumersCmd(ctx, key, group)
 	_ = c(ctx, cmd)
 	return cmd
 }

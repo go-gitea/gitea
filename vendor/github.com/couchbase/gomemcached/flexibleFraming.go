@@ -12,7 +12,12 @@ const (
 	FrameDurability  FrameObjType = iota
 	FrameDcpStreamId FrameObjType = iota
 	FrameOpenTracing FrameObjType = iota
+	FrameImpersonate FrameObjType = iota
 )
+
+const MAX_USER_LEN = 15 // TODO half byte shifting to be implemented
+// it's not very efficient so we currently truncate user names
+const FAST_USER_LEN = 15
 
 type FrameInfo struct {
 	ObjId   FrameObjType
@@ -44,11 +49,12 @@ func (f *FrameInfo) Validate() error {
 			return ErrorObjLenNotMatch
 		}
 	case FrameOpenTracing:
-		if f.ObjLen == 0 {
-			return fmt.Errorf("Invalid FrameOpenTracing - length must be > 0")
+		if f.ObjLen != 1 {
+			return fmt.Errorf("Invalid FrameImpersonate - length is %v\n", f.ObjLen)
 		} else if f.ObjLen != len(f.ObjData) {
 			return ErrorObjLenNotMatch
 		}
+	case FrameImpersonate:
 	default:
 		return fmt.Errorf("Unknown FrameInfo type")
 	}
@@ -108,16 +114,27 @@ func incrementMarker(bitsToBeIncremented, byteIncrementCnt *int, framingElen, cu
 	return marker, nil
 }
 
-// Right now, halfByteRemaining will always be false, because ObjID and Len haven't gotten that large yet
-func (f *FrameInfo) Bytes() (output []byte, halfByteRemaining bool) {
-	// ObjIdentifier - 4 bits + ObjLength - 4 bits
-	var idAndLen uint8
-	idAndLen |= uint8(f.ObjId) << 4
-	idAndLen |= uint8(f.ObjLen)
-	output = append(output, byte(idAndLen))
+func (f *FrameInfo) Bytes() ([]byte, bool) {
+	return obj2Bytes(f.ObjId, f.ObjLen, f.ObjData)
+}
 
-	// Rest is Data
-	output = append(output, f.ObjData...)
+// TODO implement half byte shifting for impersonate user names
+// halfByteRemaining will always be false, because ObjID and Len haven't gotten that large yet
+// and user names are truncated
+func obj2Bytes(id FrameObjType, len int, data []byte) (output []byte, halfByteRemaining bool) {
+	if len < 16 {
+
+		// ObjIdentifier - 4 bits + ObjLength - 4 bits
+		var idAndLen uint8
+		idAndLen |= uint8(id) << 4
+		idAndLen |= uint8(len)
+		output = append(output, byte(idAndLen))
+
+		// Rest is Data
+		output = append(output, data[:len]...)
+
+	} else {
+	}
 	return
 }
 
