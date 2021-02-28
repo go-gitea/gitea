@@ -499,6 +499,8 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		}
 
 		for _, pr := range prs {
+			// If the base repository for this pr is this repository there is no need to close it
+			// as it is going to be deleted anyway
 			if pr.BaseRepoID == repo.ID {
 				continue
 			}
