@@ -6,10 +6,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 trigger:
   event:
     - push
@@ -142,10 +138,6 @@ trigger:
     - push
     - tag
     - pull_request
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
 
 services:
   - name: mysql
@@ -324,10 +316,6 @@ trigger:
     - tag
     - pull_request
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 services:
   - name: pgsql
     pull: default
@@ -397,10 +385,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 trigger:
   branch:
     - master
@@ -459,11 +443,7 @@ name: update_gitignore_and_licenses
 
 platform:
   os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  arch: arm64
 
 trigger:
   branch:
@@ -499,10 +479,6 @@ name: release-latest
 platform:
   os: linux
   arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
 
 trigger:
   branch:
@@ -597,10 +573,6 @@ name: release-version
 platform:
   os: linux
   arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
 
 trigger:
   event:
@@ -719,10 +691,6 @@ platform:
   os: linux
   arch: amd64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 depends_on:
   - testing-amd64
   - testing-arm64
@@ -788,10 +756,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 depends_on:
   - compliance
 
@@ -823,10 +787,6 @@ name: docker-linux-arm64-release
 platform:
   os: linux
   arch: arm64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
 
 depends_on:
   - testing-amd64
