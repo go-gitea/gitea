@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 const (
@@ -279,16 +280,16 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	buf = buf[:n]
 
-	ctx.Data["IsTextFile"] = base.IsTextFile(buf)
-	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	ct := typesniffer.DetectContentType(buf)
+	ctx.Data["IsTextFile"] = ct.IsText()
+	isRepresentableAsText := ct.IsRepresentableAsText()
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
 	switch {
 	case isRepresentableAsText:
-		// This will be true for SVGs.
-		if base.IsImageFile(buf) {
+		if ct.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 		}
 
@@ -330,13 +331,13 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case base.IsPDFFile(buf):
+	case ct.IsPDF():
 		ctx.Data["IsPDFFile"] = true
-	case base.IsVideoFile(buf):
+	case ct.IsVideo():
 		ctx.Data["IsVideoFile"] = true
-	case base.IsAudioFile(buf):
+	case ct.IsAudio():
 		ctx.Data["IsAudioFile"] = true
-	case base.IsImageFile(buf):
+	case ct.IsImage():
 		ctx.Data["IsImageFile"] = true
 	}
 	ctx.HTML(200, tplSettingsLFSFile)

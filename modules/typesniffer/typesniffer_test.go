@@ -5,6 +5,7 @@
 package typesniffer
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,5 +76,20 @@ func TestIsSvgImage(t *testing.T) {
 	<foo></foo>`)).IsSvgImage())
 }
 
-// TODO: IsImageFile(), currently no idea how to test
-// TODO: IsPDFFile(), currently no idea how to test
+func TestIsPDFFile(t *testing.T) {
+	pdf, _ := base64.StdEncoding.DecodeString("JVBERi0xLjYKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nF3NPwsCMQwF8D2f4s2CNYk1baF0EHRwOwg4iJt/NsFb/PpevUE4Mjwe")
+	assert.True(t, DetectContentType(pdf).IsPDF())
+	assert.False(t, DetectContentType([]byte("plain text")).IsPDF())
+}
+
+func TestIsVideoFile(t *testing.T) {
+	mp4, _ := base64.StdEncoding.DecodeString("AAAAGGZ0eXBtcDQyAAAAAGlzb21tcDQyAAEI721vb3YAAABsbXZoZAAAAADaBlwX2gZcFwAAA+gA")
+	assert.True(t, DetectContentType(mp4).IsVideo())
+	assert.False(t, DetectContentType([]byte("plain text")).IsVideo())
+}
+
+func TestIsAudioFile(t *testing.T) {
+	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
+	assert.True(t, DetectContentType(mp3).IsAudio())
+	assert.False(t, DetectContentType([]byte("plain text")).IsAudio())
+}

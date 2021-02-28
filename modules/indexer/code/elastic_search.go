@@ -14,12 +14,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/olivere/elastic/v7"
@@ -199,7 +199,7 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return nil, err
-	} else if !base.IsTextFile(fileContents) {
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil, nil
 	}

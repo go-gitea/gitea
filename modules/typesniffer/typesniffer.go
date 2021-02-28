@@ -19,6 +19,7 @@ const SvgMimeType = "image/svg+xml"
 var svgTagRegex = regexp.MustCompile(`(?si)\A\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
 var svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
 
+// SniffedType contains informations about a blobs type.
 type SniffedType struct {
 	contentType string
 }
@@ -38,8 +39,8 @@ func (ct SniffedType) IsSvgImage() bool {
 	return strings.Contains(ct.contentType, SvgMimeType)
 }
 
-// IsPdf detects if data is a pdf format
-func (ct SniffedType) IsPdf() bool {
+// IsPDF detects if data is a PDF format
+func (ct SniffedType) IsPDF() bool {
 	return strings.Contains(ct.contentType, "application/pdf")
 }
 

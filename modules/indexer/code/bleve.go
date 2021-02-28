@@ -13,12 +13,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -200,7 +200,7 @@ func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *mode
 		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}

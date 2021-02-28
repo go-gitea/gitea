@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 // ReadPointerFile will return a partially filled LFSMetaObject if the provided reader is a pointer file
@@ -25,7 +25,7 @@ func ReadPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
 	n, _ := reader.Read(buf)
 	buf = buf[:n]
 
-	if isTextFile := base.IsTextFile(buf); !isTextFile {
+	if !typesniffer.DetectContentType(buf).IsText() {
 		return nil, nil
 	}
 
