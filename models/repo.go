@@ -593,15 +593,19 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 	}
 
 	// This is a "public" repository:
-	// Any user that has write access or who is a watcher can be requested to review
+	// Any user that has read access, is a watcher or organization member can be requested to review
 	if err := e.
 		SQL("SELECT * FROM `user` WHERE id IN ( "+
-			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) "+
+			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? "+
 			"UNION "+
-			"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) "+
-			") ORDER BY name",
-			repo.ID, AccessModeRead, doerID, posterID,
-			repo.ID, doerID, posterID, RepoWatchModeNormal, RepoWatchModeAuto).
+			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
+			"UNION "+
+			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
+			") AND id NOT IN (?, ?) ORDER BY name",
+			repo.ID, AccessModeRead,
+			repo.ID, RepoWatchModeNormal, RepoWatchModeAuto,
+			repo.OwnerID,
+			doerID, posterID).
 		Find(&users); err != nil {
 		return nil, err
 	}
@@ -611,8 +615,8 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 
 // GetReviewers get all users can be requested to review:
 // * for private repositories this returns all users that have read access or higher to the repository.
-// * for public repositories this returns all users that have write access or higher to the repository,
-// and all repo watchers.
+// * for public repositories this returns all users that have read access or higher to the repository,
+// all repo watchers and all organization members.
 // TODO: may be we should have a busy choice for users to block review request to them.
 func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
 	return repo.getReviewers(x, doerID, posterID)

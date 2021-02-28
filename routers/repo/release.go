@@ -262,6 +262,29 @@ func NewReleasePost(ctx *context.Context) {
 			return
 		}
 
+		msg := ""
+		if len(form.Title) > 0 && form.AddTagMsg {
+			msg = form.Title + "\n\n" + form.Content
+		}
+
+		if len(form.TagOnly) > 0 {
+			if err = releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
+				if models.IsErrTagAlreadyExists(err) {
+					e := err.(models.ErrTagAlreadyExists)
+					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					return
+				}
+
+				ctx.ServerError("releaseservice.CreateNewTag", err)
+				return
+			}
+
+			ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.TagName))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + form.TagName)
+			return
+		}
+
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.User.ID,
@@ -274,7 +297,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsTag:        false,
 		}
 
-		if err = releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs); err != nil {
+		if err = releaseservice.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs, msg); err != nil {
 			ctx.Data["Err_TagName"] = true
 			switch {
 			case models.IsErrReleaseAlreadyExist(err):
