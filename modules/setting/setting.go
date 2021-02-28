@@ -1090,7 +1090,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 		}
 
 		// StaticURLPrefix is just a path
-		return strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
+		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
 	}
 
 	return strings.TrimSuffix(staticURLPrefix, "/")
