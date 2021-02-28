@@ -216,6 +216,18 @@ const (
 )
 
 const (
+	// attributes for ProcThreadAttributeList
+	PROC_THREAD_ATTRIBUTE_PARENT_PROCESS    = 0x00020000
+	PROC_THREAD_ATTRIBUTE_HANDLE_LIST       = 0x00020002
+	PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY    = 0x00030003
+	PROC_THREAD_ATTRIBUTE_PREFERRED_NODE    = 0x00020004
+	PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR   = 0x00030005
+	PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = 0x00020007
+	PROC_THREAD_ATTRIBUTE_UMS_THREAD        = 0x00030006
+	PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL  = 0x0002000b
+)
+
+const (
 	// flags for CreateToolhelp32Snapshot
 	TH32CS_SNAPHEAPLIST = 0x01
 	TH32CS_SNAPPROCESS  = 0x02
@@ -884,6 +896,19 @@ type StartupInfo struct {
 	StdInput      Handle
 	StdOutput     Handle
 	StdErr        Handle
+}
+
+type StartupInfoEx struct {
+	StartupInfo
+	ProcThreadAttributeList *ProcThreadAttributeList
+}
+
+// ProcThreadAttributeList is a placeholder type to represent a PROC_THREAD_ATTRIBUTE_LIST.
+//
+// To create a *ProcThreadAttributeList, use NewProcThreadAttributeList, and
+// free its memory using ProcThreadAttributeList.Delete.
+type ProcThreadAttributeList struct {
+	_ [1]byte
 }
 
 type ProcessInformation struct {
@@ -2235,3 +2260,11 @@ const (
 	// REG_NOTIFY_THREAD_AGNOSTIC indicates that the lifetime of the registration must not be tied to the lifetime of the thread issuing the RegNotifyChangeKeyValue call. Note: This flag value is only supported in Windows 8 and later.
 	REG_NOTIFY_THREAD_AGNOSTIC = 0x10000000
 )
+
+type CommTimeouts struct {
+	ReadIntervalTimeout         uint32
+	ReadTotalTimeoutMultiplier  uint32
+	ReadTotalTimeoutConstant    uint32
+	WriteTotalTimeoutMultiplier uint32
+	WriteTotalTimeoutConstant   uint32
+}

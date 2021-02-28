@@ -583,7 +583,7 @@ func (t *typeResolver) resolveObject(schema *spec.Schema, isAnonymous bool) (res
 
 		// only complex map elements are nullable (when not forced by x-nullable)
 		// TODO: figure out if required to check when not discriminated like arrays?
-		et.IsNullable = t.isNullable(schema.AdditionalProperties.Schema)
+		et.IsNullable = !et.IsArray && t.isNullable(schema.AdditionalProperties.Schema)
 		if et.IsNullable {
 			result.GoType = "map[string]*" + et.GoType
 		} else {
@@ -866,6 +866,7 @@ func (t *typeResolver) ResolveSchema(schema *spec.Schema, isAnonymous, isRequire
 				// non-embedded external type: by default consider that validation is enabled (SkipExternalValidation: false)
 				result.SkipExternalValidation = swag.BoolValue(extType.Hints.NoValidation)
 			}
+
 			if nullable, ok := t.isNullableOverride(schema); ok {
 				result.IsNullable = nullable
 			}
