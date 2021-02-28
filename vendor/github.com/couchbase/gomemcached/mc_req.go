@@ -33,6 +33,10 @@ type MCRequest struct {
 	CollId [binary.MaxVarintLen32]byte
 	// Length of collection id
 	CollIdLen int
+	// Impersonate user name - could go in FramingExtras, but for efficiency
+	Username [MAX_USER_LEN]byte
+	// Length of Impersonate user name
+	UserLen int
 	// Flexible Framing Extras
 	FramingExtras []FrameInfo
 	// Stored length of incoming framing extras
@@ -41,7 +45,24 @@ type MCRequest struct {
 
 // Size gives the number of bytes this request requires.
 func (req *MCRequest) HdrSize() int {
-	return HDR_LEN + len(req.Extras) + req.CollIdLen + req.FramingElen + len(req.Key)
+	rv := HDR_LEN + len(req.Extras) + req.CollIdLen + req.FramingElen + len(req.Key)
+	if req.UserLen != 0 {
+		rv += req.UserLen + 1
+
+		// half byte shifting required
+		if req.UserLen > FAST_USER_LEN {
+			rv++
+		}
+	}
+	for _, e := range req.FramingExtras {
+		rv += e.ObjLen + 1
+
+		// half byte shifting required
+		if e.ObjLen > FAST_USER_LEN {
+			rv++
+		}
+	}
+	return rv
 }
 
 func (req *MCRequest) Size() int {
@@ -125,6 +146,85 @@ func (req *MCRequest) fillRegularHeaderBytes(data []byte) int {
 	return pos
 }
 
+func (req *MCRequest) fillFastFlexHeaderBytes(data []byte) int {
+	//  Byte/     0       |       1       |       2       |       3       |
+	//     /              |               |               |               |
+	//    |0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|0 1 2 3 4 5 6 7|
+	//    +---------------+---------------+---------------+---------------+
+	//   0| Magic         | Opcode        | Framing extras| Key Length    |
+	//    +---------------+---------------+---------------+---------------+
+	//   4| Extras length | Data type     | vbucket id                    |
+	//    +---------------+---------------+---------------+---------------+
+	//   8| Total body length                                             |
+	//    +---------------+---------------+---------------+---------------+
+	//  12| Opaque                                                        |
+	//    +---------------+---------------+---------------+---------------+
+	//  16| CAS                                                           |
+	//    |                                                               |
+	//    +---------------+---------------+---------------+---------------+
+	//    Total 24 bytes
+
+	pos := 0
+	data[pos] = FLEX_MAGIC
+	pos++
+	data[pos] = byte(req.Opcode)
+	pos++
+	data[pos] = byte(req.UserLen + 1)
+	pos++
+	data[pos] = byte(len(req.Key) + req.CollIdLen)
+	pos++
+
+	// 4
+	data[pos] = byte(len(req.Extras))
+	pos++
+	// Data type
+	if req.DataType != 0 {
+		data[pos] = byte(req.DataType)
+	}
+	pos++
+	binary.BigEndian.PutUint16(data[pos:pos+2], req.VBucket)
+	pos += 2
+
+	// 8
+	binary.BigEndian.PutUint32(data[pos:pos+4],
+		uint32(len(req.Body)+req.CollIdLen+len(req.Key)+(req.UserLen+1)+len(req.Extras)+len(req.ExtMeta)))
+	pos += 4
+
+	// 12
+	binary.BigEndian.PutUint32(data[pos:pos+4], req.Opaque)
+	pos += 4
+
+	// 16
+	if req.Cas != 0 {
+		binary.BigEndian.PutUint64(data[pos:pos+8], req.Cas)
+	}
+	pos += 8
+
+	// 24 Flexible extras
+	if req.UserLen > 0 {
+		data[pos] = byte((uint8(FrameImpersonate) << 4) | uint8(req.UserLen))
+		pos++
+		copy(data[pos:pos+req.UserLen], req.Username[:req.UserLen])
+		pos += req.UserLen
+	}
+
+	if len(req.Extras) > 0 {
+		copy(data[pos:pos+len(req.Extras)], req.Extras)
+		pos += len(req.Extras)
+	}
+
+	if len(req.Key) > 0 {
+		if req.CollIdLen > 0 {
+			copy(data[pos:pos+req.CollIdLen], req.CollId[:])
+			pos += req.CollIdLen
+		}
+		copy(data[pos:pos+len(req.Key)], req.Key)
+		pos += len(req.Key)
+	}
+
+	return pos
+}
+
 // Returns pos and if trailing by half byte
 func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 
@@ -147,16 +247,13 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 
 	data[0] = FLEX_MAGIC
 	data[1] = byte(req.Opcode)
-	data[2] = byte(req.FramingElen)
-	data[3] = byte(req.Keylen + req.CollIdLen)
+	data[3] = byte(len(req.Key) + req.CollIdLen)
 	elen := len(req.Extras)
 	data[4] = byte(elen)
 	if req.DataType != 0 {
 		data[5] = byte(req.DataType)
 	}
 	binary.BigEndian.PutUint16(data[6:8], req.VBucket)
-	binary.BigEndian.PutUint32(data[8:12],
-		uint32(len(req.Body)+req.Keylen+req.CollIdLen+elen+len(req.ExtMeta)+req.FramingElen))
 	binary.BigEndian.PutUint32(data[12:16], req.Opaque)
 	if req.Cas != 0 {
 		binary.BigEndian.PutUint64(data[16:24], req.Cas)
@@ -197,12 +294,46 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 		}
 	}
 
+	// fast impersonate Flexible Extra
+	if req.UserLen > 0 {
+		if !mergeMode {
+			outputBytes, halfByteMode = obj2Bytes(FrameImpersonate, req.UserLen, req.Username[:req.UserLen])
+			if !halfByteMode {
+				framingExtras = append(framingExtras, outputBytes...)
+				frameBytes += len(outputBytes)
+			} else {
+				mergeMode = true
+				mergeModeSrc = outputBytes
+			}
+		} else {
+			outputBytes, halfByteMode = obj2Bytes(FrameImpersonate, req.UserLen, req.Username[:req.UserLen])
+			outputBytes := ShiftByteSliceRight4Bits(outputBytes)
+			if halfByteMode {
+				// Previous halfbyte merge with this halfbyte will result in a complete byte
+				mergeMode = false
+				outputBytes = Merge2HalfByteSlices(mergeModeSrc, outputBytes)
+				framingExtras = append(framingExtras, outputBytes...)
+				frameBytes += len(outputBytes)
+			} else {
+				// Merge half byte with a non-half byte will result in a combined half-byte that will
+				// become the source for the next iteration
+				mergeModeSrc = Merge2HalfByteSlices(mergeModeSrc, outputBytes)
+			}
+		}
+	}
+
 	if mergeMode {
 		// Commit the temporary merge area into framingExtras
 		framingExtras = append(framingExtras, mergeModeSrc...)
 		frameBytes += len(mergeModeSrc)
 	}
 
+	req.FramingElen = frameBytes
+
+	// these have to be set after we have worked out the size of the Flexible Extras
+	data[2] = byte(req.FramingElen)
+	binary.BigEndian.PutUint32(data[8:12],
+		uint32(len(req.Body)+len(req.Key)+req.CollIdLen+elen+len(req.ExtMeta)+req.FramingElen))
 	copy(data[pos:pos+frameBytes], framingExtras)
 
 	pos += frameBytes
@@ -219,19 +350,21 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 	}
 
 	// Add keys
-	if req.Keylen > 0 {
+	if len(req.Key) > 0 {
 		if mergeMode {
 			var key []byte
 			var keylen int
+
 			if req.CollIdLen == 0 {
 				key = req.Key
-				keylen = req.Keylen
+				keylen = len(req.Key)
 			} else {
 				key = append(key, req.CollId[:]...)
 				key = append(key, req.Key...)
-				keylen = req.Keylen + req.CollIdLen
+				keylen = len(req.Key) + req.CollIdLen
 			}
-			outputBytes = ShiftByteSliceRight4Bits(req.Key)
+
+			outputBytes = ShiftByteSliceRight4Bits(key)
 			data = Merge2HalfByteSlices(data, outputBytes)
 			pos += keylen
 		} else {
@@ -239,8 +372,8 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 				copy(data[pos:pos+req.CollIdLen], req.CollId[:])
 				pos += req.CollIdLen
 			}
-			copy(data[pos:pos+req.Keylen], req.Key)
-			pos += req.Keylen
+			copy(data[pos:pos+len(req.Key)], req.Key)
+			pos += len(req.Key)
 		}
 	}
 
@@ -248,17 +381,19 @@ func (req *MCRequest) fillFlexHeaderBytes(data []byte) (int, bool) {
 }
 
 func (req *MCRequest) FillHeaderBytes(data []byte) (int, bool) {
-	if req.FramingElen == 0 {
-		return req.fillRegularHeaderBytes(data), false
-	} else {
+	if len(req.FramingExtras) > 0 || req.UserLen > FAST_USER_LEN {
 		return req.fillFlexHeaderBytes(data)
+	} else if req.UserLen > 0 {
+		return req.fillFastFlexHeaderBytes(data), false
+	} else {
+		return req.fillRegularHeaderBytes(data), false
 	}
 }
 
 // HeaderBytes will return the wire representation of the request header
 // (with the extras and key).
 func (req *MCRequest) HeaderBytes() []byte {
-	data := make([]byte, HDR_LEN+len(req.Extras)+req.CollIdLen+len(req.Key)+req.FramingElen)
+	data := make([]byte, req.HdrSize())
 
 	req.FillHeaderBytes(data)
 
