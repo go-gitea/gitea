@@ -3,17 +3,14 @@ linters-settings:
     min-confidence: 0.3
 
 linters:
-  enable:
-    - goconst
-    - gocyclo
-    - goerr113
-    - gofmt
-    - godox
-    - golint
-    - gocritic
-    - megacheck
-    - misspell
-    - prealloc
-    - unparam
-    - scopelint
-    - wsl
+  disable:
+    - exhaustivestruct
+    - gomnd
+  presets:
+    - bugs
+    - complexity
+    - format
+    - performance
+    - style
+    - unused
+  fast: false

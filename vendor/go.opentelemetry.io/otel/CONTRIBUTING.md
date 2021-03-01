@@ -118,7 +118,7 @@ As with other OpenTelemetry clients, opentelemetry-go follows the
 [opentelemetry-specification](https://github.com/open-telemetry/opentelemetry-specification).
 
 It's especially valuable to read through the [library
-guidelines](https://github.com/open-telemetry/opentelemetry-specification/blob/master/specification/library-guidelines.md).
+guidelines](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/library-guidelines.md).
 
 ### Focus on Capabilities, Not Structure Compliance
 
@@ -371,4 +371,4 @@ Maintainers:
 ### Become an Approver or a Maintainer
 
 See the [community membership document in OpenTelemetry community
-repo](https://github.com/open-telemetry/community/blob/master/community-membership.md).
+repo](https://github.com/open-telemetry/community/blob/main/community-membership.md).
