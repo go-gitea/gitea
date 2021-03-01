@@ -26,9 +26,9 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/v2/document"
 	index "github.com/blevesearch/bleve_index_api"
-	segment "github.com/blevesearch/scorch_segment_api"
-	"github.com/couchbase/vellum"
-	lev "github.com/couchbase/vellum/levenshtein"
+	segment "github.com/blevesearch/scorch_segment_api/v2"
+	"github.com/blevesearch/vellum"
+	lev "github.com/blevesearch/vellum/levenshtein"
 )
 
 // re usable, threadsafe levenshtein builders

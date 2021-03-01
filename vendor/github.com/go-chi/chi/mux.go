@@ -1,6 +1,7 @@
 package chi
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -79,8 +80,8 @@ func (mx *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rctx.Routes = mx
 	rctx.parentCtx = r.Context()
 
-	// NOTE: r.WithContext() causes 2 allocations
-	r = r.WithContext((*directContext)(rctx))
+	// NOTE: r.WithContext() causes 2 allocations and context.WithValue() causes 1 allocation
+	r = r.WithContext(context.WithValue(r.Context(), RouteCtxKey, rctx))
 
 	// Serve the request and once its done, put the request context back in the sync pool
 	mx.handler.ServeHTTP(w, r)
@@ -187,17 +188,16 @@ func (mx *Mux) Trace(pattern string, handlerFn http.HandlerFunc) {
 func (mx *Mux) NotFound(handlerFn http.HandlerFunc) {
 	// Build NotFound handler chain
 	m := mx
-	hFn := handlerFn
+	h := Chain(mx.middlewares...).HandlerFunc(handlerFn).ServeHTTP
 	if mx.inline && mx.parent != nil {
 		m = mx.parent
-		hFn = Chain(mx.middlewares...).HandlerFunc(hFn).ServeHTTP
 	}
 
 	// Update the notFoundHandler from this point forward
-	m.notFoundHandler = hFn
+	m.notFoundHandler = h
 	m.updateSubRoutes(func(subMux *Mux) {
 		if subMux.notFoundHandler == nil {
-			subMux.NotFound(hFn)
+			subMux.NotFound(h)
 		}
 	})
 }
@@ -207,17 +207,16 @@ func (mx *Mux) NotFound(handlerFn http.HandlerFunc) {
 func (mx *Mux) MethodNotAllowed(handlerFn http.HandlerFunc) {
 	// Build MethodNotAllowed handler chain
 	m := mx
-	hFn := handlerFn
+	h := Chain(mx.middlewares...).HandlerFunc(handlerFn).ServeHTTP
 	if mx.inline && mx.parent != nil {
 		m = mx.parent
-		hFn = Chain(mx.middlewares...).HandlerFunc(hFn).ServeHTTP
 	}
 
 	// Update the methodNotAllowedHandler from this point forward
-	m.methodNotAllowedHandler = hFn
+	m.methodNotAllowedHandler = h
 	m.updateSubRoutes(func(subMux *Mux) {
 		if subMux.methodNotAllowedHandler == nil {
-			subMux.MethodNotAllowed(hFn)
+			subMux.MethodNotAllowed(h)
 		}
 	})
 }
