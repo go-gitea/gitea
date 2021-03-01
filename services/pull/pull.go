@@ -481,7 +481,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 	return nil
 }
 
-// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository
+// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
 func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
 	if err != nil {
@@ -500,6 +500,11 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 		}
 
 		for _, pr := range prs {
+			// If the base repository for this pr is this repository there is no need to close it
+			// as it is going to be deleted anyway
+			if pr.BaseRepoID == repo.ID {
+				continue
+			}
 			if err = issue_service.ChangeStatus(pr.Issue, doer, true); err != nil && !models.IsErrPullWasClosed(err) {
 				errs = append(errs, err)
 			}
