@@ -115,10 +115,10 @@ func deleteRepositoryTransfer(e Engine, repoID int64) error {
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *Repository) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	defer sess.Close()
 
 	repo.Status = RepositoryReady
 	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
