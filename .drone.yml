@@ -481,8 +481,8 @@ platform:
   arch: amd64
 
 workspace:
-  base: /
-  path: /source
+  base: /source
+  path: /
 
 trigger:
   branch:
@@ -579,8 +579,8 @@ platform:
   arch: amd64
 
 workspace:
-  base: /
-  path: /source
+  base: /source
+  path: /
 
 trigger:
   event:
