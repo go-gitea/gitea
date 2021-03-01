@@ -13,7 +13,8 @@ import (
 
 func TestCheckAttributeFile(t *testing.T) {
 	testContent := `*.txt text eol=lf
-/vendor/** -text -eol linguist-vendored
+  # test command
+  /vendor/** -text -eol linguist-vendored
 /tools/**/*.py linguist-vendored
 `
 	r := strings.NewReader(testContent)

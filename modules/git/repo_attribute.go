@@ -166,6 +166,11 @@ func LoadAttrbutCheckerFromReader(r io.Reader) (AttrChecker, error) {
 			continue
 		}
 
+		t = strings.TrimLeft(t, " \t\r\n")
+		if strings.HasPrefix(t, "#") {
+			continue
+		}
+
 		splits := strings.Split(t, " ")
 		if len(splits) < 2 {
 			continue
