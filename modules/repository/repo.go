@@ -100,7 +100,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	defer gitRepo.Close()
 
 	if opts.LFS {
-		err := FetchLFSFilesToContentStore(ctx, repo, u.Name, gitRepo, opts.LFSServer, opts.LFSFetchOlder)
+		err := FetchMissingLFSFilesToContentStore(ctx, repo, u.Name, gitRepo, opts.LFSServer, opts.LFSFetchOlder)
 		if err != nil {
 			return repo, fmt.Errorf("Failed to fetch LFS files: %v", err)
 		}
@@ -174,15 +174,15 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	return repo, err
 }
 
-func FetchLFSFilesToContentStore(ctx context.Context, repo *models.Repository, userName string, gitRepo *git.Repository, LFSServer string, LFSFetchOlder bool) error {
-	fetchingMetaObjects := []*models.LFSMetaObject{}
+func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Repository, userName string, gitRepo *git.Repository, LFSServer string, LFSFetchOlder bool) error {
+	fetchingMetaObjectsSet := make(map[string]*models.LFSMetaObject)
 	var err error
 
 	// scan repo for pointer files
 	headBranch, _ := gitRepo.GetHEADBranch()
 	headCommit, _ := gitRepo.GetCommit(headBranch.Name)
 
-	err = FindLFSMetaObjectsBelowMaxFileSize(headCommit, userName, repo, &fetchingMetaObjects)
+	err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(headCommit, userName, repo, &fetchingMetaObjectsSet)
 	if err != nil {
 		log.Error("Failed to access git LFS meta objects on commit %s: %v", headCommit.ID.String(), err)
 		return err
@@ -199,12 +199,17 @@ func FetchLFSFilesToContentStore(ctx context.Context, repo *models.Repository, u
 
 		for e := commitsList.Front(); e != nil; e = e.Next() {
 			commit := e.Value.(*git.Commit)
-			err = FindLFSMetaObjectsBelowMaxFileSize(commit, userName, repo, &fetchingMetaObjects)
+			err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit, userName, repo, &fetchingMetaObjectsSet)
 			if err != nil {
 				log.Error("Failed to access git LFS meta objects on commit %s: %v", commit.ID.String(), err)
 				return err
 			}
 		}
+	}
+
+	fetchingMetaObjects := []*models.LFSMetaObject{}
+	for metaID := range fetchingMetaObjectsSet {
+		fetchingMetaObjects = append(fetchingMetaObjects, fetchingMetaObjectsSet[metaID])
 	}
 
 	// fetch LFS files from external server
@@ -217,7 +222,7 @@ func FetchLFSFilesToContentStore(ctx context.Context, repo *models.Repository, u
 	return nil
 }
 
-func FindLFSMetaObjectsBelowMaxFileSize(commit *git.Commit, userName string, repo *models.Repository, fetchingMetaObjects *[]*models.LFSMetaObject) error {
+func FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit *git.Commit, userName string, repo *models.Repository, fetchingMetaObjectsSet *map[string]*models.LFSMetaObject) error {
 	entries, err := commit.Tree.ListEntriesRecursive()
 	if err != nil {
 		log.Error("Failed to access git commit %s tree: %v", commit.ID.String(), err)
@@ -241,7 +246,7 @@ func FindLFSMetaObjectsBelowMaxFileSize(commit *git.Commit, userName string, rep
 			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", meta.Oid, meta.Size, userName, repo.Name, err)
 			return err
 		}
-		*fetchingMetaObjects = append(*fetchingMetaObjects, meta)
+		(*fetchingMetaObjectsSet)[meta.Oid] = meta
 	}
 	return nil
 }

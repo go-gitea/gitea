@@ -34,8 +34,8 @@ type LFSMetaObject struct {
 
 // LFSMetaObjectBasic represents basic LFS metadata.
 type LFSMetaObjectBasic struct {
-	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size         int64              `xorm:"NOT NULL"`
+	Oid  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size int64  `xorm:"NOT NULL"`
 }
 
 // IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
