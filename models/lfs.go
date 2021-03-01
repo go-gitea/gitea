@@ -34,12 +34,12 @@ type LFSMetaObject struct {
 
 // LFSMetaObjectBasic represents basic LFS metadata.
 type LFSMetaObjectBasic struct {
-	Oid  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size int64  `xorm:"NOT NULL"`
+	Oid  string `json:"oid"`
+	Size int64  `json:"size"`
 }
 
-// IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
-func IsPointerFile(buf *[]byte) *LFSMetaObject {
+// IsPointerFileAndStored will return a partially filled LFSMetaObject if the provided byte slice is a pointer file and stored in contentStore
+func IsPointerFileAndStored(buf *[]byte) *LFSMetaObject {
 	if !setting.LFS.StartServer {
 		return nil
 	}
@@ -66,6 +66,32 @@ func IsPointerFile(buf *[]byte) *LFSMetaObject {
 	if err != nil || !exist {
 		return nil
 	}
+
+	return meta
+}
+
+// IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
+func IsPointerFile(buf *[]byte) *LFSMetaObjectBasic {
+	if !setting.LFS.StartServer {
+		return nil
+	}
+
+	headString := string(*buf)
+	if !strings.HasPrefix(headString, LFSMetaFileIdentifier) {
+		return nil
+	}
+
+	splitLines := strings.Split(headString, "\n")
+	if len(splitLines) < 3 {
+		return nil
+	}
+
+	oid := strings.TrimPrefix(splitLines[1], LFSMetaFileOidPrefix)
+	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+	if len(oid) != 64 || err != nil {
+		return nil
+	}
+	meta := &LFSMetaObjectBasic{Oid: oid, Size: size}
 
 	return meta
 }

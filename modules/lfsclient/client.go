@@ -69,7 +69,6 @@ func BasicTransferAdapter(ctx context.Context, client *http.Client, href string,
 		}
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Failed to query BasicTransferAdapter with response: %s", resp.Status)
@@ -81,12 +80,12 @@ func BasicTransferAdapter(ctx context.Context, client *http.Client, href string,
 func FetchLFSFilesToContentStore(ctx context.Context, metaObjects []*models.LFSMetaObject, userName string, repo *models.Repository, lfsServer string, contentStore *models.ContentStore) error {
 	client := http.DefaultClient
 
-	rv, err := packbatch("download", nil, nil, metaObjects)
+	rv, err := packbatch("download", []string{"basic"}, nil, metaObjects)
 	if err != nil {
 		return err
 	}
 	batchAPIURL := lfsServer + "/objects/batch"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, batchAPIURL, rv)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, batchAPIURL, rv)
 	if err != nil {
 		return err
 	}

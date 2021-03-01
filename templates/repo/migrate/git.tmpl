@@ -46,6 +46,21 @@
 						{{end}}
 					</div>
 
+					<div id="lfs_server_items">
+						<div class="inline field">
+							<label for="lfs_server">{{.i18n.Tr "repo.migrate_options_lfs_server"}}</label>
+							<input id="lfs_server" name="lfs_server" value="{{.lfs_server}}" {{if .lfs}} required{{end}}>
+						</div>
+
+						<div class="inline field">
+							<label></label>
+							<div class="ui checkbox">
+								<input id="lfs_fetch_older" name="lfs_fetch_older" type="checkbox" {{if .lfs_fetch_older}} checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_options_lfs_fetch_older" | Safe}}</label>
+							</div>
+						</div>
+					</div>
+
 					<div class="ui divider"></div>
 
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">

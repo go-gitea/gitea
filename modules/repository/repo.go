@@ -263,10 +263,10 @@ func FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit *git.Commit, user
 				log.Error("Unable to verify LFS OID[%s] size on %s/%s. Error: %v", meta.Oid, userName, repo.Name, err)
 				return err
 			}
-			// remove collision if exists and size not matching
+			// remove file collision if exists and size not matching
 			if !fileSizeValid {
-				if _, err := repo.RemoveLFSMetaObjectByOid(meta.Oid); err != nil {
-					return fmt.Errorf("Error whilst removing matched LFS object %s: %v", meta.Oid, err)
+				if err := contentStore.Delete(meta.RelativePath()); err != nil {
+					return fmt.Errorf("Error whilst deleting contentStore file by LFS oid %s: %v", meta.Oid, err)
 				}
 				(*fetchingMetaObjectsSet)[meta.Oid] = meta
 			}

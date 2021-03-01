@@ -963,9 +963,9 @@ func CheckCreateRepository(doer, u *User, name string, lfs bool, lfsServer strin
 	}
 
 	if lfs {
-		u, err := url.ParseRequestURI(lfsServer)
+		_, err := url.ParseRequestURI(lfsServer)
 		if err != nil {
-			 return ErrMirrorLFSServerNotValid{}
+			return ErrMirrorLFSServerNotValid{}
 		}
 	}
 	return nil

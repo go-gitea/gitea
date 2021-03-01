@@ -46,7 +46,7 @@
 					<div id="lfs_server_items">
 						<div class="inline field">
 							<label for="lfs_server">{{.i18n.Tr "repo.migrate_options_lfs_server"}}</label>
-							<input id="lfs_server" name="lfs_server" value="{{.lfs_server}}">
+							<input id="lfs_server" name="lfs_server" value="{{.lfs_server}}" {{if .lfs}} required{{end}}>
 						</div>
 
 						<div class="inline field">

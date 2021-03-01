@@ -27,7 +27,7 @@ func ReadPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
 		return nil, nil
 	}
 
-	return models.IsPointerFile(&buf), &buf
+	return models.IsPointerFileAndStored(&buf), &buf
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
