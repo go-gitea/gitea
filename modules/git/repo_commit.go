@@ -255,17 +255,13 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 
 	if skip > 0 {
-		line := [41]byte{}
-		for skip > 0 {
-			_, err := io.ReadFull(stdoutReader, line[:])
-			if err != nil {
-				if err == io.ErrUnexpectedEOF {
-					break
-				}
-				_ = stdoutReader.CloseWithError(err)
-				return nil, err
+		_, err := io.CopyN(ioutil.Discard, stdoutReader, int64(skip*41))
+		if err != nil {
+			if err == io.EOF {
+				return list.New(), nil
 			}
-			skip--
+			_ = stdoutReader.CloseWithError(err)
+			return nil, err
 		}
 	}
 
