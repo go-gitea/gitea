@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.5.0 - 2021-01-11
+
+- Fix insert of JSON values on PostgreSQL when using `binary_parameters=yes` in
+  the connection string
+  ([#83](https://github.com/go-testfixtures/testfixtures/issues/83), [#84](https://github.com/go-testfixtures/testfixtures/pull/84), [lib/pq#528](https://github.com/lib/pq/issues/528)).
+- Officially support binary columns through hexadecimal strings
+  ([#48](https://github.com/go-testfixtures/testfixtures/issues/48), [#82](https://github.com/go-testfixtures/testfixtures/pull/82)).
+
 ## v3.4.1 - 2020-10-19
 
 - Fix for Microsoft SQL Server databases with views

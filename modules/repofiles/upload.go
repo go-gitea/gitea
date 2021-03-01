@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -88,7 +89,10 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	var filename2attribute2info map[string]map[string]string
 	if setting.LFS.StartServer {
-		filename2attribute2info, err = t.CheckAttribute("filter", names...)
+		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+			Attributes: []string{"filter"},
+			Filenames:  names,
+		})
 		if err != nil {
 			return err
 		}

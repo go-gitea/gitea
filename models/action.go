@@ -26,30 +26,31 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo         ActionType = iota + 1 // 1
-	ActionRenameRepo                               // 2
-	ActionStarRepo                                 // 3
-	ActionWatchRepo                                // 4
-	ActionCommitRepo                               // 5
-	ActionCreateIssue                              // 6
-	ActionCreatePullRequest                        // 7
-	ActionTransferRepo                             // 8
-	ActionPushTag                                  // 9
-	ActionCommentIssue                             // 10
-	ActionMergePullRequest                         // 11
-	ActionCloseIssue                               // 12
-	ActionReopenIssue                              // 13
-	ActionClosePullRequest                         // 14
-	ActionReopenPullRequest                        // 15
-	ActionDeleteTag                                // 16
-	ActionDeleteBranch                             // 17
-	ActionMirrorSyncPush                           // 18
-	ActionMirrorSyncCreate                         // 19
-	ActionMirrorSyncDelete                         // 20
-	ActionApprovePullRequest                       // 21
-	ActionRejectPullRequest                        // 22
-	ActionCommentPull                              // 23
-	ActionPublishRelease                           // 24
+	ActionCreateRepo          ActionType = iota + 1 // 1
+	ActionRenameRepo                                // 2
+	ActionStarRepo                                  // 3
+	ActionWatchRepo                                 // 4
+	ActionCommitRepo                                // 5
+	ActionCreateIssue                               // 6
+	ActionCreatePullRequest                         // 7
+	ActionTransferRepo                              // 8
+	ActionPushTag                                   // 9
+	ActionCommentIssue                              // 10
+	ActionMergePullRequest                          // 11
+	ActionCloseIssue                                // 12
+	ActionReopenIssue                               // 13
+	ActionClosePullRequest                          // 14
+	ActionReopenPullRequest                         // 15
+	ActionDeleteTag                                 // 16
+	ActionDeleteBranch                              // 17
+	ActionMirrorSyncPush                            // 18
+	ActionMirrorSyncCreate                          // 19
+	ActionMirrorSyncDelete                          // 20
+	ActionApprovePullRequest                        // 21
+	ActionRejectPullRequest                         // 22
+	ActionCommentPull                               // 23
+	ActionPublishRelease                            // 24
+	ActionPullReviewDismissed                       // 25
 )
 
 // Action represents user operation type and other information to
@@ -259,7 +260,7 @@ func (a *Action) GetCreate() time.Time {
 // GetIssueInfos returns a list of issues associated with
 // the action.
 func (a *Action) GetIssueInfos() []string {
-	return strings.SplitN(a.Content, "|", 2)
+	return strings.SplitN(a.Content, "|", 3)
 }
 
 // GetIssueTitle returns the title of first issue associated
@@ -288,12 +289,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User // the user we want activity for
-	RequestedTeam   *Team // the team we want activity for
-	Actor           *User // the user viewing the activity
-	IncludePrivate  bool  // include private actions
-	OnlyPerformedBy bool  // only actions performed by requested user
-	IncludeDeleted  bool  // include deleted actions
+	RequestedUser   *User  // the user we want activity for
+	RequestedTeam   *Team  // the team we want activity for
+	Actor           *User  // the user viewing the activity
+	IncludePrivate  bool   // include private actions
+	OnlyPerformedBy bool   // only actions performed by requested user
+	IncludeDeleted  bool   // include deleted actions
+	Date            string // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -377,6 +379,18 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
+	}
+
+	if opts.Date != "" {
+		dateLow, err := time.Parse("2006-01-02", opts.Date)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+		}
 	}
 
 	return cond, nil

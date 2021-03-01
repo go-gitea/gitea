@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ type Client struct {
 	// Services used for talking to different parts of the GitLab API.
 	AccessRequests        *AccessRequestsService
 	Applications          *ApplicationsService
+	AuditEvents           *AuditEventsService
 	AwardEmoji            *AwardEmojiService
 	Boards                *IssueBoardsService
 	Branches              *BranchesService
@@ -126,9 +127,11 @@ type Client struct {
 	GroupMembers          *GroupMembersService
 	GroupMilestones       *GroupMilestonesService
 	GroupVariables        *GroupVariablesService
+	GroupWikis            *GroupWikisService
 	Groups                *GroupsService
 	InstanceCluster       *InstanceClustersService
 	InstanceVariables     *InstanceVariablesService
+	Invites               *InvitesService
 	IssueLinks            *IssueLinksService
 	Issues                *IssuesService
 	IssuesStatistics      *IssuesStatisticsService
@@ -143,6 +146,7 @@ type Client struct {
 	Namespaces            *NamespacesService
 	Notes                 *NotesService
 	NotificationSettings  *NotificationSettingsService
+	Packages              *PackagesService
 	PagesDomains          *PagesDomainsService
 	PipelineSchedules     *PipelineSchedulesService
 	PipelineTriggers      *PipelineTriggersService
@@ -156,12 +160,14 @@ type Client struct {
 	ProjectVariables      *ProjectVariablesService
 	Projects              *ProjectsService
 	ProtectedBranches     *ProtectedBranchesService
+	ProtectedEnvironments *ProtectedEnvironmentsService
 	ProtectedTags         *ProtectedTagsService
 	ReleaseLinks          *ReleaseLinksService
 	Releases              *ReleasesService
 	Repositories          *RepositoriesService
 	RepositoryFiles       *RepositoryFilesService
 	ResourceLabelEvents   *ResourceLabelEventsService
+	ResourceStateEvents   *ResourceStateEventsService
 	Runners               *RunnersService
 	Search                *SearchService
 	Services              *ServicesService
@@ -264,6 +270,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	// Create all the public services.
 	c.AccessRequests = &AccessRequestsService{client: c}
 	c.Applications = &ApplicationsService{client: c}
+	c.AuditEvents = &AuditEventsService{client: c}
 	c.AwardEmoji = &AwardEmojiService{client: c}
 	c.Boards = &IssueBoardsService{client: c}
 	c.Branches = &BranchesService{client: c}
@@ -290,9 +297,11 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GroupMembers = &GroupMembersService{client: c}
 	c.GroupMilestones = &GroupMilestonesService{client: c}
 	c.GroupVariables = &GroupVariablesService{client: c}
+	c.GroupWikis = &GroupWikisService{client: c}
 	c.Groups = &GroupsService{client: c}
 	c.InstanceCluster = &InstanceClustersService{client: c}
 	c.InstanceVariables = &InstanceVariablesService{client: c}
+	c.Invites = &InvitesService{client: c}
 	c.IssueLinks = &IssueLinksService{client: c}
 	c.Issues = &IssuesService{client: c, timeStats: timeStats}
 	c.IssuesStatistics = &IssuesStatisticsService{client: c}
@@ -307,6 +316,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Namespaces = &NamespacesService{client: c}
 	c.Notes = &NotesService{client: c}
 	c.NotificationSettings = &NotificationSettingsService{client: c}
+	c.Packages = &PackagesService{client: c}
 	c.PagesDomains = &PagesDomainsService{client: c}
 	c.PipelineSchedules = &PipelineSchedulesService{client: c}
 	c.PipelineTriggers = &PipelineTriggersService{client: c}
@@ -320,12 +330,14 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.ProjectVariables = &ProjectVariablesService{client: c}
 	c.Projects = &ProjectsService{client: c}
 	c.ProtectedBranches = &ProtectedBranchesService{client: c}
+	c.ProtectedEnvironments = &ProtectedEnvironmentsService{client: c}
 	c.ProtectedTags = &ProtectedTagsService{client: c}
 	c.ReleaseLinks = &ReleaseLinksService{client: c}
 	c.Releases = &ReleasesService{client: c}
 	c.Repositories = &RepositoriesService{client: c}
 	c.RepositoryFiles = &RepositoryFilesService{client: c}
 	c.ResourceLabelEvents = &ResourceLabelEventsService{client: c}
+	c.ResourceStateEvents = &ResourceStateEventsService{client: c}
 	c.Runners = &RunnersService{client: c}
 	c.Search = &SearchService{client: c}
 	c.Services = &ServicesService{client: c}
@@ -402,7 +414,7 @@ func rateLimitBackoff(min, max time.Duration, attemptNum int, resp *http.Respons
 }
 
 // configureLimiter configures the rate limiter.
-func (c *Client) configureLimiter() error {
+func (c *Client) configureLimiter(ctx context.Context) error {
 	// Set default values for when rate limiting is disabled.
 	limit := rate.Inf
 	burst := 0
@@ -413,7 +425,7 @@ func (c *Client) configureLimiter() error {
 	}()
 
 	// Create a new request.
-	req, err := http.NewRequest("GET", c.baseURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -497,7 +509,7 @@ func (c *Client) NewRequest(method, path string, opt interface{}, options []Requ
 
 	var body interface{}
 	switch {
-	case method == "POST" || method == "PUT":
+	case method == http.MethodPost || method == http.MethodPut:
 		reqHeaders.Set("Content-Type", "application/json")
 
 		if opt != nil {
@@ -601,7 +613,7 @@ func (r *Response) populatePageValues() {
 func (c *Client) Do(req *retryablehttp.Request, v interface{}) (*Response, error) {
 	// If not yet configured, try to configure the rate limiter. Fail
 	// silently as the limiter will be disabled in case of an error.
-	c.configureLimiterOnce.Do(func() { c.configureLimiter() })
+	c.configureLimiterOnce.Do(func() { c.configureLimiter(req.Context()) })
 
 	// Wait will block until the limiter can obtain a new token.
 	err := c.limiter.Wait(req.Context())

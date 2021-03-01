@@ -100,6 +100,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			Repo:    issue.Repo,
 			Content: SecToTime(timediff),
 			Type:    CommentTypeStopTracking,
+			TimeID:  tt.ID,
 		}); err != nil {
 			return err
 		}
