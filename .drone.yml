@@ -480,6 +480,9 @@ platform:
   os: linux
   arch: amd64
 
+workspace:
+  path: /source
+
 trigger:
   branch:
     - master
@@ -573,6 +576,9 @@ name: release-version
 platform:
   os: linux
   arch: amd64
+
+workspace:
+  path: /source
 
 trigger:
   event:
