@@ -215,12 +215,12 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	LFS        bool `yaml:"lfs"`
-	LFSServer  string `yaml:"lfs_server"`
+	IsPrivate  bool   `xorm:"INDEX"`
+	IsEmpty    bool   `xorm:"INDEX"`
+	IsArchived bool   `xorm:"INDEX"`
+	IsMirror   bool   `xorm:"INDEX"`
+	LFS        bool   `xorm:"INDEX"`
+	LFSServer  string `xorm:"TEXT"`
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 

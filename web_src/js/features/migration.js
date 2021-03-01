@@ -10,7 +10,7 @@ const $lfsserver = $('#lfs_server');
 
 export default function initMigration() {
   checkAuth();
-  checkLFSInputs()
+  checkLFSInputs();
 
   $user.on('keyup', () => {checkItems(false)});
   $pass.on('keyup', () => {checkItems(false)});
@@ -27,9 +27,8 @@ export default function initMigration() {
   });
 
   $cloneAddr.on('keyup', () => {
-    const $repoName = $('#repo_name');
     if ($cloneAddr.val().length > 0) {
-      $lfsserver.val($cloneAddr.val() + '/info/lfs')
+      $lfsserver.val(`${$cloneAddr.val()}/info/lfs`);
     }
   });
 }

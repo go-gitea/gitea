@@ -7,6 +7,7 @@ package lfs
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"errors"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

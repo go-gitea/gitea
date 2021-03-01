@@ -13,12 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfsclient"
 	"code.gitea.io/gitea/modules/log"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/lfsclient"
 
 	"gopkg.in/ini.v1"
 )
@@ -174,22 +175,24 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	return repo, err
 }
 
-func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Repository, userName string, gitRepo *git.Repository, LFSServer string, LFSFetchOlder bool) error {
+// FetchMissingLFSFilesToContentStore downloads lfs files to a ContentStore
+func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Repository, userName string, gitRepo *git.Repository, lfsServer string, lfsFetchOlder bool) error {
 	fetchingMetaObjectsSet := make(map[string]*models.LFSMetaObject)
 	var err error
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 
 	// scan repo for pointer files
 	headBranch, _ := gitRepo.GetHEADBranch()
 	headCommit, _ := gitRepo.GetCommit(headBranch.Name)
 
-	err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(headCommit, userName, repo, &fetchingMetaObjectsSet)
+	err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(headCommit, userName, repo, &fetchingMetaObjectsSet, contentStore)
 	if err != nil {
 		log.Error("Failed to access git LFS meta objects on commit %s: %v", headCommit.ID.String(), err)
 		return err
 	}
 
-	if LFSFetchOlder {
-		opts := git.NewSearchCommitsOptions("before:" + headCommit.ID.String(), true)
+	if lfsFetchOlder {
+		opts := git.NewSearchCommitsOptions("before:"+headCommit.ID.String(), true)
 		commitIDsList, _ := headCommit.SearchCommits(opts)
 		var commitIDs = []string{}
 		for e := commitIDsList.Front(); e != nil; e = e.Next() {
@@ -199,7 +202,7 @@ func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Reposi
 
 		for e := commitsList.Front(); e != nil; e = e.Next() {
 			commit := e.Value.(*git.Commit)
-			err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit, userName, repo, &fetchingMetaObjectsSet)
+			err = FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit, userName, repo, &fetchingMetaObjectsSet, contentStore)
 			if err != nil {
 				log.Error("Failed to access git LFS meta objects on commit %s: %v", commit.ID.String(), err)
 				return err
@@ -213,7 +216,7 @@ func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Reposi
 	}
 
 	// fetch LFS files from external server
-	err = lfsclient.FetchLFSFilesToContentStore(ctx, fetchingMetaObjects, userName, repo, LFSServer)
+	err = lfsclient.FetchLFSFilesToContentStore(ctx, fetchingMetaObjects, userName, repo, lfsServer, contentStore)
 	if err != nil {
 		log.Error("Unable to fetch LFS files in %v/%v to content store. Error: %v", userName, repo.Name, err)
 		return err
@@ -222,7 +225,8 @@ func FetchMissingLFSFilesToContentStore(ctx context.Context, repo *models.Reposi
 	return nil
 }
 
-func FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit *git.Commit, userName string, repo *models.Repository, fetchingMetaObjectsSet *map[string]*models.LFSMetaObject) error {
+// FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles finds lfs pointers in a repo and adds them to a passed fetchingMetaObjectsSet
+func FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit *git.Commit, userName string, repo *models.Repository, fetchingMetaObjectsSet *map[string]*models.LFSMetaObject, contentStore *models.ContentStore) error {
 	entries, err := commit.Tree.ListEntriesRecursive()
 	if err != nil {
 		log.Error("Failed to access git commit %s tree: %v", commit.ID.String(), err)
@@ -231,22 +235,45 @@ func FindLFSMetaObjectsBelowMaxFileSizeWithMissingFiles(commit *git.Commit, user
 
 	for _, entry := range entries {
 		buf, _ := entry.Blob().GetBlobFirstBytes(1024)
-		meta := models.IsPointerFile(&buf)
-		if meta == nil {
+		metaBasic := models.IsPointerFile(&buf)
+		if metaBasic == nil {
 			continue
 		}
 
-		if setting.LFS.MaxFileSize > 0 && meta.Size > setting.LFS.MaxFileSize {
-			log.Info("Denied LFS oid[%s] download of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", meta.Oid, meta.Size, userName, repo.Name, setting.LFS.MaxFileSize)
+		if setting.LFS.MaxFileSize > 0 && metaBasic.Size > setting.LFS.MaxFileSize {
+			log.Info("Denied LFS oid[%s] download of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", metaBasic.Oid, metaBasic.Size, userName, repo.Name, setting.LFS.MaxFileSize)
 			continue
 		}
 
-		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Oid: meta.Oid, Size: meta.Size, RepositoryID: repo.ID})
+		meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Oid: metaBasic.Oid, Size: metaBasic.Size, RepositoryID: repo.ID})
 		if err != nil {
 			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", meta.Oid, meta.Size, userName, repo.Name, err)
 			return err
 		}
-		(*fetchingMetaObjectsSet)[meta.Oid] = meta
+
+		exist, err := contentStore.Exists(meta)
+		if err != nil {
+			log.Error("Unable to check if LFS OID[%s] exist on %s/%s. Error: %v", meta.Oid, userName, repo.Name, err)
+			return err
+		}
+
+		if exist {
+			fileSizeValid, err := contentStore.Verify(meta)
+			if err != nil {
+				log.Error("Unable to verify LFS OID[%s] size on %s/%s. Error: %v", meta.Oid, userName, repo.Name, err)
+				return err
+			}
+			// remove collision if exists and size not matching
+			if !fileSizeValid {
+				if _, err := repo.RemoveLFSMetaObjectByOid(meta.Oid); err != nil {
+					return fmt.Errorf("Error whilst removing matched LFS object %s: %v", meta.Oid, err)
+				}
+				(*fetchingMetaObjectsSet)[meta.Oid] = meta
+			}
+			// if exists and size matching, do not fetch
+		} else {
+			(*fetchingMetaObjectsSet)[meta.Oid] = meta
+		}
 	}
 	return nil
 }
