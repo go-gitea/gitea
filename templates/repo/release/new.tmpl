@@ -67,6 +67,16 @@
 			<div class="ui container">
 				<div class="ui divider"></div>
 				<div class="ui text right">
+					{{if not .PageIsEditRelease}}
+						<div class="tag-message field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="add_tag_msg">
+								<label><strong>{{.i18n.Tr "repo.release.add_tag_msg"}}</strong></label>
+							</div>
+						</div>
+					{{else}}
+						<input type="hidden" name="add_tag_msg" value="false">
+					{{end}}
 					<div class="prerelease field">
 						<div class="ui checkbox">
 							<input type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
@@ -93,6 +103,9 @@
 								</button>
 							{{end}}
 						{{else}}
+							{{if not .tag_name}}
+								<input class="ui grey button" type="submit" name="tag_only" value="{{.i18n.Tr "repo.release.add_tag"}}"/>
+							{{end}}
 							<input class="ui button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
 							<button class="ui primary button">
 								{{.i18n.Tr "repo.release.publish"}}
