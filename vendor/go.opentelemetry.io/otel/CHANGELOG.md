@@ -8,6 +8,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.17.0] - 2020-02-12
+
+### Changed
+
+- Rename project default branch from `master` to `main`.
+- Reverse order in which `Resource` attributes are merged, per change in spec. (#1501)
+- Add tooling to maintain "replace" directives in go.mod files automatically. (#1528)
+- Create new modules: otel/metric, otel/trace, otel/oteltest, otel/sdk/export/metric, otel/sdk/metric (#1528)
+- Move metric-related public global APIs from otel to otel/metric/global. (#1528)
+
 ## [0.16.0] - 2020-01-13
 
 ### Added
@@ -36,6 +46,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Unify endpoint API that related to OTel exporter. (#1401)
 - Optimize metric histogram aggregator to re-use its slice of buckets. (#1435)
 - Metric aggregator Count() and histogram Bucket.Counts are consistently `uint64`. (1430)
+- Histogram aggregator accepts functional options, uses default boundaries if none given. (#1434)
 - `SamplingResult` now passed a `Tracestate` from the parent `SpanContext` (#1432)
 - Moved gRPC driver for OTLP exporter to `exporters/otlp/otlpgrpc`. (#1420)
 - The `TraceContext` propagator now correctly propagates `TraceState` through the `SpanContext`. (#1447)
@@ -43,6 +54,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   - `WithExporter()` and `Start()` to configure Push behavior
   - `Start()` is optional; use `Collect()` and `ForEach()` for Pull behavior
   - `Start()` and `Stop()` accept Context. (#1378)
+- The `Event` type is moved from the `otel/sdk/export/trace` package to the `otel/trace` API package. (#1452)
 
 ### Removed
 
@@ -1026,7 +1038,8 @@ It contains api and sdk for trace and meter.
 - CODEOWNERS file to track owners of this project.
 
 
-[Unreleased]: https://github.com/open-telemetry/opentelemetry-go/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/open-telemetry/opentelemetry-go/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/open-telemetry/opentelemetry-go/releases/tag/v0.17.0
 [0.16.0]: https://github.com/open-telemetry/opentelemetry-go/releases/tag/v0.16.0
 [0.15.0]: https://github.com/open-telemetry/opentelemetry-go/releases/tag/v0.15.0
 [0.14.0]: https://github.com/open-telemetry/opentelemetry-go/releases/tag/v0.14.0
