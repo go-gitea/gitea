@@ -11,8 +11,13 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"time"
+	"strings"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"xorm.io/builder"
 )
@@ -31,6 +36,38 @@ type LFSMetaObject struct {
 type LFSMetaObjectBasic struct {
 	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Size         int64              `xorm:"NOT NULL"`
+}
+
+// IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
+func IsPointerFile(buf *[]byte) *LFSMetaObject {
+	if !setting.LFS.StartServer {
+		return nil
+	}
+
+	headString := string(*buf)
+	if !strings.HasPrefix(headString, LFSMetaFileIdentifier) {
+		return nil
+	}
+
+	splitLines := strings.Split(headString, "\n")
+	if len(splitLines) < 3 {
+		return nil
+	}
+
+	oid := strings.TrimPrefix(splitLines[1], LFSMetaFileOidPrefix)
+	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
+	if len(oid) != 64 || err != nil {
+		return nil
+	}
+
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	meta := &LFSMetaObject{Oid: oid, Size: size}
+	exist, err := contentStore.Exists(meta)
+	if err != nil || !exist {
+		return nil
+	}
+
+	return meta
 }
 
 // RelativePath returns the relative path of the lfs object
@@ -239,4 +276,32 @@ func IterateLFS(f func(mo *LFSMetaObject) error) error {
 			}
 		}
 	}
+}
+
+// BatchResponse contains multiple object metadata Representation structures
+// for use with the batch API.
+type BatchResponse struct {
+	Transfer string            `json:"transfer,omitempty"`
+	Objects  []*Representation `json:"objects"`
+}
+
+// Representation is object metadata as seen by clients of the lfs server.
+type Representation struct {
+	Oid     string           `json:"oid"`
+	Size    int64            `json:"size"`
+	Actions map[string]*Link `json:"actions"`
+	Error   *ObjectError     `json:"error,omitempty"`
+}
+
+// ObjectError defines the JSON structure returned to the client in case of an error
+type ObjectError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// Link provides a structure used to build a hypermedia representation of an HTTP link.
+type Link struct {
+	Href      string            `json:"href"`
+	Header    map[string]string `json:"header,omitempty"`
+	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }

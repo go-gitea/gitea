@@ -6,8 +6,6 @@ package lfs
 
 import (
 	"io"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -29,43 +27,11 @@ func ReadPointerFile(reader io.Reader) (*models.LFSMetaObject, *[]byte) {
 		return nil, nil
 	}
 
-	return IsPointerFile(&buf), &buf
-}
-
-// IsPointerFile will return a partially filled LFSMetaObject if the provided byte slice is a pointer file
-func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
-	if !setting.LFS.StartServer {
-		return nil
-	}
-
-	headString := string(*buf)
-	if !strings.HasPrefix(headString, models.LFSMetaFileIdentifier) {
-		return nil
-	}
-
-	splitLines := strings.Split(headString, "\n")
-	if len(splitLines) < 3 {
-		return nil
-	}
-
-	oid := strings.TrimPrefix(splitLines[1], models.LFSMetaFileOidPrefix)
-	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
-	if len(oid) != 64 || err != nil {
-		return nil
-	}
-
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	meta := &models.LFSMetaObject{Oid: oid, Size: size}
-	exist, err := contentStore.Exists(meta)
-	if err != nil || !exist {
-		return nil
-	}
-
-	return meta
+	return models.IsPointerFile(&buf), &buf
 }
 
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 	return contentStore.Get(meta, 0)
 }

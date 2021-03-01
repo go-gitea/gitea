@@ -32,6 +32,19 @@ func (b *Blob) GetBlobContent() (string, error) {
 	return string(buf), nil
 }
 
+// GetBlobFirstBytes gets limited content of the blob as bytes
+func (b *Blob) GetBlobFirstBytes(limit int) ([]byte, error) {
+	dataRc, err := b.DataAsync()
+	buf := make([]byte, limit)
+	if err != nil {
+		return buf, err
+	}
+	defer dataRc.Close()
+	n, _ := dataRc.Read(buf)
+	buf = buf[:n]
+	return buf, nil
+}
+
 // GetBlobLineCount gets line count of lob as raw text
 func (b *Blob) GetBlobLineCount() (int, error) {
 	reader, err := b.DataAsync()

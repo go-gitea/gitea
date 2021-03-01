@@ -14,7 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
+	"errors"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -27,6 +27,11 @@ import (
 
 const (
 	metaMediaType = "application/vnd.git-lfs+json"
+)
+
+var (
+	errHashMismatch = errors.New("Content hash does not match OID")
+	errSizeMismatch = errors.New("Content size does not match")
 )
 
 // RequestVars contain variables from the HTTP request. Variables from routing, json body decoding, and
@@ -48,27 +53,6 @@ type BatchVars struct {
 	Objects   []*RequestVars `json:"objects"`
 }
 
-// BatchResponse contains multiple object metadata Representation structures
-// for use with the batch API.
-type BatchResponse struct {
-	Transfer string            `json:"transfer,omitempty"`
-	Objects  []*Representation `json:"objects"`
-}
-
-// Representation is object metadata as seen by clients of the lfs server.
-type Representation struct {
-	Oid     string           `json:"oid"`
-	Size    int64            `json:"size"`
-	Actions map[string]*link `json:"actions"`
-	Error   *ObjectError     `json:"error,omitempty"`
-}
-
-// ObjectError defines the JSON structure returned to the client in case of an error
-type ObjectError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
 // Claims is a JWT Token Claims
 type Claims struct {
 	RepoID int64
@@ -85,13 +69,6 @@ func (v *RequestVars) ObjectLink() string {
 // VerifyLink builds a URL for verifying the object.
 func (v *RequestVars) VerifyLink() string {
 	return setting.AppURL + path.Join(v.User, v.Repo+".git", "info/lfs/verify")
-}
-
-// link provides a structure used to build a hypermedia representation of an HTTP link.
-type link struct {
-	Href      string            `json:"href"`
-	Header    map[string]string `json:"header,omitempty"`
-	ExpiresAt time.Time         `json:"expires_at,omitempty"`
 }
 
 var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
@@ -187,10 +164,10 @@ func getContentHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 	content, err := contentStore.Get(meta, fromByte)
 	if err != nil {
-		if IsErrRangeNotSatisfiable(err) {
+		if models.IsErrRangeNotSatisfiable(err) {
 			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
 		} else {
 			// Errors are logged in contentStore.Get
@@ -292,7 +269,7 @@ func PostHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	sentStatus := 202
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 	exist, err := contentStore.Exists(meta)
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", rv.Oid, rv.User, rv.Repo, err)
@@ -327,7 +304,7 @@ func BatchHandler(ctx *context.Context) {
 
 	bv := unpackbatch(ctx)
 
-	var responseObjects []*Representation
+	var responseObjects []*models.Representation
 
 	// Create a response object
 	for _, object := range bv.Objects {
@@ -353,7 +330,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		contentStore := &ContentStore{ObjectStorage: storage.LFS}
+		contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 
 		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
 		if err == nil { // Object is found and exists
@@ -392,7 +369,7 @@ func BatchHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
-	respobj := &BatchResponse{Objects: responseObjects}
+	respobj := &models.BatchResponse{Objects: responseObjects}
 
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
@@ -411,7 +388,7 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta, ctx.Req.Body); err != nil {
 		// Put will log the error itself
@@ -452,7 +429,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 	ok, err := contentStore.Verify(meta)
 	if err != nil {
 		// Error will be logged in Verify
@@ -470,11 +447,11 @@ func VerifyHandler(ctx *context.Context) {
 
 // Represent takes a RequestVars and Meta and turns it into a Representation suitable
 // for json encoding
-func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *Representation {
-	rep := &Representation{
+func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload bool) *models.Representation {
+	rep := &models.Representation{
 		Oid:     meta.Oid,
 		Size:    meta.Size,
-		Actions: make(map[string]*link),
+		Actions: make(map[string]*models.Link),
 	}
 
 	header := make(map[string]string)
@@ -487,11 +464,11 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 	}
 
 	if download {
-		rep.Actions["download"] = &link{Href: rv.ObjectLink(), Header: header}
+		rep.Actions["download"] = &models.Link{Href: rv.ObjectLink(), Header: header}
 	}
 
 	if upload {
-		rep.Actions["upload"] = &link{Href: rv.ObjectLink(), Header: header}
+		rep.Actions["upload"] = &models.Link{Href: rv.ObjectLink(), Header: header}
 	}
 
 	if upload && !download {
@@ -504,7 +481,7 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 		// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
 		verifyHeader["Accept"] = metaMediaType
 
-		rep.Actions["verify"] = &link{Href: rv.VerifyLink(), Header: verifyHeader}
+		rep.Actions["verify"] = &models.Link{Href: rv.VerifyLink(), Header: verifyHeader}
 	}
 
 	return rep

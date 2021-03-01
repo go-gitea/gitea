@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package lfs
+package lfsclient
 
 import (
 	"encoding/json"
@@ -11,10 +11,15 @@ import (
 	"io"
 	"net/http"
 	"context"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
+)
+
+const (
+	metaMediaType = "application/vnd.git-lfs+json"
 )
 
 type BatchRequest struct {
@@ -28,10 +33,10 @@ type Reference struct {
   Name string `json:"name"`
 }
 
-func packbatch(operation string, transfers []string, ref *Reference, metaObjects []*models.LFSMetaObject) (string, error) {
+func packbatch(operation string, transfers []string, ref *Reference, metaObjects []*models.LFSMetaObject) (*bytes.Buffer, error) {
   metaObjectsBasic := []*models.LFSMetaObjectBasic{}
 	for _, meta := range metaObjects {
-		metaBasic := &LFSMetaObjectBasic{meta.oid, meta.size}
+		metaBasic := &models.LFSMetaObjectBasic{meta.Oid, meta.Size}
 		metaObjectsBasic = append(metaObjectsBasic, metaBasic)
 	}
 
@@ -39,37 +44,37 @@ func packbatch(operation string, transfers []string, ref *Reference, metaObjects
 
   buf := &bytes.Buffer{}
   if err := json.NewEncoder(buf).Encode(reqobj); err != nil {
-    return nil, fmt.Errorf("Failed to encode BatchRequest as json. Error: %v", err)
+    return buf, fmt.Errorf("Failed to encode BatchRequest as json. Error: %v", err)
 	}
   return buf, nil
 }
 
-func BasicTransferAdapter(href string, size int64) (io.ReadCloser, error) {
+func BasicTransferAdapter(ctx context.Context, client *http.Client, href string, size int64) (io.ReadCloser, error) {
   req, err := http.NewRequestWithContext(ctx, http.MethodGet, href, nil)
   if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Set("Content-type", "application/octet-stream")
-	req.Header.Set("Content-Length", size)
+	req.Header.Set("Content-Length", strconv.Itoa(int(size)))
 
   resp, err := client.Do(req)
   if err != nil {
     select {
   	case <-ctx.Done():
-      return ctx.Err()
+      return nil, ctx.Err()
   	default:
   	}
-    return err
+    return nil, err
   }
   defer resp.Body.Close()
 
   if resp.StatusCode != http.StatusOK {
-    return decodeJSONError(resp).Err
+    return nil, fmt.Errorf("Failed to query BasicTransferAdapter with response: %s", resp.Status)
 	}
-  return resp.Body
+  return resp.Body, nil
 }
 
-func FetchLFSFilesToContentStore(ctx *context.Context, metaObjects []*models.LFSMetaObject, userName string, repo *models.Repository, LFSServer string) error {
+func FetchLFSFilesToContentStore(ctx context.Context, metaObjects []*models.LFSMetaObject, userName string, repo *models.Repository, LFSServer string) error {
   client := http.DefaultClient
 
   rv, err := packbatch("download", nil, nil, metaObjects)
@@ -96,24 +101,28 @@ func FetchLFSFilesToContentStore(ctx *context.Context, metaObjects []*models.LFS
   defer resp.Body.Close()
 
   if resp.StatusCode != http.StatusOK {
-    return decodeJSONError(resp).Err
+    return fmt.Errorf("Failed to query Batch with response: %s", resp.Status)
 	}
 
-  var respBatch BatchResponse
+  var respBatch models.BatchResponse
   err = json.NewDecoder(resp.Body).Decode(&respBatch)
   if err != nil {
     return err
   }
 
-  if respBatch.Transfer == nil {
+  if len(respBatch.Transfer) == 0 {
 		respBatch.Transfer = "basic"
 	}
 
-  contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+  contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 
   for _, rep := range respBatch.Objects {
-    rc := BasicTransferAdapter(rep.Actions["download"].Href, rep.Size)
-    meta, err := GetLFSMetaObjectByOid(rep.Oid)
+    rc, err := BasicTransferAdapter(ctx, client, rep.Actions["download"].Href, rep.Size)
+		if err != nil {
+  		log.Error("Unable to use BasicTransferAdapter. Error: %v", err)
+  		return err
+  	}
+    meta, err := repo.GetLFSMetaObjectByOid(rep.Oid)
     if err != nil {
   		log.Error("Unable to get LFS OID[%s] Error: %v", rep.Oid, err)
   		return err
@@ -140,4 +149,5 @@ func FetchLFSFilesToContentStore(ctx *context.Context, metaObjects []*models.LFS
       return err
     }
   }
+	return nil
 }

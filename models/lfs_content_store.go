@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package lfs
+package models
 
 import (
 	"crypto/sha256"
@@ -12,7 +12,6 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -44,7 +43,7 @@ type ContentStore struct {
 
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
+func (s *ContentStore) Get(meta *LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
 	f, err := s.Open(meta.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
@@ -65,7 +64,7 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
+func (s *ContentStore) Put(meta *LFSMetaObject, r io.Reader) error {
 	hash := sha256.New()
 	rd := io.TeeReader(r, hash)
 	p := meta.RelativePath()
@@ -94,7 +93,7 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
+func (s *ContentStore) Exists(meta *LFSMetaObject) (bool, error) {
 	_, err := s.ObjectStorage.Stat(meta.RelativePath())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -106,7 +105,7 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
+func (s *ContentStore) Verify(meta *LFSMetaObject) (bool, error) {
 	p := meta.RelativePath()
 	fi, err := s.ObjectStorage.Stat(p)
 	if os.IsNotExist(err) || (err == nil && fi.Size() != meta.Size) {

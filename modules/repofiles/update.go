@@ -70,7 +70,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	buf = buf[:n]
 
 	if setting.LFS.StartServer {
-		meta := lfs.IsPointerFile(&buf)
+		meta := models.IsPointerFile(&buf)
 		if meta != nil {
 			meta, err = repo.GetLFSMetaObjectByOid(meta.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
@@ -432,7 +432,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil {
 			return nil, err
 		}
-		contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
+		contentStore := &models.ContentStore{ObjectStorage: storage.LFS}
 		exist, err := contentStore.Exists(lfsMetaObject)
 		if err != nil {
 			return nil, err
