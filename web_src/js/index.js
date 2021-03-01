@@ -20,6 +20,7 @@ import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
+import initImageDiff from './features/imagediff.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
@@ -1413,6 +1414,7 @@ function initWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
+  let hasSimpleMDE = true;
   if ($editArea.length > 0) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
@@ -1509,6 +1511,12 @@ function initWikiForm() {
           name: 'revert-to-textarea',
           action(e) {
             e.toTextArea();
+            hasSimpleMDE = false;
+            const $form = $('.repository.wiki.new .ui.form');
+            const $root = $form.find('.field.content');
+            const loading = $root.data('loading');
+            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
+            initCommentPreviewTab($form);
           },
           className: 'fa fa-file',
           title: 'Revert to simple textarea',
@@ -1521,17 +1529,28 @@ function initWikiForm() {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
       const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
       const $toolbar = $('.editor-toolbar');
-      const $bPreview = $('.editor-toolbar a.fa-eye');
+      const $bPreview = $('.editor-toolbar button.preview');
       const $bSideBySide = $('.editor-toolbar a.fa-columns');
-      $bEdit.on('click', () => {
+      $bEdit.on('click', (e) => {
+        if (!hasSimpleMDE) {
+          return false;
+        }
+        e.stopImmediatePropagation();
         if ($toolbar.hasClass('disabled-for-preview')) {
           $bPreview.trigger('click');
         }
+
+        return false;
       });
-      $bPrev.on('click', () => {
+      $bPrev.on('click', (e) => {
+        if (!hasSimpleMDE) {
+          return false;
+        }
+        e.stopImmediatePropagation();
         if (!$toolbar.hasClass('disabled-for-preview')) {
           $bPreview.trigger('click');
         }
+        return false;
       });
       $bPreview.on('click', () => {
         setTimeout(() => {
@@ -1551,6 +1570,8 @@ function initWikiForm() {
             }
           }
         }, 0);
+
+        return false;
       });
       $bSideBySide.on('click', () => {
         sideBySideChanges = 10;
@@ -1732,6 +1753,20 @@ async function initEditor() {
       event.preventDefault();
     }
   });
+}
+
+function initReleaseEditor() {
+  const $editor = $('.repository.new.release .content-editor');
+  if ($editor.length === 0) {
+    return false;
+  }
+
+  const $textarea = $editor.find('textarea');
+  attachTribute($textarea.get(), {mentions: false, emoji: true});
+  const $files = $editor.parent().find('.files');
+  const $simplemde = setCommentSimpleMDE($textarea);
+  initCommentPreviewTab($editor);
+  initSimpleMDEImagePaste($simplemde, $files);
 }
 
 function initOrganization() {
@@ -2397,6 +2432,33 @@ function initIssueReferenceRepositorySearch() {
     });
 }
 
+function initLinkAccountView() {
+  const $lnkUserPage = $('.page-content.user.link-account');
+  if ($lnkUserPage.length === 0) {
+    return false;
+  }
+
+  const $signinTab = $lnkUserPage.find('.item[data-tab="auth-link-signin-tab"]');
+  const $signUpTab = $lnkUserPage.find('.item[data-tab="auth-link-signup-tab"]');
+  const $signInView = $lnkUserPage.find('.tab[data-tab="auth-link-signin-tab"]');
+  const $signUpView = $lnkUserPage.find('.tab[data-tab="auth-link-signup-tab"]');
+
+  $signUpTab.on('click', () => {
+    $signinTab.removeClass('active');
+    $signInView.removeClass('active');
+    $signUpTab.addClass('active');
+    $signUpView.addClass('active');
+    return false;
+  });
+
+  $signinTab.on('click', () => {
+    $signUpTab.removeClass('active');
+    $signUpView.removeClass('active');
+    $signinTab.addClass('active');
+    $signInView.addClass('active');
+  });
+}
+
 $(document).ready(async () => {
   // Show exact time
   $('.time-since').each(function () {
@@ -2455,6 +2517,9 @@ $(document).ready(async () => {
   $('td[data-href]').click(function () {
     window.location = $(this).data('href');
   });
+
+  // link-account tab handle
+  initLinkAccountView();
 
   // Dropzone
   const $dropzone = $('#dropzone');
@@ -2623,6 +2688,7 @@ $(document).ready(async () => {
   initTableSort();
   initNotificationsTable();
   initPullRequestMergeInstruction();
+  initReleaseEditor();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -2648,6 +2714,7 @@ $(document).ready(async () => {
     initStopwatch(),
     renderMarkdownContent(),
     initGithook(),
+    initImageDiff(),
   ]);
 });
 
@@ -3203,18 +3270,32 @@ function initVueApp() {
 
 function initIssueTimetracking() {
   $(document).on('click', '.issue-add-time', () => {
-    $('.mini.modal').modal({
+    $('.issue-start-time-modal').modal({
       duration: 200,
       onApprove() {
         $('#add_time_manual_form').trigger('submit');
       }
     }).modal('show');
+    $('.issue-start-time-modal input').on('keydown', (e) => {
+      if ((e.keyCode || e.key) === 13) {
+        $('#add_time_manual_form').trigger('submit');
+      }
+    });
   });
   $(document).on('click', '.issue-start-time, .issue-stop-time', () => {
     $('#toggle_stopwatch_form').trigger('submit');
   });
   $(document).on('click', '.issue-cancel-time', () => {
     $('#cancel_stopwatch_form').trigger('submit');
+  });
+  $(document).on('click', 'button.issue-delete-time', function () {
+    const sel = `.issue-delete-time-modal[data-id="${$(this).data('id')}"]`;
+    $(sel).modal({
+      duration: 200,
+      onApprove() {
+        $(`${sel} form`).trigger('submit');
+      }
+    }).modal('show');
   });
 }
 
@@ -3229,6 +3310,7 @@ function initFilterBranchTagDropdown(selector) {
       noResults: '',
       canCreateBranch: false,
       menuVisible: false,
+      createTag: false,
       active: 0
     };
     $data.find('.item').each(function () {
@@ -3260,7 +3342,7 @@ function initFilterBranchTagDropdown(selector) {
           return this.filteredItems.length === 0 && !this.showCreateNewBranch;
         },
         showCreateNewBranch() {
-          if (!this.canCreateBranch || !this.searchTerm || this.mode === 'tags') {
+          if (!this.canCreateBranch || !this.searchTerm) {
             return false;
           }
 

@@ -67,8 +67,9 @@ func (b *Blocks) close(f *Frame, num int) error {
 		return err
 	}
 	if b.Blocks == nil {
-		// Not initialized yet.
-		return nil
+		err := b.err
+		b.err = nil
+		return err
 	}
 	c := make(chan *FrameDataBlock)
 	b.Blocks <- c
@@ -114,15 +115,18 @@ func (b *Blocks) initR(f *Frame, num int, src io.Reader) (chan []byte, error) {
 			block := NewFrameDataBlock(f)
 			cumx, err = block.Read(f, src, 0)
 			if err != nil {
+				block.Close(f)
 				break
 			}
 			// Recheck for an error as reading may be slow and uncompressing is expensive.
 			if b.ErrorR() != nil {
+				block.Close(f)
 				break
 			}
 			c := make(chan []byte)
 			blocks <- c
 			go func() {
+				defer block.Close(f)
 				data, err := block.Uncompress(f, size.Get(), false)
 				if err != nil {
 					b.closeR(err)

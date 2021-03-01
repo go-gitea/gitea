@@ -96,6 +96,13 @@ func IsWindowsService() (bool, error) {
 	var psid uint32
 	err := windows.ProcessIdToSessionId(uint32(pbi[5]), &psid)
 	if err != nil {
+		if err == windows.ERROR_INVALID_PARAMETER {
+			// This error happens when Windows cannot find process parent.
+			// Perhaps process parent exited.
+			// Assume we are not running in a service, because service
+			// parent process (services.exe) cannot exit.
+			return false, nil
+		}
 		return false, err
 	}
 	if psid != 0 {

@@ -586,6 +586,14 @@ func Home(ctx *context.Context) {
 			return
 		}
 
+		if ctx.IsSigned {
+			// Set repo notification-status read if unread
+			if err := ctx.Repo.Repository.ReadBy(ctx.User.ID); err != nil {
+				ctx.ServerError("ReadBy", err)
+				return
+			}
+		}
+
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {

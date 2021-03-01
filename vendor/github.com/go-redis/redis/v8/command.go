@@ -1445,6 +1445,103 @@ func (cmd *XPendingExtCmd) readReply(rd *proto.Reader) error {
 
 //------------------------------------------------------------------------------
 
+type XInfoConsumersCmd struct {
+	baseCmd
+	val []XInfoConsumer
+}
+
+type XInfoConsumer struct {
+	Name    string
+	Pending int64
+	Idle    int64
+}
+
+var _ Cmder = (*XInfoGroupsCmd)(nil)
+
+func NewXInfoConsumersCmd(ctx context.Context, stream string, group string) *XInfoConsumersCmd {
+	return &XInfoConsumersCmd{
+		baseCmd: baseCmd{
+			ctx:  ctx,
+			args: []interface{}{"xinfo", "consumers", stream, group},
+		},
+	}
+}
+
+func (cmd *XInfoConsumersCmd) Val() []XInfoConsumer {
+	return cmd.val
+}
+
+func (cmd *XInfoConsumersCmd) Result() ([]XInfoConsumer, error) {
+	return cmd.val, cmd.err
+}
+
+func (cmd *XInfoConsumersCmd) String() string {
+	return cmdString(cmd, cmd.val)
+}
+
+func (cmd *XInfoConsumersCmd) readReply(rd *proto.Reader) error {
+	n, err := rd.ReadArrayLen()
+	if err != nil {
+		return err
+	}
+
+	cmd.val = make([]XInfoConsumer, n)
+
+	for i := 0; i < n; i++ {
+		cmd.val[i], err = readXConsumerInfo(rd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readXConsumerInfo(rd *proto.Reader) (XInfoConsumer, error) {
+	var consumer XInfoConsumer
+
+	n, err := rd.ReadArrayLen()
+	if err != nil {
+		return consumer, err
+	}
+	if n != 6 {
+		return consumer, fmt.Errorf("redis: got %d elements in XINFO CONSUMERS reply, wanted 6", n)
+	}
+
+	for i := 0; i < 3; i++ {
+		key, err := rd.ReadString()
+		if err != nil {
+			return consumer, err
+		}
+
+		val, err := rd.ReadString()
+		if err != nil {
+			return consumer, err
+		}
+
+		switch key {
+		case "name":
+			consumer.Name = val
+		case "pending":
+			consumer.Pending, err = strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				return consumer, err
+			}
+		case "idle":
+			consumer.Idle, err = strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				return consumer, err
+			}
+		default:
+			return consumer, fmt.Errorf("redis: unexpected content %s in XINFO CONSUMERS reply", key)
+		}
+	}
+
+	return consumer, nil
+}
+
+//------------------------------------------------------------------------------
+
 type XInfoGroupsCmd struct {
 	baseCmd
 	val []XInfoGroup

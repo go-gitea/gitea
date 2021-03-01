@@ -166,3 +166,7 @@ func (*NullNotifier) NotifySyncCreateRef(doer *models.User, repo *models.Reposit
 // NotifySyncDeleteRef places a place holder function
 func (*NullNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 }
+
+// NotifyRepoPendingTransfer places a place holder function
+func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+}
