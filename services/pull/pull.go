@@ -480,7 +480,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 	return nil
 }
 
-// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but whose base repo is not in the given repository
+// CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
 func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
 	if err != nil {
