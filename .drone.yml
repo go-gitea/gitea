@@ -481,6 +481,7 @@ platform:
   arch: amd64
 
 workspace:
+  base: /
   path: /source
 
 trigger:
@@ -578,6 +579,7 @@ platform:
   arch: amd64
 
 workspace:
+  base: /
   path: /source
 
 trigger:
