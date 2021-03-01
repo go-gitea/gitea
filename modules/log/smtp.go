@@ -6,6 +6,7 @@
 package log
 
 import (
+	"fmt"
 	"net/smtp"
 	"strings"
 
@@ -59,7 +60,7 @@ func (log *SMTPLogger) Init(jsonconfig string) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&smtpWriter{
 		owner: log,

@@ -299,7 +299,7 @@ index 6961180..9ba1a00 100644
 				return
 			}
 			json := jsoniter.ConfigCompatibleWithStandardLibrary
-			gotMarshaled, _ := json.MarshalIndent(got, "  ", "  ")
+			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return

@@ -6,6 +6,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"net"
 
@@ -108,7 +109,7 @@ func (log *ConnLogger) Init(jsonconfig string) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&connWriter{
 		ReconnectOnMsg: log.ReconnectOnMsg,

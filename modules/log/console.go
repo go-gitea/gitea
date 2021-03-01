@@ -6,6 +6,7 @@
 package log
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -54,7 +55,7 @@ func (log *ConsoleLogger) Init(config string) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	if log.Stderr {
 		log.NewWriterLogger(&nopWriteCloser{
