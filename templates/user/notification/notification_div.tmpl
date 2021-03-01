@@ -39,6 +39,8 @@
                                 <td class="collapsing" data-href="{{.HTMLURL}}">
                                     {{if eq .Status 3}}
                                         <span class="blue">{{svg "octicon-pin"}}</span>
+                                    {{else if not $issue}}
+                                        <span class="gray">{{svg "octicon-repo"}}</span>
                                     {{else if $issue.IsPull}}
                                         {{if $issue.IsClosed}}
                                             {{if $issue.GetPullRequest.HasMerged}}
@@ -59,7 +61,11 @@
                                 </td>
                                 <td class="eleven wide" data-href="{{.HTMLURL}}">
                                     <a class="item" href="{{.HTMLURL}}">
-                                        #{{$issue.Index}} - {{$issue.Title}}
+                                        {{if $issue}}
+                                            #{{$issue.Index}} - {{$issue.Title}}
+                                        {{else}}
+                                            {{$repo.FullName}}
+                                        {{end}}
                                     </a>
                                 </td>
                                 <td data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">

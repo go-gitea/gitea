@@ -139,8 +139,9 @@ type RepositoryStatus int
 
 // all kinds of RepositoryStatus
 const (
-	RepositoryReady         RepositoryStatus = iota // a normal repository
-	RepositoryBeingMigrated                         // repository is migrating
+	RepositoryReady           RepositoryStatus = iota // a normal repository
+	RepositoryBeingMigrated                           // repository is migrating
+	RepositoryPendingTransfer                         // repository pending in ownership transfer state
 )
 
 // TrustModelType defines the types of trust model for this repository
@@ -872,6 +873,11 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
+// ReadBy sets repo to be visited by given user.
+func (repo *Repository) ReadBy(userID int64) error {
+	return setRepoNotificationStatusReadIfUnread(x, userID, repo.ID)
+}
+
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,
@@ -1187,140 +1193,6 @@ func RepoPath(userName, repoName string) string {
 func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
 	return err
-}
-
-// TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
-	newOwner, err := GetUserByName(newOwnerName)
-	if err != nil {
-		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
-	}
-
-	// Check if new owner has repository with same name.
-	has, err := IsRepositoryExist(newOwner, repo.Name)
-	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
-	} else if has {
-		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
-	}
-
-	oldOwner := repo.Owner
-
-	// Note: we have to set value here to make sure recalculate accesses is based on
-	// new owner.
-	repo.OwnerID = newOwner.ID
-	repo.Owner = newOwner
-	repo.OwnerName = newOwner.Name
-
-	// Update repository.
-	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
-		return fmt.Errorf("update owner: %v", err)
-	}
-
-	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, ListOptions{})
-	if err != nil {
-		return fmt.Errorf("getCollaborators: %v", err)
-	}
-
-	// Dummy object.
-	collaboration := &Collaboration{RepoID: repo.ID}
-	for _, c := range collaborators {
-		if c.ID != newOwner.ID {
-			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
-			if err != nil {
-				return fmt.Errorf("IsOrgMember: %v", err)
-			} else if !isMember {
-				continue
-			}
-		}
-		collaboration.UserID = c.ID
-		if _, err = sess.Delete(collaboration); err != nil {
-			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
-		}
-	}
-
-	// Remove old team-repository relations.
-	if oldOwner.IsOrganization() {
-		if err = oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
-			return fmt.Errorf("removeOrgRepo: %v", err)
-		}
-	}
-
-	if newOwner.IsOrganization() {
-		if err := newOwner.getTeams(sess); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
-		}
-		for _, t := range newOwner.Teams {
-			if t.IncludesAllRepositories {
-				if err := t.addRepository(sess, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
-				}
-			}
-		}
-	} else if err = repo.recalculateAccesses(sess); err != nil {
-		// Organization called this in addRepository method.
-		return fmt.Errorf("recalculateAccesses: %v", err)
-	}
-
-	// Update repository count.
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
-		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
-		return fmt.Errorf("decrease old owner repository count: %v", err)
-	}
-
-	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
-		return fmt.Errorf("watchRepo: %v", err)
-	}
-
-	// Remove watch for organization.
-	if oldOwner.IsOrganization() {
-		if err = watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
-		}
-	}
-
-	// Rename remote repository to new path and delete local copy.
-	dir := UserPath(newOwner.Name)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err = os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
-		return fmt.Errorf("rename repository directory: %v", err)
-	}
-
-	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := WikiPath(oldOwner.Name, repo.Name)
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
-		return err
-	}
-	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
-			return fmt.Errorf("rename repository wiki: %v", err)
-		}
-	}
-
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
-	}
-
-	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("newRepoRedirect: %v", err)
-	}
-
-	return sess.Commit()
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
