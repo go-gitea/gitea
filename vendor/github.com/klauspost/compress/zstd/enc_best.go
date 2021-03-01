@@ -112,7 +112,7 @@ func (e *bestFastEncoder) Encode(blk *blockEnc, src []byte) {
 	// Override src
 	src = e.hist
 	sLimit := int32(len(src)) - inputMargin
-	const kSearchStrength = 12
+	const kSearchStrength = 10
 
 	// nextEmit is where in src the next emitLiteral should start from.
 	nextEmit := s
@@ -186,9 +186,11 @@ encodeLoop:
 			best = bestOf(best, matchAt(s-offset1+1, s+1, uint32(cv>>8), 1))
 			best = bestOf(best, matchAt(s-offset2+1, s+1, uint32(cv>>8), 2))
 			best = bestOf(best, matchAt(s-offset3+1, s+1, uint32(cv>>8), 3))
-			best = bestOf(best, matchAt(s-offset1+3, s+3, uint32(cv>>24), 1))
-			best = bestOf(best, matchAt(s-offset2+3, s+3, uint32(cv>>24), 2))
-			best = bestOf(best, matchAt(s-offset3+3, s+3, uint32(cv>>24), 3))
+			if best.length > 0 {
+				best = bestOf(best, matchAt(s-offset1+3, s+3, uint32(cv>>24), 1))
+				best = bestOf(best, matchAt(s-offset2+3, s+3, uint32(cv>>24), 2))
+				best = bestOf(best, matchAt(s-offset3+3, s+3, uint32(cv>>24), 3))
+			}
 		}
 		// Load next and check...
 		e.longTable[nextHashL] = prevEntry{offset: s + e.cur, prev: candidateL.offset}

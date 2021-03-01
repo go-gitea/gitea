@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -34,6 +33,7 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -370,6 +370,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}

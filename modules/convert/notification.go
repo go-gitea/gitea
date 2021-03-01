@@ -52,8 +52,14 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		result.Subject = &api.NotificationSubject{
 			Type:  "Commit",
 			Title: n.CommitID,
+			URL:   n.Repository.HTMLURL() + "/commit/" + n.CommitID,
 		}
-		//unused until now
+	case models.NotificationSourceRepository:
+		result.Subject = &api.NotificationSubject{
+			Type:  "Repository",
+			Title: n.Repository.FullName(),
+			URL:   n.Repository.Link(),
+		}
 	}
 
 	return result

@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -47,9 +47,9 @@ const HeaderLen = 12
 // Constants for the checksum methods supported by xz.
 const (
 	None   byte = 0x0
-	CRC32       = 0x1
-	CRC64       = 0x4
-	SHA256      = 0xa
+	CRC32  byte = 0x1
+	CRC64  byte = 0x4
+	SHA256 byte = 0xa
 )
 
 // errInvalidFlags indicates that flags are invalid.
@@ -569,22 +569,6 @@ func readFilters(r io.Reader, count int) (filters []filter, err error) {
 	return []filter{f}, err
 }
 
-// writeFilters writes the filters.
-func writeFilters(w io.Writer, filters []filter) (n int, err error) {
-	for _, f := range filters {
-		p, err := f.MarshalBinary()
-		if err != nil {
-			return n, err
-		}
-		k, err := w.Write(p)
-		n += k
-		if err != nil {
-			return n, err
-		}
-	}
-	return n, nil
-}
-
 /*** Index ***/
 
 // record describes a block in the xz file index.
@@ -678,7 +662,7 @@ func writeIndex(w io.Writer, index []record) (n int64, err error) {
 
 // readIndexBody reads the index from the reader. It assumes that the
 // index indicator has already been read.
-func readIndexBody(r io.Reader) (records []record, n int64, err error) {
+func readIndexBody(r io.Reader, expectedRecordLen int) (records []record, n int64, err error) {
 	crc := crc32.NewIEEE()
 	// index indicator
 	crc.Write([]byte{0})
@@ -694,6 +678,11 @@ func readIndexBody(r io.Reader) (records []record, n int64, err error) {
 	recLen := int(u)
 	if recLen < 0 || uint64(recLen) != u {
 		return nil, n, errors.New("xz: record number overflow")
+	}
+	if recLen != expectedRecordLen {
+		return nil, n, fmt.Errorf(
+			"xz: index length is %d; want %d",
+			recLen, expectedRecordLen)
 	}
 
 	// list of records
