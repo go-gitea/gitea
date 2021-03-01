@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -383,7 +384,14 @@ func CreateBranch(ctx *context.Context) {
 	}
 
 	var err error
-	if ctx.Repo.IsViewBranch {
+
+	if form.CreateTag {
+		if ctx.Repo.IsViewTag {
+			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName, "")
+		} else {
+			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
+		}
+	} else if ctx.Repo.IsViewBranch {
 		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else if ctx.Repo.IsViewTag {
 		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
@@ -429,6 +437,12 @@ func CreateBranch(ctx *context.Context) {
 		}
 
 		ctx.ServerError("CreateNewBranch", err)
+		return
+	}
+
+	if form.CreateTag {
+		ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.NewBranchName))
+		ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + util.PathEscapeSegments(form.NewBranchName))
 		return
 	}
 
