@@ -102,9 +102,9 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
-	case models.IsLFSNotInstalled(err):
-		ctx.Data["Err_LFSNotInstalled"] = true
-		ctx.RenderWithErr(ctx.Tr("form.lfs_not_installed"), tpl, form)
+	case models.IsMirrorLFSServerValid(err):
+		ctx.Data["Err_LFSServerNotValid"] = true
+		ctx.RenderWithErr(ctx.Tr("form.lfs_server_not_valid"), tpl, form)
 	default:
 		remoteAddr, _ := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, owner)
 		err = util.URLSanitizedError(err, remoteAddr)
@@ -200,7 +200,7 @@ func MigratePost(ctx *context.Context) {
 		opts.Releases = false
 	}
 
-	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, opts.LFS, false)
+	err = models.CheckCreateRepository(ctx.User, ctxUser, opts.RepoName, opts.LFS, opts.LFSServer, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return

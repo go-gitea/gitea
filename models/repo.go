@@ -18,7 +18,6 @@ import (
 	"net"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"sort"
@@ -938,7 +937,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string, lfs bool, overwriteOrAdopt bool) error {
+func CheckCreateRepository(doer, u *User, name string, lfs bool, lfsServer string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -964,8 +963,9 @@ func CheckCreateRepository(doer, u *User, name string, lfs bool, overwriteOrAdop
 	}
 
 	if lfs {
-		if _, err := exec.LookPath("git-lfs"); err != nil {
-			return ErrLFSNotInstalled{}
+		u, err := url.ParseRequestURI(lfsServer)
+		if err != nil {
+			 return ErrMirrorLFSServerNotValid{}
 		}
 	}
 	return nil

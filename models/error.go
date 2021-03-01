@@ -56,18 +56,18 @@ func (err ErrNamePatternNotAllowed) Error() string {
 	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
 }
 
-// ErrLFSNotInstalled represents an "git-lfs not found" error.
-type ErrLFSNotInstalled struct {
+// ErrMirrorLFSServerNotValid represents an "LFS Server not valid" error.
+type ErrMirrorLFSServerNotValid struct {
 }
 
-// IsLFSNotInstalled checks if an error is an ErrLFSNotInstalled.
-func IsLFSNotInstalled(err error) bool {
-	_, ok := err.(ErrLFSNotInstalled)
+// IsMirrorLFSServerValid checks if an error is an ErrMirrorLFSServerNotValid.
+func IsMirrorLFSServerValid(err error) bool {
+	_, ok := err.(ErrMirrorLFSServerNotValid)
 	return ok
 }
 
-func (err ErrLFSNotInstalled) Error() string {
-	return "git-lfs not found"
+func (err ErrMirrorLFSServerNotValid) Error() string {
+	return "LFS Server not valid"
 }
 
 // ErrNameCharsNotAllowed represents a "character not allowed in name" error.
