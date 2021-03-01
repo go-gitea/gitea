@@ -66,6 +66,7 @@ require (
 	github.com/issue9/assert v1.3.2 // indirect
 	github.com/issue9/identicon v1.0.1
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
+	github.com/json-iterator/go v1.1.10
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
