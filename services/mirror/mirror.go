@@ -206,7 +206,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 // runSync returns true if sync finished without error.
-func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -253,13 +253,20 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+	defer gitRepo.Close()
+
+	if m.Repo.LFS {
+		log.Trace("SyncMirrors [repo: %-v]: fetching LFS files...", m.Repo)
+		err := repo_module.FetchMissingLFSFilesToContentStore(ctx, m.Repo, Username(m), gitRepo, m.Repo.LFSServer, false)
+		if err != nil {
+			log.Error("Failed to fetch LFS files %v:\nErr: %v", m.Repo, err)
+		}
+	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
-		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
-	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
@@ -378,12 +385,12 @@ func SyncMirrors(ctx context.Context) {
 			mirrorQueue.Close()
 			return
 		case repoID := <-mirrorQueue.Queue():
-			syncMirror(repoID)
+			syncMirror(ctx, repoID)
 		}
 	}
 }
 
-func syncMirror(repoID string) {
+func syncMirror(ctx context.Context, repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -403,7 +410,7 @@ func syncMirror(repoID string) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
-	results, ok := runSync(m)
+	results, ok := runSync(ctx, m)
 	if !ok {
 		return
 	}

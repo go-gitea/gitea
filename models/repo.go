@@ -219,6 +219,8 @@ type Repository struct {
 	IsEmpty    bool `xorm:"INDEX"`
 	IsArchived bool `xorm:"INDEX"`
 	IsMirror   bool `xorm:"INDEX"`
+	LFS        bool `yaml:"lfs"`
+	LFSServer  string `yaml:"lfs_server"`
 	*Mirror    `xorm:"-"`
 	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 

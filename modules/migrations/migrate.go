@@ -140,6 +140,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
+	repo.LFS = opts.LFS
+	repo.LFSServer = opts.LFSServer
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}

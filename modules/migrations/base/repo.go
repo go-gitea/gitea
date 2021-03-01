@@ -9,8 +9,10 @@ package base
 type Repository struct {
 	Name          string
 	Owner         string
-	IsPrivate     bool `yaml:"is_private"`
-	IsMirror      bool `yaml:"is_mirror"`
+	IsPrivate     bool   `yaml:"is_private"`
+	IsMirror      bool   `yaml:"is_mirror"`
+	LFS           bool   `yaml:"lfs"`
+	LFSServer     string `yaml:"lfs_server"`
 	Description   string
 	CloneURL      string `yaml:"clone_url"`
 	OriginalURL   string `yaml:"original_url"`
