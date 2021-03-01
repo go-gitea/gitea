@@ -1,14 +1,18 @@
 # sha256-simd
 
-Accelerate SHA256 computations in pure Go using AVX512, SHA Extensions and AVX2 for Intel and ARM64 for ARM. On AVX512 it provides an up to 8x improvement (over 3 GB/s per core) in comparison to AVX2. SHA Extensions give a performance boost of close to 4x over AVX2.
+Accelerate SHA256 computations in pure Go using AVX512, SHA Extensions for x86 and ARM64 for ARM. 
+On AVX512 it provides an up to 8x improvement (over 3 GB/s per core).
+SHA Extensions give a performance boost of close to 4x over native.
 
 ## Introduction
 
-This package is designed as a replacement for `crypto/sha256`. For Intel CPUs it has two flavors for AVX512 and AVX2 (AVX/SSE are also supported). For ARM CPUs with the Cryptography Extensions, advantage is taken of the SHA2 instructions resulting in a massive performance improvement.
+This package is designed as a replacement for `crypto/sha256`. 
+For ARM CPUs with the Cryptography Extensions, advantage is taken of the SHA2 instructions resulting in a massive performance improvement.
 
-This package uses Golang assembly. The AVX512 version is based on the Intel's "multi-buffer crypto library for IPSec" whereas the other Intel implementations are described in "Fast SHA-256 Implementations on Intel Architecture Processors" by J. Guilford et al.
+This package uses Golang assembly. 
+The AVX512 version is based on the Intel's "multi-buffer crypto library for IPSec" whereas the other Intel implementations are described in "Fast SHA-256 Implementations on Intel Architecture Processors" by J. Guilford et al.
 
-## New: Support for Intel SHA Extensions
+## Support for Intel SHA Extensions
 
 Support for the Intel SHA Extensions has been added by Kristofer Peterson (@svenski123), originally developed for spacemeshos [here](https://github.com/spacemeshos/POET/issues/23). On CPUs that support it (known thus far Intel Celeron J3455 and AMD Ryzen) it gives a significant boost in performance (with thanks to @AudriusButkevicius for reporting the results; full results [here](https://github.com/minio/sha256-simd/pull/37#issuecomment-451607827)).
 
@@ -18,7 +22,9 @@ benchmark           AVX2 MB/s    SHA Ext MB/s  speedup
 BenchmarkHash5M     514.40       1975.17       3.84x
 ```
 
-Thanks to Kristofer Peterson, we also added additional performance changes such as optimized padding, endian conversions which sped up all implementations i.e. Intel SHA alone while doubled performance for small sizes, the other changes increased everything roughly 50%.
+Thanks to Kristofer Peterson, we also added additional performance changes such as optimized padding,
+endian conversions which sped up all implementations i.e. Intel SHA alone while doubled performance for small sizes,
+the other changes increased everything roughly 50%.
 
 ## Support for AVX512
 
@@ -58,7 +64,8 @@ More detailed information can be found in this [blog](https://blog.minio.io/acce
 
 ## Drop-In Replacement
 
-The following code snippet shows how you can use `github.com/minio/sha256-simd`. This will automatically select the fastest method for the architecture on which it will be executed.
+The following code snippet shows how you can use `github.com/minio/sha256-simd`. 
+This will automatically select the fastest method for the architecture on which it will be executed.
 
 ```go
 import "github.com/minio/sha256-simd"
@@ -80,9 +87,6 @@ Below is the speed in MB/s for a single core (ranked fast to slow) for blocks la
 | 3.0 GHz Intel Xeon Platinum 8124M | AVX512  |         3498 |
 | 3.7 GHz AMD Ryzen 7 2700X         | SHA Ext |         1979 |
 | 1.2 GHz ARM Cortex-A53            | ARM64   |          638 |
-| 3.0 GHz Intel Xeon Platinum 8124M | AVX2    |          449 |
-| 3.1 GHz Intel Core i7             | AVX     |          362 |
-| 3.1 GHz Intel Core i7             | SSE     |          299 |
 
 ## asm2plan9s
 

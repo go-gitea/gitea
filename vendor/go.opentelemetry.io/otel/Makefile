@@ -132,7 +132,7 @@ test-benchmarks:
 	done
 
 .PHONY: lint
-lint: $(TOOLS_DIR)/golangci-lint $(TOOLS_DIR)/misspell
+lint: $(TOOLS_DIR)/golangci-lint $(TOOLS_DIR)/misspell lint-modules
 	set -e; for dir in $(ALL_GO_MOD_DIRS); do \
 	  echo "golangci-lint in $${dir}"; \
 	  (cd "$${dir}" && \
@@ -140,11 +140,16 @@ lint: $(TOOLS_DIR)/golangci-lint $(TOOLS_DIR)/misspell
 	    $(TOOLS_DIR)/golangci-lint run); \
 	done
 	$(TOOLS_DIR)/misspell -w $(ALL_DOCS)
+
+.PHONY: lint-modules
+lint-modules:
 	set -e; for dir in $(ALL_GO_MOD_DIRS) $(TOOLS_MOD_DIR); do \
 	  echo "go mod tidy in $${dir}"; \
 	  (cd "$${dir}" && \
 	    go mod tidy); \
 	done
+	echo "cross-linking all go modules"
+	(cd internal/tools; go run ./crosslink)
 
 generate: $(TOOLS_DIR)/stringer
 	set -e; for dir in $(ALL_GO_MOD_DIRS); do \

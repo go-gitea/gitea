@@ -254,6 +254,18 @@ func (d Duration) String() string {
 	return r
 }
 
+// MarshalText implements the encoding.TextMarshaler interface.
+func (d *Duration) MarshalText() ([]byte, error) {
+	return []byte(d.String()), nil
+}
+
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+func (d *Duration) UnmarshalText(text []byte) error {
+	var err error
+	*d, err = ParseDuration(string(text))
+	return err
+}
+
 // MarshalYAML implements the yaml.Marshaler interface.
 func (d Duration) MarshalYAML() (interface{}, error) {
 	return d.String(), nil
