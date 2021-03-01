@@ -2132,6 +2132,49 @@ function searchRepositories() {
   });
 }
 
+function showCodeMenu($list) {
+  console.log(94);
+  console.log($list);
+  const $select = $list.filter('.active');
+  console.log($select);
+  const $code_tr = $('.code-view td.lines-code.active').parent();
+  console.log($code_tr);
+
+  // const pos = $code_tr.position();
+  // console.log(pos);
+  $('.code-line-marker').remove();
+  const icon_wrap = $('<div>', {
+    class: 'code-line-marker'
+  }).prependTo($code_tr.find('td:eq(0)').get(0)).hide();
+  $('<i>', {
+    class: 'dropdown icon'
+  }).appendTo(icon_wrap);
+  icon_wrap.css({
+    left: '-5px',
+    display: 'block',
+  });
+
+  // $code_tr.find('td:eq(0)').get(0).prepend($('.code-line-marker'));
+
+  // $code_tr.hover(() => {
+  //   const pos = $code_tr.position();
+  //   const icon_wrap = $('<div>', {
+  //     class: 'code-line-marker'
+  //   }).appendTo('body').hide();
+  //   $('<i>', {
+  //     class: 'ellipsis horizontal'
+  //   }).appendTo(icon_wrap);
+  //   icon_wrap.css({
+  //     top: `${pos.top + 6}px`,
+  //     left: `${pos.left}px`
+  //   }).fadeIn('fast');
+  // }, () => {
+  //   $('.code-line-marker').fadeOut('fast', () => {
+  //     $(this).remove();
+  //   });
+  // });
+}
+
 function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -2144,8 +2187,14 @@ function initCodeView() {
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-    });
 
+      showCodeMenu($list);
+      // const m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
+      // const $first = $list.filter(`[rel=${m[1]}]`);
+      // if ($list.filter('.active').length > 0) {
+      //   showCodeMenu($list.find('.active'));
+      // }
+    });
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
       let $list;
