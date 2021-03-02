@@ -5,13 +5,8 @@
 package git
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"io"
-	"strings"
-
-	"github.com/gobwas/glob"
 )
 
 // CheckAttributeOpts represents the possible options to CheckAttribute
@@ -20,6 +15,7 @@ type CheckAttributeOpts struct {
 	AllAttributes bool
 	Attributes    []string
 	Filenames     []string
+	IndexFile     string
 }
 
 // CheckAttribute return the Blame object of file
@@ -59,7 +55,12 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(cmdArgs...)
 
-	if err := cmd.RunInDirPipeline(repo.Path, stdOut, stdErr); err != nil {
+	env := make([]string, 0, 1)
+	if len(opts.IndexFile) > 0 {
+		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
+	}
+
+	if err := cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdOut, stdErr, nil); err != nil {
 		return nil, fmt.Errorf("Failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 
@@ -84,164 +85,4 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	}
 
 	return name2attribute2info, nil
-}
-
-// AttrCheckResultType result type of AttrCheckResult
-type AttrCheckResultType int
-
-const (
-	// AttrCheckResultTypeUnspecified the attribute is not defined for the path
-	AttrCheckResultTypeUnspecified AttrCheckResultType = iota
-	// AttrCheckResultTypeUnset the attribute is defined as false
-	AttrCheckResultTypeUnset
-	// AttrCheckResultTypeSet the attribute is defined as true
-	AttrCheckResultTypeSet
-	// AttrCheckResultTypeValue a value has been assigned to the attribute
-	AttrCheckResultTypeValue
-)
-
-// AttrCheckResult the result of CheckAttributeFile
-type AttrCheckResult struct {
-	typ  AttrCheckResultType
-	data string
-}
-
-// IsSet if the attribute is defined as true
-func (r *AttrCheckResult) IsSet() bool {
-	return r.typ == AttrCheckResultTypeSet
-}
-
-// Value get the value of AttrCheckResult
-func (r *AttrCheckResult) Value() string {
-	if r.typ != AttrCheckResultTypeValue {
-		return ""
-	}
-	return r.data
-}
-
-// AttrChecker Attribute checker
-// format attr: partens
-type AttrChecker map[string][]*attrCheckerItem
-
-type attrCheckerItem struct {
-	pattern glob.Glob
-	rs      *AttrCheckResult
-}
-
-// LoadAttrbutCheckerFromCommit load AttrChecker from a commit
-func LoadAttrbutCheckerFromCommit(commit *Commit) (AttrChecker, error) {
-	gitAttrEntry, err := commit.GetTreeEntryByPath("/.gitattributes")
-	if err != nil {
-		if !IsErrNotExist(err) {
-			return nil, err
-		}
-		return nil, nil
-	}
-	if gitAttrEntry.IsDir() {
-		return nil, nil
-	}
-
-	blob := gitAttrEntry.Blob()
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer dataRc.Close()
-	gitAttr := make([]byte, 1024)
-	n, _ := dataRc.Read(gitAttr)
-	gitAttr = gitAttr[:n]
-
-	return LoadAttrbutCheckerFromReader(bytes.NewReader(gitAttr))
-}
-
-// LoadAttrbutCheckerFromReader load AttrChecker from content reader
-func LoadAttrbutCheckerFromReader(r io.Reader) (AttrChecker, error) {
-	cheker := make(AttrChecker)
-
-	readr := bufio.NewScanner(r)
-	for readr.Scan() {
-		t := readr.Text()
-		// format: pattern attr1 attr2 ...
-		if len(t) == 0 {
-			continue
-		}
-
-		t = strings.TrimLeft(t, " \t\r\n")
-		if strings.HasPrefix(t, "#") {
-			continue
-		}
-
-		splits := strings.Split(t, " ")
-		if len(splits) < 2 {
-			continue
-		}
-
-		// to let `/AAA/*.txt` can match `AAA/bb.txt`, have to
-		// remove first / if exit
-		splits[0] = strings.TrimPrefix(splits[0], "/")
-
-		// get parten
-		g, err := glob.Compile(splits[0], '/')
-		if err != nil {
-			return nil, err
-		}
-
-		check := func(attr string) (string, *AttrCheckResult) {
-			// one attr may has three status:
-			// set: XXX
-			// unset: -XXX
-			// value: XXX=VVV
-			if kv := strings.SplitN(attr, "=", 2); len(kv) == 2 {
-				return kv[0], &AttrCheckResult{
-					typ:  AttrCheckResultTypeValue,
-					data: kv[1],
-				}
-			}
-			typ := AttrCheckResultTypeSet
-			if strings.HasPrefix(attr, "-") {
-				attr = attr[1:]
-				typ = AttrCheckResultTypeUnset
-			}
-			return attr, &AttrCheckResult{typ: typ}
-		}
-
-		// check attrs
-		attrs := splits[1:]
-		for _, tmp := range attrs {
-			attr, rs := check(tmp)
-			v, ok := cheker[attr]
-			if !ok {
-				v = make([]*attrCheckerItem, 0, 5)
-			}
-
-			v = append(v, &attrCheckerItem{
-				pattern: g,
-				rs:      rs,
-			})
-			cheker[attr] = v
-		}
-	}
-
-	return cheker, nil
-}
-
-// Check check an git attr
-func (c AttrChecker) Check(requestAttr, path string) *AttrCheckResult {
-	if c == nil {
-		return nil
-	}
-
-	v, ok := c[requestAttr]
-	if !ok {
-		return &AttrCheckResult{typ: AttrCheckResultTypeUnspecified}
-	}
-
-	for _, item := range v {
-		if !item.pattern.Match(path) {
-			continue
-		}
-		return item.rs
-	}
-
-	return &AttrCheckResult{typ: AttrCheckResultTypeUnspecified}
 }
