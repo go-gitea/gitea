@@ -72,7 +72,7 @@ func setImageCompareContext(ctx *context.Context) {
 			log.Error("GuessContentType failed: %v", err)
 			return false
 		}
-		return st.IsImage()
+		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
 	}
 }
 

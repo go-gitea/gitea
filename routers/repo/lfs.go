@@ -280,16 +280,16 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	buf = buf[:n]
 
-	ct := typesniffer.DetectContentType(buf)
-	ctx.Data["IsTextFile"] = ct.IsText()
-	isRepresentableAsText := ct.IsRepresentableAsText()
+	st := typesniffer.DetectContentType(buf)
+	ctx.Data["IsTextFile"] = st.IsText()
+	isRepresentableAsText := st.IsRepresentableAsText()
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
 	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
 	switch {
 	case isRepresentableAsText:
-		if ct.IsSvgImage() {
+		if st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 		}
 
@@ -331,13 +331,13 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case ct.IsPDF():
+	case st.IsPDF():
 		ctx.Data["IsPDFFile"] = true
-	case ct.IsVideo():
+	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
-	case ct.IsAudio():
+	case st.IsAudio():
 		ctx.Data["IsAudioFile"] = true
-	case ct.IsImage():
+	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
 	}
 	ctx.HTML(200, tplSettingsLFSFile)

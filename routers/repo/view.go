@@ -531,7 +531,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():
 		ctx.Data["IsAudioFile"] = true
-	case st.IsImage():
+	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
 	default:
 		if fileSize >= setting.UI.MaxDisplayFileSize {
