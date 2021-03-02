@@ -73,12 +73,6 @@
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
-							{{$isImage := false}}
-							{{if $file.IsDeleted}}
-								{{$isImage = (call $.IsImageFileInBase $file.Name)}}
-							{{else}}
-								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
-							{{end}}
 							<a role="button" class="fold-file muted mr-2">
 								{{svg "octicon-chevron-down" 18}}
 							</a>
@@ -106,11 +100,14 @@
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
 						{{if ne $file.Type 4}}
+							{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
+							{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
+							{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
 							<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
 								<table class="chroma{{if $isImage}} w-100{{end}}">
 									<tbody>
 										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $}}
+											{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
 										{{else}}
 											{{if $.IsSplitStyle}}
 												{{template "repo/diff/section_split" dict "file" . "root" $}}

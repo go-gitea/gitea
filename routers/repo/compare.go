@@ -26,6 +26,26 @@ const (
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
 
+func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+	ctx.Data["BaseCommit"] = base
+	ctx.Data["HeadCommit"] = head
+
+	ctx.Data["GetBlobByPathForCommit"] = func(commit *git.Commit, path string) *git.Blob {
+		if commit == nil {
+			return nil
+		}
+
+		blob, err := commit.GetBlobByPath(path)
+		if err != nil {
+			return nil
+		}
+		return blob
+	}
+
+	setPathsCompareContext(ctx, base, head, headTarget)
+	setImageCompareContext(ctx)
+}
+
 // setPathsCompareContext sets context data for source and raw paths
 func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
 	sourcePath := setting.AppSubURL + "/%s/src/commit/%s"
@@ -41,27 +61,18 @@ func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 }
 
 // setImageCompareContext sets context data that is required by image compare template
-func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit) {
-	ctx.Data["IsImageFileInHead"] = head.IsImageFile
-	ctx.Data["IsImageFileInBase"] = base.IsImageFile
-	ctx.Data["ImageInfoBase"] = func(name string) *git.ImageMetaData {
-		if base == nil {
-			return nil
+func setImageCompareContext(ctx *context.Context) {
+	ctx.Data["IsBlobAnImage"] = func(blob *git.Blob) bool {
+		if blob == nil {
+			return false
 		}
-		result, err := base.ImageInfo(name)
+
+		st, err := blob.GuessContentType()
 		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
+			log.Error("GuessContentType failed: %v", err)
+			return false
 		}
-		return result
-	}
-	ctx.Data["ImageInfo"] = func(name string) *git.ImageMetaData {
-		result, err := head.ImageInfo(name)
-		if err != nil {
-			log.Error("ImageInfo failed: %v", err)
-			return nil
-		}
-		return result
+		return st.IsImage()
 	}
 }
 
@@ -478,9 +489,8 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 
-	setImageCompareContext(ctx, baseCommit, headCommit)
 	headTarget := path.Join(headUser.Name, repo.Name)
-	setPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setCompareContext(ctx, baseCommit, headCommit, headTarget)
 
 	return false
 }

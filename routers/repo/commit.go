@@ -336,9 +336,8 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	verification := models.ParseCommitWithSignature(commit)

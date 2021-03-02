@@ -671,8 +671,7 @@ func ViewPullFiles(ctx *context.Context) {
 		}
 	}
 
-	setImageCompareContext(ctx, baseCommit, commit)
-	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
+	setCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
