@@ -189,6 +189,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 		UploaderID: ctx.User.ID,
 		Name:       filename,
 		CommentID:  comment.ID,
+		IssueID:    comment.IssueID,
 	}, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
