@@ -162,6 +162,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		Doer:    user,
 		Content: SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
+		TimeID:  t.ID,
 	}); err != nil {
 		return nil, err
 	}

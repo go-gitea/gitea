@@ -5,46 +5,58 @@
 package models
 
 import (
-	"encoding/json"
+	"fmt"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUserHeatmapDataByUser(t *testing.T) {
 	testCases := []struct {
 		userID      int64
+		doerID      int64
 		CountResult int
 		JSONResult  string
 	}{
-		{2, 1, `[{"timestamp":1603152000,"contributions":1}]`},
-		{3, 0, `[]`},
+		{2, 2, 1, `[{"timestamp":1603152000,"contributions":1}]`}, // self looks at action in private repo
+		{2, 1, 1, `[{"timestamp":1603152000,"contributions":1}]`}, // admin looks at action in private repo
+		{2, 3, 0, `[]`}, // other user looks at action in private repo
+		{2, 0, 0, `[]`}, // nobody looks at action in private repo
+		{16, 15, 1, `[{"timestamp":1603238400,"contributions":1}]`}, // collaborator looks at action in private repo
+		{3, 3, 0, `[]`}, // no action action not performed by target user
 	}
 	// Prepare
 	assert.NoError(t, PrepareTestDatabase())
 
-	for _, tc := range testCases {
-
-		// Insert some action
+	for i, tc := range testCases {
 		user := AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
+
+		doer := &User{ID: tc.doerID}
+		_, err := loadBeanIfExists(doer)
+		assert.NoError(t, err)
+		if tc.doerID == 0 {
+			doer = nil
+		}
 
 		// get the action for comparison
 		actions, err := GetFeeds(GetFeedsOptions{
 			RequestedUser:   user,
-			Actor:           user,
+			Actor:           doer,
 			IncludePrivate:  true,
-			OnlyPerformedBy: false,
+			OnlyPerformedBy: true,
 			IncludeDeleted:  true,
 		})
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
-		heatmap, err := GetUserHeatmapDataByUser(user)
+		heatmap, err := GetUserHeatmapDataByUser(user, doer)
 		assert.NoError(t, err)
 		assert.Equal(t, len(actions), len(heatmap), "invalid action count: did the test data became too old?")
-		assert.Equal(t, tc.CountResult, len(heatmap))
+		assert.Equal(t, tc.CountResult, len(heatmap), fmt.Sprintf("testcase %d", i))
 
 		//Test JSON rendering
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))

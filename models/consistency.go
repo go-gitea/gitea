@@ -291,7 +291,27 @@ func CountNullArchivedRepository() (int64, error) {
 
 // FixNullArchivedRepository sets is_archived to false where it is null
 func FixNullArchivedRepository() (int64, error) {
-	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").Update(&Repository{
+	return x.Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
 		IsArchived: false,
 	})
+}
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return x.Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return x.Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+}
+
+// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
+func CountCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return x.Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
+}
+
+// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
+func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return x.Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
 }

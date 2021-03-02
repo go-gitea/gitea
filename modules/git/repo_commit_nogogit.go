@@ -8,6 +8,7 @@ package git
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -70,10 +71,15 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	bufReader := bufio.NewReader(stdoutReader)
 	_, typ, size, err := ReadBatchLine(bufReader)
 	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, ErrNotExist{ID: id.String()}
+		}
 		return nil, err
 	}
 
 	switch typ {
+	case "missing":
+		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit

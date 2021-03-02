@@ -171,6 +171,10 @@ func CreateOrganization(org, owner *User) (err error) {
 		return err
 	}
 
+	if err = deleteUserRedirect(sess, org.Name); err != nil {
+		return err
+	}
+
 	if _, err = sess.Insert(org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
@@ -385,6 +389,20 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		And("team_user.uid = ?", uid).
 		And("team_user.org_id = ?", orgID).
 		Exist(new(Team))
+}
+
+// GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
+func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
+	return getUsersWhoCanCreateOrgRepo(x, orgID)
+}
+
+func getUsersWhoCanCreateOrgRepo(e Engine, orgID int64) ([]*User, error) {
+	users := make([]*User, 0, 10)
+	return users, x.
+		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
@@ -746,13 +764,14 @@ type AccessibleReposEnvironment interface {
 type accessibleReposEnv struct {
 	org     *User
 	user    *User
+	team    *Team
 	teamIDs []int64
 	e       Engine
 	keyword string
 	orderBy SearchOrderBy
 }
 
-// AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// AccessibleReposEnv builds an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
 	return org.accessibleReposEnv(x, userID)
@@ -782,16 +801,31 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 	}, nil
 }
 
+// AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// that are accessible to the specified team.
+func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+	return &accessibleReposEnv{
+		org:     org,
+		team:    team,
+		e:       x,
+		orderBy: SearchOrderByRecentUpdated,
+	}
+}
+
 func (env *accessibleReposEnv) cond() builder.Cond {
 	var cond = builder.NewCond()
-	if env.user == nil || !env.user.IsRestricted {
-		cond = cond.Or(builder.Eq{
-			"`repository`.owner_id":   env.org.ID,
-			"`repository`.is_private": false,
-		})
-	}
-	if len(env.teamIDs) > 0 {
-		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+	if env.team != nil {
+		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
+	} else {
+		if env.user == nil || !env.user.IsRestricted {
+			cond = cond.Or(builder.Eq{
+				"`repository`.owner_id":   env.org.ID,
+				"`repository`.is_private": false,
+			})
+		}
+		if len(env.teamIDs) > 0 {
+			cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+		}
 	}
 	if env.keyword != "" {
 		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})

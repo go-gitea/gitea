@@ -306,6 +306,28 @@ docker-compose pull
 docker-compose up -d
 ```
 
+## Managing Deployments With Environment Variables
+
+In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+
+These environment variables can be passed to the docker container in `docker-compose.yml`. The following example will enable an smtp mail server if the required env variables `GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host or in a `.env` file in the same directory as `docker-compose.yml`:
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+
 ## SSH Container Passthrough
 
 Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH connections from the host to the container. This setup is explained in the following.
@@ -345,19 +367,23 @@ ports:
   - "127.0.0.1:2222:22"
 ```
 
-In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add
+In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add the public key of the key you created above ("Gitea Host Key") to `~/git/.ssh/authorized_keys`.
+This can be done via `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
+Important: The pubkey from the `git` user needs to be added "as is" while all other pubkeys added via the Gitea web interface will be prefixed with `command="/app [...]`.
+
+The file should then look somewhat like
 
 ```bash
-command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa <YOUR_SSH_PUBKEY>
+# SSH pubkey from git user
+ssh-rsa <Gitea Host Key>
+
+# other keys from users
+command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
 ```
-
-and replace `<YOUR_SSH_PUBKEY>` with a valid SSH public key of yours.
-
-In addition the public key of the `git` user on the host needs to be added to `/home/git/.ssh/authorized_keys` so authentication against the container can succeed: `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
 
 Here is a detailed explanation what is happening when a SSH request is made:
 
-1. A SSH request is made against the host using the `git` user, e.g. `git clone git@domain:user/repo.git`.
+1. A SSH request is made against the host (usually port 22) using the `git` user, e.g. `git clone git@domain:user/repo.git`.
 2. In `/home/git/.ssh/authorized_keys` , the command executes the `/app/gitea/gitea` script.
 3. `/app/gitea/gitea` forwards the SSH request to port 2222 which is mapped to the SSH port (22) of the container.
 4. Due to the existence of the public key of the `git` user in `/home/git/.ssh/authorized_keys` the authentication host → container succeeds and the SSH request get forwarded to Gitea running in the docker container.

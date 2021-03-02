@@ -28,6 +28,10 @@ func (r *ReadOnlyFs) Chmod(n string, m os.FileMode) error {
 	return syscall.EPERM
 }
 
+func (r *ReadOnlyFs) Chown(n string, uid, gid int) error {
+	return syscall.EPERM
+}
+
 func (r *ReadOnlyFs) Name() string {
 	return "ReadOnlyFilter"
 }

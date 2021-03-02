@@ -24,8 +24,8 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.15.x
-MIN_GO_VERSION := 001013000
+XGO_VERSION := go-1.16.x
+MIN_GO_VERSION := 001014000
 MIN_NODE_VERSION := 010013000
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -86,6 +86,8 @@ else
 endif
 
 LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+
+LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
 
@@ -176,6 +178,7 @@ help:
 	@echo " - fmt                              format the Go code"
 	@echo " - generate-license                 update license files"
 	@echo " - generate-gitignore               update gitignore files"
+	@echo " - generate-manpage                 generate manpage"
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
@@ -190,7 +193,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.13 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.14 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -221,7 +224,7 @@ clean:
 		integrations*.test \
 		integrations/gitea-integration-pgsql/ integrations/gitea-integration-mysql/ integrations/gitea-integration-mysql8/ integrations/gitea-integration-sqlite/ \
 		integrations/gitea-integration-mssql/ integrations/indexers-mysql/ integrations/indexers-mysql8/ integrations/indexers-pgsql integrations/indexers-sqlite \
-		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini
+		integrations/indexers-mssql integrations/mysql.ini integrations/mysql8.ini integrations/pgsql.ini integrations/mssql.ini man/
 
 .PHONY: fmt
 fmt:
@@ -232,7 +235,7 @@ fmt:
 vet:
 	@echo "Running go vet..."
 	@$(GO) vet $(GO_PACKAGES)
-	@$(GO) build -mod=vendor code.gitea.io/gitea-vet
+	@GOOS= GOARCH= $(GO) build -mod=vendor code.gitea.io/gitea-vet
 	@$(GO) vet -vettool=gitea-vet $(GO_PACKAGES)
 
 .PHONY: $(TAGS_EVIDENCE)
@@ -317,8 +320,8 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --max-warnings=0 web_src/js build templates webpack.config.js
-	npx stylelint --max-warnings=0 web_src/less
+	npx eslint --color --max-warnings=0 web_src/js build templates webpack.config.js
+	npx stylelint --color --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -330,7 +333,7 @@ watch:
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --hide-modules --display-entrypoints=false --watch --progress
+	NODE_ENV=development npx webpack --watch --progress
 
 .PHONY: watch-backend
 watch-backend: go-check
@@ -571,10 +574,9 @@ $(DIST_DIRS):
 .PHONY: release-windows
 release-windows: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
+		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
-	@echo "Warning: windows version is built using golang 1.14"
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -582,9 +584,9 @@ endif
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
+		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/mips64le,linux/mips,linux/mipsle' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -592,9 +594,9 @@ endif
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u src.techknowlogick.com/xgo; \
+		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" GO111MODULE=off xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin/*' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -660,7 +662,7 @@ webpack: $(WEBPACK_DEST)
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
-	npx webpack --hide-modules --display-entrypoints=false
+	npx webpack
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
@@ -701,6 +703,14 @@ generate-images:
 	npm install --no-save --no-package-lock fabric imagemin-zopfli
 	node build/generate-images.js $(TAGS)
 
+.PHONY: generate-manpage
+generate-manpage:
+	@[ -f gitea ] || make backend
+	@mkdir -p man/man1/ man/man5
+	@./gitea docs --man > man/man1/gitea.1
+	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
+	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as config man page
+
 .PHONY: pr\#%
 pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
@@ -709,7 +719,7 @@ pr\#%: clean-all
 golangci-lint:
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.31.0; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.37.0; \
 	fi
 	golangci-lint run --timeout 10m
 

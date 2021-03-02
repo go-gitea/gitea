@@ -5,7 +5,6 @@
 package lfs
 
 import (
-	"encoding/json"
 	"strconv"
 	"strings"
 
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	jsoniter "github.com/json-iterator/go"
 )
 
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
@@ -182,8 +182,9 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockRequest
-	bodyReader := ctx.Req.Body().ReadCloser()
+	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
@@ -317,8 +318,9 @@ func UnLockHandler(ctx *context.Context) {
 	}
 
 	var req api.LFSLockDeleteRequest
-	bodyReader := ctx.Req.Body().ReadCloser()
+	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)

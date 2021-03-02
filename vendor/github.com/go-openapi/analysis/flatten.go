@@ -19,7 +19,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	slashpath "path"
 	"path/filepath"
 	"sort"
@@ -34,18 +33,25 @@ import (
 )
 
 // FlattenOpts configuration for flattening a swagger specification.
+//
+// The BasePath parameter is used to locate remote relative $ref found in the specification.
+// This path is a file: it points to the location of the root document and may be either a local
+// file path or a URL.
+//
+// If none specified, relative references (e.g. "$ref": "folder/schema.yaml#/definitions/...")
+// found in the spec are searched from the current working directory.
 type FlattenOpts struct {
 	Spec           *Spec    // The analyzed spec to work with
 	flattenContext *context // Internal context to track flattening activity
 
-	BasePath string
+	BasePath string // The location of the root document for this spec to resolve relative $ref
 
 	// Flattening options
-	Expand          bool // If Expand is true, we skip flattening the spec and expand it instead
-	Minimal         bool
-	Verbose         bool
-	RemoveUnused    bool
-	ContinueOnError bool // Continues when facing some issues
+	Expand          bool // When true, skip flattening the spec and expand it instead (if Minimal is false)
+	Minimal         bool // When true, do not decompose complex structures such as allOf
+	Verbose         bool // enable some reporting on possible name conflicts detected
+	RemoveUnused    bool // When true, remove unused parameters, responses and definitions after expansion/flattening
+	ContinueOnError bool // Continue when spec expansion issues are found
 
 	/* Extra keys */
 	_ struct{} // require keys
@@ -91,6 +97,7 @@ func newContext() *context {
 //
 // There is a minimal and a full flattening mode.
 //
+//
 // Minimally flattening a spec means:
 //  - Expanding parameters, responses, path items, parameter items and header items (references to schemas are left
 //    unscathed)
@@ -105,6 +112,8 @@ func newContext() *context {
 // NOTE: arbitrary JSON pointers (other than $refs to top level definitions) are rewritten as definitions if they
 // represent a complex schema or express commonality in the spec.
 // Otherwise, they are simply expanded.
+// Self-referencing JSON pointers cannot resolve to a type and trigger an error.
+//
 //
 // Minimal flattening is necessary and sufficient for codegen rendering using go-swagger.
 //
@@ -137,15 +146,6 @@ func newContext() *context {
 //
 func Flatten(opts FlattenOpts) error {
 	debugLog("FlattenOpts: %#v", opts)
-	// Make sure opts.BasePath is an absolute path
-	if !filepath.IsAbs(opts.BasePath) {
-		cwd, _ := os.Getwd()
-		opts.BasePath = filepath.Join(cwd, opts.BasePath)
-	}
-	// make sure drive letter on windows is normalized to lower case
-	u, _ := url.Parse(opts.BasePath)
-	opts.BasePath = u.String()
-
 	opts.flattenContext = newContext()
 
 	// recursively expand responses, parameters, path items and items in simple schemas.
@@ -155,6 +155,8 @@ func Flatten(opts FlattenOpts) error {
 	if err := swspec.ExpandSpec(opts.Swagger(), expandOpts); err != nil {
 		return err
 	}
+
+	opts.Spec.reload() // re-analyze
 
 	// strip current file from $ref's, so we can recognize them as proper definitions
 	// In particular, this works around for issue go-openapi/spec#76: leading absolute file in $ref is stripped
@@ -178,6 +180,7 @@ func Flatten(opts FlattenOpts) error {
 		// This inlining deals with name conflicts by introducing auto-generated names ("OAIGen")
 		var err error
 		if imported, err = importExternalReferences(&opts); err != nil {
+			debugLog("error in importExternalReferences: %v", err)
 			return err
 		}
 		opts.Spec.reload() // re-analyze
@@ -778,6 +781,9 @@ func rewriteParentRef(spec *swspec.Swagger, key string, ref swspec.Ref) error {
 		}
 		container.Schemas[idx] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
 
+	case swspec.SchemaProperties:
+		container[entry] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
+
 	// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
 	default:
@@ -1038,7 +1044,7 @@ func nameFromRef(ref swspec.Ref) string {
 			return swag.ToJSONName(bn)
 		}
 	}
-	return swag.ToJSONName(strings.Replace(u.Host, ".", " ", -1))
+	return swag.ToJSONName(strings.ReplaceAll(u.Host, ".", " "))
 }
 
 func saveSchema(spec *swspec.Swagger, name string, schema *swspec.Schema) {
@@ -1155,6 +1161,9 @@ func updateRef(spec interface{}, key string, ref swspec.Ref) error {
 			}
 			container.Schemas[idx] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
 
+		case swspec.SchemaProperties:
+			container[entry] = swspec.Schema{SchemaProps: swspec.SchemaProps{Ref: ref}}
+
 		// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
 		default:
@@ -1205,6 +1214,9 @@ func updateRefWithSchema(spec *swspec.Swagger, key string, sch *swspec.Schema) e
 				return fmt.Errorf("%s not a number: %v", pth, err)
 			}
 			container.Schemas[idx] = *sch
+
+		case swspec.SchemaProperties:
+			container[entry] = *sch
 
 		// NOTE: can't have case *swspec.SchemaOrBool = parent in this case is *Schema
 
@@ -1741,17 +1753,21 @@ DOWNREF:
 // leading absolute file in $ref is stripped
 func normalizeRef(opts *FlattenOpts) error {
 	debugLog("normalizeRef")
-	opts.Spec.reload() // re-analyze
+	altered := false
 	for k, w := range opts.Spec.references.allRefs {
-		if strings.HasPrefix(w.String(), opts.BasePath+definitionsPath) { // may be a mix of / and \, depending on OS
-			// strip base path from definition
-			debugLog("stripping absolute path for: %s", w.String())
-			if err := updateRef(opts.Swagger(), k,
-				swspec.MustCreateRef(slashpath.Join(definitionsPath, slashpath.Base(w.String())))); err != nil {
-				return err
-			}
+		if !strings.HasPrefix(w.String(), opts.BasePath+definitionsPath) { // may be a mix of / and \, depending on OS
+			continue
+		}
+		altered = true
+		// strip base path from definition
+		debugLog("stripping absolute path for: %s", w.String())
+		if err := updateRef(opts.Swagger(), k,
+			swspec.MustCreateRef(slashpath.Join(definitionsPath, slashpath.Base(w.String())))); err != nil {
+			return err
 		}
 	}
-	opts.Spec.reload() // re-analyze
+	if altered {
+		opts.Spec.reload() // re-analyze
+	}
 	return nil
 }

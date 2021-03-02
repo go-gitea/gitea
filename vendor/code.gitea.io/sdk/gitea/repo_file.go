@@ -182,7 +182,7 @@ func (c *Client) DeleteFile(owner, repo, filepath string, opt DeleteFileOptions)
 func (c *Client) setDefaultBranchForOldVersions(owner, repo, branch string) (string, error) {
 	if len(branch) == 0 {
 		// Gitea >= 1.12.0 Use DefaultBranch on "", mimic this for older versions
-		if c.CheckServerVersionConstraint(">=1.12.0") != nil {
+		if c.checkServerVersionGreaterThanOrEqual(version1_12_0) != nil {
 			r, _, err := c.GetRepo(owner, repo)
 			if err != nil {
 				return "", err

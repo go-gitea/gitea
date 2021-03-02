@@ -9,11 +9,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 )
 
@@ -38,7 +39,8 @@ func Settings(ctx *context.Context) {
 }
 
 // SettingsPost response for settings change submited
-func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UpdateOrgSettingForm)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
@@ -115,7 +117,8 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 }
 
 // SettingsAvatar response for change avatar on settings page
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	form.Source = auth.AvatarLocal
 	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())
@@ -142,12 +145,9 @@ func SettingsDelete(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 	if ctx.Req.Method == "POST" {
-		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
-			} else {
-				ctx.ServerError("UserSignIn", err)
-			}
+		if org.Name != ctx.Query("org_name") {
+			ctx.Data["Err_OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
 			return
 		}
 
@@ -173,6 +173,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
+	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})

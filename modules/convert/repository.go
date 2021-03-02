@@ -91,6 +91,13 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 
 	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
 
+	mirrorInterval := ""
+	if repo.IsMirror {
+		if err := repo.GetMirror(); err == nil {
+			mirrorInterval = repo.Mirror.Interval.String()
+		}
+	}
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     ToUser(repo.Owner, mode != models.AccessModeNone, mode >= models.AccessModeAdmin),
@@ -134,5 +141,6 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		AllowSquash:               allowSquash,
 		AvatarURL:                 repo.AvatarLink(),
 		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		MirrorInterval:            mirrorInterval,
 	}
 }

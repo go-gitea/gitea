@@ -21,14 +21,14 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return IsReferenceExist(repo.Path, BranchPrefix+name)
 }
 
-// GetBranches returns all branches of the repository.
-func (repo *Repository) GetBranches() ([]string, error) {
-	return callShowRef(repo.Path, BranchPrefix, "--heads")
+// GetBranches returns branches from the repository, skipping skip initial branches and
+// returning at most limit branches, or all branches if limit is 0.
+func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
+	return callShowRef(repo.Path, BranchPrefix, "--heads", skip, limit)
 }
 
-func callShowRef(repoPath, prefix, arg string) ([]string, error) {
-	var branchNames []string
-
+// callShowRef return refs, if limit = 0 it will not limit
+func callShowRef(repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -49,8 +49,21 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 		}
 	}()
 
+	i := 0
 	bufReader := bufio.NewReader(stdoutReader)
-	for {
+	for i < skip {
+		_, isPrefix, err := bufReader.ReadLine()
+		if err == io.EOF {
+			return branchNames, i, nil
+		}
+		if err != nil {
+			return nil, 0, err
+		}
+		if !isPrefix {
+			i++
+		}
+	}
+	for limit == 0 || i < skip+limit {
 		// The output of show-ref is simply a list:
 		// <sha> SP <ref> LF
 		_, err := bufReader.ReadSlice(' ')
@@ -59,24 +72,39 @@ func callShowRef(repoPath, prefix, arg string) ([]string, error) {
 			_, err = bufReader.ReadSlice(' ')
 		}
 		if err == io.EOF {
-			return branchNames, nil
+			return branchNames, i, nil
 		}
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		branchName, err := bufReader.ReadString('\n')
 		if err == io.EOF {
 			// This shouldn't happen... but we'll tolerate it for the sake of peace
-			return branchNames, nil
+			return branchNames, i, nil
 		}
 		if err != nil {
-			return nil, err
+			return nil, i, err
 		}
 		branchName = strings.TrimPrefix(branchName, prefix)
 		if len(branchName) > 0 {
 			branchName = branchName[:len(branchName)-1]
 		}
 		branchNames = append(branchNames, branchName)
+		i++
 	}
+	// count all refs
+	for limit != 0 {
+		_, isPrefix, err := bufReader.ReadLine()
+		if err == io.EOF {
+			return branchNames, i, nil
+		}
+		if err != nil {
+			return nil, 0, err
+		}
+		if !isPrefix {
+			i++
+		}
+	}
+	return branchNames, i, nil
 }

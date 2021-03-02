@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
@@ -111,7 +112,11 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 	var orderedKeys []string
 	providers := make(map[string]OAuth2Provider)
 	for _, source := range loginSources {
-		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
+		prov := OAuth2Providers[source.OAuth2().Provider]
+		if source.OAuth2().IconURL != "" {
+			prov.Image = source.OAuth2().IconURL
+		}
+		providers[source.Name] = prov
 		orderedKeys = append(orderedKeys, source.Name)
 	}
 
@@ -125,13 +130,28 @@ func InitOAuth2() error {
 	if err := oauth2.Init(x); err != nil {
 		return err
 	}
-	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
+	return initOAuth2LoginSources()
+}
 
+// ResetOAuth2 clears existing OAuth2 providers and loads them from DB
+func ResetOAuth2() error {
+	oauth2.ClearProviders()
+	return initOAuth2LoginSources()
+}
+
+// initOAuth2LoginSources is used to load and register all active OAuth2 providers
+func initOAuth2LoginSources() error {
+	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
 		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		if err != nil {
-			return err
+			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
+			source.IsActived = false
+			if err = UpdateSource(source); err != nil {
+				log.Critical("Unable to update source %s to disable it. Error: %v", err)
+				return err
+			}
 		}
 	}
 	return nil

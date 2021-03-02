@@ -146,6 +146,21 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
+// ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
+type ErrUserRedirectNotExist struct {
+	Name string
+}
+
+// IsErrUserRedirectNotExist check if an error is an ErrUserRedirectNotExist.
+func IsErrUserRedirectNotExist(err error) bool {
+	_, ok := err.(ErrUserRedirectNotExist)
+	return ok
+}
+
+func (err ErrUserRedirectNotExist) Error() string {
+	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
 type ErrUserProhibitLogin struct {
 	UID  int64
@@ -757,6 +772,40 @@ func IsErrRepoNotExist(err error) bool {
 func (err ErrRepoNotExist) Error() string {
 	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
 		err.ID, err.UID, err.OwnerName, err.Name)
+}
+
+// ErrNoPendingRepoTransfer is an error type for repositories without a pending
+// transfer request
+type ErrNoPendingRepoTransfer struct {
+	RepoID int64
+}
+
+func (e ErrNoPendingRepoTransfer) Error() string {
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", e.RepoID)
+}
+
+// IsErrNoPendingTransfer is an error type when a repository has no pending
+// transfers
+func IsErrNoPendingTransfer(err error) bool {
+	_, ok := err.(ErrNoPendingRepoTransfer)
+	return ok
+}
+
+// ErrRepoTransferInProgress represents the state of a repository that has an
+// ongoing transfer
+type ErrRepoTransferInProgress struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
+func IsErrRepoTransferInProgress(err error) bool {
+	_, ok := err.(ErrRepoTransferInProgress)
+	return ok
+}
+
+func (err ErrRepoTransferInProgress) Error() string {
+	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.

@@ -51,6 +51,7 @@ type UpdateRepoFileOptions struct {
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
+	Signoff      bool
 }
 
 func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
@@ -376,7 +377,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	if setting.LFS.StartServer {
 		// Check there is no way this can return multiple infos
-		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
+		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+			Attributes: []string{"filter"},
+			Filenames:  []string{treePath},
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -417,9 +421,9 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Committer)
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
 	} else {
-		commitHash, err = t.CommitTree(author, committer, treeHash, message)
+		commitHash, err = t.CommitTree(author, committer, treeHash, message, opts.Signoff)
 	}
 	if err != nil {
 		return nil, err

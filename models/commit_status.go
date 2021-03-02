@@ -252,7 +252,8 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
 type SignCommitWithStatuses struct {
-	Status *CommitStatus
+	Status   *CommitStatus
+	Statuses []*CommitStatus
 	*SignCommit
 }
 
@@ -272,6 +273,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
+			commit.Statuses = statuses
 			commit.Status = CalcCommitStatus(statuses)
 		}
 

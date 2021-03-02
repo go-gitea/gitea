@@ -23,7 +23,11 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", nil)
+			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+				context.RedirectToUser(ctx, name, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
@@ -98,7 +102,7 @@ func Profile(ctx *context.Context) {
 	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
 	// so everyone would get the same empty heatmap
 	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
-		data, err := models.GetUserHeatmapDataByUser(ctxUser)
+		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -198,6 +202,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
+			Date:            ctx.Query("date"),
 		})
 		if ctx.Written() {
 			return
