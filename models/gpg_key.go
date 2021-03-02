@@ -216,6 +216,69 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 	return keys, sess.Commit()
 }
 
+// VerifyGPGKey marks a GPG key as verified
+func VerifyGPGKey(ownerID, keyID int64, token, signature string) (string, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return "", err
+	}
+
+	key := new(GPGKey)
+
+	has, err := sess.ID(keyID).Get(key)
+	if err != nil {
+		return "", err
+	} else if !has || key.OwnerID != ownerID {
+		return "", ErrGPGKeyNotExist{keyID}
+	}
+
+	pkey, err := base64DecPubKey(key.Content)
+	if err != nil {
+		return "", err
+	}
+
+	ent := &openpgp.Entity{
+		PrimaryKey: pkey,
+		Identities: map[string]*openpgp.Identity{
+			"": {Name: "", SelfSignature: &packet.Signature{}},
+		},
+	}
+
+	ekeys := openpgp.EntityList([]*openpgp.Entity{
+		ent,
+	})
+
+	signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
+	if err != nil {
+		signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature))
+	}
+	if err != nil {
+		signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
+	}
+	if err != nil {
+		log.Error("Unable to validate token signature. Error: %v", err)
+		return "", ErrGPGInvalidTokenSignature{
+			ID:      ekeys[0].PrimaryKey.KeyIdString(),
+			Wrapped: err,
+		}
+	}
+	if signer.PrimaryKey.KeyIdString() != key.KeyID {
+		return "", ErrGPGKeyNotExist{keyID}
+	}
+
+	key.Verified = true
+	if _, err := sess.ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
+		return "", err
+	}
+
+	if err := sess.Commit(); err != nil {
+		return "", err
+	}
+
+	return key.KeyID, nil
+}
+
 //base64EncPubKey encode public key content to base 64
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer

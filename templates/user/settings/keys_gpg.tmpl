@@ -15,6 +15,9 @@
 					<button class="ui red tiny button delete-button" id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
+					{{if and (not .Verified) (ne $.VerifyingID .ID)}}
+						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_gpg={{.ID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
+					{{end}}
 				</div>
 				<div class="left floated content">
 					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
@@ -30,8 +33,40 @@
 						-
 						<i>{{if not .ExpiredUnix.IsZero}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
+					{{if .Verified}}{{svg "octicon-shield-check" 16	}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong>{{end}}
 				</div>
 			</div>
+			{{if and (not .Verified) (eq $.VerifyingID .ID)}}
+				<div class="ui  segment">
+					<h4>{{$.i18n.Tr "settings.gpg_token_required"}}</h4>
+					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
+						{{$.CsrfTokenHtml}}
+						<input type="hidden" name="title" value="none">
+						<input type="hidden" name="content" value="{{.ID}}">
+						<input type="hidden" name="key" value="{{.ID}}">
+						<div class="field">
+							<label for="token">{{$.i18n.Tr "settings.gpg_token"}}</label>
+							<input readonly="" value="{{$.TokenToSign}}">
+							<div class="help">
+								<p>{{$.i18n.Tr "settings.gpg_token_help"}}</p>
+								<p><code>{{$.i18n.Tr "settings.gpg_token_code" $.TokenToSign .KeyID}}</code></p>
+							</div>
+							<br>
+						</div>
+						<div class="field">
+							<label for="signature">{{$.i18n.Tr "settings.gpg_token_signature"}}</label>
+							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.i18n.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
+						</div>
+						<input name="type" type="hidden" value="verify_gpg">
+						<button class="ui green button">
+							{{$.i18n.Tr "settings.gpg_key_verify"}}
+						</button>
+						<a class="ui red button" href="{{$.Link}}">
+							{{$.i18n.Tr "settings.cancel"}}
+						</a>
+					</form>
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>
@@ -51,8 +86,15 @@
 			</div>
 			{{if .Err_Signature}}
 				<div class="ui error message">
-					<p>{{.i18n.Tr "settings.gpg_token" .TokenToSign}}</p>
-					<code>{{.i18n.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code>
+					<p>{{.i18n.Tr "settings.gpg_token_required"}}</p>
+				</div>
+				<div class="field">
+					<label for="token">{{.i18n.Tr "setting.gpg_token"}}
+					<input readonly="" value="{{.TokenToSign}}">
+					<div class="help">
+						<p>{{.i18n.Tr "settings.gpg_token_help"}}</p>
+						<p><code>{{$.i18n.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
+					</div>
 				</div>
 				<div class="field">
 					<label for="signature">{{.i18n.Tr "settings.gpg_token_signature"}}</label>

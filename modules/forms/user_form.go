@@ -325,6 +325,7 @@ type AddKeyForm struct {
 	Title      string `binding:"Required;MaxSize(50)"`
 	Content    string `binding:"Required"`
 	Signature  string `binding:"OmitEmpty"`
+	Key        int64  `binding:"OmitEmpty"`
 	IsWritable bool
 }
 
