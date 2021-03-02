@@ -5,8 +5,9 @@
 package storage
 
 import (
-	"encoding/json"
 	"reflect"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Mappable represents an interface that can MapTo another interface
@@ -19,6 +20,7 @@ type Mappable interface {
 // It will tolerate the cfg being passed as a []byte or string of a json representation of the
 // exemplar or the correct type of the exemplar itself
 func toConfig(exemplar, cfg interface{}) (interface{}, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	// First of all check if we've got the same type as the exemplar - if so it's all fine.
 	if reflect.TypeOf(cfg).AssignableTo(reflect.TypeOf(exemplar)) {
