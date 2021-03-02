@@ -6,7 +6,6 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var manager *Manager
@@ -110,6 +110,7 @@ func (m *Manager) Add(managed interface{},
 	configuration,
 	exemplar interface{}) int64 {
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
 		Type:          t,

@@ -5,12 +5,12 @@
 package setting
 
 import (
-	"encoding/json"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -53,6 +53,7 @@ func newSessionService() {
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
 		log.Fatal("Can't shadow session config: %v", err)

@@ -5,20 +5,19 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+func addRepoTransfer(x *xorm.Engine) error {
+	type RepoTransfer struct {
+		ID          int64 `xorm:"pk autoincr"`
+		DoerID      int64
+		RecipientID int64
+		RepoID      int64
+		TeamIDs     []int64
+		CreatedUnix int64 `xorm:"INDEX NOT NULL created"`
+		UpdatedUnix int64 `xorm:"INDEX NOT NULL updated"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(RepoTransfer))
 }

@@ -295,6 +295,8 @@ var migrations = []Migration{
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 	// v174 -> v175
+	NewMigration("create repo transfer table", addRepoTransfer),
+	// v175 -> v176
 	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
 }
 

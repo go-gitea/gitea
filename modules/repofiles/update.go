@@ -377,7 +377,10 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 
 	if setting.LFS.StartServer {
 		// Check there is no way this can return multiple infos
-		filename2attribute2info, err := t.CheckAttribute("filter", treePath)
+		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+			Attributes: []string{"filter"},
+			Filenames:  []string{treePath},
+		})
 		if err != nil {
 			return nil, err
 		}
