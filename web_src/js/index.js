@@ -2132,47 +2132,41 @@ function searchRepositories() {
   });
 }
 
-function showCodeMenu($list) {
-  console.log(94);
-  console.log($list);
-  const $select = $list.filter('.active');
-  console.log($select);
+function showCodeViewMenu() {
   const $code_tr = $('.code-view td.lines-code.active').parent();
-  console.log($code_tr);
 
-  // const pos = $code_tr.position();
-  // console.log(pos);
+  // Reset code line marker
+  $('.code-view-menu-list').appendTo($('.code-view'));
   $('.code-line-marker').remove();
+
+  // Generate new one
   const icon_wrap = $('<div>', {
     class: 'code-line-marker'
   }).prependTo($code_tr.find('td:eq(0)').get(0)).hide();
-  $('<i>', {
-    class: 'dropdown icon'
+
+  const a_wrap = $('<a>', {
+    class: 'code-line-link'
   }).appendTo(icon_wrap);
+
+  $('<i>', {
+    class: 'dropdown icon',
+    style: 'margin: 0px;'
+  }).appendTo(a_wrap);
+
   icon_wrap.css({
-    left: '-5px',
+    left: '-7px',
     display: 'block',
   });
 
-  // $code_tr.find('td:eq(0)').get(0).prepend($('.code-line-marker'));
+  $('.code-view-menu-list').css({
+    'min-width': '220px',
+  });
 
-  // $code_tr.hover(() => {
-  //   const pos = $code_tr.position();
-  //   const icon_wrap = $('<div>', {
-  //     class: 'code-line-marker'
-  //   }).appendTo('body').hide();
-  //   $('<i>', {
-  //     class: 'ellipsis horizontal'
-  //   }).appendTo(icon_wrap);
-  //   icon_wrap.css({
-  //     top: `${pos.top + 6}px`,
-  //     left: `${pos.left}px`
-  //   }).fadeIn('fast');
-  // }, () => {
-  //   $('.code-line-marker').fadeOut('fast', () => {
-  //     $(this).remove();
-  //   });
-  // });
+  $('.code-line-link').popup({
+    popup: $('.code-view-menu-list'),
+    on: 'click',
+    lastResort: 'bottom left',
+  });
 }
 
 function initCodeView() {
@@ -2188,12 +2182,7 @@ function initCodeView() {
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
 
-      showCodeMenu($list);
-      // const m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
-      // const $first = $list.filter(`[rel=${m[1]}]`);
-      // if ($list.filter('.active').length > 0) {
-      //   showCodeMenu($list.find('.active'));
-      // }
+      showCodeViewMenu();
     });
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
@@ -2207,13 +2196,22 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+
+        // show code view menu marker
+        showCodeViewMenu();
+
         $('html, body').scrollTop($first.offset().top - 200);
+
         return;
       }
       m = window.location.hash.match(/^#(L|n)(\d+)$/);
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
+
+        // show code view menu marker
+        showCodeViewMenu();
+
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
@@ -2764,11 +2762,29 @@ function selectRange($list, $select, $from) {
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
+
+      // add line hash to permalink
+      const $issue = $('a.ref-in-new-issue');
+      const matched = $issue.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+      if (matched) {
+        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `#L${a}-L${b}`));
+      } else {
+        $issue.attr('href', `${$issue.attr('href')}#L${a}-L${b}`);
+      }
       return;
     }
   }
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
+
+  // add line hash to permalink
+  const $issue = $('a.ref-in-new-issue');
+  const matched = $issue.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+  if (matched) {
+    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `#${$select.attr('rel')}`));
+  } else {
+    $issue.attr('href', `${$issue.attr('href')}#${$select.attr('rel')}`);
+  }
 }
 
 $(() => {
