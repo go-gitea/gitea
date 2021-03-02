@@ -38,6 +38,7 @@ type GPGKey struct {
 	AddedUnix         timeutil.TimeStamp
 	SubsKey           []*GPGKey `xorm:"-"`
 	Emails            []*EmailAddress
+	Verified          bool `xorm:"NOT NULL DEFAULT false"`
 	CanSign           bool
 	CanEncryptComms   bool
 	CanEncryptStorage bool
@@ -169,7 +170,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 	}
 	keys := make([]*GPGKey, 0, len(ekeys))
 
-	signed := false
+	verified := false
 	// Handle provided signature
 	if signature != "" {
 		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
@@ -187,7 +188,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			}
 		}
 		ekeys = []*openpgp.Entity{signer}
-		signed = true
+		verified = true
 	}
 
 	for _, ekey := range ekeys {
@@ -202,7 +203,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 		//Get DB session
 
-		key, err := parseGPGKey(ownerID, ekey, !signed)
+		key, err := parseGPGKey(ownerID, ekey, verified)
 		if err != nil {
 			return nil, err
 		}
@@ -297,7 +298,7 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 }
 
 //parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
-func parseGPGKey(ownerID int64, e *openpgp.Entity, checkEmail bool) (*GPGKey, error) {
+func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
 	expiry := getExpiryTime(e)
 
@@ -331,7 +332,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, checkEmail bool) (*GPGKey, er
 		}
 	}
 
-	if checkEmail {
+	if !verified {
 		//In the case no email as been found
 		if len(emails) == 0 {
 			failedEmails := make([]string, 0, len(e.Identities))
@@ -355,6 +356,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, checkEmail bool) (*GPGKey, er
 		ExpiredUnix:       timeutil.TimeStamp(expiry.Unix()),
 		Emails:            emails,
 		SubsKey:           subkeys,
+		Verified:          verified,
 		CanSign:           pubkey.CanSign(),
 		CanEncryptComms:   pubkey.PubKeyAlgo.CanEncrypt(),
 		CanEncryptStorage: pubkey.PubKeyAlgo.CanEncrypt(),
@@ -530,6 +532,30 @@ func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey, 
 	return nil
 }
 
+func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
+	uid := int64(0)
+	var userEmails []*EmailAddress
+	for _, key := range keys {
+		for _, e := range key.Emails {
+			if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
+				return true, e.Email
+			}
+		}
+		if key.Verified && key.OwnerID != 0 {
+			if uid != key.OwnerID {
+				userEmails, _ = GetEmailAddresses(key.OwnerID)
+				uid = key.OwnerID
+			}
+			for _, e := range userEmails {
+				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
+					return true, e.Email
+				}
+			}
+		}
+	}
+	return false, email
+}
+
 func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *User, keyID, name, email string) *CommitVerification {
 	if keyID == "" {
 		return nil
@@ -559,56 +585,12 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 				}
 			}
 		}
-		activated := false
-		if len(email) != 0 {
-			for _, e := range key.Emails {
-				if e.IsActivated && strings.EqualFold(e.Email, email) {
-					activated = true
-					email = e.Email
-					break
-				}
-			}
-			if !activated {
-				for _, pkey := range primaryKeys {
-					for _, e := range pkey.Emails {
-						if e.IsActivated && strings.EqualFold(e.Email, email) {
-							activated = true
-							email = e.Email
-							break
-						}
-					}
-					if activated {
-						break
-					}
-				}
-			}
-		} else {
-			for _, e := range key.Emails {
-				if e.IsActivated {
-					activated = true
-					email = e.Email
-					break
-				}
-			}
-			if !activated {
-				for _, pkey := range primaryKeys {
-					for _, e := range pkey.Emails {
-						if e.IsActivated {
-							activated = true
-							email = e.Email
-							break
-						}
-					}
-					if activated {
-						break
-					}
-				}
-			}
-		}
 
+		activated, email := checkKeyEmails(email, append([]*GPGKey{key}, primaryKeys...)...)
 		if !activated {
 			continue
 		}
+
 		signer := &User{
 			Name:  name,
 			Email: email,

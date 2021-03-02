@@ -296,6 +296,8 @@ var migrations = []Migration{
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 	// v174 -> v175
 	NewMigration("create repo transfer table", addRepoTransfer),
+	// v175 -> v176
+	NewMigration("add key is verified to gpg key", addKeyIsVerified),
 }
 
 // GetCurrentDBVersion returns the current db version
