@@ -6,7 +6,6 @@ package code
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-enry/go-enry/v2"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -178,14 +178,20 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 		return nil, nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
@@ -294,6 +300,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		repoID, fileName := parseIndexerID(hit.Id)
 		var res = make(map[string]interface{})
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}

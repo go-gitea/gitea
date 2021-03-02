@@ -130,6 +130,8 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 			if !e.Has() {
 				return nil
 			}
+
+			break
 		}
 	}
 

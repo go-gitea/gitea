@@ -289,12 +289,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User // the user we want activity for
-	RequestedTeam   *Team // the team we want activity for
-	Actor           *User // the user viewing the activity
-	IncludePrivate  bool  // include private actions
-	OnlyPerformedBy bool  // only actions performed by requested user
-	IncludeDeleted  bool  // include deleted actions
+	RequestedUser   *User  // the user we want activity for
+	RequestedTeam   *Team  // the team we want activity for
+	Actor           *User  // the user viewing the activity
+	IncludePrivate  bool   // include private actions
+	OnlyPerformedBy bool   // only actions performed by requested user
+	IncludeDeleted  bool   // include deleted actions
+	Date            string // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -378,6 +379,18 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
+	}
+
+	if opts.Date != "" {
+		dateLow, err := time.Parse("2006-01-02", opts.Date)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+		}
 	}
 
 	return cond, nil

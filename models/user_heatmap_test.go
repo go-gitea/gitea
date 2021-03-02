@@ -5,10 +5,10 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,6 +56,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.Equal(t, tc.CountResult, len(heatmap), fmt.Sprintf("testcase %d", i))
 
 		//Test JSON rendering
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))

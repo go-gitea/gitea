@@ -42,6 +42,13 @@ func HostKeyFile(filepath string) Option {
 	}
 }
 
+func KeyboardInteractiveAuth(fn KeyboardInteractiveHandler) Option {
+	return func(srv *Server) error {
+		srv.KeyboardInteractiveHandler = fn
+		return nil
+	}
+}
+
 // HostKeyPEM returns a functional option that adds HostSigners to the server
 // from a PEM file as bytes.
 func HostKeyPEM(bytes []byte) Option {

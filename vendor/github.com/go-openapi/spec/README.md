@@ -1,7 +1,11 @@
-# OAI object model [![Build Status](https://travis-ci.org/go-openapi/spec.svg?branch=master)](https://travis-ci.org/go-openapi/spec) [![codecov](https://codecov.io/gh/go-openapi/spec/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/spec) [![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
+# OAI object model
 
+[![Build Status](https://travis-ci.org/go-openapi/spec.svg?branch=master)](https://travis-ci.org/go-openapi/spec)
+<!-- [![Build status](https://ci.appveyor.com/api/projects/status/x377t5o9ennm847o/branch/master?svg=true)](https://ci.appveyor.com/project/casualjim/go-openapi/spec/branch/master) -->
+[![codecov](https://codecov.io/gh/go-openapi/spec/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/spec)
+[![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
 [![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)](https://raw.githubusercontent.com/go-openapi/spec/master/LICENSE)
-[![GoDoc](https://godoc.org/github.com/go-openapi/spec?status.svg)](http://godoc.org/github.com/go-openapi/spec)
+[![Go Reference](https://pkg.go.dev/badge/github.com/go-openapi/spec.svg)](https://pkg.go.dev/github.com/go-openapi/spec)
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-openapi/spec)](https://goreportcard.com/report/github.com/go-openapi/spec)
 
 The object model for OpenAPI specification documents.
@@ -11,7 +15,7 @@ The object model for OpenAPI specification documents.
 * What does this do?
 
 > 1. This package knows how to marshal and unmarshal Swagger API specifications into a golang object model
-> 2. It knows how to resolve $ref and expand them to make a single root documment
+> 2. It knows how to resolve $ref and expand them to make a single root document
 
 * How does it play with the rest of the go-openapi packages ?
 
