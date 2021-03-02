@@ -10,6 +10,8 @@ import (
 	"encoding/base64"
 	"io"
 	"io/ioutil"
+
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 // This file contains common functions between the gogit and !gogit variants for git Blobs
@@ -81,4 +83,15 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 		return "", err
 	}
 	return string(out), nil
+}
+
+// GuessContentType guesses the content type of the blob.
+func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
+	r, err := b.DataAsync()
+	if err != nil {
+		return typesniffer.SniffedType{}, err
+	}
+	defer r.Close()
+
+	return typesniffer.DetectContentTypeFromReader(r)
 }

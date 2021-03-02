@@ -5,7 +5,9 @@
 package typesniffer
 
 import (
+	"bytes"
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,14 +17,7 @@ func TestDetectContentTypeLongerThanSniffLen(t *testing.T) {
 	// Pre-condition: Shorter than sniffLen detects SVG.
 	assert.Equal(t, "image/svg+xml", DetectContentType([]byte(`<!-- Comment --><svg></svg>`)).contentType)
 	// Longer than sniffLen detects something else.
-	assert.Equal(t, "text/plain; charset=utf-8", DetectContentType([]byte(`<!--
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment Comment Comment Comment Comment Comment Comment Comment
-Comment Comment Comment --><svg></svg>`)).contentType)
+	assert.NotEqual(t, "image/svg+xml", DetectContentType([]byte(`<!-- `+strings.Repeat("x", sniffLen)+` --><svg></svg>`)).contentType)
 }
 
 func TestIsTextFile(t *testing.T) {
@@ -76,20 +71,27 @@ func TestIsSvgImage(t *testing.T) {
 	<foo></foo>`)).IsSvgImage())
 }
 
-func TestIsPDFFile(t *testing.T) {
+func TestIsPDF(t *testing.T) {
 	pdf, _ := base64.StdEncoding.DecodeString("JVBERi0xLjYKJcOkw7zDtsOfCjIgMCBvYmoKPDwvTGVuZ3RoIDMgMCBSL0ZpbHRlci9GbGF0ZURlY29kZT4+CnN0cmVhbQp4nF3NPwsCMQwF8D2f4s2CNYk1baF0EHRwOwg4iJt/NsFb/PpevUE4Mjwe")
 	assert.True(t, DetectContentType(pdf).IsPDF())
 	assert.False(t, DetectContentType([]byte("plain text")).IsPDF())
 }
 
-func TestIsVideoFile(t *testing.T) {
+func TestIsVideo(t *testing.T) {
 	mp4, _ := base64.StdEncoding.DecodeString("AAAAGGZ0eXBtcDQyAAAAAGlzb21tcDQyAAEI721vb3YAAABsbXZoZAAAAADaBlwX2gZcFwAAA+gA")
 	assert.True(t, DetectContentType(mp4).IsVideo())
 	assert.False(t, DetectContentType([]byte("plain text")).IsVideo())
 }
 
-func TestIsAudioFile(t *testing.T) {
+func TestIsAudio(t *testing.T) {
 	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
 	assert.True(t, DetectContentType(mp3).IsAudio())
 	assert.False(t, DetectContentType([]byte("plain text")).IsAudio())
+}
+
+func TestDetectContentTypeFromReader(t *testing.T) {
+	mp3, _ := base64.StdEncoding.DecodeString("SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAbXA0MgBUWFhYAAAAEQAAA21pbm9yX3Zl")
+	st, err := DetectContentTypeFromReader(bytes.NewReader(mp3))
+	assert.NoError(t, err)
+	assert.True(t, st.IsAudio())
 }

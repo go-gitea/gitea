@@ -5,13 +5,15 @@
 package typesniffer
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
 )
 
 // Use at most this many bytes to determine Content Type.
-const sniffLen = 512
+const sniffLen = 1024
 
 // SvgMimeType MIME type of SVG images.
 const SvgMimeType = "image/svg+xml"
@@ -79,4 +81,16 @@ func DetectContentType(data []byte) SniffedType {
 	}
 
 	return SniffedType{ct}
+}
+
+// DetectContentTypeFromReader guesses the content type contained in the reader.
+func DetectContentTypeFromReader(r io.Reader) (SniffedType, error) {
+	buf := make([]byte, sniffLen)
+	n, err := r.Read(buf)
+	if err != nil && err != io.EOF {
+		return SniffedType{}, fmt.Errorf("DetectContentTypeFromReader io error: %w", err)
+	}
+	buf = buf[:n]
+
+	return DetectContentType(buf), nil
 }
