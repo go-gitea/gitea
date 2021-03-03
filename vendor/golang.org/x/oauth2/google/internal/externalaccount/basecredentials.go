@@ -45,7 +45,7 @@ func (c *Config) TokenSource(ctx context.Context) oauth2.TokenSource {
 		ctx:    ctx,
 		url:    c.ServiceAccountImpersonationURL,
 		scopes: scopes,
-		ts: oauth2.ReuseTokenSource(nil, ts),
+		ts:     oauth2.ReuseTokenSource(nil, ts),
 	}
 	return oauth2.ReuseTokenSource(nil, imp)
 }
@@ -96,7 +96,7 @@ func (c *Config) parse(ctx context.Context) (baseCredentialSource, error) {
 	} else if c.CredentialSource.File != "" {
 		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}, nil
 	} else if c.CredentialSource.URL != "" {
-		return urlCredentialSource{URL: c.CredentialSource.URL, Format: c.CredentialSource.Format, ctx: ctx}, nil
+		return urlCredentialSource{URL: c.CredentialSource.URL, Headers: c.CredentialSource.Headers, Format: c.CredentialSource.Format, ctx: ctx}, nil
 	}
 	return nil, fmt.Errorf("oauth2/google: unable to parse credential source")
 }
@@ -124,7 +124,7 @@ func (ts tokenSource) Token() (*oauth2.Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	stsRequest := STSTokenExchangeRequest{
+	stsRequest := stsTokenExchangeRequest{
 		GrantType:          "urn:ietf:params:oauth:grant-type:token-exchange",
 		Audience:           conf.Audience,
 		Scope:              conf.Scopes,
@@ -134,12 +134,12 @@ func (ts tokenSource) Token() (*oauth2.Token, error) {
 	}
 	header := make(http.Header)
 	header.Add("Content-Type", "application/x-www-form-urlencoded")
-	clientAuth := ClientAuthentication{
+	clientAuth := clientAuthentication{
 		AuthStyle:    oauth2.AuthStyleInHeader,
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
 	}
-	stsResp, err := ExchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, nil)
+	stsResp, err := exchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, nil)
 	if err != nil {
 		return nil, err
 	}

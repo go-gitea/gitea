@@ -216,6 +216,18 @@ const (
 )
 
 const (
+	// attributes for ProcThreadAttributeList
+	PROC_THREAD_ATTRIBUTE_PARENT_PROCESS    = 0x00020000
+	PROC_THREAD_ATTRIBUTE_HANDLE_LIST       = 0x00020002
+	PROC_THREAD_ATTRIBUTE_GROUP_AFFINITY    = 0x00030003
+	PROC_THREAD_ATTRIBUTE_PREFERRED_NODE    = 0x00020004
+	PROC_THREAD_ATTRIBUTE_IDEAL_PROCESSOR   = 0x00030005
+	PROC_THREAD_ATTRIBUTE_MITIGATION_POLICY = 0x00020007
+	PROC_THREAD_ATTRIBUTE_UMS_THREAD        = 0x00030006
+	PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL  = 0x0002000b
+)
+
+const (
 	// flags for CreateToolhelp32Snapshot
 	TH32CS_SNAPHEAPLIST = 0x01
 	TH32CS_SNAPPROCESS  = 0x02
@@ -286,6 +298,23 @@ const (
 	PKCS12_ALLOW_OVERWRITE_KEY         = 0x00004000
 	PKCS12_NO_PERSIST_KEY              = 0x00008000
 	PKCS12_INCLUDE_EXTENDED_PROPERTIES = 0x00000010
+
+	/* Flags for CryptAcquireCertificatePrivateKey */
+	CRYPT_ACQUIRE_CACHE_FLAG             = 0x00000001
+	CRYPT_ACQUIRE_USE_PROV_INFO_FLAG     = 0x00000002
+	CRYPT_ACQUIRE_COMPARE_KEY_FLAG       = 0x00000004
+	CRYPT_ACQUIRE_NO_HEALING             = 0x00000008
+	CRYPT_ACQUIRE_SILENT_FLAG            = 0x00000040
+	CRYPT_ACQUIRE_WINDOW_HANDLE_FLAG     = 0x00000080
+	CRYPT_ACQUIRE_NCRYPT_KEY_FLAGS_MASK  = 0x00070000
+	CRYPT_ACQUIRE_ALLOW_NCRYPT_KEY_FLAG  = 0x00010000
+	CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG = 0x00020000
+	CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG   = 0x00040000
+
+	/* pdwKeySpec for CryptAcquireCertificatePrivateKey */
+	AT_KEYEXCHANGE       = 1
+	AT_SIGNATURE         = 2
+	CERT_NCRYPT_KEY_SPEC = 0xFFFFFFFF
 
 	/* Default usage match type is AND with value zero */
 	USAGE_MATCH_TYPE_AND = 0
@@ -412,6 +441,89 @@ const (
 	CERT_TRUST_IS_CA_TRUSTED                 = 0x00004000
 	CERT_TRUST_IS_COMPLEX_CHAIN              = 0x00010000
 
+	/* Certificate Information Flags */
+	CERT_INFO_VERSION_FLAG                 = 1
+	CERT_INFO_SERIAL_NUMBER_FLAG           = 2
+	CERT_INFO_SIGNATURE_ALGORITHM_FLAG     = 3
+	CERT_INFO_ISSUER_FLAG                  = 4
+	CERT_INFO_NOT_BEFORE_FLAG              = 5
+	CERT_INFO_NOT_AFTER_FLAG               = 6
+	CERT_INFO_SUBJECT_FLAG                 = 7
+	CERT_INFO_SUBJECT_PUBLIC_KEY_INFO_FLAG = 8
+	CERT_INFO_ISSUER_UNIQUE_ID_FLAG        = 9
+	CERT_INFO_SUBJECT_UNIQUE_ID_FLAG       = 10
+	CERT_INFO_EXTENSION_FLAG               = 11
+
+	/* dwFindType for CertFindCertificateInStore  */
+	CERT_COMPARE_MASK                     = 0xFFFF
+	CERT_COMPARE_SHIFT                    = 16
+	CERT_COMPARE_ANY                      = 0
+	CERT_COMPARE_SHA1_HASH                = 1
+	CERT_COMPARE_NAME                     = 2
+	CERT_COMPARE_ATTR                     = 3
+	CERT_COMPARE_MD5_HASH                 = 4
+	CERT_COMPARE_PROPERTY                 = 5
+	CERT_COMPARE_PUBLIC_KEY               = 6
+	CERT_COMPARE_HASH                     = CERT_COMPARE_SHA1_HASH
+	CERT_COMPARE_NAME_STR_A               = 7
+	CERT_COMPARE_NAME_STR_W               = 8
+	CERT_COMPARE_KEY_SPEC                 = 9
+	CERT_COMPARE_ENHKEY_USAGE             = 10
+	CERT_COMPARE_CTL_USAGE                = CERT_COMPARE_ENHKEY_USAGE
+	CERT_COMPARE_SUBJECT_CERT             = 11
+	CERT_COMPARE_ISSUER_OF                = 12
+	CERT_COMPARE_EXISTING                 = 13
+	CERT_COMPARE_SIGNATURE_HASH           = 14
+	CERT_COMPARE_KEY_IDENTIFIER           = 15
+	CERT_COMPARE_CERT_ID                  = 16
+	CERT_COMPARE_CROSS_CERT_DIST_POINTS   = 17
+	CERT_COMPARE_PUBKEY_MD5_HASH          = 18
+	CERT_COMPARE_SUBJECT_INFO_ACCESS      = 19
+	CERT_COMPARE_HASH_STR                 = 20
+	CERT_COMPARE_HAS_PRIVATE_KEY          = 21
+	CERT_FIND_ANY                         = (CERT_COMPARE_ANY << CERT_COMPARE_SHIFT)
+	CERT_FIND_SHA1_HASH                   = (CERT_COMPARE_SHA1_HASH << CERT_COMPARE_SHIFT)
+	CERT_FIND_MD5_HASH                    = (CERT_COMPARE_MD5_HASH << CERT_COMPARE_SHIFT)
+	CERT_FIND_SIGNATURE_HASH              = (CERT_COMPARE_SIGNATURE_HASH << CERT_COMPARE_SHIFT)
+	CERT_FIND_KEY_IDENTIFIER              = (CERT_COMPARE_KEY_IDENTIFIER << CERT_COMPARE_SHIFT)
+	CERT_FIND_HASH                        = CERT_FIND_SHA1_HASH
+	CERT_FIND_PROPERTY                    = (CERT_COMPARE_PROPERTY << CERT_COMPARE_SHIFT)
+	CERT_FIND_PUBLIC_KEY                  = (CERT_COMPARE_PUBLIC_KEY << CERT_COMPARE_SHIFT)
+	CERT_FIND_SUBJECT_NAME                = (CERT_COMPARE_NAME<<CERT_COMPARE_SHIFT | CERT_INFO_SUBJECT_FLAG)
+	CERT_FIND_SUBJECT_ATTR                = (CERT_COMPARE_ATTR<<CERT_COMPARE_SHIFT | CERT_INFO_SUBJECT_FLAG)
+	CERT_FIND_ISSUER_NAME                 = (CERT_COMPARE_NAME<<CERT_COMPARE_SHIFT | CERT_INFO_ISSUER_FLAG)
+	CERT_FIND_ISSUER_ATTR                 = (CERT_COMPARE_ATTR<<CERT_COMPARE_SHIFT | CERT_INFO_ISSUER_FLAG)
+	CERT_FIND_SUBJECT_STR_A               = (CERT_COMPARE_NAME_STR_A<<CERT_COMPARE_SHIFT | CERT_INFO_SUBJECT_FLAG)
+	CERT_FIND_SUBJECT_STR_W               = (CERT_COMPARE_NAME_STR_W<<CERT_COMPARE_SHIFT | CERT_INFO_SUBJECT_FLAG)
+	CERT_FIND_SUBJECT_STR                 = CERT_FIND_SUBJECT_STR_W
+	CERT_FIND_ISSUER_STR_A                = (CERT_COMPARE_NAME_STR_A<<CERT_COMPARE_SHIFT | CERT_INFO_ISSUER_FLAG)
+	CERT_FIND_ISSUER_STR_W                = (CERT_COMPARE_NAME_STR_W<<CERT_COMPARE_SHIFT | CERT_INFO_ISSUER_FLAG)
+	CERT_FIND_ISSUER_STR                  = CERT_FIND_ISSUER_STR_W
+	CERT_FIND_KEY_SPEC                    = (CERT_COMPARE_KEY_SPEC << CERT_COMPARE_SHIFT)
+	CERT_FIND_ENHKEY_USAGE                = (CERT_COMPARE_ENHKEY_USAGE << CERT_COMPARE_SHIFT)
+	CERT_FIND_CTL_USAGE                   = CERT_FIND_ENHKEY_USAGE
+	CERT_FIND_SUBJECT_CERT                = (CERT_COMPARE_SUBJECT_CERT << CERT_COMPARE_SHIFT)
+	CERT_FIND_ISSUER_OF                   = (CERT_COMPARE_ISSUER_OF << CERT_COMPARE_SHIFT)
+	CERT_FIND_EXISTING                    = (CERT_COMPARE_EXISTING << CERT_COMPARE_SHIFT)
+	CERT_FIND_CERT_ID                     = (CERT_COMPARE_CERT_ID << CERT_COMPARE_SHIFT)
+	CERT_FIND_CROSS_CERT_DIST_POINTS      = (CERT_COMPARE_CROSS_CERT_DIST_POINTS << CERT_COMPARE_SHIFT)
+	CERT_FIND_PUBKEY_MD5_HASH             = (CERT_COMPARE_PUBKEY_MD5_HASH << CERT_COMPARE_SHIFT)
+	CERT_FIND_SUBJECT_INFO_ACCESS         = (CERT_COMPARE_SUBJECT_INFO_ACCESS << CERT_COMPARE_SHIFT)
+	CERT_FIND_HASH_STR                    = (CERT_COMPARE_HASH_STR << CERT_COMPARE_SHIFT)
+	CERT_FIND_HAS_PRIVATE_KEY             = (CERT_COMPARE_HAS_PRIVATE_KEY << CERT_COMPARE_SHIFT)
+	CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG  = 0x1
+	CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG  = 0x2
+	CERT_FIND_PROP_ONLY_ENHKEY_USAGE_FLAG = 0x4
+	CERT_FIND_NO_ENHKEY_USAGE_FLAG        = 0x8
+	CERT_FIND_OR_ENHKEY_USAGE_FLAG        = 0x10
+	CERT_FIND_VALID_ENHKEY_USAGE_FLAG     = 0x20
+	CERT_FIND_OPTIONAL_CTL_USAGE_FLAG     = CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
+	CERT_FIND_EXT_ONLY_CTL_USAGE_FLAG     = CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG
+	CERT_FIND_PROP_ONLY_CTL_USAGE_FLAG    = CERT_FIND_PROP_ONLY_ENHKEY_USAGE_FLAG
+	CERT_FIND_NO_CTL_USAGE_FLAG           = CERT_FIND_NO_ENHKEY_USAGE_FLAG
+	CERT_FIND_OR_CTL_USAGE_FLAG           = CERT_FIND_OR_ENHKEY_USAGE_FLAG
+	CERT_FIND_VALID_CTL_USAGE_FLAG        = CERT_FIND_VALID_ENHKEY_USAGE_FLAG
+
 	/* policyOID values for CertVerifyCertificateChainPolicy function */
 	CERT_CHAIN_POLICY_BASE              = 1
 	CERT_CHAIN_POLICY_AUTHENTICODE      = 2
@@ -422,6 +534,17 @@ const (
 	CERT_CHAIN_POLICY_MICROSOFT_ROOT    = 7
 	CERT_CHAIN_POLICY_EV                = 8
 	CERT_CHAIN_POLICY_SSL_F12           = 9
+
+	/* flag for dwFindType CertFindChainInStore  */
+	CERT_CHAIN_FIND_BY_ISSUER = 1
+
+	/* dwFindFlags for CertFindChainInStore when dwFindType == CERT_CHAIN_FIND_BY_ISSUER */
+	CERT_CHAIN_FIND_BY_ISSUER_COMPARE_KEY_FLAG    = 0x0001
+	CERT_CHAIN_FIND_BY_ISSUER_COMPLEX_CHAIN_FLAG  = 0x0002
+	CERT_CHAIN_FIND_BY_ISSUER_CACHE_ONLY_URL_FLAG = 0x0004
+	CERT_CHAIN_FIND_BY_ISSUER_LOCAL_MACHINE_FLAG  = 0x0008
+	CERT_CHAIN_FIND_BY_ISSUER_NO_KEY_FLAG         = 0x4000
+	CERT_CHAIN_FIND_BY_ISSUER_CACHE_ONLY_FLAG     = 0x8000
 
 	/* Certificate Store close flags */
 	CERT_CLOSE_STORE_FORCE_FLAG = 0x00000001
@@ -683,6 +806,14 @@ type win32finddata1 struct {
 	Reserved1         uint32
 	FileName          [MAX_PATH]uint16
 	AlternateFileName [14]uint16
+
+	// The Microsoft documentation for this struct¹ describes three additional
+	// fields: dwFileType, dwCreatorType, and wFinderFlags. However, those fields
+	// are empirically only present in the macOS port of the Win32 API,² and thus
+	// not needed for binaries built for Windows.
+	//
+	// ¹ https://docs.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-win32_find_dataw describe
+	// ² https://golang.org/issue/42637#issuecomment-760715755.
 }
 
 func copyFindData(dst *Win32finddata, src *win32finddata1) {
@@ -765,6 +896,19 @@ type StartupInfo struct {
 	StdInput      Handle
 	StdOutput     Handle
 	StdErr        Handle
+}
+
+type StartupInfoEx struct {
+	StartupInfo
+	ProcThreadAttributeList *ProcThreadAttributeList
+}
+
+// ProcThreadAttributeList is a placeholder type to represent a PROC_THREAD_ATTRIBUTE_LIST.
+//
+// To create a *ProcThreadAttributeList, use NewProcThreadAttributeList, and
+// free its memory using ProcThreadAttributeList.Delete.
+type ProcThreadAttributeList struct {
+	_ [1]byte
 }
 
 type ProcessInformation struct {
@@ -919,6 +1063,18 @@ type WSAMsg struct {
 	Control     WSABuf
 	Flags       uint32
 }
+
+// Flags for WSASocket
+const (
+	WSA_FLAG_OVERLAPPED             = 0x01
+	WSA_FLAG_MULTIPOINT_C_ROOT      = 0x02
+	WSA_FLAG_MULTIPOINT_C_LEAF      = 0x04
+	WSA_FLAG_MULTIPOINT_D_ROOT      = 0x08
+	WSA_FLAG_MULTIPOINT_D_LEAF      = 0x10
+	WSA_FLAG_ACCESS_SYSTEM_SECURITY = 0x40
+	WSA_FLAG_NO_HANDLE_INHERIT      = 0x80
+	WSA_FLAG_REGISTERED_IO          = 0x100
+)
 
 // Invented values to support what package os expects.
 const (
@@ -1358,6 +1514,19 @@ type CryptProtectPromptStruct struct {
 	PromptFlags uint32
 	App         HWND
 	Prompt      *uint16
+}
+
+type CertChainFindByIssuerPara struct {
+	Size                   uint32
+	UsageIdentifier        *byte
+	KeySpec                uint32
+	AcquirePrivateKeyFlags uint32
+	IssuerCount            uint32
+	Issuer                 Pointer
+	FindCallback           Pointer
+	FindArg                Pointer
+	IssuerChainIndex       *uint32
+	IssuerElementIndex     *uint32
 }
 
 type WinTrustData struct {
@@ -2091,3 +2260,11 @@ const (
 	// REG_NOTIFY_THREAD_AGNOSTIC indicates that the lifetime of the registration must not be tied to the lifetime of the thread issuing the RegNotifyChangeKeyValue call. Note: This flag value is only supported in Windows 8 and later.
 	REG_NOTIFY_THREAD_AGNOSTIC = 0x10000000
 )
+
+type CommTimeouts struct {
+	ReadIntervalTimeout         uint32
+	ReadTotalTimeoutMultiplier  uint32
+	ReadTotalTimeoutConstant    uint32
+	WriteTotalTimeoutMultiplier uint32
+	WriteTotalTimeoutConstant   uint32
+}

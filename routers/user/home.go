@@ -7,7 +7,6 @@ package user
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -25,6 +24,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"xorm.io/builder"
@@ -156,6 +156,7 @@ func Dashboard(ctx *context.Context) {
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
+		Date:            ctx.Query("date"),
 	})
 
 	if ctx.Written() {
@@ -690,6 +691,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Convert []int64 to string
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	reposParam, _ := json.Marshal(repoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)
