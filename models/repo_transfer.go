@@ -305,10 +305,12 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(oldOwner.Name, repo.Name)
 
-	if isExist, err := util.IsExist(wikiPath); err != nil {
+	isExist, err := util.IsExist(wikiPath)
+	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
 		return err
-	} else if isExist {
+	}
+	if isExist {
 		if err := os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
@@ -331,5 +333,20 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
-	return sess.Commit()
+	if err = sess.Commit(); err == nil {
+		return nil
+	}
+
+	sess.Rollback()
+
+	if err := os.Rename(RepoPath(newOwner.Name, repo.Name), RepoPath(oldOwner.Name, repo.Name)); err != nil {
+		return fmt.Errorf("rename repository directory: %v", err)
+	}
+
+	if isExist {
+		if err := os.Rename(WikiPath(newOwner.Name, repo.Name), wikiPath); err != nil {
+			return fmt.Errorf("rename repository wiki: %v", err)
+		}
+	}
+	return nil
 }
