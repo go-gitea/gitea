@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -86,6 +86,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 			data.CommitIDs = append(data.CommitIDs, e.Value.(*git.Commit).ID.String())
 		}
 
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dataJSON, err := json.Marshal(data)
 		if err != nil {
 			return err

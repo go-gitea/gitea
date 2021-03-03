@@ -8,7 +8,7 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.13.2
 ## explicit
 code.gitea.io/sdk/gitea
-# gitea.com/go-chi/binding v0.0.0-20210113025129-03f1d313373c
+# gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
 ## explicit
 gitea.com/go-chi/binding
 # gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
@@ -483,6 +483,7 @@ github.com/jessevdk/go-flags
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern
 # github.com/json-iterator/go v1.1.10
+## explicit
 github.com/json-iterator/go
 # github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 ## explicit
