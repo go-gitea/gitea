@@ -7,6 +7,7 @@ package user
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -24,7 +25,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"xorm.io/builder"
@@ -203,6 +203,7 @@ func Milestones(ctx *context.Context) {
 		isShowClosed = ctx.Query("state") == "closed"
 		sortType     = ctx.Query("sort")
 		page         = ctx.QueryInt("page")
+		keyword      = strings.Trim(ctx.Query("q"), " ")
 	)
 
 	if page <= 1 {
@@ -235,15 +236,15 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType)
+	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestonesByRepoIDs", err)
+		ctx.ServerError("SearchMilestones", err)
 		return
 	}
 
@@ -278,7 +279,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -288,7 +289,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -311,12 +312,14 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["SortType"] = sortType
+	ctx.Data["Keyword"] = keyword
 	if milestoneStats.Total() != totalMilestoneStats.Total() {
 		ctx.Data["RepoIDs"] = repoIDs
 	}
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "repos", "RepoIDs")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
@@ -691,7 +694,6 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Convert []int64 to string
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	reposParam, _ := json.Marshal(repoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)

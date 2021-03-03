@@ -6,7 +6,8 @@ package repo
 
 import (
 	"time"
-
+  "strings"
+	
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -43,6 +44,9 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 
 	sortType := ctx.Query("sort")
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -59,13 +63,14 @@ func Milestones(ctx *context.Context) {
 	}
 
 	miles, err := models.GetMilestones(models.GetMilestonesOption{
-		ListOptions: models.ListOptions{
+	  ListOptions: models.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
 		RepoID:   ctx.Repo.Repository.ID,
 		State:    state,
 		SortType: sortType,
+		Name:     keyword,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -89,6 +94,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	ctx.Data["SortType"] = sortType
+	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
