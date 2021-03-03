@@ -23,7 +23,12 @@
 					<span class="{{if or .ExpiredUnix.IsZero ($.PageStartTime.Before .ExpiredUnix.AsTime)}}green{{end}}">{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
-					{{range .Emails}}<strong>{{.Email}} </strong>{{end}}
+					{{if .Verified}}
+						<span class="poping up" data-content="{{$.i18n.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong></span>
+					{{end}}
+					{{if gt (len .Emails) 0}}
+						<span class="poping up" data-content="{{$.i18n.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.i18n.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+					{{end}}
 					<div class="print meta">
 						<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.KeyID}}
 						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
@@ -33,7 +38,6 @@
 						-
 						<i>{{if not .ExpiredUnix.IsZero}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
-					{{if .Verified}}{{svg "octicon-shield-check" 16	}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong>{{end}}
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingID .ID)}}
