@@ -10,8 +10,10 @@ import (
 	"image"
 	"image/color/palette"
 
-	// Enable PNG support:
-	_ "image/png"
+	_ "image/gif"  // for processing gif images
+	_ "image/jpeg" // for processing jpeg images
+	_ "image/png"  // for processing png images
+
 	"math/rand"
 	"time"
 
