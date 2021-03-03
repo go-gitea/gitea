@@ -189,6 +189,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 			CanEncryptComms:   k.CanEncryptComms,
 			CanEncryptStorage: k.CanEncryptStorage,
 			CanCertify:        k.CanSign,
+			Verified:          k.Verified,
 		}
 	}
 	emails := make([]*api.GPGKeyEmail, len(key.Emails))
@@ -208,6 +209,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 		CanEncryptComms:   key.CanEncryptComms,
 		CanEncryptStorage: key.CanEncryptStorage,
 		CanCertify:        key.CanSign,
+		Verified:          key.Verified,
 	}
 }
 

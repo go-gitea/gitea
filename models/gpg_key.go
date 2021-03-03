@@ -217,7 +217,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 }
 
 // VerifyGPGKey marks a GPG key as verified
-func VerifyGPGKey(ownerID, keyID int64, token, signature string) (string, error) {
+func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -226,11 +226,11 @@ func VerifyGPGKey(ownerID, keyID int64, token, signature string) (string, error)
 
 	key := new(GPGKey)
 
-	has, err := sess.ID(keyID).Get(key)
+	has, err := sess.Where("owner_id = ? AND key_id = ?", ownerID, keyID).Get(key)
 	if err != nil {
 		return "", err
-	} else if !has || key.OwnerID != ownerID {
-		return "", ErrGPGKeyNotExist{keyID}
+	} else if !has {
+		return "", ErrGPGKeyNotExist{}
 	}
 
 	sig, err := extractSignature(signature)
@@ -276,7 +276,7 @@ func VerifyGPGKey(ownerID, keyID int64, token, signature string) (string, error)
 	}
 
 	if signer.PrimaryKeyID != key.KeyID && signer.KeyID != key.KeyID {
-		return "", ErrGPGKeyNotExist{keyID}
+		return "", ErrGPGKeyNotExist{}
 	}
 
 	key.Verified = true

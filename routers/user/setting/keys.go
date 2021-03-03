@@ -77,9 +77,13 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+		token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+		lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
 
 		keys, err := models.AddGPGKey(ctx.User.ID, form.Content, token, form.Signature)
+		if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
+			keys, err = models.AddGPGKey(ctx.User.ID, form.Content, lastToken, form.Signature)
+		}
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
 			switch {
@@ -121,14 +125,18 @@ func KeysPost(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_gpg":
 		token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+		lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
 
-		keyID, err := models.VerifyGPGKey(ctx.User.ID, form.Key, token, form.Signature)
+		keyID, err := models.VerifyGPGKey(ctx.User.ID, form.KeyID, token, form.Signature)
+		if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
+			keyID, err = models.VerifyGPGKey(ctx.User.ID, form.KeyID, lastToken, form.Signature)
+		}
 		if err != nil {
 			ctx.Data["HasGPGVerifyError"] = true
 			switch {
 			case models.IsErrGPGInvalidTokenSignature(err):
 				loadKeysData(ctx)
-				ctx.Data["VerifyingID"] = form.Key
+				ctx.Data["VerifyingID"] = form.KeyID
 				ctx.Data["Err_Signature"] = true
 				ctx.Data["KeyID"] = err.(models.ErrGPGInvalidTokenSignature).ID
 				ctx.RenderWithErr(ctx.Tr("settings.gpg_invalid_token_signature"), tplSettingsKeys, &form)
@@ -246,7 +254,7 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
-	tokenToSign := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	tokenToSign := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
 
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
@@ -258,5 +266,5 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["Principals"] = principals
 
-	ctx.Data["VerifyingID"] = ctx.QueryInt64("verify_gpg")
+	ctx.Data["VerifyingID"] = ctx.Query("verify_gpg")
 }

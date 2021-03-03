@@ -123,14 +123,82 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
-	token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
 
 	keys, err := models.AddGPGKey(uid, form.ArmoredKey, token, form.Signature)
+	if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
+		keys, err = models.AddGPGKey(uid, form.ArmoredKey, lastToken, form.Signature)
+	}
 	if err != nil {
 		HandleAddGPGKeyError(ctx, err, token)
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToGPGKey(keys[0]))
+}
+
+// GetVerificationToken returns the current token to be signed for this user
+func GetVerificationToken(ctx *context.APIContext) {
+	// swagger:operation GET /user/gpg_key_token user getVerificationToken
+	// ---
+	// summary: Get a Token to verify
+	// produces:
+	// - text/plain
+	// parameters:
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	ctx.PlainText(http.StatusOK, []byte(token))
+}
+
+// VerifyUserGPGKey creates new GPG key to given user by ID.
+func VerifyUserGPGKey(ctx *context.APIContext) {
+	// swagger:operation POST /user/gpg_key_verify user userVerifyGPGKey
+	// ---
+	// summary: Verify a GPG key
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/GPGKey"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
+	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+
+	_, err := models.VerifyGPGKey(ctx.User.ID, form.KeyID, token, form.Signature)
+	if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
+		_, err = models.VerifyGPGKey(ctx.User.ID, form.KeyID, lastToken, form.Signature)
+	}
+
+	if err != nil {
+		if models.IsErrGPGInvalidTokenSignature(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "GPGInvalidSignature", fmt.Sprintf("The provided GPG key, signature and token do not match or token is out of date. Provide a valid signature for the token: %s", token))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "VerifyUserGPGKey", err)
+	}
+
+	key, err := models.GetGPGKeysByKeyID(form.KeyID)
+	if err != nil {
+		if models.IsErrGPGKeyNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetGPGKeysByKeyID", err)
+		}
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToGPGKey(key[0]))
 }
 
 // swagger:parameters userCurrentPostGPGKey

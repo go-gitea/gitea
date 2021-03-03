@@ -15,8 +15,8 @@
 					<button class="ui red tiny button delete-button" id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
-					{{if and (not .Verified) (ne $.VerifyingID .ID)}}
-						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_gpg={{.ID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
+					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
+						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
 				</div>
 				<div class="left floated content">
@@ -40,14 +40,14 @@
 					</div>
 				</div>
 			</div>
-			{{if and (not .Verified) (eq $.VerifyingID .ID)}}
+			{{if and (not .Verified) (eq $.VerifyingID .KeyID)}}
 				<div class="ui  segment">
 					<h4>{{$.i18n.Tr "settings.gpg_token_required"}}</h4>
 					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
-						<input type="hidden" name="content" value="{{.ID}}">
-						<input type="hidden" name="key" value="{{.ID}}">
+						<input type="hidden" name="content" value="{{.KeyID}}">
+						<input type="hidden" name="key_id" value="{{.KeyID}}">
 						<div class="field">
 							<label for="token">{{$.i18n.Tr "settings.gpg_token"}}</label>
 							<input readonly="" value="{{$.TokenToSign}}">
