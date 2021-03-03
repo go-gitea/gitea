@@ -65,6 +65,7 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			})
 		},
 		middleware.RealIP,
+		middleware.StripSlashes,
 	}
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
