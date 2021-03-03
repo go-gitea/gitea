@@ -696,6 +696,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
+	ctx.Data["AppURL1"] = strings.TrimRight(setting.AppURL, "/")
 	ctx.HTML(200, tplRepoHome)
 }
 

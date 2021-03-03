@@ -2763,13 +2763,13 @@ function selectRange($list, $select, $from) {
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
 
-      // add line hash to permalink
+      // add hashchange to permalink
       const $issue = $('a.ref-in-new-issue');
-      const matched = $issue.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
       if (matched) {
-        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `#L${a}-L${b}`));
+        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
       } else {
-        $issue.attr('href', `${$issue.attr('href')}#L${a}-L${b}`);
+        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
       }
       return;
     }
@@ -2777,13 +2777,13 @@ function selectRange($list, $select, $from) {
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
 
-  // add line hash to permalink
+  // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
-  const matched = $issue.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
   if (matched) {
-    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `#${$select.attr('rel')}`));
+    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
   } else {
-    $issue.attr('href', `${$issue.attr('href')}#${$select.attr('rel')}`);
+    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
   }
 }
 

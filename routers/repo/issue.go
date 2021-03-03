@@ -783,8 +783,8 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["BodyQuery"] = body
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	// get permalink query
 	permalink := ctx.Query("permalink")
-	fmt.Println(permalink)
 	ctx.Data["Permalink"] = permalink
 	upload.AddUploadContext(ctx, "comment")
 
