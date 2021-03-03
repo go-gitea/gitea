@@ -53,7 +53,7 @@ menu:
 ### UI - Expore (`ui.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
-- `DISABLE_USERS_PAGE`: **false**: 。
+- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
 
 ## Markdown (`markdown`)
 
