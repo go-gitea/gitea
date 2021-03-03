@@ -5,6 +5,7 @@
 package repo
 
 import (
+	issue_service "code.gitea.io/gitea/services/issue"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -156,7 +157,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 	// Check if issue exists an load issue
 	issueID := ctx.ParamsInt64(":index")
-	issue, err := models.GetIssueByID(issueID)
+	issue, err := models.GetIssueWithAttrsByID(issueID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
@@ -196,6 +197,12 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	}, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
+		return
+	}
+	issue.Attachments = append(issue.Attachments, attach)
+
+	if err := issue_service.ChangeContent(issue, ctx.User, issue.Content); err != nil {
+		ctx.ServerError("ChangeContent", err)
 		return
 	}
 

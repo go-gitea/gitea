@@ -5,6 +5,7 @@
 package repo
 
 import (
+	comment_service "code.gitea.io/gitea/services/comments"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -193,6 +194,15 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	}, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
+		return
+	}
+	if err := comment.LoadAttachments(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadAttachments", err)
+		return
+	}
+
+	if err = comment_service.UpdateComment(comment, ctx.User, comment.Content); err != nil {
+		ctx.ServerError("UpdateComment", err)
 		return
 	}
 
