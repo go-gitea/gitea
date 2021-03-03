@@ -233,37 +233,49 @@ func VerifyGPGKey(ownerID, keyID int64, token, signature string) (string, error)
 		return "", ErrGPGKeyNotExist{keyID}
 	}
 
-	pkey, err := base64DecPubKey(key.Content)
+	sig, err := extractSignature(signature)
 	if err != nil {
-		return "", err
-	}
-
-	ent := &openpgp.Entity{
-		PrimaryKey: pkey,
-		Identities: map[string]*openpgp.Identity{
-			"": {Name: "", SelfSignature: &packet.Signature{}},
-		},
-	}
-
-	ekeys := openpgp.EntityList([]*openpgp.Entity{
-		ent,
-	})
-
-	signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature))
-	if err != nil {
-		signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature))
-	}
-	if err != nil {
-		signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature))
-	}
-	if err != nil {
-		log.Error("Unable to validate token signature. Error: %v", err)
 		return "", ErrGPGInvalidTokenSignature{
-			ID:      ekeys[0].PrimaryKey.KeyIdString(),
+			ID:      key.KeyID,
 			Wrapped: err,
 		}
 	}
-	if signer.PrimaryKey.KeyIdString() != key.KeyID {
+
+	signer, err := hashAndVerifyWithSubKeys(sig, token, key)
+	if err != nil {
+		return "", ErrGPGInvalidTokenSignature{
+			ID:      key.KeyID,
+			Wrapped: err,
+		}
+	}
+	if signer == nil {
+		signer, err = hashAndVerifyWithSubKeys(sig, token+"\n", key)
+
+		if err != nil {
+			return "", ErrGPGInvalidTokenSignature{
+				ID:      key.KeyID,
+				Wrapped: err,
+			}
+		}
+	}
+	if signer == nil {
+		signer, err = hashAndVerifyWithSubKeys(sig, token+"\n\n", key)
+		if err != nil {
+			return "", ErrGPGInvalidTokenSignature{
+				ID:      key.KeyID,
+				Wrapped: err,
+			}
+		}
+	}
+
+	if signer == nil {
+		log.Error("Unable to validate token signature. Error: %v", err)
+		return "", ErrGPGInvalidTokenSignature{
+			ID: key.KeyID,
+		}
+	}
+
+	if signer.PrimaryKeyID != key.KeyID && signer.KeyID != key.KeyID {
 		return "", ErrGPGKeyNotExist{keyID}
 	}
 
@@ -554,11 +566,38 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 	return pkey.VerifySignature(h, s)
 }
 
-func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
+func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey) (*GPGKey, error) {
 	//Generating hash of commit
 	hash, err := populateHash(sig.Hash, []byte(payload))
-	if err != nil { //Skipping failed to generate hash
+	if err != nil { //Skipping as failed to generate hash
 		log.Error("PopulateHash: %v", err)
+		return nil, err
+	}
+	// We will ignore errors in verification as they don't need to be propagated up
+	err = verifySign(sig, hash, k)
+	if err != nil {
+		return nil, nil
+	}
+	return k, nil
+}
+
+func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey) (*GPGKey, error) {
+	verified, err := hashAndVerify(sig, payload, k)
+	if err != nil || verified != nil {
+		return verified, err
+	}
+	for _, sk := range k.SubsKey {
+		verified, err := hashAndVerify(sig, payload, sk)
+		if err != nil || verified != nil {
+			return verified, err
+		}
+	}
+	return nil, nil
+}
+
+func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
+	key, err := hashAndVerifyWithSubKeys(sig, payload, k)
+	if err != nil { //Skipping failed to generate hash
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
@@ -566,30 +605,14 @@ func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey, committer, 
 		}
 	}
 
-	if err := verifySign(sig, hash, k); err == nil {
+	if key != nil {
 		return &CommitVerification{ //Everything is ok
 			CommittingUser: committer,
 			Verified:       true,
-			Reason:         fmt.Sprintf("%s / %s", signer.Name, k.KeyID),
+			Reason:         fmt.Sprintf("%s / %s", signer.Name, key.KeyID),
 			SigningUser:    signer,
-			SigningKey:     k,
+			SigningKey:     key,
 			SigningEmail:   email,
-		}
-	}
-	return nil
-}
-
-func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
-	commitVerification := hashAndVerify(sig, payload, k, committer, signer, email)
-	if commitVerification != nil {
-		return commitVerification
-	}
-
-	//And test also SubsKey
-	for _, sk := range k.SubsKey {
-		commitVerification := hashAndVerify(sig, payload, sk, committer, signer, email)
-		if commitVerification != nil {
-			return commitVerification
 		}
 	}
 	return nil
@@ -671,7 +694,7 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 				}
 			}
 		}
-		commitVerification := hashAndVerifyWithSubKeys(sig, payload, key, committer, signer, email)
+		commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, payload, key, committer, signer, email)
 		if commitVerification != nil {
 			return commitVerification
 		}
@@ -782,7 +805,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				continue //Skip this key
 			}
 
-			commitVerification := hashAndVerifyWithSubKeys(sig, c.Signature.Payload, k, committer, committer, email)
+			commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, c.Signature.Payload, k, committer, committer, email)
 			if commitVerification != nil {
 				return commitVerification
 			}
@@ -880,7 +903,7 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 				KeyID:   subKey.PublicKey.KeyIdString(),
 			})
 		}
-		if commitVerification := hashAndVerifyWithSubKeys(sig, payload, k, committer, &User{
+		if commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, payload, k, committer, &User{
 			Name:  gpgSettings.Name,
 			Email: gpgSettings.Email,
 		}, gpgSettings.Email); commitVerification != nil {
