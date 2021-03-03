@@ -77,6 +77,9 @@ func TestGPGKeys(t *testing.T) {
 		DecodeJSON(t, resp, &keys)
 
 		primaryKey1 := keys[0] //Primary key 1
+		if primaryKey1.KeyID != "38EA3BCED732982C" {
+			primaryKey1 = keys[1]
+		}
 		assert.EqualValues(t, "38EA3BCED732982C", primaryKey1.KeyID)
 		assert.EqualValues(t, 1, len(primaryKey1.Emails))
 		assert.EqualValues(t, "user2@example.com", primaryKey1.Emails[0].Email)
@@ -87,6 +90,9 @@ func TestGPGKeys(t *testing.T) {
 		assert.EqualValues(t, 0, len(subKey.Emails))
 
 		primaryKey2 := keys[1] //Primary key 2
+		if primaryKey2.KeyID != "FABF39739FE1E927" {
+			primaryKey2 = keys[0]
+		}
 		assert.EqualValues(t, "FABF39739FE1E927", primaryKey2.KeyID)
 		assert.EqualValues(t, 1, len(primaryKey2.Emails))
 		assert.EqualValues(t, "user21@example.com", primaryKey2.Emails[0].Email)
