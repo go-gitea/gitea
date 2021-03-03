@@ -428,7 +428,7 @@ func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType s
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
-		sess = sess.And("name = ?", keyword)
+		sess = sess.And(builder.Like{"name", keyword})
 	}
 	if repoCond.IsValid() {
 		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
@@ -515,7 +515,7 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 
 	sess := x.Where("is_closed = ?", false)
 	if len(keyword) > 0 {
-		sess = sess.Where("name = ?", keyword)
+		sess = sess.Where(builder.Like{"name", keyword})
 	}
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
@@ -527,7 +527,7 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 
 	sess = x.Where("is_closed = ?", true)
 	if len(keyword) > 0 {
-		sess = sess.Where("name = ?", keyword)
+		sess = sess.Where(builder.Like{"name", keyword})
 	}
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
