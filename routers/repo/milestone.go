@@ -7,7 +7,7 @@ package repo
 import (
 	"time"
   "strings"
-	
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -99,6 +99,7 @@ func Milestones(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "q", "Keyword")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(200, tplMilestone)
