@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Turn default hash password algorightm back to pbkdf2 from argon2 until we found a better one (#14673) (#14675)
 * BUGFIXES
+  * Fix paging of file commit logs (#14831) (#14879)
   * Print useful error if SQLite is used in settings but not supported (#14476) (#14874)
   * Fix display since time round (#14226) (#14873)
   * When Deleting Repository only explicitly close PRs whose base is not this repository (#14823) (#14842)
@@ -25,7 +26,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Accept multiple SSH keys in single LDAP SSHPublicKey attribute (#13989) (#14607)
   * Fix bug about ListOptions and stars/watchers pagnation (#14556) (#14573)
   * Fix GPG key deletion during account deletion (#14561) (#14569)
-  * Fix paging of file commit logs (#14831) (#14879)
 
 ## [1.13.2](https://github.com/go-gitea/gitea/releases/tag/v1.13.2) - 2021-01-31
 
