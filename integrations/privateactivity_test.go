@@ -76,9 +76,7 @@ func testPrivateActivityHelperHasVisibleActivitiesFromPublic(t *testing.T) bool 
 // heatmap UI helpers
 
 func testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	el := htmlDoc.doc.Find("#user-heatmap")
-	content, _ := el.Attr("data-heatmap-data")
-	return el.Length() > 0 && content != "[]"
+	return htmlDoc.doc.Find("#user-heatmap").Length() > 0
 }
 
 func testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t *testing.T, session *TestSession) bool {
@@ -292,7 +290,7 @@ func TestPrivateActivityYesHeatmapVisibleForUserItselfAtProfile(t *testing.T) {
 	assert.True(t, visible, "user should have visible heatmap")
 }
 
-func TestPrivateActivityYesHeatmapVisibleForUserItselfAtDashboard(t *testing.T) {
+func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtDashboard(t *testing.T) {
 	defer prepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
@@ -300,7 +298,7 @@ func TestPrivateActivityYesHeatmapVisibleForUserItselfAtDashboard(t *testing.T) 
 	session := loginUser(t, privateActivityTestUser)
 	visible := testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, session)
 
-	assert.True(t, visible, "user should have visible heatmap")
+	assert.False(t, visible, "user should have no visible heatmap")
 }
 
 func TestPrivateActivityYesHeatmapInvisibleForOtherUser(t *testing.T) {
