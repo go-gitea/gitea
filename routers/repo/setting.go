@@ -321,6 +321,8 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:               form.PullsAllowRebase,
 					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
+					AllowManualMerge:          form.PullsAllowManualMerge,
+					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
