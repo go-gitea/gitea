@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.13.3](https://github.com/go-gitea/gitea/releases/tag/v1.13.3) - 2021-03-04
 
 * BREAKING
-  * Turn default hash password algorightm back to pbkdf2 from argon2 until we found a better one (#14673) (#14675)
+  * Turn default hash password algorithm back to pbkdf2 from argon2 until we find a better one (#14673) (#14675)
 * BUGFIXES
   * Fix paging of file commit logs (#14831) (#14879)
   * Print useful error if SQLite is used in settings but not supported (#14476) (#14874)
