@@ -76,7 +76,9 @@ func testPrivateActivityHelperHasVisibleActivitiesFromPublic(t *testing.T) bool 
 // heatmap UI helpers
 
 func testPrivateActivityHelperHasVisibleHeatmapInHTMLDoc(htmlDoc *HTMLDoc) bool {
-	return htmlDoc.doc.Find("#user-heatmap").Length() > 0
+	el := htmlDoc.doc.Find("#user-heatmap")
+	content, _ := el.Attr("data-heatmap-data")
+	return el.Length() > 0 && content != "[]"
 }
 
 func testPrivateActivityHelperHasVisibleProfileHeatmapFromSession(t *testing.T, session *TestSession) bool {
