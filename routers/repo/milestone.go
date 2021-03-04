@@ -5,8 +5,8 @@
 package repo
 
 import (
+	"strings"
 	"time"
-  "strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -63,7 +63,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	miles, err := models.GetMilestones(models.GetMilestonesOption{
-	  ListOptions: models.ListOptions{
+		ListOptions: models.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
