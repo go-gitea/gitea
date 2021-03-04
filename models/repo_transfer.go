@@ -248,6 +248,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	oldOwner := repo.Owner
+	oldOwnerName = oldOwner.Name
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
