@@ -337,7 +337,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return nil
 	}
 
-	sess.Rollback()
+	_ = sess.Rollback()
 
 	if err := os.Rename(RepoPath(newOwner.Name, repo.Name), RepoPath(oldOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
