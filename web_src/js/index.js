@@ -2168,6 +2168,7 @@ function searchRepositories() {
 }
 
 function showCodeViewMenu() {
+  // Get clicked tr
   const $code_tr = $('.code-view td.lines-code.active').parent();
 
   // Reset code line marker
@@ -2197,6 +2198,7 @@ function showCodeViewMenu() {
     'min-width': '220px',
   });
 
+  // Popup the menu
   $('.code-line-link').popup({
     popup: $('.code-view-menu-list'),
     on: 'click',
