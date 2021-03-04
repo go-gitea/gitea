@@ -391,6 +391,20 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		Exist(new(Team))
 }
 
+// GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
+func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
+	return getUsersWhoCanCreateOrgRepo(x, orgID)
+}
+
+func getUsersWhoCanCreateOrgRepo(e Engine, orgID int64) ([]*User, error) {
+	users := make([]*User, 0, 10)
+	return users, x.
+		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+}
+
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	if !showAll {
