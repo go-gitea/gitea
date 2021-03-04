@@ -290,7 +290,7 @@ func TestPrivateActivityYesHeatmapVisibleForUserItselfAtProfile(t *testing.T) {
 	assert.True(t, visible, "user should have visible heatmap")
 }
 
-func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtDashboard(t *testing.T) {
+func TestPrivateActivityYesHeatmapVisibleForUserItselfAtDashboard(t *testing.T) {
 	defer prepareTestEnv(t)()
 	testPrivateActivityDoSomethingForActionEntries(t)
 	testPrivateActivityHelperEnablePrivateActivity(t)
@@ -298,7 +298,7 @@ func TestPrivateActivityYesHeatmapInvisibleForUserItselfAtDashboard(t *testing.T
 	session := loginUser(t, privateActivityTestUser)
 	visible := testPrivateActivityHelperHasVisibleDashboardHeatmapFromSession(t, session)
 
-	assert.False(t, visible, "user should have no visible heatmap")
+	assert.True(t, visible, "user should have visible heatmap")
 }
 
 func TestPrivateActivityYesHeatmapInvisibleForOtherUser(t *testing.T) {
