@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -794,15 +795,36 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+	if pr.HasMerged {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 
-	if pr.HasMerged {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.has_merged"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+	// handle manually-merged mark
+	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
+		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+			if models.IsErrInvalidMergeStyle(err) {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
+				ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+				return
+			} else if strings.Contains(err.Error(), "Wrong commit ID") {
+				ctx.Flash.Error(ctx.Tr("repo.pulls.wrong_commit_id"))
+				ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+				return
+			}
+
+			ctx.ServerError("MergedManually", err)
+			return
+		}
+
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
+		return
+	}
+
+	if !pr.CanAutoMerge() {
+		ctx.Flash.Error(ctx.Tr("repo.pulls.no_merge_not_ready"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + com.ToStr(issue.Index))
 		return
 	}
 
