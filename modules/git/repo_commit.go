@@ -456,3 +456,12 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.Lis
 
 	return commits
 }
+
+// IsCommitInBranch check if the commit is on the branch
+func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
+	stdout, err := NewCommand("branch", "--contains", commitID, branch).RunInDir(repo.Path)
+	if err != nil {
+		return false, err
+	}
+	return len(stdout) > 0, err
+}

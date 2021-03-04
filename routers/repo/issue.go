@@ -1491,6 +1491,8 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+			} else if prConfig.AllowManualMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleManuallyMerged
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
@@ -1531,6 +1533,22 @@ func ViewIssue(ctx *context.Context) {
 			pull.HeadRepo != nil &&
 			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+
+		stillCanManualMerge := func() bool {
+			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
+				return false
+			}
+			if pull.CanAutoMerge() || pull.IsWorkInProgress() || pull.IsChecking() {
+				return false
+			}
+			if (ctx.User.IsAdmin || ctx.Repo.IsAdmin()) && prConfig.AllowManualMerge {
+				return true
+			}
+
+			return false
+		}
+
+		ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 	}
 
 	// Get Dependencies
