@@ -1290,11 +1290,44 @@ func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 }
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
+func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err error) {
+	repoRenamed := false
+	wikiRenamed := false
+	oldOwnerName := doer.Name
+
+	defer func() {
+		if !repoRenamed && !wikiRenamed {
+			return
+		}
+
+		recoverErr := recover()
+		if err == nil && recoverErr == nil {
+			return
+		}
+
+		if repoRenamed {
+			if err := os.Rename(RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name)); err != nil {
+				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name), err)
+			}
+		}
+
+		if wikiRenamed {
+			if err := os.Rename(WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name)); err != nil {
+				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name), err)
+			}
+		}
+
+		if recoverErr != nil {
+			log.Error("Panic within TransferOwnership: %v\n%s", recoverErr, log.Stack(2))
+			panic(recoverErr)
+		}
+	}()
+
 	newOwner, err := GetUserByName(newOwnerName)
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
+	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
 	has, err := IsRepositoryExist(newOwner, repo.Name)
@@ -1311,6 +1344,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	oldOwner := repo.Owner
+	oldOwnerName = oldOwner.Name
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
@@ -1370,9 +1404,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	// Update repository count.
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
 		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
+	} else if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
@@ -1382,7 +1416,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err = watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
+		if err := watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
 		}
 	}
@@ -1394,16 +1428,18 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err = os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err := os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
+	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(oldOwner.Name, repo.Name)
 	if com.IsExist(wikiPath) {
-		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
+		if err := os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
+		wikiRenamed = true
 	}
 
 	// If there was previously a redirect at this location, remove it.
