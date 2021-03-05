@@ -130,7 +130,7 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 
 	if n > 0 {
 		r.currentSize += int64(n)
-		wn, werr := r.hash.Write(b)
+		wn, werr := r.hash.Write(b[:n])
 		if wn != n || werr != nil {
 			return n, werr
 		}
