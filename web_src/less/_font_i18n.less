@@ -2,42 +2,24 @@
 :root {
   /* customizable localized variables */
   :lang(ja) {
-    --fonts-override: var(--ws-fix), system-ui-ja, var(--fonts-proportional);
+    --fonts-override: system-ui-ja, var(--fonts-proportional);
   }
   :lang(zh-CN) {
-    --fonts-override: var(--ws-fix), system-ui-zh-cn, var(--fonts-proportional);
+    --fonts-override: system-ui-zh-cn, var(--fonts-proportional);
   }
   :lang(zh-TW) {
-    --fonts-override: var(--ws-fix), system-ui-zh-tw, var(--fonts-proportional);
+    --fonts-override: system-ui-zh-tw, var(--fonts-proportional);
   }
   :lang(zh-HK) {
-    --fonts-override: var(--ws-fix), system-ui-zh-hk, var(--fonts-proportional);
+    --fonts-override: system-ui-zh-hk, var(--fonts-proportional);
   }
   :lang(ko) {
-    --fonts-override: var(--ws-fix), system-ui-ko, var(--fonts-proportional);
-  }
-
-  --ws-fix: ws-fix;
-
-  @supports (-webkit-hyphens:none) {
-    --ws-fix: -apple-ws-fix;
+    --fonts-override: system-ui-ko, var(--fonts-proportional);
   }
 }
 
 [lang] {
   font-family: var(--fonts-regular);
-}
-
-@font-face {
-  font-family: -apple-ws-fix;
-  src: local("HelveticaNeue");
-  unicode-range: U+A0;
-}
-
-@font-face {
-  font-family: ws-fix;
-  src: local("HelveticaNeue");
-  unicode-range: U+20, U+A0;
 }
 
 each(@fonts, {
@@ -47,6 +29,18 @@ each(@fonts, {
   .font-face-cjk(~"system-ui@{locale}", @weights[@regular], 400);
   .font-face-cjk(~"system-ui@{locale}", @weights[@medium], 500);
   .font-face-cjk(~"system-ui@{locale}", @weights[@bold], 700);
+  @font-face {
+    font-family: ~"system-ui@{locale}";
+    src: local("HelveticaNeue");
+    unicode-range: U+A0;
+  }
+  @supports not (-webkit-hyphens:none) {
+    @font-face {
+      font-family: ~"system-ui@{locale}";
+      src: local("HelveticaNeue");
+      unicode-range: U+20;
+    }
+  }
 });
 
 @fonts: {
