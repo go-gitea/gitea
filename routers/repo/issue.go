@@ -2481,6 +2481,7 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, con
 	return attachHTML
 }
 
+// combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *models.Issue) {
 	var prev, cur *models.Comment
 	for i := 0; i < len(issue.Comments); i++ {
@@ -2501,8 +2502,8 @@ func combineLabelComments(issue *models.Issue) {
 			continue
 		}
 
-		if cur.Label != nil {
-			if prev.Type == models.CommentTypeLabel {
+		if cur.Label != nil { // now cur MUST be label comment
+			if prev.Type == models.CommentTypeLabel { // we can combine them only prev is a label comment
 				if cur.Content != "1" {
 					prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
 				} else {
@@ -2511,7 +2512,7 @@ func combineLabelComments(issue *models.Issue) {
 				prev.CreatedUnix = cur.CreatedUnix
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 				i--
-			} else {
+			} else { // if prev is not a label comment, start a new group
 				if cur.Content != "1" {
 					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
 				} else {
