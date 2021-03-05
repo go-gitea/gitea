@@ -2482,11 +2482,9 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, con
 }
 
 func combineLabelComments(issue *models.Issue) {
+	var prev, cur *models.Comment
 	for i := 0; i < len(issue.Comments); i++ {
-		var (
-			prev *models.Comment
-			cur  = issue.Comments[i]
-		)
+		cur = issue.Comments[i]
 		if i > 0 {
 			prev = issue.Comments[i-1]
 		}
@@ -2504,15 +2502,23 @@ func combineLabelComments(issue *models.Issue) {
 		}
 
 		if cur.Label != nil {
-			if cur.Content != "1" {
-				prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+			if prev.Type == models.CommentTypeLabel {
+				if cur.Content != "1" {
+					prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+				} else {
+					prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+				}
+				prev.CreatedUnix = cur.CreatedUnix
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				i--
 			} else {
-				prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+				if cur.Content != "1" {
+					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
+				} else {
+					cur.AddedLabels = append(cur.AddedLabels, cur.Label)
+				}
 			}
 		}
-		prev.CreatedUnix = cur.CreatedUnix
-		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-		i--
 	}
 }
 
