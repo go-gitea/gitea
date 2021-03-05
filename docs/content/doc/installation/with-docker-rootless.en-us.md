@@ -289,6 +289,28 @@ docker-compose up -d
   - Set START_SSH_SERVER = true
 - Use image gitea/gitea:latest-rootless
 
+## Managing Deployments With Environment Variables
+
+In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+
+These environment variables can be passed to the docker container in `docker-compose.yml`. The following example will enable an smtp mail server if the required env variables `GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host or in a `.env` file in the same directory as `docker-compose.yml`:
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+
 # SSH Container Passthrough (not tested)
 
 This should be possible by forcing `authorized_keys` generation via `gitea admin regenerate keys`.
