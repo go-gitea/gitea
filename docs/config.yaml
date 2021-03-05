@@ -18,9 +18,9 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
-  version: 1.13.2
+  version: 1.13.3
   minGoVersion: 1.14
-  goVersion: 1.15
+  goVersion: 1.16
   minNodeVersion: 10.13
 
 outputs:
@@ -313,55 +313,8 @@ languages:
           weight: 80
           pre: group
 
-  pt-pt:
-    weight: 6
-    languageName: Português de Portugal
-    menu:
-      page:
-        - name: Página inicial
-          url: https://gitea.io/pt-pt/
-          weight: 10
-          pre: home
-        - name: Documentação
-          url: /pt-pt/
-          weight: 20
-          pre: question
-          post: active
-        - name: API
-          url: https://try.gitea.io/api/swagger
-          weight: 45
-          pre: plug
-        - name: Blog
-          url: https://blog.gitea.io/
-          weight: 30
-          pre: rss
-        - name: Código-fonte
-          url: https://code.gitea.io/
-          weight: 40
-          pre: code
-        - name: Tradução
-          url: https://crowdin.com/project/gitea
-          weight: 41
-          pre: language
-        - name: Descarregamentos
-          url: https://dl.gitea.io/
-          weight: 50
-          pre: download
-        - name: GitHub
-          url: https://github.com/go-gitea/
-          weight: 60
-          pre: github
-        - name: Discussão no Discord
-          url: https://discord.gg/Gitea
-          weight: 70
-          pre: comment
-        - name: Fórum
-          url: https://discourse.gitea.io/
-          weight: 80
-          pre: group
-
   de-de:
-    weight: 7
+    weight: 6
     languageName: Deutsch
     menu:
       page:

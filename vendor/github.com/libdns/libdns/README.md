@@ -3,18 +3,57 @@ libdns - Universal DNS provider APIs for Go
 
 <a href="https://pkg.go.dev/github.com/libdns/libdns"><img src="https://img.shields.io/badge/godoc-reference-blue.svg"></a>
 
-`libdns` is a collection of free-range DNS provider client implementations written in Go! With libdns packages, your Go program can manage DNS records across any supported providers.
+**⚠️ Work-in-progress. Exported APIs are subject to change.**
 
-**⚠️ Work-in-progress. Exported APIs are subject to change. More documentation is coming soon.**
+`libdns` is a collection of free-range DNS provider client implementations written in Go! With libdns packages, your Go program can manage DNS records across any supported providers. A "provider" is a service or program that manages a DNS zone.
 
-This repository defines the core interfaces that providers should implement. They are small and idiomatic Go interfaces with well-defined semantics.
+This repository defines the core interfaces that provider packages should implement. They are small and idiomatic Go interfaces with well-defined semantics.
 
 The interfaces include:
 
-- `RecordGetter` to list records.
-- `RecordAppender` to append new records.
-- `RecordSetter` to set (create or change existing) records.
-- `RecordDeleter` to delete records.
+- [`RecordGetter`](https://pkg.go.dev/github.com/libdns/libdns#RecordGetter) to list records.
+- [`RecordAppender`](https://pkg.go.dev/github.com/libdns/libdns#RecordAppender) to append new records.
+- [`RecordSetter`](https://pkg.go.dev/github.com/libdns/libdns#RecordSetter) to set (create or change existing) records.
+- [`RecordDeleter`](https://pkg.go.dev/github.com/libdns/libdns#RecordDeleter) to delete records.
+
+[See full godoc for detailed documentation.](https://pkg.go.dev/github.com/libdns/libdns)
+
+
+## Example
+
+To work with DNS records managed by Cloudflare, for example, we can use [libdns/cloudflare](https://pkg.go.dev/github.com/libdns/cloudflare):
+
+```go
+import (
+	"github.com/libdns/cloudflare"
+	"github.com/libdns/libdns"
+)
+
+ctx := context.TODO()
+
+zone := "example.com."
+
+// configure the DNS provider (choose any from github.com/libdns)
+provider := cloudflare.Provider{APIToken: "topsecret"}
+
+// list records
+recs, err := provider.GetRecords(ctx, zone)
+
+// create records (AppendRecords is similar)
+newRecs, err := provider.SetRecords(ctx, zone, []libdns.Record{
+	Type:  "A",
+	Name:  "sub",
+	Value: "1.2.3.4",
+})
+
+// delete records (this example uses provider-assigned ID)
+deletedRecs, err := provider.DeleteRecords(ctx, zone, []libdns.Record{
+	ID: "foobar",
+})
+
+// no matter which provider you use, the code stays the same!
+// (some providers have caveats; see their package documentation)
+```
 
 
 ## Implementing new providers

@@ -19,15 +19,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/loads/fmts"
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands"
 	flags "github.com/jessevdk/go-flags"
 )
-
-func init() {
-	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
-}
 
 var opts struct {
 	// General options applicable to all commands

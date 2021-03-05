@@ -5,12 +5,12 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 )
@@ -105,6 +105,7 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -162,6 +163,7 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	}
 
 	var opts migration.MigrateOptions
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
 		return nil, nil, err
 	}
