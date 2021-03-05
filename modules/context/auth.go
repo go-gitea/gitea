@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // ToggleOptions contains required or check options
@@ -41,7 +42,10 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 					if ctx.Req.URL.Path != "/user/events" {
-						ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+						ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
+							0,
+							setting.AppSubURL,
+							middleware.SameSiteString("lax")) // TODO: I think this is correct!
 					}
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
@@ -69,7 +73,10 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		if options.SignInRequired {
 			if !ctx.IsSigned {
 				if ctx.Req.URL.Path != "/user/events" {
-					ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+					ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
+						0,
+						setting.AppSubURL,
+						middleware.SameSiteString("lax")) // TODO: I think this is correct!
 				}
 				ctx.Redirect(setting.AppSubURL + "/user/login")
 				return
@@ -84,7 +91,10 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		if !options.SignOutRequired && !ctx.IsSigned &&
 			len(ctx.GetCookie(setting.CookieUserName)) > 0 {
 			if ctx.Req.URL.Path != "/user/events" {
-				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
+					0,
+					setting.AppSubURL,
+					middleware.SameSiteString("lax")) // TODO: I think this is correct!
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return

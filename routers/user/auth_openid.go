@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -47,13 +48,13 @@ func SignInOpenID(ctx *context.Context) {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSiteString(setting.SessionConfig.SameSite))
 	} else {
 		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSiteString(setting.SessionConfig.SameSite))
 		ctx.RedirectToFirst(redirectTo)
 		return
 	}

@@ -7,6 +7,7 @@ package middleware
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/unknwon/i18n"
@@ -42,7 +43,13 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	}
 
 	if changeLang {
-		SetCookie(resp, "lang", lang, 1<<31-1)
+		SetCookie(resp, "lang", lang,
+			nil,
+			setting.AppSubURL,
+			setting.SessionConfig.Domain,
+			setting.SessionConfig.Secure,
+			true,
+			SameSiteString(setting.SessionConfig.SameSite))
 	}
 
 	return translation.NewLocale(lang)
