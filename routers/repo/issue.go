@@ -2510,6 +2510,7 @@ func combineLabelComments(issue *models.Issue) {
 					prev.AddedLabels = append(prev.AddedLabels, cur.Label)
 				}
 				prev.CreatedUnix = cur.CreatedUnix
+				// remove the current comment since it has been combined to prev comment
 				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
 				i--
 			} else { // if prev is not a label comment, start a new group
