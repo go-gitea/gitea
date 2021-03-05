@@ -14,7 +14,7 @@ var _ Lstater = (*CopyOnWriteFs)(nil)
 // a possibly writeable layer on top. Changes to the file system will only
 // be made in the overlay: Changing an existing file in the base layer which
 // is not present in the overlay will copy the file to the overlay ("changing"
-// includes also calls to e.g. Chtimes() and Chmod()).
+// includes also calls to e.g. Chtimes(), Chmod() and Chown()).
 //
 // Reading directories is currently only supported via Open(), not OpenFile().
 type CopyOnWriteFs struct {
@@ -73,6 +73,19 @@ func (u *CopyOnWriteFs) Chmod(name string, mode os.FileMode) error {
 		}
 	}
 	return u.layer.Chmod(name, mode)
+}
+
+func (u *CopyOnWriteFs) Chown(name string, uid, gid int) error {
+	b, err := u.isBaseFile(name)
+	if err != nil {
+		return err
+	}
+	if b {
+		if err := u.copyToLayer(name); err != nil {
+			return err
+		}
+	}
+	return u.layer.Chown(name, uid, gid)
 }
 
 func (u *CopyOnWriteFs) Stat(name string) (os.FileInfo, error) {

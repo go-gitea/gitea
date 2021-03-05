@@ -141,29 +141,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 		}
 	}()
 
-	// We feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
-	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	defer func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(commit.repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
-		if err != nil {
-			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = revListWriter.Close()
-		}
-	}()
-
-	// For simplicities sake we'll us a buffered reader
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchStdinWriter, batchReader, cancel := CatFileBatch(commit.repo.Path)
+	defer cancel()
 
 	mapsize := 4096
 	if len(paths) > mapsize {

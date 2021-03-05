@@ -53,8 +53,7 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
 }
 
-// GetRepoInfo returns a repository information
-func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 	p := filepath.Join(r.baseDir, "repo.yml")
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -63,6 +62,15 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 
 	var opts = make(map[string]string)
 	err = yaml.Unmarshal(bs, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// GetRepoInfo returns a repository information
+func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+	opts, err := r.getRepoOptions()
 	if err != nil {
 		return nil, err
 	}

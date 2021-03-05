@@ -83,7 +83,17 @@
 	{{end}}
 
 	{{if .IsNothingToCompare}}
-    	<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
+		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) }}
+			<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
+			<div class="ui info message show-form-container">
+				<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
+			</div>
+			<div class="pullrequest-form" style="display: none">
+				{{template "repo/issue/new_form" .}}
+			</div>
+		{{else}}
+			<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare"}}</div>
+		{{end}}
 	{{else if and .PageIsComparePull (gt .CommitCount 0)}}
 		{{if .HasPullRequest}}
         	<div class="ui segment">

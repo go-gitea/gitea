@@ -15,17 +15,17 @@ var (
 	decoders = []decoderFunc{
 		reflect.Bool:          decodeBool,
 		reflect.Int:           decodeInt,
-		reflect.Int8:          decodeInt,
-		reflect.Int16:         decodeInt,
-		reflect.Int32:         decodeInt,
-		reflect.Int64:         decodeInt,
+		reflect.Int8:          decodeInt8,
+		reflect.Int16:         decodeInt16,
+		reflect.Int32:         decodeInt32,
+		reflect.Int64:         decodeInt64,
 		reflect.Uint:          decodeUint,
-		reflect.Uint8:         decodeUint,
-		reflect.Uint16:        decodeUint,
-		reflect.Uint32:        decodeUint,
-		reflect.Uint64:        decodeUint,
-		reflect.Float32:       decodeFloat,
-		reflect.Float64:       decodeFloat,
+		reflect.Uint8:         decodeUint8,
+		reflect.Uint16:        decodeUint16,
+		reflect.Uint32:        decodeUint32,
+		reflect.Uint64:        decodeUint64,
+		reflect.Float32:       decodeFloat32,
+		reflect.Float64:       decodeFloat64,
 		reflect.Complex64:     decodeUnsupported,
 		reflect.Complex128:    decodeUnsupported,
 		reflect.Array:         decodeUnsupported,
@@ -106,8 +106,28 @@ func decodeBool(f reflect.Value, s string) error {
 	return nil
 }
 
+func decodeInt8(f reflect.Value, s string) error {
+	return decodeNumber(f, s, 8)
+}
+
+func decodeInt16(f reflect.Value, s string) error {
+	return decodeNumber(f, s, 16)
+}
+
+func decodeInt32(f reflect.Value, s string) error {
+	return decodeNumber(f, s, 32)
+}
+
+func decodeInt64(f reflect.Value, s string) error {
+	return decodeNumber(f, s, 64)
+}
+
 func decodeInt(f reflect.Value, s string) error {
-	v, err := strconv.ParseInt(s, 10, 0)
+	return decodeNumber(f, s, 0)
+}
+
+func decodeNumber(f reflect.Value, s string, bitSize int) error {
+	v, err := strconv.ParseInt(s, 10, bitSize)
 	if err != nil {
 		return err
 	}
@@ -115,8 +135,28 @@ func decodeInt(f reflect.Value, s string) error {
 	return nil
 }
 
+func decodeUint8(f reflect.Value, s string) error {
+	return decodeUnsignedNumber(f, s, 8)
+}
+
+func decodeUint16(f reflect.Value, s string) error {
+	return decodeUnsignedNumber(f, s, 16)
+}
+
+func decodeUint32(f reflect.Value, s string) error {
+	return decodeUnsignedNumber(f, s, 32)
+}
+
+func decodeUint64(f reflect.Value, s string) error {
+	return decodeUnsignedNumber(f, s, 64)
+}
+
 func decodeUint(f reflect.Value, s string) error {
-	v, err := strconv.ParseUint(s, 10, 0)
+	return decodeUnsignedNumber(f, s, 0)
+}
+
+func decodeUnsignedNumber(f reflect.Value, s string, bitSize int) error {
+	v, err := strconv.ParseUint(s, 10, bitSize)
 	if err != nil {
 		return err
 	}
@@ -124,8 +164,18 @@ func decodeUint(f reflect.Value, s string) error {
 	return nil
 }
 
-func decodeFloat(f reflect.Value, s string) error {
-	v, err := strconv.ParseFloat(s, 0)
+func decodeFloat32(f reflect.Value, s string) error {
+	v, err := strconv.ParseFloat(s, 32)
+	if err != nil {
+		return err
+	}
+	f.SetFloat(v)
+	return nil
+}
+
+// although the default is float64, but we better define it.
+func decodeFloat64(f reflect.Value, s string) error {
+	v, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		return err
 	}
