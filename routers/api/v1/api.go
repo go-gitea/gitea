@@ -614,13 +614,13 @@ func Routes() *web.Route {
 			m.Get("/search", reqExploreSignIn(), user.Search)
 
 			m.Group("/{username}", func() {
-				m.Get("", user.GetInfo)
+				m.Get("", reqExploreSignIn(), user.GetInfo)
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
-				m.Get("/repos", user.ListUserRepos)
+				m.Get("/repos", reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
