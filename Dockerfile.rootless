@@ -35,7 +35,8 @@ RUN apk --no-cache add \
     ca-certificates \
     gettext \
     git \
-    gnupg
+    gnupg \
+    openssh-keygen
 
 RUN addgroup \
     -S -g 1000 \
