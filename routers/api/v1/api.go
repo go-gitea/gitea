@@ -611,7 +611,7 @@ func Routes() *web.Route {
 
 		// Users
 		m.Group("/users", func() {
-			m.Get("/search", reqExploreSignIn(), user.Search)
+			m.Get("/search", user.Search)
 
 			m.Group("/{username}", func() {
 				m.Get("", user.GetInfo)
@@ -627,7 +627,7 @@ func Routes() *web.Route {
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
 				}, reqBasicAuth())
 			})
-		})
+		}, reqExploreSignIn())
 
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
