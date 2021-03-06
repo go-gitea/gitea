@@ -689,6 +689,11 @@ func ActionIcon(opType models.ActionType) string {
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
+
+	if act == nil || act.GetContent() == "" {
+		return push
+	}
+
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
