@@ -20,6 +20,6 @@ func newPasswordHashService() {
 
 	sec := Cfg.Section("security.password_hash")
 	for _, hasher := range hash.DefaultHasher.Hashers {
-		sec.MapTo(hasher)
+		_ = sec.MapTo(hasher)
 	}
 }

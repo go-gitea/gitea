@@ -19,7 +19,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	db "code.gitea.io/gitea/modules/auth/hash"
+	"code.gitea.io/gitea/modules/auth/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
@@ -393,14 +393,14 @@ func (u *User) SetPassword(passwd string) (err error) {
 		return err
 	}
 
-	u.Passwd, u.PasswdHashAlgo, err = db.DefaultHasher.HashPassword(passwd, u.Salt, "")
+	u.Passwd, u.PasswdHashAlgo, err = hash.DefaultHasher.HashPassword(passwd, u.Salt, "")
 
 	return err
 }
 
 // ValidatePassword checks if given password matches the one belonging to the user.
 func (u *User) ValidatePassword(passwd string) bool {
-	return db.DefaultHasher.Validate(passwd, u.Passwd, u.Salt, u.PasswdHashAlgo)
+	return hash.DefaultHasher.Validate(passwd, u.Passwd, u.Salt, u.PasswdHashAlgo)
 }
 
 // IsPasswordSet checks if the password is set or left empty

@@ -21,7 +21,7 @@ type Pbkdf2Hasher struct {
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
-func (h Pbkdf2Hasher) HashPassword(password, salt, config string) (string, string, error) {
+func (h *Pbkdf2Hasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
@@ -50,12 +50,12 @@ func (h Pbkdf2Hasher) HashPassword(password, salt, config string) (string, strin
 }
 
 // Validate validates a plain-text password
-func (h Pbkdf2Hasher) Validate(password, hash, salt, config string) bool {
+func (h *Pbkdf2Hasher) Validate(password, hash, salt, config string) bool {
 	tempHash, _, _ := h.HashPassword(password, salt, config)
 	return subtle.ConstantTimeCompare([]byte(hash), []byte(tempHash)) == 1
 }
 
-func (h Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
+func (h *Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
 	split := strings.SplitN(algo, "$", 2)
 	if len(split) == 1 {
 		split[1] = "fallback"
@@ -63,10 +63,10 @@ func (h Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
 	return split[1]
 }
 
-func (h Pbkdf2Hasher) getConfigFromSetting() string {
+func (h *Pbkdf2Hasher) getConfigFromSetting() string {
 	return fmt.Sprintf("%d$%d", h.Iterations, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["pbkdf2"] = Pbkdf2Hasher{10000, 50}
+	DefaultHasher.Hashers["pbkdf2"] = &Pbkdf2Hasher{10000, 50}
 }

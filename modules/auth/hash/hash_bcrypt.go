@@ -18,7 +18,7 @@ type BCryptHasher struct {
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
-func (h BCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
+func (h *BCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
 		config = "10"
@@ -36,19 +36,19 @@ func (h BCryptHasher) HashPassword(password, salt, config string) (string, strin
 }
 
 // Validate validates a plain-text password
-func (h BCryptHasher) Validate(password, hash, salt, config string) bool {
+func (h *BCryptHasher) Validate(password, hash, salt, config string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
 }
 
-func (h BCryptHasher) getConfigFromAlgo(algo string) string {
+func (h *BCryptHasher) getConfigFromAlgo(algo string) string {
 	split := strings.SplitN(algo, "$", 2)
 	return split[1]
 }
 
-func (h BCryptHasher) getConfigFromSetting() string {
+func (h *BCryptHasher) getConfigFromSetting() string {
 	return strconv.Itoa(h.Cost)
 }
 
 func init() {
-	DefaultHasher.Hashers["bcrypt"] = BCryptHasher{10}
+	DefaultHasher.Hashers["bcrypt"] = &BCryptHasher{10}
 }

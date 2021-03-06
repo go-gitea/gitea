@@ -28,7 +28,7 @@ type Hasher interface {
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
-func (d DefaultHasherStruct) HashPassword(password, salt, config string) (string, string, error) {
+func (d *DefaultHasherStruct) HashPassword(password, salt, config string) (string, string, error) {
 	hasher, ok := d.Hashers[d.DefaultAlgorithm]
 	if !ok {
 		hasher = d.Hashers[defaultAlgorithm]
@@ -38,7 +38,7 @@ func (d DefaultHasherStruct) HashPassword(password, salt, config string) (string
 }
 
 // Validate validates a plain-text password
-func (d DefaultHasherStruct) Validate(password, hash, salt, algo string) bool {
+func (d *DefaultHasherStruct) Validate(password, hash, salt, algo string) bool {
 	var typ, config string
 	var hasher Hasher
 	var ok bool
@@ -61,7 +61,7 @@ func (d DefaultHasherStruct) Validate(password, hash, salt, algo string) bool {
 }
 
 // PasswordNeedUpdate determines if a password needs an update
-func (d DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
+func (d *DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
 	var typ, tail string
 	var hasher Hasher
 	var ok bool
@@ -82,10 +82,10 @@ func (d DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
 }
 
 // DefaultHasher is the instance of the HashSet
-var DefaultHasher DefaultHasherStruct
+var DefaultHasher *DefaultHasherStruct
 
 func init() {
-	DefaultHasher = DefaultHasherStruct{
+	DefaultHasher = &DefaultHasherStruct{
 		DefaultAlgorithm: defaultAlgorithm,
 		Hashers:          make(map[string]Hasher),
 	}

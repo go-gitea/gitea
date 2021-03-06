@@ -266,7 +266,7 @@ func TestOldPasswordMatchAndUpdate(t *testing.T) {
 	assert.Equal(t, oldPass, newPass)
 
 	// With update function
-	argonHasher := hash.DefaultHasher.Hashers["argon2"].(hash.Argon2Hasher)
+	argonHasher := hash.DefaultHasher.Hashers["argon2"].(*hash.Argon2Hasher)
 	argonHasher.Iterations = 2
 	argonHasher.Memory = 65536
 	argonHasher.Parallelism = 8
