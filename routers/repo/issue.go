@@ -2481,12 +2481,11 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, con
 	return attachHTML
 }
 
+// combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *models.Issue) {
+	var prev, cur *models.Comment
 	for i := 0; i < len(issue.Comments); i++ {
-		var (
-			prev *models.Comment
-			cur  = issue.Comments[i]
-		)
+		cur = issue.Comments[i]
 		if i > 0 {
 			prev = issue.Comments[i-1]
 		}
@@ -2503,16 +2502,25 @@ func combineLabelComments(issue *models.Issue) {
 			continue
 		}
 
-		if cur.Label != nil {
-			if cur.Content != "1" {
-				prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
-			} else {
-				prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+		if cur.Label != nil { // now cur MUST be label comment
+			if prev.Type == models.CommentTypeLabel { // we can combine them only prev is a label comment
+				if cur.Content != "1" {
+					prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+				} else {
+					prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+				}
+				prev.CreatedUnix = cur.CreatedUnix
+				// remove the current comment since it has been combined to prev comment
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				i--
+			} else { // if prev is not a label comment, start a new group
+				if cur.Content != "1" {
+					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
+				} else {
+					cur.AddedLabels = append(cur.AddedLabels, cur.Label)
+				}
 			}
 		}
-		prev.CreatedUnix = cur.CreatedUnix
-		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-		i--
 	}
 }
 
