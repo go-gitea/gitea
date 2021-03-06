@@ -117,7 +117,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	// Update the language to the one we just set
-	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
