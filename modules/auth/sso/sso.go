@@ -135,7 +135,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		setting.SessionConfig.Domain,
 		setting.SessionConfig.Secure,
 		true,
-		middleware.SameSiteString(setting.SessionConfig.SameSite))
+		middleware.SameSite(setting.SessionConfig.SameSite))
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	middleware.SetCookie(resp, setting.CSRFCookieName, "",
@@ -144,5 +144,5 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		setting.SessionConfig.Domain,
 		setting.SessionConfig.Secure,
 		true,
-		middleware.SameSiteString(setting.SessionConfig.SameSite))
+		middleware.SameSite(setting.SessionConfig.SameSite))
 }

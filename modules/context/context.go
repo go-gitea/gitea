@@ -524,14 +524,6 @@ func SignedUserName(req *http.Request) string {
 }
 
 func getCsrfOpts() CsrfOptions {
-	sameSite := http.SameSiteStrictMode
-	switch strings.ToLower(setting.SessionConfig.SameSite) {
-	case "none":
-		sameSite = http.SameSiteNoneMode
-	case "lax":
-		sameSite = http.SameSiteLaxMode
-	}
-
 	return CsrfOptions{
 		Secret:         setting.SecretKey,
 		Cookie:         setting.CSRFCookieName,
@@ -541,7 +533,7 @@ func getCsrfOpts() CsrfOptions {
 		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
-		SameSite:       sameSite,
+		SameSite:       setting.SessionConfig.SameSite,
 	}
 }
 
@@ -606,7 +598,7 @@ func Contexter() func(next http.Handler) http.Handler {
 						middleware.Domain(setting.SessionConfig.Domain),
 						middleware.HTTPOnly(true),
 						middleware.Secure(setting.SessionConfig.Secure),
-						middleware.SameSiteString(setting.SessionConfig.SameSite),
+						middleware.SameSite(setting.SessionConfig.SameSite),
 					)
 					return
 				}
@@ -616,7 +608,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					middleware.Domain(setting.SessionConfig.Domain),
 					middleware.HTTPOnly(true),
 					middleware.Secure(setting.SessionConfig.Secure),
-					middleware.SameSiteString(setting.SessionConfig.SameSite),
+					middleware.SameSite(setting.SessionConfig.SameSite),
 				)
 			})
 

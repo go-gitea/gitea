@@ -49,7 +49,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 			setting.SessionConfig.Domain,
 			setting.SessionConfig.Secure,
 			true,
-			SameSiteString(setting.SessionConfig.SameSite))
+			SameSite(setting.SessionConfig.SameSite))
 	}
 
 	return translation.NewLocale(lang)

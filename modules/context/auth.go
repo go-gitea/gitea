@@ -6,6 +6,8 @@
 package context
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,7 +47,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 						ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
 							0,
 							setting.AppSubURL,
-							middleware.SameSiteString("lax")) // TODO: I think this is correct!
+							middleware.SameSite(http.SameSiteLaxMode)) // TODO: I think this is correct!
 					}
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
@@ -76,7 +78,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 					ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
 						0,
 						setting.AppSubURL,
-						middleware.SameSiteString("lax")) // TODO: I think this is correct!
+						middleware.SameSite(http.SameSiteLaxMode)) // TODO: I think this is correct!
 				}
 				ctx.Redirect(setting.AppSubURL + "/user/login")
 				return
@@ -94,7 +96,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 				ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(),
 					0,
 					setting.AppSubURL,
-					middleware.SameSiteString("lax")) // TODO: I think this is correct!
+					middleware.SameSite(http.SameSiteLaxMode)) // TODO: I think this is correct!
 			}
 			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return

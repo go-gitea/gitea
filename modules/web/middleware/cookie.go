@@ -8,7 +8,6 @@ package middleware
 import (
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -61,20 +60,6 @@ func Expires(expires time.Time) func(*http.Cookie) {
 func SameSite(sameSite http.SameSite) func(*http.Cookie) {
 	return func(c *http.Cookie) {
 		c.SameSite = sameSite
-	}
-}
-
-// SameSiteString sets the SameSite for a provided cookie
-func SameSiteString(sameSite string) func(*http.Cookie) {
-	return func(c *http.Cookie) {
-		switch strings.ToLower(sameSite) {
-		case "none":
-			c.SameSite = http.SameSiteNoneMode
-		case "lax":
-			c.SameSite = http.SameSiteLaxMode
-		default:
-			c.SameSite = http.SameSiteStrictMode
-		}
 	}
 }
 
