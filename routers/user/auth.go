@@ -110,13 +110,13 @@ func checkAutoLogin(ctx *context.Context) bool {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
 		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo, setting.AppSubURL+string(setting.LandingPageURL))
 		return true
 	}
@@ -544,7 +544,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	}
 
 	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+		middleware.DeleteRedirectToCookie(ctx.Resp)
 		if obeyRedirect {
 			ctx.RedirectToFirst(redirectTo)
 		}
@@ -665,7 +665,7 @@ func handleOAuth2SignIn(u *models.User, gothUser goth.User, ctx *context.Context
 		}
 
 		if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 {
-			ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+			middleware.DeleteRedirectToCookie(ctx.Resp)
 			ctx.RedirectToFirst(redirectTo)
 			return
 		}
@@ -1047,7 +1047,7 @@ func HandleSignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
 	middleware.DeleteLocaleCookie(ctx.Resp)
-	ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL) // logout default should set redirect to to default
+	middleware.DeleteRedirectToCookie(ctx.Resp)
 }
 
 // SignOut sign out from login status
@@ -1624,7 +1624,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 	log.Trace("User updated password: %s", u.Name)
 
 	if redirectTo := ctx.GetCookie("redirect_to"); len(redirectTo) > 0 && !utils.IsExternalURL(redirectTo) {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)
+		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return
 	}

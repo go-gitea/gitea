@@ -48,13 +48,13 @@ func SignInOpenID(ctx *context.Context) {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
 		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return
 	}
