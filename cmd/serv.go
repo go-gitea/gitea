@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/dgrijalva/jwt-go"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -255,6 +255,7 @@ func runServ(c *cli.Context) error {
 		}
 		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
 
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {

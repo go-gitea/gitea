@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/hash"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
@@ -143,7 +144,7 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
-	form.PasswordAlgorithm = setting.PasswordHashAlgo
+	form.PasswordAlgorithm = hash.DefaultHasher.DefaultAlgorithm
 
 	middleware.AssignForm(form, ctx.Data)
 	ctx.HTML(200, tplInstall)
@@ -187,7 +188,7 @@ func InstallPost(ctx *context.Context) {
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
 
-	setting.PasswordHashAlgo = form.PasswordAlgorithm
+	hash.DefaultHasher.DefaultAlgorithm = form.PasswordAlgorithm
 
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {

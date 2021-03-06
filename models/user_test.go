@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/auth/hash"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -223,7 +224,7 @@ func TestHashPasswordDeterministic(t *testing.T) {
 	u := &User{}
 	algos := []string{"argon2", "pbkdf2", "scrypt", "bcrypt"}
 	for j := 0; j < len(algos); j++ {
-		setting.PasswordHashAlgo = algos[j]
+		hash.DefaultHasher.DefaultAlgorithm = algos[j]
 		for i := 0; i < 50; i++ {
 			// generate a random password
 			rand.Read(b)
@@ -251,7 +252,7 @@ func TestOldPasswordMatchAndUpdate(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	u := AssertExistsAndLoadBean(t, &User{ID: 31}).(*User)
 
-	setting.PasswordHashAlgo = "argon2"
+	hash.DefaultHasher.DefaultAlgorithm = "argon2"
 
 	matchingPass := "password"
 	oldPass := u.Passwd
@@ -265,10 +266,11 @@ func TestOldPasswordMatchAndUpdate(t *testing.T) {
 	assert.Equal(t, oldPass, newPass)
 
 	// With update function
-	setting.Argon2Iterations = 2
-	setting.Argon2Memory = 65536
-	setting.Argon2Parallelism = 8
-	setting.Argon2KeyLength = 50
+	argonHasher := hash.DefaultHasher.Hashers["argon2"].(hash.Argon2Hasher)
+	argonHasher.Iterations = 2
+	argonHasher.Memory = 65536
+	argonHasher.Parallelism = 8
+	argonHasher.KeyLength = 50
 
 	user, _ := UserSignIn("user31", matchingPass)
 

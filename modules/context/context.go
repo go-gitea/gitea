@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -29,12 +28,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -371,6 +370,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -612,63 +612,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			})
 
 			ctx.Flash = f
-
-			// Quick responses appropriate go-get meta with status 200
-			// regardless of if user have access to the repository,
-			// or the repository does not exist at all.
-			// This is particular a workaround for "go get" command which does not respect
-			// .netrc file.
-			if ctx.Query("go-get") == "1" {
-				ownerName := ctx.Params(":username")
-				repoName := ctx.Params(":reponame")
-				trimmedRepoName := strings.TrimSuffix(repoName, ".git")
-
-				if ownerName == "" || trimmedRepoName == "" {
-					_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-					ctx.Status(400)
-					return
-				}
-				branchName := "master"
-
-				repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
-				if err == nil && len(repo.DefaultBranch) > 0 {
-					branchName = repo.DefaultBranch
-				}
-				prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
-
-				appURL, _ := url.Parse(setting.AppURL)
-
-				insecure := ""
-				if appURL.Scheme == string(setting.HTTP) {
-					insecure = "--insecure "
-				}
-				ctx.Header().Set("Content-Type", "text/html")
-				ctx.Status(http.StatusOK)
-				_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
-<html>
-	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
-	</head>
-	<body>
-		go get {Insecure}{GoGetImport}
-	</body>
-</html>
-`, map[string]string{
-					"GoGetImport":    ComposeGoGetImport(ownerName, trimmedRepoName),
-					"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
-					"GoDocDirectory": prefix + "{/dir}",
-					"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-					"Insecure":       insecure,
-				})))
-				return
-			}
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {

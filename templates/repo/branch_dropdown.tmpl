@@ -24,12 +24,12 @@
 			<div class="header branch-tag-choice">
 				<div class="ui grid">
 					<div class="two column row">
-						<a class="reference column" href="#" @click="mode = 'branches'; focusSearchField()">
+						<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'branches'}">
 								{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
 							</span>
 						</a>
-						<a class="reference column" href="#" @click="mode = 'tags'; focusSearchField()">
+						<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
 							<span class="text" :class="{black: mode == 'tags'}">
 								{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
 							</span>
@@ -41,7 +41,11 @@
 				<div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active == index}" @click="selectItem(item)" :ref="'listItem' + index">${ item.name }</div>
 				<div class="item" v-if="showCreateNewBranch" :class="{active: active == filteredItems.length}" :ref="'listItem' + filteredItems.length">
 					<a href="#" @click="createNewBranch()">
-						<div>
+						<div v-show="createTag">
+							<i class="reference tags icon"></i>
+							{{.i18n.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
+						</div>
+						<div v-show="!createTag">
 							{{svg "octicon-git-branch"}}
 							{{.i18n.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
 						</div>
@@ -56,6 +60,7 @@
 					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchNameSubURL}}" method="post">
 						{{.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
+						<input type="hidden" name="create_tag" v-model="createTag">
 					</form>
 				</div>
 			</div>

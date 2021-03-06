@@ -1,6 +1,22 @@
-// Package libdns defines the core interfaces that should be implemented
-// by DNS provider clients. They are small and idiomatic Go interfaces with
+// Package libdns defines core interfaces that should be implemented by DNS
+// provider clients. They are small and idiomatic Go interfaces with
 // well-defined semantics.
+//
+// Records are described independently of any particular zone, a convention
+// that grants Record structs portability across zones. As such, record names
+// are partially qualified, i.e. relative to the zone. For example, an A
+// record called "sub" in zone "example.com." represents a fully-qualified
+// domain name (FQDN) of "sub.example.com.". Implementations should expect
+// that input records conform to this standard, while also ensuring that
+// output records do; adjustments to record names may need to be made before
+// or after provider API calls, for example, to maintain consistency with
+// all other libdns provider implementations. Helper functions are available
+// in this package to convert between relative and absolute names.
+//
+// Although zone names are a required input, libdns does not coerce any
+// particular representation of DNS zones; only records. Since zone name and
+// records are separate inputs in libdns interfaces, it is up to the caller
+// to pair a zone's name with its records in a way that works for them.
 //
 // All interface implementations must be safe for concurrent/parallel use.
 // For example, if AppendRecords() is called at the same time and two API
@@ -9,13 +25,14 @@
 // not synchronize the writing of the zone file and one request overwrites
 // the other, then the client implementation must take care to synchronize
 // on behalf of the incompetent provider. This synchronization need not be
-// global, for example: the scope of synchronization might only need to be
+// global; for example: the scope of synchronization might only need to be
 // within the same zone, allowing multiple requests at once as long as all
 // of them are for different zones. (Exact logic depends on the provider.)
 package libdns
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -79,7 +96,31 @@ type Record struct {
 
 	// general record fields
 	Type  string
-	Name  string
+	Name  string // partially-qualified (relative to zone)
 	Value string
 	TTL   time.Duration
+}
+
+// RelativeName makes fqdn relative to zone. For example, for a FQDN of
+// "sub.example.com" and a zone of "example.com", it outputs "sub".
+//
+// If fqdn cannot be expressed relative to zone, the input fqdn is returned.
+func RelativeName(fqdn, zone string) string {
+	return strings.TrimSuffix(strings.TrimSuffix(fqdn, zone), ".")
+}
+
+// AbsoluteName makes name into a fully-qualified domain name (FQDN) by
+// prepending it to zone and tidying up the dots. For example, an input
+// of name "sub" and zone "example.com." will return "sub.example.com.".
+func AbsoluteName(name, zone string) string {
+	if zone == "" {
+		return strings.Trim(name, ".")
+	}
+	if name == "" || name == "@" {
+		return zone
+	}
+	if !strings.HasSuffix(name, ".") {
+		name += "."
+	}
+	return name + zone
 }

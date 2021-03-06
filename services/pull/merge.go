@@ -615,3 +615,54 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 
 	return nil
 }
+
+// MergedManually mark pr as merged manually
+func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	if err != nil {
+		return
+	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	// Check if merge style is correct and allowed
+	if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
+		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: models.MergeStyleManuallyMerged}
+	}
+
+	if len(commitID) < 40 {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	commit, err := baseGitRepo.GetCommit(commitID)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			return fmt.Errorf("Wrong commit ID")
+		}
+		return
+	}
+
+	ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+	if err != nil {
+		return
+	}
+	if !ok {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	pr.MergedCommitID = commitID
+	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+	pr.Status = models.PullRequestStatusManuallyMerged
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	merged := false
+	if merged, err = pr.SetMerged(); err != nil {
+		return
+	} else if !merged {
+		return fmt.Errorf("SetMerged failed")
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
+	return nil
+}

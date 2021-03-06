@@ -444,12 +444,22 @@ func TestAPIRepoTransfer(t *testing.T) {
 		teams          *[]int64
 		expectedStatus int
 	}{
-		{ctxUserID: 1, newOwner: "user2", teams: nil, expectedStatus: http.StatusAccepted},
-		{ctxUserID: 2, newOwner: "user1", teams: nil, expectedStatus: http.StatusAccepted},
-		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusForbidden},
-		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
+		// Disclaimer for test story: "user1" is an admin, "user2" is normal user and part of in owner team of org "user3"
+
+		// Transfer to a user with teams in another org should fail
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{5}, expectedStatus: http.StatusForbidden},
+		// Transfer to a user with non-existent team IDs should fail
+		{ctxUserID: 1, newOwner: "user2", teams: &[]int64{2}, expectedStatus: http.StatusUnprocessableEntity},
+		// Transfer should go through
 		{ctxUserID: 1, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+		// Let user transfer it back to himself
+		{ctxUserID: 2, newOwner: "user2", expectedStatus: http.StatusAccepted},
+		// And revert transfer
+		{ctxUserID: 2, newOwner: "user3", teams: &[]int64{2}, expectedStatus: http.StatusAccepted},
+		// Cannot start transfer to an existing repo
+		{ctxUserID: 2, newOwner: "user3", teams: nil, expectedStatus: http.StatusUnprocessableEntity},
+		// Start transfer, repo is now in pending transfer mode
+		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusCreated},
 	}
 
 	defer prepareTestEnv(t)()
