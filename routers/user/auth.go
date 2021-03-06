@@ -531,7 +531,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 		}
 	}
 
-	ctx.SetCookie("lang", u.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
+	middleware.SetLocaleCookie(ctx.Resp, u.Language)
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
@@ -1046,8 +1046,8 @@ func HandleSignOut(ctx *context.Context) {
 	ctx.SetCookie(setting.CookieUserName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
 	ctx.SetCookie(setting.CookieRememberName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
 	ctx.SetCookie(setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite))
-	ctx.SetCookie("lang", "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true, middleware.SameSite(setting.SessionConfig.SameSite)) // Setting the lang cookie will trigger the middleware to reset the language ot previous state.
-	ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL)                                                                                                                 // logout default should set redirect to to default
+	middleware.DeleteLocaleCookie(ctx.Resp)
+	ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL) // logout default should set redirect to to default
 }
 
 // SignOut sign out from login status

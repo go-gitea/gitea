@@ -129,13 +129,7 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		}
 	}
 
-	middleware.SetCookie(resp, "lang", user.Language,
-		nil,
-		setting.AppSubURL,
-		setting.SessionConfig.Domain,
-		setting.SessionConfig.Secure,
-		true,
-		middleware.SameSite(setting.SessionConfig.SameSite))
+	middleware.SetLocaleCookie(resp, user.Language)
 
 	// Clear whatever CSRF has right now, force to generate a new one
 	middleware.SetCookie(resp, setting.CSRFCookieName, "",
