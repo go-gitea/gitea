@@ -1724,9 +1724,18 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	)
 
 	var ids = make([]int64, 0, limit)
-	err := x.Distinct("id").Table("issue").Where(cond).OrderBy("`updated_unix` DESC").Limit(limit, start).Find(&ids)
+	var res = make([]struct {
+		ID          int64
+		UpdatedUnix int64
+	}, 0, limit)
+	err := x.Distinct("id", "updated_unix").Table("issue").Where(cond).
+		OrderBy("`updated_unix` DESC").Limit(limit, start).
+		Find(&res)
 	if err != nil {
 		return 0, nil, err
+	}
+	for _, r := range res {
+		ids = append(ids, r.ID)
 	}
 
 	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
