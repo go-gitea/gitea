@@ -10,6 +10,7 @@
       :end-date="endDate"
       :values="values"
       :range-color="colorRange"
+      @day-click="handleDayClick($event)"
     />
   </div>
 </template>
@@ -48,7 +49,25 @@ export default {
       }
       return s;
     }
-  }
+  },
+  methods: {
+    handleDayClick(e) {
+      // Reset filter if same date is clicked
+      const params = new URLSearchParams(document.location.search);
+      const queryDate = params.get('date');
+      // Timezone has to be stripped because toISOString() converts to UTC
+      const clickedDate = new Date(e.date - (e.date.getTimezoneOffset() * 60000)).toISOString().substring(0, 10);
+
+      if (queryDate && queryDate === clickedDate) {
+        params.delete('date');
+      } else {
+        params.set('date', clickedDate);
+      }
+
+      const newSearch = params.toString();
+      window.location.search = newSearch.length ? `?${newSearch}` : '';
+    }
+  },
 };
 </script>
 <style scoped/>

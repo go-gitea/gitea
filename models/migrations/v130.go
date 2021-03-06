@@ -5,9 +5,8 @@
 package migrations
 
 import (
-	"encoding/json"
-
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 )
@@ -72,6 +71,7 @@ func expandWebhooks(x *xorm.Engine) error {
 
 		for _, res := range results {
 			var events HookEvent
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(res.Events), &events); err != nil {
 				return err
 			}

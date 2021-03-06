@@ -9,6 +9,7 @@ A [Editorconfig][editorconfig] file parser and manipulator for Go.
 ## Missing features
 
 - escaping comments in values, probably in [go-ini/ini](https://github.com/go-ini/ini)
+- [adjacent nested braces](https://github.com/editorconfig/editorconfig-core-test/pull/44)
 
 ## Installing
 

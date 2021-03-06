@@ -7,9 +7,10 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
+	"math"
 
 	"code.gitea.io/gitea/modules/analyze"
 
@@ -18,16 +19,38 @@ import (
 
 // GetLanguageStats calculates language stats for git repository at specified commit
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
-	// FIXME: We can be more efficient here...
-	//
-	// We're expecting that we will be reading a lot of blobs and the trees
-	// Thus we should use a shared `cat-file --batch` to get all of this data
-	// And keep the buffers around with resets as necessary.
-	//
-	// It's more complicated so...
-	commit, err := repo.GetCommit(commitID)
+	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
+	// so let's create a batch stdin and stdout
+	batchStdinWriter, batchReader, cancel := CatFileBatch(repo.Path)
+	defer cancel()
+
+	writeID := func(id string) error {
+		_, err := batchStdinWriter.Write([]byte(id))
+		if err != nil {
+			return err
+		}
+		_, err = batchStdinWriter.Write([]byte{'\n'})
+		return err
+	}
+
+	if err := writeID(commitID); err != nil {
+		return nil, err
+	}
+	shaBytes, typ, size, err := ReadBatchLine(batchReader)
+	if typ != "commit" {
+		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, ErrNotExist{commitID, ""}
+	}
+
+	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
-		log("Unable to get commit for: %s", commitID)
+		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, ErrNotExist{commitID, ""}
+	}
+
+	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	if err != nil {
+		log("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
 	}
 
@@ -38,17 +61,45 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
+	contentBuf := bytes.Buffer{}
+	var content []byte
 	sizes := make(map[string]int64)
 	for _, f := range entries {
+		contentBuf.Reset()
+		content = contentBuf.Bytes()
 		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
 			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
 			continue
 		}
 
 		// If content can not be read or file is too big just do detection by filename
-		var content []byte
+
 		if f.Size() <= bigFileSize {
-			content, _ = readFile(f, fileSizeLimit)
+			if err := writeID(f.ID.String()); err != nil {
+				return nil, err
+			}
+			_, _, size, err := ReadBatchLine(batchReader)
+			if err != nil {
+				log("Error reading blob: %s Err: %v", f.ID.String(), err)
+				return nil, err
+			}
+
+			sizeToRead := size
+			discard := int64(0)
+			if size > fileSizeLimit {
+				sizeToRead = fileSizeLimit
+				discard = size - fileSizeLimit
+			}
+
+			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
+			if err != nil {
+				return nil, err
+			}
+			content = contentBuf.Bytes()
+			err = discardFull(batchReader, discard)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if enry.IsGenerated(f.Name(), content) {
 			continue
@@ -86,24 +137,20 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	return sizes, nil
 }
 
-func readFile(entry *TreeEntry, limit int64) ([]byte, error) {
-	// FIXME: We can probably be a little more efficient here... see above
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		return nil, err
+func discardFull(rd *bufio.Reader, discard int64) error {
+	if discard > math.MaxInt32 {
+		n, err := rd.Discard(math.MaxInt32)
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
 	}
-	defer r.Close()
-
-	if limit <= 0 {
-		return ioutil.ReadAll(r)
+	for discard > 0 {
+		n, err := rd.Discard(int(discard))
+		discard -= int64(n)
+		if err != nil {
+			return err
+		}
 	}
-
-	size := entry.Size()
-	if limit > 0 && size > limit {
-		size = limit
-	}
-	buf := bytes.NewBuffer(nil)
-	buf.Grow(int(size))
-	_, err = io.Copy(buf, io.LimitReader(r, limit))
-	return buf.Bytes(), err
+	return nil
 }

@@ -5,7 +5,6 @@
 package action
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type actionNotifier struct {
@@ -275,7 +275,28 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	}
 }
 
+func (*actionNotifier) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	reviewerName := review.Reviewer.Name
+	if len(review.OriginalAuthor) > 0 {
+		reviewerName = review.OriginalAuthor
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionPullReviewDismissed,
+		Content:   fmt.Sprintf("%d|%s|%s", review.Issue.Index, reviewerName, comment.Content),
+		RepoID:    review.Issue.Repo.ID,
+		Repo:      review.Issue.Repo,
+		IsPrivate: review.Issue.Repo.IsPrivate,
+		CommentID: comment.ID,
+		Comment:   comment,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", review.Issue.ID, err)
+	}
+}
+
 func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("Marshal: %v", err)
@@ -345,6 +366,7 @@ func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Reposit
 }
 
 func (a *actionNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(commits)
 	if err != nil {
 		log.Error("json.Marshal: %v", err)

@@ -34,6 +34,8 @@ const (
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 
+	mailRepoTransferNotify base.TplName = "notify/repo_transfer"
+
 	// There's no actual limit for subject in RFC 5322
 	mailMaxSubjectRunes = 256
 )
@@ -304,6 +306,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "reopen"
 	case models.ActionMergePullRequest:
 		name = "merge"
+	case models.ActionPullReviewDismissed:
+		name = "review_dismissed"
 	default:
 		switch commentType {
 		case models.CommentTypeReview:

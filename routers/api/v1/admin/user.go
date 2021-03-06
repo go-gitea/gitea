@@ -224,6 +224,9 @@ func EditUser(ctx *context.APIContext) {
 	if form.ProhibitLogin != nil {
 		u.ProhibitLogin = *form.ProhibitLogin
 	}
+	if form.Restricted != nil {
+		u.IsRestricted = *form.Restricted
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {

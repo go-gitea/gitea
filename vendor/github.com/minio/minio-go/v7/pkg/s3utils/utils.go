@@ -95,6 +95,9 @@ var amazonS3HostDot = regexp.MustCompile(`^s3.(.*?).amazonaws.com$`)
 // amazonS3ChinaHost - regular expression used to determine if the arg is s3 china host.
 var amazonS3ChinaHost = regexp.MustCompile(`^s3.(cn.*?).amazonaws.com.cn$`)
 
+// amazonS3ChinaHostDualStack - regular expression used to determine if the arg is s3 china host dualstack.
+var amazonS3ChinaHostDualStack = regexp.MustCompile(`^s3.dualstack.(cn.*?).amazonaws.com.cn$`)
+
 // Regular expression used to determine if the arg is elb host.
 var elbAmazonRegex = regexp.MustCompile(`elb(.*?).amazonaws.com$`)
 
@@ -125,6 +128,10 @@ func GetRegionFromURL(endpointURL url.URL) string {
 		return parts[1]
 	}
 	parts = amazonS3ChinaHost.FindStringSubmatch(endpointURL.Host)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	parts = amazonS3ChinaHostDualStack.FindStringSubmatch(endpointURL.Host)
 	if len(parts) > 1 {
 		return parts[1]
 	}

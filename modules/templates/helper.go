@@ -38,6 +38,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Used from static.go && dynamic.go
@@ -45,6 +46,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
+	jsonED := jsoniter.ConfigCompatibleWithStandardLibrary
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
 			return strings.Title(runtime.Version())
@@ -174,6 +176,9 @@ func NewFuncMap() []template.FuncMap {
 		"UseServiceWorker": func() bool {
 			return setting.UI.UseServiceWorker
 		},
+		"EnableTimetracking": func() bool {
+			return setting.Service.EnableTimetracking
+		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
 			return strings.HasPrefix(mimeType, "image/")
@@ -212,7 +217,7 @@ func NewFuncMap() []template.FuncMap {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
+			out, err := jsonED.Marshal(in)
 			if err != nil {
 				return ""
 			}
@@ -228,6 +233,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
+		},
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
 		},
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
@@ -371,6 +379,10 @@ func NewFuncMap() []template.FuncMap {
 		"RenderLabels": func(labels []*models.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
+				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+				if label == nil {
+					continue
+				}
 				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
 					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
@@ -794,6 +806,8 @@ func ActionIcon(opType models.ActionType) string {
 		return "diff"
 	case models.ActionPublishRelease:
 		return "tag"
+	case models.ActionPullReviewDismissed:
+		return "x"
 	default:
 		return "question"
 	}
@@ -802,6 +816,12 @@ func ActionIcon(opType models.ActionType) string {
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
+
+	if act == nil || act.GetContent() == "" {
+		return push
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}

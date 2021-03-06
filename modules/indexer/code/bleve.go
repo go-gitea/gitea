@@ -5,7 +5,10 @@
 package code
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -173,25 +176,39 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
 		return nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
+	if err != nil {
+		return err
+	}
+
+	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return err
 	} else if !base.IsTextFile(fileContents) {
@@ -248,10 +265,17 @@ func (b *BleveIndexer) Close() {
 // Index indexes the data
 func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
-	for _, update := range changes.Updates {
-		if err := b.addUpdate(sha, update, repo, batch); err != nil {
-			return err
+	if len(changes.Updates) > 0 {
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			if err := b.addUpdate(batchWriter, batchReader, sha, update, repo, batch); err != nil {
+				return err
+			}
 		}
+		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {

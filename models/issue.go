@@ -563,7 +563,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 		return err
 	}
 
-	return setNotificationStatusReadIfUnread(x, userID, issue.ID)
+	return setIssueNotificationStatusReadIfUnread(x, userID, issue.ID)
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
@@ -745,11 +745,11 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		return err
 	}
 	var opts = &CreateCommentOptions{
-		Type:      CommentTypeDeleteBranch,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		CommitSHA: branchName,
+		Type:   CommentTypeDeleteBranch,
+		Doer:   doer,
+		Repo:   repo,
+		Issue:  issue,
+		OldRef: branchName,
 	}
 	if _, err = createComment(sess, opts); err != nil {
 		return err
@@ -1706,17 +1706,18 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	var repoCond = builder.In("repo_id", repoIDs)
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	kw = strings.ToUpper(kw)
 	var cond = builder.And(
 		repoCond,
 		builder.Or(
-			builder.Like{"name", kw},
-			builder.Like{"content", kw},
+			builder.Like{"UPPER(name)", kw},
+			builder.Like{"UPPER(content)", kw},
 			builder.In("id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					builder.Like{"content", kw},
+					builder.Like{"UPPER(content)", kw},
 				)),
 			),
 		),
