@@ -1724,12 +1724,12 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	)
 
 	var ids = make([]int64, 0, limit)
-	err := x.Distinct("id").Table("issue").Where(cond).OrderBy("`updated_unix` DESC").Limit(limit, start).Find(&ids)
+	err := x.Select("id").Table("issue").Where(cond).OrderBy("`updated_unix` DESC").Limit(limit, start).Find(&ids)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
+	total, err := x.Select("id").Table("issue").Where(cond).Count()
 	if err != nil {
 		return 0, nil, err
 	}
