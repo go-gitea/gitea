@@ -51,8 +51,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 
 // SetLocaleCookie convenience function to set the locale cookie consistently
 func SetLocaleCookie(resp http.ResponseWriter, lang string) {
-	SetCookie(resp, "lang", lang,
-		nil,
+	SetCookie(resp, "lang", lang, 0,
 		setting.AppSubURL,
 		setting.SessionConfig.Domain,
 		setting.SessionConfig.Secure,

@@ -92,15 +92,14 @@ func DeleteRedirectToCookie(resp http.ResponseWriter) {
 	SetCookie(resp, "redirect_to", "",
 		-1,
 		setting.AppSubURL,
-		setting.SessionConfig.Domain,
+		"",
 		setting.SessionConfig.Secure,
 		true,
 		SameSite(setting.SessionConfig.SameSite))
 }
 
-// DeleteCookie convenience function to delete most cookies consistently
-// Note the lang and redirect_to cookie does not have the same path
-func DeleteCookie(resp http.ResponseWriter, name string) {
+// DeleteSesionConfigPathCookie convenience function to delete SessionConfigPath cookies consistently
+func DeleteSesionConfigPathCookie(resp http.ResponseWriter, name string) {
 	SetCookie(resp, name, "",
 		-1,
 		setting.SessionConfig.CookiePath,
@@ -108,6 +107,14 @@ func DeleteCookie(resp http.ResponseWriter, name string) {
 		setting.SessionConfig.Secure,
 		true,
 		SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
+func DeleteCSRFCookie(resp http.ResponseWriter) {
+	SetCookie(resp, setting.CSRFCookieName, "",
+		-1,
+		setting.SessionConfig.CookiePath,
+		setting.SessionConfig.Domain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
 }
 
 // SetCookie set the cookies
