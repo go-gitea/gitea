@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package hash
 
 import (
 	"crypto/subtle"
@@ -10,23 +10,22 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"golang.org/x/crypto/argon2"
 )
 
 // Argon2Hasher is a Hash implementation for Argon2
 type Argon2Hasher struct {
-	Iterations  uint32
-	Memory      uint32
-	Parallelism uint8
-	KeyLength   uint32
+	Iterations  uint32 `ini:"ARGON2_ITERATIONS"`
+	Memory      uint32 `ini:"ARGON2_MEMORY"`
+	Parallelism uint8  `ini:"ARGON2_PARALLELISM"`
+	KeyLength   uint32 `ini:"ARGON2_KEY_LENGTH"`
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (h Argon2Hasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
 	if config == "fallback" {
+		// Fixed default config to match with original configuration
 		config = "2$65536$8$50"
 	}
 
@@ -81,15 +80,9 @@ func (h Argon2Hasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h Argon2Hasher) getConfigFromSetting() string {
-	if h.Iterations == 0 {
-		h.Iterations = setting.Argon2Iterations
-		h.Memory = setting.Argon2Memory
-		h.Parallelism = setting.Argon2Parallelism
-		h.KeyLength = setting.Argon2KeyLength
-	}
 	return fmt.Sprintf("%d$%d$%d$%d", h.Iterations, h.Memory, h.Parallelism, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["argon2"] = Argon2Hasher{0, 0, 0, 0}
+	DefaultHasher.Hashers["argon2"] = Argon2Hasher{2, 65536, 8, 50}
 }

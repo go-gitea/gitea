@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package hash
 
 import (
 	"crypto/subtle"
@@ -10,23 +10,22 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"golang.org/x/crypto/scrypt"
 )
 
 // SCryptHasher is a Hash implementation for SCrypt
 type SCryptHasher struct {
-	N         int
-	R         int
-	P         int
-	KeyLength int
+	N         int `ini:"SCRYPT_N"`
+	R         int `ini:"SCRYPT_R"`
+	P         int `ini:"SCRYPT_P"`
+	KeyLength int `ini:"SCRYPT_KEY_LENGTH"`
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (h SCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
 	if config == "fallback" {
+		// Fixed default config to match with original configuration
 		config = "65536$16$2$50"
 	}
 
@@ -72,15 +71,9 @@ func (h SCryptHasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h SCryptHasher) getConfigFromSetting() string {
-	if h.KeyLength == 0 {
-		h.N = setting.ScryptN
-		h.R = setting.ScryptR
-		h.P = setting.ScryptP
-		h.KeyLength = setting.ScryptKeyLength
-	}
 	return fmt.Sprintf("%d$%d$%d$%d", h.N, h.R, h.P, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["scrypt"] = SCryptHasher{0, 0, 0, 0}
+	DefaultHasher.Hashers["scrypt"] = SCryptHasher{65536, 16, 2, 50}
 }

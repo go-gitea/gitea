@@ -2,16 +2,20 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package hash
 
 import (
 	"strings"
-
-	"code.gitea.io/gitea/modules/setting"
 )
+
+const defaultAlgorithm = "pbkdf2"
 
 // DefaultHasherStruct stores the available hashing instances
 type DefaultHasherStruct struct {
+	// DefaultAlgorithm is the default hashing algorithm
+	DefaultAlgorithm string
+	// Hashers is a map of algorithm name to Hasher implementation
+	// We use a map as it is easier to use
 	Hashers map[string]Hasher
 }
 
@@ -25,10 +29,12 @@ type Hasher interface {
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (d DefaultHasherStruct) HashPassword(password, salt, config string) (string, string, error) {
-	if setting.PasswordHashAlgo == "" {
-		setting.PasswordHashAlgo = "pbkdf2"
+	hasher, ok := d.Hashers[d.DefaultAlgorithm]
+	if !ok {
+		hasher = d.Hashers[defaultAlgorithm]
 	}
-	return d.Hashers[setting.PasswordHashAlgo].HashPassword(password, salt, config)
+
+	return hasher.HashPassword(password, salt, config)
 }
 
 // Validate validates a plain-text password
@@ -65,7 +71,7 @@ func (d DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
 	}
 	typ, tail = split[0], split[1]
 
-	if len(tail) == 0 || len(typ) == 0 || typ != setting.PasswordHashAlgo {
+	if len(tail) == 0 || len(typ) == 0 || typ != d.DefaultAlgorithm {
 		return true
 	}
 
@@ -79,6 +85,8 @@ func (d DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
 var DefaultHasher DefaultHasherStruct
 
 func init() {
-	DefaultHasher = DefaultHasherStruct{}
-	DefaultHasher.Hashers = make(map[string]Hasher)
+	DefaultHasher = DefaultHasherStruct{
+		DefaultAlgorithm: defaultAlgorithm,
+		Hashers:          make(map[string]Hasher),
+	}
 }

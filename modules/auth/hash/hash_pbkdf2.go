@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package hash
 
 import (
 	"crypto/sha256"
@@ -11,21 +11,20 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"golang.org/x/crypto/pbkdf2"
 )
 
 // Pbkdf2Hasher is a Hash implementation for Pbkdf2
 type Pbkdf2Hasher struct {
-	Iterations int
-	KeyLength  int
+	Iterations int `ini:"PBKDF2_ITERATIONS"`
+	KeyLength  int `ini:"PBKDF2_KEY_LENGTH"`
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (h Pbkdf2Hasher) HashPassword(password, salt, config string) (string, string, error) {
 	var tempPasswd []byte
 	if config == "fallback" {
+		// Fixed default config to match with original configuration
 		config = "10000$50"
 	}
 
@@ -65,13 +64,9 @@ func (h Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h Pbkdf2Hasher) getConfigFromSetting() string {
-	if h.KeyLength == 0 {
-		h.Iterations = setting.Pbkdf2Iterations
-		h.KeyLength = setting.Pbkdf2KeyLength
-	}
 	return fmt.Sprintf("%d$%d", h.Iterations, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["pbkdf2"] = Pbkdf2Hasher{0, 0}
+	DefaultHasher.Hashers["pbkdf2"] = Pbkdf2Hasher{10000, 50}
 }

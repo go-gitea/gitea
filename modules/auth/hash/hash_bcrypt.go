@@ -2,26 +2,25 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package hash
 
 import (
 	"fmt"
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"golang.org/x/crypto/bcrypt"
 )
 
 // BCryptHasher is a Hash implementation for BCrypt
 type BCryptHasher struct {
-	Cost int
+	Cost int `ini:"BCRYPT_COST"`
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (h BCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
 	if config == "fallback" {
+		// Fixed default config to match with original configuration
 		config = "10"
 	} else if config == "" {
 		config = h.getConfigFromSetting()
@@ -47,12 +46,9 @@ func (h BCryptHasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h BCryptHasher) getConfigFromSetting() string {
-	if h.Cost == 0 {
-		h.Cost = setting.BcryptCost
-	}
 	return strconv.Itoa(h.Cost)
 }
 
 func init() {
-	DefaultHasher.Hashers["bcrypt"] = BCryptHasher{0}
+	DefaultHasher.Hashers["bcrypt"] = BCryptHasher{10}
 }

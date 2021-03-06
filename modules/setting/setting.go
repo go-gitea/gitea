@@ -173,27 +173,7 @@ var (
 	DisableWebhooks                    bool
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
-	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
-
-	// BCryptParams for parameters for bcrypt algo
-	BcryptCost int
-
-	// SCryptParams for parameters for scrypt algo
-	ScryptN         int
-	ScryptR         int
-	ScryptP         int
-	ScryptKeyLength int
-
-	// Argon2Params for params for argon2 algo
-	Argon2Iterations  uint32
-	Argon2Memory      uint32
-	Argon2Parallelism uint8
-	Argon2KeyLength   uint32
-
-	// Pbkdf2Params for parameters for pbkdf2 algo
-	Pbkdf2Iterations int
-	Pbkdf2KeyLength  int
 
 	// UI settings
 	UI = struct {
@@ -838,23 +818,10 @@ func NewContext() {
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
 	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
 	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 
-	sec = Cfg.Section("security.hash")
-	BcryptCost = sec.Key("BCRYPT_COST").MustInt(10)
-	ScryptN = sec.Key("SCRYPT_N").MustInt(65536)
-	ScryptR = sec.Key("SCRYPT_R").MustInt(16)
-	ScryptP = sec.Key("SCRYPT_P").MustInt(2)
-	ScryptKeyLength = sec.Key("SCRYPT_KEY_LENGTH").MustInt(50)
-	// ini.v1 doesn't support MustUInt32 nor MustUInt8
-	Argon2Iterations = uint32(sec.Key("ARGON2_ITERATIONS").MustInt(2))
-	Argon2Memory = uint32(sec.Key("ARGON2_MEMORY").MustInt(65536))
-	Argon2Parallelism = uint8(sec.Key("ARGON2_PARALLELISM").MustInt(8))
-	Argon2KeyLength = uint32(sec.Key("ARGON2_KEY_LENGTH").MustInt(50))
-	Pbkdf2Iterations = sec.Key("PBKDF2_ITERATIONS").MustInt(10000)
-	Pbkdf2KeyLength = sec.Key("PBKDF2_KEY_LENGTH").MustInt(50)
+	newPasswordHashService()
 
 	InternalToken = loadInternalToken(sec)
 
