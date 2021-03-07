@@ -2,19 +2,19 @@
 :root {
   /* customizable localized variables */
   :lang(ja) {
-    --fonts-override: system-ui-ja, var(--fonts-proportional);
+    --fonts-override: var(--fonts-default-override-ja);
   }
   :lang(zh-CN) {
-    --fonts-override: system-ui-zh-cn, var(--fonts-proportional);
+    --fonts-override: var(--fonts-default-override-zh-cn);
   }
   :lang(zh-TW) {
-    --fonts-override: system-ui-zh-tw, var(--fonts-proportional);
+    --fonts-override: var(--fonts-default-override-zh-tw);
   }
   :lang(zh-HK) {
-    --fonts-override: system-ui-zh-hk, var(--fonts-proportional);
+    --fonts-override: var(--fonts-default-override-zh-hk);
   }
   :lang(ko) {
-    --fonts-override: system-ui-ko, var(--fonts-proportional);
+    --fonts-override: var(--fonts-default-override-ko);
   }
 }
 
@@ -29,17 +29,26 @@ each(@fonts, {
   .font-face-cjk(~"system-ui@{locale}", @weights[@regular], 400);
   .font-face-cjk(~"system-ui@{locale}", @weights[@medium], 500);
   .font-face-cjk(~"system-ui@{locale}", @weights[@bold], 700);
+  /* Safari on macOS/iOS */
   @font-face {
     font-family: ~"system-ui@{locale}";
     src: local("HelveticaNeue");
     unicode-range: U+A0;
   }
+  /* Other browsers on macOS/iOS */
   @supports not (-webkit-hyphens:none) {
     @font-face {
       font-family: ~"system-ui@{locale}";
       src: local("HelveticaNeue");
       unicode-range: U+20;
     }
+  }
+  :root {
+    /* Special handling for Firefox on Windows/Linux */
+    @supports (-moz-appearance:none) {
+      --fonts-default-override@{locale}: ~"var(--fonts-proportional), system-ui@{locale}";
+    }
+    --fonts-default-override@{locale}: ~"system-ui@{locale}, var(--fonts-proportional)";
   }
 });
 
