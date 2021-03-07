@@ -32,8 +32,10 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
-	serviceType := ctx.QueryInt("service_type")
+	serviceType := structs.GitServiceType(ctx.QueryInt("service_type"))
+
+	setMigrationContextData(ctx, serviceType)
+
 	if serviceType == 0 {
 		ctx.Data["Org"] = ctx.Query("org")
 		ctx.Data["Mirror"] = ctx.Query("mirror")
@@ -42,10 +44,7 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
 	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
 	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
@@ -53,9 +52,6 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["issues"] = ctx.Query("issues") == "1"
 	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
 	ctx.Data["releases"] = ctx.Query("releases") == "1"
-	ctx.Data["LFSActive"] = setting.LFS.StartServer
-	// Plain git should be first
-	ctx.Data["service"] = structs.GitServiceType(serviceType)
 
 	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
 	if ctx.Written() {
@@ -63,7 +59,7 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(200, base.TplName("repo/migrate/"+structs.GitServiceType(serviceType).Name()))
+	ctx.HTML(200, base.TplName("repo/migrate/"+serviceType.Name()))
 }
 
 func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
@@ -125,18 +121,17 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("new_migrate")
-	// Plain git should be first
-	ctx.Data["service"] = structs.GitServiceType(form.Service)
-	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	serviceType := structs.GitServiceType(form.Service)
 
-	tpl := base.TplName("repo/migrate/" + structs.GitServiceType(form.Service).Name())
+	setMigrationContextData(ctx, serviceType)
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
+
+	tpl := base.TplName("repo/migrate/" + serviceType.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(200, tpl)
@@ -166,7 +161,7 @@ func MigratePost(ctx *context.Context) {
 
 	var opts = migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
-		GitServiceType: structs.GitServiceType(form.Service),
+		GitServiceType: serviceType,
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -205,4 +200,16 @@ func MigratePost(ctx *context.Context) {
 	}
 
 	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
+}
+
+func setMigrationContextData(ctx *context.Context, serviceType structs.GitServiceType) {
+	ctx.Data["Title"] = ctx.Tr("new_migrate")
+
+	ctx.Data["LFSActive"] = setting.LFS.StartServer
+	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
+
+	// Plain git should be first
+	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
+	ctx.Data["service"] = serviceType
 }
