@@ -259,27 +259,37 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		},
 	}
 
-	isExist, err := util.IsExist(setting.SSH.ServerHostKey)
-	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKey, err)
+	keys := make([]string, 0, len(setting.SSH.ServerHostKeys))
+	for _, key := range setting.SSH.ServerHostKeys {
+		isExist, err := util.IsExist(key)
+		if err != nil {
+			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKey, err)
+		}
+		if isExist {
+			keys = append(keys, key)
+		}
 	}
-	if !isExist {
-		filePath := filepath.Dir(setting.SSH.ServerHostKey)
+
+	if len(keys) == 0 {
+		filePath := filepath.Dir(setting.SSH.ServerHostKeys[0])
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
 			log.Error("Failed to create dir %s: %v", filePath, err)
 		}
 
-		err := GenKeyPair(setting.SSH.ServerHostKey)
+		err := GenKeyPair(setting.SSH.ServerHostKeys[0])
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
-		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKey)
+		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKeys[0])
+		keys = append(keys, setting.SSH.ServerHostKeys[0])
 	}
 
-	err = srv.SetOption(ssh.HostKeyFile(setting.SSH.ServerHostKey))
-	if err != nil {
-		log.Error("Failed to set Host Key. %s", err)
+	for _, key := range keys {
+		err := srv.SetOption(ssh.HostKeyFile(key))
+		if err != nil {
+			log.Error("Failed to set Host Key. %s", err)
+		}
 	}
 
 	go listen(&srv)
