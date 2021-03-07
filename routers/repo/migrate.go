@@ -34,7 +34,7 @@ func Migrate(ctx *context.Context) {
 
 	serviceType := structs.GitServiceType(ctx.QueryInt("service_type"))
 
-	setSharedData(ctx, serviceType)
+	setMigrationContextData(ctx, serviceType)
 
 	if serviceType == 0 {
 		ctx.Data["Org"] = ctx.Query("org")
@@ -123,7 +123,7 @@ func MigratePost(ctx *context.Context) {
 
 	serviceType := structs.GitServiceType(form.Service)
 
-	setSharedData(ctx, serviceType)
+	setMigrationContextData(ctx, serviceType)
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -202,7 +202,7 @@ func MigratePost(ctx *context.Context) {
 	handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 }
 
-func setSharedData(ctx *context.Context, serviceType structs.GitServiceType) {
+func setMigrationContextData(ctx *context.Context, serviceType structs.GitServiceType) {
 	ctx.Data["Title"] = ctx.Tr("new_migrate")
 
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
