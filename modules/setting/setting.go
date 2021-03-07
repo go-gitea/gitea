@@ -158,7 +158,7 @@ var (
 		KeygenPath:          "ssh-keygen",
 		MinimumKeySizeCheck: true,
 		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
-		ServerHostKeys:      []string{"ssh/gogs.rsa"},
+		ServerHostKeys:      []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
 	}
 
 	// Security settings
