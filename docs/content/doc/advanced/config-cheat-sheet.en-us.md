@@ -557,6 +557,8 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
 - `SESSION_LIFE_TIME`: **86400**: Session life time in seconds, default is 86400 (1 day)
+- `DOMAIN`: **\<empty\>**: Sets the cookie Domain
+- `SAME_SITE`: **lax** \[strict, lax, none\]: Set the SameSite setting for the cookie.
 
 ## Picture (`picture`)
 
