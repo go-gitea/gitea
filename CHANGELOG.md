@@ -6,12 +6,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
+* SECURITY
+  * Fix issue popups (#14898) (#14899)
 * BUGFIXES
   * Fix race in LFS ContentStore.Put(...) (#14895) (#14913)
   * Fix a couple of issues with a feeds (#14897) (#14903)
   * When transfering repository and database transaction failed, rollback the renames (#14864) (#14902)
   * Fix race in local storage (#14888) (#14901)
-  * Fix issue popups (#14898) (#14899)
   * Fix 500 on pull view page if user is not loged in (#14885) (#14886)
 * DOCS
   * Fix how lfs data path is set (#14855) (#14884)
