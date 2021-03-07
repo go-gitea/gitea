@@ -286,6 +286,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	}
 
 	for _, key := range keys {
+		log.Info("Adding SSH host key: %s", key)
 		err := srv.SetOption(ssh.HostKeyFile(key))
 		if err != nil {
 			log.Error("Failed to set Host Key. %s", err)
