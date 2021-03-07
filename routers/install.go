@@ -424,9 +424,10 @@ func InstallPost(ctx *context.Context) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+			setting.CookieRememberName, u.Name, days)
 
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
