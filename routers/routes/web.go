@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -45,8 +47,10 @@ import (
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -62,6 +66,7 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			})
 		},
 		middleware.RealIP,
+		middleware.StripSlashes,
 	}
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
@@ -216,6 +221,67 @@ func WebRoutes() *web.Route {
 	return r
 }
 
+func goGet(ctx *context.Context) {
+	if ctx.Query("go-get") != "1" {
+		return
+	}
+
+	// Quick responses appropriate go-get meta with status 200
+	// regardless of if user have access to the repository,
+	// or the repository does not exist at all.
+	// This is particular a workaround for "go get" command which does not respect
+	// .netrc file.
+
+	ownerName := ctx.Params(":username")
+	repoName := ctx.Params(":reponame")
+	trimmedRepoName := strings.TrimSuffix(repoName, ".git")
+
+	if ownerName == "" || trimmedRepoName == "" {
+		_, _ = ctx.Write([]byte(`<!doctype html>
+<html>
+	<body>
+		invalid import path
+	</body>
+</html>
+`))
+		ctx.Status(400)
+		return
+	}
+	branchName := setting.Repository.DefaultBranch
+
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err == nil && len(repo.DefaultBranch) > 0 {
+		branchName = repo.DefaultBranch
+	}
+	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+
+	appURL, _ := url.Parse(setting.AppURL)
+
+	insecure := ""
+	if appURL.Scheme == string(setting.HTTP) {
+		insecure = "--insecure "
+	}
+	ctx.Header().Set("Content-Type", "text/html")
+	ctx.Status(http.StatusOK)
+	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
+<html>
+	<head>
+		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
+		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
+	</head>
+	<body>
+		go get {Insecure}{GoGetImport}
+	</body>
+</html>
+`, map[string]string{
+		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
+		"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
+		"GoDocDirectory": prefix + "{/dir}",
+		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
+		"Insecure":       insecure,
+	})))
+}
+
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
@@ -324,7 +390,18 @@ func RegisterRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
-	m.Post("/login/oauth/access_token", bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	if setting.CORSConfig.Enabled {
+		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		}), bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	} else {
+		m.Post("/login/oauth/access_token", bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	}
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -708,7 +785,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
-		// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
+		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/issues", func() {
 			m.Group("/{index}", func() {
@@ -723,6 +800,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/comments").Post(repo.MustAllowUserComment, bindIgnErr(auth.CreateCommentForm{}), repo.NewComment)
 				m.Group("/times", func() {
 					m.Post("/add", bindIgnErr(auth.AddTimeManuallyForm{}), repo.AddTimeManually)
+					m.Post("/{timeid}/delete", repo.DeleteTime)
 					m.Group("/stopwatch", func() {
 						m.Post("/toggle", repo.IssueStopwatch)
 						m.Post("/cancel", repo.CancelStopwatch)
@@ -1003,7 +1081,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+		}, goGet, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {

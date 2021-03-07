@@ -635,7 +635,7 @@ func pascalize(arg string) string {
 		return "Empty"
 	case 1: // handle special case when we have a single rune that is not handled by swag.ToGoName
 		switch runes[0] {
-		case '+', '-', '#', '_': // those cases are handled differently than swag utility
+		case '+', '-', '#', '_', '*', '/', '=': // those cases are handled differently than swag utility
 			return prefixForName(arg)
 		}
 	}
@@ -654,6 +654,12 @@ func prefixForName(arg string) string {
 		return "Minus"
 	case '#':
 		return "HashTag"
+	case '*':
+		return "Asterisk"
+	case '/':
+		return "ForwardSlash"
+	case '=':
+		return "EqualSign"
 		// other cases ($,@ etc..) handled by swag.ToGoName
 	}
 	return "Nr"

@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/webhook"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -305,6 +305,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -400,6 +401,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
@@ -452,6 +454,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.MatrixMeta{
 		HomeserverURL: form.HomeserverURL,
 		Room:          form.RoomID,
@@ -556,6 +559,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
@@ -799,6 +803,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
@@ -844,6 +849,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 		return
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -919,6 +925,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
@@ -960,6 +967,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 		ctx.HTML(200, orCtx.NewTemplate)
 		return
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.MatrixMeta{
 		HomeserverURL: form.HomeserverURL,
 		Room:          form.RoomID,

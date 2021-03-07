@@ -8,7 +8,6 @@ package models
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/smtp"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -76,11 +76,13 @@ type LDAPConfig struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (cfg *LDAPConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a LDAPConfig to a serialized format.
 func (cfg *LDAPConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -102,11 +104,13 @@ type SMTPConfig struct {
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (cfg *SMTPConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (cfg *SMTPConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -117,11 +121,13 @@ type PAMConfig struct {
 
 // FromDB fills up a PAMConfig from serialized format.
 func (cfg *PAMConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a PAMConfig to a serialized format.
 func (cfg *PAMConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -137,11 +143,13 @@ type OAuth2Config struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (cfg *OAuth2Config) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (cfg *OAuth2Config) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -156,11 +164,13 @@ type SSPIConfig struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *SSPIConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.
 func (cfg *SSPIConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 

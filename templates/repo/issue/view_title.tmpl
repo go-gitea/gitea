@@ -20,7 +20,7 @@
 		{{end}}
 	</div>
 	{{if .HasMerged}}
-		<div class="ui purple large label">{{svg "octicon-git-merge"}} {{.i18n.Tr "repo.pulls.merged"}}</div>
+		<div class="ui purple large label">{{svg "octicon-git-merge" 16}} {{if eq .Issue.PullRequest.Status 3}}{{.i18n.Tr "repo.pulls.manually_merged"}}{{else}}{{.i18n.Tr "repo.pulls.merged"}}{{end}}</div>
 	{{else if .Issue.IsClosed}}
 		<div class="ui red large label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
@@ -30,23 +30,31 @@
 	{{end}}
 
 	{{if .Issue.IsPull}}
+		{{$headHref := .HeadTarget|Escape}}
+		{{if .HeadBranchHTMLURL}}
+			{{$headHref = printf "<a href=\"%s\">%s</a>" .HeadBranchHTMLURL $headHref}}
+		{{end}}
+		{{$baseHref := .BaseTarget|Escape}}
+		{{if .BaseBranchHTMLURL}}
+			{{$baseHref = printf "<a href=\"%s\">%s</a>" .BaseBranchHTMLURL $baseHref}}
+		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			{{if .Issue.OriginalAuthor }}
 				{{.Issue.OriginalAuthor}}
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Str2html}}</span>
 			{{else}}
 				<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Str2html}}</span>
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Str2html}}</span>
 			{{else}}
 				<span id="pull-desc" class="pull-desc">
-				 <a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}
-					</span>
+					<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+					{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Str2html}}
+				</span>
 			{{end}}
 			<span id="pull-desc-edit" style="display: none">
 								<div class="ui floating filter dropdown">

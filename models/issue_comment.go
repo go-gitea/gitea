@@ -8,7 +8,6 @@ package models
 
 import (
 	"container/list"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -136,6 +136,8 @@ type Comment struct {
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
 	Milestone        *Milestone `xorm:"-"`
+	TimeID           int64
+	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
@@ -541,6 +543,16 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
+// LoadTime loads the associated time for a CommentTypeAddTimeManual
+func (c *Comment) LoadTime() error {
+	if c.Time != nil || c.TimeID == 0 {
+		return nil
+	}
+	var err error
+	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	return err
+}
+
 func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
@@ -643,6 +655,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 
 	var data PushActionContent
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
 		return
@@ -692,6 +705,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		MilestoneID:      opts.MilestoneID,
 		OldProjectID:     opts.OldProjectID,
 		ProjectID:        opts.ProjectID,
+		TimeID:           opts.TimeID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
@@ -859,6 +873,7 @@ type CreateCommentOptions struct {
 	MilestoneID      int64
 	OldProjectID     int64
 	ProjectID        int64
+	TimeID           int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
 	RemovedAssignee  bool
@@ -1227,6 +1242,8 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	}
 
 	ops.Issue = pr.Issue
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return nil, err

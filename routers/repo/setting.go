@@ -321,6 +321,8 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:               form.PullsAllowRebase,
 					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
+					AllowManualMerge:          form.PullsAllowManualMerge,
+					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
@@ -477,18 +479,54 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
+
+		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			} else if models.IsErrRepoTransferInProgress(err) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
+
 			return
 		}
 
-		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + newOwner.Name + "/" + repo.Name)
+		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
+
+	case "cancel_transfer":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+			return
+		}
+
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		if err != nil {
+			if models.IsErrNoPendingTransfer(err) {
+				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
+				ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+			} else {
+				ctx.ServerError("GetPendingRepositoryTransfer", err)
+			}
+
+			return
+		}
+
+		if err := repoTransfer.LoadAttributes(); err != nil {
+			ctx.ServerError("LoadRecipient", err)
+			return
+		}
+
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+			ctx.ServerError("CancelRepositoryTransfer", err)
+			return
+		}
+
+		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {

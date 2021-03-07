@@ -124,7 +124,11 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+				{{if eq $.Issue.PullRequest.Status 3}}
+					{{$.i18n.Tr "repo.issues.manually_pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
@@ -276,6 +280,7 @@
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
 			</span>
+			{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
 			<div class="detail">
 				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
@@ -291,6 +296,7 @@
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
 			</span>
+			{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
 			<div class="detail">
 				{{svg "octicon-clock"}}
 				<span class="text grey">{{.Content}}</span>
