@@ -704,7 +704,6 @@ func NewContext() {
 		if !filepath.IsAbs(key) {
 			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
 		}
-
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
