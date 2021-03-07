@@ -951,6 +951,9 @@ func Routes() *web.Route {
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
+				m.Group("/packages", func() {
+					m.Get("/{type}/{name}", repo.GetPackage)
+				}, reqRepoReader(models.UnitTypePackages))
 			}, repoAssignment())
 		})
 

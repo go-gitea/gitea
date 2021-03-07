@@ -341,6 +341,8 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
 	// ***** START: User *****
+	m.Get("/user/docker_token", repo.DockerPluginLogin)
+	m.Any("/user/docker_event", repo.DockerPluginEvent)
 	m.Group("/user", func() {
 		m.Get("/login", user.SignIn)
 		m.Post("/login", bindIgnErr(auth.SignInForm{}), user.SignInPost)

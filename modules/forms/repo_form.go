@@ -150,6 +150,7 @@ type RepoSettingForm struct {
 	TrackerURLFormat                 string
 	TrackerIssueStyle                string
 	EnableProjects                   bool
+	EnablePackages                   bool
 	EnablePulls                      bool
 	PullsIgnoreWhitespace            bool
 	PullsAllowMerge                  bool
