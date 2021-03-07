@@ -56,7 +56,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_milestone_no_select"}}</a>
 							{{range .Milestones}}
-								<a class="{{if eq $.MilestoneID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&assignee={{$.AssigneeID}}">{{.Name}}</a>
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&assignee={{$.AssigneeID}}">{{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
