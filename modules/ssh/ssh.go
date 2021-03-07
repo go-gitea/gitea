@@ -259,26 +259,25 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		},
 	}
 
-	keyPath := filepath.Join(setting.AppDataPath, "ssh/gogs.rsa")
-	isExist, err := util.IsExist(keyPath)
+	isExist, err := util.IsExist(setting.SSH.ServerHostKey)
 	if err != nil {
-		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+		log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKey, err)
 	}
 	if !isExist {
-		filePath := filepath.Dir(keyPath)
+		filePath := filepath.Dir(setting.SSH.ServerHostKey)
 
 		if err := os.MkdirAll(filePath, os.ModePerm); err != nil {
 			log.Error("Failed to create dir %s: %v", filePath, err)
 		}
 
-		err := GenKeyPair(keyPath)
+		err := GenKeyPair(setting.SSH.ServerHostKey)
 		if err != nil {
 			log.Fatal("Failed to generate private key: %v", err)
 		}
-		log.Trace("New private key is generated: %s", keyPath)
+		log.Trace("New private key is generated: %s", setting.SSH.ServerHostKey)
 	}
 
-	err = srv.SetOption(ssh.HostKeyFile(keyPath))
+	err = srv.SetOption(ssh.HostKeyFile(setting.SSH.ServerHostKey))
 	if err != nil {
 		log.Error("Failed to set Host Key. %s", err)
 	}
@@ -291,7 +290,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return err
 	}

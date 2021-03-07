@@ -132,6 +132,7 @@ var (
 		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
 		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
 		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
+		ServerHostKey                  string            `ini:"SSH_SERVER_HOST_KEY"`
 		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -157,6 +158,7 @@ var (
 		KeygenPath:          "ssh-keygen",
 		MinimumKeySizeCheck: true,
 		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		ServerHostKey:       "ssh/gogs.rsa",
 	}
 
 	// Security settings
@@ -697,6 +699,9 @@ func NewContext() {
 	SSH.KeyTestPath = os.TempDir()
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
+	}
+	if !filepath.IsAbs(SSH.ServerHostKey) {
+		SSH.ServerHostKey = filepath.Join(AppDataPath, SSH.ServerHostKey)
 	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
