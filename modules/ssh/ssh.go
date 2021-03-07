@@ -263,7 +263,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	for _, key := range setting.SSH.ServerHostKeys {
 		isExist, err := util.IsExist(key)
 		if err != nil {
-			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKey, err)
+			log.Fatal("Unable to check if %s exists. Error: %v", setting.SSH.ServerHostKeys, err)
 		}
 		if isExist {
 			keys = append(keys, key)
