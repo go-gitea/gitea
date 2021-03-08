@@ -63,8 +63,10 @@ func (m *Milestone) AfterLoad() {
 	}
 
 	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
-	if timeutil.TimeStampNow() >= m.DeadlineUnix {
-		m.IsOverdue = true
+	if m.IsClosed {
+		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
+	} else {
+		m.IsOverdue = timeutil.TimeStampNow() >= m.DeadlineUnix
 	}
 }
 
