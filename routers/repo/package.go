@@ -26,7 +26,7 @@ import (
 	"github.com/docker/distribution/registry/auth/token"
 )
 
-// DockerPluginLogin tocken service for docker registry
+// DockerPluginLogin token service for docker registry
 func DockerPluginLogin(ctx *context.Context) {
 	if !setting.HasDockerPlugin() {
 		ctx.Status(404)
