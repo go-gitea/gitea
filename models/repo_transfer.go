@@ -327,26 +327,26 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	// Delete labels that belong to the old organization and comments that added these labels
 	if oldOwner.IsOrganization() {
-		if _, err := sess.Exec(`DELETE FROM issue_label AS il WHERE il.id IN (
+		if _, err := sess.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
 			SELECT il_too.id FROM (
-				SELECT issue_label.id
-					FROM issue_label
-						INNER JOIN label ON issue_label.id = label.id
-						INNER JOIN issue on issue.id = issue_label.issue_id
+				SELECT il_too_too.id
+					FROM issue_label AS il_too_too
+						INNER JOIN label ON il_too_too.id = label.id
+						INNER JOIN issue on issue.id = il_too_too.issue_id
 					WHERE
 						issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
 		) AS il_too )`, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org labels: %v", err)
 		}
 
-		if _, err := sess.Exec(`DELETE FROM comment AS com WHERE com.id IN (
+		if _, err := sess.Exec(`DELETE FROM comment WHERE comment.id IN (
 			SELECT il_too.id FROM (
 				SELECT comment.id
-					FROM comment
-						INNER JOIN label ON comment.label_id = label.id
-						INNER JOIN issue on issue.id = comment.issue_id
+					FROM comment AS com
+						INNER JOIN label ON com.label_id = label.id
+						INNER JOIN issue on issue.id = com.issue_id
 					WHERE
-						comment.type = ? AND issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
+						com.type = ? AND issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
 		) AS il_too)`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org label comments: %v", err)
 		}
