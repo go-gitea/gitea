@@ -147,9 +147,9 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			return nil
 		} else if len(refs) == 0 {
 			log.Error("unable to resolve PR head ref")
-			return nil
+		} else {
+			apiPullRequest.Head.Sha = refs[0].Object.String()
 		}
-		apiPullRequest.Head.Sha = refs[0].Object.String()
 	}
 
 	if pr.Status != models.PullRequestStatusChecking {
