@@ -83,7 +83,7 @@
 						</div>
 					</form>
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button" tabindex="0">
+						<div class="ui labeled button {{if not $.IsSigned}} disabled{{end}}" tabindex="0">
 							<a class="ui compact small basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
