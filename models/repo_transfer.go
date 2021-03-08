@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"xorm.io/builder"
 )
 
 // RepoTransfer is used to manage repository transfers
@@ -328,21 +327,27 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	// Delete labels that belong to the old organization and comments that added these labels
 	if oldOwner.IsOrganization() {
-		if _, err := sess.
-			In("id", builder.Select("issue_label.id").
-				Where(builder.Expr("issue.repo_id =? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))", repo.ID, newOwner.ID)).
-				From("issue_label").
-				Join("inner", "label", "issue_label.id = label.id ").
-				Join("inner", "issue", "issue.id = issue_label.issue_id ")).
-			Delete(new(IssueLabel)); err != nil {
+		if _, err := sess.Exec(`DELETE FROM issue_label AS il WHERE il.id IN (
+			SELECT id FROM (
+				SELECT issue_label.id
+					FROM issue_label
+						INNER JOIN label ON issue_label.id = label.id
+						INNER JOIN issue on issue.id = issue_label.issue_id
+					WHERE
+						issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
+		))`, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org labels: %v", err)
 		}
-		if _, err := sess.In("id", builder.Select("comment.id").
-			Where(builder.Expr("comment.type = ? AND issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))", CommentTypeLabel, repo.ID, newOwner.ID)).
-			From("comment").
-			Join("inner", "label", "label.id = comment.label_id").
-			Join("inner", "issue", "issue.id = comment.issue_id ")).
-			Delete(new(Comment)); err != nil {
+
+		if _, err := sess.Exec(`DELETE FROM comment AS com WHERE com.id IN (
+			SELECT id FROM (
+				SELECT comment.id
+					FROM comment
+						INNER JOIN label ON comment.label_id = label.id
+						INNER JOIN issue on issue.id = comment.issue_id
+					WHERE
+						comment.type = ? AND issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
+		))`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org label comments: %v", err)
 		}
 	}
