@@ -19,7 +19,7 @@
 	</div>
 </div>
 <span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint"}}</span>
-<div class="inline field">
+<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
 	<label></label>
 	<input id="lfs_endpoint" name="lfs_endpoint" value="{{.lfs_endpoint}}" {{if not .lfs}}disabled{{end}}>
 </div>

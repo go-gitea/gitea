@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -160,9 +161,13 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	lfsEndpoint := remoteAddr
-	if len(form.LFSEndpoint) > 0 {
-		lfsEndpoint = form.LFSEndpoint
+	if form.LFS && len(form.LFSEndpoint) > 0 {
+		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+		if ep == nil {
+			ctx.Data["Err_LFSEndpoint"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
+			return
+		}
 	}
 
 	var opts = migrations.MigrateOptions{
@@ -174,7 +179,7 @@ func MigratePost(ctx *context.Context) {
 		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
 		LFS:            form.LFS,
-		LFSEndpoint:    lfsEndpoint,
+		LFSEndpoint:    form.LFSEndpoint,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
