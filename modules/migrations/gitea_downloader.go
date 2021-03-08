@@ -688,11 +688,13 @@ func fixPullHeadSha(client *gitea_sdk.Client, pr *gitea_sdk.PullRequest) error {
 	owner := pr.Base.Repository.Owner.UserName
 	repo := pr.Base.Repository.Name
 	if pr.Head != nil && pr.Head.Sha == "" {
-		headCommit, _, err := client.GetSingleCommit(owner, repo, url.PathEscape(pr.Head.Ref))
+		refs, _, err := client.GetRepoRefs(owner, repo, pr.Head.Ref)
 		if err != nil {
 			return err
+		} else if len(refs) == 0 {
+			return fmt.Errorf("unable to resolve PR ref '%s'", pr.Head.Ref)
 		}
-		pr.Head.Sha = headCommit.SHA
+		pr.Head.Sha = refs[0].Object.SHA
 	}
 	return nil
 }
