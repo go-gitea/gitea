@@ -7,7 +7,7 @@ package repository
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"time"
@@ -124,7 +124,8 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 
 		if opts.LFS {
-			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, opts.LFSEndpoint); err != nil {
+			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
@@ -310,8 +311,8 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
-func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, lfsAddr string) error {
-	client := lfs.NewClient(&http.Client{})
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL) error {
+	client := lfs.NewClient(endpoint)
 	contentStore := lfs.NewContentStore()
 
 	pointerBlobs, err := lfs.SearchPointerBlobs(gitRepo)
@@ -348,7 +349,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 				continue
 			}
 
-			stream, err := client.Download(ctx, lfsAddr, pointerBlob.Oid, pointerBlob.Size)
+			stream, err := client.Download(ctx, pointerBlob.Oid, pointerBlob.Size)
 			if err != nil {
 				select {
 				case <-ctx.Done():

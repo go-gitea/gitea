@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -261,8 +262,9 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-	lfsAddr, _ := remoteAddress(m.Repo.RepoPath())
-	if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsAddr); err != nil { // TODO support custom endpoint
+	readAddress(m)
+	ep := lfs.DetermineEndpoint(m.Address, "") // TODO support custom endpoint
+	if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep); err != nil {
 		log.Error("Failed to synchronize LFS objects for repository: %v", err)
 	}
 

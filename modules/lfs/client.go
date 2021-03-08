@@ -5,117 +5,20 @@
 package lfs
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
-	"net/http"
-	"strings"
-
-	"code.gitea.io/gitea/modules/log"
+	"net/url"
 )
 
-// Client is used to communicate with the LFS server
-type Client struct {
-	client    *http.Client
-	transfers map[string]TransferAdapter
+// Client is used to communicate with a LFS source
+type Client interface {
+	Download(ctx context.Context, oid string, size int64) (io.ReadCloser, error)
 }
 
 // NewClient creates a LFS client
-func NewClient(hc *http.Client) *Client {
-	client := &Client{hc, make(map[string]TransferAdapter)}
-
-	basic := &BasicTransferAdapter{hc}
-
-	client.transfers[basic.Name()] = basic
-
-	return client
-}
-
-func (c *Client) transferNames() []string {
-	keys := make([]string, len(c.transfers))
-
-	i := 0
-	for k := range c.transfers {
-		keys[i] = k
-		i++
+func NewClient(endpoint *url.URL) Client {
+	if endpoint.Scheme == "file" {
+		return newFilesystenClient(endpoint.Path)
 	}
-
-	return keys
-}
-
-func (c *Client) batch(ctx context.Context, url, operation string, objects []Pointer) (*BatchResponse, error) {
-	url = fmt.Sprintf("%s.git/info/lfs/objects/batch", strings.TrimSuffix(url, ".git"))
-
-	request := &BatchRequest{operation, c.transferNames(), nil, objects}
-
-	payload := new(bytes.Buffer)
-	err := json.NewEncoder(payload).Encode(request)
-	if err != nil {
-		return nil, fmt.Errorf("lfs.Client.batch json.Encode: %w", err)
-	}
-
-	log.Trace("lfs.Client.batch NewRequestWithContext: %s", url)
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
-	if err != nil {
-		return nil, fmt.Errorf("lfs.Client.batch http.NewRequestWithContext: %w", err)
-	}
-	req.Header.Set("Content-type", MediaType)
-	req.Header.Set("Accept", MediaType)
-
-	res, err := c.client.Do(req)
-	if err != nil {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-		return nil, fmt.Errorf("lfs.Client.batch http.Do: %w", err)
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("lfs.Client.batch: Unexpected servers response: %s", res.Status)
-	}
-
-	var response BatchResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
-	if err != nil {
-		return nil, fmt.Errorf("lfs.Client.batch json.Decode: %w", err)
-	}
-
-	if len(response.Transfer) == 0 {
-		response.Transfer = "basic"
-	}
-
-	return &response, nil
-}
-
-// Download reads the specific LFS object from the LFS server
-func (c *Client) Download(ctx context.Context, url, oid string, size int64) (io.ReadCloser, error) {
-	var objects []Pointer
-	objects = append(objects, Pointer{oid, size})
-
-	result, err := c.batch(ctx, url, "download", objects)
-	if err != nil {
-		return nil, err
-	}
-
-	transferAdapter, ok := c.transfers[result.Transfer]
-	if !ok {
-		return nil, fmt.Errorf("lfs.Client.Download Transferadapter not found: %s", result.Transfer)
-	}
-
-	if len(result.Objects) == 0 {
-		return nil, errors.New("lfs.Client.Download: No objects in result")
-	}
-
-	content, err := transferAdapter.Download(ctx, result.Objects[0])
-	if err != nil {
-		return nil, err
-	}
-	return content, nil
+	return newHTTPClient(endpoint.String())
 }
