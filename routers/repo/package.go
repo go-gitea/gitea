@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"regexp"
@@ -328,14 +327,12 @@ func DockerPluginEvent(ctx *context.Context) {
 		return
 	}
 
-	body, err := ioutil.ReadAll(ctx.Req.Body)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError)
-		log.Error("Failed to read event: %v", err)
-	}
+	decoder := json.NewDecoder(ctx.Req.Body)
+	decoder.DisallowUnknownFields()
+
 	data := new(notifications.Envelope)
 
-	err = json.Unmarshal(body, data)
+	err := decoder.Decode(data)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError)
 		log.Error("Failed to unmarshal event: %v", err)
