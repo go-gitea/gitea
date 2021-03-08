@@ -52,6 +52,13 @@ func isMigrateURLAllowed(remoteURL string) error {
 		}
 	}
 
+	if u.Host == "" {
+		if !setting.ImportLocalPaths {
+			return &models.ErrMigrationNotAllowed{Host: "<LOCAL_FILESYSTEM>"}
+		}
+		return nil
+	}
+
 	if !setting.Migrations.AllowLocalNetworks {
 		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
