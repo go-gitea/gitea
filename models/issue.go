@@ -97,6 +97,9 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
+	if issue.IsClosed {
+		return issue.ClosedUnix >= issue.DeadlineUnix
+	}
 	return timeutil.TimeStampNow() >= issue.DeadlineUnix
 }
 
