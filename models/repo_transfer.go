@@ -327,7 +327,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	// Delete labels that belong to the old organization and comments that added these labels
 	if oldOwner.IsOrganization() {
-		if _, err := sess.Exec(`DELETE FROM issue_label il WHERE il.id IN (
+		if _, err := sess.Exec(`DELETE FROM issue_label AS il WHERE il.id IN (
 			SELECT il_too.id FROM (
 				SELECT issue_label.id
 					FROM issue_label
@@ -339,7 +339,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 			return fmt.Errorf("Unable to remove old org labels: %v", err)
 		}
 
-		if _, err := sess.Exec(`DELETE FROM comment com WHERE com.id IN (
+		if _, err := sess.Exec(`DELETE FROM comment AS com WHERE com.id IN (
 			SELECT il_too.id FROM (
 				SELECT comment.id
 					FROM comment
