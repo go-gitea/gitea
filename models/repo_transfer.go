@@ -341,7 +341,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 		if _, err := sess.Exec(`DELETE FROM comment WHERE comment.id IN (
 			SELECT il_too.id FROM (
-				SELECT comment.id
+				SELECT com.id
 					FROM comment AS com
 						INNER JOIN label ON com.label_id = label.id
 						INNER JOIN issue on issue.id = com.issue_id
