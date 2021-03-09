@@ -846,6 +846,7 @@ var (
 		"assets",
 		"attachments",
 		"avatars",
+		"captcha",
 		"commits",
 		"debug",
 		"error",
