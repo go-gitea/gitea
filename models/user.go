@@ -393,12 +393,13 @@ func hashPassword(ctx context.Context, passwd, salt, algo string) (string, error
 	if setting.MaximumConcurrentHashes > 0 {
 		cond.L.Lock()
 		for concurrentHashes > setting.MaximumConcurrentHashes {
-			cond.Wait()
 			select {
 			case <-ctx.Done():
+				cond.L.Unlock()
 				return "", ctx.Err()
 			default:
 			}
+			cond.Wait()
 		}
 		concurrentHashes++
 		cond.L.Unlock()
@@ -408,6 +409,11 @@ func hashPassword(ctx context.Context, passwd, salt, algo string) (string, error
 			cond.Signal()
 			cond.L.Unlock()
 		}()
+		select {
+		case <-ctx.Done():
+			return "", ctx.Err()
+		default:
+		}
 	}
 
 	var tempPasswd []byte
