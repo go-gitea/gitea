@@ -7,8 +7,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-03-09
 
 * BREAKING
-  * Fix access log (#14475)
-  * Move macaron to chi (#14293)
+  * Restore Access.log following migration to Chi framework (Stops access logging of /api/internal routes) (#14475)
+  * Migrate from Macaron to Chi framework (#14293)
   * Consolidate Logos and update README header (#14136)
   * Inline manifest.json (#14038)
   * Store repository data in data path if not previously set (#13991)
@@ -27,8 +27,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Display SVG files as images instead of text (#14101)
   * Disable SSH key deletion of externally managed Keys (#13985)
   * Add support for ed25519_sk and ecdsa_sk SSH keys (#13462)
-  * Add Mastodon as OAuth2 Provider (#13293)
-  * Sendmail command (#13079)
+  * Add support for Mastodon OAuth2 provider (#13293)
+  * Add gitea sendmail command (#13079)
   * Create DB session provider(based on xorm) (#13031)
   * Add dismiss review feature (#12674)
   * Make manual merge autodetection optional and add manual merge as merge method (#12543)
@@ -43,7 +43,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add affected files of commits to commit struct (#14579)
   * Add  delete release by tag & delete tag (#14563) & (#13358)
   * Add pagination to ListBranches (#14524)
-  * enhancement: add signoff option in commit form (#14516)
+  * Add signoff option in commit form (#14516)
   * GetRelease by tag only return release (#14397)
   * Add MirrorInterval to the API (#14163)
   * Make BasicAuth Prefix case insensitive (#14106)
