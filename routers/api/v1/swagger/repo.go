@@ -330,3 +330,10 @@ type swaggerResponsePackage struct {
 	// in:body
 	Body api.Package `json:"body"`
 }
+
+// PackageVersionList
+// swagger:response PackageVersionList
+type swaggerResponsePackageVersionList struct {
+	// in:body
+	Body []api.PackageVersion `json:"body"`
+}

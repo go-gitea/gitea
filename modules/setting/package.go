@@ -7,6 +7,7 @@ package setting
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -22,6 +23,8 @@ type dockerPluginConfig struct {
 
 	PublicKey  libtrust.PublicKey
 	PrivateKey libtrust.PrivateKey
+
+	APIBasePath string
 }
 
 var (
@@ -59,6 +62,11 @@ func newPackage() {
 	if len(Docker.NotifyToken) == 0 {
 		log.Fatal("docker_registry_plugin: `NOTIFY_TOKEN` is requested")
 	}
+	Docker.APIBasePath = cfg.Key("API_BASE_PATH").String()
+	if len(Docker.APIBasePath) == 0 {
+		log.Fatal("docker_registry_plugin: `API_BASE_PATH` is requested")
+	}
+	Docker.APIBasePath = strings.TrimRight(Docker.APIBasePath, "/")
 }
 
 // HasDockerPlugin has docker plugin

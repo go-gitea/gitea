@@ -953,6 +953,7 @@ func Routes() *web.Route {
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
 				m.Group("/packages", func() {
 					m.Get("/{type}/{name}", repo.GetPackage)
+					m.Get("/{type}/{name}/versions", repo.ListPackageVersions)
 				}, reqRepoReader(models.UnitTypePackages))
 			}, repoAssignment())
 		})

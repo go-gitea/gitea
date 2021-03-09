@@ -72,7 +72,7 @@ func handleResult(ctx *context.Context, ares []docker.AuthzResult) {
 		Expiration:   setting.Docker.Expiration,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "generateToken")
+		ctx.Error(http.StatusInternalServerError, "")
 		log.Error("Failed to generate token: %v", err)
 		return
 	}

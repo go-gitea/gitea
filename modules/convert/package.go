@@ -22,3 +22,14 @@ func ToPackage(pkg *models.Package) *api.Package {
 	rs.Private = rs.Repo.Private
 	return rs
 }
+
+// DockerToVersionList convert docker version list
+func DockerToVersionList(vs []string) []*api.PackageVersion {
+	rs := make([]*api.PackageVersion, 0, len(vs))
+	for _, v := range vs {
+		rs = append(rs, &api.PackageVersion{
+			Name: v,
+		})
+	}
+	return rs
+}

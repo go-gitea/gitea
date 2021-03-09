@@ -19,3 +19,9 @@ type Package struct {
 	// swagger:strfmt date-time
 	Updated *time.Time `json:"updated_at"`
 }
+
+// PackageVersion represents a package version
+type PackageVersion struct {
+	Name   string `json:"name"`
+	Detail string `json:"detail"`
+}
