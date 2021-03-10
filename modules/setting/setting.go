@@ -178,15 +178,6 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 
-	// Service = struct {
-
-	// }{
-	// 	Explore: struct {
-	// 		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
-	// 		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
-	// 	}{},
-	// }
-
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
