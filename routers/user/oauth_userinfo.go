@@ -27,7 +27,7 @@ func UserInfoOAuth(ctx *context.Context) {
 		Name:     user.FullName,
 		Username: user.Name,
 		Email:    user.Email,
-		Picture:  user.Avatar,
+		Picture:  user.AvatarLink(),
 	}
 	ctx.JSON(200, response)
 }
