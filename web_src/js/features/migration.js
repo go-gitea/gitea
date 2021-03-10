@@ -5,7 +5,7 @@ const $token = $('#auth_token');
 const $mirror = $('#mirror');
 const $lfs = $('#lfs');
 const $lfsEndpointBlock = $('#lfs_endpoint');
-const $lfsEndpoint = $lfsEndpointBlock.find('input');
+const $lfsEndpoint = $lfsEndpointBlock.find('input:text');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
