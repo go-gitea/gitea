@@ -161,6 +161,8 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
+	form.LFS = form.LFS && setting.LFS.StartServer
+
 	if form.LFS && len(form.LFSEndpoint) > 0 {
 		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
 		if ep == nil {

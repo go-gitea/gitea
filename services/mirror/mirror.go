@@ -261,11 +261,13 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
 
-	log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-	readAddress(m)
-	ep := lfs.DetermineEndpoint(m.Address, "") // TODO support custom endpoint
-	if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep); err != nil {
-		log.Error("Failed to synchronize LFS objects for repository: %v", err)
+	if m.LFS && setting.LFS.StartServer {
+		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+		readAddress(m)
+		ep := lfs.DetermineEndpoint(m.Address, m.LFSEndpoint)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep); err != nil {
+			log.Error("Failed to synchronize LFS objects for repository: %v", err)
+		}
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
