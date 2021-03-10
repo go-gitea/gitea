@@ -31,4 +31,16 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 
 	err = isMigrateURLAllowed("https://github.com/go-gitea/gitea.git")
 	assert.Error(t, err)
+
+	old := setting.ImportLocalPaths
+	setting.ImportLocalPaths = false
+
+	err = isMigrateURLAllowed("/home/foo/bar/goo")
+	assert.Error(t, err)
+
+	setting.ImportLocalPaths = true
+	err = isMigrateURLAllowed("/home/foo/bar/goo")
+	assert.NoError(t, err)
+
+	setting.ImportLocalPaths = old
 }
