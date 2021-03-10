@@ -219,14 +219,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Change order of possible-owner organizations to alphabetical (#13160)
   * Log IP on SSH authentication failure for Built-in SSH server (#13150)
   * Added option to disable migrations (#13114)
-  * #13091 - add new mirror button (#13105)
+  * New "Add Mirror" Button in the Organization view (#13105)
   * Manually approve new registration (#13083)
   * Cron job to cleanup hook_task table (#13080)
   * Use the headline comment of pull-request as the squash commit's message (#13071)
   * Clarify the suffices and prefixes of setting.AppSubURL and setting.AppURL (#12999)
   * Slightly simplify the queue settings code to help reduce the risk of problems (#12976)
-  * [Feature] add precise search type for Elastic Search (#12869)
-  * [Refactor] Move APIFormat functions into convert package (#12856)
+  * Add precise search type for Elastic Search (#12869)
+  * Move APIFormat functions into convert package (#12856)
   * Multiple GitGraph improvements: Exclude PR heads, Add branch/PR links, Show only certain branches, (#12766)
   * Add TrN for repository limit (#12492)
   * Refactor doctor (#12264)
@@ -237,12 +237,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Introduce go chi web framework as frontend of macaron, so that we can move routes from macaron to chi step by step (#7420)
   * Improve vfsgen to not unzip bindata files but send to browser directly (#7109)
   * Enhance release list (#6025)
-* TRANSLATION
-  * Locale: say another issue instead of this issue (#14082)
 * BUILD
   * CI: Update license & gitignore by cron (#14419)
   * Add compliance check for windows to ensure cross platform build (#14260)
-  * deprecate building for mips (#14174)
+  * Deprecate building for mips (#14174)
   * Precompile fomantic-ui files (#13332)
 * DOCS
   * Swagger show models by default (#14880)
@@ -260,11 +258,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add Password Algorithm option to install page (#14701)
   * Use cat-file --batch in GetLanguageStats (#14685)
   * Reduce calls to git cat-file -s (#14682)
-  * Update JS dependencies and webpack (#14118)
   * Cause NotifyMigrateRepository to emit a repo create webhook (#14004)
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
-  * docker: rootless image (#10154)
+  * Create Rootless Docker image (#10154)
 
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
