@@ -385,6 +385,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Any("/user/events", reqSignIn, events.Events)
 
 	m.Group("/login/oauth", func() {
+		m.Get("/userinfo", user.UserInfoOAuth)
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
 		m.Post("/grant", bindIgnErr(auth.GrantApplicationForm{}), user.GrantApplicationOAuth)
 		// TODO manage redirection
