@@ -4,7 +4,8 @@ const $pass = $('#auth_password');
 const $token = $('#auth_token');
 const $mirror = $('#mirror');
 const $lfs = $('#lfs');
-const $lfsEndpoint = $('#lfs_endpoint');
+const $lfsEndpointBlock = $('#lfs_endpoint');
+const $lfsEndpoint = $lfsEndpointBlock.find('input');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
@@ -55,5 +56,5 @@ function checkItems(tokenAuth) {
 }
 
 function setLFSEndpointVisibility() {
-  $lfsEndpoint.toggle($lfs.is(':checked'));
+  $lfsEndpointBlock.toggle($lfs.is(':checked'));
 }
