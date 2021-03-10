@@ -443,7 +443,7 @@ func (h *serviceHandler) sendFile(contentType, file string) {
 	reqFile := filepath.Join(h.dir, file)
 	rel, err := filepath.Rel(h.dir, reqFile)
 	if err != nil {
-		http.Error(h.w, "Detect if path available failed", 500)
+		http.Error(h.w, "Invalid path requested", 500)
 		return
 	} else if rel == ".." || strings.HasPrefix(filepath.ToSlash(rel), "../") {
 		http.NotFound(h.w, h.r)
