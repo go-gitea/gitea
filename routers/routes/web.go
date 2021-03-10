@@ -65,9 +65,16 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 				next.ServeHTTP(context.NewResponse(resp), req)
 			})
 		},
-		middleware.RealIP,
 		middleware.StripSlashes,
 	}
+	if setting.ReverseProxyForwardedIP {
+		handlers = []func(http.Handler) http.Handler{
+			handlers[0],
+			middleware.RealIP,
+			handlers[1],
+		}
+	}
+
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
