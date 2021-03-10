@@ -10,7 +10,7 @@ import (
 type UserInfoResponse struct {
 	Sub      string `json:"sub"`
 	Name     string `json:"name"`
-	Username string `json:"preffered_username"`
+	Username string `json:"preferred_username"`
 	Email    string `json:"email"`
 	Picture  string `json:"picture"`
 }
