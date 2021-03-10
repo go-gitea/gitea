@@ -176,6 +176,15 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 
+	// Service = struct {
+
+	// }{
+	// 	Explore: struct {
+	// 		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+	// 		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+	// 	}{},
+	// }
+
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
@@ -223,11 +232,6 @@ var (
 			Description string
 			Keywords    string
 		} `ini:"ui.meta"`
-		// Explore page settings
-		Explore struct {
-			RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
-			DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
-		} `ini:"ui.explore"`
 	}{
 		ExplorePagingNum:    20,
 		IssuePagingNum:      10,
@@ -284,10 +288,6 @@ var (
 			Description: "Gitea (Git with a cup of tea) is a painless self-hosted Git service written in Go",
 			Keywords:    "go,git,self-hosted,gitea",
 		},
-		Explore: struct {
-			RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
-			DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
-		}{},
 	}
 
 	// Markdown settings

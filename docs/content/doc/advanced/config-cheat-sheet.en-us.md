@@ -181,11 +181,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `NOTICE_PAGING_NUM`: **25**: Number of notices that are shown in one page.
 - `ORG_PAGING_NUM`: **50**: Number of organizations that are shown in one page.
 
-### UI - Expore (`ui.explore`)
-
-- `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
-- `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
-
 ### UI - Metadata (`ui.meta`)
 
 - `AUTHOR`: **Gitea - Git with a cup of tea**: Author meta tag of the homepage.
@@ -482,6 +477,12 @@ relation to port exhaustion.
 - `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
+
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
+- `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
+
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 

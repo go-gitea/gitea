@@ -50,11 +50,6 @@ menu:
 - `NOTICE_PAGING_NUM`: 系统提示页面每页显示的提示数量。
 - `ORG_PAGING_NUM`: 组织管理页面每页显示的组织数量。
 
-### UI - Expore (`ui.explore`)
-
-- `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
-- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
-
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK`: 是否启用硬换行扩展。
@@ -139,6 +134,11 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: 允许反向代理认证，更多细节见：https://github.com/gogits/gogs/issues/165
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: 注册时使用图片验证码。
+
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
+- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
 
 ## Webhook (`webhook`)
 

@@ -206,7 +206,7 @@ func reqToken() func(ctx *context.APIContext) {
 
 func reqExploreSignIn() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if setting.UI.Explore.RequireSigninView && !ctx.IsSigned {
+		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
 			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
 		}
 	}

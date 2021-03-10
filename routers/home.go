@@ -170,7 +170,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 
 // ExploreRepos render explore repositories page
 func ExploreRepos(ctx *context.Context) {
-	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
@@ -247,7 +247,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 
 // ExploreUsers render explore users page
 func ExploreUsers(ctx *context.Context) {
-	if setting.UI.Explore.DisableUsersPage {
+	if setting.Service.Explore.DisableUsersPage {
 		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return
 	}
@@ -267,7 +267,7 @@ func ExploreUsers(ctx *context.Context) {
 
 // ExploreOrganizations render explore organizations page
 func ExploreOrganizations(ctx *context.Context) {
-	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
@@ -293,7 +293,7 @@ func ExploreCode(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.UI.Explore.DisableUsersPage
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true

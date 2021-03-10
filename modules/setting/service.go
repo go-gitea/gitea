@@ -59,6 +59,12 @@ var Service struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
+
+	// Explore page settings
+	Explore struct {
+		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+	} `ini:"service.explore"`
 }
 
 func newService() {
@@ -107,6 +113,8 @@ func newService() {
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
+
+	Cfg.Section("service.explore").MapTo(&Service.Explore)
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
