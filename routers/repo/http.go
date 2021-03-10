@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -438,7 +438,15 @@ func (h *serviceHandler) setHeaderCacheForever() {
 }
 
 func (h *serviceHandler) sendFile(contentType, file string) {
-	reqFile := path.Join(h.dir, file)
+	reqFile := filepath.Join(h.dir, file)
+	rel, err := filepath.Rel(h.dir, reqFile)
+	if err != nil {
+		http.Error(h.w, "Detect if path available failed", 500)
+		return
+	} else if rel == ".." || strings.HasPrefix(filepath.ToSlash(rel), "../") {
+		http.NotFound(h.w, h.r)
+		return
+	}
 
 	fi, err := os.Stat(reqFile)
 	if os.IsNotExist(err) {
