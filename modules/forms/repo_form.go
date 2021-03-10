@@ -138,6 +138,8 @@ type RepoSettingForm struct {
 	MirrorAddress  string
 	MirrorUsername string
 	MirrorPassword string
+	LFS            bool   `form:"mirror_lfs"`
+	LFSEndpoint    string `form:"mirror_lfs_endpoint"`
 	Private        bool
 	Template       bool
 	EnablePrune    bool

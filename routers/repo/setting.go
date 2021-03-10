@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -205,6 +206,24 @@ func SettingsPost(ctx *context.Context) {
 
 		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
+			return
+		}
+
+		form.LFS = form.LFS && setting.LFS.StartServer
+
+		if len(form.LFSEndpoint) > 0 {
+			ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+			if ep == nil {
+				ctx.Data["Err_LFSEndpoint"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
+				return
+			}
+		}
+
+		ctx.Repo.Mirror.LFS = form.LFS
+		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
+		if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			ctx.ServerError("UpdateMirror", err)
 			return
 		}
 
