@@ -17,7 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// Client is used to communicate with the LFS server
+// HTTPClient is used to communicate with the LFS server
+// https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
 type HTTPClient struct {
 	client    *http.Client
 	endpoint  string
