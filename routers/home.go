@@ -213,6 +213,10 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		orderBy = models.SearchOrderByRecentUpdated
 	case "leastupdate":
 		orderBy = models.SearchOrderByLeastUpdated
+	case "recentlogin":
+		orderBy = models.SearchOrderByRecentLogin
+	case "recentloginreverse":
+		orderBy = models.SearchOrderByRecentLoginReverse
 	case "reversealphabetically":
 		orderBy = models.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":

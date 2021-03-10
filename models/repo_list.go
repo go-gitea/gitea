@@ -199,10 +199,14 @@ const (
 	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
 	SearchOrderByID                    SearchOrderBy = "id ASC"
 	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
-	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
-	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
-	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
-	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
+	// repo
+	SearchOrderByStars        SearchOrderBy = "num_stars ASC"
+	SearchOrderByStarsReverse SearchOrderBy = "num_stars DESC"
+	SearchOrderByForks        SearchOrderBy = "num_forks ASC"
+	SearchOrderByForksReverse SearchOrderBy = "num_forks DESC"
+	// user
+	SearchOrderByRecentLogin        SearchOrderBy = "last_login_unix ASC"
+	SearchOrderByRecentLoginReverse SearchOrderBy = "last_login_unix DESC"
 )
 
 // SearchRepositoryCondition creates a query condition according search repository options

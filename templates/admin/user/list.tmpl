@@ -28,9 +28,9 @@
 						<th>{{.i18n.Tr "admin.users.2fa"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
+						<th data-sortt-asc="recentlogin" data-sortt-desc="recentloginreverse">
 							{{.i18n.Tr "admin.users.last_login"}}
-							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
+							{{SortArrow "recentlogin" "recentloginreverse" $.SortType false}}
 						</th>
 						<th>{{.i18n.Tr "admin.users.edit"}}</th>
 					</tr>

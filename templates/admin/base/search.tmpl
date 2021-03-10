@@ -12,6 +12,8 @@
 			<a class="{{if eq .SortType "reversealphabetically"}}active{{end}} item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
 			<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
 			<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+			<a class="{{if eq .SortType "recentlogin"}}active{{end}} item" href="{{$.Link}}?sort=recentlogin&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentlogin"}}</a>
+			<a class="{{if eq .SortType "recentloginreverse"}}active{{end}} item" href="{{$.Link}}?sort=recentloginreverse&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentloginreverse"}}</a>
 		</div>
 	</div>
 </div>
