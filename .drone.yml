@@ -223,7 +223,7 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    image: gitea/test_env:linux-amd64
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
@@ -236,7 +236,7 @@ steps:
       - build
 
   - name: test-mysql8
-    image: gitea/test_env:linux-amd64
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
@@ -248,7 +248,7 @@ steps:
       - build
 
   - name: test-mssql
-    image: gitea/test_env:linux-amd64
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make test-mssql-migration test-mssql
     environment:
