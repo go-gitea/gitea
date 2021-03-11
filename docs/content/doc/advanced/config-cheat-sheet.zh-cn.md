@@ -135,6 +135,11 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: 注册时使用图片验证码。
 
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
+- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
+
 ## Webhook (`webhook`)
 
 - `QUEUE_LENGTH`: 说明: Hook 任务队列长度。
