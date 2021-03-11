@@ -58,6 +58,8 @@ type Notifier interface {
 	NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 	NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 
+	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
+
 	// org
 	NotifyAddOrgMember(doer, org, member *models.User)
 	NotifyRemoveOrgMember(doer, org, member *models.User)

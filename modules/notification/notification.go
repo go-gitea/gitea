@@ -332,3 +332,10 @@ func NotifyRemoveTeamMember(doer, org, member *models.User, team *models.Team) {
 		notifier.NotifyRemoveTeamMember(doer, org, member, team)
 	}
 }
+
+// NotifyRepoPendingTransfer notifies creation of pending transfer to notifiers
+func NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepoPendingTransfer(doer, newOwner, repo)
+	}
+}

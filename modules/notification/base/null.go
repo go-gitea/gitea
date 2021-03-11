@@ -190,3 +190,7 @@ func (*NullNotifier) NotifyAddTeamMember(doer, org, member *models.User, team *m
 // NotifyRemoveTeamMember notify a member be removed from a team
 func (*NullNotifier) NotifyRemoveTeamMember(doer, org, member *models.User, team *models.Team) {
 }
+
+// NotifyRepoPendingTransfer places a place holder function
+func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+}

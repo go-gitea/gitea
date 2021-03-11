@@ -383,7 +383,7 @@
             padding: 5px;
             margin-left: 5px;
             line-height: 1;
-            color: #767676;
+            color: var(--color-text);
             vertical-align: middle;
             background: transparent;
             border: 0;
@@ -399,7 +399,8 @@
           }
 
           .btn-octicon.disabled {
-            color: #bbbbbb;
+            color: inherit;
+            opacity: var(--opacity-disabled);
             cursor: default;
           }
 
@@ -2767,11 +2768,16 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
+  line-height: initial;
 }
 
 .repository:not(.diff) {
-  .commit-body {
+  .commit-body { // commit history list
     margin: 0;
+  }
+
+  .timeline-item .commit-body { // PR-comment
+    margin-left: 40px;
   }
 }
 

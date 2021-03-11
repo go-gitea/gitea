@@ -9,7 +9,7 @@
 					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
-				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear"}}</a>{{end}}
+				{{if .IsOrganizationOwner}}<a class="middle text grey" href="{{.OrgLink}}/settings">{{svg "octicon-gear" 16 "mb-3"}}</a>{{end}}
 			</div>
 			{{if $.RenderedDescription}}<p class="render-content markdown">{{$.RenderedDescription|Str2html}}</p>{{end}}
 			<div class="text grey meta">
@@ -39,11 +39,11 @@
 			</div>
 
 			<div class="ui five wide column">
-				<h4 class="ui top attached header">
-					<strong>{{.i18n.Tr "org.people"}}</strong>
+				<h4 class="ui top attached header df">
+					<strong class="f1">{{.i18n.Tr "org.people"}}</strong>
 					{{if .IsOrganizationMember}}
-						<div class="ui right">
-							<a class="text grey" href="{{.OrgLink}}/members">{{.Org.NumMembers}} {{svg "octicon-chevron-right"}}</a>
+						<div class="ui">
+							<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.Org.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 						</div>
 					{{end}}
 				</h4>
@@ -59,10 +59,10 @@
 				</div>
 
 				{{if .IsOrganizationMember}}
-					<div class="ui top attached header">
-						<strong>{{.i18n.Tr "org.teams"}}</strong>
-						<div class="ui right">
-							<a class="text grey" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+					<div class="ui top attached header df">
+						<strong class="f1">{{.i18n.Tr "org.teams"}}</strong>
+						<div class="ui">
+							<a class="text grey dif ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 						</div>
 					</div>
 					<div class="ui attached table segment teams">

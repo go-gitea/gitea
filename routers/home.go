@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/user"
 )
 
@@ -46,7 +47,7 @@ func Home(ctx *context.Context) {
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+			middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)

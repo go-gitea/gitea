@@ -97,6 +97,9 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
+	if issue.IsClosed {
+		return issue.ClosedUnix >= issue.DeadlineUnix
+	}
 	return timeutil.TimeStampNow() >= issue.DeadlineUnix
 }
 
@@ -563,7 +566,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 		return err
 	}
 
-	return setNotificationStatusReadIfUnread(x, userID, issue.ID)
+	return setIssueNotificationStatusReadIfUnread(x, userID, issue.ID)
 }
 
 func updateIssueCols(e Engine, issue *Issue, cols ...string) error {
@@ -1706,26 +1709,36 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	var repoCond = builder.In("repo_id", repoIDs)
 	var subQuery = builder.Select("id").From("issue").Where(repoCond)
+	kw = strings.ToUpper(kw)
 	var cond = builder.And(
 		repoCond,
 		builder.Or(
-			builder.Like{"name", kw},
-			builder.Like{"content", kw},
+			builder.Like{"UPPER(name)", kw},
+			builder.Like{"UPPER(content)", kw},
 			builder.In("id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					builder.Like{"content", kw},
+					builder.Like{"UPPER(content)", kw},
 				)),
 			),
 		),
 	)
 
 	var ids = make([]int64, 0, limit)
-	err := x.Distinct("id").Table("issue").Where(cond).OrderBy("`updated_unix` DESC").Limit(limit, start).Find(&ids)
+	var res = make([]struct {
+		ID          int64
+		UpdatedUnix int64
+	}, 0, limit)
+	err := x.Distinct("id", "updated_unix").Table("issue").Where(cond).
+		OrderBy("`updated_unix` DESC").Limit(limit, start).
+		Find(&res)
 	if err != nil {
 		return 0, nil, err
+	}
+	for _, r := range res {
+		ids = append(ids, r.ID)
 	}
 
 	total, err := x.Distinct("id").Table("issue").Where(cond).Count()

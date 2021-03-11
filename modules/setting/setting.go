@@ -7,7 +7,6 @@ package setting
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
+	jsoniter "github.com/json-iterator/go"
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
@@ -132,6 +132,7 @@ var (
 		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
 		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
 		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
+		ServerHostKeys                 []string          `ini:"SSH_SERVER_HOST_KEYS"`
 		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -157,6 +158,7 @@ var (
 		KeygenPath:          "ssh-keygen",
 		MinimumKeySizeCheck: true,
 		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		ServerHostKeys:      []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
 	}
 
 	// Security settings
@@ -698,6 +700,11 @@ func NewContext() {
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}
+	for i, key := range SSH.ServerHostKeys {
+		if !filepath.IsAbs(key) {
+			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
+		}
+	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
@@ -1090,7 +1097,7 @@ func MakeAbsoluteAssetURL(appURL string, staticURLPrefix string) string {
 		}
 
 		// StaticURLPrefix is just a path
-		return strings.TrimSuffix(appURL, "/") + strings.TrimSuffix(staticURLPrefix, "/")
+		return util.URLJoin(appURL, strings.TrimSuffix(staticURLPrefix, "/"))
 	}
 
 	return strings.TrimSuffix(staticURLPrefix, "/")
@@ -1111,6 +1118,7 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,

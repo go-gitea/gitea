@@ -10,6 +10,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -138,12 +140,14 @@ func (p *CreatePayload) SetSecret(secret string) {
 
 // JSONPayload return payload information
 func (p *CreatePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParseCreateHook parses create event hook content.
 func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 	hook := new(CreatePayload)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -193,6 +197,7 @@ func (p *DeletePayload) SetSecret(secret string) {
 
 // JSONPayload implements Payload
 func (p *DeletePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -218,6 +223,7 @@ func (p *ForkPayload) SetSecret(secret string) {
 
 // JSONPayload implements Payload
 func (p *ForkPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -250,6 +256,7 @@ func (p *IssueCommentPayload) SetSecret(secret string) {
 
 // JSONPayload implements Payload
 func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -286,6 +293,7 @@ func (p *ReleasePayload) SetSecret(secret string) {
 
 // JSONPayload implements Payload
 func (p *ReleasePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -317,12 +325,14 @@ func (p *PushPayload) SetSecret(secret string) {
 
 // JSONPayload FIXME
 func (p *PushPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParsePushHook parses push event hook content.
 func ParsePushHook(raw []byte) (*PushPayload, error) {
 	hook := new(PushPayload)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -396,6 +406,7 @@ func (p *IssuePayload) SetSecret(secret string) {
 
 // JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
 func (p *IssuePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -437,6 +448,7 @@ func (p *PullRequestPayload) SetSecret(secret string) {
 
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -479,6 +491,7 @@ func (p *RepositoryPayload) SetSecret(secret string) {
 
 // JSONPayload JSON representation of the payload
 func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", " ")
 }
 

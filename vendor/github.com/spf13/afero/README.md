@@ -94,6 +94,7 @@ AppFs.Open('/tmp/foo')
 File System Methods Available:
 ```go
 Chmod(name string, mode os.FileMode) : error
+Chown(name string, uid, gid int) : error
 Chtimes(name string, atime time.Time, mtime time.Time) : error
 Create(name string) : File, error
 Mkdir(name string, perm os.FileMode) : error

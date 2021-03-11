@@ -5,18 +5,19 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addOrgIDHookTaskColumn(x *xorm.Engine) error {
-	type HookTask struct {
-		OrgID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
+func addRepoTransfer(x *xorm.Engine) error {
+	type RepoTransfer struct {
+		ID          int64 `xorm:"pk autoincr"`
+		DoerID      int64
+		RecipientID int64
+		RepoID      int64
+		TeamIDs     []int64
+		CreatedUnix int64 `xorm:"INDEX NOT NULL created"`
+		UpdatedUnix int64 `xorm:"INDEX NOT NULL updated"`
 	}
 
-	if err := x.Sync2(new(HookTask)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(RepoTransfer))
 }

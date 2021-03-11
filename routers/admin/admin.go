@@ -6,7 +6,6 @@
 package admin
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/mailer"
+	jsoniter "github.com/json-iterator/go"
 
 	"gitea.com/go-chi/session"
 )
@@ -274,6 +274,7 @@ func Config(ctx *context.Context) {
 	sessionCfg := setting.SessionConfig
 	if sessionCfg.Provider == "VirtualSession" {
 		var realSession session.Options
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
 			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}

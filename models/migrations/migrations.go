@@ -294,7 +294,9 @@ var migrations = []Migration{
 	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
-	// v174 -> v178
+	// v174 -> v175
+	NewMigration("create repo transfer table", addRepoTransfer),
+	// v175 -> v176
 	NewMigration("Add org_id to hook_task table", addOrgIDHookTaskColumn),
 }
 
