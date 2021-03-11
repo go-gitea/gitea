@@ -59,7 +59,7 @@ func AddPackage(option AddPackageOptions) error {
 	return err
 }
 
-// GetPackage get an package
+// GetPackage get a package
 func GetPackage(repoID int64, typ PackageType, name string) (*Package, error) {
 	return getPackage(x, repoID, typ, name)
 }

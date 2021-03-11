@@ -296,7 +296,7 @@ var migrations = []Migration{
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 	// v174 -> v175
 	NewMigration("create repo transfer table", addRepoTransfer),
-	// v155 -> v176
+	// v175 -> v176
 	NewMigration("create package table", addPackageTable),
 }
 

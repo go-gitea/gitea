@@ -260,7 +260,7 @@ var (
 		5,
 	}
 
-	UnitPacages = Unit{
+	UnitPackages = Unit{
 		UnitTypePackages,
 		"repo.packages",
 		"/packages",
@@ -278,7 +278,7 @@ var (
 		UnitTypeWiki:            UnitWiki,
 		UnitTypeExternalWiki:    UnitExternalWiki,
 		UnitTypeProjects:        UnitProjects,
-		UnitTypePackages:        UnitPacages,
+		UnitTypePackages:        UnitPackages,
 	}
 )
 
