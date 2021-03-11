@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -114,7 +115,9 @@ func newService() {
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
 
-	Cfg.Section("service.explore").MapTo(&Service.Explore)
+	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
+		log.Fatal("Failed to map service.explore settings: %v", err)
+	}
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
