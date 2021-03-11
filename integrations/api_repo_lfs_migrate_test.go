@@ -20,6 +20,8 @@ import (
 func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	oldImportLocalPaths := setting.ImportLocalPaths
+	oldAllowLocalNetworks := setting.Migrations.AllowLocalNetworks
 	setting.ImportLocalPaths = true
 	setting.Migrations.AllowLocalNetworks = true
 
@@ -41,4 +43,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	assert.True(t, ok)
 	ok, _ = store.Verify(lfs.Pointer{Oid: "d6f175817f886ec6fbbc1515326465fa96c3bfd54a4ea06cfd6dbbd8340e0152", Size: 6})
 	assert.True(t, ok)
+
+	setting.ImportLocalPaths = oldImportLocalPaths
+	setting.Migrations.AllowLocalNetworks = oldAllowLocalNetworks
 }
