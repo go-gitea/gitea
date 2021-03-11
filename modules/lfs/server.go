@@ -6,7 +6,7 @@ package lfs
 
 import (
 	"encoding/base64"
-	"encoding/json"
+
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/dgrijalva/jwt-go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -210,6 +211,7 @@ func getMetaHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	if ctx.Req.Method == "GET" {
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(ctx.Resp)
 		if err := enc.Encode(Represent(rv, meta, true, false)); err != nil {
 			log.Error("Failed to encode representation as json. Error: %v", err)
@@ -281,6 +283,7 @@ func PostHandler(ctx *context.Context) {
 	}
 	ctx.Resp.WriteHeader(sentStatus)
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(Represent(rv, meta, meta.Existing, true)); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -371,6 +374,7 @@ func BatchHandler(ctx *context.Context) {
 
 	respobj := &models.BatchResponse{Objects: responseObjects}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -508,6 +512,7 @@ func unpack(ctx *context.Context) *RequestVars {
 		var p RequestVars
 		bodyReader := r.Body
 		defer bodyReader.Close()
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dec := json.NewDecoder(bodyReader)
 		err := dec.Decode(&p)
 		if err != nil {
@@ -531,6 +536,7 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 
 	bodyReader := r.Body
 	defer bodyReader.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(bodyReader)
 	err := dec.Decode(&bv)
 	if err != nil {

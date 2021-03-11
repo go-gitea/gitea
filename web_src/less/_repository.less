@@ -2768,11 +2768,16 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
+  line-height: initial;
 }
 
 .repository:not(.diff) {
-  .commit-body {
+  .commit-body { // commit history list
     margin: 0;
+  }
+
+  .timeline-item .commit-body { // PR-comment
+    margin-left: 40px;
   }
 }
 

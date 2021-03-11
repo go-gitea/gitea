@@ -8,6 +8,8 @@ package git
 import (
 	"bytes"
 	"container/list"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -232,8 +234,38 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 
 // CommitsByFileAndRange return the commits according revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	stdout, err := NewCommand("log", revision, "--follow", "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
+	skip := (page - 1) * CommitsRangeSize
+
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+	go func() {
+		stderr := strings.Builder{}
+		err := NewCommand("log", revision, "--follow",
+			"--max-count="+strconv.Itoa(CommitsRangeSize*page),
+			prettyLogFormat, "--", file).
+			RunInDirPipeline(repo.Path, stdoutWriter, &stderr)
+		if err != nil {
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+		} else {
+			_ = stdoutWriter.Close()
+		}
+	}()
+
+	if skip > 0 {
+		_, err := io.CopyN(ioutil.Discard, stdoutReader, int64(skip*41))
+		if err != nil {
+			if err == io.EOF {
+				return list.New(), nil
+			}
+			_ = stdoutReader.CloseWithError(err)
+			return nil, err
+		}
+	}
+
+	stdout, err := ioutil.ReadAll(stdoutReader)
 	if err != nil {
 		return nil, err
 	}
@@ -423,4 +455,13 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.Lis
 	}
 
 	return commits
+}
+
+// IsCommitInBranch check if the commit is on the branch
+func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
+	stdout, err := NewCommand("branch", "--contains", commitID, branch).RunInDir(repo.Path)
+	if err != nil {
+		return false, err
+	}
+	return len(stdout) > 0, err
 }
