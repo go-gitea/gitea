@@ -629,6 +629,11 @@ func Escape(raw string) string {
 	return html.EscapeString(raw)
 }
 
+// JSEscape escapes a JS string
+func JSEscape(raw string) string {
+	return template.JSEscapeString(raw)
+}
+
 // List traversings the list
 func List(l *list.List) chan interface{} {
 	e := l.Front()
