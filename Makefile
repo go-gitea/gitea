@@ -596,7 +596,7 @@ release-darwin: | $(DIST_DIRS)
 	@hash xgo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
-	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64' -out gitea-$(VERSION) .
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
