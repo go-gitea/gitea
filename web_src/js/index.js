@@ -3761,7 +3761,7 @@ function initIssueList() {
         const href = $(this).attr('href');
         const id = $(this).data('label-id');
 
-        const regStr = `labels=(-?[0-9]+%2c)*(${id})(%2c-?[0-9]+)*&`;
+        const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
         const newStr = 'labels=$1-$2$3&';
 
         window.location = href.replace(new RegExp(regStr), newStr);
@@ -3779,7 +3779,7 @@ function initIssueList() {
         const href = item.attr('href');
         const id = item.data('label-id');
 
-        const regStr = `labels=(-?[0-9]+%2c)*(${id})(%2c-?[0-9]+)*&`;
+        const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
         const newStr = 'labels=$1-$2$3&';
 
         window.location = href.replace(new RegExp(regStr), newStr);
