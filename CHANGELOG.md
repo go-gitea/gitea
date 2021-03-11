@@ -75,10 +75,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Truncated organizations name (#14615)
   * Exclude the current dump file from the dump (#14606)
   * Use OldRef instead of CommitSHA for DeleteBranch comments (#14604)
-  * Ensure memcache TTL cannot be over 30 days (#14592)
+  * Ensure memcache caching works when TTL greater than 30 days (#14592)
   * Remove NULs byte arrays passed to PostProcess (#14587)
   * Restore detection of branches are equal on compare page (#14586)
-  * Upgrade 'css-minimizer-webpack-plugin' to the latest version (#14527)
   * Fix incorrect key name so registerManualConfirm works (#14455)
   * Fix close/reopen with comment (#14436)
   * Allow passcode invalid error to appear (#14371)
@@ -112,6 +111,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
   * UI style improvements
+  * Add ui.explore settings to control view of explore pages (#14094)
   * Make internal SSH server host key path configurable (#14918)
   * Hide resync all ssh principals when using internal ssh server (#14904)
   * Add SameSite setting for cookies (#14900)
