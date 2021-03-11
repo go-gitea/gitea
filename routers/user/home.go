@@ -712,6 +712,9 @@ func getRepoIDs(reposQuery string) []int64 {
 	if len(reposQuery) == 0 {
 		return []int64{}
 	}
+	if reposQuery == "[]" {
+		return []int64{}
+	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
 		log.Warn("issueReposQueryPattern does not match query")
 		return []int64{}
