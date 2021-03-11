@@ -243,7 +243,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing repo.projects unit into swagger (#14876)
   * Update docs and comments to remove macaron (#14491)
   * Issue template addition: Are you using Gitea behind CloudFlare? (#14098)
-  * Docker: fix diff format. (#14035)
   * Generate man pages (#13901)
   * Reformat/fine-tune docs (#13897)
   * Added Table of Contents to long documentation pages (#13890)
