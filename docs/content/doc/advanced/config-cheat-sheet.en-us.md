@@ -390,6 +390,10 @@ relation to port exhaustion.
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
+- `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
+   Number of trusted proxy count. Set to zero to not use these headers.
+- `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.1**: List of IP addresses separated by comma of trusted proxy servers. Use `*` to trust all.
+- `REVERSE_PROXY_TRUSTED_NETWORKS`: **<empty>**: List of network addresses separated by comma of trusted proxy servers. Example `10.0.0.0/24`.
 - `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with git hook privilege to create custom git hooks.
    WARNING: Custom git hooks can be used to perform arbitrary code execution on the host operating system.
    This enables the users to access and modify this config file and the Gitea database and interrupt the Gitea service.

@@ -169,6 +169,9 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyLimit                  int
+	ReverseProxyTrustedIPAddr          []string
+	ReverseProxyTrustedNet             []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
 	DisableGitHooks                    bool
@@ -819,8 +822,17 @@ func NewContext() {
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
+
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+
+	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyTrustedIPAddr = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
+	if len(ReverseProxyTrustedIPAddr) == 0 {
+		ReverseProxyTrustedIPAddr = []string{"127.0.0.1"}
+	}
+	ReverseProxyTrustedNet = sec.Key("REVERSE_PROXY_TRUSTED_NETWORKS").Strings(",")
+
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
