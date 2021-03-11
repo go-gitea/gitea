@@ -61,7 +61,7 @@ func endpointFromURL(rawurl string) *url.URL {
 	case "http", "https":
 		return u
 	case "file":
-		return endpointFromLocalPath(u.Path)
+		return u
 	default:
 		if _, err := os.Stat(rawurl); err == nil {
 			return endpointFromLocalPath(rawurl)
