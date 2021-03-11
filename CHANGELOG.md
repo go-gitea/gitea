@@ -91,6 +91,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix integrations test error with space in CURDIR path (#14056)
   * Dropdown triangle fixes (#14028)
   * Fix label of --id in admin delete user (#14005)
+  * Cause NotifyMigrateRepository to emit a repo create webhook (#14004)
   * Update HEAD to match defaultBranch in template generation (#13948)
   * Fix action avatar loading (#13909)
   * Fix issue participants (#13893)
@@ -110,8 +111,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update Mirror IsEmpty status on synchronize (#13185)
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
-  * Minor UI fixes (#14926)
-  * Move Workaround for #12675 into it's own function (#14922)
+  * UI style improvements
   * Make internal SSH server host key path configurable (#14918)
   * Hide resync all ssh principals when using internal ssh server (#14904)
   * Add SameSite setting for cookies (#14900)
@@ -121,6 +121,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add easyMDE(simpleMDE) support for release content editor (#14744)
   * Organization removal confirmation using name not password (#14738)
   * Make branch names in PR description clickable (#14716)
+  * Add Password Algorithm option to install page (#14701)
   * Add fullTextSearch to dropdowns by default (#14694)
   * Fix truncated organization names (#14655)
   * Whitespace in commits (#14650)
@@ -238,8 +239,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve vfsgen to not unzip bindata files but send to browser directly (#7109)
   * Enhance release list (#6025)
 * BUILD
-  * CI: Update license & gitignore by cron (#14419)
-  * Add compliance check for windows to ensure cross platform build (#14260)
   * Deprecate building for mips (#14174)
   * Precompile fomantic-ui files (#13332)
 * DOCS
@@ -255,10 +254,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update external-renderers.en-us.md (#13165)
 * MISC
   * Migrate to use jsoniter instead of encoding/json (#14841)
-  * Add Password Algorithm option to install page (#14701)
-  * Use cat-file --batch in GetLanguageStats (#14685)
-  * Reduce calls to git cat-file -s (#14682)
-  * Cause NotifyMigrateRepository to emit a repo create webhook (#14004)
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
   * Create Rootless Docker image (#10154)
@@ -466,7 +461,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix scrolling to resolved comment anchors (#13343) (#13371)
   * Storage configuration support `[storage]` (#13314) (#13379)
   * When creating line diffs do not split within an html entity (#13357) (#13375) (#13425) (#13427)
-  * Fix reactions on code comments (#13390) (#13401) 
+  * Fix reactions on code comments (#13390) (#13401)
   * Add missing full names when DEFAULT_SHOW_FULL_NAME is enabled (#13424)
   * Replies to outdated code comments should also be outdated (#13217) (#13433)
   * Fix panic bug in handling multiple references in commit (#13486) (#13487)
