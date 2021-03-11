@@ -9,6 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BREAKING
   * Restore Access.log following migration to Chi framework (Stops access logging of /api/internal routes) (#14475)
   * Migrate from Macaron to Chi framework (#14293)
+  * Deprecate building for mips (#14174)
   * Consolidate Logos and update README header (#14136)
   * Inline manifest.json (#14038)
   * Store repository data in data path if not previously set (#13991)
@@ -33,6 +34,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add dismiss review feature (#12674)
   * Make manual merge autodetection optional and add manual merge as merge method (#12543)
   * Dump github/gitlab/gitea repository data to a local directory and restore to gitea (#12244)
+  * Create Rootless Docker image (#10154)
 * API
   * Get pull, return head branch sha, even if deleted (#14931)
   * Export LFS & TimeTracking function status (#14753)
@@ -236,8 +238,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Introduce go chi web framework as frontend of macaron, so that we can move routes from macaron to chi step by step (#7420)
   * Improve vfsgen to not unzip bindata files but send to browser directly (#7109)
   * Enhance release list (#6025)
-* BUILD
-  * Deprecate building for mips (#14174)
 * DOCS
   * Swagger show models by default (#14880)
   * Add missing repo.projects unit into swagger (#14876)
@@ -252,7 +252,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Migrate to use jsoniter instead of encoding/json (#14841)
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
-  * Create Rootless Docker image (#10154)
 
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
