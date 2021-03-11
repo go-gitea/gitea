@@ -321,7 +321,7 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	return labels, x.Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id").
+		Cols("id", "repo_id", "org_id").
 		Find(&labels)
 }
 
