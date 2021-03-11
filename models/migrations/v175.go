@@ -44,18 +44,6 @@ func removeInvalidLabels(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := x.Exec(`DELETE FROM comment WHERE comment.id IN (
-		SELECT il_too.id FROM (
-			SELECT com.id
-				FROM comment AS com
-					INNER JOIN label ON com.label_id = label.id
-					INNER JOIN issue on issue.id = com.issue_id
-				WHERE
-					com.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repo.owner_id))
-	) AS il_too)`, 7); err != nil {
-		return err
-	}
-
 	if _, err := x.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
 		SELECT il_too.id FROM (
 			SELECT il_too_too.id
@@ -66,6 +54,19 @@ func removeInvalidLabels(x *xorm.Engine) error {
 				WHERE
 					issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`); err != nil {
+		return err
+	}
+
+	if _, err := x.Exec(`DELETE FROM comment WHERE comment.id IN (
+		SELECT il_too.id FROM (
+			SELECT com.id
+				FROM comment AS com
+					INNER JOIN label ON com.label_id = label.id
+					INNER JOIN issue on issue.id = com.issue_id
+					INNER JOIN repository on repository.id = issue.repo_id
+				WHERE
+					com.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
+	) AS il_too)`, 7); err != nil {
 		return err
 	}
 
