@@ -18,7 +18,7 @@ type Client interface {
 // NewClient creates a LFS client
 func NewClient(endpoint *url.URL) Client {
 	if endpoint.Scheme == "file" {
-		return newFilesystenClient(endpoint.Path)
+		return newFilesystemClient(endpoint.Path)
 	}
 	return newHTTPClient(endpoint.String())
 }

@@ -16,7 +16,7 @@ type FilesystemClient struct {
 	lfsdir string
 }
 
-func newFilesystenClient(path string) *FilesystemClient {
+func newFilesystemClient(path string) *FilesystemClient {
 	lfsdir := filepath.Join(path, "lfs", "objects")
 
 	client := &FilesystemClient{lfsdir}
