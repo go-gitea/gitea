@@ -26,6 +26,10 @@ func ForwardedHeaders(options ...*ForwardedHeadersOptions) func(h http.Handler) 
 	}
 	return func(h http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
+			// Treat unix socket as 127.0.0.1
+			if r.RemoteAddr == "@" {
+				r.RemoteAddr = "127.0.0.1:0"
+			}
 			if rip := realIP(r, opt); len(rip) > 0 {
 				r.RemoteAddr = net.JoinHostPort(rip, "0")
 			}
