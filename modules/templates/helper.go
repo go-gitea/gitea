@@ -92,6 +92,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
