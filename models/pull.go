@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // PullRequestType defines pull request type
@@ -34,6 +35,7 @@ const (
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
 	PullRequestStatusError
+	PullRequestStatusEmpty
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -331,6 +333,11 @@ func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
+// IsEmpty returns true if this pull request is empty.
+func (pr *PullRequest) IsEmpty() bool {
+	return pr.Status == PullRequestStatusEmpty
+}
+
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
 
@@ -343,6 +350,8 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
+	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
+	MergeStyleManuallyMerged MergeStyle = "manually-merged"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
@@ -637,4 +646,28 @@ func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
+}
+
+// GetBaseBranchHTMLURL returns the HTML URL of the base branch
+func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo == nil {
+		return ""
+	}
+	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+}
+
+// GetHeadBranchHTMLURL returns the HTML URL of the head branch
+func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return ""
+	}
+	if pr.HeadRepo == nil {
+		return ""
+	}
+	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }

@@ -2,70 +2,72 @@
 // Use of this source code is governed by a license that can be
 // found in the LICENSE file.
 
+//+build !noasm,!appengine,gc
+
 // This is the AVX512 implementation of the MD5 block function (16-way parallel)
 
 #define prep(index) \
-	KMOVQ	   kmask, ktmp					    \
+	KMOVQ      kmask, ktmp                      \
 	VPGATHERDD index*4(base)(ptrs*1), ktmp, mem
 
 #define ROUND1(a, b, c, d, index, const, shift) \
-	VXORPS  c, tmp, tmp            \
-	VPADDD  64*const(consts), a, a \
-	VPADDD  mem, a, a              \
-	VPTERNLOGD $0x6C, b, d, tmp    \
-	prep(index)                    \
-	VPADDD  tmp, a, a              \
-	VPROLD $shift, a, a            \
-	VMOVAPD c, tmp                 \
-	VPADDD  b, a, a
+	VPXORQ     c, tmp, tmp            \
+	VPADDD     64*const(consts), a, a \
+	VPADDD     mem, a, a              \
+	VPTERNLOGD $0x6C, b, d, tmp       \
+	prep(index)                       \
+	VPADDD     tmp, a, a              \
+	VPROLD     $shift, a, a           \
+	VMOVAPD    c, tmp                 \
+	VPADDD     b, a, a
 
 #define ROUND1noload(a, b, c, d, const, shift) \
-	VXORPS  c, tmp, tmp            \
-	VPADDD  64*const(consts), a, a \
-	VPADDD  mem, a, a              \
-	VPTERNLOGD $0x6C, b, d, tmp    \
-	VPADDD  tmp, a, a              \
-	VPROLD $shift, a, a            \
-	VMOVAPD c, tmp                 \
-	VPADDD  b, a, a
+	VPXORQ     c, tmp, tmp            \
+	VPADDD     64*const(consts), a, a \
+	VPADDD     mem, a, a              \
+	VPTERNLOGD $0x6C, b, d, tmp       \
+	VPADDD     tmp, a, a              \
+	VPROLD     $shift, a, a           \
+	VMOVAPD    c, tmp                 \
+	VPADDD     b, a, a
 
 #define ROUND2(a, b, c, d, zreg, const, shift) \
-	VPADDD  64*const(consts), a, a \
-	VPADDD  zreg, a, a             \
-	VANDNPS c, tmp, tmp            \
-	VPTERNLOGD $0xEC, b, tmp, tmp2 \
-	VMOVAPD c, tmp                 \
-	VPADDD  tmp2, a, a             \
-	VMOVAPD c, tmp2                \
-	VPROLD $shift, a, a            \
-	VPADDD  b, a, a
+	VPADDD     64*const(consts), a, a \
+	VPADDD     zreg, a, a             \
+	VANDNPD    c, tmp, tmp            \
+	VPTERNLOGD $0xEC, b, tmp, tmp2    \
+	VMOVAPD    c, tmp                 \
+	VPADDD     tmp2, a, a             \
+	VMOVAPD    c, tmp2                \
+	VPROLD     $shift, a, a           \
+	VPADDD     b, a, a
 
 #define ROUND3(a, b, c, d, zreg, const, shift) \
-	VPADDD  64*const(consts), a, a \
-	VPADDD  zreg, a, a             \
-	VPTERNLOGD $0x96, b, d, tmp    \
-	VPADDD  tmp, a, a              \
-	VPROLD $shift, a, a            \
-	VMOVAPD b, tmp                 \
-	VPADDD  b, a, a
+	VPADDD     64*const(consts), a, a \
+	VPADDD     zreg, a, a             \
+	VPTERNLOGD $0x96, b, d, tmp       \
+	VPADDD     tmp, a, a              \
+	VPROLD     $shift, a, a           \
+	VMOVAPD    b, tmp                 \
+	VPADDD     b, a, a
 
 #define ROUND4(a, b, c, d, zreg, const, shift) \
-	VPADDD 64*const(consts), a, a \
-	VPADDD zreg, a, a             \
-	VPTERNLOGD $0x36, b, c, tmp   \
-	VPADDD tmp, a, a              \
-	VPROLD $shift, a, a           \
-	VXORPS c, ones, tmp           \
-	VPADDD b, a, a
+	VPADDD     64*const(consts), a, a \
+	VPADDD     zreg, a, a             \
+	VPTERNLOGD $0x36, b, c, tmp       \
+	VPADDD     tmp, a, a              \
+	VPROLD     $shift, a, a           \
+	VPXORQ     c, ones, tmp           \
+	VPADDD     b, a, a
 
-TEXT ·block16(SB),4,$0-40
+TEXT ·block16(SB), 4, $0-40
 
-    MOVQ  state+0(FP), BX
-    MOVQ  base+8(FP), SI
-    MOVQ  ptrs+16(FP), AX
-    KMOVQ mask+24(FP), K1
-    MOVQ  n+32(FP), DX
-    MOVQ  ·avx512md5consts+0(SB), DI
+	MOVQ  state+0(FP), BX
+	MOVQ  base+8(FP), SI
+	MOVQ  ptrs+16(FP), AX
+	KMOVQ mask+24(FP), K1
+	MOVQ  n+32(FP), DX
+	MOVQ  ·avx512md5consts+0(SB), DI
 
 #define a Z0
 #define b Z1
@@ -90,7 +92,6 @@ TEXT ·block16(SB),4,$0-40
 // Registers Z16 through to Z31 are used for caching purposes
 // ----------------------------------------------------------
 
-
 #define dig    BX
 #define count  DX
 #define base   SI
@@ -105,7 +106,7 @@ TEXT ·block16(SB),4,$0-40
 	// load source pointers
 	VMOVUPD 0x00(AX), ptrs
 
-	MOVQ $-1, AX
+	MOVQ         $-1, AX
 	VPBROADCASTQ AX, ones
 
 loop:
@@ -190,7 +191,7 @@ loop:
 	ROUND3(c,d,a,b, Z31,0x2e,16)
 	ROUND3(b,c,d,a, Z18,0x2f,23)
 
-	VXORPS d, ones, tmp
+	VPXORQ d, ones, tmp
 
 	ROUND4(a,b,c,d, Z16,0x30, 6)
 	ROUND4(d,a,b,c, Z23,0x31,10)

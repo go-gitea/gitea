@@ -22,9 +22,8 @@ import (
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"time"
 )
-
-import "time"
 
 const FilePathSeparator = string(filepath.Separator)
 
@@ -57,6 +56,8 @@ type FileData struct {
 	dir     bool
 	mode    os.FileMode
 	modtime time.Time
+	uid     int
+	gid     int
 }
 
 func (d *FileData) Name() string {
@@ -93,6 +94,18 @@ func SetModTime(f *FileData, mtime time.Time) {
 
 func setModTime(f *FileData, mtime time.Time) {
 	f.modtime = mtime
+}
+
+func SetUID(f *FileData, uid int) {
+	f.Lock()
+	f.uid = uid
+	f.Unlock()
+}
+
+func SetGID(f *FileData, gid int) {
+	f.Lock()
+	f.gid = gid
+	f.Unlock()
 }
 
 func GetFileInfo(f *FileData) *FileInfo {
@@ -210,6 +223,8 @@ func (f *File) Truncate(size int64) error {
 	if size < 0 {
 		return ErrOutOfRange
 	}
+	f.fileData.Lock()
+	defer f.fileData.Unlock()
 	if size > int64(len(f.fileData.data)) {
 		diff := size - int64(len(f.fileData.data))
 		f.fileData.data = append(f.fileData.data, bytes.Repeat([]byte{00}, int(diff))...)

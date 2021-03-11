@@ -69,7 +69,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        true,
-	}, nil))
+	}, nil, ""))
 
 	err = mirror.GetMirror()
 	assert.NoError(t, err)

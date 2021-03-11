@@ -1416,6 +1416,10 @@ func ViewIssue(ctx *context.Context) {
 				ctx.ServerError("LoadPushCommits", err)
 				return
 			}
+		} else if comment.Type == models.CommentTypeAddTimeManual ||
+			comment.Type == models.CommentTypeStopTracking {
+			// drop error since times could be pruned from DB..
+			_ = comment.LoadTime()
 		}
 	}
 
@@ -1487,6 +1491,8 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
 				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+			} else if prConfig.AllowManualMerge {
+				ctx.Data["MergeStyle"] = models.MergeStyleManuallyMerged
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
@@ -1527,6 +1533,22 @@ func ViewIssue(ctx *context.Context) {
 			pull.HeadRepo != nil &&
 			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+
+		stillCanManualMerge := func() bool {
+			if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
+				return false
+			}
+			if pull.CanAutoMerge() || pull.IsWorkInProgress() || pull.IsChecking() {
+				return false
+			}
+			if (ctx.User.IsAdmin || ctx.Repo.IsAdmin()) && prConfig.AllowManualMerge {
+				return true
+			}
+
+			return false
+		}
+
+		ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 	}
 
 	// Get Dependencies
@@ -2459,12 +2481,11 @@ func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, con
 	return attachHTML
 }
 
+// combineLabelComments combine the nearby label comments as one.
 func combineLabelComments(issue *models.Issue) {
+	var prev, cur *models.Comment
 	for i := 0; i < len(issue.Comments); i++ {
-		var (
-			prev *models.Comment
-			cur  = issue.Comments[i]
-		)
+		cur = issue.Comments[i]
 		if i > 0 {
 			prev = issue.Comments[i-1]
 		}
@@ -2481,16 +2502,25 @@ func combineLabelComments(issue *models.Issue) {
 			continue
 		}
 
-		if cur.Label != nil {
-			if cur.Content != "1" {
-				prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
-			} else {
-				prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+		if cur.Label != nil { // now cur MUST be label comment
+			if prev.Type == models.CommentTypeLabel { // we can combine them only prev is a label comment
+				if cur.Content != "1" {
+					prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+				} else {
+					prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+				}
+				prev.CreatedUnix = cur.CreatedUnix
+				// remove the current comment since it has been combined to prev comment
+				issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
+				i--
+			} else { // if prev is not a label comment, start a new group
+				if cur.Content != "1" {
+					cur.RemovedLabels = append(cur.RemovedLabels, cur.Label)
+				} else {
+					cur.AddedLabels = append(cur.AddedLabels, cur.Label)
+				}
 			}
 		}
-		prev.CreatedUnix = cur.CreatedUnix
-		issue.Comments = append(issue.Comments[:i], issue.Comments[i+1:]...)
-		i--
 	}
 }
 
