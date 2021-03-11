@@ -20,7 +20,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * FEATURES
   * Repository transfer has to be confirmed, if user can not create repo for new owner (#14792)
   * Allow blocking some email domains from registering an account (#14667)
-  * Comment - Reference in new issue (#14366)
+  * Create a new issue based on reference to an issue comment (#14366)
   * Add support to migrate from gogs (#14342)
   * Add pager to the branches page (#14202)
   * Minimal OpenID Connect implementation (#14139)
