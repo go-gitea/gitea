@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -25,10 +26,14 @@ type HTTPClient struct {
 	transfers map[string]TransferAdapter
 }
 
-func newHTTPClient(endpoint string) *HTTPClient {
+func newHTTPClient(endpoint *url.URL) *HTTPClient {
 	hc := &http.Client{}
 
-	client := &HTTPClient{hc, endpoint, make(map[string]TransferAdapter)}
+	client := &HTTPClient{
+		client:    hc,
+		endpoint:  strings.TrimSuffix(endpoint.String(), "/"),
+		transfers: make(map[string]TransferAdapter),
+	}
 
 	basic := &BasicTransferAdapter{hc}
 
@@ -50,7 +55,7 @@ func (c *HTTPClient) transferNames() []string {
 }
 
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
-	url := fmt.Sprintf("%s/objects/batch", strings.TrimSuffix(c.endpoint, "/"))
+	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 
