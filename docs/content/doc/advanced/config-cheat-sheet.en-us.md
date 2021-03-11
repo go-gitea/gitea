@@ -479,6 +479,12 @@ relation to port exhaustion.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
+- `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
+
+
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 
 Define allowed algorithms and their minimum key length (use -1 to disable a type):
