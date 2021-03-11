@@ -432,9 +432,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	case models.FilterModeCreate:
 		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctxUser.ID
+		opts.ReviewRequestedID = ctx.User.ID
 	}
 
 	if ctxUser.IsOrganization() {
