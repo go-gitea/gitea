@@ -46,7 +46,8 @@ func TestHTTPClientDownload(t *testing.T) {
 		if strings.Contains(url, "invalid-json-response") {
 			return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewBufferString("invalid json"))}
 		}
-		if strings.Contains(url, "correct-batch-request-download") {
+		if strings.Contains(url, "valid-batch-request-download") {
+			assert.Equal(t, "POST", req.Method)
 			assert.Equal(t, MediaType, req.Header.Get("Content-type"), "case %s: error should match", url)
 			assert.Equal(t, MediaType, req.Header.Get("Accept"), "case %s: error should match", url)
 
@@ -110,7 +111,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		},
 		// case 2
 		{
-			endpoint:      "https://correct-batch-request-download.io",
+			endpoint:      "https://valid-batch-request-download.io",
 			expectederror: "",
 		},
 		// case 3
