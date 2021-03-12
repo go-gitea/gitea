@@ -72,11 +72,12 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 		opt := proxy.NewForwardedHeadersOptions().
 			WithForwardLimit(setting.ReverseProxyLimit).
 			ClearTrustedProxies()
-		for _, ip := range setting.ReverseProxyTrustedIPAddr {
-			opt.AddTrustedProxy(ip)
-		}
-		for _, n := range setting.ReverseProxyTrustedNet {
-			opt.AddTrustedNetwork(n)
+		for _, n := range setting.ReverseProxyTrustedProxies {
+			if !strings.Contains(n, "/") {
+				opt.AddTrustedProxy(n)
+			} else {
+				opt.AddTrustedNetwork(n)
+			}
 		}
 		handlers = append(handlers, proxy.ForwardedHeaders(opt))
 	}

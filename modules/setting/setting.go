@@ -170,8 +170,7 @@ var (
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
 	ReverseProxyLimit                  int
-	ReverseProxyTrustedIPAddr          []string
-	ReverseProxyTrustedNet             []string
+	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
 	DisableGitHooks                    bool
@@ -827,11 +826,10 @@ func NewContext() {
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
-	ReverseProxyTrustedIPAddr = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
-	if len(ReverseProxyTrustedIPAddr) == 0 {
-		ReverseProxyTrustedIPAddr = []string{"127.0.0.1"}
+	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
+	if len(ReverseProxyTrustedProxies) == 0 {
+		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}
-	ReverseProxyTrustedNet = sec.Key("REVERSE_PROXY_TRUSTED_NETWORKS").Strings(",")
 
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
