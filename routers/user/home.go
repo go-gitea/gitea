@@ -709,10 +709,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 }
 
 func getRepoIDs(reposQuery string) []int64 {
-	if len(reposQuery) == 0 {
-		return []int64{}
-	}
-	if reposQuery == "[]" {
+	if len(reposQuery) == 0 || reposQuery == "[]" {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
