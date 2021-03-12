@@ -3753,7 +3753,7 @@ function initIssueList() {
       fullTextSearch: true
     });
 
-  function removeLabel (item) {
+  function excludeLabel (item) {
     const href = $(item).attr('href');
     const id = $(item).data('label-id');
 
@@ -3767,7 +3767,7 @@ function initIssueList() {
     $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
-        removeLabel(this);
+        excludeLabel(this);
       }
     });
   });
