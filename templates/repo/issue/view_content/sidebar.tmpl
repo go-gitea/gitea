@@ -195,7 +195,9 @@
 			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-					{{svg "octicon-gear"}}
+					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+						{{svg "octicon-gear"}}
+					{{end}}
 				</span>
 				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
