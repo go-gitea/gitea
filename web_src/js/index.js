@@ -3776,7 +3776,7 @@ function initIssueList() {
     if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
       if (selectedItems.length > 0) {
-        removeLabel($(selectedItems[0]));
+        excludeLabel($(selectedItems[0]));
       }
     }
   });
