@@ -216,7 +216,8 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
-			if resp.Body.Len() != littleSize {
+			assert.LessOrEqual(t, resp.Body.Len(), 1024)
+			if resp.Body.Len() != littleSize && resp.Body.Len() <= 1024 {
 				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 			}
 		}
@@ -230,7 +231,7 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, bigSize, resp.Body.Len())
-				if resp.Body.Len() != bigSize {
+				if resp.Body.Len() != bigSize && resp.Body.Len() <= 1024 {
 					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
 				}
 			}
