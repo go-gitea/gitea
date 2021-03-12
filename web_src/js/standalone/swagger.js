@@ -19,6 +19,7 @@ window.addEventListener('load', async () => {
     dom_id: '#swagger-ui',
     deepLinking: true,
     docExpansion: 'none',
+    defaultModelRendering: 'model', // don't show examples by default, because they may be incomplete
     presets: [
       SwaggerUI.presets.apis
     ],

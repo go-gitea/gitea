@@ -97,6 +97,9 @@ func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 
 // IsOverdue checks if the issue is overdue
 func (issue *Issue) IsOverdue() bool {
+	if issue.IsClosed {
+		return issue.ClosedUnix >= issue.DeadlineUnix
+	}
 	return timeutil.TimeStampNow() >= issue.DeadlineUnix
 }
 
@@ -510,6 +513,10 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		return err
 	}
 
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+
 	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
@@ -524,10 +531,18 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		addLabel := labels[addIndex]
 		removeLabel := issue.Labels[removeIndex]
 		if addLabel.ID == removeLabel.ID {
+			// Silently drop invalid labels
+			if removeLabel.RepoID != issue.RepoID && removeLabel.OrgID != issue.Repo.OwnerID {
+				toRemove = append(toRemove, removeLabel)
+			}
+
 			addIndex++
 			removeIndex++
 		} else if addLabel.ID < removeLabel.ID {
-			toAdd = append(toAdd, addLabel)
+			// Only add if the label is valid
+			if addLabel.RepoID == issue.RepoID || addLabel.OrgID == issue.Repo.OwnerID {
+				toAdd = append(toAdd, addLabel)
+			}
 			addIndex++
 		} else {
 			toRemove = append(toRemove, removeLabel)
@@ -1724,9 +1739,18 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 	)
 
 	var ids = make([]int64, 0, limit)
-	err := x.Distinct("id").Table("issue").Where(cond).OrderBy("`updated_unix` DESC").Limit(limit, start).Find(&ids)
+	var res = make([]struct {
+		ID          int64
+		UpdatedUnix int64
+	}, 0, limit)
+	err := x.Distinct("id", "updated_unix").Table("issue").Where(cond).
+		OrderBy("`updated_unix` DESC").Limit(limit, start).
+		Find(&res)
 	if err != nil {
 		return 0, nil, err
+	}
+	for _, r := range res {
+		ids = append(ids, r.ID)
 	}
 
 	total, err := x.Distinct("id").Table("issue").Where(cond).Count()
