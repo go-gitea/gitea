@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"io"
 	"math"
-	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 
@@ -22,30 +21,8 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	defer func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
-		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
-		}
-	}()
-
-	// For simplicities sake we'll us a buffered reader
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchStdinWriter, batchReader, cancel := CatFileBatch(repo.Path)
+	defer cancel()
 
 	writeID := func(id string) error {
 		_, err := batchStdinWriter.Write([]byte(id))

@@ -70,6 +70,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("CreateAGitStylePull", doCreateAGitStylePull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
+		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
 			t.Run("CreatePRAndMerge", doMergeFork(httpContext, forkedUserCtx, "master", httpContext.Username+":master"))
@@ -470,6 +471,35 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 	}
 }
 
+func doCreatePRAndSetManuallyMerged(ctx, baseCtx APITestContext, dstPath, baseBranch, headBranch string) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+		var (
+			pr           api.PullRequest
+			err          error
+			lastCommitID string
+		)
+
+		trueBool := true
+		falseBool := false
+
+		t.Run("AllowSetManuallyMergedAndSwitchOffAutodetectManualMerge", doAPIEditRepository(baseCtx, &api.EditRepoOption{
+			HasPullRequests:       &trueBool,
+			AllowManualMerge:      &trueBool,
+			AutodetectManualMerge: &falseBool,
+		}))
+
+		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
+		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
+		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			assert.NoError(t, err)
+		})
+		lastCommitID = pr.Base.Sha
+		t.Run("ManuallyMergePR", doAPIManuallyMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, lastCommitID, pr.Index))
+	}
+}
+
 func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
@@ -551,7 +581,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 	return func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		// TODO: git version in golang docker image is 2.20.1, have to skip this test now
+		// skip this test if git version is low
 		if git.CheckGitVersionAtLeast("2.29") != nil {
 			return
 		}

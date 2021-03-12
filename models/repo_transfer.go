@@ -195,7 +195,39 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
+func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err error) {
+	repoRenamed := false
+	wikiRenamed := false
+	oldOwnerName := doer.Name
+
+	defer func() {
+		if !repoRenamed && !wikiRenamed {
+			return
+		}
+
+		recoverErr := recover()
+		if err == nil && recoverErr == nil {
+			return
+		}
+
+		if repoRenamed {
+			if err := os.Rename(RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name)); err != nil {
+				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name), err)
+			}
+		}
+
+		if wikiRenamed {
+			if err := os.Rename(WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name)); err != nil {
+				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name), err)
+			}
+		}
+
+		if recoverErr != nil {
+			log.Error("Panic within TransferOwnership: %v\n%s", recoverErr, log.Stack(2))
+			panic(recoverErr)
+		}
+	}()
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -206,6 +238,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
+	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
 	if has, err := isRepositoryExist(sess, newOwner, repo.Name); err != nil {
@@ -215,6 +248,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	}
 
 	oldOwner := repo.Owner
+	oldOwnerName = oldOwner.Name
 
 	// Note: we have to set value here to make sure recalculate accesses is based on
 	// new owner.
@@ -301,6 +335,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 	if err := os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
+	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
 	wikiPath := WikiPath(oldOwner.Name, repo.Name)
@@ -312,6 +347,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error 
 		if err := os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
+		wikiRenamed = true
 	}
 
 	if err := deleteRepositoryTransfer(sess, repo.ID); err != nil {

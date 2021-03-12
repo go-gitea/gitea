@@ -57,6 +57,9 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, e
 		return false, nil
 	}
 
+	if user == nil {
+		return false, nil
+	}
 	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
 	if err != nil {
 		return false, err
