@@ -432,9 +432,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	case models.FilterModeCreate:
 		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctxUser.ID
+		opts.ReviewRequestedID = ctx.User.ID
 	}
 
 	if ctxUser.IsOrganization() {
@@ -709,7 +709,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 }
 
 func getRepoIDs(reposQuery string) []int64 {
-	if len(reposQuery) == 0 {
+	if len(reposQuery) == 0 || reposQuery == "[]" {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
