@@ -57,9 +57,20 @@
 
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 				{{.CsrfTokenHtml}}
-				<div class="inline field">
-					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" >
+				{{$avatar := (repoAvatar .Repository 28 "mr-5")}}
+				<div class="df fw ac">
+					<div class="inline field mb-4">
+						<label>{{.i18n.Tr "settings.avatar"}}</label>
+						{{if $avatar}}
+							{{$avatar}}
+						{{else}}
+							<div class="ui basic label repo-icon none mr-5">{{svg "octicon-circle-slash" 16}}</div>
+						{{end}}
+					</div>
+					<div class="inline field mb-4">
+						<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+						<input name="avatar" type="file" >
+					</div>
 				</div>
 
 				<div class="field">

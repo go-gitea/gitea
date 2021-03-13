@@ -2895,8 +2895,20 @@ tbody.commit-list {
   }
 }
 
-.repo-icon .svg {
-  vertical-align: middle;
+.repo-icon {
+  &.none {
+    height: 28px;
+    width: 28px;
+    padding: 5px !important;
+
+    .svg {
+      color: var(--color-light-border);
+    }
+  }
+
+  .svg {
+    vertical-align: middle;
+  }
 }
 
 .repo-buttons,
