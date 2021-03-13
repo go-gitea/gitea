@@ -1,0 +1,92 @@
+{
+	"extensions": {
+		"recommendations": [
+			"aaron-bond.better-comments",
+			"coenraads.bracket-pair-colorizer-2",
+			"streetsidesoftware.code-spell-checker",
+			"ms-azuretools.vscode-docker",
+			"markwylde.vscode-filesize",
+			"eamodio.gitlens",
+			"exiasr.hadolint",
+			"oderwat.indent-rainbow",
+			"stephen-riley.regexworkbench",
+			"medo64.render-crlf",
+			"timonwong.shellcheck",
+			"hbenl.vscode-test-explorer",
+			"gruntfuggly.todo-tree",
+			"bbenoist.vagrant",
+			"yzhang.markdown-all-in-one",
+			"gattytto.go"
+		]
+	},
+
+	"settings": {
+		/// EDITOR
+		// Render all whitespaces
+		"editor.renderWhitespace": "all",
+		"editor.wordWrap": "on",
+
+		/// Syntax specific
+		"[json]": {
+			"editor.tabSize": 2,
+		},
+		"[go]": {
+			"editor.tabSize": 2,
+		},
+
+		/// Code Spell Checker
+		"cSpell.diagnosticLevel": "Error",
+		"cSpell.allowCompoundWords": true,
+
+		/// Task tree
+		"todo-tree.general.tags": [
+			"FIXME",
+			"TODO",
+			"DNM", // Do Not Merge
+			"DNC", // Do Not Contribute
+			"DNR" // Do Not Release
+		],
+		// NOTE: Icons has to be valid codicons (https://microsoft.github.io/vscode-codicons/dist/codicon.html)
+		"todo-tree.highlights.customHighlight": {
+			"FIXME": {
+				"foreground": "orange",
+				"icon": "report",
+				"fontWeight": "bold"
+			},
+			"TODO": {
+				"foreground": "turquoise",
+				"icon": "tasklist",
+				"fontWeight": "bold"
+			},
+			"DOCS": {
+				"foreground:": "blue",
+				"icon": "repo",
+				"fontWeight": "bold"
+			},
+			"DNM": {
+				"foreground": "red",
+				"icon": "alert",
+				"fontWeight": "bold"
+			},
+			"DNR": {
+				"foreground": "red",
+				"icon": "alert",
+				"fontWeight": "bold"
+			},
+			"DNC": {
+				"foreground": "red",
+				"icon": "alert",
+				"fontWeight": "bold"
+			}
+		},
+		"todo-tree.regex.regex": "($TAGS)((\\-.*|)\\(.*\\)):",
+
+		/// Render Line Endings 
+		"code-eol.highlightExtraWhitespace": true,
+		"code-eol.newlineCharacter": "↵",
+		"code-eol.crlfCharacter": "↓",
+
+		/// Shellcheck
+		"shellcheck.run": "onSave",
+	},
+}
