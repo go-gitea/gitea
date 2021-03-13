@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"golang.org/x/oauth2"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -44,7 +45,7 @@ func (c *Config) TokenSource(ctx context.Context) oauth2.TokenSource {
 		ctx:    ctx,
 		url:    c.ServiceAccountImpersonationURL,
 		scopes: scopes,
-		ts: oauth2.ReuseTokenSource(nil, ts),
+		ts:     oauth2.ReuseTokenSource(nil, ts),
 	}
 	return oauth2.ReuseTokenSource(nil, imp)
 }
@@ -77,13 +78,27 @@ type CredentialSource struct {
 }
 
 // parse determines the type of CredentialSource needed
-func (c *Config) parse(ctx context.Context) baseCredentialSource {
-	if c.CredentialSource.File != "" {
-		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}
+func (c *Config) parse(ctx context.Context) (baseCredentialSource, error) {
+	if len(c.CredentialSource.EnvironmentID) > 3 && c.CredentialSource.EnvironmentID[:3] == "aws" {
+		if awsVersion, err := strconv.Atoi(c.CredentialSource.EnvironmentID[3:]); err == nil {
+			if awsVersion != 1 {
+				return nil, fmt.Errorf("oauth2/google: aws version '%d' is not supported in the current build", awsVersion)
+			}
+			return awsCredentialSource{
+				EnvironmentID:               c.CredentialSource.EnvironmentID,
+				RegionURL:                   c.CredentialSource.RegionURL,
+				RegionalCredVerificationURL: c.CredentialSource.RegionalCredVerificationURL,
+				CredVerificationURL:         c.CredentialSource.URL,
+				TargetResource:              c.Audience,
+				ctx:                         ctx,
+			}, nil
+		}
+	} else if c.CredentialSource.File != "" {
+		return fileCredentialSource{File: c.CredentialSource.File, Format: c.CredentialSource.Format}, nil
 	} else if c.CredentialSource.URL != "" {
-		return urlCredentialSource{URL: c.CredentialSource.URL, Format: c.CredentialSource.Format, ctx: ctx}
+		return urlCredentialSource{URL: c.CredentialSource.URL, Headers: c.CredentialSource.Headers, Format: c.CredentialSource.Format, ctx: ctx}, nil
 	}
-	return nil
+	return nil, fmt.Errorf("oauth2/google: unable to parse credential source")
 }
 
 type baseCredentialSource interface {
@@ -100,15 +115,16 @@ type tokenSource struct {
 func (ts tokenSource) Token() (*oauth2.Token, error) {
 	conf := ts.conf
 
-	credSource := conf.parse(ts.ctx)
-	if credSource == nil {
-		return nil, fmt.Errorf("oauth2/google: unable to parse credential source")
-	}
-	subjectToken, err := credSource.subjectToken()
+	credSource, err := conf.parse(ts.ctx)
 	if err != nil {
 		return nil, err
 	}
-	stsRequest := STSTokenExchangeRequest{
+	subjectToken, err := credSource.subjectToken()
+
+	if err != nil {
+		return nil, err
+	}
+	stsRequest := stsTokenExchangeRequest{
 		GrantType:          "urn:ietf:params:oauth:grant-type:token-exchange",
 		Audience:           conf.Audience,
 		Scope:              conf.Scopes,
@@ -118,12 +134,12 @@ func (ts tokenSource) Token() (*oauth2.Token, error) {
 	}
 	header := make(http.Header)
 	header.Add("Content-Type", "application/x-www-form-urlencoded")
-	clientAuth := ClientAuthentication{
+	clientAuth := clientAuthentication{
 		AuthStyle:    oauth2.AuthStyleInHeader,
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
 	}
-	stsResp, err := ExchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, nil)
+	stsResp, err := exchangeToken(ts.ctx, conf.TokenURL, &stsRequest, clientAuth, header, nil)
 	if err != nil {
 		return nil, err
 	}

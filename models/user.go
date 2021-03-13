@@ -56,7 +56,17 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+)
 
+// AvailableHashAlgorithms represents the available password hashing algorithms
+var AvailableHashAlgorithms = []string{
+	algoPbkdf2,
+	algoArgon2,
+	algoScrypt,
+	algoBcrypt,
+}
+
+const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
@@ -779,6 +789,7 @@ var (
 		"assets",
 		"attachments",
 		"avatars",
+		"captcha",
 		"commits",
 		"debug",
 		"error",

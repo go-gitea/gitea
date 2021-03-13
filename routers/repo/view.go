@@ -140,7 +140,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	var c *git.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
 	}
 
 	var latestCommit *git.Commit
@@ -584,6 +584,14 @@ func Home(ctx *context.Context) {
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
 			ctx.HTML(200, tplMigrating)
 			return
+		}
+
+		if ctx.IsSigned {
+			// Set repo notification-status read if unread
+			if err := ctx.Repo.Repository.ReadBy(ctx.User.ID); err != nil {
+				ctx.ServerError("ReadBy", err)
+				return
+			}
 		}
 
 		var firstUnit *models.Unit

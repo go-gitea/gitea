@@ -411,7 +411,8 @@ func PrepareCompareDiff(
 	headRepo *models.Repository,
 	headGitRepo *git.Repository,
 	compareInfo *git.CompareInfo,
-	baseBranch, headBranch string) bool {
+	baseBranch, headBranch string,
+	whitespaceBehavior string) bool {
 
 	var (
 		repo  = ctx.Repo.Repository
@@ -422,31 +423,28 @@ func PrepareCompareDiff(
 	// Get diff information.
 	ctx.Data["CommitRepoLink"] = headRepo.Link()
 
-	headCommitID := headBranch
-	if ctx.Data["HeadIsCommit"] == false {
-		if ctx.Data["HeadIsTag"] == true {
-			headCommitID, err = headGitRepo.GetTagCommitID(headBranch)
-		} else {
-			headCommitID, err = headGitRepo.GetBranchCommitID(headBranch)
-		}
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return false
-		}
-	}
+	headCommitID := compareInfo.HeadCommitID
 
 	ctx.Data["AfterCommitID"] = headCommitID
 
 	if headCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
+		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+			config := unit.PullRequestsConfig()
+			if !config.AutodetectManualMerge {
+				ctx.Data["AllowEmptyPr"] = !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
+			} else {
+				ctx.Data["AllowEmptyPr"] = false
+			}
+		}
 		return true
 	}
 
-	diff, err := gitdiff.GetDiffRange(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(models.RepoPath(headUser.Name, headRepo.Name),
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior)
 	if err != nil {
-		ctx.ServerError("GetDiffRange", err)
+		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return false
 	}
 	ctx.Data["Diff"] = diff
@@ -459,18 +457,7 @@ func PrepareCompareDiff(
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseCommitID := baseBranch
-	if ctx.Data["BaseIsCommit"] == false {
-		if ctx.Data["BaseIsTag"] == true {
-			baseCommitID, err = baseGitRepo.GetTagCommitID(baseBranch)
-		} else {
-			baseCommitID, err = baseGitRepo.GetBranchCommitID(baseBranch)
-		}
-		if err != nil {
-			ctx.ServerError("GetRefCommitID", err)
-			return false
-		}
-	}
+	baseCommitID := compareInfo.BaseCommitID
 
 	baseCommit, err := baseGitRepo.GetCommit(baseCommitID)
 	if err != nil {
@@ -530,12 +517,14 @@ func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []str
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+
 	if ctx.Written() {
 		return
 	}
 	defer headGitRepo.Close()
 
-	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch)
+	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
 		return
 	}

@@ -256,6 +256,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_SERVER_CIPHERS`: **aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_KEY_EXCHANGES`: **diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
+- `SSH_SERVER_HOST_KEYS`: **ssh/gitea.rsa, ssh/gogs.rsa**: For the built-in SSH server, choose the keypairs to offer as the host key. The private key should be at `SSH_SERVER_HOST_KEY` and the public `SSH_SERVER_HOST_KEY.pub`. Relative paths are made absolute relative to the `APP_DATA_PATH`. If no key exists a 4096 bit RSA key will be created for you.
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
@@ -274,7 +275,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**:  Default LFS content path. (if it is on local storage.)
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**:  DEPRECATED: Default LFS content path. (if it is on local storage.)
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
@@ -396,11 +397,12 @@ relation to port exhaustion.
    It also enables them to access other resources available to the user on the operating system that is running the
    Gitea instance and perform arbitrary actions in the name of the Gitea OS user.
    This maybe harmful to you website or your operating system.
+- `DISABLE_WEBHOOKS`: **false**: Set to `true` to disable webhooks feature.
 - `ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET`: **true**: Set to `false` to allow local users to push to gitea-repositories without setting up the Gitea environment. This is not recommended and if you want local users to push to gitea repositories you should set the environment appropriately.
 - `IMPORT_LOCAL_PATHS`: **false**: Set to `false` to prevent all users (including admin) from importing local path on server.
 - `INTERNAL_TOKEN`: **\<random at every install if no uri set\>**: Secret used to validate communication within Gitea binary.
 - `INTERNAL_TOKEN_URI`: **<empty>**: Instead of defining internal token in the configuration, this configuration option can be used to give Gitea a path to a file that contains the internal token (example value: `file:/etc/gitea/internal_token`)
-- `PASSWORD_HASH_ALGO`: **argon2**: The hash algorithm to use \[argon2, pbkdf2, scrypt, bcrypt\].
+- `PASSWORD_HASH_ALGO`: **pbkdf2**: The hash algorithm to use \[argon2, pbkdf2, scrypt, bcrypt\], argon2 will spend more memory than others.
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
@@ -465,6 +467,7 @@ relation to port exhaustion.
 - `DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME`: **true**: Only allow users with write permissions to track time.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
+- `EMAIL_DOMAIN_BLOCKLIST`: **\<empty\>**: If non-empty, list of domain names that cannot be used to register on this instance
 - `SHOW_REGISTRATION_BUTTON`: **! DISABLE\_REGISTRATION**: Show Registration Button
 - `SHOW_MILESTONES_DASHBOARD_PAGE`: **true** Enable this to show the milestones dashboard page - a view of all the user's milestones
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
@@ -475,6 +478,12 @@ relation to port exhaustion.
 - `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
+
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
+- `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
+
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 
@@ -549,12 +558,14 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Session (`session`)
 
-- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, mysql, couchbase, memcache, postgres\].
+- `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\].
 - `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
 - `SESSION_LIFE_TIME`: **86400**: Session life time in seconds, default is 86400 (1 day)
+- `DOMAIN`: **\<empty\>**: Sets the cookie Domain
+- `SAME_SITE`: **lax** \[strict, lax, none\]: Set the SameSite setting for the cookie.
 
 ## Picture (`picture`)
 
@@ -756,7 +767,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 - `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
-- `MAX_GIT_DIFF_LINES`: **100**: Max number of lines allowed of a single file in diff view.
+- `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
 - `MAX_GIT_DIFF_FILES`: **100**: Max number of files shown in diff view.
 - `COMMITS_RANGE_SIZE`: **50**: Set the default commits range size
@@ -880,7 +891,7 @@ is `data/lfs` and the default of `MINIO_BASE_PATH` is `lfs/`.
 
 - `STORAGE_TYPE`: **local**: Storage type for lfs, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
-- `CONTENT_PATH`: **./data/lfs**: Where to store LFS files, only available when `STORAGE_TYPE` is `local`.
+- `PATH`: **./data/lfs**: Where to store LFS files, only available when `STORAGE_TYPE` is `local`. If not set it fall back to deprecated LFS_CONTENT_PATH value in [server] section.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`

@@ -32,3 +32,5 @@ Temporary Items
 
 cmd/*/*exe
 .idea
+
+fuzz/*.zip
