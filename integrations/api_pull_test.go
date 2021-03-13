@@ -75,7 +75,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Title: "create a failure pr",
 	})
 	session.MakeRequest(t, req, 201)
-	session.MakeRequest(t, req, http.StatusConflict) // second request should fail
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
@@ -96,7 +96,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 		Title:     "create a failure pr",
 		Body:      "foobaaar",
 		Milestone: 5,
-		Assignees: []string{owner10.LoginName},
+		Assignees: []string{owner10.Name},
 		Labels:    []int64{5},
 	}
 
@@ -108,8 +108,9 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	assert.NotNil(t, pull.Milestone)
 	assert.EqualValues(t, opts.Milestone, pull.Milestone.ID)
-	assert.NotNil(t, pull.Assignee)
-	assert.EqualValues(t, opts.Assignees[0], pull.Assignee.UserName)
+	if assert.Len(t, pull.Assignees, 1) {
+		assert.EqualValues(t, opts.Assignees[0], owner10.Name)
+	}
 	assert.NotNil(t, pull.Labels)
 	assert.EqualValues(t, opts.Labels[0], pull.Labels[0].ID)
 }
@@ -132,15 +133,15 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	}
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Title = "is required"
 
 	opts.Milestone = 666
-	session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Milestone = 5
 
 	opts.Assignees = []string{"qweruqweroiuyqweoiruywqer"}
-	session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Assignees = []string{owner10.LoginName}
 
 	opts.Labels = []int64{55555}
