@@ -18,7 +18,7 @@ import (
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark-highlighting"
+	highlighting "github.com/yuin/goldmark-highlighting"
 	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -43,8 +43,8 @@ func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool
 	return pc
 }
 
-// render renders Markdown to HTML without handling special links.
-func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
+// actual renders Markdown to HTML without handling special links.
+func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
 	once.Do(func() {
 		converter = goldmark.New(
 			goldmark.WithExtensions(extension.Table,
@@ -125,6 +125,22 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 		log.Error("Unable to render: %v", err)
 	}
 	return markup.SanitizeReader(&buf).Bytes()
+}
+
+func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) (ret []byte) {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+
+		log.Warn("Unable to render markdown due to panic in goldmark - will return sanitized raw bytes")
+		if log.IsDebug() {
+			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+		}
+		ret = markup.SanitizeBytes(body)
+	}()
+	return actualRender(body, urlPrefix, metas, wikiMarkdown)
 }
 
 var (
