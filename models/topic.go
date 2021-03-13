@@ -60,7 +60,7 @@ func ValidateTopic(topic string) bool {
 }
 
 // SanitizeAndValidateTopics sanitizes and checks an array or topics
-func SanitizeAndValidateTopics(topics []string) (validTopics []string, invalidTopics []string) {
+func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []string) {
 	validTopics = make([]string, 0)
 	mValidTopics := make(map[string]struct{})
 	invalidTopics = make([]string, 0)

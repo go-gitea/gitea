@@ -36,7 +36,7 @@ func TestUserIsPublicMember(t *testing.T) {
 	}
 }
 
-func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsPublicMember(orgID))
@@ -62,7 +62,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 	}
 }
 
-func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))

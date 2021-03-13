@@ -47,7 +47,7 @@ func TestIssueAPIURL(t *testing.T) {
 
 func TestGetIssuesByIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	testSuccess := func(expectedIssueIDs []int64, nonExistentIssueIDs []int64) {
+	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
 		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
 		assert.NoError(t, err)
 		actualIssueIDs := make([]int64, len(issues))

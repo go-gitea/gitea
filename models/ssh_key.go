@@ -628,7 +628,7 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
 		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
@@ -1147,7 +1147,7 @@ func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployK
 }
 
 // SearchDeployKeys returns a list of deploy keys matching the provided arguments.
-func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+func SearchDeployKeys(repoID, keyID int64, fingerprint string) ([]*DeployKey, error) {
 	keys := make([]*DeployKey, 0, 5)
 	cond := builder.NewCond()
 	if repoID != 0 {

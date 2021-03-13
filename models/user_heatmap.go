@@ -16,7 +16,7 @@ type UserHeatmapData struct {
 }
 
 // GetUserHeatmapDataByUser returns an array of UserHeatmapData
-func GetUserHeatmapDataByUser(user *User, doer *User) ([]*UserHeatmapData, error) {
+func GetUserHeatmapDataByUser(user, doer *User) ([]*UserHeatmapData, error) {
 	return getUserHeatmapData(user, nil, doer)
 }
 

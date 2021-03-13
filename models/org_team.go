@@ -606,7 +606,7 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
+func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
 	}
@@ -961,7 +961,7 @@ func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
+func UsersInTeamsCount(userIDs, teamIDs []int64) (int64, error) {
 	var ids []int64
 	if err := x.In("uid", userIDs).In("team_id", teamIDs).
 		Table("team_user").

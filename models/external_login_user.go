@@ -86,7 +86,7 @@ func removeAllAccountLinks(e Engine, user *User) error {
 }
 
 // GetUserIDByExternalUserID get user id according to provider and userID
-func GetUserIDByExternalUserID(provider string, userID string) (int64, error) {
+func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 	var id int64
 	_, err := x.Table("external_login_user").
 		Select("user_id").

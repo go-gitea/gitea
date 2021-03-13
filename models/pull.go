@@ -503,7 +503,7 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
-func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,

@@ -800,7 +800,7 @@ func getNotificationByID(e Engine, notificationID int64) (*Notification, error) 
 }
 
 // UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
+func UpdateNotificationStatuses(user *User, currentStatus, desiredStatus NotificationStatus) error {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
 	_, err := x.
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).

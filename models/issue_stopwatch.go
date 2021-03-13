@@ -54,7 +54,7 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, er
 }
 
 // StopwatchExists returns true if the stopwatch exists
-func StopwatchExists(userID int64, issueID int64) bool {
+func StopwatchExists(userID, issueID int64) bool {
 	_, exists, _ := getStopwatch(x, userID, issueID)
 	return exists
 }
