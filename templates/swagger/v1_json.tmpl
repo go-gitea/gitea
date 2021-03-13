@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer}}"
+    "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
     "/admin/cron": {
       "get": {

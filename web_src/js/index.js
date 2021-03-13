@@ -3753,18 +3753,21 @@ function initIssueList() {
       fullTextSearch: true
     });
 
+  function excludeLabel (item) {
+    const href = $(item).attr('href');
+    const id = $(item).data('label-id');
+
+    const regStr = `labels=((?:-?[0-9]+%2c)*)(${id})((?:%2c-?[0-9]+)*)&`;
+    const newStr = 'labels=$1-$2$3&';
+
+    window.location = href.replace(new RegExp(regStr), newStr);
+  }
+
   $('.menu a.label-filter-item').each(function () {
     $(this).on('click', function (e) {
       if (e.altKey) {
         e.preventDefault();
-
-        const href = $(this).attr('href');
-        const id = $(this).data('label-id');
-
-        const regStr = `labels=(-?[0-9]+%2c)*(${id})(%2c-?[0-9]+)*&`;
-        const newStr = 'labels=$1-$2$3&';
-
-        window.location = href.replace(new RegExp(regStr), newStr);
+        excludeLabel(this);
       }
     });
   });
@@ -3772,17 +3775,8 @@ function initIssueList() {
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
-
       if (selectedItems.length > 0) {
-        const item = $(selectedItems[0]);
-
-        const href = item.attr('href');
-        const id = item.data('label-id');
-
-        const regStr = `labels=(-?[0-9]+%2c)*(${id})(%2c-?[0-9]+)*&`;
-        const newStr = 'labels=$1-$2$3&';
-
-        window.location = href.replace(new RegExp(regStr), newStr);
+        excludeLabel($(selectedItems[0]));
       }
     }
   });
