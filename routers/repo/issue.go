@@ -1676,6 +1676,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	files := ctx.QueryStrings("files[]")
 	if err := updateAttachments(issue, files); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
+		return
 	}
 
 	content := ctx.Query("content")
