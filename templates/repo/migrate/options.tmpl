@@ -19,7 +19,7 @@
 	</div>
 </div>
 <div id="lfs_endpoint">
-	<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint"}}</span>
+	<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate_options_lfs_endpoint.local"}}{{end}}</span>
 	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
 		<label></label>
 		<input name="lfs_endpoint" value="{{.lfs_endpoint}}">
