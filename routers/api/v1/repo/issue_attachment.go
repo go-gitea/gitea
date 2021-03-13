@@ -5,7 +5,6 @@
 package repo
 
 import (
-	issue_service "code.gitea.io/gitea/services/issue"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -16,6 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	issue_service "code.gitea.io/gitea/services/issue"
 )
 
 // GetIssueAttachment gets a single attachment of the issue

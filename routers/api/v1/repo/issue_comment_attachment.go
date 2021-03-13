@@ -5,7 +5,6 @@
 package repo
 
 import (
-	comment_service "code.gitea.io/gitea/services/comments"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -16,6 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	comment_service "code.gitea.io/gitea/services/comments"
 )
 
 // GetIssueCommentAttachment gets a single attachment of the comment
