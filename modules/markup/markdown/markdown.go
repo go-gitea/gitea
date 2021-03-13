@@ -43,7 +43,7 @@ func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool
 	return pc
 }
 
-// actual renders Markdown to HTML without handling special links.
+// actualRender renders Markdown to HTML without handling special links.
 func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
 	once.Do(func() {
 		converter = goldmark.New(
