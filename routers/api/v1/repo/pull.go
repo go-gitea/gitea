@@ -293,7 +293,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
-		assigneeID  int64
 		milestoneID int64
 	)
 
@@ -354,7 +353,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
 			if models.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
@@ -378,7 +377,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		MilestoneID:  milestoneID,
-		AssigneeID:   assigneeID,
 		IsPull:       true,
 		Content:      form.Body,
 		DeadlineUnix: deadlineUnix,
