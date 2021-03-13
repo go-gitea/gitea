@@ -1571,7 +1571,6 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
-
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1600,7 +1599,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		accessCond := builder.NewCond()
+
+		var accessCond builder.Cond
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
 				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
