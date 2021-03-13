@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
-	"runtime"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // FilesystemClient is used to read LFS data from a filesystem path
@@ -20,26 +20,13 @@ type FilesystemClient struct {
 }
 
 func newFilesystemClient(endpoint *url.URL) *FilesystemClient {
-	lfsdir := filepath.Join(endpointURLToPath(endpoint), "lfs", "objects")
+	path, _ := util.FileURLToPath(endpoint)
+
+	lfsdir := filepath.Join(path, "lfs", "objects")
 
 	client := &FilesystemClient{lfsdir}
 
 	return client
-}
-
-func endpointURLToPath(endpoint *url.URL) string {
-	path := endpoint.Path
-
-	if runtime.GOOS != "windows" {
-		return path
-	}
-
-	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
-	re := regexp.MustCompile("/[A-Za-z]:/")
-	if re.MatchString(path) {
-		return path[1:]
-	}
-	return path
 }
 
 func (c *FilesystemClient) objectPath(oid string) string {
