@@ -136,15 +136,15 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	opts.Title = "is required"
 
 	opts.Milestone = 666
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	session.MakeRequest(t, req, http.StatusNotFound)
 	opts.Milestone = 5
 
 	opts.Assignees = []string{"qweruqweroiuyqweoiruywqer"}
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	session.MakeRequest(t, req, http.StatusNotFound)
 	opts.Assignees = []string{owner10.LoginName}
 
 	opts.Labels = []int64{55555}
-	session.MakeRequest(t, req, http.StatusBadRequest)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	opts.Labels = []int64{5}
 }
 
