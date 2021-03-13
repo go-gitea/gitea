@@ -4,6 +4,42 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
+
+* SECURITY
+  * Fix issue popups (#14898) (#14899)
+* BUGFIXES
+  * Fix race in LFS ContentStore.Put(...) (#14895) (#14913)
+  * Fix a couple of issues with a feeds (#14897) (#14903)
+  * When transfering repository and database transaction failed, rollback the renames (#14864) (#14902)
+  * Fix race in local storage (#14888) (#14901)
+  * Fix 500 on pull view page if user is not loged in (#14885) (#14886)
+* DOCS
+  * Fix how lfs data path is set (#14855) (#14884)
+
+## [1.13.3](https://github.com/go-gitea/gitea/releases/tag/v1.13.3) - 2021-03-04
+
+* BREAKING
+  * Turn default hash password algorithm back to pbkdf2 from argon2 until we find a better one (#14673) (#14675)
+* BUGFIXES
+  * Fix paging of file commit logs (#14831) (#14879)
+  * Print useful error if SQLite is used in settings but not supported (#14476) (#14874)
+  * Fix display since time round (#14226) (#14873)
+  * When Deleting Repository only explicitly close PRs whose base is not this repository (#14823) (#14842)
+  * Set HCaptchaSiteKey on Link Account pages (#14834) (#14839)
+  * Fix a couple of CommentAsPatch issues.  (#14804) (#14820)
+  * Disable broken OAuth2 providers at startup (#14802) (#14811)
+  * Repo Transfer permission checks (#14792) (#14794)
+  * Fix double alert in oauth2 application edit view (#14764) (#14768)
+  * Fix broken spans in diffs (#14678) (#14683)
+  * Prevent race in PersistableChannelUniqueQueue.Has (#14651) (#14676)
+  * HasPreviousCommit causes recursive load of commits unnecessarily (#14598) (#14649)
+  * Do not assume all 40 char strings are SHA1s (#14624) (#14648)
+  * Allow org labels to be set with issue templates (#14593) (#14647)
+  * Accept multiple SSH keys in single LDAP SSHPublicKey attribute (#13989) (#14607)
+  * Fix bug about ListOptions and stars/watchers pagnation (#14556) (#14573)
+  * Fix GPG key deletion during account deletion (#14561) (#14569)
+
 ## [1.13.2](https://github.com/go-gitea/gitea/releases/tag/v1.13.2) - 2021-01-31
 
 * SECURITY
