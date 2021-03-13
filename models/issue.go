@@ -1721,16 +1721,10 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen 
 
 // SearchIssueIDsByKeyword search issues on database
 func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
-<<<<<<< HEAD
-	var repoCond = builder.In("repo_id", repoIDs)
-	var subQuery = builder.Select("id").From("issue").Where(repoCond)
-	kw = strings.ToUpper(kw)
-	var cond = builder.And(
-=======
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
+	kw = strings.ToUpper(kw)
 	cond := builder.And(
->>>>>>> 366a59461... chore: rewrite format.
 		repoCond,
 		builder.Or(
 			builder.Like{"UPPER(name)", kw},
@@ -1746,16 +1740,14 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		),
 	)
 
-
-	var ids = make([]int64, 0, limit)
-	var res = make([]struct {
+	ids := make([]int64, 0, limit)
+	res := make([]struct {
 		ID          int64
 		UpdatedUnix int64
 	}, 0, limit)
 	err := x.Distinct("id", "updated_unix").Table("issue").Where(cond).
 		OrderBy("`updated_unix` DESC").Limit(limit, start).
 		Find(&res)
-
 	if err != nil {
 		return 0, nil, err
 	}
