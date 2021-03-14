@@ -6,7 +6,7 @@
 package markdown
 
 import (
-	"bytes"
+	"io"
 	"strings"
 	"sync"
 
@@ -120,11 +120,23 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 	})
 
 	pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-	var buf bytes.Buffer
-	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
-		log.Error("Unable to render: %v", err)
-	}
-	return markup.SanitizeReader(&buf).Bytes()
+
+	rd, wr := io.Pipe()
+	defer func() {
+		_ = rd.Close()
+		_ = wr.Close()
+	}()
+
+	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
+	go func() {
+		if err := converter.Convert(giteautil.NormalizeEOL(body), wr, parser.WithContext(pc)); err != nil {
+			log.Error("Unable to render: %v", err)
+			_ = wr.CloseWithError(err)
+			return
+		}
+		_ = wr.Close()
+	}()
+	return markup.SanitizeReader(rd).Bytes()
 }
 
 func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) (ret []byte) {
