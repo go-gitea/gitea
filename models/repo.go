@@ -1070,7 +1070,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	}
 
 	// insert units for repo
-	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
+	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
 	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
@@ -1636,7 +1636,7 @@ func GetRepositoryByIDCtx(ctx DBContext, id int64) (*Repository, error) {
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
-	var repos = make(map[int64]*Repository, len(ids))
+	repos := make(map[int64]*Repository, len(ids))
 	return repos, x.In("id", ids).Find(&repos)
 }
 
@@ -1646,7 +1646,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
@@ -2096,9 +2096,9 @@ func DoctorUserStarNum() (err error) {
 // IterateRepository iterate repositories
 func IterateRepository(f func(repo *Repository) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var repos = make([]*Repository, 0, batchSize)
+		repos := make([]*Repository, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}

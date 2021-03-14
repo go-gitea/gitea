@@ -34,7 +34,6 @@ func TestReview_LoadAttributes(t *testing.T) {
 
 	invalidReview2 := AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
 	assert.Error(t, invalidReview2.LoadAttributes())
-
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
