@@ -45,7 +45,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		return err
 	}
 
-	var opt = &CreateCommentOptions{
+	opt := &CreateCommentOptions{
 		Doer:    opts.Doer,
 		Issue:   opts.Issue,
 		Repo:    opts.Issue.Repo,

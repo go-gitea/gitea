@@ -256,7 +256,6 @@ func UpdateLabel(l *Label) error {
 
 // DeleteLabel delete a label
 func DeleteLabel(id, labelID int64) error {
-
 	label, err := GetLabelByID(labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
@@ -646,7 +645,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -748,7 +747,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
