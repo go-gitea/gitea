@@ -2856,14 +2856,25 @@ tbody.commit-list {
   align-items: center;
 }
 
-.repo-buttons button[disabled],
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
 }
 
-.repo-buttons .ui.labeled.button > .label {
-  border-left: 0 !important;
-  margin: 0 !important;
+.repo-buttons .ui.labeled.button {
+  cursor: initial;
+
+  > .label {
+    border-left: 0 !important;
+    margin: 0 !important;
+  }
+
+  &.disabled {
+    pointer-events: inherit !important;
+
+    > .button {
+      pointer-events: none !important;
+    }
+  }
 }
 
 .tag-code {
