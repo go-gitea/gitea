@@ -2188,15 +2188,22 @@
   }
 
   .ui.segment.sub-menu {
-    padding: 7px;
-    line-height: 0;
+    background: none;
+    padding: 0;
 
     .list {
-      width: 100%;
+      font-size: 1rem;
       display: flex;
+      align-items: center;
 
       .item {
-        width: 100%;
+        flex: 1;
+        min-width: max-content;
+        min-width: -webkit-max-content;
+        padding: 0 1em;
+        margin: 0;
+        height: 39px;
+        line-height: 39px;
 
         &:first-of-type {
           border-radius: var(--border-radius) 0 0 var(--border-radius);
@@ -2324,6 +2331,28 @@
   .repository-summary {
     box-shadow: none !important;
 
+    &:not(.repository-summary-language-stats) .list {
+      overflow: hidden;
+
+      &::before,
+      &::after {
+        content: none;
+      }
+    }
+
+    &.repository-summary-language-stats .list {
+      overflow-x: auto;
+      overflow-y: hidden;
+
+      &::before {
+        background: linear-gradient(to left, var(--color-box-body-transparent), var(--color-box-body) 75%);
+      }
+
+      &::after {
+        background: linear-gradient(to right, var(--color-box-body-transparent), var(--color-box-body) 75%);
+      }
+    }
+
     .segment.language-stats-details,
     .segment.repository-summary {
       border-top: none;
@@ -2336,7 +2365,6 @@
 
     .segment.language-stats {
       padding: 0;
-      height: 11px;
       display: flex;
       white-space: nowrap;
       width: 100%;
@@ -2351,15 +2379,6 @@
         height: 100%;
       }
     }
-  }
-
-  .repository-menu {
-    padding: 0 !important;
-  }
-
-  .repository-menu .item {
-    padding-top: 9px !important;
-    padding-bottom: 9px !important;
   }
 
   &.diff .committed-by {
@@ -3133,7 +3152,7 @@ td.blob-excerpt {
 
 /* prevent page shaking on language bar click */
 .repository-summary-language-stats {
-  height: 48px;
+  height: 50px;
   overflow: hidden;
 }
 
