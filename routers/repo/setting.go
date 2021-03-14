@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -169,39 +169,31 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		// Validate the form.MirrorAddress
-		u, err := url.Parse(form.MirrorAddress)
+		address, err := auth.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+		}
 		if err != nil {
+			if models.IsErrInvalidCloneAddr(err) {
+				ctx.Data["Err_MirrorAddress"] = true
+				addrErr := err.(*models.ErrInvalidCloneAddr)
+				switch {
+				case addrErr.IsProtocolInvalid:
+					ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
+				case addrErr.IsURLError:
+					ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, &form)
+				case addrErr.IsPermissionDenied:
+					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
+				case addrErr.IsInvalidPath:
+					ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, &form)
+				default:
+					ctx.ServerError("Unknown error", err)
+				}
+			}
 			ctx.Data["Err_MirrorAddress"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
 			return
 		}
-
-		if u.Opaque != "" || !(u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "git") {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		if form.MirrorUsername != "" || form.MirrorPassword != "" {
-			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
-		}
-
-		// Now use xurls
-		address := validFormAddress.FindString(form.MirrorAddress)
-		if address != form.MirrorAddress && form.MirrorAddress != "" {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		if u.EscapedPath() == "" || u.Host == "" || !u.IsAbs() {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		address = u.String()
 
 		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)

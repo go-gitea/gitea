@@ -12,10 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 
@@ -92,9 +90,7 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
-// It also checks if given user has permission when remote address
-// is actually a local path.
-func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models.User) (string, error) {
+func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
 	remoteAddr = strings.TrimSpace(remoteAddr)
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	if strings.HasPrefix(remoteAddr, "http://") ||
@@ -102,26 +98,12 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string, user *models
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
 		remoteAddr = u.String()
-		if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteAddr, "%0d") || strings.Contains(remoteAddr, "%0a")) {
-			return "", models.ErrInvalidCloneAddr{IsURLError: true}
-		}
-	} else if !user.CanImportLocal() {
-		return "", models.ErrInvalidCloneAddr{IsPermissionDenied: true}
-	} else {
-		isDir, err := util.IsDir(remoteAddr)
-		if err != nil {
-			log.Error("Unable to check if %s is a directory: %v", remoteAddr, err)
-			return "", err
-		}
-		if !isDir {
-			return "", models.ErrInvalidCloneAddr{IsInvalidPath: true}
-		}
 	}
 
 	return remoteAddr, nil

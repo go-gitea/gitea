@@ -16,30 +16,30 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	setting.Migrations.AllowedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
-	err := isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")
+	err := IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nil)
 	assert.Error(t, err)
 
-	err = isMigrateURLAllowed("https://github.com/go-gitea/gitea.git")
+	err = IsMigrateURLAllowed("https://github.com/go-gitea/gitea.git", nil)
 	assert.NoError(t, err)
 
 	setting.Migrations.AllowedDomains = []string{}
 	setting.Migrations.BlockedDomains = []string{"github.com"}
 	assert.NoError(t, Init())
 
-	err = isMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git")
+	err = IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nil)
 	assert.NoError(t, err)
 
-	err = isMigrateURLAllowed("https://github.com/go-gitea/gitea.git")
+	err = IsMigrateURLAllowed("https://github.com/go-gitea/gitea.git", nil)
 	assert.Error(t, err)
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = false
 
-	err = isMigrateURLAllowed("/home/foo/bar/goo")
+	err = IsMigrateURLAllowed("/home/foo/bar/goo", nil)
 	assert.Error(t, err)
 
 	setting.ImportLocalPaths = true
-	err = isMigrateURLAllowed("/home/foo/bar/goo")
+	err = IsMigrateURLAllowed("/home/foo/bar/goo", nil)
 	assert.NoError(t, err)
 
 	setting.ImportLocalPaths = old

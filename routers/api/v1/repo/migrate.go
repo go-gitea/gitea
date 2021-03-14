@@ -96,10 +96,13 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
-	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, ctx.User)
+	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	if err == nil {
+		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
+	}
 	if err != nil {
 		if models.IsErrInvalidCloneAddr(err) {
-			addrErr := err.(models.ErrInvalidCloneAddr)
+			addrErr := err.(*models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsURLError:
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -219,7 +222,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(models.ErrNameCharsNotAllowed).Name))
 	case models.IsErrNamePatternNotAllowed(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
-	case models.IsErrMigrationNotAllowed(err):
+	case models.IsErrInvalidCloneAddr(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
