@@ -1,4 +1,9 @@
 {
+	"folders": [
+		{
+			"path": "."
+		}
+	],
 	"extensions": {
 		"recommendations": [
 			"aaron-bond.better-comments",
@@ -17,7 +22,7 @@
 			"bbenoist.vagrant",
 			"yzhang.markdown-all-in-one",
 			"gattytto.go"
-		]
+		],
 	},
 
 	"settings": {
@@ -88,5 +93,25 @@
 
 		/// Shellcheck
 		"shellcheck.run": "onSave",
+
+		/// GitLens
+		"gitlens.currentLine.enabled": false,
+		"gitlens.hovers.currentLine.over": "line",
+		"cSpell.words": [
+			"bbenoist",
+			"coenraads",
+			"eamodio",
+			"exiasr",
+			"gattytto",
+			"gitea",
+			"gruntfuggly",
+			"hadolint",
+			"hbenl",
+			"markwylde",
+			"medo",
+			"yzhang"
+		],
+
+		/// Unsorted
 	},
 }
