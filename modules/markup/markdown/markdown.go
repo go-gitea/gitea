@@ -6,6 +6,7 @@
 package markdown
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -119,8 +120,6 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 
 	})
 
-	pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-
 	rd, wr := io.Pipe()
 	defer func() {
 		_ = rd.Close()
@@ -129,6 +128,20 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 
 	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
 	go func() {
+		defer func() {
+			err := recover()
+			if err == nil {
+				return
+			}
+
+			log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
+			if log.IsDebug() {
+				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			}
+			_ = wr.CloseWithError(fmt.Errorf("%v", err))
+		}()
+
+		pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
 		if err := converter.Convert(giteautil.NormalizeEOL(body), wr, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
 			_ = wr.CloseWithError(err)
