@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"regexp"
 	"strings"
 	"time"
 
@@ -30,8 +29,6 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"mvdan.cc/xurls/v2"
 )
 
 const (
@@ -43,8 +40,6 @@ const (
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
-
-var validFormAddress *regexp.Regexp
 
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
@@ -941,14 +936,6 @@ func DeleteDeployKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
-}
-
-func init() {
-	var err error
-	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
-	if err != nil {
-		panic(err)
-	}
 }
 
 // UpdateAvatarSetting update repo's avatar
