@@ -182,7 +182,6 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 	// init
 	var toNotify map[int64]struct{}
 	notifications, err := getNotificationsByIssueID(e, issueID)
-
 	if err != nil {
 		return err
 	}
@@ -481,7 +480,7 @@ func (nl NotificationList) LoadAttributes() (err error) {
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Repository != nil {
 			continue
@@ -499,11 +498,11 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 		return RepositoryList{}, []int{}, nil
 	}
 
-	var repoIDs = nl.getPendingRepoIDs()
-	var repos = make(map[int64]*Repository, len(repoIDs))
-	var left = len(repoIDs)
+	repoIDs := nl.getPendingRepoIDs()
+	repos := make(map[int64]*Repository, len(repoIDs))
+	left := len(repoIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -532,7 +531,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 
 	failed := []int{}
 
-	var reposList = make(RepositoryList, 0, len(repoIDs))
+	reposList := make(RepositoryList, 0, len(repoIDs))
 	for i, notification := range nl {
 		if notification.Repository == nil {
 			notification.Repository = repos[notification.RepoID]
@@ -557,7 +556,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 }
 
 func (nl NotificationList) getPendingIssueIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Issue != nil {
 			continue
@@ -575,11 +574,11 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		return []int{}, nil
 	}
 
-	var issueIDs = nl.getPendingIssueIDs()
-	var issues = make(map[int64]*Issue, len(issueIDs))
-	var left = len(issueIDs)
+	issueIDs := nl.getPendingIssueIDs()
+	issues := make(map[int64]*Issue, len(issueIDs))
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -643,7 +642,7 @@ func (nl NotificationList) Without(failures []int) NotificationList {
 }
 
 func (nl NotificationList) getPendingCommentIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.CommentID == 0 || notification.Comment != nil {
 			continue
@@ -661,11 +660,11 @@ func (nl NotificationList) LoadComments() ([]int, error) {
 		return []int{}, nil
 	}
 
-	var commentIDs = nl.getPendingCommentIDs()
-	var comments = make(map[int64]*Comment, len(commentIDs))
-	var left = len(commentIDs)
+	commentIDs := nl.getPendingCommentIDs()
+	comments := make(map[int64]*Comment, len(commentIDs))
+	left := len(commentIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -789,7 +788,6 @@ func getNotificationByID(e Engine, notificationID int64) (*Notification, error) 
 	ok, err := e.
 		Where("id = ?", notificationID).
 		Get(notification)
-
 	if err != nil {
 		return nil, err
 	}
@@ -802,7 +800,7 @@ func getNotificationByID(e Engine, notificationID int64) (*Notification, error) 
 }
 
 // UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
+func UpdateNotificationStatuses(user *User, currentStatus, desiredStatus NotificationStatus) error {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
 	_, err := x.
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).
