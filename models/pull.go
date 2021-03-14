@@ -241,7 +241,6 @@ func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
-
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
 		log.Error("Unable to getReviewedByLines: Error: %v", err)
@@ -504,7 +503,7 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
-func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,

@@ -45,7 +45,6 @@ func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 	err := x.Where("user_id=?", user.ID).
 		Desc("login_source_id").
 		Find(&externalAccounts)
-
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +86,7 @@ func removeAllAccountLinks(e Engine, user *User) error {
 }
 
 // GetUserIDByExternalUserID get user id according to provider and userID
-func GetUserIDByExternalUserID(provider string, userID string) (int64, error) {
+func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 	var id int64
 	_, err := x.Table("external_login_user").
 		Select("user_id").
@@ -147,7 +146,7 @@ type FindExternalUserOptions struct {
 }
 
 func (opts FindExternalUserOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if len(opts.Provider) > 0 {
 		cond = cond.And(builder.Eq{"provider": opts.Provider})
 	}
