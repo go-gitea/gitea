@@ -35,6 +35,44 @@ var urlPrefixKey = parser.NewContextKey()
 var isWikiKey = parser.NewContextKey()
 var renderMetasKey = parser.NewContextKey()
 
+type closesWithError interface {
+	io.WriteCloser
+	CloseWithError(err error) error
+}
+
+type limitWriter struct {
+	w     closesWithError
+	sum   int64
+	limit int64
+}
+
+// Write implements the standard Write interface:
+func (l *limitWriter) Write(data []byte) (int, error) {
+	leftToWrite := l.limit - l.sum
+	if leftToWrite < int64(len(data)) {
+		n, err := l.w.Write(data[:leftToWrite])
+		l.sum += int64(n)
+		if err != nil {
+			return n, err
+		}
+		_ = l.w.Close()
+		return n, fmt.Errorf("Rendered content too large - truncating render")
+	}
+	n, err := l.w.Write(data)
+	l.sum += int64(n)
+	return n, err
+}
+
+// Close closes the writer
+func (l *limitWriter) Close() error {
+	return l.w.Close()
+}
+
+// CloseWithError closes the writer
+func (l *limitWriter) CloseWithError(err error) error {
+	return l.w.CloseWithError(err)
+}
+
 // NewGiteaParseContext creates a parser.Context with the gitea context set
 func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
@@ -126,6 +164,11 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 		_ = wr.Close()
 	}()
 
+	lw := &limitWriter{
+		w:     wr,
+		limit: setting.UI.MaxDisplayFileSize * 3,
+	}
+
 	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
 	go func() {
 		defer func() {
@@ -138,16 +181,16 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 			if log.IsDebug() {
 				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
 			}
-			_ = wr.CloseWithError(fmt.Errorf("%v", err))
+			_ = lw.CloseWithError(fmt.Errorf("%v", err))
 		}()
 
 		pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-		if err := converter.Convert(giteautil.NormalizeEOL(body), wr, parser.WithContext(pc)); err != nil {
+		if err := converter.Convert(giteautil.NormalizeEOL(body), lw, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
-			_ = wr.CloseWithError(err)
+			_ = lw.CloseWithError(err)
 			return
 		}
-		_ = wr.Close()
+		_ = lw.Close()
 	}()
 	return markup.SanitizeReader(rd).Bytes()
 }
