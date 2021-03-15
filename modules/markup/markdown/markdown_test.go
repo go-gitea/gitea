@@ -308,3 +308,14 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test(t, "A\n\nB\nC\n", 2)
 	test(t, "A\n\n\nB\nC\n", 2)
 }
+
+func TestRenderSiblingImages_Issue12925(t *testing.T) {
+	testcase := `![image1](/image1)
+![image2](/image2)
+`
+	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+`
+	res := string(RenderRaw([]byte(testcase), "", false))
+	assert.Equal(t, expected, res)
+}

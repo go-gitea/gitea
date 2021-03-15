@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
@@ -101,11 +102,41 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			parent := n.Parent()
 			// Create a link around image only if parent is not already a link
 			if _, ok := parent.(*ast.Link); !ok && parent != nil {
+				next := n.NextSibling()
+
+				// Create a link wrapper
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+
+				// Duplicate the current image node
+				image := ast.NewImage(ast.NewLink())
+				image.Destination = link
+				image.Title = v.Title
+				for _, attr := range v.Attributes() {
+					image.SetAttribute(attr.Name, attr.Value)
+				}
+				for child := v.FirstChild(); child != nil; {
+					next := child.NextSibling()
+					image.AppendChild(image, child)
+					child = next
+				}
+
+				// Append our duplicate image to the wrapper link
+				wrap.AppendChild(wrap, image)
+
+				// Wire in the next sibling
+				wrap.SetNextSibling(next)
+
+				// Replace the current node with the wrapper link
 				parent.ReplaceChild(parent, n, wrap)
-				wrap.AppendChild(wrap, n)
+
+				// But most importantly ensure the next sibling is still on the old image too
+				v.SetNextSibling(next)
+
+			} else {
+				log.Debug("ast.Image: %s has parent: %v", link, parent)
+
 			}
 		case *ast.Link:
 			// Links need their href to munged to be a real value
