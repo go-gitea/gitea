@@ -77,6 +77,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					header.ID = util.BytesToReadOnlyString(id.([]byte))
 				}
 				toc = append(toc, header)
+			} else {
+				for _, attr := range v.Attributes() {
+					if _, ok := attr.Value.([]byte); !ok {
+						v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
+					}
+				}
 			}
 		case *ast.Image:
 			// Images need two things:
