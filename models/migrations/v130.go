@@ -12,7 +12,6 @@ import (
 )
 
 func expandWebhooks(x *xorm.Engine) error {
-
 	type HookEvents struct {
 		Create               bool `json:"create"`
 		Delete               bool `json:"delete"`
@@ -57,7 +56,7 @@ func expandWebhooks(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-		var results = make([]Webhook, 0, batchSize)
+		results := make([]Webhook, 0, batchSize)
 		err := x.OrderBy("id").
 			Limit(batchSize, last).
 			Find(&results)
