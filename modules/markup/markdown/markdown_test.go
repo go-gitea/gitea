@@ -309,7 +309,6 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test(t, "A\n\n\nB\nC\n", 2)
 }
 
-
 func TestMarkdownRenderRaw(t *testing.T) {
 	testcases := [][]byte{
 		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6267570554535936
