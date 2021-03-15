@@ -119,7 +119,7 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:            CommentTypeAssignees,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -143,7 +143,6 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 
 // toggles user assignee state in database
 func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
-
 	// Check if the user exists
 	assignee, err := getUserByID(e, assigneeID)
 	if err != nil {
@@ -180,7 +179,6 @@ func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (remove
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
 func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string) (assigneeIDs []int64, err error) {
-
 	var requestAssignees []string
 
 	// Keeping the old assigning method for compatibility reasons
@@ -188,7 +186,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 		requestAssignees = append(requestAssignees, oneAssignee)
 	}
 
-	//Prevent empty assignees
+	// Prevent empty assignees
 	if len(multipleAssignees) > 0 && multipleAssignees[0] != "" {
 		requestAssignees = append(requestAssignees, multipleAssignees...)
 	}

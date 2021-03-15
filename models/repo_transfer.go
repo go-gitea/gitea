@@ -40,7 +40,6 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
-
 		for _, v := range r.TeamIDs {
 			team, err := GetTeamByID(v)
 			if err != nil {
@@ -92,7 +91,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
-	var transfer = new(RepoTransfer)
+	transfer := new(RepoTransfer)
 
 	has, err := x.Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {

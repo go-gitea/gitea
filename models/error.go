@@ -72,8 +72,7 @@ func (err ErrNameCharsNotAllowed) Error() string {
 }
 
 // ErrSSHDisabled represents an "SSH disabled" error.
-type ErrSSHDisabled struct {
-}
+type ErrSSHDisabled struct{}
 
 // IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
 func IsErrSSHDisabled(err error) bool {
@@ -269,8 +268,7 @@ func (err ErrUserHasOrgs) Error() string {
 }
 
 // ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
-type ErrUserNotAllowedCreateOrg struct {
-}
+type ErrUserNotAllowedCreateOrg struct{}
 
 // IsErrUserNotAllowedCreateOrg checks if an error is an ErrUserNotAllowedCreateOrg.
 func IsErrUserNotAllowedCreateOrg(err error) bool {
@@ -603,8 +601,7 @@ func (err ErrAccessTokenNotExist) Error() string {
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct {
-}
+type ErrAccessTokenEmpty struct{}
 
 // IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
 func IsErrAccessTokenEmpty(err error) bool {

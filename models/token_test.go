@@ -28,7 +28,6 @@ func TestNewAccessToken(t *testing.T) {
 }
 
 func TestAccessTokenByNameExists(t *testing.T) {
-
 	name := "Token Gitea"
 
 	assert.NoError(t, PrepareTestDatabase())
