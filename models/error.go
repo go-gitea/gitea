@@ -863,6 +863,7 @@ type ErrInvalidCloneAddr struct {
 	IsInvalidPath      bool
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	LocalPath          bool
 	NotResolvedIP      bool
 	PrivateNet         string
 }

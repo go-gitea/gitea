@@ -107,7 +107,13 @@ func Migrate(ctx *context.APIContext) {
 			case addrErr.IsURLError:
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			case addrErr.IsPermissionDenied:
-				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
+				if addrErr.LocalPath {
+					ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
+				} else if len(addrErr.PrivateNet) == 0 {
+					ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import from blocked hosts.")
+				} else {
+					ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import from private IPs.")
+				}
 			case addrErr.IsInvalidPath:
 				ctx.Error(http.StatusUnprocessableEntity, "", "Invalid local path, it does not exist or not a directory.")
 			default:

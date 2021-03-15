@@ -46,11 +46,11 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 
 	if u.Scheme == "file" || u.Scheme == "" {
 		if !doer.CanImportLocal() {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true}
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
 		}
 		isAbs := filepath.IsAbs(u.Host + u.Path)
 		if !isAbs {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true}
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
 		}
 		isDir, err := util.IsDir(u.Host + u.Path)
 		if err != nil {
@@ -58,7 +58,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 			return err
 		}
 		if !isDir {
-			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true}
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
 		}
 
 		return nil

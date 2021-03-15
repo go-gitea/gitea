@@ -178,7 +178,13 @@ func SettingsPost(ctx *context.Context) {
 				case addrErr.IsURLError:
 					ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, &form)
 				case addrErr.IsPermissionDenied:
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
+					if len(addrErr.PrivateNet) == 0 {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, &form)
+					} else if !addrErr.LocalPath {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, &form)
+					} else {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
+					}
 				case addrErr.IsInvalidPath:
 					ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, &form)
 				default:
