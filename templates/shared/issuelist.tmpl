@@ -92,7 +92,7 @@
 						{{$waitingOfficial := call $approvalCounts .ID "waiting"}}
 						{{if gt $approveOfficial 0}}
 							<span class="approvals df ac">
-								{{svg "octicon-check" 14 "mr-2"}}
+								{{svg "octicon-check" 14 "mr-1"}}
 								{{$.i18n.Tr (TrN $.i18n.Lang $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n") $approveOfficial}}
 							</span>
 						{{end}}
@@ -104,7 +104,7 @@
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting df ac">
-								{{svg "octicon-eye" 14}}
+								{{svg "octicon-eye" 14 "mr-2"}}
 								{{$.i18n.Tr (TrN $.i18n.Lang $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n") $waitingOfficial}}
 							</span>
 						{{end}}

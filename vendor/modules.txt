@@ -261,7 +261,7 @@ github.com/go-chi/chi/middleware
 # github.com/go-chi/cors v1.1.1
 ## explicit
 github.com/go-chi/cors
-# github.com/go-enry/go-enry/v2 v2.6.0
+# github.com/go-enry/go-enry/v2 v2.6.1
 ## explicit
 github.com/go-enry/go-enry/v2
 github.com/go-enry/go-enry/v2/data

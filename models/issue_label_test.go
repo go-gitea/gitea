@@ -231,7 +231,6 @@ func TestGetLabelsByOrgID(t *testing.T) {
 
 	_, err = GetLabelsByOrgID(-1, "leastissues", ListOptions{})
 	assert.True(t, IsErrOrgLabelNotExist(err))
-
 }
 
 //
