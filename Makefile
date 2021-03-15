@@ -111,7 +111,7 @@ TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
-TEST_TAGS ?= sqlite sqlite_unlock_notify
+TEST_TAGS ?=
 
 GO_DIRS := cmd integrations models modules routers build services vendor tools
 
@@ -726,7 +726,7 @@ golangci-lint:
 .PHONY: docker
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
-# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
+# support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata"  .
 
 .PHONY: docker-build
 docker-build:
