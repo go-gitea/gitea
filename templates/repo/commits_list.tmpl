@@ -18,9 +18,9 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar .User 28 "mr-2"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+								{{avatar .User 28 "mr-3"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
+								{{avatarByEmail .Author.Email .Author.Name 28 "mr-3"}}
 								{{$userName}}
 							{{end}}
 						</td>
@@ -65,7 +65,6 @@
 								{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .ID }}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
-							</span>
 							{{if IsMultilineCommitMessage .Message}}
 							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
 							{{end}}
@@ -75,6 +74,7 @@
 							{{if IsMultilineCommitMessage .Message}}
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
+							</span>
 						</td>
 						<td class="text right age">{{TimeSince .Author.When $.Lang}}</td>
 					</tr>

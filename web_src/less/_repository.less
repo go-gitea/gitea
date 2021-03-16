@@ -2714,10 +2714,27 @@ tbody.commit-list {
 }
 
 .message-wrapper {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: calc(100% - 21px);
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  .commit-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    flex: 1;
+    max-width: max-content;
+    min-width: .5em;
+  }
+
+  .commit-button {
+    margin-right: 0;
+    margin-left: .25rem;
+  }
+
+  .commit-statuses-trigger {
+    flex: 100%;
+  }
 }
 
 @media (max-width: 480px) {
