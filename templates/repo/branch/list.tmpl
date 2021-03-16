@@ -19,7 +19,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>&nbsp;·&nbsp;<span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span>&nbsp;·&nbsp;{{$.i18n.Tr "org.repo_updated"}}&nbsp;{{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}
 						</td>
@@ -50,13 +50,13 @@
 									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
-										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
+										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}}&nbsp;{{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
 										{{if .IsProtected}}
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>&nbsp;·&nbsp;<span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span>&nbsp;·&nbsp;{{$.i18n.Tr "org.repo_updated"}}&nbsp;{{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
