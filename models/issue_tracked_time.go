@@ -193,14 +193,14 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//Adding total time per user ID
+	// Adding total time per user ID
 	totalTimesByUser := make(map[int64]int64)
 	for _, t := range trackedTimes {
 		totalTimesByUser[t.UserID] += t.Time
 	}
 
 	totalTimes := make(map[*User]string)
-	//Fetching User and making time human readable
+	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
 		user, err := GetUserByID(userID)
 		if err != nil {
@@ -283,7 +283,6 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-
 	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil || removedTime == 0 {
 		return

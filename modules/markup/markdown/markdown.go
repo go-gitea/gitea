@@ -6,7 +6,8 @@
 package markdown
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -18,7 +19,7 @@ import (
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark-highlighting"
+	highlighting "github.com/yuin/goldmark-highlighting"
 	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -34,6 +35,44 @@ var urlPrefixKey = parser.NewContextKey()
 var isWikiKey = parser.NewContextKey()
 var renderMetasKey = parser.NewContextKey()
 
+type closesWithError interface {
+	io.WriteCloser
+	CloseWithError(err error) error
+}
+
+type limitWriter struct {
+	w     closesWithError
+	sum   int64
+	limit int64
+}
+
+// Write implements the standard Write interface:
+func (l *limitWriter) Write(data []byte) (int, error) {
+	leftToWrite := l.limit - l.sum
+	if leftToWrite < int64(len(data)) {
+		n, err := l.w.Write(data[:leftToWrite])
+		l.sum += int64(n)
+		if err != nil {
+			return n, err
+		}
+		_ = l.w.Close()
+		return n, fmt.Errorf("Rendered content too large - truncating render")
+	}
+	n, err := l.w.Write(data)
+	l.sum += int64(n)
+	return n, err
+}
+
+// Close closes the writer
+func (l *limitWriter) Close() error {
+	return l.w.Close()
+}
+
+// CloseWithError closes the writer
+func (l *limitWriter) CloseWithError(err error) error {
+	return l.w.CloseWithError(err)
+}
+
 // NewGiteaParseContext creates a parser.Context with the gitea context set
 func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
@@ -43,8 +82,8 @@ func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool
 	return pc
 }
 
-// render renders Markdown to HTML without handling special links.
-func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
+// actualRender renders Markdown to HTML without handling special links.
+func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
 	once.Do(func() {
 		converter = goldmark.New(
 			goldmark.WithExtensions(extension.Table,
@@ -119,12 +158,57 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 
 	})
 
-	pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-	var buf bytes.Buffer
-	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
-		log.Error("Unable to render: %v", err)
+	rd, wr := io.Pipe()
+	defer func() {
+		_ = rd.Close()
+		_ = wr.Close()
+	}()
+
+	lw := &limitWriter{
+		w:     wr,
+		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
-	return markup.SanitizeReader(&buf).Bytes()
+
+	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
+	go func() {
+		defer func() {
+			err := recover()
+			if err == nil {
+				return
+			}
+
+			log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
+			if log.IsDebug() {
+				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			}
+			_ = lw.CloseWithError(fmt.Errorf("%v", err))
+		}()
+
+		pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
+		if err := converter.Convert(giteautil.NormalizeEOL(body), lw, parser.WithContext(pc)); err != nil {
+			log.Error("Unable to render: %v", err)
+			_ = lw.CloseWithError(err)
+			return
+		}
+		_ = lw.Close()
+	}()
+	return markup.SanitizeReader(rd).Bytes()
+}
+
+func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) (ret []byte) {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+
+		log.Warn("Unable to render markdown due to panic in goldmark - will return sanitized raw bytes")
+		if log.IsDebug() {
+			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+		}
+		ret = markup.SanitizeBytes(body)
+	}()
+	return actualRender(body, urlPrefix, metas, wikiMarkdown)
 }
 
 var (
