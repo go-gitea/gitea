@@ -185,12 +185,6 @@
   }
 
   #clone-panel {
-    width: 350px;
-
-    @media @mediaSm {
-      width: 100%;
-    }
-
     input {
       border-radius: 0;
       padding: 5px 10px;
@@ -224,14 +218,24 @@
   }
 
   &.file.list {
-    .repo-description {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .repo-description .item {
+      align-self: flex-start;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .repo-desc-wrapper {
+      flex: 1;
+      min-width: 0;
     }
 
     #repo-desc {
-      font-size: 1.2em;
+      font-size: 16px;
+      line-height: 24px;
+
+      & ~ div {
+        margin-top: calc(.5rem - 4px);
+      }
     }
 
     .choose.reference {
@@ -241,7 +245,6 @@
     }
 
     .repo-path {
-
       .section,
       .divider {
         display: inline;
@@ -268,23 +271,17 @@
     }
 
     #repo-files-table {
-      thead {
-        th {
-          padding-top: 8px;
-          padding-bottom: 5px;
-          font-weight: normal;
-        }
-
-        .ui.avatar {
-          margin-bottom: 5px;
-        }
+      thead th {
+        padding-top: 11px;
+        padding-bottom: 11px;
+        font-weight: normal;
       }
 
       tbody {
         .svg {
           margin-left: 3px;
           margin-right: 5px;
-          color: #777777;
+          color: #777777; 
 
           &.octicon-reply {
             margin-right: 10px;
@@ -307,7 +304,7 @@
         }
 
         &.message {
-          max-width: 400px;
+          max-width: 0;
         }
 
         &.age {
@@ -1250,6 +1247,13 @@
   }
 
   &.branches {
+    td.ui,
+    td.ui + td {
+      @media @mediaSm {
+        display: none;
+      }
+    }
+  
     .commit-divergence {
       .bar-group {
         position: relative;
@@ -1302,6 +1306,23 @@
     }
   }
 
+  .commits-table {
+    @media @mediaSm {
+      flex-direction: column;
+
+      > * + * {
+        margin-top: .5em;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .ui.input + * {
+        margin-top: .5em;
+        flex-grow: 1;
+      }
+    }
+  }
+
   #commits-table {
     thead {
       th:first-of-type {
@@ -1313,7 +1334,11 @@
           text-align: center;
         }
 
-        width: 175px;
+        width: 140px;
+      }
+
+      .age {
+        width: 120px;
       }
     }
 
@@ -1345,7 +1370,7 @@
     .detail.icon {
       background: var(--color-light);
       margin: -6px -10px -4px 0;
-      padding: 5px 4px 5px 6px;
+      padding: 5px 4px 6px 6px;
       border-left: 1px solid var(--color-light-border);
       border-top: 0;
       border-right: 0;
@@ -2705,45 +2730,25 @@ tbody.commit-list {
 .message-wrapper {
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 50px);
-  display: inline-block;
-  vertical-align: middle;
+  max-width: calc(100% - 21px);
+  display: block;
 }
 
-@media @mediaSm {
-  tr.commit-list {
-    width: 100%;
-  }
-  th .message-wrapper {
-    display: block;
-    max-width: calc(100vw - 70px);
-  }
-}
+@media (max-width: 480px) {
+  #repo-files-table {
+    .message {
+      width: 0;
+      font-size: 0;
+    }
 
-@media @mediaMd {
-  tr.commit-list {
-    width: 723px;
+    .name {
+      max-width: inherit;
+    }
   }
-  th .message-wrapper {
-    max-width: 280px;
-  }
-}
 
-@media @mediaLg {
-  tr.commit-list {
-    width: 933px;
-  }
-  th .message-wrapper {
-    max-width: 490px;
-  }
-}
-
-@media @mediaXl {
-  tr.commit-list {
-    width: 1127px;
-  }
-  th .message-wrapper {
-    max-width: 680px;
+  th.sha,
+  .commit-list .sha {
+    display: none;
   }
 }
 
@@ -2785,29 +2790,41 @@ tbody.commit-list {
   text-align: left;
 }
 
-@media @mediaSm {
-  .ui.stackable.menu {
-    &.mobile--margin-between-items > .item {
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
+.ui.secondary.menu {
+  .item > .input,
+  .item > .button {
+    margin: 0;
+  }
 
-    &.mobile--no-negative-margins {
-      margin-left: 0;
-      margin-right: 0;
+  &.flex-wrappable {
+    margin-bottom: 0;
+
+    .item {
+      margin-bottom: 1rem;
+    }
+  }
+
+  @media @mediaSm {
+    &.stackable {
+      width: 100% !important;
     }
   }
 }
 
-#topic_edit {
-  margin-top: 5px;
-}
-
 #repo-topics {
-  margin-top: 5px;
+  line-height: 2rem;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.ui.label.topic svg.delete.icon {
+  margin-left: .25rem;
+  margin-right: -.25rem;
+}
+
+.ui.label.topic {
+  word-break: break-word;
 }
 
 .repo-topic {
@@ -2835,12 +2852,13 @@ tbody.commit-list {
   font-size: 12px;
 }
 
-.label + #manage_topic {
-  margin-left: 5px;
+#topic_edit .ui.multiple input.search {
+  width: 10em;
+  min-width: 10em;
 }
 
-.ui.small.label.topic {
-  margin-bottom: 4px;
+.label + #manage_topic {
+  margin-left: .35rem;
 }
 
 .repo-header {

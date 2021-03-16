@@ -1,11 +1,11 @@
 <div class="ui attached table segment">
-		<table class="ui very basic striped fixed table single line" id="commits-table">
+		<table class="ui very basic striped fixed single line unstackable table" id="commits-table">
 			<thead>
 				<tr>
 					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
 					<th class="seven wide message">{{.i18n.Tr "repo.commits.message"}}</th>
-					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
+					<th class="three wide text right age">{{.i18n.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -76,7 +76,7 @@
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
-						<td class="text right aligned">{{TimeSince .Author.When $.Lang}}</td>
+						<td class="text right age">{{TimeSince .Author.When $.Lang}}</td>
 					</tr>
 				{{end}}
 			</tbody>

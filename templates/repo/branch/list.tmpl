@@ -9,10 +9,10 @@
 		</h4>
 
 		<div class="ui attached table segment">
-			<table class="ui very basic striped fixed table single line">
+			<table class="ui very basic striped fixed table single line unstackable table">
 				<tbody>
 					<tr>
-						<td>
+						<td class="six wide">
 						{{range .Branches}}
 							{{if eq .Name $.DefaultBranch}}
 								{{if .IsProtected}}
@@ -23,7 +23,7 @@
 							{{end}}
 						{{end}}
 						</td>
-						<td class="right aligned overflow-visible">
+						<td class="two wide right aligned overflow-visible">
 							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-variation="tiny inverted" data-position="top right">
 							  <i class="download icon"></i>
 							  <div class="menu">
@@ -42,7 +42,7 @@
 				{{.i18n.Tr "repo.branches"}}
 			</h4>
 			<div class="ui attached table segment">
-				<table class="ui very basic striped fixed table single line">
+				<table class="ui very basic striped fixed single line unstackable table">
 					<tbody>
 						{{range .Branches}}
 							{{if ne .Name $.DefaultBranch}}

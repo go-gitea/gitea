@@ -555,7 +555,8 @@ func SVG(icon string, others ...interface{}) template.HTML {
 			svgStr = heightRe.ReplaceAllString(svgStr, fmt.Sprintf(`height="%d"`, size))
 		}
 		if class != "" {
-			svgStr = strings.Replace(svgStr, `class="`, fmt.Sprintf(`class="%s `, class), 1)
+			matches := regexp.MustCompile(`class="(.*?)"`).FindStringSubmatch(svgStr)
+			svgStr = strings.Replace(svgStr, matches[0], fmt.Sprintf(`class="%s %s"`, matches[1], class), 1)
 		}
 		return template.HTML(svgStr)
 	}

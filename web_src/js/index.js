@@ -3562,8 +3562,11 @@ function initTopicbar() {
       blue: true,
       basic: true,
     },
+    templates: {
+      label: (_, text, preserveHTML, __) => $.fn.dropdown.settings.templates.escape(text, preserveHTML) + svg('octicon-x', 16, 'delete icon'),
+    },
     className: {
-      label: 'ui small label'
+      label: 'ui small label topic'
     },
     apiSettings: {
       url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
@@ -3630,7 +3633,12 @@ function initTopicbar() {
     if (!status) {
       topics.last().removeClass('green').addClass('red');
     }
-    return status && topicDropdown.children('a.ui.label.red').length === 0;
+    if (topicDropdown.children('a.ui.label.red').length > 0) {
+      saveBtn.removeClass('primary').addClass('grey').addClass('disabled');
+    } else {
+      saveBtn.addClass('primary').removeClass('grey').removeClass('disabled');
+    }
+    return status && !saveBtn.hasClass('disabled');
   };
 
   topicForm.form({
