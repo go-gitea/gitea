@@ -216,12 +216,18 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
+		var repoChanged bool
 		var units []models.RepoUnit
 		var deleteUnitTypes []models.UnitType
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+			repoChanged = true
+		}
 
 		if form.EnableWiki && form.EnableExternalWiki && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
@@ -326,6 +332,12 @@ func SettingsPost(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
 		}
+		if repoChanged {
+			if err := models.UpdateRepository(repo, false); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
@@ -359,10 +371,6 @@ func SettingsPost(ctx *context.Context) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-		}
-
-		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
-			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 		}
 
 		if err := models.UpdateRepository(repo, false); err != nil {
