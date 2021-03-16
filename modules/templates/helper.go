@@ -92,6 +92,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
@@ -627,6 +628,11 @@ func Str2html(raw string) template.HTML {
 // Escape escapes a HTML string
 func Escape(raw string) string {
 	return html.EscapeString(raw)
+}
+
+// JSEscape escapes a JS string
+func JSEscape(raw string) string {
+	return template.JSEscapeString(raw)
 }
 
 // List traversings the list

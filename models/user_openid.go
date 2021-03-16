@@ -11,10 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// ErrOpenIDNotExist openid is not known
-	ErrOpenIDNotExist = errors.New("OpenID is unknown")
-)
+// ErrOpenIDNotExist openid is not known
+var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
 type UserOpenID struct {
@@ -72,7 +70,7 @@ func AddUserOpenID(openid *UserOpenID) error {
 func DeleteUserOpenID(openid *UserOpenID) (err error) {
 	var deleted int64
 	// ask to check UID
-	var address = UserOpenID{
+	address := UserOpenID{
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {

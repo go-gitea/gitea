@@ -5,7 +5,7 @@ const headingSelector = '.markdown h1, .markdown h2, .markdown h3, .markdown h4,
 function scrollToAnchor() {
   if (document.querySelector(':target')) return;
   if (!window.location.hash || window.location.hash.length <= 1) return;
-  const id = window.location.hash.substring(1);
+  const id = decodeURIComponent(window.location.hash.substring(1));
   const el = document.getElementById(`user-content-${id}`);
   if (el) {
     el.scrollIntoView();
