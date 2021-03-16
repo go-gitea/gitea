@@ -123,34 +123,34 @@ type RepoSettingForm struct {
 	EnablePrune    bool
 
 	// Advanced settings
-	EnableWiki                       bool
-	EnableExternalWiki               bool
-	ExternalWikiURL                  string
-	EnableIssues                     bool
-	EnableExternalTracker            bool
-	ExternalTrackerURL               string
-	TrackerURLFormat                 string
-	TrackerIssueStyle                string
-	EnableProjects                   bool
-	EnablePulls                      bool
-	PullsIgnoreWhitespace            bool
-	PullsAllowMerge                  bool
-	PullsAllowRebase                 bool
-	PullsAllowRebaseMerge            bool
-	PullsAllowSquash                 bool
-	PullsAllowManualMerge            bool
-	EnableAutodetectManualMerge      bool
-	EnableTimetracker                bool
-	AllowOnlyContributorsToTrackTime bool
-	EnableIssueDependencies          bool
-	IsArchived                       bool
+	EnableWiki                            bool
+	EnableExternalWiki                    bool
+	ExternalWikiURL                       string
+	EnableIssues                          bool
+	EnableExternalTracker                 bool
+	ExternalTrackerURL                    string
+	TrackerURLFormat                      string
+	TrackerIssueStyle                     string
+	EnableCloseIssuesViaCommitInAnyBranch bool
+	EnableProjects                        bool
+	EnablePulls                           bool
+	PullsIgnoreWhitespace                 bool
+	PullsAllowMerge                       bool
+	PullsAllowRebase                      bool
+	PullsAllowRebaseMerge                 bool
+	PullsAllowSquash                      bool
+	PullsAllowManualMerge                 bool
+	EnableAutodetectManualMerge           bool
+	EnableTimetracker                     bool
+	AllowOnlyContributorsToTrackTime      bool
+	EnableIssueDependencies               bool
+	IsArchived                            bool
 
 	// Signing Settings
 	TrustModel string
 
 	// Admin settings
-	EnableHealthCheck                     bool
-	EnableCloseIssuesViaCommitInAnyBranch bool
+	EnableHealthCheck bool
 }
 
 // Validate validates the fields
