@@ -175,6 +175,9 @@ github.com/bradfitz/gomemcache/memcache
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
+# github.com/chi-middleware/proxy v1.1.1
+## explicit
+github.com/chi-middleware/proxy
 # github.com/chris-ramon/douceur v0.2.0
 github.com/chris-ramon/douceur/parser
 # github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448

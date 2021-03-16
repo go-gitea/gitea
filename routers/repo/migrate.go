@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -99,7 +100,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
-		remoteAddr, _ := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, owner)
+		remoteAddr, _ := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
@@ -112,6 +113,35 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		} else {
 			ctx.ServerError(name, err)
 		}
+	}
+}
+
+func handleRemoteAddrError(ctx *context.Context, err error, errorField string, tpl base.TplName, form *auth.MigrateRepoForm) {
+	if models.IsErrInvalidCloneAddr(err) {
+		ctx.Data[errorField] = true
+		addrErr := err.(*models.ErrInvalidCloneAddr)
+		switch {
+		case addrErr.IsProtocolInvalid:
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
+		case addrErr.IsURLError:
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		case addrErr.IsPermissionDenied:
+			if len(addrErr.PrivateNet) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, form)
+			} else if !addrErr.LocalPath {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
+			}
+		case addrErr.IsInvalidPath:
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
+		default:
+			log.Error("Error whilst updating url: %v", err)
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		}
+	} else {
+		log.Error("Error whilst updating url: %v", err)
+		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
 	}
 }
 
@@ -140,24 +170,12 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword, ctx.User)
+	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	if err == nil {
+		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
+	}
 	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			ctx.Data["Err_CloneAddr"] = true
-			addrErr := err.(models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
-			case addrErr.IsPermissionDenied:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
-			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, &form)
-			default:
-				ctx.ServerError("Unknown error", err)
-			}
-		} else {
-			ctx.ServerError("ParseRemoteAddr", err)
-		}
+		handleRemoteAddrError(ctx, err, "Err_CloneAddr", tpl, form)
 		return
 	}
 
@@ -168,6 +186,11 @@ func MigratePost(ctx *context.Context) {
 		if ep == nil {
 			ctx.Data["Err_LFSEndpoint"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
+			return
+		}
+		err = migrations.IsMigrateURLAllowed(form.LFSEndpoint, ctx.User)
+		if err != nil {
+			handleRemoteAddrError(ctx, err, "Err_LFSEndpoint", tpl, form)
 			return
 		}
 	}
