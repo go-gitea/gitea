@@ -2718,16 +2718,15 @@ tbody.commit-list {
   flex-wrap: wrap;
   align-items: center;
 
-  .commit-summary {
+  *:first-child {
     overflow: hidden;
     text-overflow: ellipsis;
-    display: block;
     flex: 1;
     max-width: max-content;
     min-width: .5em;
   }
 
-  .commit-statuses-trigger {
+  .commit-button + * {
     flex: 100%;
   }
 }

@@ -24,11 +24,14 @@
 					</a>
 					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
 					{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
-					<span class="grey commit-summary f1 ml-3" title="{{.LatestCommit.Summary}}"><span class="message-wrapper dif">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
-					{{if IsMultilineCommitMessage .LatestCommit.Message}}
-						<button class="basic compact mini ui icon button commit-button">{{svg "octicon-kebab-horizontal" 12}}</button>
-						<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
-					{{end}}
+					<span class="message-wrapper f1 ml-3">
+						<span class="grey commit-summary" title="{{.LatestCommit.Summary}}">
+							{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
+						</span>
+						{{if IsMultilineCommitMessage .LatestCommit.Message}}
+							<button class="basic compact mini ui icon button commit-button">{{svg "octicon-kebab-horizontal" 12}}</button>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+						{{end}}
 					</span>
 				</div>
 			</th>
