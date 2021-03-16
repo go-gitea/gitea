@@ -26,7 +26,6 @@ func userPath(userName string) string {
 }
 
 func fixPublisherIDforTagReleases(x *xorm.Engine) error {
-
 	type Release struct {
 		ID          int64
 		RepoID      int64
