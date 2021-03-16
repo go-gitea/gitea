@@ -127,6 +127,15 @@
 								</a>
 								{{ end }}
 							</div>
+							{{- end }}
+							{{- range index $.LinkedPRs .ID }}
+							<div class="meta">
+								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
+									<span class="{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
+									{{ .Title}} (#{{ .Index }})
+								</a>
+							</div>
+							{{- end }}
 						</div>
 						<div class="extra content">
 							{{ range .Labels }}
