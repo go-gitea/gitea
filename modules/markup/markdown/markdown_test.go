@@ -308,3 +308,34 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test(t, "A\n\nB\nC\n", 2)
 	test(t, "A\n\n\nB\nC\n", 2)
 }
+
+func TestMarkdownRenderRaw(t *testing.T) {
+	testcases := [][]byte{
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6267570554535936
+			0x2a, 0x20, 0x2d, 0x0a, 0x09, 0x20, 0x60, 0x5b, 0x0a, 0x09, 0x20, 0x60,
+			0x5b,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6278827345051648
+			0x2d, 0x20, 0x2d, 0x0d, 0x09, 0x60, 0x0d, 0x09, 0x60,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6016973788020736[] = {
+			0x7b, 0x63, 0x6c, 0x61, 0x73, 0x73, 0x3d, 0x35, 0x7d, 0x0a, 0x3d,
+		},
+	}
+
+	for _, testcase := range testcases {
+		_ = RenderRaw(testcase, "", false)
+	}
+}
+
+func TestRenderSiblingImages_Issue12925(t *testing.T) {
+	testcase := `![image1](/image1)
+![image2](/image2)
+`
+	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+`
+	res := string(RenderRaw([]byte(testcase), "", false))
+	assert.Equal(t, expected, res)
+
+}

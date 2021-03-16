@@ -46,6 +46,7 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
+	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -65,14 +66,30 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 				next.ServeHTTP(context.NewResponse(resp), req)
 			})
 		},
-		middleware.RealIP,
-		middleware.StripSlashes,
 	}
+
+	if setting.ReverseProxyLimit > 0 {
+		opt := proxy.NewForwardedHeadersOptions().
+			WithForwardLimit(setting.ReverseProxyLimit).
+			ClearTrustedProxies()
+		for _, n := range setting.ReverseProxyTrustedProxies {
+			if !strings.Contains(n, "/") {
+				opt.AddTrustedProxy(n)
+			} else {
+				opt.AddTrustedNetwork(n)
+			}
+		}
+		handlers = append(handlers, proxy.ForwardedHeaders(opt))
+	}
+
+	handlers = append(handlers, middleware.StripSlashes)
+
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			// Why we need this? The Recovery() will try to render a beautiful

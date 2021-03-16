@@ -40,7 +40,7 @@ func refixMergeBase(x *xorm.Engine) error {
 		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
 
-	var limit = setting.Database.IterateBufferSize
+	limit := setting.Database.IterateBufferSize
 	if limit <= 0 {
 		limit = 50
 	}
