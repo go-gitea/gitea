@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-03-09
 
 * BREAKING
+  * Add reverse proxy configuration support for remote IP address (#14959)
   * Restore Access.log following migration to Chi framework (Stops access logging of /api/internal routes) (#14475)
   * Migrate from Macaron to Chi framework (#14293)
   * Deprecate building for mips (#14174)
@@ -59,6 +60,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more filters to issues search (#13514)
   * Add review request api (#11355)
 * BUGFIXES
+  * Ensure validation occurs on clone addresses too (#14994)
+  * Fix several render issues (#14986)
+  * Show correct issues for team dashboard (#14952)
+  * Ensure that new pull request button works on forked forks owned by owner of the root and reduce ambiguity (#14932)
   * Fix alignment of People and Teams right arrow on org homepage (#14924)
   * Fix overdue marking of closed issues and milestones (#14923)
   * Prevent panic when empty MilestoneID in repo/issue/list (#14911)
