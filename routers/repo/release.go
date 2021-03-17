@@ -7,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -331,7 +332,7 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, true); err != nil {
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, true); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
@@ -414,16 +415,23 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 
-	var attachmentUUIDs []string
+	const prefix = "attachment-del-"
+	var addAttachmentUUIDs, delAttachmentUUIDs []string
 	if setting.Attachment.Enabled {
-		attachmentUUIDs = form.Files
+		addAttachmentUUIDs = form.Files
+		for k, v := range ctx.Req.Form {
+			if strings.HasPrefix(k, prefix) && v[0] == "true" {
+				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(prefix):])
+			}
+		}
 	}
 
 	rel.Title = form.Title
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, false); err != nil {
+	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo,
+		rel, addAttachmentUUIDs, delAttachmentUUIDs, false); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}

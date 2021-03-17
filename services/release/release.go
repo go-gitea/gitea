@@ -155,7 +155,8 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 }
 
 // UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
-func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, isCreate bool) (err error) {
+func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release,
+	addAttachmentUUIDs, delAttachmentUUIDs []string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel, ""); err != nil {
 		return err
 	}
@@ -165,8 +166,20 @@ func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Reposito
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(rel.ID, addAttachmentUUIDs); err != nil {
 		log.Error("AddReleaseAttachments: %v", err)
+	}
+
+	if len(delAttachmentUUIDs) > 0 {
+		// Check attachments
+		attachments, err := models.GetAttachmentsByUUIDs(delAttachmentUUIDs)
+		if err != nil {
+			log.Error("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
+		}
+
+		if _, err := models.DeleteAttachments(attachments, true); err != nil {
+			log.Error("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
+		}
 	}
 
 	if !isCreate {

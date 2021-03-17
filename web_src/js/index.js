@@ -1256,14 +1256,9 @@ function initPullRequestMergeInstruction() {
 }
 
 function initRelease() {
-  $('.remove-rel-attach').on('click', () => {
-    const $this = $(this);
-    $.post($this.data('url'), {
-      _csrf: csrf,
-      file: $this.data('file')
-    }).done(() => {
-      $this.remove();
-    });
+  $(document).on('click', '.remove-rel-attach', function() {
+    $("input[name='attachment-del-"+$(this).data('uuid')+"']").attr('value', true);
+    $('#attachment-'+$(this).data('id')).hide();
   });
 }
 
