@@ -28,7 +28,7 @@ func fixPostgresIDSequences(x *xorm.Engine) error {
 	schema := sess.Engine().Dialect().URI().Schema
 
 	sess.Engine().SetSchema("")
-	if err := sess.Table("pg_sequences").Cols("sequencename").Where("sequencename LIKE 'tmp_recreate__%_id_seq%'").Find(&sequences); err != nil {
+	if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__%_id_seq%' AND sequence_catalog = ?", setting.Database.Name).Find(&sequences); err != nil {
 		log.Error("Unable to find sequences: %v", err)
 		return err
 	}

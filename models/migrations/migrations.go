@@ -567,22 +567,29 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
-		var originalSequences []struct {
-			Sequencename string `xorm:"'sequencename'"`
-			LastValue    int    `xorm:"'last_value'"`
+		var originalSequences []string
+		type sequenceData struct {
+			LastValue int  `xorm:"'last_value'"`
+			IsCalled  bool `xorm:"'is_called'"`
 		}
-		sequenceMap := map[string]int{}
+		sequenceMap := map[string]sequenceData{}
 
 		schema := sess.Engine().Dialect().URI().Schema
 		sess.Engine().SetSchema("")
-		if err := sess.Table("pg_sequences").Cols("sequencename", "last_value").Where("sequencename LIKE ? || '_%'", tableName).Find(&originalSequences); err != nil {
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&originalSequences); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
 		sess.Engine().SetSchema(schema)
 
 		for _, sequence := range originalSequences {
-			sequenceMap[sequence.Sequencename] = sequence.LastValue
+			var sequenceData sequenceData
+			if err := sess.Table(sequence).Cols("last_value", "is_called").Find(&sequenceData); err != nil {
+				log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+				return err
+			}
+			sequenceMap[sequence] = sequenceData
+
 		}
 
 		// CASCADE causes postgres to drop all the constraints on the old table
@@ -615,7 +622,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 
 		var sequences []string
 		sess.Engine().SetSchema("")
-		if err := sess.Table("pg_sequences").Cols("sequencename").Where("sequencename LIKE 'tmp_recreate__' || ? || '_%'", tableName).Find(&sequences); err != nil {
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__' || ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&sequences); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
@@ -629,8 +636,8 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			}
 			val, ok := sequenceMap[newSequenceName]
 			if newSequenceName == tableName+"_id_seq" {
-				if ok && val != 0 {
-					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d)", newSequenceName, val)); err != nil {
+				if ok && val.LastValue != 0 {
+					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
 						log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
 						return err
 					}
@@ -642,7 +649,7 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 					}
 				}
 			} else if ok {
-				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d)", newSequenceName, val)); err != nil {
+				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
 					log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
 					return err
 				}
