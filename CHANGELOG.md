@@ -244,6 +244,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Introduce go chi web framework as frontend of macaron, so that we can move routes from macaron to chi step by step (#7420)
   * Improve vfsgen to not unzip bindata files but send to browser directly (#7109)
   * Enhance release list (#6025)
+  * Support git .mailmap in GetCodeActivityStats() (#15009)
 * DOCS
   * Swagger show models by default (#14880)
   * Add missing repo.projects unit into swagger (#14876)
