@@ -24,8 +24,7 @@ type RepoUnit struct {
 }
 
 // UnitConfig describes common unit config
-type UnitConfig struct {
-}
+type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {

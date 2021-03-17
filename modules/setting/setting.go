@@ -132,6 +132,7 @@ var (
 		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
 		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
 		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
+		ServerHostKeys                 []string          `ini:"SSH_SERVER_HOST_KEYS"`
 		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
 		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
 		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
@@ -157,6 +158,7 @@ var (
 		KeygenPath:          "ssh-keygen",
 		MinimumKeySizeCheck: true,
 		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		ServerHostKeys:      []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
 	}
 
 	// Security settings
@@ -167,6 +169,8 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyLimit                  int
+	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
 	DisableGitHooks                    bool
@@ -698,6 +702,11 @@ func NewContext() {
 	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
 		log.Fatal("Failed to map SSH settings: %v", err)
 	}
+	for i, key := range SSH.ServerHostKeys {
+		if !filepath.IsAbs(key) {
+			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
+		}
+	}
 
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
@@ -812,8 +821,16 @@ func NewContext() {
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
+
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+
+	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
+	if len(ReverseProxyTrustedProxies) == 0 {
+		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
+	}
+
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)

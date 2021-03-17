@@ -9,7 +9,7 @@
 //
 //     Schemes: http, https
 //     BasePath: /api/v1
-//     Version: {{AppVer}}
+//     Version: {{AppVer | JSEscape | Safe}}
 //     License: MIT http://opensource.org/licenses/MIT
 //
 //     Consumes:
@@ -201,6 +201,14 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 		ctx.Error(http.StatusUnauthorized, "reqToken", "token is required")
+	}
+}
+
+func reqExploreSignIn() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
+			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
+		}
 	}
 }
 
@@ -603,16 +611,16 @@ func Routes() *web.Route {
 
 		// Users
 		m.Group("/users", func() {
-			m.Get("/search", user.Search)
+			m.Get("/search", reqExploreSignIn(), user.Search)
 
 			m.Group("/{username}", func() {
-				m.Get("", user.GetInfo)
+				m.Get("", reqExploreSignIn(), user.GetInfo)
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
-				m.Get("/repos", user.ListUserRepos)
+				m.Get("/repos", reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
