@@ -151,7 +151,7 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 		return newAvatar, nil
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0o666); err != nil {
 		return "", fmt.Errorf("ioutil.WriteFile: %v", err)
 	}
 

@@ -141,7 +141,6 @@ func TestRepoAPIURL(t *testing.T) {
 }
 
 func TestUploadAvatar(t *testing.T) {
-
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer
@@ -156,7 +155,6 @@ func TestUploadAvatar(t *testing.T) {
 }
 
 func TestUploadBigAvatar(t *testing.T) {
-
 	// Generate BIG image
 	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
 	var buff bytes.Buffer
@@ -170,7 +168,6 @@ func TestUploadBigAvatar(t *testing.T) {
 }
 
 func TestDeleteAvatar(t *testing.T) {
-
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer

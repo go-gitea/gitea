@@ -49,11 +49,9 @@ type LFSTokenResponse struct {
 	Href   string            `json:"href"`
 }
 
-var (
-	// ErrLFSObjectNotExist is returned from lfs models functions in order
-	// to differentiate between database and missing object errors.
-	ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
-)
+// ErrLFSObjectNotExist is returned from lfs models functions in order
+// to differentiate between database and missing object errors.
+var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 
 const (
 	// LFSMetaFileIdentifier is the string appearing at the first line of LFS pointer files.
@@ -218,7 +216,7 @@ func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	var start int
 	const batchSize = 100
 	for {
-		var mos = make([]*LFSMetaObject, 0, batchSize)
+		mos := make([]*LFSMetaObject, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&mos); err != nil {
 			return err
 		}
