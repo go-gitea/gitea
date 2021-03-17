@@ -1257,8 +1257,10 @@ function initPullRequestMergeInstruction() {
 
 function initRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
-    $("input[name='attachment-del-"+$(this).data('uuid')+"']").attr('value', true);
-    $('#attachment-'+$(this).data('id')).hide();
+    const uuid = $(this).data('uuid');
+    const id = $(this).data('id');
+    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
+    $(`#attachment-${id}`).hide();
   });
 }
 
