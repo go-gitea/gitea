@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-03-09
 
 * SECURITY
-  * Add reverse proxy configuration support for remote IP address (#14959)
+  * Add reverse proxy configuration support for remote IP address detection (#14959)
   * Ensure validation occurs on clone addresses too (#14994)
   * Fix several render issues highlighted during fuzzing (#14986)
 * BREAKING
