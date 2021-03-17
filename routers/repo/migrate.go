@@ -153,12 +153,12 @@ func MigratePost(ctx *context.Context) {
 			case addrErr.IsURLError:
 				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
 			case addrErr.IsPermissionDenied:
-				if len(addrErr.PrivateNet) == 0 {
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, &form)
-				} else if !addrErr.LocalPath {
+				if addrErr.LocalPath {
+					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
+				} else if len(addrErr.PrivateNet) == 0 {
 					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, &form)
 				} else {
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
+					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, &form)
 				}
 			case addrErr.IsInvalidPath:
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, &form)
