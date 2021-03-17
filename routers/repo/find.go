@@ -5,8 +5,6 @@
 package repo
 
 import (
-	"fmt"
-
 	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -19,11 +17,9 @@ const (
 
 // render the page to find repository files
 func FindFiles(ctx *context.Context) {
-  ctx.Data["Title"] = ctx.Tr("repo.find")
 	ctx.Data["PageIsFindFiles"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	fmt.Printf("ctx.Repo.RepoLink: %v\n", ctx.Repo.RepoLink)
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
 
@@ -31,28 +27,38 @@ func FindFiles(ctx *context.Context) {
 		treeLink += "/" + ctx.Repo.TreePath
 	}
 
-	// Get current entry user currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
-		return
-	}
-
-	if entry.IsDir() {
-		renderDirectory(ctx, treeLink)
-	} else {
-		ctx.Data["Files"] = make([]interface{}, 0)
-	}
+	renderFiles(ctx, treeLink)
 
 	if ctx.Written() {
 		return
 	}
-
-	fmt.Printf("ctx.files: %v\n", ctx.Data["Files"])
 
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["TreeLink"] = treeLink
 
 	ctx.HTML(200, tplFindFiles)
+}
+
+func renderFiles(ctx *context.Context, treeLink string) {
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		return
+	}
+
+	entries, err := tree.ListEntriesRecursive()
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return
+	}
+	entries.CustomSort(base.NaturalSortLess)
+  
+	var fileEntries []*git.TreeEntry
+  for _, entry := range entries {
+		if !entry.IsDir() {
+			fileEntries = append(fileEntries, entry)
+		}
+	}
+	ctx.Data["Files"] = fileEntries
 }

@@ -9,38 +9,12 @@
     </div>
     <table id="repo-files-table" class="ui single line table">
       <tbody>
-      {{range $item := .Files}}
-          {{$entry := $item.Entry}}
-          {{$commit := $item.Commit}}
-          {{$subModuleFile := $item.SubModuleFile}}
+      {{range $entry := .Files}}
           <tr>
             <td class="name four wide">
               <span class="truncate">
-                {{if $entry.IsSubModule}}
-                  {{svg "octicon-file-submodule"}}
-                  {{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
-                  {{if $refURL}}
-                    <a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
-                  {{else}}
-                    {{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
-                  {{end}}
-                {{else}}
-                  {{if $entry.IsDir}}
-                    {{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-                    {{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-                    {{svg "octicon-file-directory"}}
-                    <a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
-                      {{if eq (len $subJumpablePath) 2}}
-                        <span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
-                      {{else}}
-                        {{index $subJumpablePath 0}}
-                      {{end}}
-                    </a>
-                  {{else}}
-                    {{svg (printf "octicon-%s" (EntryIcon $entry))}}
-                    <a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
-                  {{end}}
-                {{end}}
+                {{svg (printf "octicon-%s" (EntryIcon $entry))}}
+                <a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
               </span>
             </td>
           </tr>
