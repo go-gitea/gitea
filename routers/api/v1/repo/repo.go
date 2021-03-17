@@ -556,6 +556,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Private != nil {
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
+			if err := repo.GetBaseRepo(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "Unable to load base repository", err)
+				return err
+			}
 			*opts.Private = repo.BaseRepo.IsPrivate
 		}
 

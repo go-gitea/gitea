@@ -25,7 +25,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	var limit = setting.Database.IterateBufferSize
+	limit := setting.Database.IterateBufferSize
 	if limit <= 0 {
 		limit = 50
 	}
@@ -42,7 +42,7 @@ func deleteOrphanedAttachments(x *xorm.Engine) error {
 			return nil
 		}
 
-		var ids = make([]int64, 0, limit)
+		ids := make([]int64, 0, limit)
 		for _, attachment := range attachements {
 			ids = append(ids, attachment.ID)
 		}

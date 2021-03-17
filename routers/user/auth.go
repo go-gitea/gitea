@@ -942,6 +942,11 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
+	if !form.IsEmailDomainAllowed() {
+		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplLinkAccount, &form)
+		return
+	}
+
 	if setting.Service.AllowOnlyExternalRegistration || !setting.Service.RequireExternalRegistrationPassword {
 		// In models.User an empty password is classed as not set, so we set form.Password to empty.
 		// Eventually the database should be changed to indicate "Second Factor"-enabled accounts
