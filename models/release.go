@@ -282,7 +282,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 
 	// Select attachments
 	err = e.
-		Asc("release_id").
+		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, Attachment{})
 	if err != nil {
