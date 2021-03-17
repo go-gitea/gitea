@@ -583,9 +583,9 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		sess.Engine().SetSchema(schema)
 
 		for _, sequence := range originalSequences {
-			var sequenceData sequenceData
-			if err := sess.Table(sequence).Cols("last_value", "is_called").Find(&sequenceData); err != nil {
-				log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			sequenceData := sequenceData{}
+			if _, err := sess.Table(sequence).Cols("last_value", "is_called").Get(&sequenceData); err != nil {
+				log.Error("Unable to get last_value and is_called from %s. Error: %v", sequence, err)
 				return err
 			}
 			sequenceMap[sequence] = sequenceData
