@@ -141,7 +141,7 @@ type RepoSettingForm struct {
 	PullsAllowSquash                      bool
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
-  EnableAutodetectManualMerge           bool
+	EnableAutodetectManualMerge           bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
