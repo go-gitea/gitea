@@ -221,12 +221,16 @@
 								</div>
 							</div>
 						{{end}}
-							<div class="field">
-								<div class="ui checkbox">
-									<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
-									<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
-								</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="enable_issue_dependencies" type="checkbox" {{if (.Repository.IsDependenciesEnabled)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.issues.dependency.setting"}}</label>
 							</div>
+						</div>
+						<div class="ui checkbox">
+							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
+							<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
+						</div>
 					</div>
 					<div class="field">
 						{{if .UnitTypeExternalTracker.UnitGlobalDisabled}}
@@ -330,6 +334,18 @@
 								<label>{{.i18n.Tr "repo.settings.pulls.allow_squash_commits"}}</label>
 							</div>
 						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_allow_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowManualMerge)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_manual_merge"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
+							</div>
+						</div>
 					</div>
 				{{end}}
 
@@ -399,10 +415,6 @@
 						<input name="enable_health_check" type="checkbox" {{if .Repository.IsFsckEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.admin_enable_health_check"}}</label>
 					</div>
-				</div>
-				<div class="ui checkbox">
-					<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
-					<label>{{.i18n.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 				</div>
 
 				<div class="ui divider"></div>

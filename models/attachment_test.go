@@ -17,12 +17,12 @@ func TestUploadAttachment(t *testing.T) {
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
-	var fPath = "./attachment_test.go"
+	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
 	assert.NoError(t, err)
 	defer f.Close()
 
-	var buf = make([]byte, 1024)
+	buf := make([]byte, 1024)
 	n, err := f.Read(buf)
 	assert.NoError(t, err)
 	buf = buf[:n]
@@ -152,7 +152,6 @@ func TestLinkedRepository(t *testing.T) {
 				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
 			}
 			assert.Equal(t, tc.expectedUnitType, unitType)
-
 		})
 	}
 }
