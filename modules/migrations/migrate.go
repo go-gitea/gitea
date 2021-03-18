@@ -39,7 +39,7 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
 func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
-	u, err := url.Parse(strings.ToLower(remoteURL))
+	u, err := url.Parse(remoteURL)
 	if err != nil {
 		return &models.ErrInvalidCloneAddr{IsURLError: true}
 	}
