@@ -72,12 +72,13 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
+	host := strings.ToLower(u.Host)
 	if len(setting.Migrations.AllowedDomains) > 0 {
-		if !allowList.Match(u.Host) {
+		if !allowList.Match(host) {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	} else {
-		if blockList.Match(u.Host) {
+		if blockList.Match(host) {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	}
