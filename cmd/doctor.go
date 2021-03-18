@@ -670,6 +670,23 @@ func runDoctorCheckDBConsistency(ctx *cli.Context) ([]string, error) {
 		}
 	}
 
+	if setting.Database.UsePostgreSQL {
+		count, err = models.CountBadSequences()
+		if err != nil {
+			return nil, err
+		}
+		if count > 0 {
+			if ctx.Bool("fix") {
+				err := models.FixBadSequences()
+				if err != nil {
+					return nil, err
+				}
+				results = append(results, fmt.Sprintf("%d sequences updated", count))
+			} else {
+				results = append(results, fmt.Sprintf("%d sequences with incorrect values", count))
+			}
+		}
+	}
 	//ToDo: function to recalc all counters
 
 	return results, nil
