@@ -2207,13 +2207,15 @@ function filterRepoFiles(keys) {
     $('#repo-find-files-table tr').each(function() {
       const entry = $(this).find('td:first').text();
       const $a = $(this).find('td:first').find('a:first');
-      const hitIndexes = hitAllKeys(keys.trim(), entry.trim());
-      if (hitIndexes.length > 0 && keys.trim().length === hitIndexes.length) {
-        addHighLightToHit($a, entry.trim(), hitIndexes);
+      const keysTrim = keys.trim();
+      const entryTrim = entry.trim();
+      const hitIndexes = hitAllKeys(keysTrim, entryTrim);
+      if (hitIndexes.length > 0 && keysTrim.length === hitIndexes.length) {
+        addHighLightToHit($a, entryTrim, hitIndexes);
         $(this).show();
         hit = true;
       } else {
-        removeHighLight($a, entry.trim());
+        removeHighLight($a, entryTrim);
         $(this).hide();
       }
     });
@@ -2223,7 +2225,7 @@ function filterRepoFiles(keys) {
       $('#no-hit-prompt').show();
     }
   } else {
-    // remove all high light
+    // Remove all highlight
     $('#repo-find-files-table tr').each(function() {
       const entry = $(this).find('td:first').text();
       const $a = $(this).find('td:first').find('a:first');
