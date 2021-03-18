@@ -22,6 +22,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add markdown support in organization description (#13549)
   * Improve users management through the CLI (#6001) (#10492)
 * FEATURES
+  * Create a new issue with reference to lines of code from file view (#14863)
   * Repository transfer has to be confirmed, if user can not create repo for new owner (#14792)
   * Allow blocking some email domains from registering an account (#14667)
   * Create a new issue based on reference to an issue comment (#14366)
@@ -117,6 +118,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
   * UI style improvements
+  * Support .mailmap in code activity stats (#15009)
+  * Sort release attachments by name (#15008)  
   * Add ui.explore settings to control view of explore pages (#14094)
   * Make internal SSH server host key path configurable (#14918)
   * Hide resync all ssh principals when using internal ssh server (#14904)
@@ -244,7 +247,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Introduce go chi web framework as frontend of macaron, so that we can move routes from macaron to chi step by step (#7420)
   * Improve vfsgen to not unzip bindata files but send to browser directly (#7109)
   * Enhance release list (#6025)
-  * Support git .mailmap in GetCodeActivityStats() (#15009)
 * DOCS
   * Swagger show models by default (#14880)
   * Add missing repo.projects unit into swagger (#14876)
@@ -256,6 +258,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add docs command (#13429)
   * Update external-renderers.en-us.md (#13165)
 * MISC
+  * Add builds for apple M1 (darwin arm64) (#14951)
   * Migrate to use jsoniter instead of encoding/json (#14841)
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
