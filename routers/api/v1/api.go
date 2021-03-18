@@ -197,6 +197,10 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 		if ctx.IsSigned {
+			// Don't require token if already authenticated by reverse proxy.
+			if setting.Service.EnableReverseProxyAuth {
+				return
+			}
 			ctx.RequireCSRF()
 			return
 		}
