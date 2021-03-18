@@ -75,6 +75,7 @@
 
     .author {
       color: #666666;
+      min-width: max-content;
     }
 
     .time {
@@ -118,14 +119,15 @@
     }
 
     .sha.label {
-      padding-top: 2.5px;
-      padding-bottom: 2.5px;
+      padding: 2px 6px;
 
       .shortsha + * {
-        height: 22px;
-        margin-left: 10px;
-        padding-left: 5px;
-        margin-right: -5px;
+        height: 20px;
+        margin-right: -3px;
+
+        > * {
+          margin-left: 3px;
+        }
       }
     }
 
