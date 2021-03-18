@@ -343,6 +343,16 @@
         cursor: default;
       }
 
+      tr:last-of-type {
+        td:first-child {
+          border-bottom-left-radius: var(--border-radius);
+        }
+
+        td:last-child {
+          border-bottom-right-radius: var(--border-radius);
+        }
+      }
+
       tr:hover {
         background-color: #ffffee;
       }
