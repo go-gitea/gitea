@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
@@ -139,10 +138,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 				// But most importantly ensure the next sibling is still on the old image too
 				v.SetNextSibling(next)
-
-			} else {
-				log.Debug("ast.Image: %s has parent: %v", link, parent)
-
 			}
 		case *ast.Link:
 			// Links need their href to munged to be a real value

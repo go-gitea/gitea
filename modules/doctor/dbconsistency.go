@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
@@ -130,6 +131,25 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		}
 	}
 	// TODO: function to recalc all counters
+
+	if setting.Database.UsePostgreSQL {
+		count, err = models.CountBadSequences()
+		if err != nil {
+			logger.Critical("Error: %v whilst checking sequence values")
+		}
+		if count > 0 {
+			if autofix {
+				err := models.FixBadSequences()
+				if err != nil {
+					logger.Critical("Error: %v whilst attempting to fix sequences")
+					return err
+				}
+				logger.Info("%d sequences updated", count)
+			} else {
+				logger.Warn("%d sequences with incorrect values", count)
+			}
+		}
+	}
 
 	return nil
 }

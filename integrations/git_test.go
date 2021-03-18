@@ -518,7 +518,16 @@ func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, diffStr, resp.Body.String())
+		expectedMaxLen := len(diffStr)
+		if expectedMaxLen > 800 {
+			expectedMaxLen = 800
+		}
+		actual := resp.Body.String()
+		actualMaxLen := len(actual)
+		if actualMaxLen > 800 {
+			actualMaxLen = 800
+		}
+		assert.Equal(t, diffStr, actual, "Unexpected change in the diff string: expected: %s but was actually: %s", diffStr[:expectedMaxLen], actual[:actualMaxLen])
 	}
 }
 
