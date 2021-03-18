@@ -168,7 +168,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2021-01-16T02-19-44Z
+    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
     commands:
     - minio server /data
     environment:
