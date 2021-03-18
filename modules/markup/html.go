@@ -298,7 +298,7 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
-var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL][ />]))`)
+var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL][ />])|(/?[hH][eE][aA][dD][ />]))`)
 var nulCleaner = strings.NewReplacer("\000", "")
 
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
