@@ -207,7 +207,7 @@ func AssertSuccessfulInsert(t testing.TB, beans ...interface{}) {
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t testing.TB, bean interface{}, expected interface{}) {
+func AssertCount(t testing.TB, bean, expected interface{}) {
 	assert.EqualValues(t, expected, GetCount(t, bean))
 }
 

@@ -24,8 +24,7 @@ type RepoUnit struct {
 }
 
 // UnitConfig describes common unit config
-type UnitConfig struct {
-}
+type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
@@ -101,6 +100,8 @@ type PullRequestsConfig struct {
 	AllowRebase               bool
 	AllowRebaseMerge          bool
 	AllowSquash               bool
+	AllowManualMerge          bool
+	AutodetectManualMerge     bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
@@ -120,7 +121,8 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
-		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
 // AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig

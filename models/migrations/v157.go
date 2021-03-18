@@ -9,7 +9,6 @@ import (
 )
 
 func fixRepoTopics(x *xorm.Engine) error {
-
 	type Topic struct {
 		ID        int64  `xorm:"pk autoincr"`
 		Name      string `xorm:"UNIQUE VARCHAR(25)"`

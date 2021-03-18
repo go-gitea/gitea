@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -34,32 +36,61 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
-func isMigrateURLAllowed(remoteURL string) error {
-	u, err := url.Parse(strings.ToLower(remoteURL))
+// IsMigrateURLAllowed checks if an URL is allowed to be migrated from
+func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
+	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	u, err := url.Parse(remoteURL)
 	if err != nil {
-		return err
+		return &models.ErrInvalidCloneAddr{IsURLError: true}
 	}
 
-	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if len(setting.Migrations.AllowedDomains) > 0 {
-			if !allowList.Match(u.Host) {
-				return &models.ErrMigrationNotAllowed{Host: u.Host}
-			}
-		} else {
-			if blockList.Match(u.Host) {
-				return &models.ErrMigrationNotAllowed{Host: u.Host}
-			}
+	if u.Scheme == "file" || u.Scheme == "" {
+		if !doer.CanImportLocal() {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
+		}
+		isAbs := filepath.IsAbs(u.Host + u.Path)
+		if !isAbs {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+		}
+		isDir, err := util.IsDir(u.Host + u.Path)
+		if err != nil {
+			log.Error("Unable to check if %s is a directory: %v", u.Host+u.Path, err)
+			return err
+		}
+		if !isDir {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+		}
+
+		return nil
+	}
+
+	if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteURL, "%0d") || strings.Contains(remoteURL, "%0a")) {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
+	}
+
+	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
+	}
+
+	host := strings.ToLower(u.Host)
+	if len(setting.Migrations.AllowedDomains) > 0 {
+		if !allowList.Match(host) {
+			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+		}
+	} else {
+		if blockList.Match(host) {
+			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	}
 
 	if !setting.Migrations.AllowLocalNetworks {
 		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
-			return &models.ErrMigrationNotAllowed{Host: u.Host, NotResolvedIP: true}
+			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
 			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return &models.ErrMigrationNotAllowed{Host: u.Host, PrivateNet: addr.String()}
+				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
 			}
 		}
 	}
@@ -69,7 +100,7 @@ func isMigrateURLAllowed(remoteURL string) error {
 
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
-	err := isMigrateURLAllowed(opts.CloneAddr)
+	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
 	if err != nil {
 		return nil, err
 	}

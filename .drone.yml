@@ -27,7 +27,7 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -37,7 +37,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
     environment:
@@ -49,7 +49,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -168,7 +168,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2021-01-16T02-19-44Z
+    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
     commands:
     - minio server /data
     environment:
@@ -223,10 +223,8 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
@@ -238,10 +236,8 @@ steps:
       - build
 
   - name: test-mysql8
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
@@ -252,10 +248,8 @@ steps:
       - build
 
   - name: test-mssql
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
@@ -349,10 +343,8 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: test-sqlite
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
@@ -363,10 +355,8 @@ steps:
       - build
 
   - name: test-pgsql
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off

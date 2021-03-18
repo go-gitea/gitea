@@ -65,7 +65,7 @@ func addCommitDivergenceToPulls(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-		var results = make([]*PullRequest, 0, batchSize)
+		results := make([]*PullRequest, 0, batchSize)
 		err := sess.Where("has_merged = ?", false).OrderBy("id").Limit(batchSize, last).Find(&results)
 		if err != nil {
 			return err
