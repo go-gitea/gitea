@@ -49,6 +49,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add Restricted Field to User (#14630)
   * Add support for ref parameter to get raw file API (#14602)
   * Add affected files of commits to commit struct (#14579)
+  * Fix CJK fonts again and misc. font issues (#14575)
   * Add delete release by tag & delete tag (#14563) & (#13358)
   * Add pagination to ListBranches (#14524)
   * Add signoff option in commit form (#14516)
@@ -65,6 +66,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more filters to issues search (#13514)
   * Add review request api (#11355)
 * BUGFIXES
+  * Move setting to enable closing issue via commit in non default branch to repo settings (#14965)
   * Show correct issues for team dashboard (#14952)
   * Ensure that new pull request button works on forked forks owned by owner of the root and reduce ambiguity (#14932)
   * Only allow issue labels from owner repository or organization (#14928)
