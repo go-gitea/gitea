@@ -72,16 +72,17 @@
 							<div class="item">
 								{{range .Parents}}
 									{{if $.PageIsWiki}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}">{{ShortSha .}}</a>
+										{{$href := (printf "%s%s" $.RepoLink "/wiki/commit/" .)}}
 									{{else}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+										{{$href := (printf "%s%s" $.RepoLink "/commit/" .)}}
 									{{end}}
+									<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}"><span class="shortsha">{{ShortSha .}}</span></a>
 								{{end}}
 							</div>
 						{{end}}
 						<div class="mobile-only"></div>
 						<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
-						<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+						<div class="item"><span class="ui blue sha label"><span class="shortsha">{{ShortSha .CommitID}}</span></div>
 					</div>
 				</div><!-- end column -->
 			</div><!-- end grid -->

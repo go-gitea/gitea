@@ -21,9 +21,31 @@
 				</div>
 			</form>
 		{{else if .IsDiffCompare}}
-			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID}}" class="ui green sha label">
+				{{if not .BaseIsCommit}}
+					{{if .BaseIsBranch}}
+						{{svg "octicon-git-branch"}}
+					{{else if .BaseIsTag}}
+						{{svg "octicon-tag"}}
+					{{end}}
+					{{.BaseBranch}}
+				{{else}}
+					<span class="shortsha">{{ShortSha .BaseBranch}}</span>
+				{{end}}
+			</a>
 			...
-			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID}}" class="ui green sha label">
+				{{if not .HeadIsCommit}}
+					{{if .HeadIsBranch}}
+						{{svg "octicon-git-branch"}}
+					{{else if .HeadIsTag}}
+						{{svg "octicon-tag"}}
+					{{end}}
+					{{.HeadBranch}}
+				{{else}}
+					<span class="shortsha">{{ShortSha .HeadBranch}}</span>
+				{{end}}
+			</a>
 		{{end}}
 	</div>
 </h4>

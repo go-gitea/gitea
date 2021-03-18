@@ -909,59 +909,27 @@
                 margin: 0;
                 border: 1px solid var(--color-light-border);
 
-                &.isSigned.isWarning {
-                  border: 1px solid #db2828;
-                  background: fade(#db2828, 10%);
-
-                  .shortsha {
-                    display: inline-block;
-                    padding-top: 1px;
-                  }
-
-                  &:hover {
-                    background: fade(#db2828, 30%) !important;
-                  }
+                .sha-label-colors(@color) {
+                  --color-light-border: @color;
+                  --color-light: fade(@color, 10%);
+                  --color-hover: fade(@color, 30%);
                 }
 
-                &.isSigned.isVerified {
-                  border: 1px solid #21ba45;
-                  background: fade(#21ba45, 10%);
-
-                  .shortsha {
-                    display: inline-block;
-                    padding-top: 1px;
+                &.isSigned {
+                  &.isWarning {
+                    .sha-label-colors(#db2828);
                   }
 
-                  &:hover {
-                    background: fade(#21ba45, 30%) !important;
-                  }
-                }
-
-                &.isSigned.isVerifiedUntrusted {
-                  border: 1px solid #fbbd08;
-                  background: fade(#fbbd08, 10%);
-
-                  .shortsha {
-                    display: inline-block;
-                    padding-top: 1px;
+                  &.isVerified {
+                    .sha-label-colors(#21ba45);
                   }
 
-                  &:hover {
-                    background: fade(#fbbd08, 30%) !important;
-                  }
-                }
-
-                &.isSigned.isVerifiedUnmatched {
-                  border: 1px solid #f2711c;
-                  background: fade(#f2711c, 10%);
-
-                  .shortsha {
-                    display: inline-block;
-                    padding-top: 1px;
+                  &.isVerifiedUntrusted {
+                    .sha-label-colors(#fbbd08);
                   }
 
-                  &:hover {
-                    background: fade(#f2711c, 30%) !important;
+                  &.isVerifiedUnmatched {
+                    .sha-label-colors(#f2711c);
                   }
                 }
               }
@@ -1393,7 +1361,7 @@
           text-align: center;
         }
 
-        width: 154px;
+        width: 160px;
       }
 
       .age {
@@ -1420,95 +1388,27 @@
   .timeline-item.commits-list .singular-commit .sha.label {
     border: 1px solid var(--color-light-border);
 
-    .ui.signature.avatar {
-      height: 14px;
-      margin: -1px 1px;
-      width: 14px;
+    .sha-label-colors(@color) {
+      --color-light-border: @color;
+      --color-light: fade(@color, 10%);
+      --color-hover: fade(@color, 30%);
     }
 
-    .detail.icon {
-      background: var(--color-light);
-      margin: -6px -10px -4px 0;
-      padding: 5.4px 4px 5.5px 6px;
-      border-left: 1px solid var(--color-light-border);
-      border-top: 0;
-      border-right: 0;
-      border-bottom: 0;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      img {
-        margin-right: 0;
+    &.isSigned {
+      &.isWarning {
+        .sha-label-colors(#db2828);
       }
 
-      .svg {
-        margin: 0 .25em 0 0;
+      &.isVerified {
+        .sha-label-colors(#21ba45);
       }
 
-      > div {
-        display: flex;
-        align-items: center;
-      }
-    }
-
-    &.isSigned.isWarning {
-      border: 1px solid #db2828;
-      background: fade(#db2828, 10%);
-
-      .shortsha {
-        display: inline-block;
-        padding-top: 1px;
+      &.isVerifiedUntrusted {
+        .sha-label-colors(#fbbd08);
       }
 
-      .detail.icon {
-        border-left: 1px solid #db2828;
-        color: #db2828;
-      }
-
-      &:hover {
-        background: fade(#db2828, 30%) !important;
-      }
-    }
-
-    &.isSigned.isVerified {
-      border: 1px solid #21ba45;
-      background: fade(#21ba45, 10%);
-
-      .detail.icon {
-        border-left: 1px solid #21ba45;
-        color: #21ba45;
-      }
-
-      &:hover {
-        background: fade(#21ba45, 30%) !important;
-      }
-    }
-
-    &.isSigned.isVerifiedUntrusted {
-      border: 1px solid #fbbd08;
-      background: fade(#fbbd08, 10%);
-
-      .detail.icon {
-        border-left: 1px solid #fbbd08;
-        color: #fbbd08;
-      }
-
-      &:hover {
-        background: fade(#fbbd08, 30%) !important;
-      }
-    }
-
-    &.isSigned.isVerifiedUnmatched {
-      border: 1px solid #f2711c;
-      background: fade(#f2711c, 10%);
-
-      .detail.icon {
-        border-left: 1px solid #f2711c;
-        color: #f2711c;
-      }
-
-      &:hover {
-        background: fade(#f2711c, 30%) !important;
+      &.isVerifiedUnmatched {
+        .sha-label-colors(#f2711c);
       }
     }
   }

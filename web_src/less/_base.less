@@ -932,12 +932,43 @@ a.ui.card:hover,
   }
 
   .sha.label {
-    font-family: var(--fonts-monospace);
-    font-size: 13px;
-    padding: 6px 10px 4px;
+    padding: 4px 10px;
+    font-size: 14px;
     font-weight: normal;
     margin: 0 6px;
-    vertical-align: .5px;
+    display: inline-flex;
+    align-items: baseline;
+
+    &::before {
+      content: "\200b";
+    }
+
+    .shortsha {
+      font-family: var(--fonts-monospace);
+      font-size: 13px;
+
+      & + * {
+        margin: -4px -3px -4px 6px;
+        display: flex;
+        align-items: center;
+        align-self: center;
+        color: var(--color-light-border);
+        border-left: 1px solid;
+        padding-left: 7px;
+        height: 23.75px;
+
+        span {
+          line-height: 0;
+        }
+      }
+    }
+
+    .ui.avatar.image {
+      width: 14px;
+      height: 14px;
+      margin: 0 0 0 5px;
+      border-radius: calc(var(--border-radius) / 24 * 14);
+    }
   }
 
   .button.truncate {
