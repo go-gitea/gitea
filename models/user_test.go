@@ -36,7 +36,7 @@ func TestUserIsPublicMember(t *testing.T) {
 	}
 }
 
-func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsPublicMember(orgID))
@@ -62,7 +62,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 	}
 }
 
-func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
@@ -338,7 +338,6 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
-
 	// Init settings
 	_ = setting.Admin
 
@@ -369,13 +368,12 @@ func TestCreateUser_Issue5882(t *testing.T) {
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
-
-	//ignore non existing
+	// ignore non existing
 	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
-	//ignore non existing
+	// ignore non existing
 	IDs, err = GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
