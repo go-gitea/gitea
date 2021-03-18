@@ -21,7 +21,7 @@ func convertWebhookTaskTypeToString(x *xorm.Engine) error {
 		MATRIX
 	)
 
-	var hookTaskTypes = map[int]string{
+	hookTaskTypes := map[int]string{
 		GITEA:    "gitea",
 		GOGS:     "gogs",
 		SLACK:    "slack",
