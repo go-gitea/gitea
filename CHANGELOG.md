@@ -67,6 +67,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Show correct issues for team dashboard (#14952)
   * Ensure that new pull request button works on forked forks owned by owner of the root and reduce ambiguity (#14932)
+  * Only allow issue labels from owner repository or organization (#14928)
   * Fix alignment of People and Teams right arrow on org homepage (#14924)
   * Fix overdue marking of closed issues and milestones (#14923)
   * Prevent panic when empty MilestoneID in repo/issue/list (#14911)
