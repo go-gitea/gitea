@@ -5,6 +5,7 @@
 package release
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -105,7 +106,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(models.DefaultDBContext(), rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -156,29 +157,80 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 
 // UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
 func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release,
-	addAttachmentUUIDs, delAttachmentUUIDs []string, isCreate bool) (err error) {
+	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string, isCreate bool) (err error) {
 	if err = createTag(gitRepo, rel, ""); err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
+	ctx, commiter, err := models.TxDBContext()
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	if err = models.UpdateRelease(ctx, rel); err != nil {
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(rel.ID, addAttachmentUUIDs); err != nil {
-		log.Error("AddReleaseAttachments: %v", err)
+	if err = models.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
+		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
+	var deletedUUIDsMap = make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(delAttachmentUUIDs)
+		attachments, err := models.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
 		if err != nil {
-			log.Error("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
+			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
+		}
+		for _, attach := range attachments {
+			if attach.ReleaseID != rel.ID {
+				return errors.New("delete attachement of release permission denied")
+			}
+			deletedUUIDsMap[attach.UUID] = true
 		}
 
-		if _, err := models.DeleteAttachments(attachments, true); err != nil {
-			log.Error("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
+		if _, err := models.DeleteAttachments(ctx, attachments, false); err != nil {
+			return fmt.Errorf("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
+		}
+	}
+
+	if len(editAttachments) > 0 {
+		var updateAttachmentsList = make([]string, 0, len(editAttachments))
+		for k := range editAttachments {
+			updateAttachmentsList = append(updateAttachmentsList, k)
+		}
+		// Check attachments
+		attachments, err := models.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
+		if err != nil {
+			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", updateAttachmentsList, err)
+		}
+		for _, attach := range attachments {
+			if attach.ReleaseID != rel.ID {
+				return errors.New("update attachement of release permission denied")
+			}
+		}
+
+		for uuid, newName := range editAttachments {
+			if !deletedUUIDsMap[uuid] {
+				if err = models.UpdateAttachmentByUUID(ctx, &models.Attachment{
+					UUID: uuid,
+					Name: newName,
+				}, "name"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if err = commiter.Commit(); err != nil {
+		return
+	}
+
+	for _, uuid := range delAttachmentUUIDs {
+		if err := storage.Attachments.Delete(models.AttachmentRelativePath(uuid)); err != nil {
+			return err
 		}
 	}
 

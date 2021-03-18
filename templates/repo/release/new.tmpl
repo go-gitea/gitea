@@ -64,7 +64,7 @@
 								{{$.i18n.Tr "remove"}}
 							</a>
 						</span>
-						<input style="width:450px" required value="{{.Name}}"/>
+						<input name="attachment-edit-{{.UUID}}" style="width:450px" required value="{{.Name}}"/>
 						<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
 						<span class="ui text grey">{{.Size | FileSize}}</span>
 						<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">

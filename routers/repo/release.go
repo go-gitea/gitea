@@ -332,7 +332,7 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, true); err != nil {
+		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil, true); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
 			return
@@ -415,13 +415,17 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 
-	const prefix = "attachment-del-"
+	const delPrefix = "attachment-del-"
+	const editPrefix = "attachment-edit-"
 	var addAttachmentUUIDs, delAttachmentUUIDs []string
+	var editAttachments = make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
 		for k, v := range ctx.Req.Form {
-			if strings.HasPrefix(k, prefix) && v[0] == "true" {
-				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(prefix):])
+			if strings.HasPrefix(k, delPrefix) && v[0] == "true" {
+				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(delPrefix):])
+			} else if strings.HasPrefix(k, editPrefix) {
+				editAttachments[k[len(editPrefix):]] = v[0]
 			}
 		}
 	}
@@ -431,7 +435,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
 	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo,
-		rel, addAttachmentUUIDs, delAttachmentUUIDs, false); err != nil {
+		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments, false); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}
