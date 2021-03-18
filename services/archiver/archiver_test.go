@@ -77,11 +77,13 @@ func TestArchive_Basic(t *testing.T) {
 	ctx := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
 
-	bogusReq := DeriveRequestFrom(ctx, firstCommit+".zip")
+	bogusReq, err := NewRequest(ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
 	assert.Nil(t, bogusReq)
 
 	test.LoadRepo(t, ctx, 49)
-	bogusReq = DeriveRequestFrom(ctx, firstCommit+".zip")
+	bogusReq, err = NewRequest(ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
 	assert.Nil(t, bogusReq)
 
 	test.LoadGitRepo(t, ctx)
@@ -89,25 +91,31 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Check a series of bogus requests.
 	// Step 1, valid commit with a bad extension.
-	bogusReq = DeriveRequestFrom(ctx, firstCommit+".dilbert")
+	bogusReq, err = NewRequest(ctx.Repo.GitRepo, firstCommit+".dilbert")
+	assert.NoError(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 2, missing commit.
-	bogusReq = DeriveRequestFrom(ctx, "dbffff.zip")
+	bogusReq, err = NewRequest(ctx.Repo.GitRepo, "dbffff.zip")
+	assert.NoError(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 3, doesn't look like branch/tag/commit.
-	bogusReq = DeriveRequestFrom(ctx, "db.zip")
+	bogusReq, err = NewRequest(ctx.Repo.GitRepo, "db.zip")
+	assert.NoError(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Now two valid requests, firstCommit with valid extensions.
-	zipReq := DeriveRequestFrom(ctx, firstCommit+".zip")
+	zipReq, err := NewRequest(ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
 	assert.NotNil(t, zipReq)
 
-	tgzReq := DeriveRequestFrom(ctx, firstCommit+".tar.gz")
+	tgzReq, err := NewRequest(ctx.Repo.GitRepo, firstCommit+".tar.gz")
+	assert.NoError(t, err)
 	assert.NotNil(t, tgzReq)
 
-	secondReq := DeriveRequestFrom(ctx, secondCommit+".zip")
+	secondReq, err := NewRequest(ctx.Repo.GitRepo, secondCommit+".zip")
+	assert.NoError(t, err)
 	assert.NotNil(t, secondReq)
 
 	inFlight := make([]*ArchiveRequest, 3)
@@ -162,7 +170,8 @@ func TestArchive_Basic(t *testing.T) {
 	// Do so now.
 	assert.Len(t, archiveInProgress, 3)
 
-	zipReq2 := DeriveRequestFrom(ctx, firstCommit+".zip")
+	zipReq2, err := NewRequest(ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
 	// This zipReq should match what's sitting in the queue, as we haven't
 	// let it release yet.  From the consumer's point of view, this looks like
 	// a long-running archive task.
@@ -188,7 +197,8 @@ func TestArchive_Basic(t *testing.T) {
 	// after we release it.  We should trigger both the timeout and non-timeout
 	// cases.
 	var completed, timedout bool
-	timedReq := DeriveRequestFrom(ctx, secondCommit+".tar.gz")
+	timedReq, err := NewRequest(ctx.Repo.GitRepo, secondCommit+".tar.gz")
+	assert.NoError(t, err)
 	assert.NotNil(t, timedReq)
 	ArchiveRepository(timedReq)
 
@@ -206,7 +216,8 @@ func TestArchive_Basic(t *testing.T) {
 	assert.True(t, completed)
 	assert.False(t, timedout)
 
-	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
+	zipReq2, err = NewRequest(ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
 	// Now, we're guaranteed to have released the original zipReq from the queue.
 	// Ensure that we don't get handed back the released entry somehow, but they
 	// should remain functionally equivalent in all fields.  The exception here
