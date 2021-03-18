@@ -27,14 +27,14 @@ func TestMigrateLocalPath(t *testing.T) {
 	lowercasePath, err := ioutil.TempDir("", "lowercase") // may not be lowercase because TempDir creates a random directory name which may be mixedcase
 	assert.NoError(t, err)
 	defer os.RemoveAll(lowercasePath)
-	
+
 	err = migrations.IsMigrateURLAllowed(lowercasePath, adminUser)
 	assert.NoError(t, err, "case lowercase path")
 
 	mixedcasePath, err := ioutil.TempDir("", "mIxeDCaSe")
 	assert.NoError(t, err)
 	defer os.RemoveAll(mixedcasePath)
-	
+
 	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
 	assert.NoError(t, err, "case mixedcase path")
 
