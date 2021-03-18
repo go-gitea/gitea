@@ -56,7 +56,7 @@ func renderFiles(ctx *context.Context, treeLink string) {
   
 	var fileEntries []*git.TreeEntry
   for _, entry := range entries {
-		if !entry.IsDir() {
+		if !entry.IsDir() && !entry.IsSubModule() {
 			fileEntries = append(fileEntries, entry)
 		}
 	}
