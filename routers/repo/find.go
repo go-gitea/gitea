@@ -7,8 +7,8 @@ package repo
 import (
 	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 )
 
 const (
@@ -53,9 +53,9 @@ func renderFiles(ctx *context.Context, treeLink string) {
 		return
 	}
 	entries.CustomSort(base.NaturalSortLess)
-  
+
 	var fileEntries []*git.TreeEntry
-  for _, entry := range entries {
+	for _, entry := range entries {
 		if !entry.IsDir() && !entry.IsSubModule() {
 			fileEntries = append(fileEntries, entry)
 		}
