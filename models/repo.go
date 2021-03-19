@@ -1475,6 +1475,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	// Delete Labels and related objects
 	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
 		return err
 	}

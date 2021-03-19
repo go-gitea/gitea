@@ -233,7 +233,6 @@ func CountOrphanedIssueLabels() (int64, error) {
 
 // DeleteOrphanedIssueLabels delete IssueLabels witch have no label behind anymore
 func DeleteOrphanedIssueLabels() error {
-
 	_, err := x.In("id", builder.Select("issue_label.id").From("issue_label").
 		Join("LEFT", "label", "issue_label.label_id = label.id").
 		Where(builder.IsNull{"label.id"})).
