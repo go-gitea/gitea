@@ -27,7 +27,7 @@ func addRepoTransfer(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := x.Sync2(new(RepoTransfer)); err != nil {
+	if err := sess.Sync2(new(RepoTransfer)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 

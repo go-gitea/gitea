@@ -24,11 +24,11 @@ func deleteOrphanedIssueLabels(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := x.Sync2(new(IssueLabel)); err != nil {
+	if err := sess.Sync2(new(IssueLabel)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
-	if _, err := x.In("id", builder.Select("issue_label.id").From("issue_label").
+	if _, err := sess.In("id", builder.Select("issue_label.id").From("issue_label").
 		Join("LEFT", "label", "issue_label.label_id = label.id").
 		Where(builder.IsNull{"label.id"})).
 		Delete(IssueLabel{}); err != nil {
