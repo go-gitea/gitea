@@ -28,10 +28,13 @@ func deleteOrphanedIssueLabels(x *xorm.Engine) error {
 	}
 
 	if _, err := sess.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
-		SELECT il.id FROM issue_label AS il
-			LEFT JOIN label ON il.label_id = label.id
-		WHERE
-			label.id IS NULL) AS ill`); err != nil {
+		SELECT ill.id FROM (
+			SELECT il.id
+			FROM issue_label AS il
+				LEFT JOIN label ON il.label_id = label.id
+			WHERE
+				label.id IS NULL
+		) AS ill)`); err != nil {
 		return err
 	}
 
