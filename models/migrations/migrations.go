@@ -295,11 +295,13 @@ var migrations = []Migration{
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
 	// v174 -> v175
-	NewMigration("create repo transfer table", addRepoTransfer),
+	NewMigration("Create repo transfer table", addRepoTransfer),
 	// v175 -> v176
 	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
 	// v176 -> v177
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
+	// v177 -> v178
+	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
 }
 
 // GetCurrentDBVersion returns the current db version
