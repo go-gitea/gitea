@@ -205,4 +205,5 @@ func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) er
 			return err
 		}
 	}
+	return nil
 }
