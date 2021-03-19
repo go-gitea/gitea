@@ -181,10 +181,10 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			if err != nil {
 				return cleanUpAfterFailure(&infos, t, err)
 			}
-			defer file.Close()
 			// FIXME: Put regenerates the hash and copies the file over.
 			// I guess this strictly ensures the soundness of the store but this is inefficient.
 			if err := contentStore.Put(uploadInfo.lfsMetaObject, file); err != nil {
+				file.Close()
 				// OK Now we need to cleanup
 				// Can't clean up the store, once uploaded there they're there.
 				return cleanUpAfterFailure(&infos, t, err)
