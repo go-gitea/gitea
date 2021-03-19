@@ -186,6 +186,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 				// Can't clean up the store, once uploaded there they're there.
 				return cleanUpAfterFailure(&infos, t, err)
 			}
+			file.Close()
 		}
 	}
 
