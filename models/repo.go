@@ -1475,7 +1475,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if err := deleteIssueLabelsByRepoID(sess, repoID); err != nil {
+	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
