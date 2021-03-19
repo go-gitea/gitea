@@ -510,7 +510,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 	return stats, nil
 }
 
-// GetMilestonesStatsByRepoCondAndKw returns milestone statistic information for dashboard by given repo conditions and keyword.
+// GetMilestonesStatsByRepoCondAndKw returns milestone statistic information for dashboard by given repo conditions and name keyword.
 func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*MilestonesStats, error) {
 	var err error
 	stats := &MilestonesStats{}
