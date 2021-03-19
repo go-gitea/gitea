@@ -1729,6 +1729,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	if err := deleteIssueLabelsByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
