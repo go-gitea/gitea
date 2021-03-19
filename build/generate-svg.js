@@ -31,22 +31,11 @@ async function processFile(file, {prefix, fullName} = {}) {
       'removeDimensions',
       {
         name: 'addClassesToSVGElement',
-        params: {
-          classNames: [
-            'svg',
-            name,
-          ],
-        },
+        params: {classNames: ['svg', name]},
       },
       {
         name: 'addAttributesToSVGElement',
-        params: {
-          attributes: [
-            {'width': '16'},
-            {'height': '16'},
-            {'aria-hidden': 'true'},
-          ],
-        },
+        params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]},
       },
     ]),
   });
