@@ -299,6 +299,8 @@ var migrations = []Migration{
 	// v175 -> v176
 	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
 	// v176 -> v177
+	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
+	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
 }
 
