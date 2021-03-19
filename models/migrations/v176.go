@@ -31,7 +31,7 @@ func deleteOrphanedIssueLabels(x *xorm.Engine) error {
 		SELECT il.id FROM issue_label AS il
 			LEFT JOIN label ON il.label_id = label.id
 		WHERE
-			label.id IS NULL)`); err != nil {
+			label.id IS NULL) AS ill`); err != nil {
 		return err
 	}
 
