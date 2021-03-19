@@ -26,7 +26,6 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		logger.Critical("Error: %v whilst counting orphaned labels")
 		return err
 	}
-
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedLabels(); err != nil {
@@ -36,6 +35,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Info("%d labels without existing repository/organisation deleted", count)
 		} else {
 			logger.Warn("%d labels without existing repository/organisation", count)
+		}
+	}
+
+	// find IssueLabels without existing label
+	count, err = models.CountOrphanedIssueLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned issue_labels")
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedIssueLabels(); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned issue_labels")
+				return err
+			}
+			logger.Info("%d issue_labels without existing label deleted", count)
+		} else {
+			logger.Warn("%d issue_labels without existing label", count)
 		}
 	}
 
