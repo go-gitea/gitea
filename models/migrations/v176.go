@@ -7,7 +7,6 @@ package migrations
 import (
 	"fmt"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -28,10 +27,11 @@ func deleteOrphanedIssueLabels(x *xorm.Engine) error {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 
-	if _, err := sess.In("id", builder.Select("issue_label.id").From("issue_label").
-		Join("LEFT", "label", "issue_label.label_id = label.id").
-		Where(builder.IsNull{"label.id"})).
-		Delete(IssueLabel{}); err != nil {
+	if _, err := sess.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
+		SELECT il.id FROM issue_label AS il
+			LEFT JOIN label ON il.label_id = label.id
+		WHERE
+			label.id IS NULL)`); err != nil {
 		return err
 	}
 
