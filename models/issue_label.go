@@ -780,3 +780,15 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 
 	return sess.Commit()
 }
+
+func deleteLabelsByRepoID(sess Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
+
+	if _, err := sess.In("label_id", deleteCond).
+		Delete(&IssueLabel{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&Label{RepoID: repoID})
+	return err
+}
