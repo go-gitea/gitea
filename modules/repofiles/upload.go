@@ -125,7 +125,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 				return err
 			}
 			infos[i] = uploadInfo
-
 		} else if objectHash, err = t.HashObject(file); err != nil {
 			return err
 		}
@@ -133,7 +132,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		// Add the object to the index
 		if err := t.AddObjectToIndex("100644", objectHash, path.Join(opts.TreePath, uploadInfo.upload.Name)); err != nil {
 			return err
-
 		}
 	}
 
@@ -191,6 +189,7 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 				// Can't clean up the store, once uploaded there they're there.
 				return cleanUpAfterFailure(&infos, t, err)
 			}
+			file.Close()
 		}
 	}
 
