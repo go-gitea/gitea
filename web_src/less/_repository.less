@@ -834,11 +834,9 @@
           }
         }
 
-        .avatar.image,
-        .avatar.image img {
+        a > .avatar.image {
           width: 20px;
           height: 20px;
-          margin-right: .5rem;
         }
 
         &:first-child:not(.commit) {
@@ -894,41 +892,12 @@
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
 
-            > .avatar.image,
-            > .avatar.image img {
-              position: relative;
-              top: -2px;
+            > a > .avatar.image {
+              margin-top: -2px;
             }
 
-            .shabox {
-              .sha.label {
-                margin: 0;
-                border: 1px solid var(--color-light-border);
-
-                .sha-label-colors(@color) {
-                  --color-light-border: @color;
-                  --color-light: fade(@color, 10%);
-                  --color-hover: fade(@color, 30%);
-                }
-
-                &.isSigned {
-                  &.isWarning {
-                    .sha-label-colors(#db2828);
-                  }
-
-                  &.isVerified {
-                    .sha-label-colors(#21ba45);
-                  }
-
-                  &.isVerifiedUntrusted {
-                    .sha-label-colors(#fbbd08);
-                  }
-
-                  &.isVerifiedUnmatched {
-                    .sha-label-colors(#f2711c);
-                  }
-                }
-              }
+            .shabox .sha.label {
+              margin: 0;
             }
           }
         }
@@ -1362,9 +1331,9 @@
         padding-left: 15px;
       }
 
-      .sha {
-        font-family: var(--fonts-monospace);
-        width: calc(10ch / 14 * 13 + 85px);
+      .sha.mono {
+        font-size: 1em !important;
+        width: calc(9ch + 85px);
 
         span {
           font-family: var(--fonts-regular);

@@ -943,30 +943,25 @@ a.ui.card:hover,
       content: "\200b";
     }
 
-    .shortsha {
-      font-family: var(--fonts-monospace);
-      font-size: 13px;
+    .mono + * {
+      margin: -4.5px -5px -4.5px 6px;
+      display: flex;
+      align-items: center;
+      align-self: center;
+      color: var(--color-light-border);
+      border-left: 1px solid;
+      height: 24px;
 
-      & + * {
-        margin: -4.5px -5px -4.5px 6px;
-        display: flex;
-        align-items: center;
-        align-self: center;
-        color: var(--color-light-border);
-        border-left: 1px solid;
-        height: 24px;
-
-        > * {
-          line-height: 0;
-          margin: 0 0 0 5px;
-        }
+      > * {
+        line-height: 0;
+        margin: 0 0 0 5px;
       }
     }
 
     .ui.avatar.image {
       min-width: 14px;
-      width: 14px;
-      height: 14px;
+      width: 14px !important;
+      height: 14px !important;
       border-radius: calc(var(--border-radius) / 24 * 14);
     }
   }

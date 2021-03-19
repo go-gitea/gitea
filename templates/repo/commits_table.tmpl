@@ -30,7 +30,7 @@
 					{{end}}
 					{{.BaseBranch}}
 				{{else}}
-					<span class="shortsha">{{ShortSha .BaseBranch}}</span>
+					<span class="mono">{{ShortSha .BaseBranch}}</span>
 				{{end}}
 			</a>
 			...
@@ -43,7 +43,7 @@
 					{{end}}
 					{{.HeadBranch}}
 				{{else}}
-					<span class="shortsha">{{ShortSha .HeadBranch}}</span>
+					<span class="mono">{{ShortSha .HeadBranch}}</span>
 				{{end}}
 			</a>
 		{{end}}

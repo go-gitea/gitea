@@ -3,7 +3,7 @@
 			<thead>
 				<tr>
 					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
-					<th class="two wide sha"><span>SHA1</span></th>
+					<th class="two wide mono sha"><span>SHA1</span></th>
 					<th class="seven wide message">{{.i18n.Tr "repo.commits.message"}}</th>
 					<th class="three wide text right age">{{.i18n.Tr "repo.commits.date"}}</th>
 				</tr>
@@ -47,7 +47,7 @@
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
-								<span class="shortsha">{{ShortSha .ID.String}}</span>
+								<span class="mono">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
