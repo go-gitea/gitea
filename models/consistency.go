@@ -319,6 +319,64 @@ func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
 	return x.Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
 }
 
+// CountCommentTypeLabelWithOutsideLabels count label comments with outside label
+func CountCommentTypeLabelWithOutsideLabels() (int64, error) {
+	return x.Where("comment.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND repository.owner_id != label.org_id))", CommentTypeLabel).
+		Table("comment").
+		Join("inner", "label", "label.id = comment.label_id").
+		Join("inner", "issue", "issue.id = comment.issue_id ").
+		Join("inner", "repository", "issue.repo_id = repository.id").
+		Count(new(Comment))
+}
+
+// FixCommentTypeLabelWithOutsideLabels count label comments with outside label
+func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
+	res, err := x.Exec(`DELETE FROM comment WHERE comment.id IN (
+		SELECT il_too.id FROM (
+			SELECT com.id
+				FROM comment AS com
+					INNER JOIN label ON com.label_id = label.id
+					INNER JOIN issue on issue.id = com.issue_id
+				WHERE
+					com.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repo.owner_id))
+	) AS il_too)`, CommentTypeLabel)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
+}
+
+// CountIssueLabelWithOutsideLabels count label comments with outside label
+func CountIssueLabelWithOutsideLabels() (int64, error) {
+	return x.Where(builder.Expr("issue.repo_id != label.repo_id OR (label.repo_id = 0 AND repository.owner_id != label.org_id)")).
+		Table("issue_label").
+		Join("inner", "label", "issue_label.id = label.id ").
+		Join("inner", "issue", "issue.id = issue_label.issue_id ").
+		Join("inner", "repository", "issue.repo_id = repository.id").
+		Count(new(IssueLabel))
+}
+
+// FixIssueLabelWithOutsideLabels fix label comments with outside label
+func FixIssueLabelWithOutsideLabels() (int64, error) {
+	res, err := x.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
+		SELECT il_too.id FROM (
+			SELECT il_too_too.id
+				FROM issue_label AS il_too_too
+					INNER JOIN label ON il_too_too.id = label.id
+					INNER JOIN issue on issue.id = il_too_too.issue_id
+					INNER JOIN repository on repository.id = issue.repo_id
+				WHERE
+					issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
+	) AS il_too )`)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
+}
+
 // CountBadSequences looks for broken sequences from recreate-table mistakes
 func CountBadSequences() (int64, error) {
 	if !setting.Database.UsePostgreSQL {

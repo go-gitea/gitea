@@ -130,6 +130,45 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Warn("%d label comments with empty labels", count)
 		}
 	}
+
+	// find label comments with labels from outside the repository
+	count, err = models.CountCommentTypeLabelWithOutsideLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting label comments with outside labels", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			updatedCount, err := models.FixCommentTypeLabelWithOutsideLabels()
+			if err != nil {
+				logger.Critical("Error: %v whilst removing label comments with outside labels", err)
+				return err
+			}
+			log.Info("%d label comments with outside labels removed", updatedCount)
+		} else {
+			log.Warn("%d label comments with outside labels", count)
+		}
+	}
+
+	// find issue_label with labels from outside the repository
+	count, err = models.CountIssueLabelWithOutsideLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting issue_labels from outside the repository or organisation", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			updatedCount, err := models.FixIssueLabelWithOutsideLabels()
+			if err != nil {
+				logger.Critical("Error: %v whilst removing issue_labels from outside the repository or organisation", err)
+				return err
+			}
+			logger.Info("%d issue_labels from outside the repository or organisation removed", updatedCount)
+		} else {
+			logger.Warn("%d issue_labels from outside the repository or organisation", count)
+		}
+	}
+
 	// TODO: function to recalc all counters
 
 	if setting.Database.UsePostgreSQL {

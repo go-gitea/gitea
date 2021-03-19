@@ -298,6 +298,8 @@ var migrations = []Migration{
 	NewMigration("create repo transfer table", addRepoTransfer),
 	// v175 -> v176
 	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
+	// v176 -> v177
+	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 }
 
 // GetCurrentDBVersion returns the current db version
