@@ -14,7 +14,7 @@ const (
 	tplFindFiles base.TplName = "repo/find/files"
 )
 
-// render the page to find repository files
+// FindFiles render the page to find repository files
 func FindFiles(ctx *context.Context) {
 	ctx.Data["PageIsFindFiles"] = true
 	ctx.Data["PageIsViewCode"] = true
