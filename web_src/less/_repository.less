@@ -279,10 +279,6 @@
         > div {
           display: table-cell;
           overflow: hidden;
-
-          &.author > div {
-            min-width: max-content;
-          }
         }
 
         &.name,
@@ -1339,6 +1335,16 @@
           margin-top: .5em;
         }
       }
+    }
+  }
+
+  .commits-table-left {
+    white-space: nowrap;
+    min-width: 0;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 

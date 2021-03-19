@@ -1,9 +1,9 @@
 <h4 class="ui top attached header commits-table df sb">
-	<div class="commits-table-left df ac">
+	<div class="commits-table-left df ac f1 mr-5">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
-			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
+			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}(<span>{{.Branch}}</span>){{end}}
 		{{else}}
-			{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}({{.Branch}}){{end}}
+			{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}(<span>{{.Branch}}</span>){{end}}
 		{{end}}
 	</div>
 	<div class="commits-table-right df ac">
