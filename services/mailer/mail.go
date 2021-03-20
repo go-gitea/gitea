@@ -105,12 +105,6 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 	SendAsync(msg)
 }
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	Tr(string, ...interface{}) string
-}
-
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(lang string, u *models.User) {
 	locale := translation.NewLocale(lang)
