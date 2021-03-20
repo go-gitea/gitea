@@ -256,10 +256,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 	}
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/subject", err)
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
 	}
 
 	if subject == "" {
@@ -272,8 +272,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
