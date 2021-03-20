@@ -122,11 +122,11 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	// Now deal with LFS objects
-	for _, uploadInfo := range infos {
-		if uploadInfo.lfsMetaObject == nil {
+	for i := range infos {
+		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		uploadInfo.lfsMetaObject, err = models.NewLFSMetaObject(uploadInfo.lfsMetaObject)
+		infos[i].lfsMetaObject, err = models.NewLFSMetaObject(infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(&infos, t, err)
