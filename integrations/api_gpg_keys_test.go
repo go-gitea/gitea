@@ -75,6 +75,7 @@ func TestGPGKeys(t *testing.T) {
 		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+token) //GET all keys
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &keys)
+		assert.Len(t, keys, 2)
 
 		primaryKey1 := keys[0] //Primary key 1
 		if primaryKey1.KeyID != "38EA3BCED732982C" {
