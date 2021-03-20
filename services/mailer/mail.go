@@ -46,6 +46,28 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
+type MailRecipient struct {
+	Mail     string
+	Language string
+}
+
+// Convert User into MailRecipient
+func UserToMailRecipient(user *models.User) *MailRecipient {
+	return &MailRecipient{
+		Mail:     user.Email,
+		Language: user.Language,
+	}
+}
+
+// Convert list of User into list of MailRecipient
+func UsersToMailRecipients(users []*models.User) []*MailRecipient {
+	recipients := make([]*MailRecipient, 0, len(users))
+	for i := range users {
+		recipients[i] = UserToMailRecipient(users[i])
+	}
+	return recipients
+}
+
 // InitMailRender initializes the mail renderer
 func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 	subjectTemplates = subjectTpl
