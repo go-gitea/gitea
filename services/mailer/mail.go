@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"gopkg.in/gomail.v2"
 )
@@ -47,6 +48,7 @@ var (
 )
 
 type MailRecipient struct {
+	userID   int64
 	Mail     string
 	Language string
 }
@@ -54,6 +56,7 @@ type MailRecipient struct {
 // Convert User into MailRecipient
 func UserToMailRecipient(user *models.User) *MailRecipient {
 	return &MailRecipient{
+		userID:   user.ID,
 		Mail:     user.Email,
 		Language: user.Language,
 	}
@@ -61,7 +64,7 @@ func UserToMailRecipient(user *models.User) *MailRecipient {
 
 // Convert list of User into list of MailRecipient
 func UsersToMailRecipients(users []*models.User) []*MailRecipient {
-	recipients := make([]*MailRecipient, 0, len(users))
+	recipients := make([]*MailRecipient, len(users))
 	for i := range users {
 		recipients[i] = UserToMailRecipient(users[i])
 	}
@@ -108,17 +111,20 @@ type Locale interface {
 }
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(locale Locale, u *models.User) {
-	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
+func SendActivateAccountMail(lang string, u *models.User) {
+	locale := translation.NewLocale(lang)
+	sendUserMail(lang, u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(locale Locale, u *models.User) {
-	sendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
+func SendResetPasswordMail(lang string, u *models.User) {
+	locale := translation.NewLocale(lang)
+	sendUserMail(lang, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
+	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
@@ -140,7 +146,8 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(locale Locale, u *models.User) {
+func SendRegisterNotifyMail(u *models.User) {
+	locale := translation.NewLocale(u.Language)
 	if setting.MailService == nil {
 		log.Warn("SendRegisterNotifyMail is being invoked but mail service hasn't been initialized")
 		return
@@ -165,7 +172,7 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *models.Repository) {
 	repoName := repo.FullName()
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
@@ -182,13 +189,13 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 		return
 	}
 
-	msg := NewMessage([]string{u.Email}, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
+	msg := NewMessage([]string{recipient.Mail}, subject, content.String())
+	msg.Info = fmt.Sprintf("UID: %d, add collaborator", recipient.userID)
 
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMention bool, info string) []*Message {
+func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailRecipient, fromMention bool, info string) []*Message {
 
 	var (
 		subject string
@@ -270,9 +277,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgs := make([]*Message, 0, len(tos))
-	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+	msgs := make([]*Message, 0, len(recipients))
+	for _, to := range recipients {
+		msg := NewMessageFrom([]string{to.Mail}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		// Set Message-ID on first message so replies know what to reference
@@ -298,7 +305,7 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []*MailRecipient) {
 	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
 		Issue:      issue,
 		Doer:       doer,

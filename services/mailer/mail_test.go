@@ -57,7 +57,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	btpl := template.Must(template.New("issue/comment").Parse(bodyTpl))
 	InitMailRender(stpl, btpl)
 
-	tos := []string{"test@gitea.com", "test2@gitea.com"}
+	tos := []*MailRecipient{{Mail: "test@gitea.com"}, {Mail: "test2@gitea.com"}}
 	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment}, tos, false, "issue comment")
 	assert.Len(t, msgs, 2)
@@ -91,7 +91,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	btpl := template.Must(template.New("issue/new").Parse(bodyTpl))
 	InitMailRender(stpl, btpl)
 
-	tos := []string{"test@gitea.com", "test2@gitea.com"}
+	tos := []*MailRecipient{{Mail: "test@gitea.com"}, {Mail: "test2@gitea.com"}}
 	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body"}, tos, false, "issue create")
 	assert.Len(t, msgs, 2)
@@ -218,7 +218,12 @@ func TestTemplateServices(t *testing.T) {
 }
 
 func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, tos []string, fromMention bool, info string) *Message {
-	msgs := composeIssueCommentMessages(ctx, tos, fromMention, info)
+	recipients := make([]*MailRecipient, len(tos))
+	assert.Len(t, tos, len(recipients))
+	for i, to := range tos {
+		recipients[i] = &MailRecipient{Mail: to}
+	}
+	msgs := composeIssueCommentMessages(ctx, recipients, fromMention, info)
 	assert.Len(t, msgs, 1)
 	return msgs[0]
 }

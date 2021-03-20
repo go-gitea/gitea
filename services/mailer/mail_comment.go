@@ -9,18 +9,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// MailParticipantsComment sends new comment emails to repository watchers
-// and mentioned people.
-func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
-	return mailParticipantsComment(c, opType, issue, mentions)
-}
-
-func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) (err error) {
+// MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
+func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*MailRecipient) error {
 	mentionedIDs := make([]int64, len(mentions))
 	for i, u := range mentions {
-		mentionedIDs[i] = u.ID
+		mentionedIDs[i] = u.userID
 	}
-	if err = mailIssueCommentToParticipants(
+	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       c.Poster,
@@ -34,10 +29,10 @@ func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 // MailMentionsComment sends email to users mentioned in a code comment
-func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) (err error) {
+func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*MailRecipient) (err error) {
 	mentionedIDs := make([]int64, len(mentions))
 	for i, u := range mentions {
-		mentionedIDs[i] = u.ID
+		mentionedIDs[i] = u.userID
 	}
 	visited := make(map[int64]bool, len(mentions)+1)
 	visited[c.Poster.ID] = true

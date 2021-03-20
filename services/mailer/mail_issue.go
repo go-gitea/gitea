@@ -137,12 +137,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 		}
 		recipients = recipients[:idx]
 
-		// TODO: Separate recipients by language for i18n mail templates
-		tos := make([]string, len(recipients))
-		for i := range recipients {
-			tos[i] = recipients[i].Email
-		}
-		SendAsyncs(composeIssueCommentMessages(ctx, tos, fromMention, "issue comments"))
+		SendAsyncs(composeIssueCommentMessages(ctx, UsersToMailRecipients(recipients), fromMention, "issue comments"))
 	}
 	return nil
 }

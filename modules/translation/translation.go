@@ -90,6 +90,10 @@ type locale struct {
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	if len(lang) != 5 {
+		// TODO: default language
+		lang = allLangs[0].Lang
+	}
 	return &locale{
 		Lang: lang,
 	}
