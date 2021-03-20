@@ -99,7 +99,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/xanzy/go-gitlab v0.37.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.2.1
+	github.com/yuin/goldmark v1.3.3
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v0.0.0-20191126180153-f0638e958b60
 	go.jolheiser.com/hcaptcha v0.0.4
