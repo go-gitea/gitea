@@ -74,13 +74,16 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	if uid != 0 {
 		var err error
 		store.GetData()["IsApiToken"] = true
+		store.GetData()["AuthenticationMechanism"] = OAuth2Mechanism
 
 		u, err = models.GetUserByID(uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
 		}
+		return u
 	}
+
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		u, err = models.GetUserByID(token.UID)
@@ -93,21 +96,20 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 		if err = models.UpdateAccessToken(token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
 		}
+		store.GetData()["AuthenticationMechanism"] = TokenMechanism
+		return u
 	} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)
 	}
 
-	if u == nil {
-		u, err = models.UserSignIn(uname, passwd)
-		if err != nil {
-			if !models.IsErrUserNotExist(err) {
-				log.Error("UserSignIn: %v", err)
-			}
-			return nil
+	u, err = models.UserSignIn(uname, passwd)
+	if err != nil {
+		if !models.IsErrUserNotExist(err) {
+			log.Error("UserSignIn: %v", err)
 		}
-	} else {
-		store.GetData()["IsApiToken"] = true
+		return nil
 	}
+	store.GetData()["AuthenticationMechanism"] = BasicAuthenticationMechanism
 
 	return u
 }

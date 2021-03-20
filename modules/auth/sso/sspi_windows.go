@@ -117,6 +117,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		return nil
 	}
 	log.Info("Authenticated as %s\n", username)
+	store.GetData()["AuthenticationMechanism"] = SSPIMechanism
 
 	user, err := models.GetUserByName(username)
 	if err != nil {

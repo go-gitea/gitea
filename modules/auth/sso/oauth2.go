@@ -89,6 +89,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		uid := CheckOAuthAccessToken(tokenSHA)
 		if uid != 0 {
 			store.GetData()["IsApiToken"] = true
+			store.GetData()["AuthenticationMechanism"] = OAuth2Mechanism
 		}
 		return uid
 	}
@@ -104,6 +105,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
+	store.GetData()["AuthenticationMechanism"] = TokenMechanism
 	return t.UID
 }
 

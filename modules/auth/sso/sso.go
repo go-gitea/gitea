@@ -32,6 +32,16 @@ var ssoMethods = []SingleSignOn{
 	&Basic{},
 }
 
+type AuthenticationMechanism string
+
+const (
+	OAuth2Mechanism              AuthenticationMechanism = "OAuth2"
+	TokenMechanism               AuthenticationMechanism = "Token"
+	ReverseProxyMechanism        AuthenticationMechanism = "ReverseProxy"
+	BasicAuthenticationMechanism AuthenticationMechanism = "Basic"
+	SSPIMechanism                AuthenticationMechanism = "SSPI"
+)
+
 // The purpose of the following three function variables is to let the linter know that
 // those functions are not dead code and are actually being used
 var (
