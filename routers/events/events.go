@@ -31,7 +31,7 @@ func Events(ctx *context.Context) {
 	ctx.Resp.WriteHeader(http.StatusOK)
 
 	if !ctx.IsSigned {
-		// Replace the event - we don't want to expose the session ID to the user
+		// Return unauthorized status event
 		event := (&eventsource.Event{
 			Name: "unauthorized",
 			Data: "sorry",
