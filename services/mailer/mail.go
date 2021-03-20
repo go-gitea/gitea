@@ -57,8 +57,8 @@ func SendTestMail(email string) error {
 	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
-// SendUserMail sends a mail to the user
-func SendUserMail(language string, u *models.User, tpl base.TplName, code, subject, info string) {
+// sendUserMail sends a mail to the user
+func sendUserMail(language string, u *models.User, tpl base.TplName, code, subject, info string) {
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
@@ -87,12 +87,12 @@ type Locale interface {
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(locale Locale, u *models.User) {
-	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
+	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
 func SendResetPasswordMail(locale Locale, u *models.User) {
-	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
+	sendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
