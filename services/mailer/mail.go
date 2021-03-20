@@ -93,6 +93,7 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 	var content bytes.Buffer
 
+	// TODO: i18n
 	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -134,6 +135,7 @@ func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
 
 	var content bytes.Buffer
 
+	// TODO: i18n
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -160,6 +162,7 @@ func SendRegisterNotifyMail(u *models.User) {
 
 	var content bytes.Buffer
 
+	// TODO: i18n
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -174,6 +177,7 @@ func SendRegisterNotifyMail(u *models.User) {
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *models.Repository) {
 	repoName := repo.FullName()
+	// TODO: i18n
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
 	data := map[string]interface{}{
@@ -184,6 +188,7 @@ func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *mod
 
 	var content bytes.Buffer
 
+	// TODO: i18n
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -221,8 +226,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
-
-	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
+	// TODO: i18n
+	actType, actName, tplName := actionToTemplate("", ctx.Issue, ctx.ActionType, commentType, reviewType)
 
 	if actName != "new" {
 		prefix = "Re: "
@@ -256,6 +261,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 	}
 
 	var mailSubject bytes.Buffer
+	// TODO: i18n
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
@@ -272,6 +278,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 
 	var mailBody bytes.Buffer
 
+	// TODO: i18n
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
@@ -317,7 +324,8 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *models.Issue, actionType models.ActionType,
+// TODO: i18n
+func actionToTemplate(lang string, issue *models.Issue, actionType models.ActionType,
 	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
