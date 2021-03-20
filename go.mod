@@ -22,6 +22,7 @@ require (
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.12.0
+	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
 	github.com/couchbase/goutils v0.0.0-20210118111533-e33d3ffb5401 // indirect
@@ -38,7 +39,7 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/cors v1.1.1
-	github.com/go-enry/go-enry/v2 v2.6.0
+	github.com/go-enry/go-enry/v2 v2.6.1
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0
 	github.com/go-ldap/ldap/v3 v3.2.4
@@ -127,7 +128,7 @@ require (
 	github.com/xanzy/go-gitlab v0.44.0
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.3.2
+	github.com/yuin/goldmark v1.3.3
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4

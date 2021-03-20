@@ -11,7 +11,6 @@ import (
 )
 
 func TestRepositoryTransfer(t *testing.T) {
-
 	assert.NoError(t, PrepareTestDatabase())
 
 	doer := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)

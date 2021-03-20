@@ -28,3 +28,16 @@ export function uniq(arr) {
 export function stripTags(text) {
   return text.replace(/<[^>]*>?/gm, '');
 }
+
+// searches the inclusive range [minValue, maxValue].
+// credits: https://matthiasott.com/notes/write-your-media-queries-in-pixels-not-ems
+export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
+  if (maxValue - minValue < step) {
+    return minValue;
+  }
+  const mid = Math.ceil((minValue + maxValue) / 2 / step) * step;
+  if (matchMedia(`screen and (min-${feature}:${mid}${unit})`).matches) {
+    return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
+  }
+  return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
+}

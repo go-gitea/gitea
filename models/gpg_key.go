@@ -45,7 +45,7 @@ type GPGKey struct {
 	CanCertify        bool
 }
 
-//GPGKeyImport the original import of key
+// GPGKeyImport the original import of key
 type GPGKeyImport struct {
 	KeyID   string `xorm:"pk CHAR(16) NOT NULL"`
 	Content string `xorm:"TEXT NOT NULL"`
@@ -119,9 +119,9 @@ func checkArmoredGPGKeyString(content string) (openpgp.EntityList, error) {
 	return list, nil
 }
 
-//addGPGKey add key, import and subkeys to database
+// addGPGKey add key, import and subkeys to database
 func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
-	//Add GPGKeyImport
+	// Add GPGKeyImport
 	if _, err = e.Insert(GPGKeyImport{
 		KeyID:   key.KeyID,
 		Content: content,
@@ -141,7 +141,7 @@ func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
 	return nil
 }
 
-//addGPGSubKey add subkeys to database
+// addGPGSubKey add subkeys to database
 func addGPGSubKey(e Engine, key *GPGKey) (err error) {
 	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
@@ -201,7 +201,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
 		}
 
-		//Get DB session
+		// Get DB session
 
 		key, err := parseGPGKey(ownerID, ekey, verified)
 		if err != nil {
@@ -291,7 +291,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	return key.KeyID, nil
 }
 
-//base64EncPubKey encode public key content to base 64
+// base64EncPubKey encode public key content to base 64
 func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	var w bytes.Buffer
 	err := pubkey.Serialize(&w)
@@ -301,18 +301,18 @@ func base64EncPubKey(pubkey *packet.PublicKey) (string, error) {
 	return base64.StdEncoding.EncodeToString(w.Bytes()), nil
 }
 
-//base64DecPubKey decode public key content from base 64
+// base64DecPubKey decode public key content from base 64
 func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	b, err := readerFromBase64(content)
 	if err != nil {
 		return nil, err
 	}
-	//Read key
+	// Read key
 	p, err := packet.Read(b)
 	if err != nil {
 		return nil, err
 	}
-	//Check type
+	// Check type
 	pkey, ok := p.(*packet.PublicKey)
 	if !ok {
 		return nil, fmt.Errorf("key is not a public key")
@@ -320,7 +320,7 @@ func base64DecPubKey(content string) (*packet.PublicKey, error) {
 	return pkey, nil
 }
 
-//GPGKeyToEntity retrieve the imported key and the traducted entity
+// GPGKeyToEntity retrieve the imported key and the traducted entity
 func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
 	impKey, err := GetGPGImportByKeyID(k.KeyID)
 	if err != nil {
@@ -333,7 +333,7 @@ func GPGKeyToEntity(k *GPGKey) (*openpgp.Entity, error) {
 	return keys[0], err
 }
 
-//parseSubGPGKey parse a sub Key
+// parseSubGPGKey parse a sub Key
 func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, expiry time.Time) (*GPGKey, error) {
 	content, err := base64EncPubKey(pubkey)
 	if err != nil {
@@ -353,10 +353,10 @@ func parseSubGPGKey(ownerID int64, primaryID string, pubkey *packet.PublicKey, e
 	}, nil
 }
 
-//getExpiryTime extract the expire time of primary key based on sig
+// getExpiryTime extract the expire time of primary key based on sig
 func getExpiryTime(e *openpgp.Entity) time.Time {
 	expiry := time.Time{}
-	//Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
+	// Extract self-sign for expire date based on : https://github.com/golang/crypto/blob/master/openpgp/keys.go#L165
 	var selfSig *packet.Signature
 	for _, ident := range e.Identities {
 		if selfSig == nil {
@@ -372,12 +372,12 @@ func getExpiryTime(e *openpgp.Entity) time.Time {
 	return expiry
 }
 
-//parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
+// parseGPGKey parse a PrimaryKey entity (primary key + subs keys + self-signature)
 func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, error) {
 	pubkey := e.PrimaryKey
 	expiry := getExpiryTime(e)
 
-	//Parse Subkeys
+	// Parse Subkeys
 	subkeys := make([]*GPGKey, len(e.Subkeys))
 	for i, k := range e.Subkeys {
 		subs, err := parseSubGPGKey(ownerID, pubkey.KeyIdString(), k.PublicKey, expiry)
@@ -387,7 +387,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 		subkeys[i] = subs
 	}
 
-	//Check emails
+	// Check emails
 	userEmails, err := GetEmailAddresses(ownerID)
 	if err != nil {
 		return nil, err
@@ -408,7 +408,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 	}
 
 	if !verified {
-		//In the case no email as been found
+		// In the case no email as been found
 		if len(emails) == 0 {
 			failedEmails := make([]string, 0, len(e.Identities))
 			for _, ident := range e.Identities {
@@ -442,9 +442,9 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 // deleteGPGKey does the actual key deletion
 func deleteGPGKey(e *xorm.Session, keyID string) (int64, error) {
 	if keyID == "" {
-		return 0, fmt.Errorf("empty KeyId forbidden") //Should never happen but just to be sure
+		return 0, fmt.Errorf("empty KeyId forbidden") // Should never happen but just to be sure
 	}
-	//Delete imported key
+	// Delete imported key
 	n, err := e.Where("key_id=?", keyID).Delete(new(GPGKeyImport))
 	if err != nil {
 		return n, err
@@ -554,11 +554,11 @@ func extractSignature(s string) (*packet.Signature, error) {
 }
 
 func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
-	//Check if key can sign
+	// Check if key can sign
 	if !k.CanSign {
 		return fmt.Errorf("key can not sign")
 	}
-	//Decode key
+	// Decode key
 	pkey, err := base64DecPubKey(k.Content)
 	if err != nil {
 		return err
@@ -567,9 +567,9 @@ func verifySign(s *packet.Signature, h hash.Hash, k *GPGKey) error {
 }
 
 func hashAndVerify(sig *packet.Signature, payload string, k *GPGKey) (*GPGKey, error) {
-	//Generating hash of commit
+	// Generating hash of commit
 	hash, err := populateHash(sig.Hash, []byte(payload))
-	if err != nil { //Skipping as failed to generate hash
+	if err != nil { // Skipping as failed to generate hash
 		log.Error("PopulateHash: %v", err)
 		return nil, err
 	}
@@ -597,7 +597,7 @@ func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey) 
 
 func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
 	key, err := hashAndVerifyWithSubKeys(sig, payload, k)
-	if err != nil { //Skipping failed to generate hash
+	if err != nil { // Skipping failed to generate hash
 		return &CommitVerification{
 			CommittingUser: committer,
 			Verified:       false,
@@ -606,7 +606,7 @@ func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload s
 	}
 
 	if key != nil {
-		return &CommitVerification{ //Everything is ok
+		return &CommitVerification{ // Everything is ok
 			CommittingUser: committer,
 			Verified:       true,
 			Reason:         fmt.Sprintf("%s / %s", signer.Name, key.KeyID),
@@ -713,9 +713,9 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	var committer *User
 	if c.Committer != nil {
 		var err error
-		//Find Committer account
-		committer, err = GetUserByEmail(c.Committer.Email) //This finds the user by primary email or activated email so commit will not be valid if email is not
-		if err != nil {                                    //Skipping not user for commiter
+		// Find Committer account
+		committer, err = GetUserByEmail(c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                    // Skipping not user for commiter
 			committer = &User{
 				Name:  c.Committer.Name,
 				Email: c.Committer.Email,
@@ -738,14 +738,14 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	if c.Signature == nil {
 		return &CommitVerification{
 			CommittingUser: committer,
-			Verified:       false,                         //Default value
-			Reason:         "gpg.error.not_signed_commit", //Default value
+			Verified:       false,                         // Default value
+			Reason:         "gpg.error.not_signed_commit", // Default value
 		}
 	}
 
-	//Parsing signature
+	// Parsing signature
 	sig, err := extractSignature(c.Signature.Signature)
-	if err != nil { //Skipping failed to extract sign
+	if err != nil { // Skipping failed to extract sign
 		log.Error("SignatureRead err: %v", err)
 		return &CommitVerification{
 			CommittingUser: committer,
@@ -781,7 +781,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
 		keys, err := ListGPGKeys(committer.ID, ListOptions{})
-		if err != nil { //Skipping failed to get gpg keys of user
+		if err != nil { // Skipping failed to get gpg keys of user
 			log.Error("ListGPGKeys: %v", err)
 			return &CommitVerification{
 				CommittingUser: committer,
@@ -791,7 +791,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 
 		for _, k := range keys {
-			//Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
+			// Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
 			canValidate := false
 			email := ""
 			for _, e := range k.Emails {
@@ -802,7 +802,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 				}
 			}
 			if !canValidate {
-				continue //Skip this key
+				continue // Skip this key
 			}
 
 			commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, c.Signature.Payload, k, committer, committer, email)
@@ -846,7 +846,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 	}
 
-	return &CommitVerification{ //Default at this stage
+	return &CommitVerification{ // Default at this stage
 		CommittingUser: committer,
 		Verified:       false,
 		Warning:        defaultReason != NoKeyFound,

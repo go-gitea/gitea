@@ -343,6 +343,16 @@
         cursor: default;
       }
 
+      tr:last-of-type {
+        td:first-child {
+          border-bottom-left-radius: var(--border-radius);
+        }
+
+        td:last-child {
+          border-bottom-right-radius: var(--border-radius);
+        }
+      }
+
       tr:hover {
         background-color: #ffffee;
       }
@@ -1157,6 +1167,7 @@
       > a {
         padding-top: 5px;
         padding-right: 10px;
+        font-size: 1.5rem;
         color: var(--color-text);
 
         &:hover {
@@ -2153,6 +2164,7 @@
 
       .item {
         width: 100%;
+        color: var(--color-text);
 
         &:first-of-type {
           border-radius: var(--border-radius) 0 0 var(--border-radius);
@@ -2168,10 +2180,6 @@
           &:hover {
             color: var(--color-primary-light-2);
           }
-        }
-
-        span.ui {
-          color: var(--color-text);
         }
 
         &.active {
@@ -2768,11 +2776,16 @@ tbody.commit-list {
 
 .commit-body {
   white-space: pre-wrap;
+  line-height: initial;
 }
 
 .repository:not(.diff) {
-  .commit-body {
+  .commit-body { // commit history list
     margin: 0;
+  }
+
+  .timeline-item .commit-body { // PR-comment
+    margin-left: 40px;
   }
 }
 
@@ -2851,14 +2864,25 @@ tbody.commit-list {
   align-items: center;
 }
 
-.repo-buttons button[disabled],
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
 }
 
-.repo-buttons .ui.labeled.button > .label {
-  border-left: 0 !important;
-  margin: 0 !important;
+.repo-buttons .ui.labeled.button {
+  cursor: initial;
+
+  > .label {
+    border-left: 0 !important;
+    margin: 0 !important;
+  }
+
+  &.disabled {
+    pointer-events: inherit !important;
+
+    > .button {
+      pointer-events: none !important;
+    }
+  }
 }
 
 .tag-code {
@@ -3131,4 +3155,11 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+.code-line-marker {
+  width: 13px;
+  height: 20px;
+  background-color: rgb(34 36 38 / 15%);
+  position: absolute;
 }

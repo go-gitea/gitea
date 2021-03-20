@@ -309,7 +309,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		{ctxUserID: 2, userID: 1, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad", expectedStatus: http.StatusForbidden},
 		{ctxUserID: 2, userID: 3, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-org", expectedStatus: http.StatusCreated},
 		{ctxUserID: 2, userID: 6, cloneURL: "https://github.com/go-gitea/test_repo.git", repoName: "git-bad-org", expectedStatus: http.StatusForbidden},
-		{ctxUserID: 2, userID: 3, cloneURL: "https://localhost:3000/user/test_repo.git", repoName: "local-ip", expectedStatus: http.StatusUnprocessableEntity},
+		{ctxUserID: 2, userID: 3, cloneURL: "https://localhost:3000/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
 		{ctxUserID: 2, userID: 3, cloneURL: "https://10.0.0.1/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
 	}
 
@@ -330,11 +330,8 @@ func TestAPIRepoMigrate(t *testing.T) {
 			switch respJSON["message"] {
 			case "Remote visit addressed rate limitation.":
 				t.Log("test hit github rate limitation")
-			case "migrate from '10.0.0.1' is not allowed: the host resolve to a private ip address '10.0.0.1'":
+			case "You are not allowed to import from private IPs.":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
-			case "migrate from 'localhost:3000' is not allowed: the host resolve to a private ip address '::1'",
-				"migrate from 'localhost:3000' is not allowed: the host resolve to a private ip address '127.0.0.1'":
-				assert.EqualValues(t, "local-ip", testCase.repoName)
 			default:
 				t.Errorf("unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
