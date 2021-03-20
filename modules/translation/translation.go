@@ -5,8 +5,6 @@
 package translation
 
 import (
-	"errors"
-
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
