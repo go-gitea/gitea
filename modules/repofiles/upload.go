@@ -182,11 +182,7 @@ func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info
 	}
 
 	// Add the object to the index
-	if err := t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name)); err != nil {
-		return err
-	}
-
-	return nil
+	return t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name))
 }
 
 func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {
