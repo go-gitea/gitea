@@ -99,38 +99,8 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	// Copy uploaded files into repository.
-	for i, uploadInfo := range infos {
-		file, err := os.Open(uploadInfo.upload.LocalPath())
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		var objectHash string
-		if setting.LFS.StartServer && filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
-			// Handle LFS
-			// FIXME: Inefficient! this should probably happen in models.Upload
-			oid, err := models.GenerateLFSOid(file)
-			if err != nil {
-				return err
-			}
-			fileInfo, err := file.Stat()
-			if err != nil {
-				return err
-			}
-
-			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: t.repo.ID}
-
-			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.Pointer())); err != nil {
-				return err
-			}
-			infos[i] = uploadInfo
-		} else if objectHash, err = t.HashObject(file); err != nil {
-			return err
-		}
-
-		// Add the object to the index
-		if err := t.AddObjectToIndex("100644", objectHash, path.Join(opts.TreePath, uploadInfo.upload.Name)); err != nil {
+	for i := range infos {
+		if err := copyUploadedLFSFileIntoRepository(&infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
 			return err
 		}
 	}
@@ -180,6 +150,43 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	return models.DeleteUploads(uploads...)
+}
+
+func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
+	file, err := os.Open(info.upload.LocalPath())
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var objectHash string
+	if setting.LFS.StartServer && filename2attribute2info[info.upload.Name] != nil && filename2attribute2info[info.upload.Name]["filter"] == "lfs" {
+		// Handle LFS
+		// FIXME: Inefficient! this should probably happen in models.Upload
+		oid, err := models.GenerateLFSOid(file)
+		if err != nil {
+			return err
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			return err
+		}
+
+		info.lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: t.repo.ID}
+
+		if objectHash, err = t.HashObject(strings.NewReader(info.lfsMetaObject.Pointer())); err != nil {
+			return err
+		}
+	} else if objectHash, err = t.HashObject(file); err != nil {
+		return err
+	}
+
+	// Add the object to the index
+	if err := t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {
