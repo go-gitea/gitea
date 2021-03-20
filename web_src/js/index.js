@@ -26,7 +26,7 @@ import {initNotificationsTable, initNotificationCount} from './features/notifica
 import {initStopwatch} from './features/stopwatch.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {svg, svgs} from './svg.js';
-import {stripTags} from './utils.js';
+import {stripTags, mqBinarySearch} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -2518,6 +2518,19 @@ $(document).ready(async () => {
       .attr('data-variation', 'inverted tiny')
       .attr('title', '');
   });
+
+  // Undo Safari emoji glitch fix at high enough zoom levels
+  if (navigator.userAgent.match('Safari')) {
+    $(window).resize(() => {
+      const px = mqBinarySearch('width', 0, 4096, 1, 'px');
+      const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
+      if (em * 16 * 1.25 - px <= -1) {
+        $('body').addClass('safari-above125');
+      } else {
+        $('body').removeClass('safari-above125');
+      }
+    });
+  }
 
   // Semantic UI modules.
   $('.dropdown:not(.custom)').dropdown({
