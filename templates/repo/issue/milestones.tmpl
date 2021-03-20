@@ -43,7 +43,7 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					{{svg "octicon-milestone"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+					{{svg "octicon-milestone" 16 "mr-2"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
 					<div class="ui right green progress" data-percent="{{.Completeness}}">
 						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
 							<div class="progress"></div>
@@ -80,7 +80,7 @@
 						</div>
 					{{end}}
 					{{if .Content}}
-						<div class="content">
+						<div class="markdown content">
 							{{.RenderedContent|Str2html}}
 						</div>
 					{{end}}
