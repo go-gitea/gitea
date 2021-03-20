@@ -10,7 +10,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Respect approved email domain list for externally validated user registration (#15014)
   * Add reverse proxy configuration support for remote IP address detection (#14959)
   * Ensure validation occurs on clone addresses too (#14994)
-  * Fix several render issues highlighted during fuzzing (#14986)
 * BREAKING
   * Restore Access.log following migration to Chi framework (Stops access logging of /api/internal routes) (#14475)
   * Migrate from Macaron to Chi framework (#14293)
