@@ -1193,6 +1193,13 @@
   }
 
   &.compare.pull {
+    .header.commits-table {
+      .sha.label:last-of-type {
+        margin-left: 6px;
+        margin-right: 0;
+      }
+    }
+
     .show-form-container {
       text-align: left;
     }
@@ -1283,25 +1290,23 @@
           padding: 5px 10px;
         }
       }
-    }
-  }
 
-  .commits-table {
-    @media @mediaSm {
-      flex-direction: column;
-
-      > * + * {
-        margin-top: .5em;
-      }
-    }
-
-    @media (max-width: 480px) {
-      form {
+      @media @mediaSm {
         flex-direction: column;
-        align-items: stretch !important;
 
         > * + * {
           margin-top: .5em;
+        }
+      }
+
+      @media (max-width: 480px) {
+        form {
+          flex-direction: column;
+          align-items: stretch !important;
+
+          > * + * {
+            margin-top: .5em;
+          }
         }
       }
     }
