@@ -33,6 +33,11 @@ const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 let previewFileModes;
 const commentMDEditors = {};
 
+// Override close icon for labels in fomantic dropdown
+$.fn.dropdown.settings.templates.label = function(_, text, preserveHTML) {
+  return $.fn.dropdown.settings.templates.escape(text, preserveHTML) + svg('octicon-x', 16, 'delete icon');
+};
+
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
 
@@ -3561,9 +3566,6 @@ function initTopicbar() {
       variation: false,
       blue: true,
       basic: true,
-    },
-    templates: {
-      label: (_, text, preserveHTML, __) => $.fn.dropdown.settings.templates.escape(text, preserveHTML) + svg('octicon-x', 16, 'delete icon'),
     },
     className: {
       label: 'ui small label topic'
