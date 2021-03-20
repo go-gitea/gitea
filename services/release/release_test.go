@@ -6,6 +6,7 @@ package release
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -90,7 +91,13 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
+	attach, err := models.NewAttachment(&models.Attachment{
+		UploaderID: user.ID,
+		Name:       "test.txt",
+	}, []byte{}, strings.NewReader("testtest"))
+	assert.NoError(t, err)
+
+	var release = models.Release{
 		RepoID:       repo.ID,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.5",
@@ -100,7 +107,8 @@ func TestRelease_Create(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        true,
-	}, nil, "test"))
+	}
+	assert.NoError(t, CreateRelease(gitRepo, &release, []string{attach.UUID}, "test"))
 }
 
 func TestRelease_Update(t *testing.T) {
@@ -180,6 +188,37 @@ func TestRelease_Update(t *testing.T) {
 	release, err = models.GetReleaseByID(release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
+
+	attach, err := models.NewAttachment(&models.Attachment{
+		UploaderID: user.ID,
+		Name:       "test.txt",
+	}, []byte{}, strings.NewReader("testtest"))
+	assert.NoError(t, err)
+
+	// Add new attachments
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, []string{attach.UUID}, nil, nil, false))
+	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
+	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
+	assert.EqualValues(t, attach.Name, release.Attachments[0].Name)
+
+	// update the attachment name
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, map[string]string{
+		attach.UUID: "test2.txt",
+	}, false))
+	release.Attachments = nil
+	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
+	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
+	assert.EqualValues(t, "test2.txt", release.Attachments[0].Name)
+
+	// delete the attachment
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, []string{attach.UUID}, nil, false))
+	release.Attachments = nil
+	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.EqualValues(t, 0, len(release.Attachments))
 }
 
 func TestRelease_createTag(t *testing.T) {
