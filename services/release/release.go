@@ -156,14 +156,14 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 	return err
 }
 
-// UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+// UpdateRelease updates information, attachments of a release and will create tag if it's not a draft and tag not exist.
 // addAttachmentUUIDs accept a slice of new created attachments' uuids which will be reassigned release_id as the created release
 // delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
 // editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
-func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release,
+func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Release,
 	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string) (err error) {
 	if rel.ID == 0 {
-		return errors.New("UpdateReleaseOrCreatReleaseFromTag only accepts an exist release")
+		return errors.New("UpdateRelease only accepts an exist release")
 	}
 	isCreated, err := createTag(gitRepo, rel, "")
 	if err != nil {
