@@ -128,7 +128,7 @@ require (
 	github.com/xanzy/go-gitlab v0.44.0
 	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.3.2
+	github.com/yuin/goldmark v1.3.3
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
 	go.jolheiser.com/hcaptcha v0.0.4
