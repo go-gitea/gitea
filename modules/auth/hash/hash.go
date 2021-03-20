@@ -82,11 +82,7 @@ func (d *DefaultHasherStruct) PasswordNeedUpdate(algo string) bool {
 }
 
 // DefaultHasher is the instance of the HashSet
-var DefaultHasher *DefaultHasherStruct
-
-func init() {
-	DefaultHasher = &DefaultHasherStruct{
-		DefaultAlgorithm: defaultAlgorithm,
-		Hashers:          make(map[string]Hasher),
-	}
+var DefaultHasher = &DefaultHasherStruct{
+	DefaultAlgorithm: defaultAlgorithm,
+	Hashers:          make(map[string]Hasher),
 }
