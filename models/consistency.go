@@ -386,7 +386,6 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 				WHERE
 					issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`)
-
 	if err != nil {
 		return 0, err
 	}
