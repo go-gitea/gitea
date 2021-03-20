@@ -555,7 +555,9 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	if err := migrateRepository(downloader, uploader, opts); err != nil {
+	if err := migrateRepository(downloader, uploader, opts, func(format string, args ...interface{}) {
+
+	}); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -620,7 +622,9 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	}
 	updateOptionsUnits(&migrateOpts, units)
 
-	if err = migrateRepository(downloader, uploader, migrateOpts); err != nil {
+	if err = migrateRepository(downloader, uploader, migrateOpts, func(format string, args ...interface{}) {
+
+	}); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}

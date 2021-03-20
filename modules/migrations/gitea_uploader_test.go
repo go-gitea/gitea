@@ -47,6 +47,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 		PullRequests: true,
 		Private:      true,
 		Mirror:       false,
+	}, func(format string, args ...interface{}) {
+
 	})
 	assert.NoError(t, err)
 
