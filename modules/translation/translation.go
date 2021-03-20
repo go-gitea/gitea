@@ -38,6 +38,7 @@ func AllLangs() []LangType {
 
 // InitLocales loads the locales
 func InitLocales() {
+	i18n.Flush()
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
@@ -60,12 +61,7 @@ func InitLocales() {
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			if errors.Is(err, i18n.ErrLangAlreadyExist) {
-				// just log if lang is already loaded since we can not reload it
-				log.Warn("Can not load language '%s' since already loaded", setting.Langs[i])
-			} else {
-				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
-			}
+			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
 	i18n.SetDefaultLang("en-US")
