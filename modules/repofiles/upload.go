@@ -120,7 +120,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 				return err
 			}
 			infos[i] = uploadInfo
-
 		} else if objectHash, err = t.HashObject(file); err != nil {
 			return err
 		}
@@ -128,7 +127,6 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 		// Add the object to the index
 		if err := t.AddObjectToIndex("100644", objectHash, path.Join(opts.TreePath, uploadInfo.upload.Name)); err != nil {
 			return err
-
 		}
 	}
 
@@ -165,27 +163,9 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	// OK now we can insert the data into the store - there's no way to clean up the store
 	// once it's in there, it's in there.
 	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
-	for _, uploadInfo := range infos {
-		if uploadInfo.lfsMetaObject == nil {
-			continue
-		}
-		exist, err := contentStore.Exists(uploadInfo.lfsMetaObject)
-		if err != nil {
+	for _, info := range infos {
+		if err := uploadToLFSContentStore(info, contentStore); err != nil {
 			return cleanUpAfterFailure(&infos, t, err)
-		}
-		if !exist {
-			file, err := os.Open(uploadInfo.upload.LocalPath())
-			if err != nil {
-				return cleanUpAfterFailure(&infos, t, err)
-			}
-			defer file.Close()
-			// FIXME: Put regenerates the hash and copies the file over.
-			// I guess this strictly ensures the soundness of the store but this is inefficient.
-			if err := contentStore.Put(uploadInfo.lfsMetaObject, file); err != nil {
-				// OK Now we need to cleanup
-				// Can't clean up the store, once uploaded there they're there.
-				return cleanUpAfterFailure(&infos, t, err)
-			}
 		}
 	}
 
@@ -195,4 +175,30 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	return models.DeleteUploads(uploads...)
+}
+
+func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {
+	if info.lfsMetaObject == nil {
+		return nil
+	}
+	exist, err := contentStore.Exists(info.lfsMetaObject)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		file, err := os.Open(info.upload.LocalPath())
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+		// FIXME: Put regenerates the hash and copies the file over.
+		// I guess this strictly ensures the soundness of the store but this is inefficient.
+		if err := contentStore.Put(info.lfsMetaObject, file); err != nil {
+			// OK Now we need to cleanup
+			// Can't clean up the store, once uploaded there they're there.
+			return err
+		}
+	}
+	return nil
 }
