@@ -139,7 +139,7 @@ func TestRelease_Update(t *testing.T) {
 	releaseCreatedUnix := release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
-	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil, false))
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil))
 	release, err = models.GetReleaseByID(release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -161,7 +161,7 @@ func TestRelease_Update(t *testing.T) {
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
-	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil, false))
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil))
 	release, err = models.GetReleaseByID(release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
@@ -184,19 +184,42 @@ func TestRelease_Update(t *testing.T) {
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil, false))
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil))
 	release, err = models.GetReleaseByID(release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
+	// Test create release
+	release = &models.Release{
+		RepoID:       repo.ID,
+		PublisherID:  user.ID,
+		TagName:      "v1.1.2",
+		Target:       "master",
+		Title:        "v1.1.2 is released",
+		Note:         "v1.1.2 is released",
+		IsDraft:      true,
+		IsPrerelease: false,
+		IsTag:        false,
+	}
+	assert.NoError(t, CreateRelease(gitRepo, release, nil, ""))
+	assert.Greater(t, release.ID, int64(0))
+
+	release.IsDraft = false
+	tagName := release.TagName
+
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, nil))
+	release, err = models.GetReleaseByID(release.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, tagName, release.TagName)
+
+	// Add new attachments
 	attach, err := models.NewAttachment(&models.Attachment{
 		UploaderID: user.ID,
 		Name:       "test.txt",
 	}, []byte{}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
-	// Add new attachments
-	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, []string{attach.UUID}, nil, nil, false))
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, []string{attach.UUID}, nil, nil))
 	assert.NoError(t, models.GetReleaseAttachments(release))
 	assert.EqualValues(t, 1, len(release.Attachments))
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
@@ -206,7 +229,7 @@ func TestRelease_Update(t *testing.T) {
 	// update the attachment name
 	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, nil, map[string]string{
 		attach.UUID: "test2.txt",
-	}, false))
+	}))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
 	assert.EqualValues(t, 1, len(release.Attachments))
@@ -215,7 +238,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.EqualValues(t, "test2.txt", release.Attachments[0].Name)
 
 	// delete the attachment
-	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, []string{attach.UUID}, nil, false))
+	assert.NoError(t, UpdateReleaseOrCreatReleaseFromTag(user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
 	assert.EqualValues(t, 0, len(release.Attachments))
@@ -244,12 +267,14 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	assert.NotEmpty(t, release.CreatedUnix)
 	releaseCreatedUnix := release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed draft
@@ -264,11 +289,13 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: false,
 		IsTag:        false,
 	}
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
 	// Test a changed pre-release
@@ -283,12 +310,14 @@ func TestRelease_createTag(t *testing.T) {
 		IsPrerelease: true,
 		IsTag:        false,
 	}
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	releaseCreatedUnix = release.CreatedUnix
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	release.Note = "Changed note"
-	assert.NoError(t, createTag(gitRepo, release, ""))
+	_, err = createTag(gitRepo, release, "")
+	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
 

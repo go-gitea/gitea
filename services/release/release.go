@@ -18,13 +18,14 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
+func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, error) {
+	var created bool
 	// Only actual create when publish.
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return fmt.Errorf("GetCommit: %v", err)
+				return false, fmt.Errorf("GetCommit: %v", err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
@@ -32,25 +33,26 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
 			if len(msg) > 0 {
 				if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, commit.ID.String()); err != nil {
 					if strings.Contains(err.Error(), "is not a valid tag name") {
-						return models.ErrInvalidTagName{
+						return false, models.ErrInvalidTagName{
 							TagName: rel.TagName,
 						}
 					}
-					return err
+					return false, err
 				}
 			} else if err = gitRepo.CreateTag(rel.TagName, commit.ID.String()); err != nil {
 				if strings.Contains(err.Error(), "is not a valid tag name") {
-					return models.ErrInvalidTagName{
+					return false, models.ErrInvalidTagName{
 						TagName: rel.TagName,
 					}
 				}
-				return err
+				return false, err
 			}
+			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
 			// Prepare Notify
 			if err := rel.LoadAttributes(); err != nil {
 				log.Error("LoadAttributes: %v", err)
-				return err
+				return false, err
 			}
 			notification.NotifyPushCommits(
 				rel.Publisher, rel.Repo,
@@ -64,13 +66,13 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
-			return fmt.Errorf("GetTagCommit: %v", err)
+			return false, fmt.Errorf("GetTagCommit: %v", err)
 		}
 
 		rel.Sha1 = commit.ID.String()
 		rel.NumCommits, err = commit.CommitsCount()
 		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
+			return false, fmt.Errorf("CommitsCount: %v", err)
 		}
 
 		if rel.PublisherID <= 0 {
@@ -79,11 +81,10 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) error {
 				rel.PublisherID = u.ID
 			}
 		}
-
 	} else {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 	}
-	return nil
+	return created, nil
 }
 
 // CreateRelease creates a new release of repository.
@@ -97,7 +98,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		}
 	}
 
-	if err = createTag(gitRepo, rel, msg); err != nil {
+	if _, err = createTag(gitRepo, rel, msg); err != nil {
 		return err
 	}
 
@@ -144,7 +145,7 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 		IsTag:        true,
 	}
 
-	if err = createTag(gitRepo, rel, msg); err != nil {
+	if _, err = createTag(gitRepo, rel, msg); err != nil {
 		return err
 	}
 
@@ -156,9 +157,16 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 }
 
 // UpdateReleaseOrCreatReleaseFromTag updates information of a release or create release from tag.
+// addAttachmentUUIDs accept a slice of new created attachments' uuids which will be reassigned release_id as the created release
+// delAttachmentUUIDs accept a slice of attachments' uuids which will be deleted from the release
+// editAttachments accept a map of attachment uuid to new attachment name which will be updated with attachments.
 func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Repository, rel *models.Release,
-	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string, isCreate bool) (err error) {
-	if err = createTag(gitRepo, rel, ""); err != nil {
+	addAttachmentUUIDs, delAttachmentUUIDs []string, editAttachments map[string]string) (err error) {
+	if rel.ID == 0 {
+		return errors.New("UpdateReleaseOrCreatReleaseFromTag only accepts an exist release")
+	}
+	isCreated, err := createTag(gitRepo, rel, "")
+	if err != nil {
 		return err
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
@@ -230,11 +238,15 @@ func UpdateReleaseOrCreatReleaseFromTag(doer *models.User, gitRepo *git.Reposito
 
 	for _, uuid := range delAttachmentUUIDs {
 		if err := storage.Attachments.Delete(models.AttachmentRelativePath(uuid)); err != nil {
-			return err
+			// Even delete files failed, but the attachments has been removed from database, so we
+			// should not return error but only record the error on logs.
+			// users have to delete this attachments manually or we should have a
+			// synchronize between database attachment table and attachment storage
+			log.Error("delete attachment[uuid: %s] failed: %v", uuid, err)
 		}
 	}
 
-	if !isCreate {
+	if !isCreated {
 		notification.NotifyUpdateRelease(doer, rel)
 		return
 	}
