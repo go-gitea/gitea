@@ -169,7 +169,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []string, fromMention bool, info string) []*Message {
 
 	var (
-		locale = translation.NewLocale(lang)
+		// locale = translation.NewLocale(lang)
 
 		subject string
 		link    string

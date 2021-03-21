@@ -24,6 +24,7 @@ type mailCommentContext struct {
 }
 
 const (
+	// MailBatchSize set the batch size used in mailIssueCommentBatch
 	MailBatchSize = 100
 )
 
