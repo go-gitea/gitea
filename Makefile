@@ -14,6 +14,8 @@ else
 
 # This is the "normal" part of the Makefile
 
+TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar" || echo "tar" )
+
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
@@ -619,12 +621,14 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) npm-cache
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	bsdtar --exclude=^./$(DIST) --exclude=^./.git --exclude=^./$(MAKE_EVIDENCE_DIR) --exclude=node_modules --exclude=^./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	$(eval EXCL := --exclude=$(shell [ "$(TAR)" = "bsdtar" ] && echo "^")./)
+	$(eval EXCL_RECURSIVE := --exclude=)
+	$(TAR) $(EXCL)$(DIST) $(EXCL).git $(EXCL)$(MAKE_EVIDENCE_DIR) $(EXCL_RECURSIVE)node_modules $(EXCL)$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	$(TAR) -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
 docs:
