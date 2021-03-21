@@ -141,7 +141,7 @@ func SendRegisterNotifyMail(u *models.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(recipient, doer *models.User, repo *models.Repository) {
+func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	repoName := repo.FullName()
 	// TODO: i18n
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
@@ -160,8 +160,8 @@ func SendCollaboratorMail(recipient, doer *models.User, repo *models.Repository)
 		return
 	}
 
-	msg := NewMessage([]string{recipient.Email}, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, add collaborator", recipient.ID)
+	msg := NewMessage([]string{u.Email}, subject, content.String())
+	msg.Info = fmt.Sprintf("UID: %d, add collaborator", u.ID)
 
 	SendAsync(msg)
 }
@@ -228,7 +228,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 
 	var mailSubject bytes.Buffer
 	// TODO: i18n
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 	} else {
 		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
@@ -245,8 +245,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 	var mailBody bytes.Buffer
 
 	// TODO: i18n
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
