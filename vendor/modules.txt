@@ -772,7 +772,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
-# github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
+# github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 ## explicit
 github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
