@@ -27,8 +27,9 @@ type LangType struct {
 }
 
 var (
-	matcher  language.Matcher
-	allLangs []LangType
+	matcher     language.Matcher
+	allLangs    []LangType
+	defaultLang string
 )
 
 // AllLangs returns all supported langauages
@@ -69,6 +70,7 @@ func InitLocales() {
 		}
 	}
 
+	defaultLang = setting.Langs[0]
 	i18n.SetDefaultLang(setting.Langs[0])
 
 	allLangs = make([]LangType, 0, i18n.Count()-1)
@@ -91,6 +93,9 @@ type locale struct {
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	if len(lang) == 0 {
+		lang = defaultLang
+	}
 	return &locale{
 		Lang: lang,
 	}
