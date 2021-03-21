@@ -54,7 +54,7 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, er
 }
 
 // StopwatchExists returns true if the stopwatch exists
-func StopwatchExists(userID int64, issueID int64) bool {
+func StopwatchExists(userID, issueID int64) bool {
 	_, exists, _ := getStopwatch(x, userID, issueID)
 	return exists
 }
@@ -100,6 +100,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			Repo:    issue.Repo,
 			Content: SecToTime(timediff),
 			Type:    CommentTypeStopTracking,
+			TimeID:  tt.ID,
 		}); err != nil {
 			return err
 		}
@@ -107,7 +108,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			return err
 		}
 	} else {
-		//if another stopwatch is running: stop it
+		// if another stopwatch is running: stop it
 		exists, sw, err := HasUserStopwatch(user.ID)
 		if err != nil {
 			return err

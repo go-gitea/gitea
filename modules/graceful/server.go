@@ -48,11 +48,11 @@ type Server struct {
 }
 
 // NewServer creates a server on network at provided address
-func NewServer(network, address string) *Server {
+func NewServer(network, address, name string) *Server {
 	if GetManager().IsChild() {
-		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Restarting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	} else {
-		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
 		wg:      sync.WaitGroup{},

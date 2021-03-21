@@ -67,6 +67,10 @@ func (h HttpFs) Chmod(name string, mode os.FileMode) error {
 	return h.source.Chmod(name, mode)
 }
 
+func (h HttpFs) Chown(name string, uid, gid int) error {
+	return h.source.Chown(name, uid, gid)
+}
+
 func (h HttpFs) Chtimes(name string, atime time.Time, mtime time.Time) error {
 	return h.source.Chtimes(name, atime, mtime)
 }

@@ -525,15 +525,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 				headRepoName = pr.Head.Repository.Name
 				headCloneURL = pr.Head.Repository.CloneURL
 			}
+			if err := fixPullHeadSha(g.client, pr); err != nil {
+				return nil, false, fmt.Errorf("error while resolving head git ref: %s for pull #%d. Error: %v", pr.Head.Ref, pr.Index, err)
+			}
 			headSHA = pr.Head.Sha
 			headRef = pr.Head.Ref
-			if headSHA == "" {
-				headCommit, _, err := g.client.GetSingleCommit(g.repoOwner, g.repoName, url.PathEscape(pr.Head.Ref))
-				if err != nil {
-					return nil, false, fmt.Errorf("error while resolving head git ref: %s for pull #%d. Error: %v", pr.Head.Ref, pr.Index, err)
-				}
-				headSHA = headCommit.SHA
-			}
 		}
 
 		var mergeCommitSHA string
@@ -682,4 +678,23 @@ func (g *GiteaDownloader) GetReviews(index int64) ([]*base.Review, error) {
 		}
 	}
 	return allReviews, nil
+}
+
+// fixPullHeadSha is a workaround for https://github.com/go-gitea/gitea/issues/12675
+// When no head sha is available, this is because the branch got deleted in the base repo.
+// pr.Head.Ref points in this case not to the head repo branch name, but the base repo ref,
+// which stays available to resolve the commit sha.
+func fixPullHeadSha(client *gitea_sdk.Client, pr *gitea_sdk.PullRequest) error {
+	owner := pr.Base.Repository.Owner.UserName
+	repo := pr.Base.Repository.Name
+	if pr.Head != nil && pr.Head.Sha == "" {
+		refs, _, err := client.GetRepoRefs(owner, repo, pr.Head.Ref)
+		if err != nil {
+			return err
+		} else if len(refs) == 0 {
+			return fmt.Errorf("unable to resolve PR ref '%s'", pr.Head.Ref)
+		}
+		pr.Head.Sha = refs[0].Object.SHA
+	}
+	return nil
 }

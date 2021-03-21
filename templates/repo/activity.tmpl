@@ -172,7 +172,7 @@
 		{{if gt .Activity.ClosedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="closed-issues">
 				<span class="text">{{svg "octicon-issue-closed"}}</span>
-				{{.i18n.Tr "repo.activity.title.issues_closed_by" (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n") .Activity.ClosedIssueCount) (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.ClosedIssueAuthorCount) }}
+				{{.i18n.Tr "repo.activity.title.issues_closed_from" (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n") .Activity.ClosedIssueCount) (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.ClosedIssueAuthorCount) }}
 			</h4>
 			<div class="list">
 				{{range .Activity.ClosedIssues}}

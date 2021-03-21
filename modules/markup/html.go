@@ -89,11 +89,7 @@ func isLinkStr(link string) bool {
 
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
-		appURL := setting.AppURL
-		if len(appURL) > 0 && appURL[len(appURL)-1] != '/' {
-			appURL += "/"
-		}
-		issueFullPattern = regexp.MustCompile(appURL +
+		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 	}
 	return issueFullPattern
@@ -317,19 +313,27 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
+var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL][ />])|(/?[hH][eE][aA][dD][ />]))`)
+var nulCleaner = strings.NewReplacer("\000", "")
+
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
 	}
 
 	// give a generous extra 50 bytes
-	res := make([]byte, 0, len(rawHTML)+50)
-	res = append(res, "<html><body>"...)
-	res = append(res, rawHTML...)
-	res = append(res, "</body></html>"...)
+	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
+	// prepend "<html><body>"
+	_, _ = res.WriteString("<html><body>")
+
+	// Strip out nuls - they're always invalid
+	_, _ = nulCleaner.WriteString(res, string(tagCleaner.ReplaceAll(rawHTML, []byte("&lt;$1"))))
+
+	// close the tags
+	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
+	nodes, err := html.ParseFragment(res, nil)
 	if err != nil {
 		return nil, &postProcessError{"invalid HTML", err}
 	}
@@ -366,17 +370,17 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
 	// reuse res, resetting its length to 0.
-	buf := bytes.NewBuffer(res[:0])
+	res.Reset()
 	// Render everything to buf.
 	for _, node := range nodes {
-		err = html.Render(buf, node)
+		err = html.Render(res, node)
 		if err != nil {
 			return nil, &postProcessError{"error rendering processed HTML", err}
 		}
 	}
 
 	// Everything done successfully, return parsed data.
-	return buf.Bytes(), nil
+	return res.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
@@ -614,6 +618,9 @@ func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
 	mention := node.Data[loc.Start:loc.End]
 	var teams string
 	teams, ok := ctx.metas["teams"]
+	// FIXME: util.URLJoin may not be necessary here:
+	// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
+	// is an AppSubURL link we can probably fallback to concatenation.
 	// team mention should follow @orgName/teamName style
 	if ok && strings.Contains(mention, "/") {
 		mentionOrgAndTeam := strings.Split(mention, "/")

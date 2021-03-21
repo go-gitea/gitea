@@ -157,7 +157,8 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true)
+		And("official = ?", true).
+		And("dismissed = ?", false)
 	if protectBranch.DismissStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
@@ -178,6 +179,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
+		And("dismissed = ?", false).
 		Exist(new(Review))
 	if err != nil {
 		log.Error("MergeBlockedByRejectedReview: %v", err)

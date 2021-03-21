@@ -6,10 +6,10 @@ package integrations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -62,6 +63,23 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			return
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
+func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
@@ -212,6 +230,8 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 			expected = ctx.ExpectedCode
 		}
 		resp := ctx.Session.MakeRequest(t, req, expected)
+
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -251,6 +271,23 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			"Request: %s %s", req.Method, req.URL.String()) {
 			logUnexpectedResponse(t, resp)
 		}
+	}
+}
+
+func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			Do:            string(models.MergeStyleManuallyMerged),
+			MergeCommitID: commitID,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
 	}
 }
 

@@ -154,7 +154,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	assert.EqualValues(t, "Not Found", err.Message)
 }
 
-func TestAPIDeleteTagByName(t *testing.T) {
+func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -162,17 +162,17 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/delete-tag?token=%s",
-		owner.Name, repo.Name, token)
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
-	req := NewRequestf(t, http.MethodDelete, urlStr)
+	// delete release
+	req := NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
 	_ = session.MakeRequest(t, req, http.StatusNoContent)
 
-	// Make sure that actual releases can't be deleted outright
-	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s",
-		owner.Name, repo.Name, token)
+	// make sure release is deleted
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	_ = session.MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequestf(t, http.MethodDelete, urlStr)
-	_ = session.MakeRequest(t, req, http.StatusConflict)
+	// delete release tag too
+	req = NewRequestf(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s", owner.Name, repo.Name, token))
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
 }

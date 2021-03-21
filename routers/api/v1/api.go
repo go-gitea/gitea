@@ -9,7 +9,7 @@
 //
 //     Schemes: http, https
 //     BasePath: /api/v1
-//     Version: 1.1.1
+//     Version: {{AppVer | JSEscape | Safe}}
 //     License: MIT http://opensource.org/licenses/MIT
 //
 //     Consumes:
@@ -204,6 +204,14 @@ func reqToken() func(ctx *context.APIContext) {
 	}
 }
 
+func reqExploreSignIn() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.Service.Explore.RequireSigninView && !ctx.IsSigned {
+			ctx.Error(http.StatusUnauthorized, "reqExploreSignIn", "you must be signed in to search for users")
+		}
+	}
+}
+
 func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
@@ -378,6 +386,16 @@ func reqGitHook() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.User.CanEditGitHook() {
 			ctx.Error(http.StatusForbidden, "", "must be allowed to edit Git hooks")
+			return
+		}
+	}
+}
+
+// reqWebhooksEnabled requires webhooks to be enabled by admin.
+func reqWebhooksEnabled() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if setting.DisableWebhooks {
+			ctx.Error(http.StatusForbidden, "", "webhooks disabled by administrator")
 			return
 		}
 	}
@@ -593,16 +611,16 @@ func Routes() *web.Route {
 
 		// Users
 		m.Group("/users", func() {
-			m.Get("/search", user.Search)
+			m.Get("/search", reqExploreSignIn(), user.Search)
 
 			m.Group("/{username}", func() {
-				m.Get("", user.GetInfo)
+				m.Get("", reqExploreSignIn(), user.GetInfo)
 
 				if setting.Service.EnableUserHeatmap {
 					m.Get("/heatmap", user.GetUserHeatmapData)
 				}
 
-				m.Get("/repos", user.ListUserRepos)
+				m.Get("/repos", reqExploreSignIn(), user.ListUserRepos)
 				m.Group("/tokens", func() {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
@@ -703,6 +721,14 @@ func Routes() *web.Route {
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
 					Put(reqToken(), notify.ReadRepoNotifications)
+				m.Group("/hooks/git", func() {
+					m.Combo("").Get(repo.ListGitHooks)
+					m.Group("/{id}", func() {
+						m.Combo("").Get(repo.GetGitHook).
+							Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
+							Delete(repo.DeleteGitHook)
+					})
+				}, reqToken(), reqAdmin(), reqGitHook(), context.ReferencesGitRepo(true))
 				m.Group("/hooks", func() {
 					m.Combo("").Get(repo.ListHooks).
 						Post(bind(api.CreateHookOption{}), repo.CreateHook)
@@ -712,15 +738,7 @@ func Routes() *web.Route {
 							Delete(repo.DeleteHook)
 						m.Post("/tests", context.RepoRefForAPI, repo.TestHook)
 					})
-					m.Group("/git", func() {
-						m.Combo("").Get(repo.ListGitHooks)
-						m.Group("/{id}", func() {
-							m.Combo("").Get(repo.GetGitHook).
-								Patch(bind(api.EditGitHookOption{}), repo.EditGitHook).
-								Delete(repo.DeleteGitHook)
-						})
-					}, reqGitHook(), context.ReferencesGitRepo(true))
-				}, reqToken(), reqAdmin())
+				}, reqToken(), reqAdmin(), reqWebhooksEnabled())
 				m.Group("/collaborators", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListCollaborators)
 					m.Combo("/{collaborator}").Get(reqAnyRepoReader(), repo.IsCollaborator).
@@ -754,6 +772,7 @@ func Routes() *web.Route {
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
+					m.Delete("/{tag}", repo.DeleteTag)
 				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
@@ -862,8 +881,8 @@ func Routes() *web.Route {
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
-							Get(repo.GetReleaseTag).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseTag)
+							Get(repo.GetReleaseByTag).
+							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(models.UnitTypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
@@ -890,6 +909,8 @@ func Routes() *web.Route {
 									Post(reqToken(), bind(api.SubmitPullReviewOptions{}), repo.SubmitPullReview)
 								m.Combo("/comments").
 									Get(repo.GetPullReviewComments)
+								m.Post("/dismissals", reqToken(), bind(api.DismissPullReviewOptions{}), repo.DismissPullReview)
+								m.Post("/undismissals", reqToken(), repo.UnDismissPullReview)
 							})
 						})
 						m.Combo("/requested_reviewers").
@@ -981,7 +1002,7 @@ func Routes() *web.Route {
 				m.Combo("/{id}").Get(org.GetHook).
 					Patch(bind(api.EditHookOption{}), org.EditHook).
 					Delete(org.DeleteHook)
-			}, reqToken(), reqOrgOwnership())
+			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
 		}, orgAssignment(true))
 		m.Group("/teams/{teamid}", func() {
 			m.Combo("").Get(org.GetTeam).
