@@ -1,5 +1,9 @@
 # Changelog
 
+This changelog goes through all the changes that have been made in each release
+without substantial changes to our git log; to see the highlights of what has
+been added to each release, please refer to the [blog](https://blog.gitea.io).
+
 ## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
 
 * SECURITY
@@ -20,10 +24,6 @@
   * don't mark each comment poster as OP (#14971) (#14972)
   * Add "captcha" to list of reserved usernames (#14930)
   * Re-enable import local paths after reversion from #13610 (#14925) (#14927)
-
-This changelog goes through all the changes that have been made in each release
-without substantial changes to our git log; to see the highlights of what has
-been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
