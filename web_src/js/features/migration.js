@@ -5,7 +5,6 @@ const $token = $('#auth_token');
 const $mirror = $('#mirror');
 const $lfs = $('#lfs');
 const $lfsEndpointBlock = $('#lfs_endpoint');
-const $lfsEndpoint = $lfsEndpointBlock.find('input:text');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
@@ -25,7 +24,6 @@ export default function initMigration() {
       if ($repoName.val().length === 0) { // Only modify if repo_name input is blank
         $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
       }
-      $lfsEndpoint.attr('placeholder', $cloneAddr.val());
     }
   });
 }
