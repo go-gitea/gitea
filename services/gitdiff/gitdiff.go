@@ -1293,7 +1293,9 @@ func CommentMustAsDiff(c *models.Comment) *Diff {
 	}
 	defer func() {
 		if err := recover(); err != nil {
-			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
+			stack := log.Stack(2)
+			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, stack)
+			panic(fmt.Errorf("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, stack))
 		}
 	}()
 	diff, err := CommentAsDiff(c)
