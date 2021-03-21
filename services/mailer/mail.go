@@ -47,13 +47,14 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
+// MailRecipient represent a mail recipient
 type MailRecipient struct {
 	userID   int64
 	Mail     string
 	Language string
 }
 
-// Convert User into MailRecipient
+// UserToMailRecipient convert User into MailRecipient
 func UserToMailRecipient(user *models.User) *MailRecipient {
 	return &MailRecipient{
 		userID:   user.ID,
@@ -62,7 +63,7 @@ func UserToMailRecipient(user *models.User) *MailRecipient {
 	}
 }
 
-// Convert list of User into list of MailRecipient
+// UsersToMailRecipients convert list of User into list of MailRecipient
 func UsersToMailRecipients(users []*models.User) []*MailRecipient {
 	recipients := make([]*MailRecipient, len(users))
 	for i := range users {
