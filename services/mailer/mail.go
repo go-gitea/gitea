@@ -47,31 +47,6 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
-// MailRecipient represent a mail recipient
-type MailRecipient struct {
-	userID   int64
-	Mail     string
-	Language string
-}
-
-// UserToMailRecipient convert User into MailRecipient
-func UserToMailRecipient(user *models.User) *MailRecipient {
-	return &MailRecipient{
-		userID:   user.ID,
-		Mail:     user.Email,
-		Language: user.Language,
-	}
-}
-
-// UsersToMailRecipients convert list of User into list of MailRecipient
-func UsersToMailRecipients(users []*models.User) []*MailRecipient {
-	recipients := make([]*MailRecipient, len(users))
-	for i := range users {
-		recipients[i] = UserToMailRecipient(users[i])
-	}
-	return recipients
-}
-
 // InitMailRender initializes the mail renderer
 func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 	subjectTemplates = subjectTpl
@@ -170,7 +145,7 @@ func SendRegisterNotifyMail(u *models.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *models.Repository) {
+func SendCollaboratorMail(recipient, doer *models.User, repo *models.Repository) {
 	repoName := repo.FullName()
 	// TODO: i18n
 	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
@@ -189,8 +164,8 @@ func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *mod
 		return
 	}
 
-	msg := NewMessage([]string{recipient.Mail}, subject, content.String())
-	msg.Info = fmt.Sprintf("UID: %d, add collaborator", recipient.userID)
+	msg := NewMessage([]string{recipient.Email}, subject, content.String())
+	msg.Info = fmt.Sprintf("UID: %d, add collaborator", recipient.ID)
 
 	SendAsync(msg)
 }
@@ -307,10 +282,10 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*MailRecipient) {
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) {
 	langMap := make(map[string][]string)
 	for _, user := range recipients {
-		langMap[user.Language] = append(langMap[user.Language], user.Mail)
+		langMap[user.Language] = append(langMap[user.Language], user.Email)
 	}
 
 	for lang, tos := range langMap {

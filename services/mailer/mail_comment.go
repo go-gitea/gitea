@@ -10,10 +10,10 @@ import (
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
-func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*MailRecipient) error {
+func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
 	mentionedIDs := make([]int64, len(mentions))
 	for i, u := range mentions {
-		mentionedIDs[i] = u.userID
+		mentionedIDs[i] = u.ID
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
@@ -29,10 +29,10 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 // MailMentionsComment sends email to users mentioned in a code comment
-func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*MailRecipient) (err error) {
+func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) (err error) {
 	mentionedIDs := make([]int64, len(mentions))
 	for i, u := range mentions {
-		mentionedIDs[i] = u.userID
+		mentionedIDs[i] = u.ID
 	}
 	visited := make(map[int64]bool, len(mentions)+1)
 	visited[c.Poster.ID] = true

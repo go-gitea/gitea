@@ -41,7 +41,7 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.
 		act = 0
 	}
 
-	if err := mailer.MailParticipantsComment(comment, act, issue, mailer.UsersToMailRecipients(mentions)); err != nil {
+	if err := mailer.MailParticipantsComment(comment, act, issue, mentions); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
@@ -89,13 +89,13 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 	} else if comment.Type == models.CommentTypeComment {
 		act = models.ActionCommentPull
 	}
-	if err := mailer.MailParticipantsComment(comment, act, pr.Issue, mailer.UsersToMailRecipients(mentions)); err != nil {
+	if err := mailer.MailParticipantsComment(comment, act, pr.Issue, mentions); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
 
 func (m *mailNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User) {
-	if err := mailer.MailMentionsComment(pr, comment, mailer.UsersToMailRecipients(mentions)); err != nil {
+	if err := mailer.MailMentionsComment(pr, comment, mentions); err != nil {
 		log.Error("MailMentionsComment: %v", err)
 	}
 }
@@ -104,14 +104,14 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*mailer.MailRecipient{mailer.UserToMailRecipient(assignee)})
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{assignee})
 	}
 }
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*mailer.MailRecipient{mailer.UserToMailRecipient(reviewer)})
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{reviewer})
 	}
 }
 
