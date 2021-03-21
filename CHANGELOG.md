@@ -4,6 +4,27 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
+
+* SECURITY
+  * Update to goldmark 1.3.3 (#15059) (#15061)
+* API
+  * Fix set milestone on PR creation (#14981) (#15001)
+  * Prevent panic when editing forked repos by API (#14960) (#14963)
+* BUGFIXES
+  * Fix bug when upload on web (#15042) (#15055)
+  * Delete Labels & IssueLabels on Repo Delete too (#15039) (#15051)
+  * another clusterfuzz spotted issue (#15032) (#15034)
+  * Fix postgres ID sequences broken by recreate-table (#15015) (#15029)
+  * Fix several render issues (#14986) (#15013)
+  * Make sure sibling images get a link too (#14979) (#14995)
+  * Fix Anchor jumping with escaped query components (#14969) (#14977)
+  * fix release mail html template (#14976)
+  * Fix excluding more than two labels on issues list (#14962) (#14973)
+  * don't mark each comment poster as OP (#14971) (#14972)
+  * Add "captcha" to list of reserved usernames (#14930)
+  * Re-enable import local paths after reversion from #13610 (#14925) (#14927)
+
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
 * SECURITY
