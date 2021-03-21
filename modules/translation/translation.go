@@ -36,7 +36,7 @@ func AllLangs() []LangType {
 
 // InitLocales loads the locales
 func InitLocales() {
-	i18n.Flush()
+	i18n.Reset()
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
