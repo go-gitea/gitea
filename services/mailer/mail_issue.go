@@ -23,11 +23,15 @@ type mailCommentContext struct {
 	Comment    *models.Comment
 }
 
+const (
+	MailBatchSize = 100
+)
+
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) error {
+func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.User) error {
 
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(); err != nil {
@@ -94,33 +98,43 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 		visited[i] = true
 	}
 
-	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
+	unfilteredUsers, err := models.GetMaileableUsersByIDs(unfiltered, false)
+	if err != nil {
+		return err
+	}
+	if err = mailIssueCommentBatch(ctx, unfilteredUsers, visited, false); err != nil {
 		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
 	}
 
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int64]bool, fromMention bool) error {
-	const batchSize = 100
-	for i := 0; i < len(ids); i += batchSize {
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
+	receivers := make([]*models.User, 0, len(users))
+	for i := range users {
+		// if user has all mails enabled ...
+		if users[i].EmailNotificationsPreference == models.EmailNotificationsEnabled ||
+			// else if user only get mail on mention and this is one ...
+			fromMention && users[i].EmailNotificationsPreference == models.EmailNotificationsOnMention {
+			// ... add to mail relievers
+			receivers = append(receivers, users[i])
+		}
+	}
+
+	for i := 0; i < len(receivers); i += MailBatchSize {
 		var last int
-		if i+batchSize < len(ids) {
-			last = i + batchSize
+		if i+MailBatchSize < len(receivers) {
+			last = i + MailBatchSize
 		} else {
-			last = len(ids)
+			last = len(receivers)
 		}
-		unique := make([]int64, 0, last-i)
+
+		uniqueRecipients := make([]*models.User, 0, last-i)
 		for j := i; j < last; j++ {
-			id := ids[j]
-			if _, ok := visited[id]; !ok {
-				unique = append(unique, id)
-				visited[id] = true
+			if _, ok := visited[receivers[j].ID]; !ok {
+				uniqueRecipients = append(uniqueRecipients, receivers[j])
+				visited[receivers[j].ID] = true
 			}
-		}
-		recipients, err := models.GetMaileableUsersByIDs(unique, fromMention)
-		if err != nil {
-			return err
 		}
 
 		checkUnit := models.UnitTypeIssues
@@ -129,16 +143,16 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 		}
 		// Make sure all recipients can still see the issue
 		idx := 0
-		for _, r := range recipients {
+		for _, r := range uniqueRecipients {
 			if ctx.Issue.Repo.CheckUnitUser(r, checkUnit) {
-				recipients[idx] = r
+				uniqueRecipients[idx] = r
 				idx++
 			}
 		}
-		recipients = recipients[:idx]
+		uniqueRecipients = uniqueRecipients[:idx]
 
 		langMap := make(map[string][]string)
-		for _, user := range recipients {
+		for _, user := range uniqueRecipients {
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
@@ -152,22 +166,14 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
-	return mailParticipants(issue, doer, opType, mentions)
-}
-
-func mailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) (err error) {
-	mentionedIDs := make([]int64, len(mentions))
-	for i, u := range mentions {
-		mentionedIDs[i] = u.ID
-	}
-	if err = mailIssueCommentToParticipants(
+	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
 			Content:    issue.Content,
 			Comment:    nil,
-		}, mentionedIDs); err != nil {
+		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil
