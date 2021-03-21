@@ -174,8 +174,8 @@ func SetMessageWithDesc(lang, langDesc string, localeFile interface{}, otherLoca
 	return err
 }
 
-// Flush reset locale store
-func Flush() {
+// Reset resets locale store.
+func Reset() {
 	locales = &localeStore{store: make(map[string]*locale)}
 }
 
