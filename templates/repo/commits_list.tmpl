@@ -18,9 +18,10 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar .User 28 "mr-3"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+								{{avatar .User 28}}
+								<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
 							{{else}}
-								{{avatarByEmail .Author.Email .Author.Name 28 "mr-3"}}
+								{{avatarByEmail .Author.Email .Author.Name 28}}
 								{{$userName}}
 							{{end}}
 						</td>

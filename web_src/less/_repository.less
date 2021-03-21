@@ -276,11 +276,6 @@
         padding-bottom: 11px;
         font-weight: normal;
 
-        > div {
-          display: table-cell;
-          overflow: hidden;
-        }
-
         &.name,
         &.message {
           padding: 0;
@@ -327,7 +322,8 @@
           }
 
           div.sha {
-            max-width: 6px;
+            overflow: hidden;
+            width: 6px;
           }
         }
       }

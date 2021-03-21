@@ -7,7 +7,7 @@
 		</tr>
 		<tr>
 			<th colspan="2">
-				<div class="author"><div>
+				<div class="ui float left author">
 					{{if .LatestCommitUser}}
 						{{avatar .LatestCommitUser 28}}
 						{{if .LatestCommitUser.FullName}}
@@ -21,8 +21,8 @@
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}
-				</div></div>
-				<div class="sha">
+				</div>
+				<div class="ui float left sha">
 					<a rel="nofollow" class="ui sha label{{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
 						<span class="mono">{{ShortSha .LatestCommit.ID.String}}</span>
 						{{if .LatestCommit.Signature}}
