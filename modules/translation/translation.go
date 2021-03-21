@@ -68,7 +68,8 @@ func InitLocales() {
 			}
 		}
 	}
-	i18n.SetDefaultLang("en-US")
+
+	i18n.SetDefaultLang(setting.Langs[0])
 
 	allLangs = make([]LangType, 0, i18n.Count()-1)
 	langs := i18n.ListLangs()
