@@ -142,10 +142,10 @@ func SendRegisterNotifyMail(u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
-	// TODO: i18n
-	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
+	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
 	data := map[string]interface{}{
 		"Subject":  subject,
 		"RepoName": repoName,
@@ -169,6 +169,8 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []string, fromMention bool, info string) []*Message {
 
 	var (
+		locale = translation.NewLocale(lang)
+
 		subject string
 		link    string
 		prefix  string
@@ -192,8 +194,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 
 	// This is the body of the new issue or comment, not the mail body
 	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
-	// TODO: i18n
-	actType, actName, tplName := actionToTemplate("", ctx.Issue, ctx.ActionType, commentType, reviewType)
+	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
 	if actName != "new" {
 		prefix = "Re: "
@@ -297,8 +298,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
-// TODO: i18n
-func actionToTemplate(lang string, issue *models.Issue, actionType models.ActionType,
+func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 	commentType models.CommentType, reviewType models.ReviewType) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"

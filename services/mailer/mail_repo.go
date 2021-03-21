@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
@@ -40,17 +41,16 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 // sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
 func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User, emails []string, repo *models.Repository) error {
 	var (
+		locale  = translation.NewLocale(lang)
 		content bytes.Buffer
 	)
 
-	// TODO: i18n
-	destination := "you"
+	destination := locale.Tr("mail.repo.transfer.to_you")
 	if newOwner.IsOrganization() {
 		destination = newOwner.DisplayName()
 	}
 
-	// TODO: i18n
-	subject := fmt.Sprintf("%s would like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination)
+	subject := locale.Tr("mail.repo.transfer.subject", doer.DisplayName(), repo.FullName(), destination)
 	data := map[string]interface{}{
 		"Doer":    doer,
 		"User":    repo.Owner,
