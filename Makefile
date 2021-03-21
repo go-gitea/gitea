@@ -14,7 +14,7 @@ else
 
 # This is the "normal" part of the Makefile
 
-TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar" || echo "tar" )
+TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar --no-xattrs" || echo "tar" )
 
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
@@ -621,7 +621,7 @@ release-compress: | $(DIST_DIRS)
 .PHONY: release-sources
 release-sources: | $(DIST_DIRS) npm-cache
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	$(eval EXCL := --exclude=$(shell [ "$(TAR)" = "bsdtar" ] && echo "^")./)
+	$(eval EXCL := --exclude=$(shell [ ! "$(TAR)" = "tar" ] && echo "^" )./)
 	$(eval EXCL_RECURSIVE := --exclude=)
 	$(TAR) $(EXCL)$(DIST) $(EXCL).git $(EXCL)$(MAKE_EVIDENCE_DIR) $(EXCL_RECURSIVE)node_modules $(EXCL)$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
