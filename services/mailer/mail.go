@@ -195,7 +195,7 @@ func SendCollaboratorMail(recipient *MailRecipient, doer *models.User, repo *mod
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailRecipient, fromMention bool, info string) []*Message {
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []string, fromMention bool, info string) []*Message {
 
 	var (
 		subject string
@@ -279,9 +279,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, recipients []*MailReci
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgs := make([]*Message, 0, len(recipients))
-	for _, to := range recipients {
-		msg := NewMessageFrom([]string{to.Mail}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+	msgs := make([]*Message, 0, len(tos))
+	for _, to := range tos {
+		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
 		// Set Message-ID on first message so replies know what to reference
@@ -307,14 +307,21 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []*MailRecipient) {
-	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
-		Issue:      issue,
-		Doer:       doer,
-		ActionType: models.ActionType(0),
-		Content:    content,
-		Comment:    comment,
-	}, tos, false, "issue assigned"))
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*MailRecipient) {
+	langMap := make(map[string][]string)
+	for _, user := range recipients {
+		langMap[user.Language] = append(langMap[user.Language], user.Mail)
+	}
+
+	for lang, tos := range langMap {
+		SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
+			Issue:      issue,
+			Doer:       doer,
+			ActionType: models.ActionType(0),
+			Content:    content,
+			Comment:    comment,
+		}, lang, tos, false, "issue assigned"))
+	}
 }
 
 // actionToTemplate returns the type and name of the action facing the user

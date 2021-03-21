@@ -137,7 +137,14 @@ func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int
 		}
 		recipients = recipients[:idx]
 
-		SendAsyncs(composeIssueCommentMessages(ctx, UsersToMailRecipients(recipients), fromMention, "issue comments"))
+		langMap := make(map[string][]string)
+		for _, user := range recipients {
+			langMap[user.Language] = append(langMap[user.Language], user.Email)
+		}
+
+		for lang, tos := range langMap {
+			SendAsyncs(composeIssueCommentMessages(ctx, lang, tos, fromMention, "issue comments"))
+		}
 	}
 	return nil
 }

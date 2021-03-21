@@ -25,8 +25,8 @@ func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Reposi
 			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 
-		for k, v := range langMap {
-			if err := sendRepoTransferNotifyMailPerLang(k, newOwner, doer, v, repo); err != nil {
+		for lang, tos := range langMap {
+			if err := sendRepoTransferNotifyMailPerLang(lang, newOwner, doer, tos, repo); err != nil {
 				return err
 			}
 		}
