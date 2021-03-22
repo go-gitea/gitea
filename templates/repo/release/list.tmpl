@@ -44,7 +44,7 @@
 										{{end}}
 										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
 											<a class="ui red delete-button mr-3" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
-												{{svg "octicon-trashcan" 16 "mr-2"}}{{$.i18n.Tr "repo.release.delete_tag"}}
+												{{svg "octicon-trash" 16 "mr-2"}}{{$.i18n.Tr "repo.release.delete_tag"}}
 											</a>
 										{{end}}
 										{{if (not $release.IsTag)}}
@@ -179,7 +179,7 @@
 {{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
 	<div class="ui small basic delete modal">
 		<div class="ui header">
-			{{svg "octicon-trashcan" 16 "mr-2"}}
+			{{svg "octicon-trash" 16 "mr-2"}}
 			{{.i18n.Tr "repo.release.delete_tag"}}
 		</div>
 		<div class="content">
