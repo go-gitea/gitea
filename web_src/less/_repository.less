@@ -1365,29 +1365,37 @@
   .timeline-item.commits-list .singular-commit .sha.label {
     border: 1px solid var(--color-light-border);
 
-    .sha-label-colors(@color) {
-      --color-light-border: @color;
-      --color-light: fade(@color, 10%);
-      --color-hover: fade(@color, 30%);
+    .mono {
+      color: var(--color-text-light);
+    }
+
+    .override-sha-label-colors(@color) {
+      color: ~"var(--color-@{color})";
+      background: ~"var(--color-@{color}-sha-bg)";
+
+      &:hover {
+        background: ~"var(--color-@{color}-sha-hover)";
+      }
     }
 
     &.isSigned {
-      --color-light-border: var(--color-text-light-3);
+      border: 1px solid currentColor;
+      color: var(--color-text-light-3);
 
       &.isWarning {
-        .sha-label-colors(#db2828);
+        .override-sha-label-colors(red);
       }
 
       &.isVerified {
-        .sha-label-colors(#21ba45);
+        .override-sha-label-colors(green);
       }
 
       &.isVerifiedUntrusted {
-        .sha-label-colors(#fbbd08);
+        .override-sha-label-colors(yellow);
       }
 
       &.isVerifiedUnmatched {
-        .sha-label-colors(#f2711c);
+        .override-sha-label-colors(orange);
       }
     }
   }

@@ -74,6 +74,14 @@
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-red-sha-bg: rgba(219, 40, 40, .1);
+  --color-red-sha-hover: rgba(219, 40, 40, .3);
+  --color-orange-sha-bg: rgba(242, 113, 28, .1);
+  --color-orange-sha-hover: rgba(242, 113, 28, .3);
+  --color-yellow-sha-bg: rgba(251, 189, 8, .1);
+  --color-yellow-sha-hover: rgba(251, 189, 8, .3);
+  --color-green-sha-bg: rgba(33, 186, 69, .1);
+  --color-green-sha-hover: rgba(33, 186, 69, .3);
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-removed-row-bg: #ffeef0;
@@ -938,6 +946,7 @@ a.ui.card:hover,
 
   .sha.label {
     padding: 4px 7px;
+    height: 24px; // 14px + 4px * 2 + 1px * 2
     font-size: 14px;
     font-weight: normal;
     margin: 0 6px;
@@ -949,13 +958,12 @@ a.ui.card:hover,
     }
 
     .mono + * {
-      margin: -4.5px -2.5px -4.5px 7px;
+      margin: -4px -2.5px -4px 7px;
+      height: inherit;
       display: flex;
       align-items: center;
       align-self: center;
-      color: var(--color-light-border);
       border-left: 1px solid;
-      height: 24px;
 
       > * {
         line-height: 0;
