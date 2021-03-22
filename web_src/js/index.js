@@ -3718,9 +3718,9 @@ function initTopicbar() {
       topics.last().removeClass('green').addClass('red');
     }
     if (topicDropdown.children('a.ui.label.red').length > 0) {
-      saveBtn.removeClass('primary').addClass('grey').addClass('disabled');
+      saveBtn.removeClass('primary').addClass(['grey', 'disabled']);
     } else {
-      saveBtn.addClass('primary').removeClass('grey').removeClass('disabled');
+      saveBtn.addClass('primary').removeClass(['grey', 'disabled']);
     }
     return status && !saveBtn.hasClass('disabled');
   };
