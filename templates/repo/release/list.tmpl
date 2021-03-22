@@ -152,12 +152,14 @@
 										{{if .Attachments}}
 											{{range .Attachments}}
 												<li>
-													<span class="ui text right poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
-														{{svg "octicon-info"}}
+													<span class="ui text middle aligned right">
+														<span class="ui text grey">{{.Size | FileSize}}</span>
+														<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+															{{svg "octicon-info"}}
+														</span>
 													</span>
 													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
 														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
-														<span class="ui text grey right">{{.Size | FileSize}}</span>
 													</a>
 												</li>
 											{{end}}
