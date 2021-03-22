@@ -327,7 +327,7 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	_, _ = res.WriteString("<html><body>")
 
 	// Strip out nuls - they're always invalid
-	_, _ = nulCleaner.WriteString(res, string(tagCleaner.ReplaceAll(rawHTML, []byte("&lt;$1"))))
+	_, _ = res.Write(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
 
 	// close the tags
 	_, _ = res.WriteString("</body></html>")
