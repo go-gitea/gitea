@@ -1255,6 +1255,15 @@ function initPullRequestMergeInstruction() {
   });
 }
 
+function initRelease() {
+  $(document).on('click', '.remove-rel-attach', function() {
+    const uuid = $(this).data('uuid');
+    const id = $(this).data('id');
+    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
+    $(`#attachment-${id}`).hide();
+  });
+}
+
 function initPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -2748,6 +2757,7 @@ $(document).ready(async () => {
   initNotificationsTable();
   initPullRequestMergeInstruction();
   initReleaseEditor();
+  initRelease();
 
   const routes = {
     'div.user.settings': initUserSettings,
