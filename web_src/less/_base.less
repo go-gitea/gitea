@@ -73,6 +73,14 @@
   --color-black: #1b1c1d;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-green-ok-bg: #fcfff5;
+  --color-green-ok-border: #a3c293;
+  --color-green-ok-header: #1a531b;
+  --color-green-ok-text: #2c662d;
+  --color-red-err-bg: #fff6f6;
+  --color-red-err-border: #e0b4b4;
+  --color-red-err-header: #912d2b;
+  --color-red-err-text: #9f3a38;
   --color-red-sha-bg: rgba(219, 40, 40, .1);
   --color-red-sha-hover: rgba(219, 40, 40, .3);
   --color-orange-sha-bg: rgba(242, 113, 28, .1);
@@ -117,6 +125,16 @@
   --color-markdown-code-block: #00000010;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
+  --color-dropdown-error-hover: #fbe7e7;
+  --color-dropdown-error-active: #fdcfcf;
+  --color-dropdown-error-active-hover: #f5c2c2;
+  --color-dropdown-error-bg: #eacbcb;
+  --color-dropdown-error-text: var(--color-red-err-text);
+  --color-dropdown-error-red-bg: #871717;
+  --color-dropdown-error-red-text: var(--color-dropdown-error-bg);
+  --color-dropdown-error-red-hover: #d80e0e;
+  --color-dropdown-error-red-active: #bb0202;
+  --color-dropdown-error-red-active-hover: #990a0a;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -1421,9 +1439,38 @@ a.ui.active.label:hover {
   color: var(--color-text-dark);
 }
 
-.ui.form .field.error .ui.multiple.selection.dropdown > .red.label {
-  color: #e7b6b6 !important;
-  background: #871717 !important;
+.ui.form .field.error .ui.multiple.selection.dropdown > .label {
+  color: var(--color-dropdown-error-text);
+  background: var(--color-dropdown-error-bg);
+
+  &:hover {
+    background: var(--color-dropdown-error-hover);
+  }
+
+  &.active {
+    background: var(--color-dropdown-error-active);
+
+    &:hover {
+      background: var(--color-dropdown-error-active-hover);
+    }
+  }
+
+  &.red {
+    color: var(--color-dropdown-error-red-text);
+    background: var(--color-dropdown-error-red-bg);
+
+    &:hover {
+      background: var(--color-dropdown-error-red-hover);
+    }
+
+    &.active {
+      background: var(--color-dropdown-error-red-active);
+
+      &:hover {
+        background: var(--color-dropdown-error-red-active-hover);
+      }
+    }
+  }
 }
 
 .ui.labels a.label:hover,
