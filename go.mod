@@ -5,7 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go v0.78.0 // indirect
 	code.gitea.io/gitea-vet v0.2.1
-	code.gitea.io/sdk/gitea v0.13.2
+	code.gitea.io/sdk/gitea v0.14.0
 	gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
 	gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
