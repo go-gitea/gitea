@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.13.2
+# code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
