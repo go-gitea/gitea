@@ -80,26 +80,9 @@ func removeAllWithRetry(dir string) error {
 	return err
 }
 
-func getEngine() (*xorm.Engine, error) {
-	connStr, err := setting.DBConnStr()
-	if err != nil {
-		return nil, err
-	}
-
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
-	if err != nil {
-		return nil, err
-	}
-	if setting.Database.Type == "mysql" {
-		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
-	}
-	engine.SetSchema(setting.Database.Schema)
-	return engine, nil
-}
-
 // SetEngine sets the xorm.Engine
 func SetEngine() (*xorm.Engine, error) {
-	x, err := getEngine()
+	x, err := models.GetNewEngine()
 	if err != nil {
 		return x, fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -190,45 +173,66 @@ func Test_dropTableColumns(t *testing.T) {
 	}
 
 	columns := []string{
-		"FirstColumn",
-		"ToDropColumn",
-		"AnotherColumn",
-		"CreatedUnix",
-		"UpdatedUnix",
+		"first_column",
+		"to_drop_column",
+		"another_column",
+		"created_unix",
+		"updated_unix",
 	}
 
 	for i := range columns {
+		x.SetMapper(names.GonicMapper{})
 		if err := x.Sync2(new(DropTest)); err != nil {
-			assert.Fail(t, "%v", err)
+			t.Errorf("unable to create DropTest table: %v", err)
 			return
 		}
 		sess := x.NewSession()
-
+		if err := sess.Begin(); err != nil {
+			sess.Close()
+			t.Errorf("unable to begin transaction: %v", err)
+			return
+		}
 		if err := dropTableColumns(sess, "drop_test", columns[i:]...); err != nil {
 			sess.Close()
-			assert.Fail(t, "%v", err)
+			t.Errorf("Unable to drop columns[%d:]: %s from drop_test: %v", i, columns[i:], err)
+			return
+		}
+		if err := sess.Commit(); err != nil {
+			sess.Close()
+			t.Errorf("unable to commit transaction: %v", err)
 			return
 		}
 		sess.Close()
-		if _, err := x.DB().DB.Exec("DROP TABLE drop_test"); err != nil {
-			assert.Fail(t, "%v", err)
+		if err := x.DropTables(new(DropTest)); err != nil {
+			t.Errorf("unable to drop table: %v", err)
 			return
 		}
-		for j := range columns[i:] {
+		for j := range columns[i+1:] {
+			x.SetMapper(names.GonicMapper{})
 			if err := x.Sync2(new(DropTest)); err != nil {
-				assert.Fail(t, "%v", err)
+				t.Errorf("unable to create DropTest table: %v", err)
 				return
 			}
-			dropcols := append([]string{columns[i]}, columns[j:]...)
+			dropcols := append([]string{columns[i]}, columns[j+i+1:]...)
 			sess := x.NewSession()
+			if err := sess.Begin(); err != nil {
+				sess.Close()
+				t.Errorf("unable to begin transaction: %v", err)
+				return
+			}
 			if err := dropTableColumns(sess, "drop_test", dropcols...); err != nil {
 				sess.Close()
-				assert.Fail(t, "%v", err)
+				t.Errorf("Unable to drop columns: %s from drop_test: %v", dropcols, err)
+				return
+			}
+			if err := sess.Commit(); err != nil {
+				sess.Close()
+				t.Errorf("unable to commit transaction: %v", err)
 				return
 			}
 			sess.Close()
-			if _, err := x.DB().DB.Exec("DROP TABLE drop_test"); err != nil {
-				assert.Fail(t, "%v", err)
+			if err := x.DropTables(new(DropTest)); err != nil {
+				t.Errorf("unable to drop table: %v", err)
 				return
 			}
 		}
