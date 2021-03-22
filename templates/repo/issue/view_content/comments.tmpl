@@ -685,7 +685,7 @@
 			</span>
 		</div>
 		{{if not .IsForcePush}}
-			{{template "repo/commits_list_small" dict "comment" . "root" $}}
+			{{template "repo/commits/list_small" dict "comment" . "root" $}}
 		{{end}}
 	{{else if eq .Type 30}}
 		{{if not $.UnitProjectsGlobalDisabled}}

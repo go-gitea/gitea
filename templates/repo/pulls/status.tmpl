@@ -19,7 +19,7 @@
 
     {{range $.LatestCommitStatuses}}
         <div class="ui attached segment">
-            <span>{{template "repo/commit_status" .}}</span>
+            <span>{{template "repo/commits/commit_status" .}}</span>
             <span class="ui">{{.Context}} <span class="text grey">{{.Description}}</span></span>
             <div class="ui right">
                 {{if $.is_context_required}}

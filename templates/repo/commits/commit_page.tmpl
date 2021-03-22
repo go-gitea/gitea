@@ -23,7 +23,7 @@
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
 			{{end}}
-			<h3><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+			<h3><span class="message-wrapper"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span></span>{{template "repo/commits/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 			{{if IsMultilineCommitMessage .Commit.Message}}
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
@@ -145,6 +145,28 @@
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}
+		{{if .SignedUser}}
+			<form class="ui comment form stackable grid" id="new-comment-commit" action="{{.Link}}/create_comment" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="sixteen wide column">
+					<div class="ui comments">
+						<div class="comment">
+							<a class="avatar" href="{{.SignedUser.HomeLink}}">
+								{{avatar .SignedUser}}
+							</a>
+							<div class="ui segment content">
+								{{template "repo/issue/comment_tab" .}}
+								<div class="text right">
+									<button class="ui green button" tabindex="6">
+										{{.i18n.Tr "repo.commits.comment_on_commit"}}
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</form>
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

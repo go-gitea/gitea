@@ -99,8 +99,10 @@ const (
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
-	// Dismiss Review
+	// 32 Dismiss Review
 	CommentTypeDismissReview
+	// 33 Comment on commit
+	CommentTypeOnCommit
 )
 
 // CommentTag defines comment tag type
@@ -152,7 +154,6 @@ type Comment struct {
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
-	CommitID        int64
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
 	Content         string `xorm:"TEXT"`
@@ -166,7 +167,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40)"`
+	CommitSHA string `xorm:"VARCHAR(40) index"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
@@ -707,7 +708,6 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
-		CommitID:         opts.CommitID,
 		CommitSHA:        opts.CommitSHA,
 		Line:             opts.LineNum,
 		Content:          opts.Content,
@@ -879,7 +879,7 @@ type CreateCommentOptions struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
-	CommitID         int64
+	CommitID         string
 	CommitSHA        string
 	Patch            string
 	LineNum          int64
@@ -964,14 +964,15 @@ func getCommentByID(e Engine, id int64) (*Comment, error) {
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	ListOptions
-	RepoID   int64
-	IssueID  int64
-	ReviewID int64
-	Since    int64
-	Before   int64
-	Line     int64
-	TreePath string
-	Type     CommentType
+	RepoID    int64
+	IssueID   int64
+	ReviewID  int64
+	Since     int64
+	Before    int64
+	Line      int64
+	TreePath  string
+	Type      CommentType
+	CommitSHA string
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
@@ -999,6 +1000,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	}
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
+	}
+	if len(opts.CommitSHA) > 0 {
+		cond = cond.And(builder.Eq{"comment.commit_sha": opts.CommitSHA})
 	}
 	return cond
 }
