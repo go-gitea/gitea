@@ -330,7 +330,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 			SELECT il_too.id FROM (
 				SELECT il_too_too.id
 					FROM issue_label AS il_too_too
-						INNER JOIN label ON il_too_too.id = label.id
+						INNER JOIN label ON il_too_too.label_id = label.id
 						INNER JOIN issue on issue.id = il_too_too.issue_id
 					WHERE
 						issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
