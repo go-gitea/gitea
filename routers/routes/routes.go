@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -152,12 +153,21 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 			return
 		}
 
-		if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
+		prefix := strings.Trim(prefix, "/")
+
+		if !strings.HasPrefix(req.URL.EscapedPath(), "/"+prefix+"/") {
 			return
 		}
+		rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 
-		rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
 		rPath = strings.TrimPrefix(rPath, "/")
+		if rPath == "" {
+			ctx.Error(404, "file not found")
+			return
+		}
+		rPath = path.Clean("/" + filepath.ToSlash(rPath))
+		rPath = rPath[1:]
+
 		//If we have matched and access to release or issue
 		fr, err := objStore.Open(rPath)
 		if err != nil {
