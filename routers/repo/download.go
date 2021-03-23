@@ -62,7 +62,7 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if filepath.Ext(name) == ".apk" && base.IsZipFile(buf) {
+		if strings.EqualFold(".apk", filepath.Ext(name)) && base.IsZipFile(buf) {
 			ctx.Resp.Header().Set("Content-Type", "application/vnd.android.package-archive")
 		}
 	}
