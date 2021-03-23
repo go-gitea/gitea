@@ -343,6 +343,16 @@
         cursor: default;
       }
 
+      tr:last-of-type {
+        td:first-child {
+          border-bottom-left-radius: var(--border-radius);
+        }
+
+        td:last-child {
+          border-bottom-right-radius: var(--border-radius);
+        }
+      }
+
       tr:hover {
         background-color: #ffffee;
       }
@@ -1157,6 +1167,7 @@
       > a {
         padding-top: 5px;
         padding-right: 10px;
+        font-size: 1.5rem;
         color: var(--color-text);
 
         &:hover {
@@ -1851,6 +1862,13 @@
         @media @mediaSm {
           margin-bottom: 1em;
         }
+      }
+
+      .wrap_remove {
+        height: 38px;
+      }
+      .attachment_edit {
+        width: 450px !important;
       }
     }
   }

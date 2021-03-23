@@ -15,7 +15,7 @@
 					<div class="item">
 						<div class="right floated content">
 								<button class="ui red tiny button delete-button" id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-									{{svg "octicon-trashcan" 16 "mr-2"}}
+									{{svg "octicon-trash" 16 "mr-2"}}
 									{{$.i18n.Tr "settings.delete_token"}}
 								</button>
 						</div>
@@ -56,7 +56,7 @@
 
 <div class="ui small basic delete modal" id="delete-token">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.access_token_deletion"}}
 	</div>
 	<div class="content">

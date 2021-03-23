@@ -400,7 +400,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", reqSignIn, events.Events)
+	m.Any("/user/events", events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
