@@ -76,9 +76,12 @@ func isExcludedEntry(entry *git.TreeEntry, rx *regexp.Regexp) bool {
 	if entry.IsDir() {
 		return true
 	}
+
 	if entry.IsSubModule() {
 		return true
 	}
+
+	// Exclude dirs
 	if rx.MatchString(entry.Name()) {
 		return true
 	}
