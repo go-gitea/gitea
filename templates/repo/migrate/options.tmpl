@@ -20,7 +20,7 @@
 	(<a id="lfs_settings" href="#">{{.i18n.Tr "repo.settings.advanced_settings"}}</a>)
 </div>
 <div id="lfs_endpoint" style="display:none">
-	<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint.description"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
+	<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint.description" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
 	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
 		<label>{{.i18n.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>
 		<input name="lfs_endpoint" value="{{.lfs_endpoint}}" placeholder="{{.i18n.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
