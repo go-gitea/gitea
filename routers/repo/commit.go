@@ -360,9 +360,15 @@ func Diff(ctx *context.Context) {
 		Type:      models.CommentTypeOnCommit,
 	})
 	if err != nil {
-		ctx.ServerError("CalculateTrustStatus", err)
+		ctx.ServerError("FindComments", err)
 		return
 	}
+
+	if err := comments.LoadPosters(); err != nil {
+		ctx.ServerError("LoadPosters", err)
+		return
+	}
+
 	ctx.Data["Comments"] = comments
 
 	note := &git.Note{}
@@ -416,7 +422,10 @@ func CreateCommitComment(ctx *context.Context) {
 
 	_, err = models.CreateComment(&models.CreateCommentOptions{
 		Type:      models.CommentTypeOnCommit,
+		Doer:      ctx.User,
+		Repo:      ctx.Repo.Repository,
 		CommitSHA: commit.ID.String(),
+		Content:   ctx.Query("content"),
 	})
 	if err != nil {
 		ctx.ServerError("GetCommit", err)

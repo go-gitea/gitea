@@ -154,6 +154,7 @@ type Comment struct {
 	DependentIssueID int64
 	DependentIssue   *Issue `xorm:"-"`
 
+	RepoID          int64 `xorm:"INDEX"`
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
 	Content         string `xorm:"TEXT"`
@@ -167,7 +168,7 @@ type Comment struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
 	// Reference issue in commit message
-	CommitSHA string `xorm:"VARCHAR(40) index"`
+	CommitSHA string `xorm:"VARCHAR(40)"`
 
 	Attachments []*Attachment `xorm:"-"`
 	Reactions   ReactionList  `xorm:"-"`
@@ -694,11 +695,16 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		LabelID = opts.Label.ID
 	}
 
+	var issueID int64
+	if opts.Issue != nil {
+		issueID = opts.Issue.ID
+	}
+
 	comment := &Comment{
 		Type:             opts.Type,
 		PosterID:         opts.Doer.ID,
 		Poster:           opts.Doer,
-		IssueID:          opts.Issue.ID,
+		IssueID:          issueID,
 		LabelID:          LabelID,
 		OldMilestoneID:   opts.OldMilestoneID,
 		MilestoneID:      opts.MilestoneID,
@@ -709,6 +715,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
 		CommitSHA:        opts.CommitSHA,
+		RepoID:           opts.Repo.ID,
 		Line:             opts.LineNum,
 		Content:          opts.Content,
 		OldTitle:         opts.OldTitle,
@@ -784,6 +791,8 @@ func updateCommentInfos(e *xorm.Session, opts *CreateCommentOptions, comment *Co
 		if err = opts.Issue.updateClosedNum(e); err != nil {
 			return err
 		}
+	case CommentTypeOnCommit:
+		return nil
 	}
 	// update the issue's updated_unix column
 	return updateIssueCols(e, opts.Issue, "updated_unix")
@@ -879,7 +888,6 @@ type CreateCommentOptions struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
-	CommitID         string
 	CommitSHA        string
 	Patch            string
 	LineNum          int64
@@ -978,7 +986,7 @@ type FindCommentsOptions struct {
 func (opts *FindCommentsOptions) toConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
-		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
+		cond = cond.And(builder.Eq{"comment.repo_id": opts.RepoID})
 	}
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
@@ -1010,9 +1018,6 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
-	}
 
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
@@ -1027,7 +1032,7 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 }
 
 // FindComments returns all comments according options
-func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
+func FindComments(opts FindCommentsOptions) (CommentList, error) {
 	return findComments(x, opts)
 }
 
@@ -1100,8 +1105,19 @@ func fetchCodeComments(e Engine, issue *Issue, currentUser *User) (CodeComments,
 	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
 }
 
+// ConvertCodeComments converts code line comments to better form
+func ConvertCodeComments(comments []*Comment) CodeComments {
+	var pathToLineToComment = make(CodeComments)
+	for _, comment := range comments {
+		if pathToLineToComment[comment.TreePath] == nil {
+			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
+		}
+		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
+	}
+	return pathToLineToComment
+}
+
 func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review *Review) (CodeComments, error) {
-	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
 	}
@@ -1116,13 +1132,7 @@ func fetchCodeCommentsByReview(e Engine, issue *Issue, currentUser *User, review
 		return nil, err
 	}
 
-	for _, comment := range comments {
-		if pathToLineToComment[comment.TreePath] == nil {
-			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
-		}
-		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
-	}
-	return pathToLineToComment, nil
+	return ConvertCodeComments(comments), nil
 }
 
 func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentUser *User, review *Review) ([]*Comment, error) {
