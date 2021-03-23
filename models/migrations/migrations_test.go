@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"path"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 	"xorm.io/xorm"
@@ -98,6 +100,97 @@ func SetEngine() (*xorm.Engine, error) {
 	return x, nil
 }
 
+func deleteDB() error {
+	switch {
+	case setting.Database.UseSQLite3:
+		if err := util.Remove(setting.Database.Path); err != nil {
+			return err
+		}
+		return os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
+
+	case setting.Database.UseMySQL:
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
+			return err
+		}
+
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
+			return err
+		}
+		return nil
+	case setting.Database.UsePostgreSQL:
+		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
+			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
+			return err
+		}
+
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
+			return err
+		}
+		db.Close()
+
+		// Check if we need to setup a specific schema
+		if len(setting.Database.Schema) != 0 {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			if err != nil {
+				return err
+			}
+			defer db.Close()
+
+			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
+			if err != nil {
+				return err
+			}
+			defer schrows.Close()
+
+			if !schrows.Next() {
+				// Create and setup a DB schema
+				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
+				if err != nil {
+					return err
+				}
+			}
+
+			// Make the user's default search path the created schema; this will affect new connections
+			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+	case setting.Database.UseMSSQL:
+		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
+		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
+			host, port, "master", setting.Database.User, setting.Database.Passwd))
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		if _, err = db.Exec("DROP DATABASE IF EXISTS [%s]", setting.Database.Name); err != nil {
+			return err
+		}
+		if _, err = db.Exec("CREATE DATABASE [%s]", setting.Database.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // prepareTestEnv prepares the test environment. The skip parameter should usually be 0. Provide models to be sync'd
 // with the database - in particular any models you expect fixtures to be loaded from.
 //
@@ -111,6 +204,11 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
 		setting.RepoRootPath))
+
+	if err := deleteDB(); err != nil {
+		t.Errorf("unable to reset database: %v", err)
+		return nil, deferFn
+	}
 
 	x, err := SetEngine()
 	assert.NoError(t, err)
