@@ -4,6 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.13.6](https://github.com/go-gitea/gitea/releases/tag/v1.13.6) - 2021-03-23
+
+* SECURITY
+  * Fix bug on avatar middleware (#15124) (#15125)
+  * Fix another clusterfuzz identified issue (#15096) (#15114)
+* API
+  * Fix nil exeption for get pull reviews API #15104 (#15106)
+* BUGFIXES
+  * Fix markdown rendering in milestone content (#15056) (#15092)
+
 ## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
 
 * SECURITY
@@ -228,7 +238,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix scrolling to resolved comment anchors (#13343) (#13371)
   * Storage configuration support `[storage]` (#13314) (#13379)
   * When creating line diffs do not split within an html entity (#13357) (#13375) (#13425) (#13427)
-  * Fix reactions on code comments (#13390) (#13401) 
+  * Fix reactions on code comments (#13390) (#13401)
   * Add missing full names when DEFAULT_SHOW_FULL_NAME is enabled (#13424)
   * Replies to outdated code comments should also be outdated (#13217) (#13433)
   * Fix panic bug in handling multiple references in commit (#13486) (#13487)
