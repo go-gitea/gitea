@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitgraph"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/gitdiff"
 )
@@ -314,6 +315,38 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
+	allComments, err := models.FindComments(models.FindCommentsOptions{
+		RepoID:    ctx.Repo.Repository.ID,
+		CommitSHA: commitID,
+		Type:      models.CommentTypeOnCommit,
+	})
+	if err != nil {
+		ctx.ServerError("FindComments", err)
+		return
+	}
+
+	if err := allComments.LoadPosters(); err != nil {
+		ctx.ServerError("LoadPosters", err)
+		return
+	}
+
+	var lineComments = make([]*models.Comment, 0, len(allComments))
+	var nonLineComments = make([]*models.Comment, 0, len(allComments))
+	for _, comment := range allComments {
+		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.Repository.Link(),
+			ctx.Repo.Repository.ComposeMetas()))
+		if comment.TreePath != "" {
+			lineComments = append(lineComments, comment)
+		} else {
+			nonLineComments = append(nonLineComments, comment)
+		}
+	}
+
+	if err = diff.LoadComments(models.ConvertCodeComments(lineComments)); err != nil {
+		ctx.ServerError("LoadComments", err)
+		return
+	}
+
 	parents := make([]string, commit.ParentCount())
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, err := commit.ParentID(i)
@@ -354,22 +387,7 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
-	comments, err := models.FindComments(models.FindCommentsOptions{
-		RepoID:    ctx.Repo.Repository.ID,
-		CommitSHA: commitID,
-		Type:      models.CommentTypeOnCommit,
-	})
-	if err != nil {
-		ctx.ServerError("FindComments", err)
-		return
-	}
-
-	if err := comments.LoadPosters(); err != nil {
-		ctx.ServerError("LoadPosters", err)
-		return
-	}
-
-	ctx.Data["Comments"] = comments
+	ctx.Data["Comments"] = nonLineComments
 
 	note := &git.Note{}
 	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)

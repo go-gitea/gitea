@@ -650,11 +650,7 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) error {
-	allComments, err := models.FetchCodeComments(issue, currentUser)
-	if err != nil {
-		return err
-	}
+func (diff *Diff) LoadComments(allComments map[string]map[int64][]*models.Comment) error {
 	for _, file := range diff.Files {
 		if lineCommits, ok := allComments[file.Name]; ok {
 			for _, section := range file.Sections {

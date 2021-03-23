@@ -632,7 +632,13 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if err = diff.LoadComments(issue, ctx.User); err != nil {
+	codeComments, err := models.FetchCodeComments(issue, ctx.User)
+	if err != nil {
+		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
+		return
+	}
+
+	if err = diff.LoadComments(codeComments); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}

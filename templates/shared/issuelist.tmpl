@@ -35,7 +35,7 @@
 						{{RenderEmoji .Title}}
 						{{if .IsPull }}
 							{{if (index $.CommitStatus .PullRequest.ID)}}
-								{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+								{{template "repo/commits/commit_status" (index $.CommitStatus .PullRequest.ID)}}
 							{{end}}
 						{{end}}
 					</a>
