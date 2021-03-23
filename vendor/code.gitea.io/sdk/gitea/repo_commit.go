@@ -42,11 +42,12 @@ type RepoCommit struct {
 // Commit contains information generated from a Git commit.
 type Commit struct {
 	*CommitMeta
-	HTMLURL    string        `json:"html_url"`
-	RepoCommit *RepoCommit   `json:"commit"`
-	Author     *User         `json:"author"`
-	Committer  *User         `json:"committer"`
-	Parents    []*CommitMeta `json:"parents"`
+	HTMLURL    string                 `json:"html_url"`
+	RepoCommit *RepoCommit            `json:"commit"`
+	Author     *User                  `json:"author"`
+	Committer  *User                  `json:"committer"`
+	Parents    []*CommitMeta          `json:"parents"`
+	Files      []*CommitAffectedFiles `json:"files"`
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE
@@ -55,8 +56,16 @@ type CommitDateOptions struct {
 	Committer time.Time `json:"committer"`
 }
 
+// CommitAffectedFiles store information about files affected by the commit
+type CommitAffectedFiles struct {
+	Filename string `json:"filename"`
+}
+
 // GetSingleCommit returns a single commit
 func (c *Client) GetSingleCommit(user, repo, commitID string) (*Commit, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &commitID); err != nil {
+		return nil, nil, err
+	}
 	commit := new(Commit)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/git/commits/%s", user, repo, commitID), nil, nil, &commit)
 	return commit, resp, err
@@ -80,6 +89,9 @@ func (opt *ListCommitOptions) QueryEncode() string {
 
 // ListRepoCommits return list of commits from a repo
 func (c *Client) ListRepoCommits(user, repo string, opt ListCommitOptions) ([]*Commit, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/commits", user, repo))
 	opt.setDefaults()
 	commits := make([]*Commit, 0, opt.PageSize)

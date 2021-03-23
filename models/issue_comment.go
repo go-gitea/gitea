@@ -8,7 +8,6 @@ package models
 
 import (
 	"container/list"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -99,6 +99,8 @@ const (
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
+	// Dismiss Review
+	CommentTypeDismissReview
 )
 
 // CommentTag defines comment tag type
@@ -134,6 +136,8 @@ type Comment struct {
 	MilestoneID      int64
 	OldMilestone     *Milestone `xorm:"-"`
 	Milestone        *Milestone `xorm:"-"`
+	TimeID           int64
+	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
 	RemovedAssignee  bool
 	Assignee         *User `xorm:"-"`
@@ -263,7 +267,6 @@ func (c *Comment) AfterDelete() {
 	}
 
 	_, err := DeleteAttachmentsByComment(c.ID, true)
-
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
@@ -387,7 +390,6 @@ func (c *Comment) LoadLabel() error {
 
 // LoadProject if comment.Type is CommentTypeProject, then load project.
 func (c *Comment) LoadProject() error {
-
 	if c.OldProjectID > 0 {
 		var oldProject Project
 		has, err := x.ID(c.OldProjectID).Get(&oldProject)
@@ -539,6 +541,16 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	return err
 }
 
+// LoadTime loads the associated time for a CommentTypeAddTimeManual
+func (c *Comment) LoadTime() error {
+	if c.Time != nil || c.TimeID == 0 {
+		return nil
+	}
+	var err error
+	c.Time, err = GetTrackedTimeByID(c.TimeID)
+	return err
+}
+
 func (c *Comment) loadReactions(e Engine, repo *Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
@@ -641,6 +653,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 
 	var data PushActionContent
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
 		return
@@ -690,6 +703,7 @@ func createComment(e *xorm.Session, opts *CreateCommentOptions) (_ *Comment, err
 		MilestoneID:      opts.MilestoneID,
 		OldProjectID:     opts.OldProjectID,
 		ProjectID:        opts.ProjectID,
+		TimeID:           opts.TimeID,
 		RemovedAssignee:  opts.RemovedAssignee,
 		AssigneeID:       opts.AssigneeID,
 		AssigneeTeamID:   opts.AssigneeTeamID,
@@ -797,7 +811,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		return nil, err
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    commentType,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -812,7 +826,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (err error) {
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
@@ -822,7 +836,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	// Make two comments, one in each issue
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
@@ -857,6 +871,7 @@ type CreateCommentOptions struct {
 	MilestoneID      int64
 	OldProjectID     int64
 	ProjectID        int64
+	TimeID           int64
 	AssigneeID       int64
 	AssigneeTeamID   int64
 	RemovedAssignee  bool
@@ -960,7 +975,7 @@ type FindCommentsOptions struct {
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
@@ -1132,7 +1147,7 @@ func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentU
 
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
-	var ids = make([]int64, 0, len(comments))
+	ids := make([]int64, 0, len(comments))
 	for _, comment := range comments {
 		if comment.ReviewID != 0 {
 			ids = append(ids, comment.ReviewID)
@@ -1225,6 +1240,8 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	}
 
 	ops.Issue = pr.Issue
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return nil, err

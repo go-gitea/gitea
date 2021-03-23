@@ -256,7 +256,6 @@ func UpdateLabel(l *Label) error {
 
 // DeleteLabel delete a label
 func DeleteLabel(id, labelID int64) error {
-
 	label, err := GetLabelByID(labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
@@ -321,7 +320,7 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	return labels, x.Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id").
+		Cols("id", "repo_id", "org_id").
 		Find(&labels)
 }
 
@@ -632,6 +631,8 @@ func HasIssueLabel(issueID, labelID int64) bool {
 	return hasIssueLabel(x, issueID, labelID)
 }
 
+// newIssueLabel this function creates a new label it does not check if the label is valid for the issue
+// YOU MUST CHECK THIS BEFORE THIS FUNCTION
 func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
@@ -644,7 +645,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -671,6 +672,15 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	// Do NOT add invalid labels
+	if issue.RepoID != label.RepoID && issue.Repo.OwnerID != label.OrgID {
+		return nil
+	}
+
 	if err = newIssueLabel(sess, issue, label, doer); err != nil {
 		return err
 	}
@@ -683,13 +693,19 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	return sess.Commit()
 }
 
+// newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
 func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) (err error) {
-	for i := range labels {
-		if hasIssueLabel(e, issue.ID, labels[i].ID) {
+	if err = issue.loadRepo(e); err != nil {
+		return err
+	}
+	for _, label := range labels {
+		// Don't add already present labels and invalid labels
+		if hasIssueLabel(e, issue.ID, label.ID) ||
+			(label.RepoID != issue.RepoID && label.OrgID != issue.Repo.OwnerID) {
 			continue
 		}
 
-		if err = newIssueLabel(e, issue, labels[i], doer); err != nil {
+		if err = newIssueLabel(e, issue, label, doer); err != nil {
 			return fmt.Errorf("newIssueLabel: %v", err)
 		}
 	}
@@ -731,7 +747,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
@@ -763,4 +779,16 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+func deleteLabelsByRepoID(sess Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
+
+	if _, err := sess.In("label_id", deleteCond).
+		Delete(&IssueLabel{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&Label{RepoID: repoID})
+	return err
 }

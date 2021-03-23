@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -20,6 +21,7 @@ var Service struct {
 	RegisterEmailConfirm                    bool
 	RegisterManualConfirm                   bool
 	EmailDomainWhitelist                    []string
+	EmailDomainBlocklist                    []string
 	DisableRegistration                     bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
@@ -58,6 +60,12 @@ var Service struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
+
+	// Explore page settings
+	Explore struct {
+		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+	} `ini:"service.explore"`
 }
 
 func newService() {
@@ -72,6 +80,7 @@ func newService() {
 		Service.RegisterManualConfirm = false
 	}
 	Service.EmailDomainWhitelist = sec.Key("EMAIL_DOMAIN_WHITELIST").Strings(",")
+	Service.EmailDomainBlocklist = sec.Key("EMAIL_DOMAIN_BLOCKLIST").Strings(",")
 	Service.ShowRegistrationButton = sec.Key("SHOW_REGISTRATION_BUTTON").MustBool(!(Service.DisableRegistration || Service.AllowOnlyExternalRegistration))
 	Service.ShowMilestonesDashboardPage = sec.Key("SHOW_MILESTONES_DASHBOARD_PAGE").MustBool(true)
 	Service.RequireSignInView = sec.Key("REQUIRE_SIGNIN_VIEW").MustBool()
@@ -105,6 +114,10 @@ func newService() {
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
+
+	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
+		log.Fatal("Failed to map service.explore settings: %v", err)
+	}
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

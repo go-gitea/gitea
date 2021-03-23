@@ -1,3 +1,4 @@
+import {htmlEscape} from 'escape-goat';
 import {svg} from '../svg.js';
 
 const {AppSubUrl} = window.config;
@@ -31,7 +32,7 @@ function issuePopup(owner, repo, index, $element) {
       if ((red * 0.299 + green * 0.587 + blue * 0.114) > 125) {
         color = '#000000';
       }
-      labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${label.name}</div>`;
+      labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${htmlEscape(label.name)}</div>`;
     }
     if (labels.length > 0) {
       labels = `<p>${labels}</p>`;
@@ -64,9 +65,9 @@ function issuePopup(owner, repo, index, $element) {
       },
       html: `
 <div>
-  <p><small>${issue.repository.full_name} on ${createdAt}</small></p>
-  <p><span class="${color}">${svg(octicon)}</span> <strong>${issue.title}</strong> #${index}</p>
-  <p>${body}</p>
+  <p><small>${htmlEscape(issue.repository.full_name)} on ${createdAt}</small></p>
+  <p><span class="${color}">${svg(octicon)}</span> <strong>${htmlEscape(issue.title)}</strong> #${index}</p>
+  <p>${htmlEscape(body)}</p>
   ${labels}
 </div>
 `

@@ -12,6 +12,7 @@ class Source {
     this.listen('open');
     this.listen('logout');
     this.listen('notification-count');
+    this.listen('stopwatches');
     this.listen('error');
   }
 
@@ -45,9 +46,8 @@ class Source {
   listen(eventType) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    const self = this;
     this.eventSource.addEventListener(eventType, (event) => {
-      self.notifyClients({
+      this.notifyClients({
         type: eventType,
         data: event.data
       });

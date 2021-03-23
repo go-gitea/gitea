@@ -44,10 +44,36 @@
 					<label>{{.i18n.Tr "repo.release.title"}}</label>
 					<input name="title" placeholder="{{.i18n.Tr "repo.release.title"}}" value="{{.title}}" autofocus required maxlength="255">
 				</div>
-				<div class="field">
+				<div class="field content-editor">
 					<label>{{.i18n.Tr "repo.release.content"}}</label>
-					<textarea name="content">{{.content}}</textarea>
+					<div class="ui top tabular menu" data-write="write" data-preview="preview">
+						<a class="active write item" data-tab="write">{{$.i18n.Tr "write"}}</a>
+						<a class="preview item" data-tab="preview" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+					</div>
+					<div class="ui bottom active tab" data-tab="write">
+						<textarea name="content">{{.content}}</textarea>
+					</div>
+					<div class="ui bottom tab markdown" data-tab="preview">
+						{{$.i18n.Tr "loading"}}
+					</div>
 				</div>
+				{{range .attachments}}
+					<div class="field" id="attachment-{{.ID}}">
+						<div class="ui right df ac wrap_remove">
+							<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
+								{{$.i18n.Tr "remove"}}
+							</a>
+						</div>
+						<div class="df ac">
+							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
+							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
+							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
+							<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+								{{svg "octicon-info"}}
+							</span>
+						</div>
+					</div>
+				{{end}}
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
 						<div class="files"></div>
@@ -58,6 +84,16 @@
 			<div class="ui container">
 				<div class="ui divider"></div>
 				<div class="ui text right">
+					{{if not .PageIsEditRelease}}
+						<div class="tag-message field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="add_tag_msg">
+								<label><strong>{{.i18n.Tr "repo.release.add_tag_msg"}}</strong></label>
+							</div>
+						</div>
+					{{else}}
+						<input type="hidden" name="add_tag_msg" value="false">
+					{{end}}
 					<div class="prerelease field">
 						<div class="ui checkbox">
 							<input type="checkbox" name="prerelease" {{if .prerelease}}checked{{end}}>
@@ -84,6 +120,9 @@
 								</button>
 							{{end}}
 						{{else}}
+							{{if not .tag_name}}
+								<input class="ui grey button" type="submit" name="tag_only" value="{{.i18n.Tr "repo.release.add_tag"}}"/>
+							{{end}}
 							<input class="ui button" type="submit" name="draft" value="{{.i18n.Tr "repo.release.save_draft"}}"/>
 							<button class="ui primary button">
 								{{.i18n.Tr "repo.release.publish"}}
@@ -99,7 +138,7 @@
 {{if .PageIsEditRelease}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			{{svg "octicon-trashcan"}}
+			{{svg "octicon-trash"}}
 			{{.i18n.Tr "repo.release.deletion"}}
 		</div>
 		<div class="content">

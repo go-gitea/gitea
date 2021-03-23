@@ -31,6 +31,9 @@ type ListReleaseAttachmentsOptions struct {
 
 // ListReleaseAttachments list release's attachments
 func (c *Client) ListReleaseAttachments(user, repo string, release int64, opt ListReleaseAttachmentsOptions) ([]*Attachment, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	attachments := make([]*Attachment, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET",
@@ -41,6 +44,9 @@ func (c *Client) ListReleaseAttachments(user, repo string, release int64, opt Li
 
 // GetReleaseAttachment returns the requested attachment
 func (c *Client) GetReleaseAttachment(user, repo string, release int64, id int64) (*Attachment, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	a := new(Attachment)
 	resp, err := c.getParsedResponse("GET",
 		fmt.Sprintf("/repos/%s/%s/releases/%d/assets/%d", user, repo, release, id),
@@ -50,6 +56,9 @@ func (c *Client) GetReleaseAttachment(user, repo string, release int64, id int64
 
 // CreateReleaseAttachment creates an attachment for the given release
 func (c *Client) CreateReleaseAttachment(user, repo string, release int64, file io.Reader, filename string) (*Attachment, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	// Write file to body
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
@@ -80,6 +89,9 @@ type EditAttachmentOptions struct {
 
 // EditReleaseAttachment updates the given attachment with the given options
 func (c *Client) EditReleaseAttachment(user, repo string, release int64, attachment int64, form EditAttachmentOptions) (*Attachment, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&form)
 	if err != nil {
 		return nil, nil, err
@@ -91,6 +103,9 @@ func (c *Client) EditReleaseAttachment(user, repo string, release int64, attachm
 
 // DeleteReleaseAttachment deletes the given attachment including the uploaded file
 func (c *Client) DeleteReleaseAttachment(user, repo string, release int64, id int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/releases/%d/assets/%d", user, repo, release, id), nil, nil)
 	return resp, err
 }

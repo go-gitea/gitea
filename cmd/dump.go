@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
+	jsoniter "github.com/json-iterator/go"
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
@@ -296,6 +296,7 @@ func runDump(ctx *cli.Context) error {
 		var excludes []string
 		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
 			var opts session.Options
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
 			}

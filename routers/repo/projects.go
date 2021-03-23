@@ -403,7 +403,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditProjectBoardTitleForm)
+	form := web.GetForm(ctx).(*auth.EditProjectBoardForm)
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(403, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
@@ -481,9 +481,9 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 	return project, board
 }
 
-// EditProjectBoardTitle allows a project board's title to be updated
-func EditProjectBoardTitle(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditProjectBoardTitleForm)
+// EditProjectBoard allows a project board's to be updated
+func EditProjectBoard(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.EditProjectBoardForm)
 	_, board := checkProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
@@ -491,6 +491,10 @@ func EditProjectBoardTitle(ctx *context.Context) {
 
 	if form.Title != "" {
 		board.Title = form.Title
+	}
+
+	if form.Sorting != 0 {
+		board.Sorting = form.Sorting
 	}
 
 	if err := models.UpdateProjectBoard(board); err != nil {

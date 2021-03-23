@@ -6,10 +6,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 trigger:
   event:
     - push
@@ -31,7 +27,7 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: golang:1.15
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -41,7 +37,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: golang:1.15
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
     environment:
@@ -53,7 +49,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: golang:1.15
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -69,7 +65,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -91,7 +87,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -104,7 +100,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -116,7 +112,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.15
+    image: golang:1.16
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -142,10 +138,6 @@ trigger:
     - push
     - tag
     - pull_request
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
 
 services:
   - name: mysql
@@ -176,7 +168,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2021-01-16T02-19-44Z
+    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
     commands:
     - minio server /data
     environment:
@@ -195,7 +187,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make backend
     environment:
@@ -210,7 +202,7 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -221,7 +213,7 @@ steps:
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -231,10 +223,8 @@ steps:
         from_secret: github_read_token
 
   - name: test-mysql
-    image: golang:1.15
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
@@ -246,10 +236,8 @@ steps:
       - build
 
   - name: test-mysql8
-    image: golang:1.15
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
@@ -260,10 +248,8 @@ steps:
       - build
 
   - name: test-mssql
-    image: golang:1.15
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
@@ -274,7 +260,7 @@ steps:
       - build
 
   - name: generate-coverage
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make coverage
     environment:
@@ -324,10 +310,6 @@ trigger:
     - tag
     - pull_request
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 services:
   - name: pgsql
     pull: default
@@ -352,19 +334,17 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: test-sqlite
-    image: golang:1.15
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
@@ -375,10 +355,8 @@ steps:
       - build
 
   - name: test-pgsql
-    image: golang:1.15
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - "curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash"
-      - apt-get install -y git-lfs
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
@@ -391,21 +369,19 @@ steps:
 
 ---
 kind: pipeline
-name: translations
+name: update_translations
 
 platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 trigger:
   branch:
     - master
   event:
-    - push
+    - cron
+  cron:
+    - update_translations
 
 steps:
   - name: download
@@ -457,11 +433,7 @@ name: update_gitignore_and_licenses
 
 platform:
   os: linux
-  arch: amd64
-
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  arch: arm64
 
 trigger:
   branch:
@@ -473,7 +445,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.15
+    image: golang:1.16
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 
@@ -499,8 +471,8 @@ platform:
   arch: amd64
 
 workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  base: /source
+  path: /
 
 trigger:
   branch:
@@ -512,7 +484,6 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - translations
 
 steps:
   - name: fetch-tags
@@ -522,7 +493,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.15.x
+    image: techknowlogick/xgo:go-1.16.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -598,8 +569,8 @@ platform:
   arch: amd64
 
 workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
+  base: /source
+  path: /
 
 trigger:
   event:
@@ -618,7 +589,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.15.x
+    image: techknowlogick/xgo:go-1.16.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -718,10 +689,6 @@ platform:
   os: linux
   arch: amd64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 depends_on:
   - testing-amd64
   - testing-arm64
@@ -730,6 +697,9 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
 
 steps:
   - name: fetch-tags
@@ -784,10 +754,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 depends_on:
   - compliance
 
@@ -820,10 +786,6 @@ platform:
   os: linux
   arch: arm64
 
-workspace:
-  base: /go
-  path: src/code.gitea.io/gitea
-
 depends_on:
   - testing-amd64
   - testing-arm64
@@ -832,6 +794,10 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
+
 steps:
   - name: fetch-tags
     image: docker:git
@@ -916,6 +882,9 @@ trigger:
   ref:
   - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
 
 depends_on:
   - docker-linux-amd64-release
@@ -946,7 +915,6 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - translations
   - release-version
   - release-latest
   - docker-linux-amd64-release
