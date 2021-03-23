@@ -122,7 +122,7 @@
 					</div>
 					<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
 						<label for="mirror_lfs_endpoint">{{.i18n.Tr "repo.mirror_lfs_endpoint"}}</label>
-						<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}">
+						<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}" placeholder="{{.i18n.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
 						<p class="help">{{.i18n.Tr "repo.mirror_lfs_endpoint_desc"}}</p>
 					</div>
 					{{end}}
