@@ -380,7 +380,7 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 		SELECT il_too.id FROM (
 			SELECT il_too_too.id
 				FROM issue_label AS il_too_too
-					INNER JOIN label ON il_too_too.id = label.id
+					INNER JOIN label ON il_too_too.label_id = label.id
 					INNER JOIN issue on issue.id = il_too_too.issue_id
 					INNER JOIN repository on repository.id = issue.repo_id
 				WHERE
