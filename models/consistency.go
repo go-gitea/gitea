@@ -368,7 +368,7 @@ func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
 func CountIssueLabelWithOutsideLabels() (int64, error) {
 	return x.Where(builder.Expr("issue.repo_id != label.repo_id OR (label.repo_id = 0 AND repository.owner_id != label.org_id)")).
 		Table("issue_label").
-		Join("inner", "label", "issue_label.id = label.id ").
+		Join("inner", "label", "issue_label.label_id = label.id ").
 		Join("inner", "issue", "issue.id = issue_label.issue_id ").
 		Join("inner", "repository", "issue.repo_id = repository.id").
 		Count(new(IssueLabel))
