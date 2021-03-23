@@ -180,10 +180,10 @@ func deleteDB() error {
 		}
 		defer db.Close()
 
-		if _, err = db.Exec("DROP DATABASE IF EXISTS %s", setting.Database.Name); err != nil {
+		if _, err = db.Exec("DROP DATABASE IF EXISTS ?", setting.Database.Name); err != nil {
 			return err
 		}
-		if _, err = db.Exec("CREATE DATABASE %s", setting.Database.Name); err != nil {
+		if _, err = db.Exec("CREATE DATABASE ?", setting.Database.Name); err != nil {
 			return err
 		}
 	}
