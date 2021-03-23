@@ -14,11 +14,12 @@
 <div class="inline field">
 	<label></label>
 	<div class="ui checkbox">
-		<input id="lfs" name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
-		<label>{{.i18n.Tr "repo.migrate_options_lfs"}} <a target="_blank" href="https://git-lfs.github.com/">{{svg "octicon-question"}}</a></label>
+		<input name="lfs" type="checkbox" {{if .lfs}} checked{{end}}>
+		<label>{{.i18n.Tr "repo.migrate_options_lfs"}}</label>
 	</div>
+	(<a id="lfs_settings" href="#">{{.i18n.Tr "repo.settings.advanced_settings"}}</a>)
 </div>
-<div id="lfs_endpoint">
+<div id="lfs_endpoint" style="display:none">
 	<span class="help">{{.i18n.Tr "repo.migrate_options_lfs_endpoint.description"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate_options_lfs_endpoint.description.local"}}{{end}}</span>
 	<div class="inline field {{if .Err_LFSEndpoint}}error{{end}}">
 		<label>{{.i18n.Tr "repo.migrate_options_lfs_endpoint.label"}}</label>

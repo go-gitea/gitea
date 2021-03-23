@@ -3,19 +3,16 @@ const $user = $('#auth_username');
 const $pass = $('#auth_password');
 const $token = $('#auth_token');
 const $mirror = $('#mirror');
-const $lfs = $('#lfs');
-const $lfsEndpointBlock = $('#lfs_endpoint');
 const $items = $('#migrate_items').find('input[type=checkbox]');
 
 export default function initMigration() {
   checkAuth();
-  setLFSEndpointVisibility();
 
   $user.on('keyup', () => {checkItems(false)});
   $pass.on('keyup', () => {checkItems(false)});
   $token.on('keyup', () => {checkItems(true)});
   $mirror.on('change', () => {checkItems(true)});
-  $lfs.on('change', setLFSEndpointVisibility);
+  $('#lfs_settings').on('click', () => { $('#lfs_endpoint').show(); return false });
 
   const $cloneAddr = $('#clone_addr');
   $cloneAddr.on('change', () => {
@@ -49,8 +46,4 @@ function checkItems(tokenAuth) {
   } else {
     $items.attr('disabled', true);
   }
-}
-
-function setLFSEndpointVisibility() {
-  $lfsEndpointBlock.toggle($lfs.is(':checked'));
 }
