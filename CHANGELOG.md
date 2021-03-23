@@ -7,8 +7,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc2) - 2021-03-22
 
 * SECURITY
-  * Update to goldmark 1.3.3 (#15059) (#15060)
+  * Fix bug on avatar middleware (#15124) (#15125)
   * Fix another clusterfuzz identified issue (#15096) (#15113)
+  * Update to goldmark 1.3.3 (#15059) (#15060)
 * BUGFIXES
   * Fix the v176 migration (#15110) (#15111)
   * Fix double 'push tag' action feed (#15078) (#15083)
