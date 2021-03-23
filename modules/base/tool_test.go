@@ -329,6 +329,12 @@ func TestIsAudioFile(t *testing.T) {
 	assert.False(t, IsAudioFile([]byte("plain text")))
 }
 
+func TestIsZipFile(t *testing.T) {
+	zip, _ := base64.StdEncoding.DecodeString("UEsDBAoAAAAAANG0d1IAAAAAAAAAAAAAAAAIABwAdGV4dC50eHRVVAkAA9pfWmDaX1pgdXgLAAEE9QEAAAQUAAAAUEsBAh4DCgAAAAAA0bR3UgAAAAAAAAAAAAAAAAgAGAAAAAAAAAAAAKSBAAAAAHRleHQudHh0VVQFAAPaX1pgdXgLAAEE9QEAAAQUAAAAUEsFBgAAAAABAAEATgAAAEIAAAAAAA==")
+	assert.True(t, IsZipFile(zip))
+	assert.False(t, IsZipFile([]byte("plain text")))
+}
+
 // TODO: Test EntryIcon
 
 func TestSetupGiteaRoot(t *testing.T) {
