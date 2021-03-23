@@ -1,4 +1,4 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,6 @@ package repo
 import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 )
 
 const (
@@ -26,38 +25,12 @@ func FindFiles(ctx *context.Context) {
 		treeLink += "/" + ctx.Repo.TreePath
 	}
 
-	renderFiles(ctx, treeLink)
-
-	if ctx.Written() {
-		return
-	}
+	ctx.Data["BranchName"] = ctx.Repo.BranchName
+	ctx.Data["OwnerName"] = ctx.Repo.Owner.Name
+	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
-	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["TreeLink"] = treeLink
 
 	ctx.HTML(200, tplFindFiles)
-}
-
-func renderFiles(ctx *context.Context, treeLink string) {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
-		return
-	}
-
-	entries, err := tree.ListEntriesRecursive()
-	if err != nil {
-		ctx.ServerError("ListEntries", err)
-		return
-	}
-	entries.CustomSort(base.NaturalSortLess)
-
-	var fileEntries []*git.TreeEntry
-	for _, entry := range entries {
-		if !entry.IsDir() && !entry.IsSubModule() {
-			fileEntries = append(fileEntries, entry)
-		}
-	}
-	ctx.Data["Files"] = fileEntries
 }
