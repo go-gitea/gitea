@@ -496,7 +496,9 @@ func TestDiff_LoadComments(t *testing.T) {
 	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	diff := setupDefaultDiff()
-	assert.NoError(t, diff.LoadComments(issue, user))
+	comments, err := models.FetchCodeComments(issue, user)
+	assert.NoError(t, err)
+	assert.NoError(t, diff.LoadComments(comments))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
 }
 
