@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+
+	"github.com/go-enry/go-enry/v2"
 )
 
 var excludedDirs = []string{
@@ -81,7 +83,11 @@ func isExcludedEntry(entry *git.TreeEntry, rx *regexp.Regexp) bool {
 		return true
 	}
 
-	// Exclude dirs
+	if enry.IsVendor(entry.Name()) {
+		return true
+	}
+
+	// Exclude hardcoded dirs
 	if rx.MatchString(entry.Name()) {
 		return true
 	}
