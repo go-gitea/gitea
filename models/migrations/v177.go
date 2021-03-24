@@ -10,6 +10,7 @@ import (
 	"xorm.io/xorm"
 )
 
+// deleteOrphanedIssueLabels looks through the database for issue_labels where the label no longer exists and deletes them.
 func deleteOrphanedIssueLabels(x *xorm.Engine) error {
 	type IssueLabel struct {
 		ID      int64 `xorm:"pk autoincr"`
