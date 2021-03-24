@@ -347,21 +347,41 @@ func Password(m *models.Mirror) string {
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context) error {
 	log.Trace("Doing: Update")
-	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
-		m := bean.(*models.Mirror)
-		if m.Repo == nil {
-			log.Error("Disconnected mirror repository found: %d", m.ID)
+
+	handler := func(idx int, bean interface{}) error {
+		var item string
+		if m, ok := bean.(*models.Mirror); ok {
+			if m.Repo == nil {
+				log.Error("Disconnected mirror found: %d", m.ID)
+				return nil
+			}
+			item = fmt.Sprintf("pull %d", m.RepoID)
+		} else if m, ok := bean.(*models.PushMirror); ok {
+			if m.Repo == nil {
+				log.Error("Disconnected push-mirror found: %d", m.ID)
+				return nil
+			}
+			item = fmt.Sprintf("push %d", m.ID)
+		} else {
+			log.Error("Unknown bean: %v", bean)
 			return nil
 		}
+
 		select {
 		case <-ctx.Done():
 			return fmt.Errorf("Aborted")
 		default:
-			mirrorQueue.Add(m.RepoID)
+			mirrorQueue.Add(item)
 			return nil
 		}
-	}); err != nil {
-		log.Trace("Update: %v", err)
+	}
+
+	if err := models.MirrorsIterate(handler); err != nil {
+		log.Trace("MirrorsIterate: %v", err)
+		return err
+	}
+	if err := models.PushMirrorsIterate(handler); err != nil {
+		log.Trace("PushMirrorsIterate: %v", err)
 		return err
 	}
 	log.Trace("Finished: Update")
@@ -377,8 +397,15 @@ func SyncMirrors(ctx context.Context) {
 		case <-ctx.Done():
 			mirrorQueue.Close()
 			return
-		case repoID := <-mirrorQueue.Queue():
-			syncMirror(repoID)
+		case item := <-mirrorQueue.Queue():
+			if strings.HasPrefix(item, "pull") {
+				syncMirror(item[5:])
+			} else if strings.HasPrefix(item, "push") {
+				//syncPushMirror(item[5:])
+			} else {
+				log.Error("Unknown item in queue: %v", item)
+			}
+			mirrorQueue.Remove(item)
 		}
 	}
 }
@@ -393,7 +420,6 @@ func syncMirror(repoID string) {
 		// There was a panic whilst syncMirrors...
 		log.Error("PANIC whilst syncMirrors[%s] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
-	mirrorQueue.Remove(repoID)
 
 	id, _ := strconv.ParseInt(repoID, 10, 64)
 	m, err := models.GetMirrorByRepoID(id)
@@ -586,5 +612,5 @@ func InitSyncMirrors() {
 
 // StartToMirror adds repoID to mirror queue
 func StartToMirror(repoID int64) {
-	go mirrorQueue.Add(repoID)
+	go mirrorQueue.Add(fmt.Sprintf("pull %d", repoID))
 }
