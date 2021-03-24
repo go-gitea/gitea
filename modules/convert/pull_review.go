@@ -86,8 +86,8 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 				apiComment := &api.PullReviewComment{
 					ID:           comment.ID,
 					Body:         comment.Content,
-					Reviewer:     ToUser(review.Reviewer, doer),
-					ReviewID:     review.ID,
+					Reviewer:     ToUser(comment.Poster, doer),
+					ReviewID:     comment.PosterID,
 					Created:      comment.CreatedUnix.AsTime(),
 					Updated:      comment.UpdatedUnix.AsTime(),
 					Path:         comment.TreePath,
