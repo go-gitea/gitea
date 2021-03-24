@@ -55,9 +55,9 @@
 					<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span>
 				{{end}}
 				{{if .CanDeleteFile}}
-					<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span></a>
+					<a href="{{.RepoLink}}/_delete/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon btn-octicon-danger poping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trash"}}</span></a>
 				{{else}}
-					<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trashcan"}}</span>
+					<span class="btn-octicon poping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trash"}}</span>
 				{{end}}
 			{{end}}
 		</div>
@@ -111,6 +111,15 @@
 						{{end}}
 					</tbody>
 				</table>
+				<div class="code-view-menu-list ui fluid popup transition hidden">
+					<div class="ui column relaxed equal height">
+						<div class="column">
+							<div class="ui link list">
+								<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+							</div>
+						</div>
+					</div>
+				</div>
 				{{end}}
 			{{end}}
 		</div>

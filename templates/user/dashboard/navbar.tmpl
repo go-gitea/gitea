@@ -41,64 +41,65 @@
 				</div>
 			</div>
 		</div>
-
 		{{if .ContextUser.IsOrganization}}
-			<div class="right stackable menu">
-				<div class="item">
-					<div class="ui floating dropdown link jump">
-						<span class="text">
-							{{svg "octicon-people" 18}}
-							{{if .Team}}
-								{{.Team.Name}}
-							{{else}}
-								{{.i18n.Tr "org.teams"}}
-							{{end}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="context user overflow menu" tabindex="-1">
-							<div class="ui header">
-								{{.i18n.Tr "home.filter_by_team_repositories"}}
-							</div>
-							<div class="scrolling menu items">
-								<a class="{{if not $.Team}}active selected{{end}} item" title="{{.i18n.Tr "all"}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
-									{{.i18n.Tr "all"}}
-								</a>
-								{{range .Org.Teams}}
-									{{if not .IncludesAllRepositories}}
-										<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
-											{{.Name}}
-										</a>
-									{{end}}
+			<div class="item">
+				<div class="ui floating dropdown link jump">
+					<span class="text">
+						{{svg "octicon-people" 18}}
+						{{if .Team}}
+							{{.Team.Name}}
+						{{else}}
+							{{.i18n.Tr "org.teams"}}
+						{{end}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+					<div class="context user overflow menu" tabindex="-1">
+						<div class="ui header">
+							{{.i18n.Tr "home.filter_by_team_repositories"}}
+						</div>
+						<div class="scrolling menu items">
+							<a class="{{if not $.Team}}active selected{{end}} item" title="{{.i18n.Tr "all"}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+								{{.i18n.Tr "all"}}
+							</a>
+							{{range .Org.Teams}}
+								{{if not .IncludesAllRepositories}}
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+										{{.Name}}
+									</a>
 								{{end}}
-							</div>
+							{{end}}
 						</div>
 					</div>
 				</div>
-				<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard{{if .Team}}/{{.Team.Name}}{{end}}">
-					{{svg "octicon-rss"}}&nbsp;{{.i18n.Tr "activities"}}
-				</a>
-				{{if not .UnitIssuesGlobalDisabled}}
-				<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues{{if .Team}}/{{.Team.Name}}{{end}}">
-					{{svg "octicon-issue-opened"}}&nbsp;{{.i18n.Tr "issues"}}
-				</a>
-				{{end}}
-				{{if not .UnitPullsGlobalDisabled}}
-				<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls{{if .Team}}/{{.Team.Name}}{{end}}">
-					{{svg "octicon-git-pull-request"}}&nbsp;{{.i18n.Tr "pull_requests"}}
-				</a>
-				{{end}}
-				{{if and .ShowMilestonesDashboardPage (not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled))}}
-				<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones{{if .Team}}/{{.Team.Name}}{{end}}">
-					{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
-				</a>
-				{{end}}
-				<div class="item">
-					<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
-						{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 40)}}
-					</a>
-				</div>
-			</div>
 		{{end}}
 	</div>
+
+	{{if .ContextUser.IsOrganization}}
+		<div class="right stackable menu">
+			<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard{{if .Team}}/{{.Team.Name}}{{end}}">
+				{{svg "octicon-rss"}}&nbsp;{{.i18n.Tr "activities"}}
+			</a>
+			{{if not .UnitIssuesGlobalDisabled}}
+			<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues{{if .Team}}/{{.Team.Name}}{{end}}">
+				{{svg "octicon-issue-opened"}}&nbsp;{{.i18n.Tr "issues"}}
+			</a>
+			{{end}}
+			{{if not .UnitPullsGlobalDisabled}}
+			<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls{{if .Team}}/{{.Team.Name}}{{end}}">
+				{{svg "octicon-git-pull-request"}}&nbsp;{{.i18n.Tr "pull_requests"}}
+			</a>
+			{{end}}
+			{{if and .ShowMilestonesDashboardPage (not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled))}}
+			<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones{{if .Team}}/{{.Team.Name}}{{end}}">
+				{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
+			</a>
+			{{end}}
+			<div class="item">
+				<a class="ui blue basic button" href="{{.ContextUser.HomeLink}}" title='{{.i18n.Tr "home.view_home" .ContextUser.Name}}'>
+					{{.i18n.Tr "home.view_home" (.ContextUser.ShortName 40)}}
+				</a>
+			</div>
+		</div>
+	{{end}}
 </div>
 <div class="ui divider"></div>

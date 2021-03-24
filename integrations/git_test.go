@@ -216,7 +216,10 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 			resp = session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
-			assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			assert.LessOrEqual(t, resp.Body.Len(), 1024)
+			if resp.Body.Len() != littleSize && resp.Body.Len() <= 1024 {
+				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+			}
 		}
 
 		if !testing.Short() {
@@ -228,7 +231,9 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
 				resp = session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, bigSize, resp.Body.Len())
-				assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				if resp.Body.Len() != bigSize && resp.Body.Len() <= 1024 {
+					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
+				}
 			}
 		}
 	})
@@ -513,7 +518,18 @@ func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, diffStr, resp.Body.String())
+		expectedMaxLen := len(diffStr)
+		if expectedMaxLen > 800 {
+			expectedMaxLen = 800
+		}
+		actual := resp.Body.String()
+		actualMaxLen := len(actual)
+		if actualMaxLen > 800 {
+			actualMaxLen = 800
+		}
+
+		equal := diffStr == actual
+		assert.True(t, equal, "Unexpected change in the diff string: expected: %s but was actually: %s", diffStr[:expectedMaxLen], actual[:actualMaxLen])
 	}
 }
 
