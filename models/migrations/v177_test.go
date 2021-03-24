@@ -12,6 +12,7 @@ import (
 )
 
 func Test_deleteOrphanedIssueLabels(t *testing.T) {
+	// Create the models used in the migration
 	type IssueLabel struct {
 		ID      int64 `xorm:"pk autoincr"`
 		IssueID int64 `xorm:"UNIQUE(s)"`
@@ -31,6 +32,7 @@ func Test_deleteOrphanedIssueLabels(t *testing.T) {
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 
+	// Prepare and load the testing database
 	x, deferable := prepareTestEnv(t, 0, new(IssueLabel), new(Label))
 	if x == nil || t.Failed() {
 		defer deferable()
@@ -42,6 +44,7 @@ func Test_deleteOrphanedIssueLabels(t *testing.T) {
 	preMigration := map[int64]*IssueLabel{}
 	postMigration := map[int64]*IssueLabel{}
 
+	// Load issue labels that exist in the database pre-migration
 	if err := x.Find(&issueLabels); err != nil {
 		assert.NoError(t, err)
 		return
@@ -50,11 +53,13 @@ func Test_deleteOrphanedIssueLabels(t *testing.T) {
 		preMigration[issueLabel.ID] = issueLabel
 	}
 
+	// Run the migration
 	if err := deleteOrphanedIssueLabels(x); err != nil {
 		assert.NoError(t, err)
 		return
 	}
 
+	// Load the remaining issue-labels
 	issueLabels = issueLabels[:0]
 	if err := x.Find(&issueLabels); err != nil {
 		assert.NoError(t, err)
@@ -64,6 +69,7 @@ func Test_deleteOrphanedIssueLabels(t *testing.T) {
 		postMigration[issueLabel.ID] = issueLabel
 	}
 
+	// Now test what is left
 	if _, ok := postMigration[2]; ok {
 		t.Errorf("Orphaned Label[2] survived the migration")
 		return

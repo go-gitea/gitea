@@ -191,8 +191,8 @@ func deleteDB() error {
 	return nil
 }
 
-// prepareTestEnv prepares the test environment. The skip parameter should usually be 0. Provide models to be sync'd
-// with the database - in particular any models you expect fixtures to be loaded from.
+// prepareTestEnv prepares the test environment and reset the database. The skip parameter should usually be 0.
+// Provide models to be sync'd with the database - in particular any models you expect fixtures to be loaded from.
 //
 // fixtures in `models/migrations/fixtures/<TestName>` will be loaded automatically
 func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.Engine, func()) {

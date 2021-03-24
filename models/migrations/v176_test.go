@@ -11,12 +11,13 @@ import (
 )
 
 func Test_removeInvalidLabels(t *testing.T) {
+	// Models used by the migration
 	type Comment struct {
 		ID           int64 `xorm:"pk autoincr"`
 		Type         int   `xorm:"INDEX"`
 		IssueID      int64 `xorm:"INDEX"`
 		LabelID      int64
-		ShouldRemain bool
+		ShouldRemain bool // <- Flag for testing the migration
 	}
 
 	type Issue struct {
@@ -41,9 +42,10 @@ func Test_removeInvalidLabels(t *testing.T) {
 		ID           int64 `xorm:"pk autoincr"`
 		IssueID      int64 `xorm:"UNIQUE(s)"`
 		LabelID      int64 `xorm:"UNIQUE(s)"`
-		ShouldRemain bool
+		ShouldRemain bool  // <- Flag for testing the migration
 	}
 
+	// load and prepare the test database
 	x, deferable := prepareTestEnv(t, 0, new(Comment), new(Issue), new(Repository), new(IssueLabel), new(Label))
 	if x == nil || t.Failed() {
 		defer deferable()
@@ -98,6 +100,7 @@ func Test_removeInvalidLabels(t *testing.T) {
 		comPostMigration[comment.ID] = comment
 	}
 
+	// Finally test results of the migration
 	for id, comment := range comPreMigration {
 		post, ok := comPostMigration[id]
 		if ok {
