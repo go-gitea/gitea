@@ -207,11 +207,7 @@ module.exports = {
       {
         test: /\.svg$/,
         include: resolve(__dirname, 'public/img/svg'),
-        use: [
-          {
-            loader: 'raw-loader',
-          },
-        ],
+        type: 'asset/source',
       },
       {
         test: /\.(ttf|woff2?)$/,

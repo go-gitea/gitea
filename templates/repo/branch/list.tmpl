@@ -116,7 +116,7 @@
 												<a class="ui basic jump button icon poping up undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID | urlquery}}&name={{.DeletedBranch.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-variation="tiny inverted" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
 											{{else}}
 												<a class="ui basic jump button icon poping up delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name | urlquery}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-variation="tiny inverted" data-position="top right" data-name="{{.Name}}">
-													{{svg "octicon-trashcan"}}
+													{{svg "octicon-trash"}}
 												</a>
 											{{end}}
 										{{end}}
@@ -134,7 +134,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">

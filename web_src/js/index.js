@@ -247,7 +247,6 @@ function initReactionSelector(parent) {
   parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
-    const vm = this;
     e.preventDefault();
 
     if ($(this).hasClass('disabled')) return;
@@ -263,7 +262,7 @@ function initReactionSelector(parent) {
       }
     }).done((resp) => {
       if (resp && (resp.html || resp.empty)) {
-        const content = $(vm).closest('.content');
+        const content = $(this).closest('.content');
         let react = content.find('.segment.reactions');
         if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
@@ -343,13 +342,12 @@ function reload() {
 
 function initImagePaste(target) {
   target.each(function () {
-    const field = this;
-    field.addEventListener('paste', async (e) => {
+    this.addEventListener('paste', async (e) => {
       for (const img of getPastedImages(e)) {
         const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(field, `![${name}]()`);
+        insertAtCursor(this, `![${name}]()`);
         const data = await uploadFile(img);
-        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+        replaceAndKeepCursor(this, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
         const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
         $('.files').append(input);
       }
@@ -1254,6 +1252,15 @@ async function initRepository() {
 function initPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
     $('.instruct-content').toggle();
+  });
+}
+
+function initRelease() {
+  $(document).on('click', '.remove-rel-attach', function() {
+    const uuid = $(this).data('uuid');
+    const id = $(this).data('id');
+    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
+    $(`#attachment-${id}`).hide();
   });
 }
 
@@ -2667,12 +2674,10 @@ $(document).ready(async () => {
   });
 
   $('.issue-action').on('click', function () {
-    let {action} = this.dataset;
-    let {elementId} = this.dataset;
-    const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
-      return this.dataset.issueId;
+    let {action, elementId, url} = this.dataset;
+    const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
+      return el.dataset.issueId;
     }).get().join();
-    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2752,6 +2757,7 @@ $(document).ready(async () => {
   initNotificationsTable();
   initPullRequestMergeInstruction();
   initReleaseEditor();
+  initRelease();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -3107,9 +3113,8 @@ function initVueComponents() {
       $(this.$el).find('.poping.up').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
-      const self = this;
       Vue.nextTick(() => {
-        self.$refs.search.focus();
+        this.$refs.search.focus();
       });
     },
 
@@ -3266,14 +3271,12 @@ function initVueComponents() {
       },
 
       searchRepos() {
-        const self = this;
-
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
-            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+            this.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
         }
 
@@ -3282,19 +3285,19 @@ function initVueComponents() {
         const searchedQuery = this.searchQuery;
 
         $.getJSON(searchedURL, (result, _textStatus, request) => {
-          if (searchedURL === self.searchURL) {
-            self.repos = result.data;
+          if (searchedURL === this.searchURL) {
+            this.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
-              self.reposTotalCount = count;
+            if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
+              this.reposTotalCount = count;
             }
-            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
-            self.finalPage = Math.floor(count / self.searchLimit) + 1;
-            self.updateHistory();
+            Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
+            this.finalPage = Math.floor(count / this.searchLimit) + 1;
+            this.updateHistory();
           }
         }).always(() => {
-          if (searchedURL === self.searchURL) {
-            self.isLoading = false;
+          if (searchedURL === this.searchURL) {
+            this.isLoading = false;
           }
         });
       },

@@ -527,7 +527,9 @@ func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string
 		if actualMaxLen > 800 {
 			actualMaxLen = 800
 		}
-		assert.Equal(t, diffStr, actual, "Unexpected change in the diff string: expected: %s but was actually: %s", diffStr[:expectedMaxLen], actual[:actualMaxLen])
+
+		equal := diffStr == actual
+		assert.True(t, equal, "Unexpected change in the diff string: expected: %s but was actually: %s", diffStr[:expectedMaxLen], actual[:actualMaxLen])
 	}
 }
 

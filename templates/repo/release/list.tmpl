@@ -44,7 +44,7 @@
 										{{end}}
 										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
 											<a class="ui red delete-button mr-3" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
-												{{svg "octicon-trashcan" 16 "mr-2"}}{{$.i18n.Tr "repo.release.delete_tag"}}
+												{{svg "octicon-trash" 16 "mr-2"}}{{$.i18n.Tr "repo.release.delete_tag"}}
 											</a>
 										{{end}}
 										{{if (not $release.IsTag)}}
@@ -152,12 +152,14 @@
 										{{if .Attachments}}
 											{{range .Attachments}}
 												<li>
-													<span class="ui text right poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
-														{{svg "octicon-info"}}
+													<span class="ui text middle aligned right">
+														<span class="ui text grey">{{.Size | FileSize}}</span>
+														<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+															{{svg "octicon-info"}}
+														</span>
 													</span>
 													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
 														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
-														<span class="ui text grey right">{{.Size | FileSize}}</span>
 													</a>
 												</li>
 											{{end}}
@@ -179,7 +181,7 @@
 {{if (and ($.Permission.CanWrite $.UnitTypeCode) .PageIsTagList)}}
 	<div class="ui small basic delete modal">
 		<div class="ui header">
-			{{svg "octicon-trashcan" 16 "mr-2"}}
+			{{svg "octicon-trash" 16 "mr-2"}}
 			{{.i18n.Tr "repo.release.delete_tag"}}
 		</div>
 		<div class="content">
