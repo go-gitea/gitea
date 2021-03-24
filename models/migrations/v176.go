@@ -52,7 +52,7 @@ func removeInvalidLabels(x *xorm.Engine) error {
 					INNER JOIN issue on issue.id = il_too_too.issue_id
 					INNER JOIN repository on repository.id = issue.repo_id
 				WHERE
-					issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
+					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`); err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func removeInvalidLabels(x *xorm.Engine) error {
 					INNER JOIN issue on issue.id = com.issue_id
 					INNER JOIN repository on repository.id = issue.repo_id
 				WHERE
-					com.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
+					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
 	) AS il_too)`, 7); err != nil {
 		return err
 	}
