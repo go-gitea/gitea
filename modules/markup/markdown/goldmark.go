@@ -7,7 +7,6 @@ package markdown
 import (
 	"bytes"
 	"fmt"
-	"path"
 	"regexp"
 	"strings"
 
@@ -99,8 +98,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				}
 				prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-				lnk := string(link)
-				lnk = path.Clean("/" + lnk)[1:]
+				lnk := strings.TrimLeft(string(link), "/")
 
 				lnk = giteautil.URLJoin(prefix, lnk)
 				link = []byte(lnk)
