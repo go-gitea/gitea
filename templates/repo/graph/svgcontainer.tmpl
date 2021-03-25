@@ -9,7 +9,7 @@
 						M {{Add (Mul $glyph.Column 5) 10}} {{Add (Mul $glyph.Row 12) 0}} l -10 12 {{/* */ -}}
 					{{- else if eq $glyph.Glyph '\\' -}}
 						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 0}} l 10 12 {{/* */ -}}
-					{{- else if or (eq $glyph.Glyph '-') (eq $glyph.Glyph '.') -}}
+					{{- else if or (eq $glyph.Glyph '-') (eq $glyph.Glyph '\.') -}}
 						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 12}} h 5 {{/* */ -}}
 					{{- else if eq $glyph.Glyph '_' -}}
 						M {{Add (Mul $glyph.Column 5) 0}} {{Add (Mul $glyph.Row 12) 12}} h 10 {{/* */ -}}
