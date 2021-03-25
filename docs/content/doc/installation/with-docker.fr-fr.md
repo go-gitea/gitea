@@ -95,7 +95,7 @@ $ docker run -d --name gitea \
 	--dns 10.12.10.160 \
 	-p 11180:3000 \
 	-p 8322:22 \
-	-v gitea-data:/data \
+	-v gitea-data:/app/data \
 	gitea/gitea:latest
 ```
 
