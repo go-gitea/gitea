@@ -218,7 +218,9 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
 
-				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
+				previousBlameLink := fmt.Sprintf(`<a class="blame-previous" href="%s/blame/commit/%s/%s">⎗</a>`, repoLink, part.Sha, ctx.Repo.TreePath)
+				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div>%s</div></div>`,
+					attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince, previousBlameLink))
 			} else {
 				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
 			}
