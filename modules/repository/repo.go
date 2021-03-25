@@ -361,7 +361,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 					return nil
 				default:
 				}
-				log.Error("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %v", err)
+				log.Error("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %v", pointerBlob.Oid, err)
 				continue
 			}
 			defer stream.Close()
