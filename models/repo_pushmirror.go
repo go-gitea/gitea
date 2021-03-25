@@ -5,6 +5,7 @@
 package models
 
 import (
+	"errors"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -20,10 +21,10 @@ var (
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
-	ID          int64       `xorm:"pk autoincr"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	RemoteName  string
+	ID         int64       `xorm:"pk autoincr"`
+	RepoID     int64       `xorm:"INDEX"`
+	Repo       *Repository `xorm:"-"`
+	RemoteName string
 
 	Interval       time.Duration
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
@@ -79,7 +80,7 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 // GetPushMirrorByID returns push-mirror information.
 func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 	m := &PushMirror{ID: ID}
-	has, err := e.Get(m)
+	has, err := x.Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -96,10 +97,10 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
-	return x
-		.Where("next_update_unix<=?", time.Now().Unix())
-		.And("next_update_unix!=0")
-		.Iterate(new(PushMirror), f)
+	return x.
+		Where("next_update_unix<=?", time.Now().Unix()).
+		And("next_update_unix!=0").
+		Iterate(new(PushMirror), f)
 }
 
 // ScheduleNextUpdate calculates and sets next update time.
