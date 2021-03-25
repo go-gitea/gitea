@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -33,8 +34,8 @@ var (
 	// ErrInvalidStructure occurs if the content has an invalid structure
 	ErrInvalidStructure = errors.New("Content has an invalid structure")
 
-	// ErrInvalidOIDLength occurs if the oid has an invalid length
-	ErrInvalidOIDLength = errors.New("OID has an invalid length")
+	// ErrInvalidOIDFormat occurs if the oid has an invalid format
+	ErrInvalidOIDFormat = errors.New("OID has an invalid format")
 )
 
 // ReadPointer tries to read LFS pointer data from the reader
@@ -48,6 +49,8 @@ func ReadPointer(reader io.Reader) (Pointer, error) {
 
 	return ReadPointerFromBuffer(buf)
 }
+
+var oidPattern = regexp.MustCompile(`^[a-f\d]{64}$`)
 
 // ReadPointerFromBuffer will return a pointer if the provided byte slice is a pointer file or an error otherwise.
 func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
@@ -64,8 +67,8 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	}
 
 	oid := strings.TrimPrefix(splitLines[1], MetaFileOidPrefix)
-	if len(oid) != 64 {
-		return p, ErrInvalidOIDLength
+	if len(oid) != 64 || !oidPattern.MatchString(oid) {
+		return p, ErrInvalidOIDFormat
 	}
 	size, err := strconv.ParseInt(strings.TrimPrefix(splitLines[2], "size "), 10, 64)
 	if err != nil {
@@ -76,6 +79,21 @@ func ReadPointerFromBuffer(buf []byte) (Pointer, error) {
 	p.Size = size
 
 	return p, nil
+}
+
+// IsValid checks if the pointer has a valid structure.
+// It doesn't check if the pointed-to-content exists.
+func (p Pointer) IsValid() bool {
+	if len(p.Oid) != 64 {
+		return false
+	}
+	if !oidPattern.MatchString(p.Oid) {
+		return false
+	}
+	if p.Size < 0 {
+		return false
+	}
+	return true
 }
 
 // StringContent returns the string representation of the pointer

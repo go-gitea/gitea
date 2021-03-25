@@ -96,8 +96,8 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	pointer, err := lfs.ReadPointer(dataRc)
-	if err == nil {
+	pointer, _ := lfs.ReadPointer(dataRc)
+	if pointer.IsValid() {
 		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 		if meta == nil {
 			return ServeBlob(ctx, blob)

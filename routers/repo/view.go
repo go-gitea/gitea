@@ -273,8 +273,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		// FIXME: what happens when README file is an image?
 		if isTextFile && setting.LFS.StartServer {
-			pointer, err := lfs.ReadPointerFromBuffer(buf)
-			if err == nil {
+			pointer, _ := lfs.ReadPointerFromBuffer(buf)
+			if pointer.IsValid() {
 				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
@@ -398,8 +398,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
-		pointer, err := lfs.ReadPointerFromBuffer(buf)
-		if err == nil {
+		pointer, _ := lfs.ReadPointerFromBuffer(buf)
+		if pointer.IsValid() {
 			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
