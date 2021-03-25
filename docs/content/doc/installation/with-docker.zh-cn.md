@@ -43,7 +43,7 @@ services:
     networks:
       - gitea
     volumes:
-      - ./gitea:/data
+      - ./gitea:/app/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -73,7 +73,7 @@ services:
     networks:
       - gitea
     volumes:
-      - ./gitea:/data
+      - ./gitea:/app/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -112,7 +112,7 @@ services:
     networks:
       - gitea
     volumes:
-      - ./gitea:/data
+      - ./gitea:/app/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
      ports:
@@ -162,7 +162,7 @@ services:
     networks:
       - gitea
     volumes:
-      - ./gitea:/data
+      - ./gitea:/app/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -207,8 +207,8 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+-     - ./gitea:/app/data
++     - gitea:/app/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
