@@ -5,12 +5,12 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Email structure holds a data for sending general emails
@@ -32,6 +32,7 @@ func SendEmail(subject, message string, to []string) (int, string) {
 
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(Email{
 		Subject: subject,
 		Message: message,

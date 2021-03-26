@@ -1,10 +1,9 @@
 :root {
   /* documented customizable variables */
-  --fonts-proportional: system-ui, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "Liberation Sans", sans-serif;
-  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace;
-  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Twemoji Mozilla";
+  --fonts-proportional: -apple-system, "Segoe UI", system-ui, "Roboto", "Helvetica Neue", "Arial";
+  --fonts-monospace: "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
+  --fonts-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla";
   /* other variables */
-  --fonts-regular: var(--fonts-proportional), var(--fonts-emoji);
   --border-radius: .28571429rem;
   --opacity-disabled: .55;
   --color-primary: #4183c4;
@@ -39,12 +38,12 @@
   --color-secondary-dark-5: #818181;
   --color-secondary-dark-6: #717171;
   --color-secondary-dark-7: #626262;
-  --color-secondary-dark-7: #525252;
-  --color-secondary-dark-8: #434343;
-  --color-secondary-dark-8: #333333;
-  --color-secondary-dark-9: #242424;
-  --color-secondary-dark-10: #141414;
-  --color-secondary-dark-11: #040404;
+  --color-secondary-dark-8: #525252;
+  --color-secondary-dark-9: #434343;
+  --color-secondary-dark-10: #333333;
+  --color-secondary-dark-11: #242424;
+  --color-secondary-dark-12: #141414;
+  --color-secondary-dark-13: #040404;
   --color-secondary-light-1: #e5e5e5;
   --color-secondary-light-2: #ebebeb;
   --color-secondary-light-3: #f2f2f2;
@@ -104,10 +103,9 @@
   --color-menu: #ffffff;
   --color-card: #ffffff;
   --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000008;
+  --color-markdown-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
-  --color-markdown-code-block: #00000010;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
   /* backgrounds */
@@ -115,36 +113,8 @@
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
 }
 
-:root:lang(ja) {
-  --fonts-proportional: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Source Han Sans JP", "Noto Sans CJK JP", "Droid Sans Japanese", "Meiryo", "MS PGothic";
-}
-
-:root:lang(zh-CN) {
-  --fonts-proportional: "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", "Heiti SC", "SimHei";
-}
-
-:root:lang(zh-TW) {
-  --fonts-proportional: "PingFang TC", "Hiragino Sans TC", "Source Han Sans TW", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU";
-}
-
-:root:lang(zh-HK) {
-  --fonts-proportional: "PingFang HK", "Hiragino Sans TC", "Source Han Sans HK", "Source Han Sans TC", "Noto Sans CJK TC", "Microsoft JhengHei", "Heiti TC", "PMingLiU_HKSCS", "PMingLiU";
-}
-
-:root:lang(ko) {
-  --fonts-proportional: "Apple SD Gothic Neo", "NanumBarunGothic", "Malgun Gothic", "Gulim", "Dotum", "Nanum Gothic", "Source Han Sans KR", "Noto Sans CJK KR";
-}
-
-@font-face {
-  font-family: "Yu Gothic";
-  src: local("Yu Gothic Medium");
-  font-weight: 400;
-}
-
-@font-face {
-  font-family: "Yu Gothic";
-  src: local("Yu Gothic Bold");
-  font-weight: 500;
+:root * {
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", var(--fonts-emoji), sans-serif;
 }
 
 textarea {
@@ -278,7 +248,7 @@ a.muted:hover,
 .ui.menu .item {
   color: var(--color-text);
 
-  .svg {
+  > .svg {
     margin-right: .35em;
   }
 }
@@ -601,10 +571,6 @@ a.ui.card:hover,
 
   .fitted .svg {
     margin-right: 0;
-  }
-
-  .svg {
-    margin-right: .75em;
   }
 
   .searchbox {
@@ -1155,10 +1121,18 @@ footer {
     }
   }
 
-  .ui.language .menu {
-    max-height: 500px;
-    overflow-y: auto;
-    margin-bottom: 7px;
+  .ui.language {
+    .menu {
+      max-height: 500px;
+      overflow-y: auto;
+      margin-bottom: 7px;
+    }
+
+    .svg {
+      margin-right: .15em;
+      vertical-align: top;
+      margin-top: calc(2em - 16px);
+    }
   }
 
   .ui {
@@ -1589,6 +1563,7 @@ a.ui.label:hover {
   border-left: none;
 }
 
+.ui.labeled.button.disabled > .button,
 .ui.basic.buttons .button,
 .ui.basic.button {
   color: var(--color-text-light);
@@ -1888,6 +1863,17 @@ table th[data-sortt-desc] {
   font-style: normal !important;
   font-weight: normal !important;
   vertical-align: -.075em;
+
+  @supports (-webkit-hyphens:none) {
+    body:not(.safari-above125) & {
+      font-size: inherit;
+      vertical-align: inherit;
+      img {
+        font-size: 1.25em;
+        vertical-align: -.225em !important;
+      }
+    }
+  }
 }
 
 .emoji img,

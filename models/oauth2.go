@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
@@ -25,7 +26,8 @@ var OAuth2Providers = map[string]OAuth2Provider{
 	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
 	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
 	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
-	"github": {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png",
+	"github": {
+		Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("github"),
 			AuthURL:    oauth2.GetDefaultAuthURL("github"),
@@ -33,7 +35,8 @@ var OAuth2Providers = map[string]OAuth2Provider{
 			EmailURL:   oauth2.GetDefaultEmailURL("github"),
 		},
 	},
-	"gitlab": {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png",
+	"gitlab": {
+		Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitlab"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitlab"),
@@ -44,14 +47,16 @@ var OAuth2Providers = map[string]OAuth2Provider{
 	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.svg"},
 	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
 	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
-	"gitea": {Name: "gitea", DisplayName: "Gitea", Image: "/img/auth/gitea.png",
+	"gitea": {
+		Name: "gitea", DisplayName: "Gitea", Image: "/img/auth/gitea.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitea"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitea"),
 			ProfileURL: oauth2.GetDefaultProfileURL("gitea"),
 		},
 	},
-	"nextcloud": {Name: "nextcloud", DisplayName: "Nextcloud", Image: "/img/auth/nextcloud.png",
+	"nextcloud": {
+		Name: "nextcloud", DisplayName: "Nextcloud", Image: "/img/auth/nextcloud.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("nextcloud"),
 			AuthURL:    oauth2.GetDefaultAuthURL("nextcloud"),
@@ -59,7 +64,8 @@ var OAuth2Providers = map[string]OAuth2Provider{
 		},
 	},
 	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/img/auth/yandex.png"},
-	"mastodon": {Name: "mastodon", DisplayName: "Mastodon", Image: "/img/auth/mastodon.png",
+	"mastodon": {
+		Name: "mastodon", DisplayName: "Mastodon", Image: "/img/auth/mastodon.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			AuthURL: oauth2.GetDefaultAuthURL("mastodon"),
 		},
@@ -145,7 +151,12 @@ func initOAuth2LoginSources() error {
 		oAuth2Config := source.OAuth2()
 		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		if err != nil {
-			return err
+			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
+			source.IsActived = false
+			if err = UpdateSource(source); err != nil {
+				log.Critical("Unable to update source %s to disable it. Error: %v", err)
+				return err
+			}
 		}
 	}
 	return nil

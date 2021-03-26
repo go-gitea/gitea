@@ -4,94 +4,94 @@
 
 		{{if .Issue.IsPull }}
 
-		<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
-		<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
-			<span class="text">
-				<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
-				{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
-					{{svg "octicon-gear"}}
-				{{end}}
-			</span>
-			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
-				{{if .Reviewers}}
-					<div class="ui icon search input">
-						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
-					</div>
-				{{end}}
-				{{if .Reviewers}}
-					{{range .Reviewers}}
-						{{if .User}}
-							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
-								<span class="text">
-									{{avatar .User 28 "mr-3"}}
-									{{.User.GetDisplayName}}
-								</span>
-							</a>
-						{{end}}
+			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
+			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
+				<span class="text">
+					<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
+					{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
+						{{svg "octicon-gear"}}
 					{{end}}
-				{{end}}
-				{{if .TeamReviewers}}
-					<div class="ui divider"></div>
-					{{range .TeamReviewers}}
-						{{if .Team}}
-							<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
-								<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
-								<span class="text">
-									{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
-								</span>
-							</a>
-						{{end}}
+				</span>
+				<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+					<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
+					{{if .Reviewers}}
+						<div class="ui icon search input">
+							<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+							<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_reviewers"}}">
+						</div>
 					{{end}}
-				{{end}}
-			</div>
-		</div>
-
-		<div class="ui assignees list">
-			<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
-			<div class="selected">
-				{{range .PullReviewers}}
-					<div class="item mb-2">
-						{{if .User}}
-							<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
-								{{avatar .User 28 "mr-3"}}
-								{{.User.GetDisplayName}}
-							</a>
-						{{else if .Team}}
-							<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
-						{{end}}
-						<span class="ui right type-icon text {{if eq .Review.Type 1}}green
-							{{- else if eq .Review.Type 2}}grey
-							{{- else if eq .Review.Type 3}}red
-							{{- else if eq .Review.Type 4}}yellow
-							{{- else}}grey{{end}} right ">
-
-							{{if .CanChange}}
-								<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-									{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
+					{{if .Reviewers}}
+						{{range .Reviewers}}
+							{{if .User}}
+								<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_{{.ItemID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check"}}</span>
+									<span class="text">
+										{{avatar .User 28 "mr-3"}}
+										{{.User.GetDisplayName}}
+									</span>
 								</a>
 							{{end}}
-							{{svg (printf "octicon-%s" .Review.Type.Icon)}}
-						</span>
-					</div>
-				{{end}}
-				{{range .OriginalReviews}}
-					<div class="item" style="margin-bottom: 10px;">
-						<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
-						<span class="ui right type-icon text {{if eq .Type 1}}green
-							{{- else if eq .Type 2}}grey
-							{{- else if eq .Type 3}}red
-							{{- else if eq .Type 4}}yellow
-							{{- else}}grey{{end}} right ">
-							{{svg (printf "octicon-%s" .Type.Icon)}}
-						</span>
-					</div>
-				{{end}}
+						{{end}}
+					{{end}}
+					{{if .TeamReviewers}}
+						<div class="ui divider"></div>
+						{{range .TeamReviewers}}
+							{{if .Team}}
+								<a class="{{if not .CanChange}}ui poping up{{end}} item {{if .Checked}} checked {{end}} {{if not .CanChange}}ban-change{{end}}" href="#" data-id="{{.ItemID}}" data-id-selector="#review_request_team_{{.Team.ID}}" {{if not .CanChange}} data-content="{{$.i18n.Tr "repo.issues.remove_request_review_block"}}"{{end}}>
+									<span class="octicon-check {{if not .Checked}}invisible{{end}}">{{svg "octicon-check" 16}}</span>
+									<span class="text">
+										{{svg "octicon-people" 16 "ml-4 mr-2"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}
+									</span>
+								</a>
+							{{end}}
+						{{end}}
+					{{end}}
+				</div>
 			</div>
-		</div>
-		<div class="ui divider"></div>
+
+			<div class="ui assignees list">
+				<span class="no-select item {{if or .OriginalReviews .PullReviewers}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_reviewers"}}</span>
+				<div class="selected">
+					{{range .PullReviewers}}
+						<div class="item mb-2">
+							{{if .User}}
+								<a class="muted sidebar-item-link" href="{{.User.HomeLink}}">
+									{{avatar .User 28 "mr-3"}}
+									{{.User.GetDisplayName}}
+								</a>
+							{{else if .Team}}
+								<span class="text">{{svg "octicon-people" 16 "teamavatar"}}{{$.Issue.Repo.OwnerName}}/{{.Team.Name}}</span>
+							{{end}}
+							<span class="ui right type-icon text {{if eq .Review.Type 1}}green
+								{{- else if eq .Review.Type 2}}grey
+								{{- else if eq .Review.Type 3}}red
+								{{- else if eq .Review.Type 4}}yellow
+								{{- else}}grey{{end}} right ">
+
+								{{if .CanChange}}
+									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
+									</a>
+								{{end}}
+								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
+							</span>
+						</div>
+					{{end}}
+					{{range .OriginalReviews}}
+						<div class="item" style="margin-bottom: 10px;">
+							<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
+							<span class="ui right type-icon text {{if eq .Type 1}}green
+								{{- else if eq .Type 2}}grey
+								{{- else if eq .Type 3}}red
+								{{- else if eq .Type 4}}yellow
+								{{- else}}grey{{end}} right ">
+								{{svg (printf "octicon-%s" .Type.Icon)}}
+							</span>
+						</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="ui divider"></div>
 		{{end}}
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
@@ -104,10 +104,10 @@
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_labels_title"}}</div>
 				{{if or .Labels .OrgLabels}}
-				<div class="ui icon search input">
-					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-					<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_labels"}}">
-				</div>
+					<div class="ui icon search input">
+						<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+						<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_labels"}}">
+					</div>
 				{{end}}
 				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_labels"}}</div>
 				{{if or .Labels .OrgLabels}}
@@ -190,52 +190,54 @@
 		</div>
 
 		{{if .IsProjectsEnabled}}
-		<div class="ui divider"></div>
+			<div class="ui divider"></div>
 
-		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
-			<span class="text">
-				<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-				{{svg "octicon-gear"}}
-			</span>
-			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
-				<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
-				{{if .OpenProjects}}
-					<div class="divider"></div>
-					<div class="header">
-						{{.i18n.Tr "repo.issues.new.open_projects"}}
-					</div>
-					{{range .OpenProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
+				<span class="text">
+					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
+					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+						{{svg "octicon-gear"}}
+					{{end}}
+				</span>
+				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
+					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
+					{{if .OpenProjects}}
+						<div class="divider"></div>
+						<div class="header">
+							{{.i18n.Tr "repo.issues.new.open_projects"}}
+						</div>
+						{{range .OpenProjects}}
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+								{{svg "octicon-project" 18 "mr-3"}}
+								{{.Title}}
+							</a>
+						{{end}}
+					{{end}}
+					{{if .ClosedProjects}}
+						<div class="divider"></div>
+						<div class="header">
+							{{.i18n.Tr "repo.issues.new.closed_projects"}}
+						</div>
+						{{range .ClosedProjects}}
+							<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
+								{{svg "octicon-project" 18 "mr-3"}}
+								{{.Title}}
+							</a>
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+			<div class="ui select-project list">
+				<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
+				<div class="selected">
+					{{if .Issue.ProjectID}}
+						<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">
 							{{svg "octicon-project" 18 "mr-3"}}
-							{{.Title}}
+							{{.Issue.Project.Title}}
 						</a>
 					{{end}}
-				{{end}}
-				{{if .ClosedProjects}}
-					<div class="divider"></div>
-					<div class="header">
-						{{.i18n.Tr "repo.issues.new.closed_projects"}}
-					</div>
-					{{range .ClosedProjects}}
-						<a class="item muted sidebar-item-link" data-id="{{.ID}}" data-href="{{$.RepoLink}}/projects/{{.ID}}">
-							{{svg "octicon-project" 18 "mr-3"}}
-							{{.Title}}
-						</a>
-					{{end}}
-				{{end}}
+				</div>
 			</div>
-		</div>
-		<div class="ui select-project list">
-			<span class="no-select item {{if .Issue.ProjectID}}hide{{end}}">{{.i18n.Tr "repo.issues.new.no_projects"}}</span>
-			<div class="selected">
-				{{if .Issue.ProjectID}}
-					<a class="item muted sidebar-item-link" href="{{.RepoLink}}/projects/{{.Issue.ProjectID}}">
-						{{svg "octicon-project" 18 "mr-3"}}
-						{{.Issue.Project.Title}}
-					</a>
-				{{end}}
-			</div>
-		</div>
 		{{end}}
 
 		<div class="ui divider"></div>
@@ -467,7 +469,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -495,7 +497,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -524,10 +526,49 @@
 				{{end}}
 			</div>
 
-			{{ if and .IsRepoAdmin (not .Repository.IsArchived) }}
+			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
+				<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
+				<input type="hidden" id="repoId" value="{{.Repository.ID}}">
+				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
+				<input type="hidden" id="type" value="{{.IssueType}}">
+				<!-- I know, there is probably a better way to do this -->
+				<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+
+				<div class="ui basic modal remove-dependency">
+					<div class="ui icon header">
+						{{svg "octicon-trash"}}
+						{{.i18n.Tr "repo.issues.dependency.remove_header"}}
+					</div>
+					<div class="content">
+						<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/delete" id="removeDependencyForm">
+							{{$.CsrfTokenHtml}}
+							<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
+							<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
+						</form>
+						<p>{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.issues.dependency.pr_remove_text"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.dependency.issue_remove_text"}}
+						{{end}}</p>
+					</div>
+					<div class="actions">
+						<div class="ui basic red cancel inverted button">
+							<i class="remove icon"></i>
+							{{.i18n.Tr "repo.issues.dependency.cancel"}}
+						</div>
+						<div class="ui basic green ok inverted button">
+							<i class="checkmark icon"></i>
+							{{.i18n.Tr "repo.issues.dependency.remove"}}
+						</div>
+					</div>
+				</div>
+			{{end}}
+		{{end}}
+
+		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">
-				<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{ end }}" data-modal="#lock">
+				<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{end}}" data-modal="#lock">
 					{{if .Issue.IsLocked}}
 						{{svg "octicon-key"}}
 						{{.i18n.Tr "repo.issues.unlock"}}
@@ -537,111 +578,70 @@
 					{{end}}
 				</button>
 			</div>
-
-
 			<div class="ui tiny modal" id="lock">
 				<div class="header">
 					{{ if .Issue.IsLocked }}
 						{{.i18n.Tr "repo.issues.unlock.title"}}
-					{{ else }}
+					{{else}}
 						{{.i18n.Tr "repo.issues.lock.title"}}
-					{{ end }}
+					{{end}}
 				</div>
-			<div class="content">
-				<div class="ui warning message text left">
-					{{ if .Issue.IsLocked }}
-						{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
-						{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
-					{{ else }}
-						{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
-						{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
-						{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
-					{{ end }}
-				</div>
-
-				<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{ else }}/lock{{ end }}"
-					method="post">
-					{{.CsrfTokenHtml}}
-
-					{{ if not .Issue.IsLocked }}
-					<div class="field">
-						<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
+				<div class="content">
+					<div class="ui warning message text left">
+						{{ if .Issue.IsLocked }}
+							{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
+							{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
+						{{else}}
+							{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
+							{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
+							{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
+						{{end}}
 					</div>
 
-					<div class="field">
-						<div class="ui fluid dropdown selection" tabindex="0">
+					<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{else}}/lock{{end}}"
+						method="post">
+						{{.CsrfTokenHtml}}
 
-							<select name="reason">
-								<option value=""> </option>
-								{{range .LockReasons}}
-									<option value="{{.}}">{{.}}</option>
-								{{end}}
-							</select>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-
-							<div class="default text"> </div>
-
-							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
-								{{range .LockReasons}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
-								{{end}}
+						{{ if not .Issue.IsLocked }}
+							<div class="field">
+								<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
 							</div>
+
+							<div class="field">
+								<div class="ui fluid dropdown selection" tabindex="0">
+
+									<select name="reason">
+										<option value=""> </option>
+										{{range .LockReasons}}
+											<option value="{{.}}">{{.}}</option>
+										{{end}}
+									</select>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+
+									<div class="default text"> </div>
+
+									<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+										{{range .LockReasons}}
+											<div class="item" data-value="{{.}}">{{.}}</div>
+										{{end}}
+									</div>
+								</div>
+							</div>
+						{{end}}
+
+						<div class="text right actions">
+							<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+							<button class="ui red button">
+								{{ if .Issue.IsLocked }}
+									{{.i18n.Tr "repo.issues.unlock_confirm"}}
+								{{else}}
+									{{.i18n.Tr "repo.issues.lock_confirm"}}
+								{{end}}
+							</button>
 						</div>
-					</div>
-					{{ end }}
-
-					<div class="text right actions">
-						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-						<button class="ui red button">
-							{{ if .Issue.IsLocked }}
-								{{.i18n.Tr "repo.issues.unlock_confirm"}}
-							{{ else }}
-								{{.i18n.Tr "repo.issues.lock_confirm"}}
-							{{ end }}
-						</button>
-					</div>
-				</form>
+					</form>
+				</div>
 			</div>
-		</div>
-		{{ end }}
-
+		{{end}}
 	</div>
 </div>
-{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
-	<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-	<input type="hidden" id="repoId" value="{{.Repository.ID}}">
-	<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
-	<input type="hidden" id="type" value="{{.IssueType}}">
-	<!-- I know, there is probably a better way to do this -->
-	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
-
-	<div class="ui basic modal remove-dependency">
-		<div class="ui icon header">
-			{{svg "octicon-trashcan"}}
-			{{.i18n.Tr "repo.issues.dependency.remove_header"}}
-		</div>
-		<div class="content">
-			<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/dependency/delete" id="removeDependencyForm">
-				{{$.CsrfTokenHtml}}
-				<input type="hidden" value="" name="removeDependencyID" id="removeDependencyID"/>
-				<input type="hidden" value="" name="dependencyType" id="dependencyType"/>
-			</form>
-			<p>{{if .Issue.IsPull}}
-				{{.i18n.Tr "repo.issues.dependency.pr_remove_text"}}
-			{{else}}
-				{{.i18n.Tr "repo.issues.dependency.issue_remove_text"}}
-			{{end}}</p>
-		</div>
-		<div class="actions">
-			<div class="ui basic red cancel inverted button">
-				<i class="remove icon"></i>
-				{{.i18n.Tr "repo.issues.dependency.cancel"}}
-			</div>
-			<div class="ui basic green ok inverted button">
-				<i class="checkmark icon"></i>
-				{{.i18n.Tr "repo.issues.dependency.remove"}}
-			</div>
-		</div>
-	</div>
-{{end}}
-		{{end}}

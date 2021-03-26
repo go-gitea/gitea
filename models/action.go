@@ -186,7 +186,7 @@ func (a *Action) GetRepoLink() string {
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
+func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 	var err error
 	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
@@ -218,7 +218,7 @@ func (a *Action) getCommentLink(e Engine) string {
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
 	}
-	//Return link to issue
+	// Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 	if err != nil {
@@ -322,7 +322,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user *User, doer *User) bool {
+func activityReadable(user, doer *User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID

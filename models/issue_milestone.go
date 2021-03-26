@@ -63,8 +63,10 @@ func (m *Milestone) AfterLoad() {
 	}
 
 	m.DeadlineString = m.DeadlineUnix.Format("2006-01-02")
-	if timeutil.TimeStampNow() >= m.DeadlineUnix {
-		m.IsOverdue = true
+	if m.IsClosed {
+		m.IsOverdue = m.ClosedDateUnix >= m.DeadlineUnix
+	} else {
+		m.IsOverdue = timeutil.TimeStampNow() >= m.DeadlineUnix
 	}
 }
 
@@ -280,7 +282,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 			return err
 		}
 
-		var opts = &CreateCommentOptions{
+		opts := &CreateCommentOptions{
 			Type:           CommentTypeMilestone,
 			Doer:           doer,
 			Repo:           issue.Repo,
@@ -364,7 +366,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 type MilestoneList []*Milestone
 
 func (milestones MilestoneList) getMilestoneIDs() []int64 {
-	var ids = make([]int64, 0, len(milestones))
+	ids := make([]int64, 0, len(milestones))
 	for _, ms := range milestones {
 		ids = append(ids, ms.ID)
 	}
@@ -594,7 +596,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e Engine) error {
 	if len(milestones) == 0 {
 		return nil
 	}
-	var trackedTimes = make(map[int64]int64, len(milestones))
+	trackedTimes := make(map[int64]int64, len(milestones))
 
 	// Get total tracked time by milestone_id
 	rows, err := e.Table("issue").

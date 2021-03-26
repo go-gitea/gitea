@@ -19,7 +19,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/couchbase/vellum"
+	"github.com/blevesearch/vellum"
 )
 
 const Version uint32 = 14

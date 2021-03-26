@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -44,9 +46,12 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
+	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
+	"github.com/unknwon/com"
 )
 
 const (
@@ -61,13 +66,30 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 				next.ServeHTTP(context.NewResponse(resp), req)
 			})
 		},
-		middleware.RealIP,
 	}
+
+	if setting.ReverseProxyLimit > 0 {
+		opt := proxy.NewForwardedHeadersOptions().
+			WithForwardLimit(setting.ReverseProxyLimit).
+			ClearTrustedProxies()
+		for _, n := range setting.ReverseProxyTrustedProxies {
+			if !strings.Contains(n, "/") {
+				opt.AddTrustedProxy(n)
+			} else {
+				opt.AddTrustedNetwork(n)
+			}
+		}
+		handlers = append(handlers, proxy.ForwardedHeaders(opt))
+	}
+
+	handlers = append(handlers, middleware.StripSlashes)
+
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			// Why we need this? The Recovery() will try to render a beautiful
@@ -216,10 +238,72 @@ func WebRoutes() *web.Route {
 	return r
 }
 
+func goGet(ctx *context.Context) {
+	if ctx.Query("go-get") != "1" {
+		return
+	}
+
+	// Quick responses appropriate go-get meta with status 200
+	// regardless of if user have access to the repository,
+	// or the repository does not exist at all.
+	// This is particular a workaround for "go get" command which does not respect
+	// .netrc file.
+
+	ownerName := ctx.Params(":username")
+	repoName := ctx.Params(":reponame")
+	trimmedRepoName := strings.TrimSuffix(repoName, ".git")
+
+	if ownerName == "" || trimmedRepoName == "" {
+		_, _ = ctx.Write([]byte(`<!doctype html>
+<html>
+	<body>
+		invalid import path
+	</body>
+</html>
+`))
+		ctx.Status(400)
+		return
+	}
+	branchName := setting.Repository.DefaultBranch
+
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err == nil && len(repo.DefaultBranch) > 0 {
+		branchName = repo.DefaultBranch
+	}
+	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+
+	appURL, _ := url.Parse(setting.AppURL)
+
+	insecure := ""
+	if appURL.Scheme == string(setting.HTTP) {
+		insecure = "--insecure "
+	}
+	ctx.Header().Set("Content-Type", "text/html")
+	ctx.Status(http.StatusOK)
+	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
+<html>
+	<head>
+		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
+		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
+	</head>
+	<body>
+		go get {Insecure}{GoGetImport}
+	</body>
+</html>
+`, map[string]string{
+		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
+		"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
+		"GoDocDirectory": prefix + "{/dir}",
+		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
+		"Insecure":       insecure,
+	})))
+}
+
 // RegisterRoutes register routes
 func RegisterRoutes(m *web.Route) {
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView})
+	ignExploreSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: setting.Service.RequireSignInView || setting.Service.Explore.RequireSigninView})
 	ignSignInAndCsrf := context.Toggle(&context.ToggleOptions{DisableCSRF: true})
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
@@ -269,7 +353,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", routers.ExploreUsers)
 		m.Get("/organizations", routers.ExploreOrganizations)
 		m.Get("/code", routers.ExploreCode)
-	}, ignSignIn)
+	}, ignExploreSignIn)
 	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
@@ -316,7 +400,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", reqSignIn, events.Events)
+	m.Any("/user/events", events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
@@ -324,7 +408,18 @@ func RegisterRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
-	m.Post("/login/oauth/access_token", bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	if setting.CORSConfig.Enabled {
+		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		}), bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	} else {
+		m.Post("/login/oauth/access_token", bindIgnErr(auth.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	}
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -1004,7 +1099,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+		}, goGet, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {
