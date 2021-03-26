@@ -53,6 +53,10 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 	}
 	if fromByte > 0 {
 		if fromByte >= meta.Size {
+			err = f.Close()
+			if err != nil {
+				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", meta.Oid, err)
+			}
 			return nil, ErrRangeNotSatisfiable{
 				FromByte: fromByte,
 			}
