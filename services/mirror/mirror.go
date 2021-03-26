@@ -202,7 +202,7 @@ func syncMirrors(ctx context.Context) {
 			if strings.HasPrefix(item, "pull") {
 				syncPullMirror(item[5:])
 			} else if strings.HasPrefix(item, "push") {
-				//syncPushMirror(item[5:])
+				syncPushMirror(item[5:])
 			} else {
 				log.Error("Unknown item in queue: %v", item)
 			}
