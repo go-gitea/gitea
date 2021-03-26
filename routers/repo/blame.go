@@ -26,16 +26,16 @@ const (
 )
 
 type BlameRow struct {
-	RowNumber             int
-	Avatar                gotemplate.HTML
-	RepoLink              string
-	PartSha               string
-	PreviousSha           string
-	PreviousShaUrl        string
-	CommitUrl             string
-	CommitMessage         string
-	CommitSince           gotemplate.HTML
-	Code                  gotemplate.HTML
+	RowNumber      int
+	Avatar         gotemplate.HTML
+	RepoLink       string
+	PartSha        string
+	PreviousSha    string
+	PreviousShaUrl string
+	CommitUrl      string
+	CommitMessage  string
+	CommitSince    gotemplate.HTML
+	Code           gotemplate.HTML
 }
 
 // RefBlame render blame page
@@ -218,7 +218,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 		for index, line := range part.Lines {
 			i++
 			lines = append(lines, line)
-			
+
 			br := &BlameRow{
 				RowNumber: i,
 			}
@@ -238,7 +238,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				} else {
 					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
-				
+
 				br.Avatar = gotemplate.HTML(avatar)
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
@@ -256,10 +256,10 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			line = highlight.Code(fileName, line)
 
 			br.Code = gotemplate.HTML(line)
-      rows = append(rows, br)
+			rows = append(rows, br)
 		}
 	}
 
-  ctx.Data["Codes"] = rows
+	ctx.Data["Codes"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
 }
