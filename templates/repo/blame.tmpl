@@ -43,7 +43,7 @@
 								</div>
 							</td>
 							<td class="lines-blame-btn">
-							  {{if $row.PreviousSha}}
+							  {{if and (gt $.CommitCnt 1) ($row.PreviousSha)}}
 									<a href="{{$row.PreviousShaUrl}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
 										{{svg "octicon-calendar"}}
 									</a>

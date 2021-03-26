@@ -179,7 +179,11 @@ func RefBlame(ctx *context.Context) {
 		// Get previous closest commit sha from the commit
 		previousSha, err := commit.ParentID(0)
 		if err == nil {
-			previousCommits[commit.ID.String()] = previousSha.String()
+			// Verify the commit
+			haz, _ := commit.HasPreviousCommit(previousSha)
+			if haz {
+				previousCommits[commit.ID.String()] = previousSha.String()
+			}
 		}
 
 		commits.PushBack(commit)
