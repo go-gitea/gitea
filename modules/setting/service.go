@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"gopkg.in/ini.v1"
 	"regexp"
 	"time"
 
@@ -70,10 +71,15 @@ var Service struct {
 
 // OAuth2Client settings
 var OAuth2Client struct {
-	RegisterEmailConfirm   bool
-	OpenIDConnectScopes    []string
-	EnableAutoRegistration bool
-	UseNickname            bool
+	RegisterEmailConfirm    bool
+	OpenIDConnectScopes     []string
+	GoogleConnectScopes     []string
+	EnableAutoRegistration  bool
+	UseNickname             bool
+	UseEmail                bool
+	UpdateAvatar					  bool
+	AccountLinkingLogin     bool
+	AutoRegistrationLinking bool
 }
 
 func newService() {
@@ -147,13 +153,23 @@ func newService() {
 
 	sec = Cfg.Section("oauth2_client")
 	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
-	pats = sec.Key("OPENID_CONNECT_SCOPES").Strings(" ")
-	OAuth2Client.OpenIDConnectScopes = make([]string, 0, len(pats))
-	for _, scope := range pats {
-		if scope != "" {
-			OAuth2Client.OpenIDConnectScopes = append(OAuth2Client.OpenIDConnectScopes, scope)
-		}
-	}
+	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
+	OAuth2Client.GoogleConnectScopes = parseScopes(sec, "GOOGLE_CONNECT_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
 	OAuth2Client.UseNickname = sec.Key("USE_NICKNAME").MustBool()
+	OAuth2Client.UseEmail = sec.Key("USE_EMAIL").MustBool()
+	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
+	OAuth2Client.AccountLinkingLogin = sec.Key("SHOW_ACCOUNT_LINKING_LOGIN").MustBool(true)
+	OAuth2Client.AutoRegistrationLinking = sec.Key("ENABLE_AUTO_REGISTRATION_LINKING").MustBool()
+}
+
+func parseScopes(sec *ini.Section, name string) []string {
+	parts := sec.Key(name).Strings(" ")
+	scopes := make([]string, 0, len(parts))
+	for _, scope :=	 range parts {
+		if scope != "" {
+			scopes = append(scopes, scope)
+		}
+	}
+	return scopes
 }

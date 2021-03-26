@@ -302,6 +302,8 @@ var migrations = []Migration{
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+	// v178 -> v179
+	NewMigration("Convert avatar url to text", convertAvatarUrlToText),
 }
 
 // GetCurrentDBVersion returns the current db version
