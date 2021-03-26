@@ -42,6 +42,24 @@
 			</div>
 			{{if not .IsBeingCreated}}
 				<div class="repo-buttons">
+					{{if $.RepoTransfer}}
+						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
+							{{$.CsrfTokenHtml}}
+							<div class="ui poping up" data-content="{{if $.CanUserAcceptTransfer}}{{$.i18n.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.i18n.Tr "repo.transfer.no_permission_to_accept"}}{{end}}" data-position="bottom center" data-variation="tiny">
+								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}green {{end}} ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+									{{$.i18n.Tr "repo.transfer.accept"}}
+								</button>
+							</div>
+						</form>
+						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
+							{{$.CsrfTokenHtml}}
+							<div class="ui poping up" data-content="{{if $.CanUserAcceptTransfer}}{{$.i18n.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{$.i18n.Tr "repo.transfer.no_permission_to_reject"}}{{end}}" data-position="bottom center" data-variation="tiny">
+								<button type="submit" class="ui button {{if $.CanUserAcceptTransfer}}red {{end}}ok inverted small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+									{{$.i18n.Tr "repo.transfer.reject"}}
+								</button>
+							</div>
+						</form>
+					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
@@ -65,8 +83,8 @@
 						</div>
 					</form>
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button" tabindex="0">
-							<a class="ui compact small basic button {{if or (not $.IsSigned) (not $.CanSignedUserFork)}}poping up{{end}}" {{if $.CanSignedUserFork}}href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{else if $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{ else }} data-content="{{$.i18n.Tr "repo.fork_guest_user" }}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{AppSubUrl}}/repo/fork/{{.ID}}" {{end}} data-position="top center" data-variation="tiny">
+						<div class="ui labeled button{{if not $.CanSignedUserFork}} poping up disabled{{end}}"{{if and (not $.CanSignedUserFork) $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{else if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" data-variation="tiny" tabindex="0">
+							<a class="ui compact small basic button"{{if $.CanSignedUserFork}} href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{end}}>
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
 							<a class="ui basic label" href="{{.Link}}/forks">

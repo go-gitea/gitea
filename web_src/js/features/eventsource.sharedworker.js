@@ -46,9 +46,8 @@ class Source {
   listen(eventType) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    const self = this;
     this.eventSource.addEventListener(eventType, (event) => {
-      self.notifyClients({
+      this.notifyClients({
         type: eventType,
         data: event.data
       });

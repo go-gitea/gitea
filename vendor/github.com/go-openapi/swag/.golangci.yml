@@ -36,3 +36,4 @@ linters:
     - funlen
     - gci
     - gocognit
+    - paralleltest

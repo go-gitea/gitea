@@ -9,8 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +18,7 @@ import (
 	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -30,8 +29,6 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
-
-	"mvdan.cc/xurls/v2"
 )
 
 const (
@@ -43,8 +40,6 @@ const (
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
-
-var validFormAddress *regexp.Regexp
 
 // Settings show a repository's settings page
 func Settings(ctx *context.Context) {
@@ -169,39 +164,37 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		// Validate the form.MirrorAddress
-		u, err := url.Parse(form.MirrorAddress)
+		address, err := auth.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+		}
 		if err != nil {
+			if models.IsErrInvalidCloneAddr(err) {
+				ctx.Data["Err_MirrorAddress"] = true
+				addrErr := err.(*models.ErrInvalidCloneAddr)
+				switch {
+				case addrErr.IsProtocolInvalid:
+					ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
+				case addrErr.IsURLError:
+					ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, &form)
+				case addrErr.IsPermissionDenied:
+					if addrErr.LocalPath {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
+					} else if len(addrErr.PrivateNet) == 0 {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, &form)
+					} else {
+						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, &form)
+					}
+				case addrErr.IsInvalidPath:
+					ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, &form)
+				default:
+					ctx.ServerError("Unknown error", err)
+				}
+			}
 			ctx.Data["Err_MirrorAddress"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
 			return
 		}
-
-		if u.Opaque != "" || !(u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "git") {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		if form.MirrorUsername != "" || form.MirrorPassword != "" {
-			u.User = url.UserPassword(form.MirrorUsername, form.MirrorPassword)
-		}
-
-		// Now use xurls
-		address := validFormAddress.FindString(form.MirrorAddress)
-		if address != form.MirrorAddress && form.MirrorAddress != "" {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		if u.EscapedPath() == "" || u.Host == "" || !u.IsAbs() {
-			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
-			return
-		}
-
-		address = u.String()
 
 		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
@@ -223,12 +216,18 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
+		var repoChanged bool
 		var units []models.RepoUnit
 		var deleteUnitTypes []models.UnitType
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
+
+		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
+			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
+			repoChanged = true
+		}
 
 		if form.EnableWiki && form.EnableExternalWiki && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
@@ -321,6 +320,8 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebase:               form.PullsAllowRebase,
 					AllowRebaseMerge:          form.PullsAllowRebaseMerge,
 					AllowSquash:               form.PullsAllowSquash,
+					AllowManualMerge:          form.PullsAllowManualMerge,
+					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
@@ -330,6 +331,12 @@ func SettingsPost(ctx *context.Context) {
 		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 			ctx.ServerError("UpdateRepositoryUnits", err)
 			return
+		}
+		if repoChanged {
+			if err := models.UpdateRepository(repo, false); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
 		}
 		log.Trace("Repository advanced settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
@@ -364,10 +371,6 @@ func SettingsPost(ctx *context.Context) {
 
 		if repo.IsFsckEnabled != form.EnableHealthCheck {
 			repo.IsFsckEnabled = form.EnableHealthCheck
-		}
-
-		if repo.CloseIssuesViaCommitInAnyBranch != form.EnableCloseIssuesViaCommitInAnyBranch {
-			repo.CloseIssuesViaCommitInAnyBranch = form.EnableCloseIssuesViaCommitInAnyBranch
 		}
 
 		if err := models.UpdateRepository(repo, false); err != nil {
@@ -477,18 +480,54 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 			ctx.Repo.GitRepo = nil
 		}
-		if err = repo_service.TransferOwnership(ctx.User, newOwner, repo, nil); err != nil {
+
+		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
 			if models.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
+			} else if models.IsErrRepoTransferInProgress(err) {
+				ctx.RenderWithErr(ctx.Tr("repo.settings.transfer_in_progress"), tplSettingsOptions, nil)
 			} else {
 				ctx.ServerError("TransferOwnership", err)
 			}
+
 			return
 		}
 
-		log.Trace("Repository transferred: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
-		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_succeed"))
-		ctx.Redirect(setting.AppSubURL + "/" + newOwner.Name + "/" + repo.Name)
+		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
+
+	case "cancel_transfer":
+		if !ctx.Repo.IsOwner() {
+			ctx.Error(404)
+			return
+		}
+
+		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+		if err != nil {
+			if models.IsErrNoPendingTransfer(err) {
+				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
+				ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+			} else {
+				ctx.ServerError("GetPendingRepositoryTransfer", err)
+			}
+
+			return
+		}
+
+		if err := repoTransfer.LoadAttributes(); err != nil {
+			ctx.ServerError("LoadRecipient", err)
+			return
+		}
+
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+			ctx.ServerError("CancelRepositoryTransfer", err)
+			return
+		}
+
+		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
+		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
@@ -911,14 +950,6 @@ func DeleteDeployKey(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
-}
-
-func init() {
-	var err error
-	validFormAddress, err = xurls.StrictMatchingScheme(`(https?)|(git)://`)
-	if err != nil {
-		panic(err)
-	}
 }
 
 // UpdateAvatarSetting update repo's avatar

@@ -72,8 +72,7 @@ func (err ErrNameCharsNotAllowed) Error() string {
 }
 
 // ErrSSHDisabled represents an "SSH disabled" error.
-type ErrSSHDisabled struct {
-}
+type ErrSSHDisabled struct{}
 
 // IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
 func IsErrSSHDisabled(err error) bool {
@@ -269,8 +268,7 @@ func (err ErrUserHasOrgs) Error() string {
 }
 
 // ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
-type ErrUserNotAllowedCreateOrg struct {
-}
+type ErrUserNotAllowedCreateOrg struct{}
 
 // IsErrUserNotAllowedCreateOrg checks if an error is an ErrUserNotAllowedCreateOrg.
 func IsErrUserNotAllowedCreateOrg(err error) bool {
@@ -603,8 +601,7 @@ func (err ErrAccessTokenNotExist) Error() string {
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct {
-}
+type ErrAccessTokenEmpty struct{}
 
 // IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
 func IsErrAccessTokenEmpty(err error) bool {
@@ -757,6 +754,40 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// ErrNoPendingRepoTransfer is an error type for repositories without a pending
+// transfer request
+type ErrNoPendingRepoTransfer struct {
+	RepoID int64
+}
+
+func (e ErrNoPendingRepoTransfer) Error() string {
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", e.RepoID)
+}
+
+// IsErrNoPendingTransfer is an error type when a repository has no pending
+// transfers
+func IsErrNoPendingTransfer(err error) bool {
+	_, ok := err.(ErrNoPendingRepoTransfer)
+	return ok
+}
+
+// ErrRepoTransferInProgress represents the state of a repository that has an
+// ongoing transfer
+type ErrRepoTransferInProgress struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
+func IsErrRepoTransferInProgress(err error) bool {
+	_, ok := err.(ErrRepoTransferInProgress)
+	return ok
+}
+
+func (err ErrRepoTransferInProgress) Error() string {
+	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
 type ErrRepoAlreadyExist struct {
 	Uname string
@@ -824,20 +855,43 @@ func (err ErrRepoRedirectNotExist) Error() string {
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
 type ErrInvalidCloneAddr struct {
+	Host               string
 	IsURLError         bool
 	IsInvalidPath      bool
+	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	LocalPath          bool
+	NotResolvedIP      bool
+	PrivateNet         string
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
 func IsErrInvalidCloneAddr(err error) bool {
-	_, ok := err.(ErrInvalidCloneAddr)
+	_, ok := err.(*ErrInvalidCloneAddr)
 	return ok
 }
 
-func (err ErrInvalidCloneAddr) Error() string {
-	return fmt.Sprintf("invalid clone address [is_url_error: %v, is_invalid_path: %v, is_permission_denied: %v]",
-		err.IsURLError, err.IsInvalidPath, err.IsPermissionDenied)
+func (err *ErrInvalidCloneAddr) Error() string {
+	if err.NotResolvedIP {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
+	}
+	if len(err.PrivateNet) != 0 {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the host resolve to a private ip address '%s'", err.Host, err.PrivateNet)
+	}
+	if err.IsInvalidPath {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
+	}
+	if err.IsProtocolInvalid {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url protocol is not allowed", err.Host)
+	}
+	if err.IsPermissionDenied {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed.", err.Host)
+	}
+	if err.IsURLError {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url is invalid", err.Host)
+	}
+
+	return fmt.Sprintf("migration/cloning from '%s' is not allowed", err.Host)
 }
 
 // ErrUpdateTaskNotExist represents a "UpdateTaskNotExist" kind of error.
@@ -1031,29 +1085,6 @@ func (e *ErrWontSign) Error() string {
 // IsErrWontSign checks if an error is a ErrWontSign
 func IsErrWontSign(err error) bool {
 	_, ok := err.(*ErrWontSign)
-	return ok
-}
-
-// ErrMigrationNotAllowed explains why a migration from an url is not allowed
-type ErrMigrationNotAllowed struct {
-	Host          string
-	NotResolvedIP bool
-	PrivateNet    string
-}
-
-func (e *ErrMigrationNotAllowed) Error() string {
-	if e.NotResolvedIP {
-		return fmt.Sprintf("migrate from '%s' is not allowed: unknown hostname", e.Host)
-	}
-	if len(e.PrivateNet) != 0 {
-		return fmt.Sprintf("migrate from '%s' is not allowed: the host resolve to a private ip address '%s'", e.Host, e.PrivateNet)
-	}
-	return fmt.Sprintf("migrate from '%s is not allowed'", e.Host)
-}
-
-// IsErrMigrationNotAllowed checks if an error is a ErrMigrationNotAllowed
-func IsErrMigrationNotAllowed(err error) bool {
-	_, ok := err.(*ErrMigrationNotAllowed)
 	return ok
 }
 

@@ -139,8 +139,9 @@ type RepositoryStatus int
 
 // all kinds of RepositoryStatus
 const (
-	RepositoryReady         RepositoryStatus = iota // a normal repository
-	RepositoryBeingMigrated                         // repository is migrating
+	RepositoryReady           RepositoryStatus = iota // a normal repository
+	RepositoryBeingMigrated                           // repository is migrating
+	RepositoryPendingTransfer                         // repository pending in ownership transfer state
 )
 
 // TrustModelType defines the types of trust model for this repository
@@ -593,15 +594,19 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 	}
 
 	// This is a "public" repository:
-	// Any user that has write access or who is a watcher can be requested to review
+	// Any user that has read access, is a watcher or organization member can be requested to review
 	if err := e.
 		SQL("SELECT * FROM `user` WHERE id IN ( "+
-			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?) "+
+			"SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? "+
 			"UNION "+
-			"SELECT user_id FROM `watch` WHERE repo_id = ? AND user_id NOT IN ( ?, ?) AND mode IN (?, ?) "+
-			") ORDER BY name",
-			repo.ID, AccessModeRead, doerID, posterID,
-			repo.ID, doerID, posterID, RepoWatchModeNormal, RepoWatchModeAuto).
+			"SELECT user_id FROM `watch` WHERE repo_id = ? AND mode IN (?, ?) "+
+			"UNION "+
+			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
+			") AND id NOT IN (?, ?) ORDER BY name",
+			repo.ID, AccessModeRead,
+			repo.ID, RepoWatchModeNormal, RepoWatchModeAuto,
+			repo.OwnerID,
+			doerID, posterID).
 		Find(&users); err != nil {
 		return nil, err
 	}
@@ -611,8 +616,8 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 
 // GetReviewers get all users can be requested to review:
 // * for private repositories this returns all users that have read access or higher to the repository.
-// * for public repositories this returns all users that have write access or higher to the repository,
-// and all repo watchers.
+// * for public repositories this returns all users that have read access or higher to the repository,
+// all repo watchers and all organization members.
 // TODO: may be we should have a busy choice for users to block review request to them.
 func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
 	return repo.getReviewers(x, doerID, posterID)
@@ -868,6 +873,11 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
+// ReadBy sets repo to be visited by given user.
+func (repo *Repository) ReadBy(userID int64) error {
+	return setRepoNotificationStatusReadIfUnread(x, userID, repo.ID)
+}
+
 func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,
@@ -1060,7 +1070,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	}
 
 	// insert units for repo
-	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
+	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
 	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
@@ -1183,140 +1193,6 @@ func RepoPath(userName, repoName string) string {
 func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
 	return err
-}
-
-// TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) error {
-	newOwner, err := GetUserByName(newOwnerName)
-	if err != nil {
-		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
-	}
-
-	// Check if new owner has repository with same name.
-	has, err := IsRepositoryExist(newOwner, repo.Name)
-	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
-	} else if has {
-		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
-	}
-
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
-	}
-
-	oldOwner := repo.Owner
-
-	// Note: we have to set value here to make sure recalculate accesses is based on
-	// new owner.
-	repo.OwnerID = newOwner.ID
-	repo.Owner = newOwner
-	repo.OwnerName = newOwner.Name
-
-	// Update repository.
-	if _, err := sess.ID(repo.ID).Update(repo); err != nil {
-		return fmt.Errorf("update owner: %v", err)
-	}
-
-	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, ListOptions{})
-	if err != nil {
-		return fmt.Errorf("getCollaborators: %v", err)
-	}
-
-	// Dummy object.
-	collaboration := &Collaboration{RepoID: repo.ID}
-	for _, c := range collaborators {
-		if c.ID != newOwner.ID {
-			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
-			if err != nil {
-				return fmt.Errorf("IsOrgMember: %v", err)
-			} else if !isMember {
-				continue
-			}
-		}
-		collaboration.UserID = c.ID
-		if _, err = sess.Delete(collaboration); err != nil {
-			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
-		}
-	}
-
-	// Remove old team-repository relations.
-	if oldOwner.IsOrganization() {
-		if err = oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
-			return fmt.Errorf("removeOrgRepo: %v", err)
-		}
-	}
-
-	if newOwner.IsOrganization() {
-		if err := newOwner.getTeams(sess); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
-		}
-		for _, t := range newOwner.Teams {
-			if t.IncludesAllRepositories {
-				if err := t.addRepository(sess, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
-				}
-			}
-		}
-	} else if err = repo.recalculateAccesses(sess); err != nil {
-		// Organization called this in addRepository method.
-		return fmt.Errorf("recalculateAccesses: %v", err)
-	}
-
-	// Update repository count.
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos+1 WHERE id=?", newOwner.ID); err != nil {
-		return fmt.Errorf("increase new owner repository count: %v", err)
-	} else if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", oldOwner.ID); err != nil {
-		return fmt.Errorf("decrease old owner repository count: %v", err)
-	}
-
-	if err = watchRepo(sess, doer.ID, repo.ID, true); err != nil {
-		return fmt.Errorf("watchRepo: %v", err)
-	}
-
-	// Remove watch for organization.
-	if oldOwner.IsOrganization() {
-		if err = watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
-			return fmt.Errorf("watchRepo [false]: %v", err)
-		}
-	}
-
-	// Rename remote repository to new path and delete local copy.
-	dir := UserPath(newOwner.Name)
-
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
-	}
-
-	if err = os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
-		return fmt.Errorf("rename repository directory: %v", err)
-	}
-
-	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := WikiPath(oldOwner.Name, repo.Name)
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
-		return err
-	}
-	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
-			return fmt.Errorf("rename repository wiki: %v", err)
-		}
-	}
-
-	// If there was previously a redirect at this location, remove it.
-	if err = deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
-		return fmt.Errorf("delete repo redirect: %v", err)
-	}
-
-	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("newRepoRedirect: %v", err)
-	}
-
-	return sess.Commit()
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
@@ -1571,11 +1447,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
-	if err = deleteBeans(sess,
+	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&Watch{RepoID: repoID},
@@ -1599,28 +1475,33 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	// Delete Labels and related objects
+	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
-		if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err := sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
 	if len(repo.Topics) > 0 {
-		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+		if err := removeTopicsFromRepo(sess, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -1760,7 +1641,7 @@ func GetRepositoryByIDCtx(ctx DBContext, id int64) (*Repository, error) {
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
-	var repos = make(map[int64]*Repository, len(ids))
+	repos := make(map[int64]*Repository, len(ids))
 	return repos, x.In("id", ids).Find(&repos)
 }
 
@@ -1770,7 +1651,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
@@ -2220,9 +2101,9 @@ func DoctorUserStarNum() (err error) {
 // IterateRepository iterate repositories
 func IterateRepository(f func(repo *Repository) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var repos = make([]*Repository, 0, batchSize)
+		repos := make([]*Repository, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}

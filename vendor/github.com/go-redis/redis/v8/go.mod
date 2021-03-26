@@ -7,5 +7,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
-	go.opentelemetry.io/otel v0.16.0
+	go.opentelemetry.io/otel v0.17.0
+	go.opentelemetry.io/otel/metric v0.17.0
+	go.opentelemetry.io/otel/trace v0.17.0
 )

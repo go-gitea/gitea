@@ -76,6 +76,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					header.ID = util.BytesToReadOnlyString(id.([]byte))
 				}
 				toc = append(toc, header)
+			} else {
+				for _, attr := range v.Attributes() {
+					if _, ok := attr.Value.([]byte); !ok {
+						v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
+					}
+				}
 			}
 		case *ast.Image:
 			// Images need two things:
@@ -101,11 +107,37 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			parent := n.Parent()
 			// Create a link around image only if parent is not already a link
 			if _, ok := parent.(*ast.Link); !ok && parent != nil {
+				next := n.NextSibling()
+
+				// Create a link wrapper
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+
+				// Duplicate the current image node
+				image := ast.NewImage(ast.NewLink())
+				image.Destination = link
+				image.Title = v.Title
+				for _, attr := range v.Attributes() {
+					image.SetAttribute(attr.Name, attr.Value)
+				}
+				for child := v.FirstChild(); child != nil; {
+					next := child.NextSibling()
+					image.AppendChild(image, child)
+					child = next
+				}
+
+				// Append our duplicate image to the wrapper link
+				wrap.AppendChild(wrap, image)
+
+				// Wire in the next sibling
+				wrap.SetNextSibling(next)
+
+				// Replace the current node with the wrapper link
 				parent.ReplaceChild(parent, n, wrap)
-				wrap.AppendChild(wrap, n)
+
+				// But most importantly ensure the next sibling is still on the old image too
+				v.SetNextSibling(next)
 			}
 		case *ast.Link:
 			// Links need their href to munged to be a real value

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -88,48 +89,19 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 
 	var filename2attribute2info map[string]map[string]string
 	if setting.LFS.StartServer {
-		filename2attribute2info, err = t.CheckAttribute("filter", names...)
+		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
+			Attributes: []string{"filter"},
+			Filenames:  names,
+		})
 		if err != nil {
 			return err
 		}
 	}
 
 	// Copy uploaded files into repository.
-	for i, uploadInfo := range infos {
-		file, err := os.Open(uploadInfo.upload.LocalPath())
-		if err != nil {
+	for i := range infos {
+		if err := copyUploadedLFSFileIntoRepository(&infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
 			return err
-		}
-		defer file.Close()
-
-		var objectHash string
-		if setting.LFS.StartServer && filename2attribute2info[uploadInfo.upload.Name] != nil && filename2attribute2info[uploadInfo.upload.Name]["filter"] == "lfs" {
-			// Handle LFS
-			// FIXME: Inefficient! this should probably happen in models.Upload
-			oid, err := models.GenerateLFSOid(file)
-			if err != nil {
-				return err
-			}
-			fileInfo, err := file.Stat()
-			if err != nil {
-				return err
-			}
-
-			uploadInfo.lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: t.repo.ID}
-
-			if objectHash, err = t.HashObject(strings.NewReader(uploadInfo.lfsMetaObject.Pointer())); err != nil {
-				return err
-			}
-			infos[i] = uploadInfo
-
-		} else if objectHash, err = t.HashObject(file); err != nil {
-			return err
-		}
-
-		// Add the object to the index
-		if err := t.AddObjectToIndex("100644", objectHash, path.Join(opts.TreePath, uploadInfo.upload.Name)); err != nil {
-			return err
-
 		}
 	}
 
@@ -150,11 +122,11 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	// Now deal with LFS objects
-	for _, uploadInfo := range infos {
-		if uploadInfo.lfsMetaObject == nil {
+	for i := range infos {
+		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		uploadInfo.lfsMetaObject, err = models.NewLFSMetaObject(uploadInfo.lfsMetaObject)
+		infos[i].lfsMetaObject, err = models.NewLFSMetaObject(infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(&infos, t, err)
@@ -166,27 +138,9 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	// OK now we can insert the data into the store - there's no way to clean up the store
 	// once it's in there, it's in there.
 	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
-	for _, uploadInfo := range infos {
-		if uploadInfo.lfsMetaObject == nil {
-			continue
-		}
-		exist, err := contentStore.Exists(uploadInfo.lfsMetaObject)
-		if err != nil {
+	for _, info := range infos {
+		if err := uploadToLFSContentStore(info, contentStore); err != nil {
 			return cleanUpAfterFailure(&infos, t, err)
-		}
-		if !exist {
-			file, err := os.Open(uploadInfo.upload.LocalPath())
-			if err != nil {
-				return cleanUpAfterFailure(&infos, t, err)
-			}
-			defer file.Close()
-			// FIXME: Put regenerates the hash and copies the file over.
-			// I guess this strictly ensures the soundness of the store but this is inefficient.
-			if err := contentStore.Put(uploadInfo.lfsMetaObject, file); err != nil {
-				// OK Now we need to cleanup
-				// Can't clean up the store, once uploaded there they're there.
-				return cleanUpAfterFailure(&infos, t, err)
-			}
 		}
 	}
 
@@ -196,4 +150,63 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 	}
 
 	return models.DeleteUploads(uploads...)
+}
+
+func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
+	file, err := os.Open(info.upload.LocalPath())
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var objectHash string
+	if setting.LFS.StartServer && filename2attribute2info[info.upload.Name] != nil && filename2attribute2info[info.upload.Name]["filter"] == "lfs" {
+		// Handle LFS
+		// FIXME: Inefficient! this should probably happen in models.Upload
+		oid, err := models.GenerateLFSOid(file)
+		if err != nil {
+			return err
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			return err
+		}
+
+		info.lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: fileInfo.Size(), RepositoryID: t.repo.ID}
+
+		if objectHash, err = t.HashObject(strings.NewReader(info.lfsMetaObject.Pointer())); err != nil {
+			return err
+		}
+	} else if objectHash, err = t.HashObject(file); err != nil {
+		return err
+	}
+
+	// Add the object to the index
+	return t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name))
+}
+
+func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {
+	if info.lfsMetaObject == nil {
+		return nil
+	}
+	exist, err := contentStore.Exists(info.lfsMetaObject)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		file, err := os.Open(info.upload.LocalPath())
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+		// FIXME: Put regenerates the hash and copies the file over.
+		// I guess this strictly ensures the soundness of the store but this is inefficient.
+		if err := contentStore.Put(info.lfsMetaObject, file); err != nil {
+			// OK Now we need to cleanup
+			// Can't clean up the store, once uploaded there they're there.
+			return err
+		}
+	}
+	return nil
 }

@@ -20,7 +20,7 @@ func TestAddTime(t *testing.T) {
 	issue1, err := GetIssueByID(1)
 	assert.NoError(t, err)
 
-	//3661 = 1h 1min 1s
+	// 3661 = 1h 1min 1s
 	trackedTime, err := AddTime(user3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)

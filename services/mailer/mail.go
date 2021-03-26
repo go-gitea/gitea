@@ -34,6 +34,8 @@ const (
 
 	mailNotifyCollaborator base.TplName = "notify/collaborator"
 
+	mailRepoTransferNotify base.TplName = "notify/repo_transfer"
+
 	// There's no actual limit for subject in RFC 5322
 	mailMaxSubjectRunes = 256
 )

@@ -44,7 +44,7 @@
 					</div>
 					<div class="comment-header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (eq .Issue.OriginalAuthorID .OriginalAuthorID) }}
+							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (and (eq .Issue.OriginalAuthorID .OriginalAuthorID) (not (eq .OriginalAuthorID 0))) }}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
@@ -124,7 +124,11 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+				{{if eq $.Issue.PullRequest.Status 3}}
+					{{$.i18n.Tr "repo.issues.manually_pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
@@ -379,7 +383,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					<span class="text grey">{{svg "octicon-trashcan"}}</span>
+					<span class="text grey">{{svg "octicon-trash"}}</span>
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
