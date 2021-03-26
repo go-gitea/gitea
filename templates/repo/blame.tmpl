@@ -43,9 +43,11 @@
 								</div>
 							</td>
 							<td class="lines-blame-btn">
-							  <a class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
-								  {{svg "octicon-calendar"}}
-								</a>
+							  {{if $row.PreviousSha}}
+									<a href="{{$row.PreviousShaUrl}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
+										{{svg "octicon-calendar"}}
+									</a>
+								{{end}}
 							</td>
 							<td class="lines-num">
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
@@ -53,11 +55,6 @@
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner pl-3">{{$row.Code}}</code>
 							</td>
-							{{/* <td class="lines-code">
-								<div class="L{{$row.RowNumber}} chroma" rel="L{{$row.RowNumber}}">
-									{{$row.Code}}
-								<div>
-							</td> */}}
 						</tr>
 					{{end}}
 				</tbody>

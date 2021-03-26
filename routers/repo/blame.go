@@ -30,6 +30,8 @@ type BlameRow struct {
 	Avatar                gotemplate.HTML
 	RepoLink              string
 	PartSha               string
+	PreviousSha           string
+	PreviousShaUrl        string
 	CommitUrl             string
 	CommitMessage         string
 	CommitSince           gotemplate.HTML
@@ -155,6 +157,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	commitNames := make(map[string]models.UserCommit)
+	previousCommits := make(map[string]string)
 	commits := list.New()
 
 	for _, part := range blameParts {
@@ -171,6 +174,12 @@ func RefBlame(ctx *context.Context) {
 				ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			}
 			return
+		}
+
+		// Get previous closest commit sha from the commit
+		previousSha, err := commit.ParentID(0)
+		if err == nil {
+			previousCommits[commit.ID.String()] = previousSha.String()
 		}
 
 		commits.PushBack(commit)
@@ -192,12 +201,12 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	renderBlame(ctx, blameParts, commitNames)
+	renderBlame(ctx, blameParts, commitNames, previousCommits)
 
 	ctx.HTML(200, tplBlame)
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0)
@@ -215,6 +224,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			}
 
 			commit := commitNames[part.Sha]
+			previousSha := previousCommits[part.Sha]
 			if index == 0 {
 				// Count commit number
 				commitCnt++
@@ -232,6 +242,8 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.Avatar = gotemplate.HTML(avatar)
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
+				br.PreviousSha = previousSha
+				br.PreviousShaUrl = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Data["FileName"])
 				br.CommitUrl = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
 				br.CommitMessage = html.EscapeString(commit.CommitMessage)
 				br.CommitSince = commitSince
