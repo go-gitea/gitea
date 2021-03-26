@@ -294,6 +294,14 @@ var migrations = []Migration{
 	NewMigration("Add sessions table for go-chi/session", addSessionTable),
 	// v173 -> v174
 	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	// v174 -> v175
+	NewMigration("Create repo transfer table", addRepoTransfer),
+	// v175 -> v176
+	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
+	// v176 -> v177
+	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
+	// v177 -> v178
+	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -563,6 +571,31 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
+		var originalSequences []string
+		type sequenceData struct {
+			LastValue int  `xorm:"'last_value'"`
+			IsCalled  bool `xorm:"'is_called'"`
+		}
+		sequenceMap := map[string]sequenceData{}
+
+		schema := sess.Engine().Dialect().URI().Schema
+		sess.Engine().SetSchema("")
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&originalSequences); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, sequence := range originalSequences {
+			sequenceData := sequenceData{}
+			if _, err := sess.Table(sequence).Cols("last_value", "is_called").Get(&sequenceData); err != nil {
+				log.Error("Unable to get last_value and is_called from %s. Error: %v", sequence, err)
+				return err
+			}
+			sequenceMap[sequence] = sequenceData
+
+		}
+
 		// CASCADE causes postgres to drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
@@ -576,7 +609,6 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		}
 
 		var indices []string
-		schema := sess.Engine().Dialect().URI().Schema
 		sess.Engine().SetSchema("")
 		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
@@ -590,6 +622,43 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
 				return err
 			}
+		}
+
+		var sequences []string
+		sess.Engine().SetSchema("")
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__' || ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&sequences); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, sequence := range sequences {
+			newSequenceName := strings.Replace(sequence, "tmp_recreate__", "", 1)
+			if _, err := sess.Exec(fmt.Sprintf("ALTER SEQUENCE `%s` RENAME TO `%s`", sequence, newSequenceName)); err != nil {
+				log.Error("Unable to rename %s sequence to %s. Error: %v", sequence, newSequenceName, err)
+				return err
+			}
+			val, ok := sequenceMap[newSequenceName]
+			if newSequenceName == tableName+"_id_seq" {
+				if ok && val.LastValue != 0 {
+					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
+						log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+						return err
+					}
+				} else {
+					// We're going to try to guess this
+					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', COALESCE((SELECT MAX(id)+1 FROM `%s`), 1), false)", newSequenceName, tableName)); err != nil {
+						log.Error("Unable to reset %s. Error: %v", newSequenceName, err)
+						return err
+					}
+				}
+			} else if ok {
+				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
+					log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+					return err
+				}
+			}
+
 		}
 
 	case setting.Database.UseMSSQL:
@@ -750,9 +819,24 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
+		sql = fmt.Sprintf("SELECT DISTINCT Name FROM SYS.INDEXES INNER JOIN SYS.INDEX_COLUMNS ON INDEXES.INDEX_ID = INDEX_COLUMNS.INDEX_ID AND INDEXES.OBJECT_ID = INDEX_COLUMNS.OBJECT_ID WHERE INDEXES.OBJECT_ID = OBJECT_ID('%[1]s') AND INDEX_COLUMNS.COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.ReplaceAll(cols, "`", "'"))
+		constraints = make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT IF EXISTS `%s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop table `%s` index constraint `%s`: %v", tableName, constraint, err)
+			}
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX IF EXISTS `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+			}
+		}
+
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}

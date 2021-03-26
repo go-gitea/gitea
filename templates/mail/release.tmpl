@@ -12,8 +12,10 @@
 </head>
 
 <body>
-	<p><b>@{{.Release.Publisher.Name}}</b> released <a href="{{.Release.HTMLURL}}">{{.Release.TagName}}</a> 
-	  in <a href="{{AppUrl}}{{.Release.Repo.OwnerName}}/{{.Release.Repo.Name}}">{{.Release.Repo.FullName}} </p>
+	<p>
+		<b>@{{.Release.Publisher.Name}}</b> released <a href="{{.Release.HTMLURL}}">{{.Release.TagName}}</a>
+		in <a href="{{AppUrl}}{{.Release.Repo.OwnerName}}/{{.Release.Repo.Name}}">{{.Release.Repo.FullName}}</a>
+	</p>
 	<h4>Title: {{.Release.Title}}</h4>
 	<p>
 		Note: <br>

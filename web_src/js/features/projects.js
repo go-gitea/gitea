@@ -1,7 +1,7 @@
-const {csrf} = window.config;
+const {csrf, PageIsProjects} = window.config;
 
 export default async function initProject() {
-  if (!window.config || !window.config.PageIsProjects) {
+  if (!PageIsProjects) {
     return;
   }
 

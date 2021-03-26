@@ -75,6 +75,7 @@ menu:
 
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
+- `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
 
 ## Database (`database`)
 
@@ -133,6 +134,11 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTHENTICATION`: 允许反向代理认证，更多细节见：https://github.com/gogits/gogs/issues/165
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: 注册时使用图片验证码。
+
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
+- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
 
 ## Webhook (`webhook`)
 
@@ -326,7 +332,7 @@ LFS 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[stora
 
 - `STORAGE_TYPE`: **local**: LFS 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
 - `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
-- `CONTENT_PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `PATH`: 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `LFS_STORAGE_TYPE` 为 `minio` 时有效。

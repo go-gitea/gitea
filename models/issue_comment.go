@@ -8,7 +8,6 @@ package models
 
 import (
 	"container/list"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -267,7 +267,6 @@ func (c *Comment) AfterDelete() {
 	}
 
 	_, err := DeleteAttachmentsByComment(c.ID, true)
-
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
@@ -391,7 +390,6 @@ func (c *Comment) LoadLabel() error {
 
 // LoadProject if comment.Type is CommentTypeProject, then load project.
 func (c *Comment) LoadProject() error {
-
 	if c.OldProjectID > 0 {
 		var oldProject Project
 		has, err := x.ID(c.OldProjectID).Get(&oldProject)
@@ -655,6 +653,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 
 	var data PushActionContent
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
 		return
@@ -812,7 +811,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		return nil, err
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    commentType,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -827,7 +826,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dependentIssue *Issue, add bool) (err error) {
+func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
@@ -837,7 +836,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue *Issue, dep
 	}
 
 	// Make two comments, one in each issue
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:             cType,
 		Doer:             doer,
 		Repo:             issue.Repo,
@@ -976,7 +975,7 @@ type FindCommentsOptions struct {
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
@@ -1148,7 +1147,7 @@ func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentU
 
 	// Find all reviews by ReviewID
 	reviews := make(map[int64]*Review)
-	var ids = make([]int64, 0, len(comments))
+	ids := make([]int64, 0, len(comments))
 	for _, comment := range comments {
 		if comment.ReviewID != 0 {
 			ids = append(ids, comment.ReviewID)
@@ -1241,6 +1240,8 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	}
 
 	ops.Issue = pr.Issue
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return nil, err

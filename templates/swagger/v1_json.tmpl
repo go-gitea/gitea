@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer}}"
+    "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
     "/admin/cron": {
       "get": {
@@ -12968,6 +12968,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -13585,6 +13586,11 @@
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
       "properties": {
+        "allow_manual_merge": {
+          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowManualMerge"
+        },
         "allow_merge_commits": {
           "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
@@ -13609,6 +13615,11 @@
           "description": "set to `true` to archive this repository.",
           "type": "boolean",
           "x-go-name": "Archived"
+        },
+        "autodetect_manual_merge": {
+          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.",
+          "type": "boolean",
+          "x-go-name": "AutodetectManualMerge"
         },
         "default_branch": {
           "description": "sets the default branch for this repository.",
@@ -13728,6 +13739,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -14594,8 +14606,12 @@
             "merge",
             "rebase",
             "rebase-merge",
-            "squash"
+            "squash",
+            "manually-merged"
           ]
+        },
+        "MergeCommitID": {
+          "type": "string"
         },
         "MergeMessageField": {
           "type": "string"
@@ -15995,6 +16011,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }

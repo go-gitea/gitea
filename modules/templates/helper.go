@@ -38,6 +38,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Used from static.go && dynamic.go
@@ -45,6 +46,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
+	jsonED := jsoniter.ConfigCompatibleWithStandardLibrary
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
 			return strings.Title(runtime.Version())
@@ -90,6 +92,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
@@ -215,7 +218,7 @@ func NewFuncMap() []template.FuncMap {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
+			out, err := jsonED.Marshal(in)
 			if err != nil {
 				return ""
 			}
@@ -627,6 +630,11 @@ func Escape(raw string) string {
 	return html.EscapeString(raw)
 }
 
+// JSEscape escapes a JS string
+func JSEscape(raw string) string {
+	return template.JSEscapeString(raw)
+}
+
 // List traversings the list
 func List(l *list.List) chan interface{} {
 	e := l.Front()
@@ -814,6 +822,12 @@ func ActionIcon(opType models.ActionType) string {
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
+
+	if act == nil || act.GetContent() == "" {
+		return push
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
