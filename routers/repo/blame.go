@@ -243,7 +243,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
 				br.PreviousSha = previousSha
-				br.PreviousShaUrl = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Data["FileName"])
+				br.PreviousShaUrl = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
 				br.CommitUrl = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
 				br.CommitMessage = html.EscapeString(commit.CommitMessage)
 				br.CommitSince = commitSince
