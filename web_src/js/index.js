@@ -2219,7 +2219,7 @@ function initCodeView() {
       const $select = $(this);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
@@ -2227,14 +2227,17 @@ function initCodeView() {
       deSelect();
 
       // show code view menu marker
-      showCodeViewMenu();
+      // not show in blame page
+      if ($('div.blame').length === 0) {
+        showCodeViewMenu();
+      }
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
@@ -2244,7 +2247,10 @@ function initCodeView() {
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
 
         // show code view menu marker
-        showCodeViewMenu();
+        // not show in blame page
+        if ($('div.blame').length === 0) {
+          showCodeViewMenu();
+        }
 
         $('html, body').scrollTop($first.offset().top - 200);
         return;
@@ -2255,7 +2261,10 @@ function initCodeView() {
         selectRange($list, $first);
 
         // show code view menu marker
-        showCodeViewMenu();
+        // not show in blame page
+        if ($('div.blame').length === 0) {
+          showCodeViewMenu();
+        }
 
         $('html, body').scrollTop($first.offset().top - 200);
       }
@@ -2824,13 +2833,14 @@ function selectRange($list, $select, $from) {
 
       // add hashchange to permalink
       const $issue = $('a.ref-in-new-issue');
-      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-      if (matched) {
-        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
-      } else {
-        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
+      if ($issue && $issue.attr('href')) {
+        const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
+        if (matched) {
+          $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
+        } else {
+          $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
+        }
       }
-
       return;
     }
   }
@@ -2839,11 +2849,13 @@ function selectRange($list, $select, $from) {
 
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
-  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-  if (matched) {
-    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
-  } else {
-    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
+  if ($issue && $issue.attr('href')) {
+    const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
+    if (matched) {
+      $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
+    } else {
+      $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
+    }
   }
 }
 

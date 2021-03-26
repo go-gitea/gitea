@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bytes"
 	"container/list"
 	"fmt"
 	"html"
@@ -25,6 +24,17 @@ import (
 const (
 	tplBlame base.TplName = "repo/home"
 )
+
+type BlameRow struct {
+	RowNumber             int
+	Avatar                gotemplate.HTML
+	RepoLink              string
+	PartSha               string
+	CommitUrl             string
+	CommitMessage         string
+	CommitSince           gotemplate.HTML
+	Code                  gotemplate.HTML
+}
 
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
@@ -191,23 +201,24 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0)
-
-	var commitInfo bytes.Buffer
-	var lineNumbers bytes.Buffer
-	var codeLines bytes.Buffer
+	rows := make([]*BlameRow, 0)
 
 	var i = 0
-	for pi, part := range blameParts {
+	var commitCnt = 0
+	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
 			lines = append(lines, line)
-
-			var attr = ""
-			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				attr = " bottom-line"
+			
+			br := &BlameRow{
+				RowNumber: i,
 			}
+
 			commit := commitNames[part.Sha]
 			if index == 0 {
+				// Count commit number
+				commitCnt++
+
 				// User avatar image
 				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
 
@@ -217,17 +228,13 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				} else {
 					avatar = string(templates.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "mr-3"))
 				}
-
-				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s"><div class="blame-data"><div class="blame-avatar">%s</div><div class="blame-message"><a href="%s/commit/%s" title="%[5]s">%[5]s</a></div><div class="blame-time">%s</div></div></div>`, attr, avatar, repoLink, part.Sha, html.EscapeString(commit.CommitMessage), commitSince))
-			} else {
-				commitInfo.WriteString(fmt.Sprintf(`<div class="blame-info%s">&#8203;</div>`, attr))
-			}
-
-			//Line number
-			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d" class="bottom-line"></span>`, i, i))
-			} else {
-				lineNumbers.WriteString(fmt.Sprintf(`<span id="L%d" data-line-number="%d"></span>`, i, i))
+				
+				br.Avatar = gotemplate.HTML(avatar)
+				br.RepoLink = repoLink
+				br.PartSha = part.Sha
+				br.CommitUrl = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
+				br.CommitMessage = html.EscapeString(commit.CommitMessage)
+				br.CommitSince = commitSince
 			}
 
 			if i != len(lines)-1 {
@@ -235,16 +242,12 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, line)
-			line = `<code class="code-inner">` + line + `</code>`
-			if len(part.Lines)-1 == index && len(blameParts)-1 != pi {
-				codeLines.WriteString(fmt.Sprintf(`<li class="L%d bottom-line" rel="L%d">%s</li>`, i, i, line))
-			} else {
-				codeLines.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, i, i, line))
-			}
+
+			br.Code = gotemplate.HTML(line)
+      rows = append(rows, br)
 		}
 	}
 
-	ctx.Data["BlameContent"] = gotemplate.HTML(codeLines.String())
-	ctx.Data["BlameCommitInfo"] = gotemplate.HTML(commitInfo.String())
-	ctx.Data["BlameLineNums"] = gotemplate.HTML(lineNumbers.String())
+  ctx.Data["Codes"] = rows
+	ctx.Data["CommitCnt"] = commitCnt
 }
