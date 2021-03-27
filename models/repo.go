@@ -740,15 +740,12 @@ func (repo *Repository) updateSize(e Engine) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
 
-	repo.Size = size
+	repo.Size = size + lfsSize
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
