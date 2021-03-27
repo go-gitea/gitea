@@ -119,6 +119,8 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 		row++
 	}
-	_, err = tmpBlock.WriteString("</table>")
-	return err
+	if _, err = tmpBlock.WriteString("</table>"); err != nil {
+		return err
+	}
+	return tmpBlock.Flush()
 }
