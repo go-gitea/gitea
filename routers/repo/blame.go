@@ -25,7 +25,7 @@ const (
 	tplBlame base.TplName = "repo/home"
 )
 
-type BlameRow struct {
+type blameRow struct {
 	RowNumber      int
 	Avatar         gotemplate.HTML
 	RepoLink       string
@@ -216,7 +216,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	repoLink := ctx.Repo.RepoLink
 
 	var lines = make([]string, 0)
-	rows := make([]*BlameRow, 0)
+	rows := make([]*blameRow, 0)
 
 	var i = 0
 	var commitCnt = 0
@@ -225,7 +225,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			i++
 			lines = append(lines, line)
 
-			br := &BlameRow{
+			br := &blameRow{
 				RowNumber: i,
 			}
 
