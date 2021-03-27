@@ -1086,7 +1086,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: MergeStyleMerge},
 			})
 		} else {
 			units = append(units, RepoUnit{
