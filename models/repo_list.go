@@ -368,6 +368,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	if err != nil {
 		return nil, 0, err
 	}
+	defer sess.Close()
 
 	defaultSize := 50
 	if opts.PageSize > 0 {
@@ -405,7 +406,6 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 	}
 
 	sess := x.NewSession()
-	defer sess.Close()
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -489,6 +489,7 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	defer sess.Close()
 
 	defaultSize := 50
 	if opts.PageSize > 0 {
