@@ -66,20 +66,13 @@ func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 		return io.MultiReader(bytes.NewReader(buf), rd)
 	}
 
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	var w = bytes.NewBuffer(buf)
-	_, err = io.Copy(w, rd)
-	if err != nil {
-		return io.MultiReader(bytes.NewReader(buf), rd)
-	}
-	content := w.Bytes()
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return bytes.NewReader(append(result, content[n:]...))
-	}
-
-	return bytes.NewReader(RemoveBOMIfPresent(result))
+	return transform.NewReader(
+		io.MultiReader(
+			bytes.NewReader(RemoveBOMIfPresent(buf)),
+			rd,
+		),
+		encoding.NewDecoder(),
+	)
 }
 
 // ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
