@@ -31,8 +31,8 @@ type BlameRow struct {
 	RepoLink       string
 	PartSha        string
 	PreviousSha    string
-	PreviousShaUrl string
-	CommitUrl      string
+	PreviousShaURL string
+	CommitURL      string
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
@@ -247,8 +247,8 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
 				br.PreviousSha = previousSha
-				br.PreviousShaUrl = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
-				br.CommitUrl = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
+				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
+				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
 				br.CommitMessage = html.EscapeString(commit.CommitMessage)
 				br.CommitSince = commitSince
 			}
