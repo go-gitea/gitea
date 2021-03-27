@@ -73,7 +73,7 @@
 
 								{{if .CanChange }}
 									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
+										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
 								{{svg (printf "octicon-%s" .Review.Type.Icon)}}

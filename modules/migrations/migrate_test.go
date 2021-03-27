@@ -29,6 +29,9 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	err = IsMigrateURLAllowed("https://github.com/go-gitea/gitea.git", nonAdminUser)
 	assert.NoError(t, err)
 
+	err = IsMigrateURLAllowed("https://gITHUb.com/go-gitea/gitea.git", nonAdminUser)
+	assert.NoError(t, err)
+
 	setting.Migrations.AllowedDomains = []string{}
 	setting.Migrations.BlockedDomains = []string{"github.com"}
 	assert.NoError(t, Init())

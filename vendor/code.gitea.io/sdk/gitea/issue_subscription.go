@@ -11,7 +11,7 @@ import (
 
 // GetIssueSubscribers get list of users who subscribed on an issue
 func (c *Client) GetIssueSubscribers(owner, repo string, index int64) ([]*User, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, nil, err
 	}
 	subscribers := make([]*User, 0, 10)
@@ -21,7 +21,7 @@ func (c *Client) GetIssueSubscribers(owner, repo string, index int64) ([]*User, 
 
 // AddIssueSubscription Subscribe user to issue
 func (c *Client) AddIssueSubscription(owner, repo string, index int64, user string) (*Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo, &user); err != nil {
 		return nil, err
 	}
 	status, resp, err := c.getStatusCode("PUT", fmt.Sprintf("/repos/%s/%s/issues/%d/subscriptions/%s", owner, repo, index, user), nil, nil)
@@ -39,7 +39,7 @@ func (c *Client) AddIssueSubscription(owner, repo string, index int64, user stri
 
 // DeleteIssueSubscription unsubscribe user from issue
 func (c *Client) DeleteIssueSubscription(owner, repo string, index int64, user string) (*Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo, &user); err != nil {
 		return nil, err
 	}
 	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/subscriptions/%s", owner, repo, index, user), nil, nil)
@@ -57,6 +57,9 @@ func (c *Client) DeleteIssueSubscription(owner, repo string, index int64, user s
 
 // CheckIssueSubscription check if current user is subscribed to an issue
 func (c *Client) CheckIssueSubscription(owner, repo string, index int64) (*WatchInfo, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
