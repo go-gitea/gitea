@@ -32,6 +32,7 @@ type BlameRow struct {
 	PartSha        string
 	PreviousSha    string
 	PreviousShaURL string
+	IsFirstCommit  bool
 	CommitURL      string
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
@@ -177,12 +178,13 @@ func RefBlame(ctx *context.Context) {
 		}
 
 		// Get previous closest commit sha from the commit
-		previousSha, err := commit.ParentID(0)
+		previousCommit, err := commit.Parent(0)
 		if err == nil {
 			// Verify the commit
-			haz, _ := commit.HasPreviousCommit(previousSha)
-			if haz {
-				previousCommits[commit.ID.String()] = previousSha.String()
+			if haz, _ := commit.HasPreviousCommit(previousCommit.ID); haz {
+				if haz1, _ := previousCommit.HasFile(ctx.Repo.TreePath); haz1 {
+					previousCommits[commit.ID.String()] = previousCommit.ID.String()
+				}
 			}
 		}
 
