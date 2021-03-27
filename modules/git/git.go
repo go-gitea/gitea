@@ -39,6 +39,8 @@ var (
 
 	// will be checked on Init
 	goVersionLessThan115 = true
+
+	SubModuleMap = map[string]string{}
 )
 
 func log(format string, args ...interface{}) {

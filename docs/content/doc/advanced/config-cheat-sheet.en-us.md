@@ -782,12 +782,19 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 
 ## Git - Timeout settings (`git.timeout`)
+
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
 - `CLONE`: **300**: Git clone from internal repositories timeout seconds.
 - `PULL`: **300**: Git pull from internal repositories timeout seconds.
 - `GC`: **60**: Git repository GC timeout seconds.
+
+## Git - Submodule alias settings (`git.submodule`)
+
+- List of `MAP_NAME_` and `MAP_VALUE_` pairs that map submodule urls or partial urls to web paths. For example:
+  - `MAP_NAME_1 = git@127.0.0.1` & `MAP_VALUE_1 = https://external` would convert any submodules referring to `git@127.0.0.1` to `https://external`
+  - `MAP_NAME_A = git@127.0.0.1:owner/repo` & `MAP_VALUE_A = https://external/externalowner/externalrepo`
 
 ## Metrics (`metrics`)
 

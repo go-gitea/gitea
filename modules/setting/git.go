@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
@@ -99,4 +100,22 @@ func newGit() {
 	git.BranchesRangeSize = Git.BranchesRangeSize
 
 	log.Info(format, args...)
+
+	submoduleSection := Cfg.Section("git.submodule")
+	for key, nameValue := range submoduleSection.KeysHash() {
+		if !strings.HasPrefix(key, "MAP_NAME_") {
+			continue
+		}
+		if nameValue == "" {
+			continue
+		}
+		if !submoduleSection.HasKey("MAP_VALUE_" + key[9:]) {
+			log.Error("Missing value for submodule map: %s", key)
+			continue
+		}
+		valueValue := submoduleSection.Key("MAP_VALUE_" + key[9:]).MustString("")
+		if valueValue != "" {
+			git.SubModuleMap[nameValue] = valueValue
+		}
+	}
 }
