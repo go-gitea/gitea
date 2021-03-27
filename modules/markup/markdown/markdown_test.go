@@ -297,6 +297,7 @@ func TestTotal_RenderWiki(t *testing.T) {
 	for i := 0; i < len(testCases); i += 2 {
 		line, err := RenderString(&markup.RenderContext{
 			URLPrefix: AppSubURL,
+			IsWiki:    true,
 		}, testCases[i])
 		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
