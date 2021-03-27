@@ -322,6 +322,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowSquash:               form.PullsAllowSquash,
 					AllowManualMerge:          form.PullsAllowManualMerge,
 					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
+					DefaultMergeStyle:         models.MergeStyle(form.PullsDefaultMergeStyle),
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
