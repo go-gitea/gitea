@@ -1484,7 +1484,10 @@ func ViewIssue(ctx *context.Context) {
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
-			if prConfig.AllowMerge {
+			defaultMergeStyle := prConfig.GetDefaultMergeStyle()
+			if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
+				ctx.Data["MergeStyle"] = defaultMergeStyle
+			} else if prConfig.AllowMerge {
 				ctx.Data["MergeStyle"] = models.MergeStyleMerge
 			} else if prConfig.AllowRebase {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebase
