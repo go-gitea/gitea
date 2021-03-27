@@ -369,9 +369,17 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 		return nil, 0, err
 	}
 
-	repos := make(RepositoryList, 0, opts.PageSize)
+	defaultSize := 50
+	if opts.PageSize > 0 {
+		defaultSize = opts.PageSize
+	}
+	repos := make(RepositoryList, 0, defaultSize)
 	if err := sess.Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
+	}
+
+	if opts.PageSize <= 0 {
+		count = int64(len(repos))
 	}
 
 	if loadAttributes {
@@ -399,11 +407,15 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 	sess := x.NewSession()
 	defer sess.Close()
 
-	count, err := sess.
-		Where(cond).
-		Count(new(Repository))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+	var count int64
+	if opts.PageSize > 0 {
+		var err error
+		count, err = sess.
+			Where(cond).
+			Count(new(Repository))
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %v", err)
+		}
 	}
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
@@ -485,6 +497,9 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 
 	ids := make([]int64, 0, defaultSize)
 	err = sess.Select("id").Table("repository").Find(&ids)
+	if opts.PageSize <= 0 {
+		count = int64(len(ids))
+	}
 
 	return ids, count, err
 }
