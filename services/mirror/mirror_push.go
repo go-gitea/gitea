@@ -57,24 +57,34 @@ func runPushSync(m *models.PushMirror) error {
 
 	log.Trace("SyncPushMirror [repo: %-v]: running git push...", m.Repo)
 
-	if err := git.Push(repoPath, git.PushOptions{
-		Remote:  m.RemoteName,
-		Force:   true,
-		Mirror:  true,
-		Timeout: timeout,
-	}); err != nil {
-		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
-			return err
+	performPush := func(path string) error {
+		if err := git.Push(path, git.PushOptions{
+			Remote:  m.RemoteName,
+			Force:   true,
+			Mirror:  true,
+			Timeout: timeout,
+		}); err != nil {
+			if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+				return err
+			}
+			return fmt.Errorf("Error pushing remote %s to %s: %v", m.RemoteName, path, err)
 		}
-		return fmt.Errorf("Push: %v", err)
+		return nil
+	}
+
+	err := performPush(repoPath)
+	if err != nil {
+		return err
 	}
 
 	// TODO LFS
 
-	/* Should the wiki be mirrored too?
 	if m.Repo.HasWiki() {
-
-	}*/
+		err := performPush(m.Repo.WikiPath());
+		if err != nil {
+			return nil
+		}
+	}
 
 	return nil
 }
