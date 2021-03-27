@@ -343,35 +343,42 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 
 		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
 
-		exist, err := contentStore.Exists(pointerBlob.Pointer)
-		if err != nil {
-			return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
-		}
-		if !exist {
-			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
-				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
-				continue
-			}
-
-			stream, err := client.Download(ctx, pointerBlob.Oid, pointerBlob.Size)
+		err = func() error {
+			exist, err := contentStore.Exists(pointerBlob.Pointer)
 			if err != nil {
-				select {
-				case <-ctx.Done():
-					log.Info("StoreMissingLfsObjectsInRepository aborted before completion")
+				return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
+			}
+			if !exist {
+				if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+					log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
 					return nil
-				default:
 				}
-				log.Error("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %v", pointerBlob.Oid, err)
-				continue
-			}
-			defer stream.Close()
 
-			if err := contentStore.Put(pointerBlob.Pointer, stream); err != nil {
-				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
-					return fmt.Errorf("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid: %w", err2)
+				stream, err := client.Download(ctx, pointerBlob.Oid, pointerBlob.Size)
+				if err != nil {
+					return fmt.Errorf("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %w", pointerBlob.Oid, err)
 				}
-				return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Put: %w", err)
+				defer stream.Close()
+
+				if err := contentStore.Put(pointerBlob.Pointer, stream); err != nil {
+					return fmt.Errorf("StoreMissingLfsObjectsInRepository LFS OID[%s] contentStore.Put: %w", pointerBlob.Oid, err)
+				}
+			} else {
+				log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] already present in content store", pointerBlob.Oid)
 			}
+			return nil
+		}()
+		if err != nil {
+			if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
+				log.Error("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid[Oid: %s]: %w", meta.Oid, err2)
+			}
+
+			select {
+			case <-ctx.Done():
+				continue
+			default:
+			}
+			return err
 		}
 	}
 
