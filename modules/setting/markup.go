@@ -13,14 +13,14 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// ExternalMarkupParsers represents the external markup parsers
+// ExternalMarkupRenderers represents the external markup renderers
 var (
-	ExternalMarkupParsers  []MarkupParser
-	ExternalSanitizerRules []MarkupSanitizerRule
+	ExternalMarkupRenderers []MarkupRenderer
+	ExternalSanitizerRules  []MarkupSanitizerRule
 )
 
-// MarkupParser defines the external parser configured in ini
-type MarkupParser struct {
+// MarkupRenderer defines the external parser configured in ini
+type MarkupRenderer struct {
 	Enabled         bool
 	MarkupName      string
 	Command         string
@@ -124,7 +124,7 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 		return
 	}
 
-	ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
+	ExternalMarkupRenderers = append(ExternalMarkupRenderers, MarkupRenderer{
 		Enabled:         sec.Key("ENABLED").MustBool(false),
 		MarkupName:      name,
 		FileExtensions:  exts,

@@ -5,6 +5,7 @@
 package markup
 
 import (
+	"bufio"
 	"bytes"
 	"html"
 	"io"
@@ -16,52 +17,83 @@ import (
 )
 
 func init() {
-	markup.RegisterParser(Parser{})
+	markup.RegisterRenderer(Renderer{})
+
 }
 
-// Parser implements markup.Parser for csv files
-type Parser struct {
+// Renderer implements markup.Renderer for orgmode
+type Renderer struct {
 }
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return "csv"
 }
 
-// NeedPostProcess implements markup.Parser
-func (Parser) NeedPostProcess() bool { return false }
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return false }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return []string{".csv", ".tsv"}
 }
 
+func writeField(w io.Writer, element, class, field string) error {
+	if _, err := io.WriteString(w, "<"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	if len(class) > 0 {
+		if _, err := io.WriteString(w, " class=\""); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, class); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, "\""); err != nil {
+			return err
+		}
+	}
+	if _, err := io.WriteString(w, ">"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, html.EscapeString(field)); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "</"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, ">")
+	return err
+}
+
 // Render implements markup.Parser
-func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	var tmpBlock bytes.Buffer
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	var tmpBlock = bufio.NewWriter(output)
+
+	rawBytes, err := io.ReadAll(input)
+	if err != nil {
+		return err
+	}
 
 	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
 		tmpBlock.WriteString("<pre>")
 		tmpBlock.WriteString(html.EscapeString(string(rawBytes)))
 		tmpBlock.WriteString("</pre>")
-		return tmpBlock.Bytes()
+		return nil
 	}
 
-	rd := csv.CreateReaderAndGuessDelimiter(rawBytes)
+	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
+	if err != nil {
+		if err == io.EOF {
 
-	writeField := func(element, class, field string) {
-		tmpBlock.WriteString("<")
-		tmpBlock.WriteString(element)
-		if len(class) > 0 {
-			tmpBlock.WriteString(" class=\"")
-			tmpBlock.WriteString(class)
-			tmpBlock.WriteString("\"")
 		}
-		tmpBlock.WriteString(">")
-		tmpBlock.WriteString(html.EscapeString(field))
-		tmpBlock.WriteString("</")
-		tmpBlock.WriteString(element)
-		tmpBlock.WriteString(">")
+		return err
 	}
 
 	tmpBlock.WriteString(`<table class="data-table">`)
@@ -79,15 +111,14 @@ func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string,
 		if row == 1 {
 			element = "th"
 		}
-		writeField(element, "line-num", strconv.Itoa(row))
+		writeField(tmpBlock, element, "line-num", strconv.Itoa(row))
 		for _, field := range fields {
-			writeField(element, "", field)
+			writeField(tmpBlock, element, "", field)
 		}
 		tmpBlock.WriteString("</tr>")
 
 		row++
 	}
-	tmpBlock.WriteString("</table>")
-
-	return tmpBlock.Bytes()
+	_, err = tmpBlock.WriteString("</table>")
+	return err
 }

@@ -330,7 +330,17 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
+					var result strings.Builder
+					err := markup.Render(&markup.RenderContext{
+						Filename:  readmeFile.name,
+						URLPrefix: readmeTreelink,
+						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+					}, bytes.NewReader(buf), &result)
+					if err != nil {
+						ctx.ServerError("Render", err)
+						return
+					}
+					ctx.Data["FileContent"] = result.String()
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.ReplaceAll(
@@ -488,7 +498,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, bytes.NewReader(buf), &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
@@ -536,7 +556,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf = append(buf, d...)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, bytes.NewReader(buf), &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		}
 	}
 

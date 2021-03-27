@@ -5,8 +5,10 @@
 package util
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
+	"io"
 	"strings"
 )
 
@@ -64,6 +66,17 @@ func Min(a, b int) int {
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
+}
+
+// NormalizeEOLReader will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF) from a reader
+func NormalizeEOLReader(rd io.Reader) []byte {
+	scanner := bufio.NewScanner(rd)
+	var buf bytes.Buffer
+	for scanner.Scan() {
+		buf.Write(scanner.Bytes())
+		buf.WriteByte('\n')
+	}
+	return buf.Bytes()
 }
 
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)

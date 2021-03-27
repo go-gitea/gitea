@@ -1131,8 +1131,14 @@ func ViewIssue(ctx *context.Context) {
 	}
 	ctx.Data["IssueWatch"] = iw
 
-	issue.RenderedContent = string(markdown.Render([]byte(issue.Content), ctx.Repo.RepoLink,
-		ctx.Repo.Repository.ComposeMetas()))
+	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, issue.Content)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
 
 	repo := ctx.Repo.Repository
 
@@ -1289,9 +1295,14 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 
-			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
-				ctx.Repo.Repository.ComposeMetas()))
-
+			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				URLPrefix: ctx.Repo.RepoLink,
+				Metas:     ctx.Repo.Repository.ComposeMetas(),
+			}, comment.Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
 			// Check tag.
 			tag, ok = marked[comment.PosterID]
 			if ok {
@@ -1359,8 +1370,14 @@ func ViewIssue(ctx *context.Context) {
 				}
 			}
 		} else if comment.Type == models.CommentTypeCode || comment.Type == models.CommentTypeReview || comment.Type == models.CommentTypeDismissReview {
-			comment.RenderedContent = string(markdown.Render([]byte(comment.Content), ctx.Repo.RepoLink,
-				ctx.Repo.Repository.ComposeMetas()))
+			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+				URLPrefix: ctx.Repo.RepoLink,
+				Metas:     ctx.Repo.Repository.ComposeMetas(),
+			}, comment.Content)
+			if err != nil {
+				ctx.ServerError("RenderString", err)
+				return
+			}
 			if err = comment.LoadReview(); err != nil && !models.IsErrReviewNotExist(err) {
 				ctx.ServerError("LoadReview", err)
 				return
@@ -1708,10 +1725,20 @@ func UpdateIssueContent(ctx *context.Context) {
 	files := ctx.QueryStrings("files[]")
 	if err := updateAttachments(issue, files); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
+		return
+	}
+
+	content, err := markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Query("context"),
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, issue.Content)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     content,
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
 }
@@ -2125,10 +2152,20 @@ func UpdateCommentContent(ctx *context.Context) {
 	files := ctx.QueryStrings("files[]")
 	if err := updateAttachments(comment, files); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
+		return
+	}
+
+	content, err := markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Query("context"),
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, comment.Content)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
+		"content":     content,
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
 }
