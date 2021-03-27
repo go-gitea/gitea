@@ -99,7 +99,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 				if err = models.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
-				return fmt.Errorf("Updating size as part of  garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
+				return fmt.Errorf("Updating size as part of garbage collection failed in repo: %s: Error: %v", repo.FullName(), err)
 			}
 
 			return nil
