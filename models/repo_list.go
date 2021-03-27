@@ -478,7 +478,7 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	return SearchRepository(opts)
 }
 
-// SearchRepositoryRepoIDs takes keyword and part of repository name to search,
+// SearchRepositoryIDs takes keyword and part of repository name to search,
 // it returns results in given range and number of total results.
 func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 	opts.IncludeDescription = false
