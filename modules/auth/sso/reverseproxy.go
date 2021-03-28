@@ -66,17 +66,17 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 		return nil
 	}
 
-	store.GetData()["AuthenticationMechanism"] = ReverseProxyMechanism
-
 	user, err := models.GetUserByName(username)
 	if err != nil {
 		if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
+			store.GetData()["AuthenticationMechanism"] = ReverseProxyMechanism
 			return r.newUser(req)
 		}
 		log.Error("GetUserByName: %v", err)
 		return nil
 	}
 
+	store.GetData()["AuthenticationMechanism"] = ReverseProxyMechanism
 	return user
 }
 
