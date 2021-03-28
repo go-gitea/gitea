@@ -8,6 +8,7 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
-	giteautil "code.gitea.io/gitea/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
@@ -185,7 +185,12 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		}()
 
 		pc := NewGiteaParseContext(ctx)
-		if err := converter.Convert(giteautil.NormalizeEOLReader(input), lw, parser.WithContext(pc)); err != nil {
+		buf, err := ioutil.ReadAll(input)
+		if err != nil {
+			log.Error("Unable to ReadAll: %v", err)
+			return
+		}
+		if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
 			_ = lw.CloseWithError(err)
 			return
@@ -259,6 +264,20 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 func RenderString(ctx *markup.RenderContext, content string) (string, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// RenderRaw renders Markdown to HTML without handling special links.
+func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return render(ctx, input, output)
+}
+
+// RenderRawString renders Markdown to HTML without handling special links and return string
+func RenderRawString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := RenderRaw(ctx, strings.NewReader(content), &buf); err != nil {
 		return "", err
 	}
 	return buf.String(), nil

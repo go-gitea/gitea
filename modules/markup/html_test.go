@@ -322,6 +322,7 @@ func TestRender_ShortLinks(t *testing.T) {
 		buffer, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: setting.AppSubURL,
 			Metas:     localMetas,
+			IsWiki:    true,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))

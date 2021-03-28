@@ -329,19 +329,19 @@ func TestTotal_RenderString(t *testing.T) {
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		res, err := RenderString(&markup.RenderContext{}, str)
+		res, err := RenderRawString(&markup.RenderContext{}, str)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		mac := strings.ReplaceAll(str, "\n", "\r")
-		res, err = RenderString(&markup.RenderContext{}, mac)
+		res, err = RenderRawString(&markup.RenderContext{}, mac)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
 		dos := strings.ReplaceAll(str, "\n", "\r\n")
-		res, err = RenderString(&markup.RenderContext{}, dos)
+		res, err = RenderRawString(&markup.RenderContext{}, dos)
 		assert.NoError(t, err)
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
 
 	test(t, "\nOne\nTwo\nThree", 1)
@@ -366,7 +366,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		_, err := RenderString(&markup.RenderContext{}, string(testcase))
+		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
 		assert.NoError(t, err)
 	}
 }
@@ -378,7 +378,7 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
 `
-	res, err := RenderString(&markup.RenderContext{}, testcase)
+	res, err := RenderRawString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 

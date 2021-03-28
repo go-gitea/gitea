@@ -61,7 +61,7 @@ var localMetas = map[string]string{
 func TestRender_IssueIndexPattern(t *testing.T) {
 	// numeric: render inputs without valid mentions
 	test := func(s string) {
-		testRenderIssueIndexPattern(t, s, s, nil)
+		testRenderIssueIndexPattern(t, s, s, &RenderContext{})
 		testRenderIssueIndexPattern(t, s, s, &RenderContext{Metas: numericMetas})
 	}
 
