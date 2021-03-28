@@ -40,6 +40,7 @@ var (
 	// will be checked on Init
 	goVersionLessThan115 = true
 
+	// SubModuleMap is a map of submodule urls to web alias
 	SubModuleMap = map[string]string{}
 )
 
