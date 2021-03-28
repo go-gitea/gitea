@@ -16,10 +16,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/dgrijalva/jwt-go"
 	jsoniter "github.com/json-iterator/go"
@@ -614,85 +616,175 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return true
 	}
 
-	user, repo, opStr, err := parseToken(authorization)
+	user, err := parseToken(authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
 		log.Warn("Authentication failure for provided token with Error: %v", err)
 		return false
 	}
 	ctx.User = user
-	if opStr == "basic" {
-		perm, err = models.GetUserRepoPermission(repository, ctx.User)
-		if err != nil {
-			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
-			return false
-		}
-		return perm.CanAccess(accessMode, models.UnitTypeCode)
-	}
-	if repository.ID == repo.ID {
-		if requireWrite && opStr != "upload" {
-			return false
-		}
-		return true
-	}
-	return false
+	return true
 }
 
-func parseToken(authorization string) (*models.User, *models.Repository, string, error) {
+func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+	if !strings.Contains(tokenSHA, ".") {
+		return nil, nil
+	}
+	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return setting.LFS.JWTSecretBytes, nil
+	})
+	if err != nil {
+		return nil, nil
+	}
+
+	claims, claimsOk := token.Claims.(*Claims)
+	if !token.Valid || !claimsOk {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	if claims.RepoID != target.ID {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	if mode == models.AccessModeWrite && claims.Op != "upload" {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	u, err := models.GetUserByID(claims.UserID)
+	if err != nil {
+		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+func handleOAuth2Token(tokenSHA string) (*models.User, error) {
+	if !strings.Contains(tokenSHA, ".") {
+		return nil, nil
+	}
+	token, err := models.ParseOAuth2Token(tokenSHA)
+	if err != nil {
+		if err.Error() == "invalid token" {
+			return nil, err
+		}
+		return nil, nil
+	}
+	if token.Type != models.TypeAccessToken || token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+	grant, err := models.GetOAuth2GrantByID(token.GrantID)
+	if err != nil {
+		log.Error("Unable to GetOAuth2GrantByID[%d]: Error: %v", token.GrantID, err)
+		return nil, err
+	}
+	u, err := models.GetUserByID(grant.UserID)
+	if err != nil {
+		log.Error("Unable to GetUserById[%d]: Error: %v", grant.UserID, err)
+		return nil, err
+	}
+
+	return u, nil
+}
+
+func handleStandardToken(tokenSHA string) (*models.User, error) {
+	t, err := models.GetAccessTokenBySHA(tokenSHA)
+	if err != nil {
+		if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+			log.Error("GetAccessTokenBySHA: %v", err)
+		}
+		return nil, err
+	}
+	t.UpdatedUnix = timeutil.TimeStampNow()
+	if err = models.UpdateAccessToken(t); err != nil {
+		log.Error("UpdateAccessToken: %v", err)
+	}
+	u, err := models.GetUserByID(t.UID)
+	if err != nil {
+		log.Error("Unable to GetUserById[%d]: Error: %v", t.UID, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
 	if authorization == "" {
-		return nil, nil, "unknown", fmt.Errorf("No token")
+		return nil, fmt.Errorf("no token")
 	}
-	if strings.HasPrefix(authorization, "Bearer ") {
-		token, err := jwt.ParseWithClaims(authorization[7:], &Claims{}, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+
+	parts := strings.SplitN(authorization, " ", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("no token")
+	}
+	tokenSHA := parts[1]
+	switch strings.ToLower(parts[0]) {
+	case "bearer":
+		fallthrough
+	case "token":
+		u, err := handleLFSToken(tokenSHA, target, mode)
+		if err != nil || u != nil {
+			return u, err
+		}
+		u, err = handleOAuth2Token(tokenSHA)
+		if u == nil && err == nil {
+			u, err = handleStandardToken(tokenSHA)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if u != nil {
+			perm, err := models.GetUserRepoPermission(target, u)
+			if err != nil {
+				log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", u, target)
+				return nil, err
 			}
-			return setting.LFS.JWTSecretBytes, nil
-		})
+			if perm.CanAccess(mode, models.UnitTypeCode) {
+				return u, nil
+			}
+		}
+	case "basic":
+		uname, passwd, _ := base.BasicAuthDecode(tokenSHA)
+		if len(uname) == 0 && len(passwd) == 0 {
+			return nil, fmt.Errorf("token not found")
+		}
+		// Check if username or password is a token
+		isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+		// Assume username is token
+		tokenSHA = uname
+		if !isUsernameToken {
+			// Assume password is token
+			tokenSHA = passwd
+		}
+		u, err := handleOAuth2Token(tokenSHA)
+		if u == nil && err == nil {
+			u, err = handleStandardToken(tokenSHA)
+		}
+		if u == nil && err == nil {
+			if !setting.Service.EnableBasicAuth {
+				return nil, fmt.Errorf("token not found")
+			}
+			u, err = models.UserSignIn(uname, passwd)
+		}
 		if err != nil {
-			// The error here is WARN level because it is caused by bad authorization rather than an internal server error
-			return nil, nil, "unknown", err
+			if !models.IsErrUserNotExist(err) {
+				log.Error("UserSignIn: %v", err)
+			}
+			return nil, fmt.Errorf("basic auth failed")
 		}
-		claims, claimsOk := token.Claims.(*Claims)
-		if !token.Valid || !claimsOk {
-			return nil, nil, "unknown", fmt.Errorf("Token claim invalid")
+		if u != nil {
+			perm, err := models.GetUserRepoPermission(target, u)
+			if err != nil {
+				log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", u, target)
+				return nil, err
+			}
+			if perm.CanAccess(mode, models.UnitTypeCode) {
+				return u, nil
+			}
 		}
-		r, err := models.GetRepositoryByID(claims.RepoID)
-		if err != nil {
-			log.Error("Unable to GetRepositoryById[%d]: Error: %v", claims.RepoID, err)
-			return nil, nil, claims.Op, err
-		}
-		u, err := models.GetUserByID(claims.UserID)
-		if err != nil {
-			log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
-			return nil, r, claims.Op, err
-		}
-		return u, r, claims.Op, nil
 	}
-
-	if strings.HasPrefix(authorization, "Basic ") {
-		c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
-		if err != nil {
-			return nil, nil, "basic", err
-		}
-		cs := string(c)
-		i := strings.IndexByte(cs, ':')
-		if i < 0 {
-			return nil, nil, "basic", fmt.Errorf("Basic auth invalid")
-		}
-		user, password := cs[:i], cs[i+1:]
-		u, err := models.GetUserByName(user)
-		if err != nil {
-			log.Error("Unable to GetUserByName[%d]: Error: %v", user, err)
-			return nil, nil, "basic", err
-		}
-		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
-			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
-		}
-		return u, nil, "basic", nil
-	}
-
-	return nil, nil, "unknown", fmt.Errorf("Token not found")
+	return nil, fmt.Errorf("token not found")
 }
 
 func requireAuth(ctx *context.Context) {

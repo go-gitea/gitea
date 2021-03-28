@@ -74,7 +74,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 		// Well, check with header again.
 		auHead := req.Header.Get("Authorization")
 		if len(auHead) > 0 {
-			auths := strings.Fields(auHead)
+			auths := strings.SplitN(auHead, " ", 2)
 			if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
 				tokenSHA = auths[1]
 			}

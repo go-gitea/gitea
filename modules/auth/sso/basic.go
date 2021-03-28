@@ -40,7 +40,7 @@ func (b *Basic) Free() error {
 // IsEnabled returns true as this plugin is enabled by default and its not possible to disable
 // it from settings.
 func (b *Basic) IsEnabled() bool {
-	return setting.Service.EnableBasicAuth
+	return true
 }
 
 // VerifyAuthData extracts and validates Basic data (username and password/token) from the
@@ -53,12 +53,11 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 		return nil
 	}
 
-	auths := strings.Fields(baHead)
+	auths := strings.SplitN(baHead, " ", 2)
 	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
 		return nil
 	}
 
-	var u *models.User
 	uname, passwd, _ := base.BasicAuthDecode(auths[1])
 
 	// Check if username or password is a token
@@ -72,11 +71,10 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 
 	uid := CheckOAuthAccessToken(authToken)
 	if uid != 0 {
-		var err error
 		store.GetData()["IsApiToken"] = true
 		store.GetData()["AuthenticationMechanism"] = OAuth2Mechanism
 
-		u, err = models.GetUserByID(uid)
+		u, err := models.GetUserByID(uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -86,7 +84,7 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
-		u, err = models.GetUserByID(token.UID)
+		u, err := models.GetUserByID(token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -102,7 +100,11 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 		log.Error("GetAccessTokenBySha: %v", err)
 	}
 
-	u, err = models.UserSignIn(uname, passwd)
+	if !setting.Service.EnableBasicAuth {
+		return nil
+	}
+
+	u, err := models.UserSignIn(uname, passwd)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
