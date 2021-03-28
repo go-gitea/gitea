@@ -304,7 +304,7 @@ var (
 	}
 
 	// Log settings
-	LogLevel           string
+	LogLevel           log.Level
 	StacktraceLogLevel string
 	LogRootPath        string
 	DisableRouterLog   bool
@@ -553,7 +553,7 @@ func NewContext() {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
+	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", log.INFO)
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
