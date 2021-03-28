@@ -342,15 +342,12 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	res.Reset()
 	// Render everything to buf.
 	for _, node := range nodes {
-		err = html.Render(res, node)
+		err = html.Render(output, node)
 		if err != nil {
 			return &postProcessError{"error rendering processed HTML", err}
 		}
 	}
-
-	// Everything done successfully, return parsed data.
-	_, err = io.Copy(output, res)
-	return err
+	return nil
 }
 
 func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText bool) {
