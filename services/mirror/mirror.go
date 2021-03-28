@@ -59,30 +59,6 @@ func remoteAddress(repoPath string) (string, error) {
 	return "", nil
 }
 
-// sanitizeOutput sanitizes output of a command, replacing occurrences of the
-// repository's remote address with a sanitized version.
-func sanitizeOutput(output, repoPath string) (string, error) {
-	remoteAddr, err := remoteAddress(repoPath)
-	if err != nil {
-		// if we're unable to load the remote address, then we're unable to
-		// sanitize.
-		return "", err
-	}
-	return util.SanitizeMessage(output, remoteAddr), nil
-}
-
-// AddressNoCredentials returns mirror address from Git repository config without credentials.
-func AddressNoCredentials(m *models.Mirror) string {
-	readAddress(m)
-	u, err := url.Parse(m.Address)
-	if err != nil {
-		// this shouldn't happen but just return it unsanitised
-		return m.Address
-	}
-	u.User = nil
-	return u.String()
-}
-
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(m *models.Mirror, addr string) error {
 	repoPath := m.Repo.RepoPath()

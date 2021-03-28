@@ -91,7 +91,7 @@
 					</div>
 					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
-						<input id="mirror_address" name="mirror_address" value="{{MirrorFullAddress .Mirror}}" required>
+						<input id="mirror_address" name="mirror_address" value="{{MirrorAddress .Mirror}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 					</div>
 					<div class="ui accordion optional field">

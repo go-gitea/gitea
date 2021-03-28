@@ -18,6 +18,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // gitShortEmptySha Git short empty SHA
@@ -407,4 +408,16 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 		}
 	}
 	return true
+}
+
+// sanitizeOutput sanitizes output of a command, replacing occurrences of the
+// repository's remote address with a sanitized version.
+func sanitizeOutput(output, repoPath string) (string, error) {
+	remoteAddr, err := readRemoteAddress(repoPath, pullMirrorRemoteName)
+	if err != nil {
+		// if we're unable to load the remote address, then we're unable to
+		// sanitize.
+		return "", err
+	}
+	return util.SanitizeMessage(output, remoteAddr), nil
 }
