@@ -151,11 +151,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	// Only public pull don't need auth.
 	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
-		askAuth      = !isPublicPull || setting.Service.RequireSignInView
-		authUser     *models.User
-		authUsername string
-		authPasswd   string
-		environ      []string
+		askAuth  = !isPublicPull || setting.Service.RequireSignInView
+		authUser *models.User
+		environ  []string
 	)
 
 	// don't allow anonymous pulls if organization is not public
@@ -170,14 +168,19 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// check access
 	if askAuth {
-		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-		if setting.Service.EnableReverseProxyAuth && len(authUsername) > 0 {
-			authUser, err = models.GetUserByName(authUsername)
-			if err != nil {
-				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
-				return
+		// FIXME: middlewares/context.go did basic auth check already,
+		// maybe could use that one.
+		if setting.Service.EnableReverseProxyAuth {
+			authUsername := ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
+			if len(authUsername) > 0 {
+				authUser, err = models.GetUserByName(authUsername)
+				if err != nil {
+					ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
+					return
+				}
 			}
-		} else {
+		}
+		if authUser == nil {
 			authHead := ctx.Req.Header.Get("Authorization")
 			if len(authHead) == 0 {
 				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
@@ -185,17 +188,15 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				return
 			}
 
-			auths := strings.Fields(authHead)
+			auths := strings.SplitN(authHead, " ", 2)
 			// currently check basic auth
 			// TODO: support digit auth
-			// FIXME: middlewares/context.go did basic auth check already,
-			// maybe could use that one.
-			if len(auths) != 2 || auths[0] != "Basic" {
+			if len(auths) != 2 || strings.ToLower(auths[0]) != "basic" {
 				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
 				return
 			}
-			authUsername, authPasswd, err = base.BasicAuthDecode(auths[1])
-			if err != nil {
+			authUsername, authPasswd, err := base.BasicAuthDecode(auths[1])
+			if err != nil || (len(authUsername) == 0 && len(authPasswd) == 0) {
 				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
 				return
 			}
@@ -218,21 +219,31 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 					return
 				}
 			}
-			// Assume password is a token.
-			token, err := models.GetAccessTokenBySHA(authToken)
-			if err == nil {
-				authUser, err = models.GetUserByID(token.UID)
-				if err != nil {
-					ctx.ServerError("GetUserByID", err)
-					return
-				}
 
-				token.UpdatedUnix = timeutil.TimeStampNow()
-				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.ServerError("UpdateAccessToken", err)
+			if authUser == nil {
+				// Assume password is a token.
+				token, err := models.GetAccessTokenBySHA(authToken)
+				if err == nil {
+					authUser, err = models.GetUserByID(token.UID)
+					if err != nil {
+						ctx.ServerError("GetUserByID", err)
+						return
+					}
+
+					ctx.Data["IsApiToken"] = true
+
+					token.UpdatedUnix = timeutil.TimeStampNow()
+					if err = models.UpdateAccessToken(token); err != nil {
+						ctx.ServerError("UpdateAccessToken", err)
+					}
+				} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+					log.Error("GetAccessTokenBySha: %v", err)
 				}
-			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-				log.Error("GetAccessTokenBySha: %v", err)
+			}
+
+			if authUser == nil && !setting.Service.EnableBasicAuth {
+				ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
+				return
 			}
 
 			if authUser == nil {
