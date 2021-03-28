@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
@@ -51,6 +52,10 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 
 	// Check if user name has been changed
 	if user.LowerName != strings.ToLower(newName) {
+		if ctx.Data["AuthenticationMechanism"] == sso.ReverseProxyMechanism {
+			ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
+			return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
+		}
 		if err := models.ChangeUserName(user, newName); err != nil {
 			switch {
 			case models.IsErrUserAlreadyExist(err):

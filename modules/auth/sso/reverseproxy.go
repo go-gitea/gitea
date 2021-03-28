@@ -16,6 +16,9 @@ import (
 	gouuid "github.com/google/uuid"
 )
 
+// ReverseProxyMechanism represents authentication using ReverseProxy
+const ReverseProxyMechanism AuthenticationMechanism = "ReverseProxy"
+
 // Ensure the struct implements the interface.
 var (
 	_ SingleSignOn = &ReverseProxy{}
@@ -104,7 +107,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 	user := &models.User{
 		Name:     username,
 		Email:    email,
-		Passwd:   username,
 		IsActive: true,
 	}
 	if err := models.CreateUser(user); err != nil {

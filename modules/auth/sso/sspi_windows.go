@@ -23,6 +23,9 @@ import (
 
 const (
 	tplSignIn base.TplName = "user/auth/signin"
+
+	// SSPIMechanism represents authentication using SSPI
+	SSPIMechanism AuthenticationMechanism = "SSPI"
 )
 
 var (

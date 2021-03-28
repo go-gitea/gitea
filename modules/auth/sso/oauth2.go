@@ -16,6 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
+// OAuth2Mechanism represents authentication using OAuth2
+const OAuth2Mechanism AuthenticationMechanism = "OAuth2"
+
+// TokenMechanism represents authentication using Token
+const TokenMechanism AuthenticationMechanism = "Token"
+
 // Ensure the struct implements the interface.
 var (
 	_ SingleSignOn = &OAuth2{}

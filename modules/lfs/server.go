@@ -141,7 +141,7 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rv *RequestVars, requireW
 		return nil, nil
 	}
 
-	if !authenticate(ctx, repository, rv.Authorization, requireWrite) {
+	if !authenticate(ctx, repository, rv.Authorization, false, requireWrite) {
 		requireAuth(ctx)
 		return nil, nil
 	}
@@ -268,7 +268,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(ctx, repository, rv.Authorization, true) {
+	if !authenticate(ctx, repository, rv.Authorization, false, true) {
 		requireAuth(ctx)
 		return
 	}
@@ -352,7 +352,7 @@ func BatchHandler(ctx *context.Context) {
 			requireWrite = true
 		}
 
-		if !authenticate(ctx, repository, object.Authorization, requireWrite) {
+		if !authenticate(ctx, repository, object.Authorization, false, requireWrite) {
 			requireAuth(ctx)
 			return
 		}
@@ -598,7 +598,7 @@ func logRequest(r *http.Request, status int) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireWrite bool) bool {
+func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireSigned, requireWrite bool) bool {
 	accessMode := models.AccessModeRead
 	if requireWrite {
 		accessMode = models.AccessModeWrite
@@ -612,7 +612,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 
 	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
-	if canRead {
+	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
 

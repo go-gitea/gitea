@@ -77,7 +77,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, rv.Authorization, false)
+	authenticated := authenticate(ctx, repository, rv.Authorization, true, false)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -169,7 +169,7 @@ func PostLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -242,7 +242,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -313,7 +313,7 @@ func UnLockHandler(ctx *context.Context) {
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{

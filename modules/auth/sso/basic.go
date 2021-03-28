@@ -16,6 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// BasicAuthenticationMechanism represents authentication using Basic authentication
+const BasicAuthenticationMechanism AuthenticationMechanism = "Basic"
+
 // Ensure the struct implements the interface.
 var (
 	_ SingleSignOn = &Basic{}

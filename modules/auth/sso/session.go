@@ -42,6 +42,7 @@ func (s *Session) IsEnabled() bool {
 func (s *Session) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	user := SessionUser(sess)
 	if user != nil {
+		store.GetData()["AuthenticationMechanism"] = ""
 		return user
 	}
 	return nil
