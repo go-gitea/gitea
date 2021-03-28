@@ -186,12 +186,12 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		}()
 
 		pc := NewGiteaParseContext(ctx)
-		buf, err := ioutil.ReadAll(input)
+		buf, err := ioutil.ReadAll(giteautil.NormalizeEOLReader(input))
 		if err != nil {
 			log.Error("Unable to ReadAll: %v", err)
 			return
 		}
-		if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+		if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
 			_ = lw.CloseWithError(err)
 			return
