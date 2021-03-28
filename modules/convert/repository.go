@@ -102,7 +102,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 
 	return &api.Repository{
 		ID:                        repo.ID,
-		Owner:                     ToUser(repo.Owner, mode != models.AccessModeNone, mode >= models.AccessModeAdmin),
+		Owner:                     ToUserWithAccessMode(repo.Owner, mode),
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,

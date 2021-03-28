@@ -18,7 +18,7 @@ import (
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		apiUsers[i] = convert.ToUser(users[i], ctx.User)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }
