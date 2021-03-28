@@ -373,7 +373,7 @@ func InstallPost(ctx *context.Context) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("console")
-	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
+	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
