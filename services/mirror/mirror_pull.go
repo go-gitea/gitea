@@ -21,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+const pullMirrorRemoteName = "origin"
+
 // gitShortEmptySha Git short empty SHA
 const gitShortEmptySha = "0000000"
 
