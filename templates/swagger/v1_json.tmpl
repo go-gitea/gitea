@@ -13626,6 +13626,11 @@
           "type": "string",
           "x-go-name": "DefaultBranch"
         },
+        "default_merge_style": {
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
+        },
         "description": {
           "description": "a short description of the repository.",
           "type": "string",
@@ -15455,6 +15460,9 @@
           "type": "string",
           "x-go-name": "HTMLPullURL"
         },
+        "resolver": {
+          "$ref": "#/definitions/User"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -15675,6 +15683,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "type": "string",

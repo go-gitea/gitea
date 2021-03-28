@@ -54,7 +54,7 @@ func ListCollaborators(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(collaborator.User, ctx.User)
 	}
 	ctx.JSON(http.StatusOK, users)
 }
