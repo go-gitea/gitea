@@ -414,6 +414,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 			Where(cond).
 			Count(new(Repository))
 		if err != nil {
+			_ = sess.Close()
 			return nil, 0, fmt.Errorf("Count: %v", err)
 		}
 	}
