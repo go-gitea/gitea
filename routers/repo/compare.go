@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
@@ -119,6 +120,8 @@ func setCsvCompareContext(ctx *context.Context) {
 			if err != nil {
 				return nil, err
 			}
+
+			b = charset.ToUTF8WithFallback(b)
 
 			return csv_module.CreateReaderAndGuessDelimiter(b), nil
 		}
