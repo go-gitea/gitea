@@ -556,6 +556,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Private != nil {
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
+			if err := repo.GetBaseRepo(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "Unable to load base repository", err)
+				return err
+			}
 			*opts.Private = repo.BaseRepo.IsPrivate
 		}
 
@@ -725,6 +729,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:               true,
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
+					AllowManualMerge:          true,
+					AutodetectManualMerge:     false,
+					DefaultMergeStyle:         models.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -744,6 +751,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.AllowManualMerge != nil {
+				config.AllowManualMerge = *opts.AllowManualMerge
+			}
+			if opts.AutodetectManualMerge != nil {
+				config.AutodetectManualMerge = *opts.AutodetectManualMerge
+			}
+			if opts.DefaultMergeStyle != nil {
+				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)
 			}
 
 			units = append(units, models.RepoUnit{

@@ -5,7 +5,6 @@
 package events
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/user"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Events listens for events
@@ -29,6 +29,17 @@ func Events(ctx *context.Context) {
 	ctx.Resp.Header().Set("Connection", "keep-alive")
 	ctx.Resp.Header().Set("X-Accel-Buffering", "no")
 	ctx.Resp.WriteHeader(http.StatusOK)
+
+	if !ctx.IsSigned {
+		// Return unauthorized status event
+		event := (&eventsource.Event{
+			Name: "unauthorized",
+			Data: "sorry",
+		})
+		_, _ = event.WriteTo(ctx)
+		ctx.Resp.Flush()
+		return
+	}
 
 	// Listen to connection close and un-register messageChan
 	notify := ctx.Req.Context().Done()
@@ -92,6 +103,7 @@ loop:
 				log.Error("Unable to APIFormat stopwatches: %v", err)
 				continue
 			}
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			dataBs, err := json.Marshal(apiSWs)
 			if err != nil {
 				log.Error("Unable to marshal stopwatches: %v", err)

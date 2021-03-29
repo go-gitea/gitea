@@ -6,6 +6,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -117,17 +118,20 @@ func UpdateRelease(ctx DBContext, rel *Release) error {
 }
 
 // AddReleaseAttachments adds a release attachments
-func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+func AddReleaseAttachments(ctx DBContext, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
+	attachments, err := getAttachmentsByUUIDs(ctx.e, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
+		if attachments[i].ReleaseID != 0 {
+			return errors.New("release permission denied")
+		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = ctx.e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -173,7 +177,7 @@ type FindReleasesOptions struct {
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"repo_id": repoID})
 
 	if !opts.IncludeDrafts {
@@ -246,10 +250,12 @@ type releaseMetaSearch struct {
 func (s releaseMetaSearch) Len() int {
 	return len(s.ID)
 }
+
 func (s releaseMetaSearch) Swap(i, j int) {
 	s.ID[i], s.ID[j] = s.ID[j], s.ID[i]
 	s.Rel[i], s.Rel[j] = s.Rel[j], s.Rel[i]
 }
+
 func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
@@ -269,7 +275,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	//    then merge join them
 
 	// Sort
-	var sortedRels = releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
+	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
 	var attachments []*Attachment
 	for index, element := range rels {
 		element.Attachments = []*Attachment{}
@@ -280,7 +286,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 
 	// Select attachments
 	err = e.
-		Asc("release_id").
+		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, Attachment{})
 	if err != nil {
@@ -288,7 +294,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	}
 
 	// merge join
-	var currentIndex = 0
+	currentIndex := 0
 	for _, attachment := range attachments {
 		for sortedRels.ID[currentIndex] < attachment.ReleaseID {
 			currentIndex++

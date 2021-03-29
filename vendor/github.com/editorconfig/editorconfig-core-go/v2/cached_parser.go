@@ -29,19 +29,19 @@ func (parser *CachedParser) ParseIni(filename string) (*Editorconfig, error) {
 	if !ok {
 		fp, err := os.Open(filename)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error opening %q: %w", filename, err)
 		}
 
 		defer fp.Close()
 
 		iniFile, err := ini.Load(fp)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error loading ini file %q: %w", filename, err)
 		}
 
 		ec, err = newEditorconfig(iniFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error creating config: %w", err)
 		}
 
 		parser.editorconfigs[filename] = ec
@@ -60,7 +60,7 @@ func (parser *CachedParser) FnmatchCase(selector string, filename string) (bool,
 
 		r, err = regexp.Compile(fmt.Sprintf("^%s$", p))
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("error compiling selector %q: %w", selector, err)
 		}
 
 		parser.regexps[selector] = r

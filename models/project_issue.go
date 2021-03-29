@@ -124,7 +124,6 @@ func (p *Project) NumOpenIssues() int {
 
 // ChangeProjectAssign changes the project associated with an issue
 func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -139,7 +138,6 @@ func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
 }
 
 func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
-
 	oldProjectID := issue.projectID(e)
 
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
@@ -179,7 +177,6 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

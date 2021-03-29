@@ -6,14 +6,20 @@ package repo
 
 import (
 	"bufio"
+	"encoding/csv"
+	"errors"
 	"fmt"
 	"html"
+	"io/ioutil"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
+	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,6 +32,7 @@ const (
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
 
+// setCompareContext sets context data.
 func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
 	ctx.Data["BaseCommit"] = base
 	ctx.Data["HeadCommit"] = head
@@ -44,6 +51,7 @@ func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit,
 
 	setPathsCompareContext(ctx, base, head, headTarget)
 	setImageCompareContext(ctx)
+	setCsvCompareContext(ctx)
 }
 
 // setPathsCompareContext sets context data for source and raw paths
@@ -73,6 +81,73 @@ func setImageCompareContext(ctx *context.Context) {
 			return false
 		}
 		return st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage())
+	}
+}
+
+// setCsvCompareContext sets context data that is required by the CSV compare template
+func setCsvCompareContext(ctx *context.Context) {
+	ctx.Data["IsCsvFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		extension := strings.ToLower(filepath.Ext(diffFile.Name))
+		return extension == ".csv" || extension == ".tsv"
+	}
+
+	type CsvDiffResult struct {
+		Sections []*gitdiff.TableDiffSection
+		Error    string
+	}
+
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) CsvDiffResult {
+		if diffFile == nil || baseCommit == nil || headCommit == nil {
+			return CsvDiffResult{nil, ""}
+		}
+
+		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
+
+		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+			blob, err := c.GetBlobByPath(diffFile.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+				return nil, errTooLarge
+			}
+
+			reader, err := blob.DataAsync()
+			if err != nil {
+				return nil, err
+			}
+			defer reader.Close()
+
+			b, err := ioutil.ReadAll(reader)
+			if err != nil {
+				return nil, err
+			}
+
+			b = charset.ToUTF8WithFallback(b)
+
+			return csv_module.CreateReaderAndGuessDelimiter(b), nil
+		}
+
+		baseReader, err := csvReaderFromCommit(baseCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
+		headReader, err := csvReaderFromCommit(headCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
+
+		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
+		if err != nil {
+			errMessage, err := csv_module.FormatError(err, ctx.Locale)
+			if err != nil {
+				log.Error("RenderCsvDiff failed: %v", err)
+				return CsvDiffResult{nil, ""}
+			}
+			return CsvDiffResult{nil, errMessage}
+		}
+		return CsvDiffResult{sections, ""}
 	}
 }
 
@@ -440,6 +515,18 @@ func PrepareCompareDiff(
 
 	if headCommitID == compareInfo.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
+		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+			config := unit.PullRequestsConfig()
+
+			if !config.AutodetectManualMerge {
+				allowEmptyPr := !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
+				ctx.Data["AllowEmptyPr"] = allowEmptyPr
+
+				return !allowEmptyPr
+			}
+
+			ctx.Data["AllowEmptyPr"] = false
+		}
 		return true
 	}
 

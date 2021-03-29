@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/unknwon/i18n"
 )
@@ -117,7 +118,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	// Update the language to the one we just set
-	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))

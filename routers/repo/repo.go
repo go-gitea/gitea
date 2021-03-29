@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -274,6 +275,10 @@ func Action(ctx *context.Context) {
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	case "accept_transfer":
+		err = acceptOrRejectRepoTransfer(ctx, true)
+	case "reject_transfer":
+		err = acceptOrRejectRepoTransfer(ctx, false)
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(404)
@@ -291,6 +296,36 @@ func Action(ctx *context.Context) {
 	}
 
 	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
+}
+
+func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	if err != nil {
+		return err
+	}
+
+	if err := repoTransfer.LoadAttributes(); err != nil {
+		return err
+	}
+
+	if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+		return errors.New("user does not have enough permissions")
+	}
+
+	if accept {
+		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+			return err
+		}
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+	} else {
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+			return err
+		}
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+	}
+
+	ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+	return nil
 }
 
 // RedirectDownload return a file based on the following infos:

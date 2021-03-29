@@ -5,9 +5,9 @@
 package setting
 
 import (
-	"encoding/json"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,5 +28,6 @@ func TestMakeAbsoluteAssetURL(t *testing.T) {
 
 func TestMakeManifestData(t *testing.T) {
 	jsonBytes := MakeManifestData(`Example App '\"`, "https://example.com", "https://example.com/foo/bar")
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.True(t, json.Valid(jsonBytes))
 }

@@ -7,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -206,7 +207,7 @@ func LatestRelease(ctx *context.Context) {
 	ctx.Redirect(release.HTMLURL())
 }
 
-// NewRelease render creating release page
+// NewRelease render creating or edit release page
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
@@ -221,10 +222,17 @@ func NewRelease(ctx *context.Context) {
 		}
 
 		if rel != nil {
+			rel.Repo = ctx.Repo.Repository
+			if err := rel.LoadAttributes(); err != nil {
+				ctx.ServerError("LoadAttributes", err)
+				return
+			}
+
 			ctx.Data["tag_name"] = rel.TagName
 			ctx.Data["tag_target"] = rel.Target
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
+			ctx.Data["attachments"] = rel.Attachments
 		}
 	}
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
@@ -324,9 +332,9 @@ func NewReleasePost(ctx *context.Context) {
 		rel.PublisherID = ctx.User.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, true); err != nil {
+		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
 			ctx.Data["Err_TagName"] = true
-			ctx.ServerError("UpdateReleaseOrCreatReleaseFromTag", err)
+			ctx.ServerError("UpdateRelease", err)
 			return
 		}
 	}
@@ -362,6 +370,13 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["content"] = rel.Note
 	ctx.Data["prerelease"] = rel.IsPrerelease
 	ctx.Data["IsDraft"] = rel.IsDraft
+
+	rel.Repo = ctx.Repo.Repository
+	if err := rel.LoadAttributes(); err != nil {
+		ctx.ServerError("LoadAttributes", err)
+		return
+	}
+	ctx.Data["attachments"] = rel.Attachments
 
 	ctx.HTML(200, tplReleaseNew)
 }
@@ -400,16 +415,27 @@ func EditReleasePost(ctx *context.Context) {
 		return
 	}
 
-	var attachmentUUIDs []string
+	const delPrefix = "attachment-del-"
+	const editPrefix = "attachment-edit-"
+	var addAttachmentUUIDs, delAttachmentUUIDs []string
+	var editAttachments = make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
-		attachmentUUIDs = form.Files
+		addAttachmentUUIDs = form.Files
+		for k, v := range ctx.Req.Form {
+			if strings.HasPrefix(k, delPrefix) && v[0] == "true" {
+				delAttachmentUUIDs = append(delAttachmentUUIDs, k[len(delPrefix):])
+			} else if strings.HasPrefix(k, editPrefix) {
+				editAttachments[k[len(editPrefix):]] = v[0]
+			}
+		}
 	}
 
 	rel.Title = form.Title
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateReleaseOrCreatReleaseFromTag(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, false); err != nil {
+	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo,
+		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
 	}

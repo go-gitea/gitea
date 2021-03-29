@@ -5,10 +5,10 @@
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,6 +17,7 @@ type testLevel struct {
 }
 
 func TestLevelMarshalUnmarshalJSON(t *testing.T) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	levelBytes, err := json.Marshal(testLevel{
 		Level: INFO,
 	})

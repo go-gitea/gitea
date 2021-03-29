@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -190,6 +190,7 @@ func TestAPIEditUser(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	errMap := make(map[string]interface{})
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 

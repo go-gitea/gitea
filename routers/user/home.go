@@ -7,7 +7,6 @@ package user
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -25,6 +24,7 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"xorm.io/builder"
@@ -104,9 +104,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
 
-	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
-	// so everyone would get the same empty heatmap
-	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
@@ -434,9 +432,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	case models.FilterModeCreate:
 		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctxUser.ID
+		opts.ReviewRequestedID = ctx.User.ID
 	}
 
 	if ctxUser.IsOrganization() {
@@ -691,6 +689,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Convert []int64 to string
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	reposParam, _ := json.Marshal(repoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)
@@ -710,7 +709,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 }
 
 func getRepoIDs(reposQuery string) []int64 {
-	if len(reposQuery) == 0 {
+	if len(reposQuery) == 0 || reposQuery == "[]" {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
