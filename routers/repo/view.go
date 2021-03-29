@@ -324,8 +324,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["IsTextFile"] = true
 				ctx.Data["FileSize"] = fileSize
 			} else {
-				d, _ := ioutil.ReadAll(dataRc)
-				buf = charset.ToUTF8WithFallback(append(buf, d...))
+				rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
@@ -335,12 +334,14 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 						Filename:  readmeFile.name,
 						URLPrefix: readmeTreelink,
 						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-					}, bytes.NewReader(buf), &result)
+					}, rd, &result)
 					if err != nil {
-						ctx.ServerError("Render", err)
-						return
+						log.Error("Render failed: %v then fallback", err)
+						bs, _ := ioutil.ReadAll(rd)
+						ctx.Data["FileContent"] = string(bs)
+					} else {
+						ctx.Data["FileContent"] = result.String()
 					}
-					ctx.Data["FileContent"] = result.String()
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.ReplaceAll(
