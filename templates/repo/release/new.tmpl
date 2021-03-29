@@ -57,6 +57,23 @@
 						{{$.i18n.Tr "loading"}}
 					</div>
 				</div>
+				{{range .attachments}}
+					<div class="field" id="attachment-{{.ID}}">
+						<div class="ui right df ac wrap_remove">
+							<a class="ui mini compact red button remove-rel-attach" data-id="{{.ID}}" data-uuid="{{.UUID}}">
+								{{$.i18n.Tr "remove"}}
+							</a>
+						</div>
+						<div class="df ac">
+							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
+							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
+							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
+							<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+								{{svg "octicon-info"}}
+							</span>
+						</div>
+					</div>
+				{{end}}
 				{{if .IsAttachmentEnabled}}
 					<div class="field">
 						<div class="files"></div>
@@ -121,7 +138,7 @@
 {{if .PageIsEditRelease}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			{{svg "octicon-trashcan"}}
+			{{svg "octicon-trash"}}
 			{{.i18n.Tr "repo.release.deletion"}}
 		</div>
 		<div class="content">

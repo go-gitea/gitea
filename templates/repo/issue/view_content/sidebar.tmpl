@@ -70,7 +70,7 @@
 
 								{{if .CanChange}}
 									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
+										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
 								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
@@ -469,7 +469,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -497,7 +497,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -536,7 +536,7 @@
 
 				<div class="ui basic modal remove-dependency">
 					<div class="ui icon header">
-						{{svg "octicon-trashcan"}}
+						{{svg "octicon-trash"}}
 						{{.i18n.Tr "repo.issues.dependency.remove_header"}}
 					</div>
 					<div class="content">
