@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 	"unicode/utf8"
 
@@ -51,24 +52,24 @@ func ToUTF8WithErr(content []byte) (string, error) {
 // ToUTF8WithFallbackReader detects the encoding of content and coverts to UTF-8 reader if possible
 func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 	var buf = make([]byte, 2048)
-	_, err := rd.Read(buf)
+	n, err := rd.Read(buf)
 	if err != nil {
 		return rd
 	}
 
-	charsetLabel, err := DetectEncoding(buf)
+	charsetLabel, err := DetectEncoding(buf[:n])
 	if err != nil || charsetLabel == "UTF-8" {
-		return io.MultiReader(bytes.NewReader(RemoveBOMIfPresent(buf)), rd)
+		return io.MultiReader(bytes.NewReader(RemoveBOMIfPresent(buf[:n])), rd)
 	}
 
 	encoding, _ := charset.Lookup(charsetLabel)
 	if encoding == nil {
-		return io.MultiReader(bytes.NewReader(buf), rd)
+		return io.MultiReader(bytes.NewReader(buf[:n]), rd)
 	}
 
 	return transform.NewReader(
 		io.MultiReader(
-			bytes.NewReader(RemoveBOMIfPresent(buf)),
+			bytes.NewReader(RemoveBOMIfPresent(buf[:n])),
 			rd,
 		),
 		encoding.NewDecoder(),
@@ -77,24 +78,8 @@ func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 
 // ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
 func ToUTF8WithFallback(content []byte) []byte {
-	charsetLabel, err := DetectEncoding(content)
-	if err != nil || charsetLabel == "UTF-8" {
-		return RemoveBOMIfPresent(content)
-	}
-
-	encoding, _ := charset.Lookup(charsetLabel)
-	if encoding == nil {
-		return content
-	}
-
-	// If there is an error, we concatenate the nicely decoded part and the
-	// original left over. This way we won't lose data.
-	result, n, err := transform.Bytes(encoding.NewDecoder(), content)
-	if err != nil {
-		return append(result, content[n:]...)
-	}
-
-	return RemoveBOMIfPresent(result)
+	bs, _ := ioutil.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content)))
+	return bs
 }
 
 // ToUTF8 converts content to UTF8 encoding and ignore error
