@@ -41,7 +41,7 @@ func guessDelimiter(data []byte) rune {
 	lines := strings.SplitN(text, "\n", maxLines+1)
 	lines = lines[:util.Min(maxLines, len(lines))]
 
-	delimiters := []rune{',', ';', '\t', '|'}
+	delimiters := []rune{',', ';', '\t', '|', '@'}
 	bestDelim := delimiters[0]
 	bestScore := 0.0
 	for _, delim := range delimiters {
