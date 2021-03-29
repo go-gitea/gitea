@@ -431,11 +431,15 @@ func PrepareCompareDiff(
 		ctx.Data["IsNothingToCompare"] = true
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
+
 			if !config.AutodetectManualMerge {
-				ctx.Data["AllowEmptyPr"] = !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
-			} else {
-				ctx.Data["AllowEmptyPr"] = false
+				allowEmptyPr := !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
+				ctx.Data["AllowEmptyPr"] = allowEmptyPr
+
+				return !allowEmptyPr
 			}
+
+			ctx.Data["AllowEmptyPr"] = false
 		}
 		return true
 	}
