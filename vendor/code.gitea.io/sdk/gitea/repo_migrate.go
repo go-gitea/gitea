@@ -22,10 +22,8 @@ const (
 	GitServiceGitlab GitServiceType = "gitlab"
 	// GitServiceGitea represents a gitea service
 	GitServiceGitea GitServiceType = "gitea"
-
-	// Not supported jet
-	// // GitServiceGogs represents a gogs service
-	// GitServiceGogs GitServiceType = "gogs"
+	// GitServiceGogs represents a gogs service
+	GitServiceGogs GitServiceType = "gogs"
 )
 
 // MigrateRepoOption options for migrating a repository from an external service
@@ -33,21 +31,22 @@ type MigrateRepoOption struct {
 	RepoName  string `json:"repo_name"`
 	RepoOwner string `json:"repo_owner"`
 	// deprecated use RepoOwner
-	RepoOwnerID  int64          `json:"uid"`
-	CloneAddr    string         `json:"clone_addr"`
-	Service      GitServiceType `json:"service"`
-	AuthUsername string         `json:"auth_username"`
-	AuthPassword string         `json:"auth_password"`
-	AuthToken    string         `json:"auth_token"`
-	Mirror       bool           `json:"mirror"`
-	Private      bool           `json:"private"`
-	Description  string         `json:"description"`
-	Wiki         bool           `json:"wiki"`
-	Milestones   bool           `json:"milestones"`
-	Labels       bool           `json:"labels"`
-	Issues       bool           `json:"issues"`
-	PullRequests bool           `json:"pull_requests"`
-	Releases     bool           `json:"releases"`
+	RepoOwnerID    int64          `json:"uid"`
+	CloneAddr      string         `json:"clone_addr"`
+	Service        GitServiceType `json:"service"`
+	AuthUsername   string         `json:"auth_username"`
+	AuthPassword   string         `json:"auth_password"`
+	AuthToken      string         `json:"auth_token"`
+	Mirror         bool           `json:"mirror"`
+	Private        bool           `json:"private"`
+	Description    string         `json:"description"`
+	Wiki           bool           `json:"wiki"`
+	Milestones     bool           `json:"milestones"`
+	Labels         bool           `json:"labels"`
+	Issues         bool           `json:"issues"`
+	PullRequests   bool           `json:"pull_requests"`
+	Releases       bool           `json:"releases"`
+	MirrorInterval string         `json:"mirror_interval"`
 }
 
 // Validate the MigrateRepoOption struct
@@ -67,16 +66,23 @@ func (opt *MigrateRepoOption) Validate(c *Client) error {
 	switch opt.Service {
 	case GitServiceGithub:
 		if len(opt.AuthToken) == 0 {
-			return fmt.Errorf("github require token authentication")
+			return fmt.Errorf("github requires token authentication")
 		}
 	case GitServiceGitlab, GitServiceGitea:
 		if len(opt.AuthToken) == 0 {
-			return fmt.Errorf("%s require token authentication", opt.Service)
+			return fmt.Errorf("%s requires token authentication", opt.Service)
 		}
 		// Gitlab is supported since 1.12.0 but api cant handle it until 1.13.0
 		// https://github.com/go-gitea/gitea/pull/12672
 		if c.checkServerVersionGreaterThanOrEqual(version1_13_0) != nil {
 			return fmt.Errorf("migrate from service %s need gitea >= 1.13.0", opt.Service)
+		}
+	case GitServiceGogs:
+		if len(opt.AuthToken) == 0 {
+			return fmt.Errorf("gogs requires token authentication")
+		}
+		if c.checkServerVersionGreaterThanOrEqual(version1_14_0) != nil {
+			return fmt.Errorf("migrate from service gogs need gitea >= 1.14.0")
 		}
 	}
 	return nil

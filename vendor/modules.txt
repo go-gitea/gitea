@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.13.2
+# code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
@@ -772,7 +772,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
-# github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
+# github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 ## explicit
 github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae

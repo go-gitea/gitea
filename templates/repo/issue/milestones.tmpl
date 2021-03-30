@@ -76,7 +76,7 @@
 							{{else}}
 								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x"}} {{$.i18n.Tr "repo.milestones.close"}}</a>
 							{{end}}
-							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trashcan"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
 						</div>
 					{{end}}
 					{{if .Content}}
@@ -95,7 +95,7 @@
 {{if or .CanWriteIssues .CanWritePulls}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			{{svg "octicon-trashcan"}}
+			{{svg "octicon-trash"}}
 			{{.i18n.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
