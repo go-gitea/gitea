@@ -25,7 +25,7 @@
 						</td>
 						<td class="right aligned overflow-visible">
 							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-variation="tiny inverted" data-position="top right">
-							  <i class="download icon"></i>
+							  {{svg "octicon-download"}}
 							  <div class="menu">
 							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
@@ -91,20 +91,20 @@
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.HTMLURL}}">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple mini label">{{svg "octicon-git-merge"}} {{$.i18n.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.i18n.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red mini label">{{svg "octicon-git-pull-request"}} {{$.i18n.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green mini label">{{svg "octicon-git-pull-request"}} {{$.i18n.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>
 									<td class="two wide right aligned overflow-visible">
 										{{if (not .IsDeleted)}}
 											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-variation="tiny inverted" data-position="top right">
-												<i class="download icon"></i>
+												{{svg "octicon-download"}}
 												<div class="menu">
 													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
