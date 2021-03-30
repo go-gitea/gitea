@@ -5,12 +5,12 @@
 package setting
 
 import (
-	"gopkg.in/ini.v1"
 	"regexp"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"gopkg.in/ini.v1"
 )
 
 // Service settings
@@ -190,7 +190,7 @@ func isValidAccountLinking(accountLinking string) bool {
 func parseScopes(sec *ini.Section, name string) []string {
 	parts := sec.Key(name).Strings(" ")
 	scopes := make([]string, 0, len(parts))
-	for _, scope :=	 range parts {
+	for _, scope := range parts {
 		if scope != "" {
 			scopes = append(scopes, scope)
 		}

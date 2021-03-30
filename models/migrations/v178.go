@@ -5,7 +5,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
-func convertAvatarUrlToText(x *xorm.Engine) error {
+func convertAvatarURLToText(x *xorm.Engine) error {
 	dbType := x.Dialect().URI().DBType
 	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
 		return nil

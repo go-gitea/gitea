@@ -675,7 +675,6 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 		log.Error("Error storing session: %v", err)
 	}
 	ctx.Redirect(setting.AppSubURL + "/user/link_account")
-	return
 }
 
 func updateAvatarIfNeed(url string, u *models.User) {
@@ -688,7 +687,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 		}
 		// ignore any error
 		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize + 1))
+			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
 				_ = u.UploadAvatar(data)
 			}

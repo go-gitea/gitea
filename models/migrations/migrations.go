@@ -303,7 +303,7 @@ var migrations = []Migration{
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
 	// v178 -> v179
-	NewMigration("Convert avatar url to text", convertAvatarUrlToText),
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 }
 
 // GetCurrentDBVersion returns the current db version
