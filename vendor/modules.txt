@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.13.2
+# code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
@@ -175,6 +175,9 @@ github.com/bradfitz/gomemcache/memcache
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
+# github.com/chi-middleware/proxy v1.1.1
+## explicit
+github.com/chi-middleware/proxy
 # github.com/chris-ramon/douceur v0.2.0
 github.com/chris-ramon/douceur/parser
 # github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448
@@ -258,7 +261,7 @@ github.com/go-chi/chi/middleware
 # github.com/go-chi/cors v1.1.1
 ## explicit
 github.com/go-chi/cors
-# github.com/go-enry/go-enry/v2 v2.6.0
+# github.com/go-enry/go-enry/v2 v2.6.1
 ## explicit
 github.com/go-enry/go-enry/v2
 github.com/go-enry/go-enry/v2/data
@@ -769,7 +772,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
-# github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
+# github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 ## explicit
 github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
@@ -795,7 +798,7 @@ github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.3.2
+# github.com/yuin/goldmark v1.3.3
 ## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast

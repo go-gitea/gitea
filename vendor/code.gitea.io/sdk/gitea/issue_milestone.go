@@ -49,6 +49,9 @@ func (opt *ListMilestoneOption) QueryEncode() string {
 
 // ListRepoMilestones list all the milestones of one repository
 func (c *Client) ListRepoMilestones(owner, repo string, opt ListMilestoneOption) ([]*Milestone, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	milestones := make([]*Milestone, 0, opt.PageSize)
 
@@ -60,6 +63,9 @@ func (c *Client) ListRepoMilestones(owner, repo string, opt ListMilestoneOption)
 
 // GetMilestone get one milestone by repo name and milestone id
 func (c *Client) GetMilestone(owner, repo string, id int64) (*Milestone, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	milestone := new(Milestone)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil, milestone)
 	return milestone, resp, err
@@ -71,6 +77,9 @@ func (c *Client) GetMilestoneByName(owner, repo string, name string) (*Milestone
 		// backwards compatibility mode
 		m, resp, err := c.resolveMilestoneByName(owner, repo, name)
 		return m, resp, err
+	}
+	if err := escapeValidatePathSegments(&owner, &repo, &name); err != nil {
+		return nil, nil, err
 	}
 	milestone := new(Milestone)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/milestones/%s", owner, repo, name), nil, nil, milestone)
@@ -95,6 +104,9 @@ func (opt CreateMilestoneOption) Validate() error {
 
 // CreateMilestone create one milestone with options
 func (c *Client) CreateMilestone(owner, repo string, opt CreateMilestoneOption) (*Milestone, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -135,6 +147,9 @@ func (opt EditMilestoneOption) Validate() error {
 
 // EditMilestone modify milestone with options
 func (c *Client) EditMilestone(owner, repo string, id int64, opt EditMilestoneOption) (*Milestone, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -157,6 +172,9 @@ func (c *Client) EditMilestoneByName(owner, repo string, name string, opt EditMi
 		}
 		return c.EditMilestone(owner, repo, m.ID, opt)
 	}
+	if err := escapeValidatePathSegments(&owner, &repo, &name); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -171,6 +189,9 @@ func (c *Client) EditMilestoneByName(owner, repo string, name string, opt EditMi
 
 // DeleteMilestone delete one milestone by id
 func (c *Client) DeleteMilestone(owner, repo string, id int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/milestones/%d", owner, repo, id), nil, nil)
 	return resp, err
 }
@@ -184,6 +205,9 @@ func (c *Client) DeleteMilestoneByName(owner, repo string, name string) (*Respon
 			return nil, err
 		}
 		return c.DeleteMilestone(owner, repo, m.ID)
+	}
+	if err := escapeValidatePathSegments(&owner, &repo, &name); err != nil {
+		return nil, err
 	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/milestones/%s", owner, repo, name), nil, nil)
 	return resp, err

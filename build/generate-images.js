@@ -2,7 +2,7 @@
 'use strict';
 
 const imageminZopfli = require('imagemin-zopfli');
-const Svgo = require('svgo');
+const {optimize, extendDefaultPlugins} = require('svgo');
 const {fabric} = require('fabric');
 const {readFile, writeFile} = require('fs').promises;
 const {resolve} = require('path');
@@ -24,14 +24,15 @@ function loadSvg(svg) {
 
 async function generate(svg, outputFile, {size, bg}) {
   if (outputFile.endsWith('.svg')) {
-    const svgo = new Svgo({
-      plugins: [
-        {removeDimensions: true},
-        {addAttributesToSVGElement: {attributes: [{width: size}, {height: size}]}},
-      ],
+    const {data} = optimize(svg, {
+      plugins: extendDefaultPlugins([
+        'removeDimensions',
+        {
+          name: 'addAttributesToSVGElement',
+          params: {attributes: [{width: size}, {height: size}]}
+        },
+      ]),
     });
-
-    const {data} = await svgo.optimize(svg);
     await writeFile(outputFile, data);
     return;
   }

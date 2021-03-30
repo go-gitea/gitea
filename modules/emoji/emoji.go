@@ -30,6 +30,9 @@ var (
 	// aliasMap provides a map of the alias to its emoji data.
 	aliasMap map[string]int
 
+	// emptyReplacer is the string replacer for emoji codes.
+	emptyReplacer *strings.Replacer
+
 	// codeReplacer is the string replacer for emoji codes.
 	codeReplacer *strings.Replacer
 
@@ -49,6 +52,7 @@ func loadMap() {
 
 		// process emoji codes and aliases
 		codePairs := make([]string, 0)
+		emptyPairs := make([]string, 0)
 		aliasPairs := make([]string, 0)
 
 		// sort from largest to small so we match combined emoji first
@@ -64,6 +68,7 @@ func loadMap() {
 			// setup codes
 			codeMap[e.Emoji] = i
 			codePairs = append(codePairs, e.Emoji, ":"+e.Aliases[0]+":")
+			emptyPairs = append(emptyPairs, e.Emoji, e.Emoji)
 
 			// setup aliases
 			for _, a := range e.Aliases {
@@ -77,6 +82,7 @@ func loadMap() {
 		}
 
 		// create replacers
+		emptyReplacer = strings.NewReplacer(emptyPairs...)
 		codeReplacer = strings.NewReplacer(codePairs...)
 		aliasReplacer = strings.NewReplacer(aliasPairs...)
 	})
@@ -127,38 +133,53 @@ func ReplaceAliases(s string) string {
 	return aliasReplacer.Replace(s)
 }
 
+type rememberSecondWriteWriter struct {
+	pos        int
+	idx        int
+	end        int
+	writecount int
+}
+
+func (n *rememberSecondWriteWriter) Write(p []byte) (int, error) {
+	n.writecount++
+	if n.writecount == 2 {
+		n.idx = n.pos
+		n.end = n.pos + len(p)
+	}
+	n.pos += len(p)
+	return len(p), nil
+}
+
+func (n *rememberSecondWriteWriter) WriteString(s string) (int, error) {
+	n.writecount++
+	if n.writecount == 2 {
+		n.idx = n.pos
+		n.end = n.pos + len(s)
+	}
+	n.pos += len(s)
+	return len(s), nil
+}
+
 // FindEmojiSubmatchIndex returns index pair of longest emoji in a string
 func FindEmojiSubmatchIndex(s string) []int {
 	loadMap()
-	found := make(map[int]int)
-	keys := make([]int, 0)
+	secondWriteWriter := rememberSecondWriteWriter{}
 
-	//see if there are any emoji in string before looking for position of specific ones
-	//no performance difference when there is a match but 10x faster when there are not
-	if s == ReplaceCodes(s) {
+	// A faster and clean implementation would copy the trie tree formation in strings.NewReplacer but
+	// we can be lazy here.
+	//
+	// The implementation of strings.Replacer.WriteString is such that the first index of the emoji
+	// submatch is simply the second thing that is written to WriteString in the writer.
+	//
+	// Therefore we can simply take the index of the second write as our first emoji
+	//
+	// FIXME: just copy the trie implementation from strings.NewReplacer
+	_, _ = emptyReplacer.WriteString(&secondWriteWriter, s)
+
+	// if we wrote less than twice then we never "replaced"
+	if secondWriteWriter.writecount < 2 {
 		return nil
 	}
 
-	// get index of first emoji occurrence while also checking for longest combination
-	for j := range GemojiData {
-		i := strings.Index(s, GemojiData[j].Emoji)
-		if i != -1 {
-			if _, ok := found[i]; !ok {
-				if len(keys) == 0 || i < keys[0] {
-					found[i] = j
-					keys = []int{i}
-				}
-				if i == 0 {
-					break
-				}
-			}
-		}
-	}
-
-	if len(keys) > 0 {
-		index := keys[0]
-		return []int{index, index + len(GemojiData[found[index]].Emoji)}
-	}
-
-	return nil
+	return []int{secondWriteWriter.idx, secondWriteWriter.end}
 }

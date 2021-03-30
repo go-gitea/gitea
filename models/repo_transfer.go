@@ -40,7 +40,6 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
-
 		for _, v := range r.TeamIDs {
 			team, err := GetTeamByID(v)
 			if err != nil {
@@ -92,7 +91,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 // GetPendingRepositoryTransfer fetches the most recent and ongoing transfer
 // process for the repository
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
-	var transfer = new(RepoTransfer)
+	transfer := new(RepoTransfer)
 
 	has, err := x.Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
@@ -322,6 +321,33 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	if oldOwner.IsOrganization() {
 		if err := watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
+		}
+	}
+
+	// Delete labels that belong to the old organization and comments that added these labels
+	if oldOwner.IsOrganization() {
+		if _, err := sess.Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
+			SELECT il_too.id FROM (
+				SELECT il_too_too.id
+					FROM issue_label AS il_too_too
+						INNER JOIN label ON il_too_too.label_id = label.id
+						INNER JOIN issue on issue.id = il_too_too.issue_id
+					WHERE
+						issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
+		) AS il_too )`, repo.ID, newOwner.ID); err != nil {
+			return fmt.Errorf("Unable to remove old org labels: %v", err)
+		}
+
+		if _, err := sess.Exec(`DELETE FROM comment WHERE comment.id IN (
+			SELECT il_too.id FROM (
+				SELECT com.id
+					FROM comment AS com
+						INNER JOIN label ON com.label_id = label.id
+						INNER JOIN issue ON issue.id = com.issue_id
+					WHERE
+						com.type = ? AND issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
+		) AS il_too)`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
+			return fmt.Errorf("Unable to remove old org label comments: %v", err)
 		}
 	}
 

@@ -15,7 +15,7 @@ import (
 func TestIsProjectTypeValid(t *testing.T) {
 	const UnknownType ProjectType = 15
 
-	var cases = []struct {
+	cases := []struct {
 		typ   ProjectType
 		valid bool
 	}{

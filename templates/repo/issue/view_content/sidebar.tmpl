@@ -70,7 +70,7 @@
 
 								{{if .CanChange}}
 									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}" data-issue-id="{{$.Issue.ID}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
+										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
 								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
@@ -195,7 +195,9 @@
 			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
 				<span class="text">
 					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
-					{{svg "octicon-gear"}}
+					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+						{{svg "octicon-gear"}}
+					{{end}}
 				</span>
 				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
@@ -467,7 +469,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -495,7 +497,7 @@
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
 										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
 											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
-											{{svg "octicon-trashcan" 16}}
+											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
 								</div>
@@ -534,7 +536,7 @@
 
 				<div class="ui basic modal remove-dependency">
 					<div class="ui icon header">
-						{{svg "octicon-trashcan"}}
+						{{svg "octicon-trash"}}
 						{{.i18n.Tr "repo.issues.dependency.remove_header"}}
 					</div>
 					<div class="content">
@@ -576,8 +578,6 @@
 					{{end}}
 				</button>
 			</div>
-
-
 			<div class="ui tiny modal" id="lock">
 				<div class="header">
 					{{ if .Issue.IsLocked }}
@@ -586,62 +586,61 @@
 						{{.i18n.Tr "repo.issues.lock.title"}}
 					{{end}}
 				</div>
-			</div>
-			<div class="content">
-				<div class="ui warning message text left">
-					{{ if .Issue.IsLocked }}
-						{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
-						{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
-					{{else}}
-						{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
-						{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
-						{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
-					{{end}}
-				</div>
+				<div class="content">
+					<div class="ui warning message text left">
+						{{ if .Issue.IsLocked }}
+							{{.i18n.Tr "repo.issues.unlock.notice_1"}}<br>
+							{{.i18n.Tr "repo.issues.unlock.notice_2"}}<br>
+						{{else}}
+							{{.i18n.Tr "repo.issues.lock.notice_1"}}<br>
+							{{.i18n.Tr "repo.issues.lock.notice_2"}}<br>
+							{{.i18n.Tr "repo.issues.lock.notice_3"}}<br>
+						{{end}}
+					</div>
 
-				<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{else}}/lock{{end}}"
-					method="post">
-					{{.CsrfTokenHtml}}
+					<form class="ui form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}{{ if .Issue.IsLocked }}/unlock{{else}}/lock{{end}}"
+						method="post">
+						{{.CsrfTokenHtml}}
 
-					{{ if not .Issue.IsLocked }}
-						<div class="field">
-							<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
-						</div>
+						{{ if not .Issue.IsLocked }}
+							<div class="field">
+								<strong> {{ .i18n.Tr "repo.issues.lock.reason" }} </strong>
+							</div>
 
-						<div class="field">
-							<div class="ui fluid dropdown selection" tabindex="0">
+							<div class="field">
+								<div class="ui fluid dropdown selection" tabindex="0">
 
-								<select name="reason">
-									<option value=""> </option>
-									{{range .LockReasons}}
-										<option value="{{.}}">{{.}}</option>
-									{{end}}
-								</select>
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<select name="reason">
+										<option value=""> </option>
+										{{range .LockReasons}}
+											<option value="{{.}}">{{.}}</option>
+										{{end}}
+									</select>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 
-								<div class="default text"> </div>
+									<div class="default text"> </div>
 
-								<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
-									{{range .LockReasons}}
-										<div class="item" data-value="{{.}}">{{.}}</div>
-									{{end}}
+									<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+										{{range .LockReasons}}
+											<div class="item" data-value="{{.}}">{{.}}</div>
+										{{end}}
+									</div>
 								</div>
 							</div>
-						</div>
-					{{end}}
+						{{end}}
 
-					<div class="text right actions">
-						<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-						<button class="ui red button">
-							{{ if .Issue.IsLocked }}
-								{{.i18n.Tr "repo.issues.unlock_confirm"}}
-							{{else}}
-								{{.i18n.Tr "repo.issues.lock_confirm"}}
-							{{end}}
-						</button>
-					</div>
-				</form>
-			</div>
+						<div class="text right actions">
+							<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+							<button class="ui red button">
+								{{ if .Issue.IsLocked }}
+									{{.i18n.Tr "repo.issues.unlock_confirm"}}
+								{{else}}
+									{{.i18n.Tr "repo.issues.lock_confirm"}}
+								{{end}}
+							</button>
+						</div>
+					</form>
+				</div>
 			</div>
 		{{end}}
 	</div>

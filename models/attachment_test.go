@@ -17,12 +17,12 @@ func TestUploadAttachment(t *testing.T) {
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
-	var fPath = "./attachment_test.go"
+	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
 	assert.NoError(t, err)
 	defer f.Close()
 
-	var buf = make([]byte, 1024)
+	buf := make([]byte, 1024)
 	n, err := f.Read(buf)
 	assert.NoError(t, err)
 	buf = buf[:n]
@@ -120,7 +120,7 @@ func TestUpdateAttachment(t *testing.T) {
 func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	attachList, err := GetAttachmentsByUUIDs([]string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	attachList, err := GetAttachmentsByUUIDs(DefaultDBContext(), []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(attachList))
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
@@ -152,7 +152,6 @@ func TestLinkedRepository(t *testing.T) {
 				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
 			}
 			assert.Equal(t, tc.expectedUnitType, unitType)
-
 		})
 	}
 }

@@ -30,6 +30,17 @@ func Events(ctx *context.Context) {
 	ctx.Resp.Header().Set("X-Accel-Buffering", "no")
 	ctx.Resp.WriteHeader(http.StatusOK)
 
+	if !ctx.IsSigned {
+		// Return unauthorized status event
+		event := (&eventsource.Event{
+			Name: "unauthorized",
+			Data: "sorry",
+		})
+		_, _ = event.WriteTo(ctx)
+		ctx.Resp.Flush()
+		return
+	}
+
 	// Listen to connection close and un-register messageChan
 	notify := ctx.Req.Context().Done()
 	ctx.Resp.Flush()

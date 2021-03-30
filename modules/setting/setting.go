@@ -169,6 +169,8 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyLimit                  int
+	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
 	DisableGitHooks                    bool
@@ -210,6 +212,10 @@ var (
 		SVG struct {
 			Enabled bool `ini:"ENABLE_RENDER"`
 		} `ini:"ui.svg"`
+
+		CSV struct {
+			MaxFileSize int64
+		} `ini:"ui.csv"`
 
 		Admin struct {
 			UserPagingNum   int
@@ -255,6 +261,11 @@ var (
 			Enabled bool `ini:"ENABLE_RENDER"`
 		}{
 			Enabled: true,
+		},
+		CSV: struct {
+			MaxFileSize int64
+		}{
+			MaxFileSize: 524288,
 		},
 		Admin: struct {
 			UserPagingNum   int
@@ -302,7 +313,7 @@ var (
 	}
 
 	// Log settings
-	LogLevel           string
+	LogLevel           log.Level
 	StacktraceLogLevel string
 	LogRootPath        string
 	DisableRouterLog   bool
@@ -551,7 +562,7 @@ func NewContext() {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
+	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", log.INFO)
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
@@ -819,8 +830,16 @@ func NewContext() {
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
+
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+
+	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
+	if len(ReverseProxyTrustedProxies) == 0 {
+		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
+	}
+
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
 	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)

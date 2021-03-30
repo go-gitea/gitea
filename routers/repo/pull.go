@@ -591,7 +591,6 @@ func ViewPullFiles(ctx *context.Context) {
 		gitRepo       *git.Repository
 	)
 
-	var headTarget string
 	var prInfo *git.CompareInfo
 	if pull.HasMerged {
 		prInfo = PrepareMergedViewPullInfo(ctx, issue)
@@ -618,7 +617,6 @@ func ViewPullFiles(ctx *context.Context) {
 	startCommitID = prInfo.MergeBase
 	endCommitID = headCommitID
 
-	headTarget = path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
@@ -672,8 +670,8 @@ func ViewPullFiles(ctx *context.Context) {
 		}
 	}
 
-	setImageCompareContext(ctx, baseCommit, commit)
-	setPathsCompareContext(ctx, baseCommit, commit, headTarget)
+	headTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	setCompareContext(ctx, baseCommit, commit, headTarget)
 
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
