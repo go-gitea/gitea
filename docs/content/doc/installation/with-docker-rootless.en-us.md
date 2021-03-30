@@ -253,6 +253,7 @@ You can configure some of Gitea's settings via environment variables:
 * `DB_NAME`: **gitea**: Database name.
 * `DB_USER`: **root**: Database username.
 * `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
+* `DB_SCHEMA`: **"\<empty>"**: Database schema name for Postgres. If not set the public schema will be used.
 * `INSTALL_LOCK`: **false**: Disallow access to the install page.
 * `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
 * `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.

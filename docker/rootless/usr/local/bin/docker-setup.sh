@@ -40,6 +40,7 @@ if [ ! -f ${GITEA_APP_INI} ]; then
     DB_NAME=${DB_NAME:-"gitea"} \
     DB_USER=${DB_USER:-"root"} \
     DB_PASSWD=${DB_PASSWD:-""} \
+    DB_SCHEMA=${DB_SCHEMA:-""} \
     INSTALL_LOCK=${INSTALL_LOCK:-"false"} \
     DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-"false"} \
     REQUIRE_SIGNIN_VIEW=${REQUIRE_SIGNIN_VIEW:-"false"} \

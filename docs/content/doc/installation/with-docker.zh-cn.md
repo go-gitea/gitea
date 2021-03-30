@@ -251,6 +251,7 @@ MySQL 或 PostgreSQL 容器将需要分别创建。
 - `DB_NAME`：**gitea**：数据库名称。
 - `DB_USER`：**root**：数据库用户名。
 - `DB_PASSWD`：**"\<empty>"** ：数据库用户密码。如果您在密码中使用特殊字符，请使用“您的密码”进行引用。
+- `DB_SCHEMA`：**"\<empty>"** ：
 - `INSTALL_LOCK`：**false**：禁止访问安装页面。
 - `SECRET_KEY`：**""** ：全局密钥。这应该更改。如果它具有一个值并且 `INSTALL_LOCK` 为空，则 `INSTALL_LOCK` 将自动设置为 `true`。
 - `DISABLE_REGISTRATION`：**false**：禁用注册，之后只有管理员才能为用户创建帐户。
