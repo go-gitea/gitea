@@ -32,6 +32,9 @@ WORKDIR /go/src/code.gitea.io/gitea
 
 RUN make build
 
+# Begin env-to-ini build
+RUN go build contrib/environment-to-ini/environment-to-ini.go
+
 EXPOSE 22 3000
 
 RUN addgroup \
@@ -58,3 +61,4 @@ COPY docker/root /
 RUN mkdir -p /app/gitea
 RUN cp /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
+RUN cp /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
