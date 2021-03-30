@@ -11,6 +11,7 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -94,33 +95,76 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 }
 
 func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writer) error {
-	var buf1 strings.Builder
-	if err := parser.Render(ctx, input, &buf1); err != nil {
-		return err
-	}
+	var wg sync.WaitGroup
+	var err error
+	pr, pw := io.Pipe()
+	defer func() {
+		_ = pr.Close()
+		_ = pw.Close()
+	}()
 
-	var buf2 strings.Builder
-	if err := PostProcess(ctx, strings.NewReader(buf1.String()), &buf2); err != nil {
-		return fmt.Errorf("PostProcess: %v", err)
+	pr2, pw2 := io.Pipe()
+	defer func() {
+		_ = pr2.Close()
+		_ = pw2.Close()
+	}()
+
+	wg.Add(1)
+	go func() {
+		buf := SanitizeReader(pr2)
+		_, err = io.Copy(output, buf)
+		_ = pr2.Close()
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		err = PostProcess(ctx, pr, pw2)
+		_ = pr.Close()
+		_ = pw2.Close()
+		wg.Done()
+	}()
+
+	if err1 := parser.Render(ctx, input, pw); err1 != nil {
+		return err1
 	}
-	buf := SanitizeReader(strings.NewReader(buf2.String()))
-	_, err := io.Copy(output, buf)
+	_ = pw.Close()
+
+	wg.Wait()
 	return err
 }
 
+// ErrUnsupportedRenderType represents
+type ErrUnsupportedRenderType struct {
+	Type string
+}
+
+func (err ErrUnsupportedRenderType) Error() string {
+	return fmt.Sprintf("Unsupported render type: %s", err.Type)
+}
+
 func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if parser, ok := renderers[ctx.Type]; ok {
-		return render(ctx, parser, input, output)
+	if renderer, ok := renderers[ctx.Type]; ok {
+		return render(ctx, renderer, input, output)
 	}
-	return nil
+	return ErrUnsupportedRenderType{ctx.Type}
+}
+
+// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
+type ErrUnsupportedRenderExtension struct {
+	Extension string
+}
+
+func (err ErrUnsupportedRenderExtension) Error() string {
+	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }
 
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	extension := strings.ToLower(filepath.Ext(ctx.Filename))
-	if parser, ok := extRenderers[extension]; ok {
-		return render(ctx, parser, input, output)
+	if renderer, ok := extRenderers[extension]; ok {
+		return render(ctx, renderer, input, output)
 	}
-	return nil
+	return ErrUnsupportedRenderExtension{extension}
 }
 
 // Type returns if markup format via the filename

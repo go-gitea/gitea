@@ -334,14 +334,8 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		}
 	}
 
-	nodes = newNodes
-
-	// Create buffer in which the data will be placed again. We know that the
-	// length will be at least that of res; to spare a few alloc+copy, we
-	// reuse res, resetting its length to 0.
-	res.Reset()
 	// Render everything to buf.
-	for _, node := range nodes {
+	for _, node := range newNodes {
 		err = html.Render(output, node)
 		if err != nil {
 			return &postProcessError{"error rendering processed HTML", err}

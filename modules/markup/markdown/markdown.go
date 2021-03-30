@@ -185,6 +185,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 			_ = lw.CloseWithError(fmt.Errorf("%v", err))
 		}()
 
+		// FIXME: Don't read all to memory, but goldmark doesn't support
 		pc := NewGiteaParseContext(ctx)
 		buf, err := ioutil.ReadAll(giteautil.NormalizeEOLReader(input))
 		if err != nil {
