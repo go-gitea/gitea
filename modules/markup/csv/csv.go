@@ -76,6 +76,7 @@ func writeField(w io.Writer, element, class, field string) error {
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var tmpBlock = bufio.NewWriter(output)
 
+	// FIXME: don't read all to memory
 	rawBytes, err := io.ReadAll(input)
 	if err != nil {
 		return err
@@ -90,9 +91,6 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
 	if err != nil {
-		if err == io.EOF {
-
-		}
 		return err
 	}
 
