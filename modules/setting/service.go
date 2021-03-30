@@ -69,15 +69,39 @@ var Service struct {
 	} `ini:"service.explore"`
 }
 
+// OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
+type OAuth2UsernameType string
+
+const (
+	// OAuth2UsernameUserid oauth2 userid field will be used as gitea name
+	OAuth2UsernameUserid OAuth2UsernameType = "userid"
+	// OAuth2UsernameNickname oauth2 nickname field will be used as gitea name
+	OAuth2UsernameNickname OAuth2UsernameType = "nickname"
+	// OAuth2UsernameEmail username of oauth2 email filed will be used as gitea name
+	OAuth2UsernameEmail OAuth2UsernameType = "email"
+)
+
+// OAuth2AccountLinkingType is enum describing behaviour of linking with existing account
+type OAuth2AccountLinkingType string
+
+const (
+	// OAuth2AccountLinkingDisabled error will be displayed if account exist
+	OAuth2AccountLinkingDisabled OAuth2AccountLinkingType = "disabled"
+	// OAuth2AccountLinkingLogin account linking login will be displayed if account exist
+	OAuth2AccountLinkingLogin OAuth2AccountLinkingType = "login"
+	// OAuth2AccountLinkingAuto account will be automatically linked if account exist
+	OAuth2AccountLinkingAuto OAuth2AccountLinkingType = "auto"
+)
+
 // OAuth2Client settings
 var OAuth2Client struct {
 	RegisterEmailConfirm   bool
 	OpenIDConnectScopes    []string
 	GoogleScopes           []string
 	EnableAutoRegistration bool
-	Username               string
+	Username               OAuth2UsernameType
 	UpdateAvatar           bool
-	AccountLinking         string
+	AccountLinking         OAuth2AccountLinkingType
 }
 
 func newService() {
@@ -154,24 +178,31 @@ func newService() {
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
 	OAuth2Client.GoogleScopes = parseScopes(sec, "GOOGLE_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
-	OAuth2Client.Username = sec.Key("USERNAME").MustString("userid")
-	if !isInSet(OAuth2Client.Username, []string{"userid", "nickname", "email"}) {
-		log.Warn("Username setting is not valid: '%s', will fallback to 'userid'", OAuth2Client.Username)
-		OAuth2Client.Username = "userid"
+	OAuth2Client.Username = OAuth2UsernameType(sec.Key("USERNAME").MustString(string(OAuth2UsernameUserid)))
+	if !OAuth2Client.Username.isValid() {
+		log.Warn("Username setting is not valid: '%s', will fallback to '%s'", OAuth2Client.Username, OAuth2UsernameUserid)
+		OAuth2Client.Username = OAuth2UsernameUserid
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
-	OAuth2Client.AccountLinking = sec.Key("ACCOUNT_LINKING").MustString("disabled")
-	if !isInSet(OAuth2Client.AccountLinking, []string{"disabled", "login", "auto"}) {
-		log.Warn("Account linking setting is not valid: '%s', will fallback to 'disabled'", OAuth2Client.AccountLinking)
-		OAuth2Client.AccountLinking = "disabled"
+	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingDisabled)))
+	if !OAuth2Client.AccountLinking.isValid() {
+		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingDisabled)
+		OAuth2Client.AccountLinking = OAuth2AccountLinkingDisabled
 	}
 }
 
-func isInSet(value string, set []string) bool {
-	for _, v := range set {
-		if value == v {
-			return true
-		}
+func (username OAuth2UsernameType) isValid() bool {
+	switch username {
+	case OAuth2UsernameUserid, OAuth2UsernameNickname, OAuth2UsernameEmail:
+		return true
+	}
+	return false
+}
+
+func (accountLinking OAuth2AccountLinkingType) isValid() bool {
+	switch accountLinking {
+	case OAuth2AccountLinkingDisabled, OAuth2AccountLinkingLogin, OAuth2AccountLinkingAuto:
+		return true
 	}
 	return false
 }

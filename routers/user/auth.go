@@ -625,7 +625,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			if gothUser.Email == "" {
 				missingFields = append(missingFields, "email")
 			}
-			if setting.OAuth2Client.Username == "nickname" && gothUser.NickName == "" {
+			if setting.OAuth2Client.Username == setting.OAuth2UsernameNickname && gothUser.NickName == "" {
 				missingFields = append(missingFields, "nickname")
 			}
 			if len(missingFields) > 0 {
@@ -644,7 +644,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				LoginName:   gothUser.UserID,
 			}
 
-			createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != "disabled")
+			createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled)
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, gothUser)
@@ -658,11 +658,11 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 func getUserName(gothUser *goth.User) string {
 	switch setting.OAuth2Client.Username {
-	case "email":
+	case setting.OAuth2UsernameEmail:
 		return strings.Split(gothUser.Email, "@")[0]
-	case "nickname":
+	case setting.OAuth2UsernameNickname:
 		return gothUser.NickName
-	default: // "userid"
+	default: // OAuth2UsernameUserid
 		return gothUser.UserID
 	}
 }
@@ -1221,7 +1221,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, allowLink bool) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
 		if allowLink && (models.IsErrUserAlreadyExist(err) || models.IsErrEmailAlreadyUsed(err)) {
-			if setting.OAuth2Client.AccountLinking == "auto" {
+			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *models.User
 				user = &models.User{Name: u.Name}
 				hasUser, err := models.GetUser(user)
@@ -1237,7 +1237,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 				// TODO: probably we should respect 'remeber' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
 				return // user is already created here, all redirects are handled
-			} else if setting.OAuth2Client.AccountLinking == "login" {
+			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
 				showLinkingLogin(ctx, *gothUser)
 				return // user will be created only after linking login
 			}
