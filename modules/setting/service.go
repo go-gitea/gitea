@@ -155,34 +155,23 @@ func newService() {
 	OAuth2Client.GoogleScopes = parseScopes(sec, "GOOGLE_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
 	OAuth2Client.Username = sec.Key("USERNAME").MustString("userid")
-	if !isValidUsername(OAuth2Client.Username) {
+	if !isInSet(OAuth2Client.Username, []string{"userid", "nickname", "email"}) {
 		log.Warn("Username setting is not valid: '%s', will fallback to 'userid'", OAuth2Client.Username)
 		OAuth2Client.Username = "userid"
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
-	OAuth2Client.AccountLinking = sec.Key("ACCOUNT_LINKING").MustString("ACCOUNT_LINKING")
-	if !isValidAccountLinking(OAuth2Client.AccountLinking) {
-		log.Warn("Account linking setting is not valid: '%s', will fallback to 'disabled'")
+	OAuth2Client.AccountLinking = sec.Key("ACCOUNT_LINKING").MustString("disabled")
+	if !isInSet(OAuth2Client.AccountLinking, []string{"disabled", "login", "auto"}) {
+		log.Warn("Account linking setting is not valid: '%s', will fallback to 'disabled'", OAuth2Client.AccountLinking)
 		OAuth2Client.AccountLinking = "disabled"
 	}
 }
 
-func isValidUsername(username string) bool {
-	switch username {
-	case "userid":
-	case "nickname":
-	case "email":
-		return true
-	}
-	return false
-}
-
-func isValidAccountLinking(accountLinking string) bool {
-	switch accountLinking {
-	case "disabled":
-	case "login":
-	case "auto":
-		return true
+func isInSet(value string, set []string) bool {
+	for _, v := range set {
+		if value == v {
+			return true
+		}
 	}
 	return false
 }
