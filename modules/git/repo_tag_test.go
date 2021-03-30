@@ -43,7 +43,7 @@ func TestRepository_GetTag(t *testing.T) {
 
 	aTagCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
 	aTagName := "annotatedTag"
-	aTagMessage := "my annotated message"
+	aTagMessage := "my annotated message \n - test two line"
 	bareRepo1.CreateAnnotatedTag(aTagName, aTagMessage, aTagCommitID)
 	aTagID, _ := bareRepo1.GetTagID(aTagName)
 

@@ -527,13 +527,6 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			}
 			headSHA = pr.Head.Sha
 			headRef = pr.Head.Ref
-			if headSHA == "" {
-				headCommit, _, err := g.client.GetSingleCommit(g.repoOwner, g.repoName, url.PathEscape(pr.Head.Ref))
-				if err != nil {
-					return nil, false, fmt.Errorf("error while resolving head git ref: %s for pull #%d. Error: %v", pr.Head.Ref, pr.Index, err)
-				}
-				headSHA = headCommit.SHA
-			}
 		}
 
 		var mergeCommitSHA string

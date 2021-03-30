@@ -5,9 +5,11 @@
 package code
 
 import (
+	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-enry/go-enry/v2"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -172,7 +175,7 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
 		return nil, nil
@@ -195,8 +198,16 @@ func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *mo
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return nil, err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
+	if err != nil {
+		return nil, err
+	}
+
+	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return nil, err
 	} else if !base.IsTextFile(fileContents) {
@@ -230,14 +241,21 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 // Index will save the index data
 func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
-	for _, update := range changes.Updates {
-		updateReqs, err := b.addUpdate(sha, update, repo)
-		if err != nil {
-			return err
+	if len(changes.Updates) > 0 {
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			updateReqs, err := b.addUpdate(batchWriter, batchReader, sha, update, repo)
+			if err != nil {
+				return err
+			}
+			if len(updateReqs) > 0 {
+				reqs = append(reqs, updateReqs...)
+			}
 		}
-		if len(updateReqs) > 0 {
-			reqs = append(reqs, updateReqs...)
-		}
+		cancel()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -300,6 +318,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		repoID, fileName := parseIndexerID(hit.Id)
 		var res = make(map[string]interface{})
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}

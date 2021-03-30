@@ -170,3 +170,9 @@ func (m *mailNotifier) NotifyNewRelease(rel *models.Release) {
 
 	mailer.MailNewRelease(rel)
 }
+
+func (m *mailNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+	if err := mailer.SendRepoTransferNotifyMail(doer, newOwner, repo); err != nil {
+		log.Error("NotifyRepoPendingTransfer: %v", err)
+	}
+}

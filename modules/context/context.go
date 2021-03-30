@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -34,6 +33,7 @@ import (
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -370,6 +370,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -385,9 +386,28 @@ func (ctx *Context) Redirect(location string, status ...int) {
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
-// SetCookie set cookies to web browser
-func (ctx *Context) SetCookie(name string, value string, others ...interface{}) {
-	middleware.SetCookie(ctx.Resp, name, value, others...)
+// SetCookie convenience function to set most cookies consistently
+// CSRF and a few others are the exception here
+func (ctx *Context) SetCookie(name, value string, expiry int) {
+	middleware.SetCookie(ctx.Resp, name, value,
+		expiry,
+		setting.AppSubURL,
+		setting.SessionConfig.Domain,
+		setting.SessionConfig.Secure,
+		true,
+		middleware.SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteCookie convenience function to delete most cookies consistently
+// CSRF and a few others are the exception here
+func (ctx *Context) DeleteCookie(name string) {
+	middleware.SetCookie(ctx.Resp, name, "",
+		-1,
+		setting.AppSubURL,
+		setting.SessionConfig.Domain,
+		setting.SessionConfig.Secure,
+		true,
+		middleware.SameSite(setting.SessionConfig.SameSite))
 }
 
 // GetCookie returns given cookie value from request header.
@@ -398,6 +418,11 @@ func (ctx *Context) GetCookie(name string) string {
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
 func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
 	val := ctx.GetCookie(name)
+	return ctx.CookieDecrypt(secret, val)
+}
+
+// CookieDecrypt returns given value from with secret string.
+func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 	if val == "" {
 		return "", false
 	}
@@ -413,14 +438,21 @@ func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
 }
 
 // SetSuperSecureCookie sets given cookie value to response header with secret string.
-func (ctx *Context) SetSuperSecureCookie(secret, name, value string, others ...interface{}) {
+func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int) {
+	text := ctx.CookieEncrypt(secret, value)
+
+	ctx.SetCookie(name, text, expiry)
+}
+
+// CookieEncrypt encrypts a given value using the provided secret
+func (ctx *Context) CookieEncrypt(secret, value string) string {
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
 	text, err := com.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
 
-	ctx.SetCookie(name, hex.EncodeToString(text), others...)
+	return hex.EncodeToString(text)
 }
 
 // GetCookieInt returns cookie result in int type.
@@ -532,6 +564,7 @@ func getCsrfOpts() CsrfOptions {
 		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
+		SameSite:       setting.SessionConfig.SameSite,
 	}
 }
 
@@ -596,17 +629,17 @@ func Contexter() func(next http.Handler) http.Handler {
 						middleware.Domain(setting.SessionConfig.Domain),
 						middleware.HTTPOnly(true),
 						middleware.Secure(setting.SessionConfig.Secure),
-						//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
+						middleware.SameSite(setting.SessionConfig.SameSite),
 					)
 					return
 				}
 
-				ctx.SetCookie("macaron_flash", "", -1,
+				middleware.SetCookie(ctx.Resp, "macaron_flash", "", -1,
 					setting.SessionConfig.CookiePath,
 					middleware.Domain(setting.SessionConfig.Domain),
 					middleware.HTTPOnly(true),
 					middleware.Secure(setting.SessionConfig.Secure),
-					//middleware.SameSite(), FIXME: we need a samesite config
+					middleware.SameSite(setting.SessionConfig.SameSite),
 				)
 			})
 

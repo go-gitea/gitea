@@ -69,6 +69,10 @@ func ReplaceSanitizer() {
 	// Allow icons, emojis, and chroma syntax on span
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
 
+	// Allow data tables
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`data-table`)).OnElements("table")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`line-num`)).OnElements("th", "td")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
 		"accesskey", "action", "align", "alt",

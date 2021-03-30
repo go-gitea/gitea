@@ -17,6 +17,9 @@ type ListCollaboratorsOptions struct {
 
 // ListCollaborators list a repository's collaborators
 func (c *Client) ListCollaborators(user, repo string, opt ListCollaboratorsOptions) ([]*User, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	collaborators := make([]*User, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET",
@@ -27,6 +30,9 @@ func (c *Client) ListCollaborators(user, repo string, opt ListCollaboratorsOptio
 
 // IsCollaborator check if a user is a collaborator of a repository
 func (c *Client) IsCollaborator(user, repo, collaborator string) (bool, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &collaborator); err != nil {
+		return false, nil, err
+	}
 	status, resp, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
 	if err != nil {
 		return false, resp, err
@@ -78,6 +84,9 @@ func (opt AddCollaboratorOption) Validate() error {
 
 // AddCollaborator add some user as a collaborator of a repository
 func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollaboratorOption) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &collaborator); err != nil {
+		return nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, err
 	}
@@ -91,6 +100,9 @@ func (c *Client) AddCollaborator(user, repo, collaborator string, opt AddCollabo
 
 // DeleteCollaborator remove a collaborator from a repository
 func (c *Client) DeleteCollaborator(user, repo, collaborator string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &collaborator); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE",
 		fmt.Sprintf("/repos/%s/%s/collaborators/%s", user, repo, collaborator), nil, nil)
 	return resp, err
