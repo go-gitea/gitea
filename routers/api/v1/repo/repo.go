@@ -20,6 +20,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -277,7 +278,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 }
 
 // Create one repository of mine
-func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
+func Create(ctx *context.APIContext) {
 	// swagger:operation POST /user/repos repository user createCurrentUserRepo
 	// ---
 	// summary: Create a repository
@@ -297,17 +298,17 @@ func Create(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     description: The repository with the same name already exists.
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	opt := web.GetForm(ctx).(*api.CreateRepoOption)
 	if ctx.User.IsOrganization() {
 		// Shouldn't reach this condition, but just in case.
 		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
 		return
 	}
-	CreateUserRepo(ctx, ctx.User, opt)
+	CreateUserRepo(ctx, ctx.User, *opt)
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
-func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) {
+func CreateOrgRepoDeprecated(ctx *context.APIContext) {
 	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
 	// ---
 	// summary: Create a repository in an organization
@@ -334,11 +335,11 @@ func CreateOrgRepoDeprecated(ctx *context.APIContext, opt api.CreateRepoOption) 
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	CreateOrgRepo(ctx, opt)
+	CreateOrgRepo(ctx)
 }
 
 // CreateOrgRepo create one repository of the organization
-func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
+func CreateOrgRepo(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/repos organization createOrgRepo
 	// ---
 	// summary: Create a repository in an organization
@@ -363,7 +364,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
+	opt := web.GetForm(ctx).(*api.CreateRepoOption)
 	org, err := models.GetOrgByName(ctx.Params(":org"))
 	if err != nil {
 		if models.IsErrOrgNotExist(err) {
@@ -389,7 +390,7 @@ func CreateOrgRepo(ctx *context.APIContext, opt api.CreateRepoOption) {
 			return
 		}
 	}
-	CreateUserRepo(ctx, org, opt)
+	CreateUserRepo(ctx, org, *opt)
 }
 
 // Get one repository
@@ -457,7 +458,7 @@ func GetByID(ctx *context.APIContext) {
 }
 
 // Edit edit repository properties
-func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
+func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo} repository repoEdit
 	// ---
 	// summary: Edit a repository's properties. Only fields that are set will be changed.
@@ -487,6 +488,8 @@ func Edit(ctx *context.APIContext, opts api.EditRepoOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	opts := *web.GetForm(ctx).(*api.EditRepoOption)
 
 	if err := updateBasicProperties(ctx, opts); err != nil {
 		return
@@ -553,6 +556,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Private != nil {
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
+			if err := repo.GetBaseRepo(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "Unable to load base repository", err)
+				return err
+			}
 			*opts.Private = repo.BaseRepo.IsPrivate
 		}
 
@@ -571,8 +578,20 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsTemplate = *opts.Template
 	}
 
-	// Default branch only updated if changed and exist
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
+	if ctx.Repo.GitRepo == nil {
+		var err error
+		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
+			return err
+		}
+		defer ctx.Repo.GitRepo.Close()
+	}
+
+	// Default branch only updated if changed and exist or the repository is empty
+	if opts.DefaultBranch != nil &&
+		repo.DefaultBranch != *opts.DefaultBranch &&
+		(ctx.Repo.Repository.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
 		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
 			if !git.IsErrUnsupportedVersion(err) {
 				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
@@ -710,6 +729,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:               true,
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
+					AllowManualMerge:          true,
+					AutodetectManualMerge:     false,
+					DefaultMergeStyle:         models.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -729,6 +751,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.AllowManualMerge != nil {
+				config.AllowManualMerge = *opts.AllowManualMerge
+			}
+			if opts.AutodetectManualMerge != nil {
+				config.AutodetectManualMerge = *opts.AutodetectManualMerge
+			}
+			if opts.DefaultMergeStyle != nil {
+				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)
 			}
 
 			units = append(units, models.RepoUnit{

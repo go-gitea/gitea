@@ -47,9 +47,12 @@ func (c Client) GetObject(ctx context.Context, bucketName, objectName string, op
 		}
 	}
 
-	var httpReader io.ReadCloser
-	var objectInfo ObjectInfo
-	var err error
+	var (
+		err        error
+		httpReader io.ReadCloser
+		objectInfo ObjectInfo
+		totalRead  int
+	)
 
 	// Create request channel.
 	reqCh := make(chan getRequest)
@@ -103,15 +106,30 @@ func (c Client) GetObject(ctx context.Context, bucketName, objectName string, op
 						// Read at least firstReq.Buffer bytes, if not we have
 						// reached our EOF.
 						size, err := readFull(httpReader, req.Buffer)
+						totalRead += size
 						if size > 0 && err == io.ErrUnexpectedEOF {
-							// If an EOF happens after reading some but not
-							// all the bytes ReadFull returns ErrUnexpectedEOF
-							err = io.EOF
+							if int64(size) < objectInfo.Size {
+								// In situations when returned size
+								// is less than the expected content
+								// length set by the server, make sure
+								// we return io.ErrUnexpectedEOF
+								err = io.ErrUnexpectedEOF
+							} else {
+								// If an EOF happens after reading some but not
+								// all the bytes ReadFull returns ErrUnexpectedEOF
+								err = io.EOF
+							}
+						} else if size == 0 && err == io.EOF && objectInfo.Size > 0 {
+							// Special cases when server writes more data
+							// than the content-length, net/http response
+							// body returns an error, instead of converting
+							// it to io.EOF - return unexpected EOF.
+							err = io.ErrUnexpectedEOF
 						}
 						// Send back the first response.
 						resCh <- getResponse{
 							objectInfo: objectInfo,
-							Size:       int(size),
+							Size:       size,
 							Error:      err,
 							didRead:    true,
 						}
@@ -188,19 +206,36 @@ func (c Client) GetObject(ctx context.Context, bucketName, objectName string, op
 							}
 							return
 						}
+						totalRead = 0
 					}
 
 					// Read at least req.Buffer bytes, if not we have
 					// reached our EOF.
 					size, err := readFull(httpReader, req.Buffer)
+					totalRead += size
 					if size > 0 && err == io.ErrUnexpectedEOF {
-						// If an EOF happens after reading some but not
-						// all the bytes ReadFull returns ErrUnexpectedEOF
-						err = io.EOF
+						if int64(totalRead) < objectInfo.Size {
+							// In situations when returned size
+							// is less than the expected content
+							// length set by the server, make sure
+							// we return io.ErrUnexpectedEOF
+							err = io.ErrUnexpectedEOF
+						} else {
+							// If an EOF happens after reading some but not
+							// all the bytes ReadFull returns ErrUnexpectedEOF
+							err = io.EOF
+						}
+					} else if size == 0 && err == io.EOF && objectInfo.Size > 0 {
+						// Special cases when server writes more data
+						// than the content-length, net/http response
+						// body returns an error, instead of converting
+						// it to io.EOF - return unexpected EOF.
+						err = io.ErrUnexpectedEOF
 					}
+
 					// Reply back how much was read.
 					resCh <- getResponse{
-						Size:       int(size),
+						Size:       size,
 						Error:      err,
 						didRead:    true,
 						objectInfo: objectInfo,

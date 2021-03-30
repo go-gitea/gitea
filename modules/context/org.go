@@ -10,8 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-
-	"gitea.com/macaron/macaron"
 )
 
 // Organization contains organization context
@@ -172,8 +170,8 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 }
 
-// OrgAssignment returns a macaron middleware to handle organization assignment
-func OrgAssignment(args ...bool) macaron.Handler {
+// OrgAssignment returns a middleware to handle organization assignment
+func OrgAssignment(args ...bool) func(ctx *Context) {
 	return func(ctx *Context) {
 		HandleOrgAssignment(ctx, args...)
 	}

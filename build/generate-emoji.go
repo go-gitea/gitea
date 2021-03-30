@@ -8,7 +8,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/format"
@@ -20,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -50,6 +51,7 @@ func (e Emoji) MarshalJSON() ([]byte, error) {
 	x.UnicodeVersion = ""
 	x.Description = ""
 	x.SkinTones = false
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(x)
 }
 
@@ -101,6 +103,7 @@ func generate() ([]byte, error) {
 
 	// unmarshal
 	var data Gemoji
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
@@ -174,7 +177,7 @@ func generate() ([]byte, error) {
 					s = append(s, k)
 				} else {
 					// insert into slice after first element because all emoji that support skin tones
-					// have that modifer placed at this spot
+					// have that modifier placed at this spot
 					s = append(s, "")
 					copy(s[2:], s[1:])
 					s[1] = k

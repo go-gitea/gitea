@@ -100,7 +100,7 @@
 							class="ui button mini compact basic icon fitted poping up"
 							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right" data-variation="small inverted"
-						>{{svg "octicon-trashcan"}}</button>
+						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
@@ -173,7 +173,7 @@
 						<div class="divider"></div>
 
 						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
-							<i class="icon settings"></i>
+							{{svg "octicon-server"}}
 							{{.i18n.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>
 					{{end}}

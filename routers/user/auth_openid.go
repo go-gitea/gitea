@@ -9,19 +9,19 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/mailer"
-
-	"gitea.com/macaron/captcha"
 )
 
 const (
@@ -48,13 +48,13 @@ func SignInOpenID(ctx *context.Context) {
 
 	redirectTo := ctx.Query("redirect_to")
 	if len(redirectTo) > 0 {
-		ctx.SetCookie("redirect_to", redirectTo, 0, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
 		redirectTo = ctx.GetCookie("redirect_to")
 	}
 
 	if isSucceed {
-		ctx.SetCookie("redirect_to", "", -1, setting.AppSubURL, "", setting.SessionConfig.Secure, true)
+		middleware.DeleteRedirectToCookie(ctx.Resp)
 		ctx.RedirectToFirst(redirectTo)
 		return
 	}
@@ -90,7 +90,8 @@ func allowedOpenIDURI(uri string) (err error) {
 }
 
 // SignInOpenIDPost response for openid sign in request
-func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
+func SignInOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignInOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
@@ -143,9 +144,9 @@ func SignInOpenIDPost(ctx *context.Context, form auth.SignInOpenIDForm) {
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
 
-	log.Trace("Incoming call to: " + ctx.Req.Request.URL.String())
+	log.Trace("Incoming call to: " + ctx.Req.URL.String())
 
-	fullURL := setting.AppURL + ctx.Req.Request.URL.String()[1:]
+	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: " + fullURL)
 
 	var id, err = openid.Verify(fullURL)
@@ -276,8 +277,8 @@ func ConnectOpenID(ctx *context.Context) {
 }
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
-func ConnectOpenIDPost(ctx *context.Context, form auth.ConnectOpenIDForm) {
-
+func ConnectOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.ConnectOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -329,6 +330,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
@@ -346,7 +348,8 @@ func RegisterOpenID(ctx *context.Context) {
 }
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
-func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.SignUpOpenIDForm) {
+func RegisterOpenIDPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.SignUpOpenIDForm)
 	oid, _ := ctx.Session.Get("openid_verified_uri").(string)
 	if oid == "" {
 		ctx.Redirect(setting.AppSubURL + "/user/login/openid")
@@ -359,6 +362,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
@@ -369,7 +373,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		var err error
 		switch setting.Service.CaptchaType {
 		case setting.ImageCaptcha:
-			valid = cpt.VerifyReq(ctx.Req)
+			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
 			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)
@@ -412,7 +416,7 @@ func RegisterOpenIDPost(ctx *context.Context, cpt *captcha.Captcha, form auth.Si
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,
-		IsActive: !setting.Service.RegisterEmailConfirm,
+		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 	//nolint: dupl
 	if err := models.CreateUser(u); err != nil {

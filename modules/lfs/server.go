@@ -6,7 +6,6 @@ package lfs
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,8 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
-	"gitea.com/macaron/macaron"
 	"github.com/dgrijalva/jwt-go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -234,6 +233,7 @@ func getMetaHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	if ctx.Req.Method == "GET" {
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(ctx.Resp)
 		if err := enc.Encode(Represent(rv, meta, true, false)); err != nil {
 			log.Error("Failed to encode representation as json. Error: %v", err)
@@ -305,6 +305,7 @@ func PostHandler(ctx *context.Context) {
 	}
 	ctx.Resp.WriteHeader(sentStatus)
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(Represent(rv, meta, meta.Existing, true)); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -395,6 +396,7 @@ func BatchHandler(ctx *context.Context) {
 
 	respobj := &BatchResponse{Objects: responseObjects}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -413,8 +415,8 @@ func PutHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	defer ctx.Req.Request.Body.Close()
-	if err := contentStore.Put(meta, ctx.Req.Request.Body); err != nil {
+	defer ctx.Req.Body.Close()
+	if err := contentStore.Put(meta, ctx.Req.Body); err != nil {
 		// Put will log the error itself
 		ctx.Resp.WriteHeader(500)
 		if err == errSizeMismatch || err == errHashMismatch {
@@ -513,7 +515,7 @@ func Represent(rv *RequestVars, meta *models.LFSMetaObject, download, upload boo
 
 // MetaMatcher provides a mux.MatcherFunc that only allows requests that contain
 // an Accept header with the metaMediaType
-func MetaMatcher(r macaron.Request) bool {
+func MetaMatcher(r *http.Request) bool {
 	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
 	return mt == metaMediaType
@@ -530,8 +532,9 @@ func unpack(ctx *context.Context) *RequestVars {
 
 	if r.Method == "POST" { // Maybe also check if +json
 		var p RequestVars
-		bodyReader := r.Body().ReadCloser()
+		bodyReader := r.Body
 		defer bodyReader.Close()
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dec := json.NewDecoder(bodyReader)
 		err := dec.Decode(&p)
 		if err != nil {
@@ -553,8 +556,9 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 	r := ctx.Req
 	var bv BatchVars
 
-	bodyReader := r.Body().ReadCloser()
+	bodyReader := r.Body
 	defer bodyReader.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(bodyReader)
 	err := dec.Decode(&bv)
 	if err != nil {
@@ -586,7 +590,7 @@ func writeStatus(ctx *context.Context, status int) {
 	logRequest(ctx.Req, status)
 }
 
-func logRequest(r macaron.Request, status int) {
+func logRequest(r *http.Request, status int) {
 	log.Debug("LFS request - Method: %s, URL: %s, Status %d", r.Method, r.URL, status)
 }
 

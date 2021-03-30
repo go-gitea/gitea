@@ -304,11 +304,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommit(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if err != nil {
-		ctx.NotFound("GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
 	}
 
@@ -335,9 +336,8 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	verification := models.ParseCommitWithSignature(commit)

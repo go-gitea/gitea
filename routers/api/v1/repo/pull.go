@@ -11,21 +11,22 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // ListPullRequests returns a list of all PRs
-func ListPullRequests(ctx *context.APIContext, form api.ListPullRequestsOptions) {
+func ListPullRequests(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/pulls repository repoListPullRequests
 	// ---
 	// summary: List a repo's pull requests
@@ -253,7 +254,7 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
 }
 
 // CreatePullRequest does what it says
-func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption) {
+func CreatePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls repository repoCreatePullRequest
 	// ---
 	// summary: Create a pull request
@@ -284,6 +285,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := *web.GetForm(ctx).(*api.CreatePullRequestOption)
 	if form.Head == form.Base {
 		ctx.Error(http.StatusUnprocessableEntity, "BaseHeadSame",
 			"Invalid PullRequest: There are no changes between the head and the base")
@@ -293,7 +295,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
-		assigneeID  int64
 		milestoneID int64
 	)
 
@@ -354,7 +355,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
 			if models.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
@@ -378,7 +379,6 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		MilestoneID:  milestoneID,
-		AssigneeID:   assigneeID,
 		IsPull:       true,
 		Content:      form.Body,
 		DeadlineUnix: deadlineUnix,
@@ -437,7 +437,7 @@ func CreatePullRequest(ctx *context.APIContext, form api.CreatePullRequestOption
 }
 
 // EditPullRequest does what it says
-func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
+func EditPullRequest(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/pulls/{index} repository repoEditPullRequest
 	// ---
 	// summary: Update a pull request. If using deadline only the date will be taken into account, and time of day ignored.
@@ -478,6 +478,7 @@ func EditPullRequest(ctx *context.APIContext, form api.EditPullRequestOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.EditPullRequestOption)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -685,7 +686,7 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 }
 
 // MergePullRequest merges a PR given an index
-func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
+func MergePullRequest(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/merge repository repoMergePullRequest
 	// ---
 	// summary: Merge a pull request
@@ -720,6 +721,7 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -765,13 +767,31 @@ func MergePullRequest(ctx *context.APIContext, form auth.MergePullRequestForm) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+	if pr.HasMerged {
+		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
 		return
 	}
 
-	if pr.HasMerged {
-		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+	// handle manually-merged mark
+	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
+		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+			if models.IsErrInvalidMergeStyle(err) {
+				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
+				return
+			}
+			if strings.Contains(err.Error(), "Wrong commit ID") {
+				ctx.JSON(http.StatusConflict, err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "Manually-Merged", err)
+			return
+		}
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	if !pr.CanAutoMerge() {
+		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
 		return
 	}
 

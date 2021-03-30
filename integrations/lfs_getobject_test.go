@@ -19,8 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/gzip"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -121,7 +121,7 @@ func TestGetLFSLarge(t *testing.T) {
 		t.Skip()
 		return
 	}
-	content := make([]byte, gzip.MinSize*10)
+	content := make([]byte, routes.GzipMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
@@ -137,7 +137,7 @@ func TestGetLFSGzip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, gzip.MinSize*10)
+	b := make([]byte, routes.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -158,7 +158,7 @@ func TestGetLFSZip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, gzip.MinSize*10)
+	b := make([]byte, routes.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}

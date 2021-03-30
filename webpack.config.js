@@ -207,37 +207,23 @@ module.exports = {
       {
         test: /\.svg$/,
         include: resolve(__dirname, 'public/img/svg'),
-        use: [
-          {
-            loader: 'raw-loader',
-          },
-        ],
+        type: 'asset/source',
       },
       {
         test: /\.(ttf|woff2?)$/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-              outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
-            },
-          },
-        ],
+        type: 'asset/resource',
+        generator: {
+          filename: 'fonts/[name][ext]',
+          publicPath: '/', // required to remove css/ path segment
+        }
       },
       {
         test: /\.png$/i,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-              outputPath: 'img/webpack/',
-              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
-            },
-          },
-        ],
+        type: 'asset/resource',
+        generator: {
+          filename: 'img/webpack/[name][ext]',
+          publicPath: '/', // required to remove css/ path segment
+        }
       },
     ],
   },

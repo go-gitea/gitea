@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Static implements the macaron static handler for serving assets.
+// Static implements the static handler for serving assets.
 func Static(opts *Options) func(next http.Handler) http.Handler {
 	return opts.staticHandler(opts.Directory)
 }

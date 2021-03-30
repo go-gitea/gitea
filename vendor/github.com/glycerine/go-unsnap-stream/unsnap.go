@@ -79,7 +79,7 @@ func (f *SnappyFile) Read(p []byte) (n int, err error) {
 	//nEncRead, nDecAdded, err := UnsnapOneFrame(f.Filep, &f.EncBuf, &f.DecBuf, f.Fname)
 	_, _, err = UnsnapOneFrame(f.Reader, &f.EncBuf, &f.DecBuf, f.Fname)
 	if err != nil && err != io.EOF {
-		panic(err)
+		return
 	}
 
 	n, _ = f.DecBuf.Read(p)
@@ -265,10 +265,10 @@ func UnsnapOneFrame(r io.Reader, encBuf *FixedSizeRingBuf, outDecodedBuf *FixedS
 					// ok=snappy: corrupt input
 					// len(dec) == 0
 					//
-					panic(fmt.Sprintf("could not decode snappy stream: '%s' and len dec=%d and ok=%v\n", fname, len(dec), ok))
+					err = fmt.Errorf("could not decode snappy stream: '%s' and len dec=%d and error='%v'\n", fname, len(dec), ok)
 
 					// get back to caller with what we've got so far
-					return nEnc, nDec, nil
+					return nEnc, nDec, err
 				}
 				//	fmt.Printf("ok, b is %#v , %#v\n", ok, dec)
 
@@ -336,7 +336,8 @@ func UnsnapOneFrame(r io.Reader, encBuf *FixedSizeRingBuf, outDecodedBuf *FixedS
 			}
 
 		default:
-			panic(fmt.Sprintf("unrecognized/unsupported chunk type %#v", chunk_type))
+			err = fmt.Errorf("unrecognized/unsupported chunk type %#v; on fname='%v'", chunk_type, fname)
+			return nEnc, nDec, err
 		}
 
 	} // end for{}

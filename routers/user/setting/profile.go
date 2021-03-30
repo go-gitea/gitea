@@ -14,12 +14,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/unknwon/i18n"
 )
@@ -71,7 +73,8 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 }
 
 // ProfilePost response for change user's profile
-func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
+func ProfilePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
@@ -114,7 +117,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 	}
 
 	// Update the language to the one we just set
-	ctx.SetCookie("lang", ctx.User.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_profile_success"))
@@ -123,7 +126,7 @@ func ProfilePost(ctx *context.Context, form auth.UpdateProfileForm) {
 
 // UpdateAvatarSetting update user's avatar
 // FIXME: limit size.
-func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *models.User) error {
+func UpdateAvatarSetting(ctx *context.Context, form *auth.AvatarForm, ctxUser *models.User) error {
 	ctxUser.UseCustomAvatar = form.Source == auth.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		if form.Avatar != nil {
@@ -171,7 +174,8 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm, ctxUser *mo
 }
 
 // AvatarPost response for change user's avatar request
-func AvatarPost(ctx *context.Context, form auth.AvatarForm) {
+func AvatarPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*auth.AvatarForm)
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

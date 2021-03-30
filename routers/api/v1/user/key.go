@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -24,13 +25,13 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = convert.ToUser(defaultUser, true, true)
+			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
 		} else {
 			user, err := models.GetUserByID(key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = convert.ToUser(user, true, true)
+			apiKey.Owner = convert.ToUser(user, user)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
@@ -204,7 +205,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 }
 
 // CreatePublicKey create one public key for me
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/keys user userCurrentPostKey
 	// ---
 	// summary: Create a public key
@@ -223,7 +224,8 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	CreateUserPublicKey(ctx, form, ctx.User.ID)
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	CreateUserPublicKey(ctx, *form, ctx.User.ID)
 }
 
 // DeletePublicKey delete one public key

@@ -16,7 +16,7 @@ package scorch
 
 import (
 	"github.com/RoaringBitmap/roaring"
-	segment "github.com/blevesearch/scorch_segment_api"
+	segment "github.com/blevesearch/scorch_segment_api/v2"
 	"math"
 	"reflect"
 )
