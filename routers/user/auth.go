@@ -625,7 +625,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			if gothUser.Email == "" {
 				missingFields = append(missingFields, "email")
 			}
-			if !setting.OAuth2Client.UseEmail && setting.OAuth2Client.UseNickname && gothUser.NickName == "" {
+			if setting.OAuth2Client.Username == "nickname" && gothUser.NickName == "" {
 				missingFields = append(missingFields, "nickname")
 			}
 			if len(missingFields) > 0 {
@@ -644,45 +644,25 @@ func SignInOAuthCallback(ctx *context.Context) {
 				LoginName:   gothUser.UserID,
 			}
 
-			if ok, needLink := createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinkingLogin || setting.OAuth2Client.AutoRegistrationLinking); !ok {
-				// error already handled
-				if needLink {
-					if setting.OAuth2Client.AutoRegistrationLinking {
-						var user *models.User
-						user = &models.User{Name: u.Name}
-						hasUser, err := models.GetUser(user)
-						if !hasUser || err != nil {
-							user = &models.User{Email: u.Email}
-							hasUser, err = models.GetUser(user)
-							if !hasUser || err != nil {
-								ctx.ServerError("UserLinkAccount", err)
-								return
-							}
-						}
-
-						// TODO: probably we should respect user's choice...
-						linkAccount(ctx, user, gothUser, true)
-					} else {
-						showLinkingLogin(ctx, gothUser)
-					}
-				}
-				return
-			}
+			createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != "disabled")
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, gothUser)
 		}
+
+		return
 	}
 
 	handleOAuth2SignIn(ctx, u, gothUser)
 }
 
 func getUserName(gothUser *goth.User) string {
-	if setting.OAuth2Client.UseEmail {
+	switch setting.OAuth2Client.Username {
+	case "email":
 		return strings.Split(gothUser.Email, "@")[0]
-	} else if setting.OAuth2Client.UseNickname {
+	case "nickname":
 		return gothUser.NickName
-	} else {
+	default: // "userid"
 		return gothUser.UserID
 	}
 }
@@ -701,10 +681,15 @@ func showLinkingLogin(ctx *context.Context, gothUser goth.User) {
 func updateAvatarIfNeed(url string, u *models.User) {
 	if setting.OAuth2Client.UpdateAvatar && len(url) > 0 {
 		resp, err := http.Get(url)
+		if err == nil {
+			defer func() {
+				_ = resp.Body.Close()
+			}()
+		}
 		// ignore any error
 		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := io.ReadAll(resp.Body)
-			if err == nil {
+			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize + 1))
+			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
 				_ = u.UploadAvatar(data)
 			}
 		}
@@ -1073,7 +1058,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		LoginName:   gothUser.(goth.User).UserID,
 	}
 
-	if ok, _ := createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, gothUser.(*goth.User), false); !ok {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, gothUser.(*goth.User), false) {
 		// error already handled
 		return
 	}
@@ -1214,7 +1199,7 @@ func SignUpPost(ctx *context.Context) {
 		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
 
-	if ok, _ := createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, false); !ok {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, false) {
 		// error already handled
 		return
 	}
@@ -1225,22 +1210,37 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, canLink bool) (ok bool, needLink bool) {
-	ok, needLink = createUserInContext(ctx, tpl, form, u, canLink)
-	if !ok {
-		return ok, needLink
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, allowLink bool) bool {
+	if !createUserInContext(ctx, tpl, form, u, gothUser, allowLink) {
+		return false
 	}
-	ok = handleUserCreated(ctx, u, gothUser)
-	return
+	return handleUserCreated(ctx, u, gothUser)
 }
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, canLink bool) (ok bool, needLink bool) {
+func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, allowLink bool) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
-		if canLink {
-			if models.IsErrUserAlreadyExist(err) || models.IsErrEmailAlreadyUsed(err) {
-				return false, true
+		if allowLink && (models.IsErrUserAlreadyExist(err) || models.IsErrEmailAlreadyUsed(err)) {
+			if setting.OAuth2Client.AccountLinking == "auto" {
+				var user *models.User
+				user = &models.User{Name: u.Name}
+				hasUser, err := models.GetUser(user)
+				if !hasUser || err != nil {
+					user = &models.User{Email: u.Email}
+					hasUser, err = models.GetUser(user)
+					if !hasUser || err != nil {
+						ctx.ServerError("UserLinkAccount", err)
+						return
+					}
+				}
+
+				// TODO: probably we should respect 'remeber' user's choice...
+				linkAccount(ctx, user, *gothUser, true)
+				return // user is already created here, all redirects are handled
+			} else if setting.OAuth2Client.AccountLinking == "login" {
+				showLinkingLogin(ctx, *gothUser)
+				return // user will be created only after linking login
 			}
 		}
 
@@ -1276,7 +1276,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 		return
 	}
 	log.Trace("Account created: %s", u.Name)
-	return true, false
+	return true
 }
 
 // handleUserCreated does additional steps after a new user is created.

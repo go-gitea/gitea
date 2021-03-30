@@ -175,7 +175,7 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		}
 		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
 	case "gplus": // named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
-		provider = google.New(clientID, clientSecret, callbackURL, setting.OAuth2Client.GoogleConnectScopes...)
+		provider = google.New(clientID, clientSecret, callbackURL, setting.OAuth2Client.GoogleScopes...)
 	case "openidConnect":
 		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.OAuth2Client.OpenIDConnectScopes...); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)

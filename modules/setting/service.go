@@ -71,15 +71,13 @@ var Service struct {
 
 // OAuth2Client settings
 var OAuth2Client struct {
-	RegisterEmailConfirm    bool
-	OpenIDConnectScopes     []string
-	GoogleConnectScopes     []string
-	EnableAutoRegistration  bool
-	UseNickname             bool
-	UseEmail                bool
-	UpdateAvatar					  bool
-	AccountLinkingLogin     bool
-	AutoRegistrationLinking bool
+	RegisterEmailConfirm   bool
+	OpenIDConnectScopes    []string
+	GoogleScopes           []string
+	EnableAutoRegistration bool
+	Username               string
+	UpdateAvatar           bool
+	AccountLinking         string
 }
 
 func newService() {
@@ -154,13 +152,39 @@ func newService() {
 	sec = Cfg.Section("oauth2_client")
 	OAuth2Client.RegisterEmailConfirm = sec.Key("REGISTER_EMAIL_CONFIRM").MustBool(Service.RegisterEmailConfirm)
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
-	OAuth2Client.GoogleConnectScopes = parseScopes(sec, "GOOGLE_CONNECT_SCOPES")
+	OAuth2Client.GoogleScopes = parseScopes(sec, "GOOGLE_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
-	OAuth2Client.UseNickname = sec.Key("USE_NICKNAME").MustBool()
-	OAuth2Client.UseEmail = sec.Key("USE_EMAIL").MustBool()
+	OAuth2Client.Username = sec.Key("USERNAME").MustString("userid")
+	if !isValidUsername(OAuth2Client.Username) {
+		log.Warn("Username setting is not valid: '%s', will fallback to 'userid'", OAuth2Client.Username)
+		OAuth2Client.Username = "userid"
+	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
-	OAuth2Client.AccountLinkingLogin = sec.Key("SHOW_ACCOUNT_LINKING_LOGIN").MustBool(true)
-	OAuth2Client.AutoRegistrationLinking = sec.Key("ENABLE_AUTO_REGISTRATION_LINKING").MustBool()
+	OAuth2Client.AccountLinking = sec.Key("ACCOUNT_LINKING").MustString("ACCOUNT_LINKING")
+	if !isValidAccountLinking(OAuth2Client.AccountLinking) {
+		log.Warn("Account linking setting is not valid: '%s', will fallback to 'disabled'")
+		OAuth2Client.AccountLinking = "disabled"
+	}
+}
+
+func isValidUsername(username string) bool {
+	switch username {
+	case "userid":
+	case "nickname":
+	case "email":
+		return true
+	}
+	return false
+}
+
+func isValidAccountLinking(accountLinking string) bool {
+	switch accountLinking {
+	case "disabled":
+	case "login":
+	case "auto":
+		return true
+	}
+	return false
 }
 
 func parseScopes(sec *ini.Section, name string) []string {
