@@ -78,7 +78,7 @@ module.exports = {
     minimize: isProduction,
     minimizer: [
       new ESBuildMinifyPlugin({
-        target: 'es2015', // Syntax to compile to (see options below for possible values)
+        target: 'es2015',
         minify: true
       }),
       new CssMinimizerPlugin({
@@ -128,7 +128,7 @@ module.exports = {
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015' // Syntax to compile to (see options below for possible values)
+              target: 'es2015'
             },
           },
         ],

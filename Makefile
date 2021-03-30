@@ -647,18 +647,17 @@ npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
 .npm-cache: package-lock.json
 	rm -rf .npm-cache
 	$(eval ESBUILD_VERSION := `node -p "require('./package-lock.json').dependencies.esbuild.version"`)
-	$(eval ESBUILD_PKGS := esbuild-{darwin-64,linux-{arm,arm64,32,64},windows-{32,64}}@$(ESBUILD_VERSION))
 	npm config --userconfig=.npmrc set cache=.npm-cache
 	rm -rf node_modules && npm install --no-save
 	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
-	echo $(ESBUILD_PKGS) fsevents@1 fsevents@2 | tr " " "\n" | xargs -n 1 -P 4 npm cache add
+	echo esbuild-{darwin-64,linux-{arm,arm64,32,64},windows-{32,64}}@$(ESBUILD_VERSION) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
 	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
 	@touch .npm-cache
 
 .PHONY: npm-uncache
 npm-uncache:
 	rm -rf .npm-cache
-	rm -f $(FOMANTIC_WORK_DIR)/.npmrc
+	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc rm cache
 	npm config --userconfig=.npmrc rm cache
 
 .PHONY: npm-update
@@ -675,7 +674,7 @@ $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui:
 	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
 	cd $(FOMANTIC_WORK_DIR); \
 		rm -rf node_modules && mkdir node_modules && \
-		npm install less@3 fomantic-ui --no-package-lock; \
+		npm install fomantic-ui; \
 		rm -f semantic.json
 	@touch $(FOMANTIC_WORK_DIR)/node_modules
 
