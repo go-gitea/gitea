@@ -6,12 +6,10 @@ package repo
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"html"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -118,14 +116,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			}
 			defer reader.Close()
 
-			b, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return nil, err
-			}
-
-			b = charset.ToUTF8WithFallback(b)
-
-			return csv_module.CreateReaderAndGuessDelimiter(bytes.NewReader(b))
+			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
 		}
 
 		baseReader, err := csvReaderFromCommit(baseCommit)

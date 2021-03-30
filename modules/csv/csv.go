@@ -39,7 +39,7 @@ func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 
 	var newInput io.Reader
 	if size < 1e4 {
-		newInput = bytes.NewReader(data)
+		newInput = bytes.NewReader(data[:size])
 	} else {
 		newInput = io.MultiReader(bytes.NewReader(data), rd)
 	}
