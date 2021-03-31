@@ -388,6 +388,12 @@ func RawDiff(ctx *context.Context) {
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.JSON(404, map[string]interface{}{
+				"message": "commit " + ctx.Params(":sha") + " is not exist.",
+			})
+			return
+		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}
