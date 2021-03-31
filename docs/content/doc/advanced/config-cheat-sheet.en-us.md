@@ -198,6 +198,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ENABLE_RENDER`: **true**: Whether to render SVG files as images.  If SVG rendering is disabled, SVG files are displayed as text and cannot be embedded in markdown files as images.
 
+### UI - CSV Files (`ui.csv`)
+
+- `MAX_FILE_SIZE`: **524288** (512kb): Maximum allowed file size in bytes to render CSV files as table. (Set to 0 for no limit).
+
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
