@@ -14,6 +14,12 @@ import (
 	"xorm.io/xorm"
 )
 
+// RemoteMirrorer 
+type RemoteMirrorer interface {
+	GetRepository() *Repository
+	GetRemoteName() string
+}
+
 // Mirror represents mirror information of a repository.
 type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
@@ -48,6 +54,17 @@ func (m *Mirror) AfterLoad(session *xorm.Session) {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
 }
+
+// GetRepository returns the repository.
+func (m *Mirror) GetRepository() *Repository {
+	return m.Repo
+}
+
+// GetRemoteName returns the name of the remote.
+func (m *Mirror) GetRemoteName() string {
+	return "origin"
+}
+
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {

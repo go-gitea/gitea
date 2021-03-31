@@ -35,7 +35,7 @@ type PushMirror struct {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *PushMirror) BeforeInsert() {
 	if m != nil {
-		m.UpdatedUnix = timeutil.TimeStampNow()
+		m.UpdatedUnix = 0
 		m.NextUpdateUnix = timeutil.TimeStampNow()
 	}
 }
@@ -51,6 +51,16 @@ func (m *PushMirror) AfterLoad(session *xorm.Session) {
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
+}
+
+// GetRepository returns the path of the repository.
+func (m *PushMirror) GetRepository() *Repository {
+	return m.Repo
+}
+
+// GetRemoteName returns the name of the remote.
+func (m *PushMirror) GetRemoteName() string {
+	return m.RemoteName
 }
 
 // InsertPushMirror inserts a push-mirror to database

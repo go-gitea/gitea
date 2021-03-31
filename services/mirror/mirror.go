@@ -7,7 +7,6 @@ package mirror
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,47 +16,10 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // mirrorQueue holds an UniqueQueue object of the mirror
 var mirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
-
-func readAddress(m *models.Mirror) {
-	if len(m.Address) > 0 {
-		return
-	}
-	var err error
-	m.Address, err = readRemoteAddress(m.Repo.RepoPath(), pullMirrorRemoteName)
-	if err != nil {
-		log.Error("readRemoteAddress: %v", err)
-	}
-}
-
-func readRemoteAddress(repoPath, remoteName string) (string, error) {
-	err := git.LoadGitVersion()
-	if err != nil {
-		return "", err
-	}
-	var cmd *git.Command
-	if git.CheckGitVersionAtLeast("2.7") == nil {
-		cmd = git.NewCommand("remote", "get-url", remoteName)
-	} else {
-		cmd = git.NewCommand("config", "--get", "remote."+remoteName+".url")
-	}
-
-	result, err := cmd.RunInDir(repoPath)
-	if err != nil {
-		if strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-			return "", nil
-		}
-		return "", err
-	}
-	if len(result) > 0 {
-		return result[:len(result)-1], nil
-	}
-	return "", nil
-}
 
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(m *models.Mirror, addr string) error {
@@ -90,35 +52,6 @@ func UpdateAddress(m *models.Mirror, addr string) error {
 
 	m.Repo.OriginalURL = addr
 	return models.UpdateRepositoryCols(m.Repo, "original_url")
-}
-
-// Address returns mirror address from Git repository config without credentials.
-func Address(m *models.Mirror) string {
-	readAddress(m)
-	return util.SanitizeURLCredentials(m.Address, false)
-}
-
-// Username returns the mirror address username
-func Username(m *models.Mirror) string {
-	readAddress(m)
-	u, err := url.Parse(m.Address)
-	if err != nil {
-		// this shouldn't happen but if it does return ""
-		return ""
-	}
-	return u.User.Username()
-}
-
-// Password returns the mirror address password
-func Password(m *models.Mirror) string {
-	readAddress(m)
-	u, err := url.Parse(m.Address)
-	if err != nil {
-		// this shouldn't happen but if it does return ""
-		return ""
-	}
-	password, _ := u.User.Password()
-	return password
 }
 
 // Update checks and updates mirror repositories.
