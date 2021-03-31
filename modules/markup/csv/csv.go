@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"html"
 	"io"
+	"io/ioutil"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/csv"
@@ -77,7 +78,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	var tmpBlock = bufio.NewWriter(output)
 
 	// FIXME: don't read all to memory
-	rawBytes, err := io.ReadAll(input)
+	rawBytes, err := ioutil.ReadAll(input)
 	if err != nil {
 		return err
 	}
