@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -12,8 +12,43 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
+
+// AddPushMirrorRemote registers the push mirror remote.
+func AddPushMirrorRemote(m *models.PushMirror, addr string) error {
+	if _, err := git.NewCommand("remote", "add", m.RemoteName, addr).RunInDir(m.Repo.RepoPath()); err != nil {
+		return err
+	}
+
+	if repo.HasWiki() {
+		wikiRemotePath := repository.WikiRemoteURL(addr)
+		if len(wikiRemotePath) > 0 {
+			if _, err := git.NewCommand("remote", "add", m.RemoteName, wikiRemotePath).RunInDir(m.Repo.WikiPath()); err != nil {
+				return err
+			}
+		}
+	}
+	
+	return nil
+}
+
+// RemovePushMirrorRemote removes the push mirror remote.
+func RemovePushMirrorRemote(m *models.PushMirror) error {
+	cmd := git.NewCommand("remote", "rm", m.RemoteName)
+	
+	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
+		return err
+	}
+
+	if _, err := cmd.RunInDir(m.Repo.WikiPath()); err != nil {
+		// The wiki remote may not exist
+		log.Warning("Wiki Remote[%d] could not be removed: %v", m.ID, err)
+	}
+	
+	return nil
+}
 
 func syncPushMirror(mirrorID string) {
 	log.Trace("SyncPushMirror [mirror_id: %v]", mirrorID)
