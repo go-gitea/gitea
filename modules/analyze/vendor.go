@@ -28,7 +28,7 @@ func init() {
 		} else if str[0:5] == "(^|/)" {
 			caretShareStrings = append(caretShareStrings, str[5:])
 		} else {
-			matcherStrings = append(matcherStrings, matcher.String())
+			matcherStrings = append(matcherStrings, str)
 		}
 	}
 
