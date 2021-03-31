@@ -129,6 +129,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 		cmd.Env = env
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
+	cmd.Env = append(cmd.Env, "GIT_TERMINAL_PROMPT=0")
 
 	// TODO: verify if this is still needed in golang 1.15
 	if goVersionLessThan115 {
