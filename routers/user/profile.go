@@ -44,11 +44,19 @@ func GetUserByParams(ctx *context.Context) *models.User {
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
 	uname := ctx.Params(":username")
-	// Special handle for FireFox requests favicon.ico.
+
+	// Special handle for requests `favicon.ico` and `serviceworker.js`.
 	if uname == "favicon.ico" {
 		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		return
-	} else if strings.HasSuffix(uname, ".png") {
+	}
+
+	if uname == "serviceworker.js" {
+		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/serviceworker.js"))
+		return
+	}
+
+	if strings.HasSuffix(uname, ".png") {
 		ctx.Error(404)
 		return
 	}

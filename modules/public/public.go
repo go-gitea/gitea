@@ -32,7 +32,6 @@ var KnownPublicEntries = []string{
 	"js",
 	"serviceworker.js",
 	"vendor",
-	"favicon.ico",
 }
 
 // Custom implements the static handler for serving custom assets.
