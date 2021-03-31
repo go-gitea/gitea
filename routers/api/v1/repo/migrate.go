@@ -5,8 +5,6 @@
 package repo
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,15 +12,14 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/graceful"
+	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -53,6 +50,31 @@ func Migrate(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.MigrateRepoOptions)
 
 	//get repoOwner
+	if setting.Repository.DisableMigrations {
+		ctx.Error(http.StatusForbidden, "MigrationsGlobalDisabled", fmt.Errorf("the site administrator has disabled migrations"))
+		return
+	}
+
+	if form.Mirror && setting.Repository.DisableMirrors {
+		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
+		return
+	}
+
+	form.LFS = form.LFS && setting.LFS.StartServer
+
+	if form.LFS && len(form.LFSEndpoint) > 0 {
+		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+		if ep == nil {
+			ctx.Error(http.StatusInternalServerError, "", ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
+			return
+		}
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+		if err != nil {
+			handleRemoteAddrError(ctx, err)
+			return
+		}
+	}
+
 	var (
 		repoOwner *models.User
 		err       error
@@ -108,31 +130,6 @@ func Migrate(ctx *context.APIContext) {
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
-	if form.Mirror && setting.Repository.DisableMirrors {
-		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
-		return
-	}
-
-	if setting.Repository.DisableMigrations {
-		ctx.Error(http.StatusForbidden, "MigrationsGlobalDisabled", fmt.Errorf("the site administrator has disabled migrations"))
-		return
-	}
-
-	form.LFS = form.LFS && setting.LFS.StartServer
-
-	if form.LFS && len(form.LFSEndpoint) > 0 {
-		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
-		if ep == nil {
-			ctx.Error(http.StatusInternalServerError, "", ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
-			return
-		}
-		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
-		if err != nil {
-			handleRemoteAddrError(ctx, err)
-			return
-		}
-	}
-
 	var opts = migrations.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
@@ -145,7 +142,7 @@ func Migrate(ctx *context.APIContext) {
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,
 		Wiki:           form.Wiki,
-		Issues:         form.Issues,
+		Issues:         form.Issues || form.PullRequests,
 		Milestones:     form.Milestones,
 		Labels:         form.Labels,
 		Comments:       true,
@@ -163,63 +160,33 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.User, repoOwner, models.CreateRepoOptions{
-		Name:           opts.RepoName,
-		Description:    opts.Description,
-		OriginalURL:    form.CloneAddr,
-		GitServiceType: gitServiceType,
-		IsPrivate:      opts.Private,
-		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
-	})
-	if err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+	if err = models.CheckCreateRepository(ctx.User, repoOwner, opts.RepoName, false); err != nil {
+		handleMigrateError(ctx, repoOwner, &opts, err)
 		return
 	}
 
-	opts.MigrateToRepoID = repo.ID
-
-	defer func() {
-		if e := recover(); e != nil {
-			var buf bytes.Buffer
-			fmt.Fprintf(&buf, "Handler crashed with error: %v", log.Stack(2))
-
-			err = errors.New(buf.String())
-		}
-
-		if err == nil {
-			notification.NotifyMigrateRepository(ctx.User, repoOwner, repo)
-			return
-		}
-
-		if repo != nil {
-			if errDelete := models.DeleteRepository(ctx.User, repoOwner.ID, repo.ID); errDelete != nil {
-				log.Error("DeleteRepository: %v", errDelete)
-			}
-		}
-	}()
-
-	if _, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), ctx.User, repoOwner.Name, opts, nil); err != nil {
-		handleMigrateError(ctx, repoOwner, remoteAddr, err)
+	repo, err := task.MigrateRepository(ctx.User, repoOwner, opts)
+	if err == nil {
+		log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
+		ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
 		return
 	}
 
-	log.Trace("Repository migrated: %s/%s", repoOwner.Name, form.RepoName)
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
+	handleMigrateError(ctx, repoOwner, &opts, err)
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, migrationOpts *migrations.MigrateOptions, err error) {
 	switch {
-	case models.IsErrRepoAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-	case models.IsErrRepoFilesAlreadyExist(err):
-		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case migrations.IsRateLimitError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
 	case migrations.IsTwoFactorAuthError(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
+	case models.IsErrRepoAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+	case models.IsErrRepoFilesAlreadyExist(err):
+		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
 	case models.IsErrNameReserved(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
 	case models.IsErrNameCharsNotAllowed(err):
@@ -231,6 +198,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
+		remoteAddr, _ := auth.ParseRemoteAddr(migrationOpts.CloneAddr, migrationOpts.AuthUsername, migrationOpts.AuthPassword)
 		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
@@ -266,4 +234,37 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 	} else {
 		ctx.Error(http.StatusInternalServerError, "ParseRemoteAddr", err)
 	}
+}
+
+// GetMigratingTask returns the migrating task by repo's id
+func GetMigratingTask(ctx *context.APIContext) {
+	// swagger:operation GET /repos/migrate/status task
+	// ---
+	// summary: Get the migration status of a repository by its id
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: repo_id
+	//   in: query
+	//   description: repository id
+	//   type: int64
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/"
+	//   "404":
+	//	   "$ref": "#/response/"
+	t, err := models.GetMigratingTask(ctx.QueryInt64("repo_id"))
+
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, err)
+		return
+	}
+
+	ctx.JSON(200, map[string]interface{}{
+		"status":  t.Status,
+		"err":     t.Errors,
+		"repo-id": t.RepoID,
+		"start":   t.StartTime,
+		"end":     t.EndTime,
+	})
 }
