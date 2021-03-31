@@ -95,7 +95,7 @@ func TestCSVDiff(t *testing.T) {
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
-			baseReader,err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
 			if err != nil {
 				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
 			}

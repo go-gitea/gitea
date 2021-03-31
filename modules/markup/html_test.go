@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
-	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,7 +28,7 @@ func TestRender_Commits(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
+		buffer, err := RenderString(&RenderContext{
 			Filename:  ".md",
 			URLPrefix: setting.AppSubURL,
 			Metas:     localMetas,
@@ -65,7 +64,7 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
+		buffer, err := RenderString(&RenderContext{
 			Filename:  "a.md",
 			URLPrefix: setting.AppSubURL,
 			Metas:     localMetas,
@@ -102,7 +101,7 @@ func TestRender_links(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer, err := RenderString(&markup.RenderContext{
+		buffer, err := RenderString(&RenderContext{
 			Filename:  "a.md",
 			URLPrefix: setting.AppSubURL,
 		}, input)
@@ -202,7 +201,7 @@ func TestRender_email(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		res, err := RenderString(&markup.RenderContext{
+		res, err := RenderString(&RenderContext{
 			Filename:  "a.md",
 			URLPrefix: setting.AppSubURL,
 		}, input)
@@ -261,7 +260,7 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer, err := RenderString(&markup.RenderContext{
+		buffer, err := RenderString(&RenderContext{
 			Filename:  "a.md",
 			URLPrefix: setting.AppSubURL,
 		}, input)
@@ -314,12 +313,12 @@ func TestRender_ShortLinks(t *testing.T) {
 	tree := util.URLJoin(AppSubURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&markup.RenderContext{
+		buffer, err := markdown.RenderString(&RenderContext{
 			URLPrefix: tree,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&markup.RenderContext{
+		buffer, err = markdown.RenderString(&RenderContext{
 			URLPrefix: setting.AppSubURL,
 			Metas:     localMetas,
 			IsWiki:    true,

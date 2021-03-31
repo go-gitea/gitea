@@ -83,10 +83,14 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	}
 
 	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
-		tmpBlock.WriteString("<pre>")
-		tmpBlock.WriteString(html.EscapeString(string(rawBytes)))
-		tmpBlock.WriteString("</pre>")
-		return nil
+		if _, err := tmpBlock.WriteString("<pre>"); err != nil {
+			return err
+		}
+		if _, err := tmpBlock.WriteString(html.EscapeString(string(rawBytes))); err != nil {
+			return err
+		}
+		_, err = tmpBlock.WriteString("</pre>")
+		return err
 	}
 
 	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
@@ -94,7 +98,9 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		return err
 	}
 
-	tmpBlock.WriteString(`<table class="data-table">`)
+	if _, err := tmpBlock.WriteString(`<table class="data-table">`); err != nil {
+		return err
+	}
 	row := 1
 	for {
 		fields, err := rd.Read()
@@ -104,16 +110,24 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		if err != nil {
 			continue
 		}
-		tmpBlock.WriteString("<tr>")
+		if _, err := tmpBlock.WriteString("<tr>"); err != nil {
+			return err
+		}
 		element := "td"
 		if row == 1 {
 			element = "th"
 		}
-		writeField(tmpBlock, element, "line-num", strconv.Itoa(row))
-		for _, field := range fields {
-			writeField(tmpBlock, element, "", field)
+		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
+			return err
 		}
-		tmpBlock.WriteString("</tr>")
+		for _, field := range fields {
+			if err := writeField(tmpBlock, element, "", field); err != nil {
+				return err
+			}
+		}
+		if _, err := tmpBlock.WriteString("</tr>"); err != nil {
+			return err
+		}
 
 		row++
 	}
