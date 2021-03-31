@@ -431,7 +431,7 @@ relation to port exhaustion.
 - `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `GOOGLE_SCOPES`: **\<empty\>**: List of additional google scopes (we may need to write here `email profile`)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration for oauth2 authentication.
-- `USERNAME`: **userid**: The source of the username for new oauth2 accounts: userid, nickname, email (username part). 
+- `USERNAME`: **nickname**: The source of the username for new oauth2 accounts: userid, nickname, email (username part).
 - `UPDATE_AVATAR`: **false**: Set this to update user avatar if available from the oauth2 provider.
 - `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists: disabled / login / auto.
 

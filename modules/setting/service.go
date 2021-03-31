@@ -178,10 +178,10 @@ func newService() {
 	OAuth2Client.OpenIDConnectScopes = parseScopes(sec, "OPENID_CONNECT_SCOPES")
 	OAuth2Client.GoogleScopes = parseScopes(sec, "GOOGLE_SCOPES")
 	OAuth2Client.EnableAutoRegistration = sec.Key("ENABLE_AUTO_REGISTRATION").MustBool()
-	OAuth2Client.Username = OAuth2UsernameType(sec.Key("USERNAME").MustString(string(OAuth2UsernameUserid)))
+	OAuth2Client.Username = OAuth2UsernameType(sec.Key("USERNAME").MustString(string(OAuth2UsernameNickname)))
 	if !OAuth2Client.Username.isValid() {
-		log.Warn("Username setting is not valid: '%s', will fallback to '%s'", OAuth2Client.Username, OAuth2UsernameUserid)
-		OAuth2Client.Username = OAuth2UsernameUserid
+		log.Warn("Username setting is not valid: '%s', will fallback to '%s'", OAuth2Client.Username, OAuth2UsernameNickname)
+		OAuth2Client.Username = OAuth2UsernameNickname
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
 	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingDisabled)))
