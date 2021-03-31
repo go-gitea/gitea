@@ -5,7 +5,6 @@ import './publicpath.js';
 import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
-import './vendor/semanticdropdown.js';
 
 import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
