@@ -5,7 +5,6 @@ import './publicpath.js';
 import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
-import './vendor/semanticdropdown.js';
 
 import initMigration from './features/migration.js';
 import initContextPopups from './features/contextpopup.js';
@@ -2489,6 +2488,18 @@ function initIssueReferenceRepositorySearch() {
     });
 }
 
+function initFileViewToggle() {
+  $('.file-view-toggle').on('click', function() {
+    const $this = $(this);
+    $this.parent().children().removeClass('active');
+    $this.addClass('active');
+
+    const $target = $($this.data('toggle-selector'));
+    $target.parent().children().addClass('hide');
+    $target.removeClass('hide');
+  });
+}
+
 function initLinkAccountView() {
   const $lnkUserPage = $('.page-content.user.link-account');
   if ($lnkUserPage.length === 0) {
@@ -2756,6 +2767,7 @@ $(document).ready(async () => {
   initTableSort();
   initNotificationsTable();
   initPullRequestMergeInstruction();
+  initFileViewToggle();
   initReleaseEditor();
   initRelease();
 

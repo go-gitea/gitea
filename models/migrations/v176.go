@@ -8,6 +8,9 @@ import (
 	"xorm.io/xorm"
 )
 
+// removeInvalidLabels looks through the database to look for comments and issue_labels
+// that refer to labels do not belong to the repository or organization that repository
+// that the issue is in
 func removeInvalidLabels(x *xorm.Engine) error {
 	type Comment struct {
 		ID      int64 `xorm:"pk autoincr"`
