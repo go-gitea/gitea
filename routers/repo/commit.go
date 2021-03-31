@@ -390,7 +390,7 @@ func RawDiff(ctx *context.Context) {
 	); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.JSON(404, map[string]interface{}{
-				"message": "commit " + ctx.Params(":sha") + " is not exist.",
+				"message": "commit " + ctx.Params(":sha") + " does not exist.",
 			})
 			return
 		}
