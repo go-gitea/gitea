@@ -279,7 +279,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, false)
+		apiUsers[i] = convert.ToUser(users[i], ctx.User)
 	}
 
 	ctx.JSON(http.StatusOK, apiUsers)

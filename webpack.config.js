@@ -6,7 +6,7 @@ const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {ESBuildPlugin, ESBuildMinifyPlugin} = require('esbuild-loader');
+const {ESBuildMinifyPlugin} = require('esbuild-loader');
 const {resolve, parse} = require('path');
 const {SourceMapDevToolPlugin} = require('webpack');
 
@@ -78,7 +78,7 @@ module.exports = {
     minimize: isProduction,
     minimizer: [
       new ESBuildMinifyPlugin({
-        target: 'es2015', // Syntax to compile to (see options below for possible values)
+        target: 'es2015',
         minify: true
       }),
       new CssMinimizerPlugin({
@@ -128,7 +128,7 @@ module.exports = {
           {
             loader: 'esbuild-loader',
             options: {
-              target: 'es2015' // Syntax to compile to (see options below for possible values)
+              target: 'es2015'
             },
           },
         ],
@@ -207,7 +207,6 @@ module.exports = {
   },
   plugins: [
     new VueLoaderPlugin(),
-    new ESBuildPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
       chunkFilename: 'css/[name].css',
