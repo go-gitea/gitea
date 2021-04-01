@@ -27,6 +27,7 @@ type Options struct {
 // KnownPublicEntries list all direct children in the `public` directory
 var KnownPublicEntries = []string{
 	"css",
+	"fonts",
 	"img",
 	"js",
 	"serviceworker.js",
