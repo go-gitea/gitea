@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -113,11 +112,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	// find repos user can access (for issue search)
-	repoIDs := make([]int64, 0)
 	opts := &models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
-			PageSize: 15,
-		},
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -132,21 +127,10 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 
-	for page := 1; ; page++ {
-		opts.Page = page
-		repos, count, err := models.SearchRepositoryByName(opts)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
-			return
-		}
-
-		if len(repos) == 0 {
-			break
-		}
-		log.Trace("Processing next %d repos of %d", len(repos), count)
-		for _, repo := range repos {
-			repoIDs = append(repoIDs, repo.ID)
-		}
+	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
+		return
 	}
 
 	var issues []*models.Issue
