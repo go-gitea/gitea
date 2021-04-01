@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine3.12
+FROM golang:1.16-alpine3.13
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -9,27 +9,28 @@ ARG CGO_EXTRA_CFLAGS
 
 #Build & runtime deps
 RUN apk --no-cache add \
-  build-base \
-  git \
-  nodejs \
-  npm \
-  bash \
-  ca-certificates \
-  curl \
-  gettext \
-  git \
-  linux-pam \
-  openssh \
-  s6 \
-  sqlite \
-  su-exec \
-  gnupg
+    build-base \
+    git \
+    nodejs \
+    npm \
+    bash \
+    ca-certificates \
+    curl \
+    gettext \
+    git \
+    linux-pam \
+    openssh \
+    s6 \
+    sqlite \
+    su-exec \
+    gnupg
 
 
 #Setup repo
 COPY . /go/src/code.gitea.io/gitea
 WORKDIR /go/src/code.gitea.io/gitea
 
+RUN npm install --no-save
 RUN make build
 
 # Begin env-to-ini build
@@ -38,16 +39,16 @@ RUN go build contrib/environment-to-ini/environment-to-ini.go
 EXPOSE 22 3000
 
 RUN addgroup \
-  -S -g 1000 \
-  git && \
-  adduser \
-  -S -H -D \
-  -h /data/git \
-  -s /bin/bash \
-  -u 1000 \
-  -G git \
-  git && \
-  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
+    -S -g 1000 \
+    git && \
+    adduser \
+    -S -H -D \
+    -h /data/git \
+    -s /bin/bash \
+    -u 1000 \
+    -G git \
+    git && \
+    echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
