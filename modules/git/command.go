@@ -22,7 +22,7 @@ var (
 	// GlobalCommandArgs global command args for external package setting
 	GlobalCommandArgs []string
 
-	// DefaultCommandExecutionTimeout default command execution timeout duration
+	// defaultCommandExecutionTimeout default command execution timeout duration
 	defaultCommandExecutionTimeout = 360 * time.Second
 )
 
@@ -109,47 +109,24 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	return c.RunWithContext(&RunContext{
-		Env:        env,
-		Timeout:    timeout,
-		Dir:        dir,
-		Stdout:     stdout,
-		Stderr:     stderr,
-		Stdin:      stdin,
-		CancelFunc: fn,
-	})
-}
-
-// RunContext represents parameters to run the command
-type RunContext struct {
-	Env            []string
-	Timeout        time.Duration
-	Dir            string
-	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	CancelFunc     func(context.Context, context.CancelFunc) error
-}
-
-// RunWithContext run the command with context
-func (c *Command) RunWithContext(rc *RunContext) error {
-	if rc.Timeout == -1 {
-		rc.Timeout = defaultCommandExecutionTimeout
+	if timeout == -1 {
+		timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(rc.Dir) == 0 {
+	if len(dir) == 0 {
 		log(c.String())
 	} else {
-		log("%s: %v", rc.Dir, c)
+		log("%s: %v", dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
+	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if rc.Env == nil {
+	if env == nil {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	} else {
-		cmd.Env = rc.Env
+		cmd.Env = env
 		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
 
@@ -157,23 +134,23 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if goVersionLessThan115 {
 		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
-	cmd.Dir = rc.Dir
-	cmd.Stdout = rc.Stdout
-	cmd.Stderr = rc.Stderr
-	cmd.Stdin = rc.Stdin
+	cmd.Dir = dir
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	cmd.Stdin = stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
+		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
 	}
 	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
-	if rc.CancelFunc != nil {
-		err := rc.CancelFunc(ctx, cancel)
+	if fn != nil {
+		err := fn(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
