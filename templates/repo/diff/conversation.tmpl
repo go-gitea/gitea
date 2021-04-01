@@ -3,16 +3,20 @@
 {{$isNotPending := (not (eq (index .comments 0).Review.Type 0))}}
 <div class="conversation-holder" data-path="{{(index .comments 0).TreePath}}" data-side="{{if lt (index .comments 0).Line 0}}left{{else}}right{{end}}" data-idx="{{(index .comments 0).UnsignedLine}}">
 	{{if $resolved}}
-		<div class="ui attached header resolved-placeholder">
-			<span class="ui grey text left"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-			<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated">
-				{{svg "octicon-unfold"}}
-				{{$.i18n.Tr "repo.issues.review.show_resolved"}}
-			</button>
-			<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated">
-				{{svg "octicon-fold"}}
-				{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
-			</button>
+		<div class="ui attached header resolved-placeholder df ac sb">
+			<div class="ui grey text">
+				<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+			</div>
+			<div>
+				<button id="show-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="ui tiny right labeled button show-outdated df ac">
+					{{svg "octicon-unfold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+				</button>
+				<button id="hide-outdated-{{(index .comments 0).ID}}" data-comment="{{(index .comments 0).ID}}" class="hide ui tiny right labeled button hide-outdated df ac">
+					{{svg "octicon-fold" 16 "mr-3"}}
+					{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+				</button>
+			</div>
 		</div>
 	{{end}}
 	<div id="code-comments-{{(index  .comments 0).ID}}" class="field comment-code-cloud {{if $resolved}}hide{{end}}">

@@ -382,7 +382,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.Date != "" {
-		dateLow, err := time.Parse("2006-01-02", opts.Date)
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
 		if err != nil {
 			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
 		} else {
