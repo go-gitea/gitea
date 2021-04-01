@@ -14,7 +14,6 @@ import (
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
-
 	if newOwner.IsOrganization() {
 		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
 		if err != nil {
