@@ -147,13 +147,8 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	var stderr = new(bytes.Buffer)
-	err = cmd.RunWithContext(&RunContext{
-		Timeout: opts.Timeout,
-		Stdout:  new(bytes.Buffer),
-		Stderr:  stderr,
-	})
-	return ConcatenateError(err, stderr.String())
+	_, err = cmd.RunTimeout(opts.Timeout)
+	return err
 }
 
 // PullRemoteOptions options when pull from remote
