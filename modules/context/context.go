@@ -229,6 +229,23 @@ func (ctx *Context) notFoundInternal(title string, err error) {
 		}
 	}
 
+	// response simple meesage if Accept isn't text/html
+	reqTypes, has := ctx.Req.Header["Accept"]
+	if has && len(reqTypes) > 0 {
+		notHTML := true
+		for _, part := range reqTypes {
+			if strings.Contains(part, "text/html") {
+				notHTML = false
+				break
+			}
+		}
+
+		if notHTML {
+			ctx.PlainText(404, []byte("Not found.\n"))
+			return
+		}
+	}
+
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
 	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
