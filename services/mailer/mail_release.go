@@ -52,13 +52,15 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 
 	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]interface{}{
-		"Release": rel,
-		"Subject": subject,
+		"Release":  rel,
+		"Subject":  subject,
+		"i18n":     locale,
+		"Language": locale.Language(),
 	}
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n
+	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return

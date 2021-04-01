@@ -52,16 +52,17 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User,
 	}
 
 	data := map[string]interface{}{
-		"Doer":    doer,
-		"User":    repo.Owner,
-		"Repo":    repo.FullName(),
-		"Link":    repo.HTMLURL(),
-		"Subject": subject,
-
+		"Doer":        doer,
+		"User":        repo.Owner,
+		"Repo":        repo.FullName(),
+		"Link":        repo.HTMLURL(),
+		"Subject":     subject,
+		"i18n":        locale,
+		"Language":    locale.Language(),
 		"Destination": destination,
 	}
 
-	// TODO: i18n
+	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}
