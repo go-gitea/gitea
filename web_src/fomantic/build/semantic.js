@@ -2839,7 +2839,7 @@ $.fn.dimmer = function(parameters) {
 
         event: {
           click: function(event) {
-            module.verbose('Determining if event occured on dimmer', event);
+            module.verbose('Determining if event occurred on dimmer', event);
             if( $dimmer.find(event.target).length === 0 || $(event.target).is(selector.content) ) {
               module.hide();
               event.stopImmediatePropagation();
