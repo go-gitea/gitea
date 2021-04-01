@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -25,6 +25,40 @@ const pullMirrorRemoteName = "origin"
 
 // gitShortEmptySha Git short empty SHA
 const gitShortEmptySha = "0000000"
+
+// UpdateAddress writes new address to Git repository and database
+func UpdateAddress(m *models.Mirror, addr string) error {
+	remoteName := m.GetRemoteName()
+	repoPath := m.Repo.RepoPath()
+	// Remove old remote
+	_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(repoPath)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return err
+	}
+
+	_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+		return err
+	}
+
+	if m.Repo.HasWiki() {
+		wikiPath := m.Repo.WikiPath()
+		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		// Remove old remote of wiki
+		_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+
+		_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
+			return err
+		}
+	}
+
+	m.Repo.OriginalURL = addr
+	return models.UpdateRepositoryCols(m.Repo, "original_url")
+}
 
 // mirrorSyncResult contains information of a updated reference.
 // If the oldCommitID is "0000000", it means a new reference, the value of newCommitID is empty.

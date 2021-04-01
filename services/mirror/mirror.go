@@ -10,49 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 )
 
 // mirrorQueue holds an UniqueQueue object of the mirror
 var mirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
-
-// UpdateAddress writes new address to Git repository and database
-func UpdateAddress(m *models.Mirror, addr string) error {
-	repoPath := m.Repo.RepoPath()
-	// Remove old remote
-	_, err := git.NewCommand("remote", "rm", pullMirrorRemoteName).RunInDir(repoPath)
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-		return err
-	}
-
-	_, err = git.NewCommand("remote", "add", pullMirrorRemoteName, "--mirror=fetch", addr).RunInDir(repoPath)
-	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-		return err
-	}
-
-	if m.Repo.HasWiki() {
-		wikiPath := m.Repo.WikiPath()
-		wikiRemotePath := repo_module.WikiRemoteURL(addr)
-		// Remove old remote of wiki
-		_, err := git.NewCommand("remote", "rm", pullMirrorRemoteName).RunInDir(wikiPath)
-		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-			return err
-		}
-
-		_, err = git.NewCommand("remote", "add", pullMirrorRemoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
-		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
-			return err
-		}
-	}
-
-	m.Repo.OriginalURL = addr
-	return models.UpdateRepositoryCols(m.Repo, "original_url")
-}
 
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context) error {
