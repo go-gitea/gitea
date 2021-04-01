@@ -178,7 +178,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 
 func (b *BleveIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
 	}
 
