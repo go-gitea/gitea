@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"path"
 	"strings"
 
@@ -389,6 +390,11 @@ func RawDiff(ctx *context.Context) {
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetRawDiff",
+				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+			return
+		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}
