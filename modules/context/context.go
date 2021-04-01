@@ -234,14 +234,8 @@ func (ctx *Context) notFoundInternal(title string, err error) {
 	if has && len(reqTypes) > 0 {
 		notHTML := true
 		for _, part := range reqTypes {
-			for _, typ := range strings.Split(part, ",") {
-				if typ == "text/html" {
-					notHTML = false
-					break
-				}
-			}
-
-			if !notHTML {
+			if strings.Contains(part, "text/html") {
+				notHTML = false
 				break
 			}
 		}
