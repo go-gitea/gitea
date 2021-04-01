@@ -112,7 +112,7 @@ func EmailPost(ctx *context.Context) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
-			mailer.SendActivateAccountMail(ctx.Locale.Language(), ctx.User)
+			mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
 			address = ctx.User.Email
 		} else {
 			id := ctx.QueryInt64("id")

@@ -467,7 +467,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// Send confirmation email, no need for social account.
 	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		mailer.SendActivateAccountMail(ctx.Locale.Language(), u)
+		mailer.SendActivateAccountMail(ctx.Locale, u)
 
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email

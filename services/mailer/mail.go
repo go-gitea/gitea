@@ -82,15 +82,14 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 }
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(lang string, u *models.User) {
-	locale := translation.NewLocale(lang)
-	sendUserMail(lang, u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
+func SendActivateAccountMail(locale translation.Locale, u *models.User) {
+	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(lang string, u *models.User) {
-	locale := translation.NewLocale(lang)
-	sendUserMail(lang, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
+func SendResetPasswordMail(u *models.User) {
+	locale := translation.NewLocale(u.Language)
+	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
