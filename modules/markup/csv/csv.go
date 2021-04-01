@@ -21,7 +21,7 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer for orgmode
+// Renderer implements markup.Renderer for csv files
 type Renderer struct {
 }
 

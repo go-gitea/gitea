@@ -58,7 +58,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	return err
 }
 
-// RenderString renders Markdown string to HTML with all specific handling stuff and return string
+// RenderString renders orgmode string to HTML string
 func RenderString(ctx *markup.RenderContext, content string) (string, error) {
 	var buf strings.Builder
 	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
