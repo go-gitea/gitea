@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
+
 	"github.com/stretchr/testify/assert"
 )
 

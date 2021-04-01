@@ -338,7 +338,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
 						bs, _ := ioutil.ReadAll(rd)
-						ctx.Data["FileContent"] = string(bs)
+						ctx.Data["FileContent"] = strings.ReplaceAll(
+							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
+						)
 					} else {
 						ctx.Data["FileContent"] = result.String()
 					}

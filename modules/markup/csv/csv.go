@@ -19,7 +19,6 @@ import (
 
 func init() {
 	markup.RegisterRenderer(Renderer{})
-
 }
 
 // Renderer implements markup.Renderer for orgmode
