@@ -961,7 +961,7 @@ And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
 ## Proxy (`proxy`)
 
-- `PROXY_ENABLED`: **true**: Enable the proxy, all requests to external via HTTP will be affected
+- `PROXY_ENABLED`: **true**: Enable the proxy if true, all requests to external via HTTP will be affected, if false, no proxy will be used even environment http_proxy/https_proxy
 - `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
 - `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 

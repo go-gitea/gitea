@@ -22,7 +22,10 @@ var (
 
 // SystemProxy returns the system proxy
 func SystemProxy() func(req *http.Request) (*url.URL, error) {
-	if !setting.Proxy.Enabled || setting.Proxy.ProxyURL == "" {
+	if !setting.Proxy.Enabled {
+		return nil
+	}
+	if setting.Proxy.ProxyURL == "" {
 		return http.ProxyFromEnvironment
 	}
 

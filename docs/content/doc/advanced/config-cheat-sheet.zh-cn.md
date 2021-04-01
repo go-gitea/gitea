@@ -380,7 +380,7 @@ MINIO_USE_SSL = false
 
 ## Proxy (`proxy`)
 
-- `PROXY_ENABLED`: **true**: 是否启用全局代理
+- `PROXY_ENABLED`: **true**: 是否启用全局代理。如果为否，则不使用代理，环境变量中的代理也不使用
 - `PROXY_URL`: ****: 代理服务器地址，支持 http://, https//, socks://，为空则不启用代理而使用环境变量中的 http_proxy/https_proxy
 - `PROXY_HOSTS`: ****: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
 
