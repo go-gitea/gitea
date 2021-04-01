@@ -23,7 +23,7 @@ var (
 	GlobalCommandArgs []string
 
 	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 360 * time.Second
+	defaultCommandExecutionTimeout = 360 * time.Second
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.
@@ -133,7 +133,7 @@ type RunContext struct {
 // RunWithContext run the command with context
 func (c *Command) RunWithContext(rc *RunContext) error {
 	if rc.Timeout == -1 {
-		rc.Timeout = DefaultCommandExecutionTimeout
+		rc.Timeout = defaultCommandExecutionTimeout
 	}
 
 	if len(rc.Dir) == 0 {

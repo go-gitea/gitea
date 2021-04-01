@@ -140,7 +140,7 @@ func VersionInfo() string {
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
 
-	DefaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+	defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
 
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
@@ -158,9 +158,6 @@ func Init(ctx context.Context) error {
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "protocol.version=2")
 	}
-
-	CommitsRangeSize = setting.Git.CommitsRangeSize
-	BranchesRangeSize = setting.Git.BranchesRangeSize
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
 	if err := LoadGitVersion(); err != nil {

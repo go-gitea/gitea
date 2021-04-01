@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -61,8 +62,8 @@ func Branches(ctx *context.Context) {
 	}
 
 	limit := ctx.QueryInt("limit")
-	if limit <= 0 || limit > git.BranchesRangeSize {
-		limit = git.BranchesRangeSize
+	if limit <= 0 || limit > setting.Git.BranchesRangeSize {
+		limit = setting.Git.BranchesRangeSize
 	}
 
 	skip := (page - 1) * limit
@@ -72,7 +73,7 @@ func Branches(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Branches"] = branches
-	pager := context.NewPagination(int(branchesCount), git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 

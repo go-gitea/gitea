@@ -18,8 +18,8 @@ var (
 		MaxGitDiffLines           int
 		MaxGitDiffLineCharacters  int
 		MaxGitDiffFiles           int
-		CommitsRangeSize          int
-		BranchesRangeSize         int
+		CommitsRangeSize          int // CommitsRangeSize the default commits range size
+		BranchesRangeSize         int // BranchesRangeSize the default branches range size
 		VerbosePush               bool
 		VerbosePushDelay          time.Duration
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
