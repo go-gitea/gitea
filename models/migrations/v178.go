@@ -15,10 +15,10 @@ import (
 
 func createPushMirrorTable(x *xorm.Engine) error {
 	type PushMirror struct {
-		ID         int64       `xorm:"pk autoincr"`
-		RepoID     int64       `xorm:"INDEX"`
+		ID         int64 `xorm:"pk autoincr"`
+		RepoID     int64 `xorm:"INDEX"`
 		RemoteName string
-	
+
 		Interval       time.Duration
 		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`

@@ -294,7 +294,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
-		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
+		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"CommitType": func(commit interface{}) string {
 			switch commit.(type) {
@@ -950,7 +950,7 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m models.RemoteMirrorer) (remoteAddress) {
+func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
 	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
@@ -965,6 +965,6 @@ func mirrorRemoteAddress(m models.RemoteMirrorer) (remoteAddress) {
 	}
 	u.User = nil
 	a.Address = u.String()
-	
+
 	return a
 }

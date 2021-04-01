@@ -23,7 +23,7 @@ func GetRemoteAddress(repoPath, remoteName string) (*url.URL, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(result) > 0 {
 		result = result[:len(result)-1]
 	}
