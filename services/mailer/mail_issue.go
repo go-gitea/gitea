@@ -111,56 +111,43 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 }
 
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
-	receivers := make([]*models.User, 0, len(users))
-	for i := range users {
-		// if user has all mails enabled ...
-		if users[i].EmailNotificationsPreference == models.EmailNotificationsEnabled ||
-			// else if user only get mail on mention and this is one ...
-			fromMention && users[i].EmailNotificationsPreference == models.EmailNotificationsOnMention {
-			// ... add to mail relievers
-			receivers = append(receivers, users[i])
+	checkUnit := models.UnitTypeIssues
+	if ctx.Issue.IsPull {
+		checkUnit = models.UnitTypePullRequests
+	}
+
+	langMap := make(map[string][]string)
+	for _, user := range users {
+		// At this point we exclude:
+		// user that don't have all mails enabled or users only get mail on mention and this is one ...
+		if !(user.EmailNotificationsPreference == models.EmailNotificationsEnabled ||
+			fromMention && user.EmailNotificationsPreference == models.EmailNotificationsOnMention) {
+			continue
+		}
+
+		// if we have already visited this user we exclude them
+		if _, ok := visited[user.ID]; ok {
+			continue
+		}
+
+		// now mark them as visited
+		visited[user.ID] = true
+
+		// test if this user is allowed to see the issue/pull
+		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+			continue
+		}
+
+		langMap[user.Language] = append(langMap[user.Language], user.Email)
+	}
+
+	for lang, receivers := range langMap {
+		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
+			SendAsyncs(composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments"))
+			receivers = receivers[:i]
 		}
 	}
 
-	for i := 0; i < len(receivers); i += MailBatchSize {
-		var last int
-		if i+MailBatchSize < len(receivers) {
-			last = i + MailBatchSize
-		} else {
-			last = len(receivers)
-		}
-
-		uniqueRecipients := make([]*models.User, 0, last-i)
-		for j := i; j < last; j++ {
-			if _, ok := visited[receivers[j].ID]; !ok {
-				uniqueRecipients = append(uniqueRecipients, receivers[j])
-				visited[receivers[j].ID] = true
-			}
-		}
-
-		checkUnit := models.UnitTypeIssues
-		if ctx.Issue.IsPull {
-			checkUnit = models.UnitTypePullRequests
-		}
-		// Make sure all recipients can still see the issue
-		idx := 0
-		for _, r := range uniqueRecipients {
-			if ctx.Issue.Repo.CheckUnitUser(r, checkUnit) {
-				uniqueRecipients[idx] = r
-				idx++
-			}
-		}
-		uniqueRecipients = uniqueRecipients[:idx]
-
-		langMap := make(map[string][]string)
-		for _, user := range uniqueRecipients {
-			langMap[user.Language] = append(langMap[user.Language], user.Email)
-		}
-
-		for lang, tos := range langMap {
-			SendAsyncs(composeIssueCommentMessages(ctx, lang, tos, fromMention, "issue comments"))
-		}
-	}
 	return nil
 }
 
