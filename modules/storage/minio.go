@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	myio "code.gitea.io/gitea/modules/io"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/minio/minio-go/v7"
@@ -132,12 +133,16 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 
 // Save save a file to minio
 func (m *MinioStorage) Save(path string, r io.Reader) (int64, error) {
+	var size int64 = -1
+	if sizer, ok := r.(myio.ReadSizer); ok {
+		size = sizer.Size()
+	}
 	uploadInfo, err := m.client.PutObject(
 		m.ctx,
 		m.bucket,
 		m.buildMinioPath(path),
 		r,
-		-1,
+		size,
 		minio.PutObjectOptions{ContentType: "application/octet-stream"},
 	)
 	if err != nil {

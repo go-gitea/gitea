@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	myio "code.gitea.io/gitea/modules/io"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -283,7 +284,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					}
 				}
 				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				_, err = storage.Attachments.Save(attach.RelativePath(), myio.WithSize(rc, attach.Size))
 				return err
 			}()
 			if err != nil {

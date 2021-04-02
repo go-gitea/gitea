@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/models"
+	myio "code.gitea.io/gitea/modules/io"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -125,6 +126,10 @@ type hashingReader struct {
 	expectedHash string
 }
 
+var (
+	_ myio.ReadSizer = &hashingReader{}
+)
+
 func (r *hashingReader) Read(b []byte) (int, error) {
 	n, err := r.internal.Read(b)
 
@@ -148,6 +153,10 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 	}
 
 	return n, err
+}
+
+func (r *hashingReader) Size() int64 {
+	return r.expectedSize
 }
 
 func newHashingReader(expectedSize int64, expectedHash string, reader io.Reader) *hashingReader {
