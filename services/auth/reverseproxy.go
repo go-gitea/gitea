@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -21,7 +21,7 @@ const ReverseProxyMechanism AuthenticationMechanism = "ReverseProxy"
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &ReverseProxy{}
+	_ Authenticator = &ReverseProxy{}
 )
 
 // ReverseProxy implements the SingleSignOn interface, but actually relies on

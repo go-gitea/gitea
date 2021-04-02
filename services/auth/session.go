@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -12,7 +12,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Session{}
+	_ Authenticator = &Session{}
 )
 
 // Session checks if there is a user uid stored in the session and returns the user

@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/auth"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -209,7 +209,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 				// Assume password is token
 				authToken = authPasswd
 			}
-			uid := sso.CheckOAuthAccessToken(authToken)
+			uid := auth.CheckOAuthAccessToken(authToken)
 			if uid != 0 {
 				ctx.Data["IsApiToken"] = true
 

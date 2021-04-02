@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -189,7 +189,7 @@ func GlobalInit(ctx context.Context) {
 	} else {
 		ssh.Unused()
 	}
-	sso.Init()
+	auth.Init()
 
 	svg.Init()
 }

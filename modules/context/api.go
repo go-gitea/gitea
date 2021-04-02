@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -251,7 +251,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
+			ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
 			if ctx.User != nil {
 				ctx.IsSigned = true
 				ctx.Data["IsSigned"] = ctx.IsSigned

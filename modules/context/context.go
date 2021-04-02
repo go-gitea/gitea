@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -671,7 +671,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
+			ctx.User, ctx.IsBasicAuth = auth.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
 
 			if ctx.User != nil {
 				ctx.IsSigned = true

@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
-// ssoMethods contains the list of SSO authentication plugins in the order they are expected to be
+// authMethods contains the list of SSO authentication plugins in the order they are expected to be
 // executed.
 //
 // The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
@@ -25,7 +25,7 @@ import (
 //
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
-var ssoMethods = []SingleSignOn{
+var authMethods = []Authenticator{
 	&OAuth2{},
 	&Session{},
 	&ReverseProxy{},
@@ -42,13 +42,13 @@ var (
 )
 
 // Methods returns the instances of all registered SSO methods
-func Methods() []SingleSignOn {
-	return ssoMethods
+func Methods() []Authenticator {
+	return authMethods
 }
 
 // Register adds the specified instance to the list of available SSO methods
-func Register(method SingleSignOn) {
-	ssoMethods = append(ssoMethods, method)
+func Register(method Authenticator) {
+	authMethods = append(authMethods, method)
 }
 
 // Init should be called exactly once when the application starts to allow SSO plugins

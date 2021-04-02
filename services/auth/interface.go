@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -18,8 +18,8 @@ type DataStore middleware.DataStore
 // SessionStore represents a session store
 type SessionStore session.Store
 
-// SingleSignOn represents a SSO authentication method (plugin) for HTTP requests.
-type SingleSignOn interface {
+// Authenticator represents a SSO authentication method (plugin) for HTTP requests.
+type Authenticator interface {
 	// Init should be called exactly once before using any of the other methods,
 	// in order to allow the plugin to allocate necessary resources
 	Init() error

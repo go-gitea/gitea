@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -24,7 +24,7 @@ const TokenMechanism AuthenticationMechanism = "Token"
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &OAuth2{}
+	_ Authenticator = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
