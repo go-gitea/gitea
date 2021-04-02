@@ -34,7 +34,7 @@ func BenchmarkRepo(b *testing.B) {
 			if testing.Short() && s.skipShort {
 				b.Skip("skipping test in short mode.")
 			}
-			b.Run("Migrate", func(b *testing.B) {
+			b.Run("Migrate "+s.name, func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
 					testRepoMigrate(b, session, s.url, s.name)
 				}
