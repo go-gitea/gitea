@@ -669,9 +669,10 @@ node_modules: package-lock.json
 .PHONY: npm-cache
 npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
 
+
 .npm-cache: package-lock.json
 	rm -rf .npm-cache
-	$(eval ESBUILD_VERSION := `node -p "require('./package-lock.json').dependencies.esbuild.version"`)
+	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version" ))
 	npm config --userconfig=.npmrc set cache=.npm-cache
 	rm -rf node_modules && npm install --no-save
 	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
