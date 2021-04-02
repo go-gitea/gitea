@@ -67,7 +67,7 @@ func BenchmarkRepo(b *testing.B) {
 	}
 }
 
-//StringWithCharset random string (from https://www.calhoun.io/creating-random-strings-in-go/)
+// StringWithCharset random string (from https://www.calhoun.io/creating-random-strings-in-go/)
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {
@@ -91,12 +91,12 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 				session := loginUser(b, "user2")
 				b.ResetTimer()
 				b.Run("CreateBranch", func(b *testing.B) {
-					b.Skip("benchmark broken") // TODO fix
 					b.StopTimer()
 					branchName := StringWithCharset(5+rand.Intn(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 					b.StartTimer()
 					for i := 0; i < b.N; i++ {
 						b.Run("new_"+branchName, func(b *testing.B) {
+							b.Skip("benchmark broken") // TODO fix
 							testAPICreateBranch(b, session, repo.OwnerName, repo.Name, repo.DefaultBranch, "new_"+branchName, http.StatusCreated)
 						})
 					}
