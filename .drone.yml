@@ -369,11 +369,11 @@ steps:
 
 ---
 kind: pipeline
-name: benching-arm64
+name: benching-amd64
 
 platform:
   os: linux
-  arch: arm64
+  arch: amd64
 
 depends_on:
   - compliance
@@ -558,7 +558,7 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - benching-arm64
+  - benching-amd64
 
 steps:
   - name: fetch-tags
@@ -654,7 +654,7 @@ trigger:
 depends_on:
   - testing-arm64
   - testing-amd64
-  - benching-arm64
+  - benching-amd64
 
 steps:
   - name: fetch-tags
@@ -768,7 +768,7 @@ platform:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - benching-arm64
+  - benching-amd64
 
 trigger:
   ref:
@@ -866,7 +866,7 @@ platform:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - benching-arm64
+  - benching-amd64
 
 trigger:
   ref:
@@ -993,7 +993,7 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
-  - benching-arm64
+  - benching-amd64
   - release-version
   - release-latest
   - docker-linux-amd64-release
