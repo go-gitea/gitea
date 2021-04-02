@@ -369,6 +369,80 @@ steps:
 
 ---
 kind: pipeline
+name: benching-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
+services:
+  - name: pgsql
+    pull: default
+    image: postgres:9.5
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_PASSWORD: postgres
+
+  - name: ldap
+    pull: default
+    image: gitea/test-openldap:latest
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: build
+    pull: always
+    image: golang:1.16
+    commands:
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+
+  - name: bench-sqlite
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    commands:
+      - timeout -s ABRT 40m make bench-sqlite
+    environment:
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      TEST_TAGS: sqlite sqlite_unlock_notify
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+  - name: bench-pgsql
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    commands:
+      - timeout -s ABRT 40m make bench-pgsql
+    environment:
+      GOPROXY: off
+      TAGS: bindata gogit
+      TEST_TAGS: gogit
+      TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+---
+kind: pipeline
 name: update_translations
 
 platform:
@@ -484,6 +558,7 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
+  - benching-arm64
 
 steps:
   - name: fetch-tags
@@ -579,6 +654,7 @@ trigger:
 depends_on:
   - testing-arm64
   - testing-amd64
+  - benching-arm64
 
 steps:
   - name: fetch-tags
@@ -692,6 +768,7 @@ platform:
 depends_on:
   - testing-amd64
   - testing-arm64
+  - benching-arm64
 
 trigger:
   ref:
@@ -789,6 +866,7 @@ platform:
 depends_on:
   - testing-amd64
   - testing-arm64
+  - benching-arm64
 
 trigger:
   ref:
@@ -915,6 +993,7 @@ trigger:
 depends_on:
   - testing-amd64
   - testing-arm64
+  - benching-arm64
   - release-version
   - release-latest
   - docker-linux-amd64-release
