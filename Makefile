@@ -662,20 +662,27 @@ docs:
 	fi
 	cd docs; make trans-copy clean build-offline;
 
-node_modules: package-lock.json
+.npmrc:
+	echo "audit=false fund=false package-lock=true save-exact=true " | tr " " "\n" > $@
+
+$(FOMANTIC_WORK_DIR)/.npmrc:
+	echo "optional=false package-lock=false " | tr " " "\n" > $@
+
+node_modules: package-lock.json .npmrc $(FOMANTIC_WORK_DIR)/.npmrc
 	npm install --no-save
 	@touch node_modules
 
 .PHONY: npm-cache
 npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
 
-.npm-cache: package-lock.json
+.npm-cache: package-lock.json .npmrc $(FOMANTIC_WORK_DIR)/.npmrc
 	rm -rf .npm-cache
 	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version"))
+	$(eval ESBUILD_PLATFORMS := darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}))
 	npm config --userconfig=.npmrc set cache=.npm-cache
 	rm -rf node_modules && npm install --no-save
 	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
-	echo $(foreach build, darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}), esbuild-${build}@$(ESBUILD_VERSION)) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
+	echo $(ESBUILD_PLATFORMS) | xargs printf "esbuild-%s@$(ESBUILD_VERSION)\n" | xargs -n 1 -P 4 npm cache add
 	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
 	@touch .npm-cache
 

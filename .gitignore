@@ -73,6 +73,9 @@ coverage.all
 /integrations/mysql8.ini
 /integrations/pgsql.ini
 /integrations/mssql.ini
+
+# Frontend
+.npmrc
 /node_modules
 /yarn.lock
 /public/js
