@@ -93,11 +93,11 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 				b.Run("CreateBranch", func(b *testing.B) {
 					b.Skip("benchmark broken") // TODO fix
 					b.StopTimer()
-					branchName := "new_" + StringWithCharset(5+rand.Intn(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+					branchName := StringWithCharset(5+rand.Intn(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 					b.StartTimer()
 					for i := 0; i < b.N; i++ {
-						b.Run(branchName, func(b *testing.B) {
-							testAPICreateBranch(b, session, repo.OwnerName, repo.Name, repo.DefaultBranch, branchName, http.StatusCreated)
+						b.Run("new_"+branchName, func(b *testing.B) {
+							testAPICreateBranch(b, session, repo.OwnerName, repo.Name, repo.DefaultBranch, "new_"+branchName, http.StatusCreated)
 						})
 					}
 				})
