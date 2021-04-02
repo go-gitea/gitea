@@ -171,8 +171,8 @@ func Recovery() func(next http.Handler) http.Handler {
 						},
 					}
 
-					// Get user from session if logged in.
-					user, _ := auth.SignedInUser(req, w, &store, sessionStore)
+					// Get user from session if logged in - do not attempt to sign-in
+					user := auth.SessionUser(sessionStore)
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user
