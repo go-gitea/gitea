@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"testing"
 
@@ -65,15 +64,6 @@ func BenchmarkRepo(b *testing.B) {
 			})
 		})
 	}
-}
-
-//StringWithCharset random string (from https://www.calhoun.io/creating-random-strings-in-go/)
-func StringWithCharset(length int, charset string) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(b)
 }
 
 func BenchmarkRepoBranchCommit(b *testing.B) {
