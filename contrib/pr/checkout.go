@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
@@ -80,7 +81,7 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	git.CheckLFSVersion()
+	gitea_git.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
 		setting.Database.Type = "sqlite3"
