@@ -32,6 +32,7 @@ _testmain.go
 
 *coverage.out
 coverage.all
+cpu.out
 
 /modules/options/bindata.go
 /modules/options/bindata.go.hash

@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"testing"
@@ -14,16 +15,14 @@ import (
 )
 
 func BenchmarkRepo(b *testing.B) {
+	b.Skip("benchmark broken") // TODO fix
 	samples := []struct {
 		url       string
 		name      string
 		skipShort bool
 	}{
-		{url: "https://github.com/go-gitea/gitea.git", name: "gitea"},
-		{url: "https://github.com/ethantkoenig/manyfiles.git", name: "manyfiles"},
-		{url: "https://github.com/moby/moby.git", name: "moby", skipShort: true},
-		{url: "https://github.com/golang/go.git", name: "go", skipShort: true},
-		{url: "https://github.com/torvalds/linux.git", name: "linux", skipShort: true},
+		{url: "https://github.com/go-gitea/test_repo.git", name: "test_repo"},
+		{url: "https://github.com/ethantkoenig/manyfiles.git", name: "manyfiles", skipShort: true},
 	}
 	defer prepareTestEnv(b)()
 	session := loginUser(b, "user2")
@@ -36,6 +35,8 @@ func BenchmarkRepo(b *testing.B) {
 			}
 			b.Run("Migrate "+s.name, func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
+					req := NewRequestf(b, "DELETE", "/api/v1/repos/%s/%s", "user2", s.name)
+					session.MakeRequest(b, req, NoExpectedStatus)
 					testRepoMigrate(b, session, s.url, s.name)
 				}
 			})
@@ -43,7 +44,7 @@ func BenchmarkRepo(b *testing.B) {
 				var branches []*api.Branch
 				b.Run("APIBranchList", func(b *testing.B) {
 					for i := 0; i < b.N; i++ {
-						req := NewRequestf(b, "GET", "/api/v1/repos/%s/%s/branches", "user2", s.name)
+						req := NewRequestf(b, "GET", "/api/v1/repos/%s/%s/branches?page=1&limit=1", "user2", s.name)
 						resp := session.MakeRequest(b, req, http.StatusOK)
 						b.StopTimer()
 						if len(branches) == 0 {
@@ -52,13 +53,15 @@ func BenchmarkRepo(b *testing.B) {
 						b.StartTimer()
 					}
 				})
-				branchCount := len(branches)
-				b.Run("WebViewCommit", func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						req := NewRequestf(b, "GET", "/%s/%s/commit/%s", "user2", s.name, branches[i%branchCount].Commit.ID)
-						session.MakeRequest(b, req, http.StatusOK)
-					}
-				})
+
+				if len(branches) == 1 {
+					b.Run("WebViewCommit", func(b *testing.B) {
+						for i := 0; i < b.N; i++ {
+							req := NewRequestf(b, "GET", "/%s/%s/commit/%s", "user2", s.name, branches[0].Commit.ID)
+							session.MakeRequest(b, req, http.StatusOK)
+						}
+					})
+				}
 			})
 		})
 	}
@@ -74,7 +77,8 @@ func StringWithCharset(length int, charset string) string {
 }
 
 func BenchmarkRepoBranchCommit(b *testing.B) {
-	samples := []int64{1, 3, 15, 16}
+	b.Skip("benchmark broken") // TODO fix
+	samples := []int64{1, 15, 16}
 	defer prepareTestEnv(b)()
 	b.ResetTimer()
 
@@ -86,24 +90,22 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 			owner := models.AssertExistsAndLoadBean(b, &models.User{ID: repo.OwnerID}).(*models.User)
 			session := loginUser(b, owner.LoginName)
 			b.ResetTimer()
-			b.Run("Create", func(b *testing.B) {
+			b.Run("CreateBranch", func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
-					b.StopTimer()
-					branchName := StringWithCharset(5+rand.Intn(10), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-					b.StartTimer()
-					testCreateBranch(b, session, owner.LoginName, repo.Name, "branch/master", branchName, http.StatusFound)
+					testCreateBranch(b, session, owner.LoginName, repo.Name, "branch/master", fmt.Sprintf("new_branch_nr%d", i), http.StatusFound)
 				}
 			})
-			b.Run("Access", func(b *testing.B) {
+			b.Run("AccessBranchCommits", func(b *testing.B) {
 				var branches []*api.Branch
 				req := NewRequestf(b, "GET", "/api/v1/%s/branches", repo.FullName())
 				resp := session.MakeRequest(b, req, http.StatusOK)
 				DecodeJSON(b, resp, &branches)
-				branchCount := len(branches)
 				b.ResetTimer() //We measure from here
-				for i := 0; i < b.N; i++ {
-					req := NewRequestf(b, "GET", "/%s/%s/commits/%s", owner.Name, repo.Name, branches[i%branchCount].Name)
-					session.MakeRequest(b, req, http.StatusOK)
+				if len(branches) != 0 {
+					for i := 0; i < b.N; i++ {
+						req := NewRequestf(b, "GET", "/api/v1/%s/commits?sha=%s", repo.FullName(), branches[i%len(branches)].Name)
+						session.MakeRequest(b, req, http.StatusOK)
+					}
 				}
 			})
 		})
