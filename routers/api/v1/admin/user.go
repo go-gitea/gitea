@@ -114,7 +114,7 @@ func CreateUser(ctx *context.APIContext) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.User))
 }

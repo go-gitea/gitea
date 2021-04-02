@@ -331,11 +331,6 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	return code
 }
 
-// GenerateActivateCode generates an activate code based on user information.
-func (u *User) GenerateActivateCode() string {
-	return u.GenerateEmailActivateCode(u.Email)
-}
-
 // GetFollowers returns range of user's followers.
 func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 	sess := x.

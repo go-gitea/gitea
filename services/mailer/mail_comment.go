@@ -9,25 +9,16 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// MailParticipantsComment sends new comment emails to repository watchers
-// and mentioned people.
+// MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
 func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
-	return mailParticipantsComment(c, opType, issue, mentions)
-}
-
-func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) (err error) {
-	mentionedIDs := make([]int64, len(mentions))
-	for i, u := range mentions {
-		mentionedIDs[i] = u.ID
-	}
-	if err = mailIssueCommentToParticipants(
+	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       c.Poster,
 			ActionType: opType,
 			Content:    c.Content,
 			Comment:    c,
-		}, mentionedIDs); err != nil {
+		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
 	}
 	return nil
@@ -35,10 +26,6 @@ func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 
 // MailMentionsComment sends email to users mentioned in a code comment
 func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) (err error) {
-	mentionedIDs := make([]int64, len(mentions))
-	for i, u := range mentions {
-		mentionedIDs[i] = u.ID
-	}
 	visited := make(map[int64]bool, len(mentions)+1)
 	visited[c.Poster.ID] = true
 	if err = mailIssueCommentBatch(
@@ -48,7 +35,7 @@ func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*
 			ActionType: models.ActionCommentPull,
 			Content:    c.Content,
 			Comment:    c,
-		}, mentionedIDs, visited, true); err != nil {
+		}, mentions, visited, true); err != nil {
 		log.Error("mailIssueCommentBatch: %v", err)
 	}
 	return nil
