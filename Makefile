@@ -14,7 +14,10 @@ else
 
 # This is the "normal" part of the Makefile
 
-TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar --no-xattrs" || echo "tar" )
+TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar" || echo "tar" )
+ifneq ($(shell $(TAR) --version | grep "bsdtar 3"),)
+	TAR += --format=gnutar
+endif
 
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
