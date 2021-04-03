@@ -14,7 +14,7 @@ import (
 	"xorm.io/xorm"
 )
 
-// RemoteMirrorer 
+// RemoteMirrorer defines base methods for pull/push mirrors.
 type RemoteMirrorer interface {
 	GetRepository() *Repository
 	GetRemoteName() string
@@ -64,7 +64,6 @@ func (m *Mirror) GetRepository() *Repository {
 func (m *Mirror) GetRemoteName() string {
 	return "origin"
 }
-
 
 // ScheduleNextUpdate calculates and sets next update time.
 func (m *Mirror) ScheduleNextUpdate() {
