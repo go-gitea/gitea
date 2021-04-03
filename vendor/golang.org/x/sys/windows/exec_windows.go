@@ -111,7 +111,9 @@ func NewProcThreadAttributeList(maxAttrCount uint32) (*ProcThreadAttributeList, 
 		}
 		return nil, err
 	}
-	al := (*ProcThreadAttributeList)(unsafe.Pointer(&make([]byte, size)[0]))
+	const psize = unsafe.Sizeof(uintptr(0))
+	// size is guaranteed to be ≥1 by InitializeProcThreadAttributeList.
+	al := (*ProcThreadAttributeList)(unsafe.Pointer(&make([]unsafe.Pointer, (size+psize-1)/psize)[0]))
 	err = initializeProcThreadAttributeList(al, maxAttrCount, 0, &size)
 	if err != nil {
 		return nil, err
@@ -120,8 +122,8 @@ func NewProcThreadAttributeList(maxAttrCount uint32) (*ProcThreadAttributeList, 
 }
 
 // Update modifies the ProcThreadAttributeList using UpdateProcThreadAttribute.
-func (al *ProcThreadAttributeList) Update(attribute uintptr, flags uint32, value unsafe.Pointer, size uintptr, prevValue uintptr, returnedSize *uintptr) error {
-	return updateProcThreadAttribute(al, flags, attribute, uintptr(value), size, prevValue, returnedSize)
+func (al *ProcThreadAttributeList) Update(attribute uintptr, flags uint32, value unsafe.Pointer, size uintptr, prevValue unsafe.Pointer, returnedSize *uintptr) error {
+	return updateProcThreadAttribute(al, flags, attribute, value, size, prevValue, returnedSize)
 }
 
 // Delete frees ProcThreadAttributeList's resources.
