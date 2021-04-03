@@ -76,7 +76,8 @@ coverage.all
 
 # Frontend
 .npmrc
-/node_modules
+.npm-cache
+node_modules
 /yarn.lock
 /public/js
 /public/serviceworker.js
@@ -84,6 +85,7 @@ coverage.all
 /public/fonts
 /public/img/webpack
 /web_src/fomantic/node_modules
+/web_src/fomantic/package-lock.json
 /web_src/fomantic/semantic.json
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js
@@ -98,7 +100,6 @@ coverage.all
 !/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
-/.npm-cache
 
 # Snapcraft
 snap/.snapcraft/
