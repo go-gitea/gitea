@@ -67,7 +67,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	for _, f := range entries {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
-		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
+		if f.Size() == 0 || analyze.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
 			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
 			continue
 		}

@@ -132,7 +132,7 @@ func EmailPost(ctx *context.Context) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
-			mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+			mailer.SendActivateEmailMail(ctx.User, email)
 			address = email.Email
 		}
 
@@ -194,7 +194,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+		mailer.SendActivateEmailMail(ctx.User, email)
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
