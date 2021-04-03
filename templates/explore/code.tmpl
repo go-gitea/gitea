@@ -8,7 +8,7 @@
             <div class="twelve wide field">
                 <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
             </div>
-            <div class="two wide field">
+            <div class="two wide field mx-2">
                 <select name="t">
                     <option value="">{{.i18n.Tr "explore.search.fuzzy"}}</option>
                     <option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "explore.search.match"}}</option>
