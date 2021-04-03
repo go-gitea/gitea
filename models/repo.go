@@ -254,7 +254,12 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return ""
+	}
+	u.User = nil
+	return u.String()
 }
 
 // ColorFormat returns a colored string to represent this repo
