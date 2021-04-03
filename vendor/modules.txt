@@ -566,7 +566,7 @@ github.com/mgechev/revive/rule
 # github.com/mholt/archiver/v3 v3.3.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
+# github.com/microcosm-cc/bluemonday v1.0.5 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/minio/md5-simd v1.1.0
@@ -809,7 +809,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.3.0
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20200904194848-62affa334b73
+# golang.org/x/net v0.0.0-20210331212208-0fccb6fa2b5c
 ## explicit
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -828,7 +828,7 @@ golang.org/x/oauth2/google
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
+# golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader

@@ -70,7 +70,7 @@ require (
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.3-0.20200921231451-246eac737dc7
 	github.com/mholt/archiver/v3 v3.3.0
-	github.com/microcosm-cc/bluemonday v1.0.3-0.20191119130333-0a75d7616912
+	github.com/microcosm-cc/bluemonday v1.0.5
 	github.com/minio/minio-go/v7 v7.0.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/msteinert/pam v0.0.0-20151204160544-02ccfbfaf0cc
@@ -105,9 +105,9 @@ require (
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20201217014255-9d1352758620
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
+	golang.org/x/net v0.0.0-20210331212208-0fccb6fa2b5c
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff
+	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
 	golang.org/x/text v0.3.3
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	golang.org/x/tools v0.0.0-20200921210052-fa0125251cc4
