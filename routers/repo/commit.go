@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"path"
 	"strings"
 
@@ -336,9 +337,8 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	verification := models.ParseCommitWithSignature(commit)
@@ -389,6 +389,11 @@ func RawDiff(ctx *context.Context) {
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetRawDiff",
+				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+			return
+		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}

@@ -10,16 +10,22 @@ import (
 	"time"
 
 	"github.com/go-testfixtures/testfixtures/v3"
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
 var fixtures *testfixtures.Loader
 
 // InitFixtures initialize test fixtures for a test database
-func InitFixtures(dir string) (err error) {
+func InitFixtures(dir string, engine ...*xorm.Engine) (err error) {
+	e := x
+	if len(engine) == 1 {
+		e = engine[0]
+	}
+
 	testfiles := testfixtures.Directory(dir)
 	dialect := "unknown"
-	switch x.Dialect().URI().DBType {
+	switch e.Dialect().URI().DBType {
 	case schemas.POSTGRES:
 		dialect = "postgres"
 	case schemas.MYSQL:
@@ -33,13 +39,13 @@ func InitFixtures(dir string) (err error) {
 		os.Exit(1)
 	}
 	loaderOptions := []func(loader *testfixtures.Loader) error{
-		testfixtures.Database(x.DB().DB),
+		testfixtures.Database(e.DB().DB),
 		testfixtures.Dialect(dialect),
 		testfixtures.DangerousSkipTestDatabaseCheck(),
 		testfiles,
 	}
 
-	if x.Dialect().URI().DBType == schemas.POSTGRES {
+	if e.Dialect().URI().DBType == schemas.POSTGRES {
 		loaderOptions = append(loaderOptions, testfixtures.SkipResetSequences())
 	}
 
@@ -52,7 +58,11 @@ func InitFixtures(dir string) (err error) {
 }
 
 // LoadFixtures load fixtures for a test database
-func LoadFixtures() error {
+func LoadFixtures(engine ...*xorm.Engine) error {
+	e := x
+	if len(engine) == 1 {
+		e = engine[0]
+	}
 	var err error
 	// Database transaction conflicts could occur and result in ROLLBACK
 	// As a simple workaround, we just retry 20 times.
@@ -67,8 +77,8 @@ func LoadFixtures() error {
 		fmt.Printf("LoadFixtures failed after retries: %v\n", err)
 	}
 	// Now if we're running postgres we need to tell it to update the sequences
-	if x.Dialect().URI().DBType == schemas.POSTGRES {
-		results, err := x.QueryString(`SELECT 'SELECT SETVAL(' ||
+	if e.Dialect().URI().DBType == schemas.POSTGRES {
+		results, err := e.QueryString(`SELECT 'SELECT SETVAL(' ||
 		quote_literal(quote_ident(PGT.schemaname) || '.' || quote_ident(S.relname)) ||
 		', COALESCE(MAX(' ||quote_ident(C.attname)|| '), 1) ) FROM ' ||
 		quote_ident(PGT.schemaname)|| '.'||quote_ident(T.relname)|| ';'
@@ -90,7 +100,7 @@ func LoadFixtures() error {
 		}
 		for _, r := range results {
 			for _, value := range r {
-				_, err = x.Exec(value)
+				_, err = e.Exec(value)
 				if err != nil {
 					fmt.Printf("Failed to update sequence: %s Error: %v\n", value, err)
 					return err

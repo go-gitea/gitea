@@ -495,7 +495,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs bsdtar\|libarchive-tools
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -591,7 +591,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs bsdtar\|libarchive-tools
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:

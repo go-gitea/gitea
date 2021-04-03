@@ -1083,7 +1083,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUser(ctx.User, true, true)
+	apiUser := convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone)
 	p := &api.PushPayload{
 		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before: commit.ID.String(),
