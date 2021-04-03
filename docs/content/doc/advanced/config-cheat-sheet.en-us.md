@@ -433,7 +433,6 @@ relation to port exhaustion.
 
 - `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
 - `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
-- `GOOGLE_SCOPES`: **\<empty\>**: List of additional google scopes (we may need to write here `email profile`)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration for oauth2 authentication.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts: userid, nickname, email (username part).
 - `UPDATE_AVATAR`: **false**: Set this to update user avatar if available from the oauth2 provider.
