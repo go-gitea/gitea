@@ -21,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const pullMirrorRemoteName = "origin"
-
 // gitShortEmptySha Git short empty SHA
 const gitShortEmptySha = "0000000"
 
@@ -160,20 +158,17 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
 		stdout := stdoutBuilder.String()
 		stderr := stderrBuilder.String()
+
 		// sanitize the output, since it may contain the remote address, which may
 		// contain a password
-		stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
-		if sanitizeErr != nil {
-			log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
-			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
-			return nil, false
+		remoteAddr, remoteErr := git.GetRemoteAddress(repoPath, m.GetRemoteName())
+		if remoteErr != nil {
+			log.Error("GetRemoteAddress Error %v", remoteErr)
 		}
-		stdoutMessage, err := sanitizeOutput(stdout, repoPath)
-		if err != nil {
-			log.Error("sanitizeOutput failed: %v", sanitizeErr)
-			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
-			return nil, false
-		}
+
+		sanitizer := util.NewURLSanitizer(remoteAddr, true)
+		stderrMessage := sanitizer.Replace(stderr)
+		stdoutMessage := sanitizer.Replace(stdout)
 
 		log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
@@ -211,20 +206,18 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
 			stderr := stderrBuilder.String()
+
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
-			stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
-			if sanitizeErr != nil {
-				log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
-				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
-				return nil, false
+
+			remoteAddr, remoteErr := git.GetRemoteAddress(wikiPath, m.GetRemoteName())
+			if remoteErr != nil {
+				log.Error("GetRemoteAddress Error %v", remoteErr)
 			}
-			stdoutMessage, err := sanitizeOutput(stdout, repoPath)
-			if err != nil {
-				log.Error("sanitizeOutput failed: %v", sanitizeErr)
-				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
-				return nil, false
-			}
+
+			sanitizer := util.NewURLSanitizer(remoteAddr, true)
+			stderrMessage := sanitizer.Replace(stderr)
+			stdoutMessage := sanitizer.Replace(stdout)
 
 			log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
 			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
@@ -444,16 +437,4 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 		}
 	}
 	return true
-}
-
-// sanitizeOutput sanitizes output of a command, replacing occurrences of the
-// repository's remote address with a sanitized version.
-func sanitizeOutput(output, repoPath string) (string, error) {
-	remoteAddr, err := readRemoteAddress(repoPath, pullMirrorRemoteName)
-	if err != nil {
-		// if we're unable to load the remote address, then we're unable to
-		// sanitize.
-		return "", err
-	}
-	return util.SanitizeMessage(output, remoteAddr), nil
 }
