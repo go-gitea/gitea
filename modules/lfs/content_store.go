@@ -74,7 +74,7 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.Save(p, wrappedRd)
+	written, err := s.Save(p, wrappedRd, meta.Size)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, p, err)
 		return err
