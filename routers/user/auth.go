@@ -631,6 +631,9 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			if len(missingFields) > 0 {
 				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
+				if loginSource.IsOAuth2() && loginSource.OAuth2().Provider == "openidConnect" {
+					log.Error("You may need to change the 'OPENID_CONNECT_SCOPES' setting to request all required fields")
+				}
 				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
 				ctx.ServerError("CreateUser", err)
 				return
