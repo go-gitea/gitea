@@ -668,31 +668,26 @@ docs:
 .npmrc:
 	echo "audit=false fund=false package-lock=true save-exact=true " | tr " " "\n" > $@
 
-$(FOMANTIC_WORK_DIR)/.npmrc:
-	echo "optional=false package-lock=false " | tr " " "\n" > $@
-
-node_modules: package-lock.json .npmrc $(FOMANTIC_WORK_DIR)/.npmrc
+node_modules: package-lock.json .npmrc
 	npm install --no-save
 	@touch node_modules
 
 .PHONY: npm-cache
 npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
 
-.npm-cache: package-lock.json .npmrc $(FOMANTIC_WORK_DIR)/.npmrc
+.npm-cache: package-lock.json .npmrc
 	rm -rf .npm-cache
 	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version"))
 	$(eval ESBUILD_PLATFORMS := darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}))
-	npm config --userconfig=.npmrc set cache=.npm-cache
+	npm config --userconfig=.npmrc rm cache; echo cache=.npm-cache >> .npmrc
 	rm -rf node_modules && npm install --no-save
-	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
 	echo $(ESBUILD_PLATFORMS) | xargs printf "esbuild-%s@$(ESBUILD_VERSION)\n" | xargs -n 1 -P 4 npm cache add
-	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
+	rm -rf $(FOMANTIC_WORK_DIR)/node_modules $(FOMANTIC_WORK_DIR)/package-lock.json
 	@touch .npm-cache
 
 .PHONY: npm-uncache
 npm-uncache:
 	rm -rf .npm-cache
-	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc rm cache
 	npm config --userconfig=.npmrc rm cache
 
 .PHONY: npm-update
@@ -706,17 +701,17 @@ npm-update: node-check | node_modules
 fomantic: $(FOMANTIC_DEST)
 
 $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui:
-	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
 	cd $(FOMANTIC_WORK_DIR); \
+		cp "$$OLDPWD/semantic.json" ./; \
 		rm -rf node_modules && mkdir node_modules && \
-		npm install fomantic-ui; \
+		npm install --no-optional --cache="$$OLDPWD/.npm-cache"; \
 		rm -f semantic.json
 	@touch $(FOMANTIC_WORK_DIR)/node_modules
 
 $(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
-	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
-	rm -rf $(FOMANTIC_WORK_DIR)/build
 	cd $(FOMANTIC_WORK_DIR); \
+		rm -rf build; \
+		cp "$$OLDPWD/semantic.json" ./; \
 		cp -f theme.config.less node_modules/fomantic-ui/src/theme.config; \
 		cp -rf _site node_modules/fomantic-ui/src/; \
 		npx gulp -f node_modules/fomantic-ui/gulpfile.js build; \
