@@ -45,7 +45,7 @@ type ContentStore struct {
 
 // Get takes a Meta object and retrieves the content from the store, returning
 // it as an io.ReadSeekCloser.
-func (s *ContentStore) Get(meta *models.LFSMetaObject) (io.ReadSeekCloser, error) {
+func (s *ContentStore) Get(meta *models.LFSMetaObject) (storage.Object, error) {
 	f, err := s.Open(meta.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
