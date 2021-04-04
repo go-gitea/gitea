@@ -417,7 +417,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: bench-sqlite
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - timeout -s ABRT 40m make bench-sqlite
     environment:
@@ -429,7 +429,7 @@ steps:
       - build
 
   - name: bench-pgsql
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - timeout -s ABRT 40m make bench-pgsql
     environment:
