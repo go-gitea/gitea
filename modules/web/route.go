@@ -171,6 +171,19 @@ func (r *Route) Use(middlewares ...interface{}) {
 	}
 }
 
+func convertMiddleware(middleware interface{}) func(http.Handler) http.Handler {
+	switch t := middleware.(type) {
+	case func(http.Handler) http.Handler:
+		return t
+	case func(*context.Context):
+		return Middle(t)
+	case func(*context.APIContext):
+		return MiddleAPI(t)
+	default:
+		panic(fmt.Sprintf("Unsupported middleware type: %#v", t))
+	}
+}
+
 // Group mounts a sub-Router along a `pattern` string.
 func (r *Route) Group(pattern string, fn func(), middlewares ...interface{}) {
 	var previousGroupPrefix = r.curGroupPrefix

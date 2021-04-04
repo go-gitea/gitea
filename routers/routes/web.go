@@ -129,6 +129,7 @@ func NormalRoutes() *web.Route {
 // WebRoutes returns all web routes
 func WebRoutes() *web.Route {
 	r := web.NewRoute()
+	all := r
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -143,6 +144,9 @@ func WebRoutes() *web.Route {
 
 	r.Use(Recovery())
 
+	// TODO: we should consider if there is a way to mount these using r.Get as at present
+	// these two handlers mean that every request has to hit these "filesystems" twice
+	// before finally getting to the router. It allows them to override any matching router below.
 	r.Use(public.Custom(
 		&public.Options{
 			SkipLogging: setting.DisableRouterLog,
@@ -155,50 +159,50 @@ func WebRoutes() *web.Route {
 		},
 	))
 
-	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
+	r.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	r.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	gob.Register(&u2f.Challenge{})
+
+	common := []interface{}{}
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		r.Use(h)
-	}
-
-	if (setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix) && setting.AppSubURL != "" {
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				req.URL.Path = strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
-				next.ServeHTTP(resp, req)
-			})
-		})
+		common = append(common, h)
 	}
 
 	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
-		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+		r.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
+
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
-	r.Use(context.Contexter())
+	common = append(common, context.Contexter())
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	r.Use(middleware.GetHead)
+	common = append(common, middleware.GetHead)
 
 	if setting.EnableAccessLog {
-		r.Use(context.AccessLogger())
+		common = append(common, context.AccessLogger())
 	}
 
-	r.Use(user.GetNotificationCount)
-	r.Use(repo.GetActiveStopwatch)
-	r.Use(func(ctx *context.Context) {
+	common = append(common, user.GetNotificationCount)
+	common = append(common, repo.GetActiveStopwatch)
+	common = append(common, func(ctx *context.Context) {
 		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
 		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
 		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
 		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
 	})
+
+	r = web.NewRoute()
+	for _, middle := range common {
+		r.Use(middle)
+	}
 
 	// for health check
 	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
@@ -234,8 +238,8 @@ func WebRoutes() *web.Route {
 	}
 
 	RegisterRoutes(r)
-
-	return r
+	all.Mount("", r)
+	return all
 }
 
 func goGet(ctx *context.Context) {

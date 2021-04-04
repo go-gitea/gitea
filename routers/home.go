@@ -37,6 +37,8 @@ const (
 
 // Home render home page
 func Home(ctx *context.Context) {
+	// stack := log.Stack(1)
+	// log.Info("In Home: lines %d: stack: %s", strings.Count(stack, "\n"), stack)
 	if ctx.IsSigned {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
