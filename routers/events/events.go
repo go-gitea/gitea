@@ -33,8 +33,8 @@ func Events(ctx *context.Context) {
 	if !ctx.IsSigned {
 		// Return unauthorized status event
 		event := (&eventsource.Event{
-			Name: "unauthorized",
-			Data: "sorry",
+			Name: "close",
+			Data: "unauthorized",
 		})
 		_, _ = event.WriteTo(ctx)
 		ctx.Resp.Flush()
