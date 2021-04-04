@@ -150,6 +150,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	if m.EnablePrune {
 		gitArgs = append(gitArgs, "--prune")
 	}
+	gitArgs = append(gitArgs, m.GetRemoteName())
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
@@ -201,7 +202,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand("remote", "update", "--prune").
+		if err := git.NewCommand("remote", "update", "--prune", m.GetRemoteName()).
 			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
