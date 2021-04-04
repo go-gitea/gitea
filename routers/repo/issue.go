@@ -981,7 +981,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewIssue", err)
@@ -1650,13 +1650,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	title := ctx.QueryTrim("title")
 	if len(title) == 0 {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -1678,7 +1678,7 @@ func UpdateIssueRef(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1702,7 +1702,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1986,7 +1986,7 @@ func NewComment(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -2109,10 +2109,10 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -2154,10 +2154,10 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -2196,7 +2196,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -2298,10 +2298,10 @@ func ChangeCommentReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 

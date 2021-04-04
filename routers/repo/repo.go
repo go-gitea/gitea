@@ -86,7 +86,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 
 	// Check ownership of organization.
 	if !org.IsOrganization() {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return nil
 	}
 	if !ctx.User.IsAdmin {
@@ -95,7 +95,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
 		} else if !canCreate {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return nil
 		}
 	} else {
@@ -282,7 +282,7 @@ func Action(ctx *context.Context) {
 		err = acceptOrRejectRepoTransfer(ctx, false)
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -340,7 +340,7 @@ func RedirectDownload(ctx *context.Context) {
 	releases, err := models.GetReleasesByRepoIDAndNames(models.DefaultDBContext(), curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		ctx.ServerError("RedirectDownload", err)
@@ -350,7 +350,7 @@ func RedirectDownload(ctx *context.Context) {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if att != nil {
@@ -358,7 +358,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(404)
+	ctx.Error(http.StatusNotFound)
 }
 
 // Download an archive of a repository
@@ -367,7 +367,7 @@ func Download(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	if aReq == nil {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
@@ -381,7 +381,7 @@ func Download(ctx *context.Context) {
 	if complete {
 		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 	}
 }
 
@@ -393,7 +393,7 @@ func InitiateDownload(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	if aReq == nil {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 

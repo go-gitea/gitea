@@ -367,7 +367,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "admin":
 		if !ctx.User.IsAdmin {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 
@@ -387,7 +387,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "convert":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -396,7 +396,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !repo.IsMirror {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		repo.IsMirror = false
@@ -414,7 +414,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "convert_fork":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if err := repo.GetOwner(); err != nil {
@@ -427,7 +427,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !repo.IsFork {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -451,7 +451,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -501,7 +501,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "cancel_transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -533,7 +533,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -552,7 +552,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "delete-wiki":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -571,7 +571,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "archive":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 
@@ -594,7 +594,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 	case "unarchive":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 

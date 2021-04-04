@@ -680,7 +680,7 @@ func ExcerptBlob(ctx *context.Context) {
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		ctx.Error(500, "GetCommit")
+		ctx.Error(http.StatusInternalServerError, "GetCommit")
 		return
 	}
 	section := &gitdiff.DiffSection{
@@ -705,7 +705,7 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight = lastRight
 	}
 	if err != nil {
-		ctx.Error(500, "getExcerptLines")
+		ctx.Error(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
 	if idxRight > lastRight {

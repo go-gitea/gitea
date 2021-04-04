@@ -221,7 +221,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.ServerError("IsOwnedBy", err)
 			return
 		} else if !isOwner {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -1054,7 +1054,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		} else if git.IsErrPushRejected(err) {
 			pushrejErr := err.(*git.ErrPushRejected)
@@ -1090,7 +1090,7 @@ func TriggerTask(ctx *context.Context) {
 	branch := ctx.Query("branch")
 	secret := ctx.Query("secret")
 	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
 		return
 	}
@@ -1101,7 +1101,7 @@ func TriggerTask(ctx *context.Context) {
 	got := []byte(base.EncodeMD5(owner.Salt))
 	want := []byte(secret)
 	if subtle.ConstantTimeCompare(got, want) != 1 {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return
 	}
@@ -1109,7 +1109,7 @@ func TriggerTask(ctx *context.Context) {
 	pusher, err := models.GetUserByID(pusherID)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetUserByID", err)
 		}

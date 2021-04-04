@@ -257,7 +257,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 	ctx.Data["HasTLS"] = hasTLS
@@ -357,7 +357,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 

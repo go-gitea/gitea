@@ -95,7 +95,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 
 		if options.AdminRequired {
 			if !ctx.User.IsAdmin {
-				ctx.Error(403)
+				ctx.Error(http.StatusForbidden)
 				return
 			}
 			ctx.Data["PageIsAdmin"] = true

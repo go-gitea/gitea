@@ -121,12 +121,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -137,7 +137,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 

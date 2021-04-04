@@ -348,7 +348,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*auth.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)

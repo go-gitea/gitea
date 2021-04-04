@@ -487,7 +487,7 @@ func U2FSign(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(401)
+	ctx.Error(http.StatusUnauthorized)
 }
 
 // This handles the final part of the sign-in process of the user.
@@ -913,7 +913,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if setting.Service.DisableRegistration {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1104,7 +1104,7 @@ func SignUpPost(ctx *context.Context) {
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1238,7 +1238,7 @@ func Activate(ctx *context.Context) {
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
 		if ctx.User.IsActive {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		// Resend confirmation email.
@@ -1291,7 +1291,7 @@ func Activate(ctx *context.Context) {
 	}
 	if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}

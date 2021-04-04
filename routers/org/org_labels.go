@@ -5,6 +5,8 @@
 package org
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
@@ -58,7 +60,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case models.IsErrOrgLabelNotExist(err):
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}

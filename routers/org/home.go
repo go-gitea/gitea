@@ -107,7 +107,7 @@ func Home(ctx *context.Context) {
 	if ctx.User != nil {
 		isMember, err := org.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember")
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin

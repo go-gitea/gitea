@@ -129,7 +129,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case models.IsErrRepoLabelNotExist(err):
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -178,7 +178,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		label, err := models.GetLabelByID(ctx.QueryInt64("id"))
 		if err != nil {
 			if models.IsErrRepoLabelNotExist(err) {
-				ctx.Error(404, "GetLabelByID")
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)
 			}
@@ -213,7 +213,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		}
 	default:
 		log.Warn("Unrecognized action: %s", action)
-		ctx.Error(500)
+		ctx.Error(http.StatusInternalServerError)
 		return
 	}
 

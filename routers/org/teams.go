@@ -60,7 +60,7 @@ func TeamsAction(ctx *context.Context) {
 	switch ctx.Params(":action") {
 	case "join":
 		if !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = ctx.Org.Team.AddMember(ctx.User.ID)
@@ -68,14 +68,14 @@ func TeamsAction(ctx *context.Context) {
 		err = ctx.Org.Team.RemoveMember(ctx.User.ID)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = ctx.Org.Team.RemoveMember(uid)
 		page = "team"
 	case "add":
 		if !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("uname")))
@@ -132,7 +132,7 @@ func TeamsAction(ctx *context.Context) {
 // TeamsRepoAction operate team's repository
 func TeamsRepoAction(ctx *context.Context) {
 	if !ctx.Org.IsOwner {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 

@@ -50,7 +50,7 @@ func Profile(ctx *context.Context) {
 		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		return
 	} else if strings.HasSuffix(uname, ".png") {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 

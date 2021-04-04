@@ -6,6 +6,7 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -21,7 +22,7 @@ import (
 func U2FRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*auth.U2FRegistrationForm)
 	if form.Name == "" {
-		ctx.Error(409)
+		ctx.Error(http.StatusConflict)
 		return
 	}
 	challenge, err := u2f.NewChallenge(setting.U2F.AppID, setting.U2F.TrustedFacets)
@@ -40,7 +41,7 @@ func U2FRegister(ctx *context.Context) {
 	}
 	for _, reg := range regs {
 		if reg.Name == form.Name {
-			ctx.Error(409, "Name already taken")
+			ctx.Error(http.StatusConflict, "Name already taken")
 			return
 		}
 	}

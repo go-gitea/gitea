@@ -203,12 +203,12 @@ func (ctx *APIContext) CheckForOTP() {
 		if models.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
-		ctx.Context.Error(500)
+		ctx.Context.Error(http.StatusInternalServerError)
 		return
 	}
 	ok, err := twofa.ValidateTOTP(otpHeader)
 	if err != nil {
-		ctx.Context.Error(500)
+		ctx.Context.Error(http.StatusInternalServerError)
 		return
 	}
 	if !ok {
@@ -288,7 +288,7 @@ func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
 				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 				gitRepo, err := git.OpenRepository(repoPath)
 				if err != nil {
-					ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+					ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 					return
 				}
 				ctx.Repo.GitRepo = gitRepo

@@ -39,7 +39,7 @@ func Members(ctx *context.Context) {
 	if ctx.User != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember")
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
@@ -47,7 +47,7 @@ func Members(ctx *context.Context) {
 
 	total, err := models.CountOrgMembers(opts)
 	if err != nil {
-		ctx.Error(500, "CountOrgMembers")
+		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
 		return
 	}
 
@@ -81,19 +81,19 @@ func MembersAction(ctx *context.Context) {
 	switch ctx.Params(":action") {
 	case "private":
 		if ctx.User.ID != uid && !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = models.ChangeOrgUserStatus(org.ID, uid, false)
 	case "public":
 		if ctx.User.ID != uid && !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = models.ChangeOrgUserStatus(org.ID, uid, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = org.RemoveMember(uid)
