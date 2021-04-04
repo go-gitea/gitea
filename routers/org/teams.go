@@ -44,7 +44,7 @@ func Teams(ctx *context.Context) {
 	}
 	ctx.Data["Teams"] = org.Teams
 
-	ctx.HTML(200, tplTeams)
+	ctx.HTML(http.StatusOK, tplTeams)
 }
 
 // TeamsAction response for join, leave, remove, add operations to team
@@ -183,7 +183,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &models.Team{}
 	ctx.Data["Units"] = models.Units
-	ctx.HTML(200, tplTeamNew)
+	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
 // NewTeamPost response for create new team
@@ -218,7 +218,7 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplTeamNew)
+		ctx.HTML(http.StatusOK, tplTeamNew)
 		return
 	}
 
@@ -250,7 +250,7 @@ func TeamMembers(ctx *context.Context) {
 		ctx.ServerError("GetMembers", err)
 		return
 	}
-	ctx.HTML(200, tplTeamMembers)
+	ctx.HTML(http.StatusOK, tplTeamMembers)
 }
 
 // TeamRepositories show the repositories of team
@@ -262,7 +262,7 @@ func TeamRepositories(ctx *context.Context) {
 		ctx.ServerError("GetRepositories", err)
 		return
 	}
-	ctx.HTML(200, tplTeamRepositories)
+	ctx.HTML(http.StatusOK, tplTeamRepositories)
 }
 
 // EditTeam render team edit page
@@ -272,7 +272,7 @@ func EditTeam(ctx *context.Context) {
 	ctx.Data["team_name"] = ctx.Org.Team.Name
 	ctx.Data["desc"] = ctx.Org.Team.Description
 	ctx.Data["Units"] = models.Units
-	ctx.HTML(200, tplTeamNew)
+	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
 // EditTeamPost response for modify team information
@@ -321,7 +321,7 @@ func EditTeamPost(ctx *context.Context) {
 	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplTeamNew)
+		ctx.HTML(http.StatusOK, tplTeamNew)
 		return
 	}
 

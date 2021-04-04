@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -85,7 +86,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		pager.SetDefaultParams(ctx)
 		pager.AddParam(ctx, "search", "search")
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplUnadoptedRepos)
+		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
 	}
 
@@ -99,7 +100,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplUnadoptedRepos)
+	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
 
 // AdoptOrDeleteRepository adopts or deletes a repository

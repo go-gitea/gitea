@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -41,7 +42,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplNewComment)
+	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -169,7 +170,7 @@ func renderConversation(ctx *context.Context, comment *models.Comment) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplConversation)
+	ctx.HTML(http.StatusOK, tplConversation)
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

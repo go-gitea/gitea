@@ -7,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -75,7 +76,7 @@ func Branches(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplBranch)
+	ctx.HTML(http.StatusOK, tplBranch)
 }
 
 // DeleteBranchPost responses for delete merged branch

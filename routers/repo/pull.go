@@ -167,7 +167,7 @@ func Fork(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplFork)
+	ctx.HTML(http.StatusOK, tplFork)
 }
 
 // ForkPost response for forking a repository
@@ -188,7 +188,7 @@ func ForkPost(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplFork)
+		ctx.HTML(http.StatusOK, tplFork)
 		return
 	}
 
@@ -570,7 +570,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commits.Len()
 
 	getBranchData(ctx, issue)
-	ctx.HTML(200, tplPullCommits)
+	ctx.HTML(http.StatusOK, tplPullCommits)
 }
 
 // ViewPullFiles render pull request changed files list page
@@ -692,7 +692,7 @@ func ViewPullFiles(ctx *context.Context) {
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.HTML(200, tplPullFiles)
+	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -1015,7 +1015,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.HTML(200, tplCompareDiff)
+		ctx.HTML(http.StatusOK, tplCompareDiff)
 		return
 	}
 

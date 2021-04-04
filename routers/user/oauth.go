@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -339,7 +340,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		// we'll tolerate errors here as they *should* get saved elsewhere
 		log.Error("Unable to save changes to the session: %v", err)
 	}
-	ctx.HTML(200, tplGrantAccess)
+	ctx.HTML(http.StatusOK, tplGrantAccess)
 }
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application

@@ -5,6 +5,7 @@
 package org
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -137,5 +138,5 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplOrgHome)
+	ctx.HTML(http.StatusOK, tplOrgHome)
 }

@@ -6,6 +6,8 @@
 package org
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -63,7 +65,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
-	ctx.HTML(200, tplMembers)
+	ctx.HTML(http.StatusOK, tplMembers)
 }
 
 // MembersAction response for operation to a member of organization

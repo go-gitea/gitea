@@ -393,7 +393,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
 
-	ctx.HTML(200, tplIssues)
+	ctx.HTML(http.StatusOK, tplIssues)
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
@@ -819,7 +819,7 @@ func NewIssue(ctx *context.Context) {
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 
-	ctx.HTML(200, tplIssueNew)
+	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
 // NewIssueChooseTemplate render creating issue from template page
@@ -832,7 +832,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["IssueTemplates"] = issueTemplates
 
-	ctx.HTML(200, tplIssueChoose)
+	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
@@ -960,7 +960,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplIssueNew)
+		ctx.HTML(http.StatusOK, tplIssueNew)
 		return
 	}
 
@@ -1578,7 +1578,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
-	ctx.HTML(200, tplIssueView)
+	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
 // GetActionIssue will return the issue which is used in the context.

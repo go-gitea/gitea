@@ -8,6 +8,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -149,7 +150,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
 
-	ctx.HTML(200, tplCreate)
+	ctx.HTML(http.StatusOK, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
@@ -199,7 +200,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplCreate)
+		ctx.HTML(http.StatusOK, tplCreate)
 		return
 	}
 

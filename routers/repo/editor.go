@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"path"
 	"strings"
 
@@ -149,7 +150,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PreviewableFileModes"] = strings.Join(setting.Repository.Editor.PreviewableFileModes, ",")
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, treePath)
 
-	ctx.HTML(200, tplEditFile)
+	ctx.HTML(http.StatusOK, tplEditFile)
 }
 
 // GetEditorConfig returns a editorconfig JSON string for given treePath or "null"
@@ -205,7 +206,7 @@ func editFilePost(ctx *context.Context, form auth.EditRepoFileForm, isNewFile bo
 	ctx.Data["Editorconfig"] = GetEditorConfig(ctx, form.TreePath)
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplEditFile)
+		ctx.HTML(http.StatusOK, tplEditFile)
 		return
 	}
 
@@ -369,7 +370,7 @@ func DiffPreviewPost(ctx *context.Context) {
 	}
 	ctx.Data["File"] = diff.Files[0]
 
-	ctx.HTML(200, tplEditDiffPreview)
+	ctx.HTML(http.StatusOK, tplEditDiffPreview)
 }
 
 // DeleteFile render delete file page
@@ -396,7 +397,7 @@ func DeleteFile(ctx *context.Context) {
 	}
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
-	ctx.HTML(200, tplDeleteFile)
+	ctx.HTML(http.StatusOK, tplDeleteFile)
 }
 
 // DeleteFilePost response for deleting file
@@ -418,7 +419,7 @@ func DeleteFilePost(ctx *context.Context) {
 	ctx.Data["last_commit"] = ctx.Repo.CommitID
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplDeleteFile)
+		ctx.HTML(http.StatusOK, tplDeleteFile)
 		return
 	}
 
@@ -560,7 +561,7 @@ func UploadFile(ctx *context.Context) {
 	}
 	ctx.Data["new_branch_name"] = GetUniquePatchBranchName(ctx)
 
-	ctx.HTML(200, tplUploadFile)
+	ctx.HTML(http.StatusOK, tplUploadFile)
 }
 
 // UploadFilePost response for uploading file
@@ -597,7 +598,7 @@ func UploadFilePost(ctx *context.Context) {
 	ctx.Data["new_branch_name"] = branchName
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplUploadFile)
+		ctx.HTML(http.StatusOK, tplUploadFile)
 		return
 	}
 

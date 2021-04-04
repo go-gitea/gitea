@@ -6,6 +6,8 @@
 package context
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -27,13 +29,13 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(200, "user/auth/prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
 			}
 
@@ -76,7 +78,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 		}
@@ -145,7 +147,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 			if ctx.IsSigned && ctx.IsBasicAuth {

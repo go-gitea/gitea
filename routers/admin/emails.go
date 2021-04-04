@@ -6,6 +6,7 @@ package admin
 
 import (
 	"bytes"
+	"net/http"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -96,7 +97,7 @@ func Emails(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplEmails)
+	ctx.HTML(http.StatusOK, tplEmails)
 }
 
 var (

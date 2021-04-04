@@ -7,6 +7,7 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
@@ -268,7 +269,7 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
-	ctx.HTML(200, tplProfile)
+	ctx.HTML(http.StatusOK, tplProfile)
 }
 
 // Action response for follow/unfollow user request

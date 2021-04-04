@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 
-	ctx.HTML(200, tplSettingsOptions)
+	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for changes of a repository
@@ -65,7 +66,7 @@ func SettingsPost(ctx *context.Context) {
 	switch ctx.Query("action") {
 	case "update":
 		if ctx.HasError() {
-			ctx.HTML(200, tplSettingsOptions)
+			ctx.HTML(http.StatusOK, tplSettingsOptions)
 			return
 		}
 
@@ -638,7 +639,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = models.Units
 
-	ctx.HTML(200, tplCollaboration)
+	ctx.HTML(http.StatusOK, tplCollaboration)
 }
 
 // CollaborationPost response for actions for a collaboration of a repository
@@ -822,7 +823,7 @@ func GitHooks(ctx *context.Context) {
 	}
 	ctx.Data["Hooks"] = hooks
 
-	ctx.HTML(200, tplGithooks)
+	ctx.HTML(http.StatusOK, tplGithooks)
 }
 
 // GitHooksEdit render for editing a hook of repository page
@@ -841,7 +842,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
-	ctx.HTML(200, tplGithookEdit)
+	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 
 // GitHooksEditPost response for editing a git hook of a repository
@@ -877,7 +878,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	ctx.HTML(200, tplDeployKeys)
+	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
@@ -894,7 +895,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Deploykeys"] = keys
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplDeployKeys)
+		ctx.HTML(http.StatusOK, tplDeployKeys)
 		return
 	}
 

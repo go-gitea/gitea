@@ -146,7 +146,7 @@ func Install(ctx *context.Context) {
 	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
 	middleware.AssignForm(form, ctx.Data)
-	ctx.HTML(200, tplInstall)
+	ctx.HTML(http.StatusOK, tplInstall)
 }
 
 // InstallPost response for submit install items
@@ -165,7 +165,7 @@ func InstallPost(ctx *context.Context) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, tplInstall)
+		ctx.HTML(http.StatusOK, tplInstall)
 		return
 	}
 
@@ -450,7 +450,7 @@ func InstallPost(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 
 	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-	ctx.HTML(200, tplPostInstall)
+	ctx.HTML(http.StatusOK, tplPostInstall)
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown

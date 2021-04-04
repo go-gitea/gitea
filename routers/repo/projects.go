@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -101,7 +102,7 @@ func Projects(ctx *context.Context) {
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
 
-	ctx.HTML(200, tplProjects)
+	ctx.HTML(http.StatusOK, tplProjects)
 }
 
 // NewProject render creating a project page
@@ -109,7 +110,7 @@ func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
-	ctx.HTML(200, tplProjectsNew)
+	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
 // NewProjectPost creates a new project
@@ -120,7 +121,7 @@ func NewProjectPost(ctx *context.Context) {
 	if ctx.HasError() {
 		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 		ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-		ctx.HTML(200, tplProjectsNew)
+		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
@@ -215,7 +216,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["title"] = p.Title
 	ctx.Data["content"] = p.Description
 
-	ctx.HTML(200, tplProjectsNew)
+	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
 // EditProjectPost response for editing a project
@@ -227,7 +228,7 @@ func EditProjectPost(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplProjectsNew)
+		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
 	}
 
@@ -318,7 +319,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["RequiresDraggable"] = true
 
-	ctx.HTML(200, tplProjectsView)
+	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
 // UpdateIssueProject change an issue's project
@@ -609,7 +610,7 @@ func CreateProject(ctx *context.Context) {
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
-	ctx.HTML(200, tplGenericProjectsNew)
+	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 }
 
 // CreateProjectPost creates an individual and/or organization project
@@ -624,7 +625,7 @@ func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
 
 	if ctx.HasError() {
 		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
-		ctx.HTML(200, tplGenericProjectsNew)
+		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 		return
 	}
 

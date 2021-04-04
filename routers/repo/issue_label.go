@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -26,7 +28,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.HTML(200, tplLabels)
+	ctx.HTML(http.StatusOK, tplLabels)
 }
 
 // InitializeLabels init labels for a repository
