@@ -707,6 +707,11 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
+			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
+
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr
 			ctx.Data["Lang"] = locale.Language()

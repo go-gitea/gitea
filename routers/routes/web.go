@@ -192,12 +192,6 @@ func WebRoutes() *web.Route {
 
 	common = append(common, user.GetNotificationCount)
 	common = append(common, repo.GetActiveStopwatch)
-	common = append(common, func(ctx *context.Context) {
-		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
-	})
 
 	r = web.NewRoute()
 	for _, middle := range common {
