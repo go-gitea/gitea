@@ -648,13 +648,14 @@ func SignInOAuthCallback(ctx *context.Context) {
 				LoginName:   gothUser.UserID,
 			}
 
-			createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled)
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+				return
+			}
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, gothUser)
+			return
 		}
-
-		return
 	}
 
 	handleOAuth2SignIn(ctx, u, gothUser)
