@@ -765,7 +765,7 @@ func UploadFileToServer(ctx *context.Context) {
 	}
 
 	log.Trace("New file uploaded: %s", upload.UUID)
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": upload.UUID,
 	})
 }

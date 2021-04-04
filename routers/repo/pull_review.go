@@ -145,7 +145,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }

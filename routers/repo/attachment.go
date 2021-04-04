@@ -62,7 +62,7 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	}
 
 	log.Trace("New attachment uploaded: %s", attach.UUID)
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": attach.UUID,
 	})
 }
@@ -84,7 +84,7 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
 	}
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": attach.UUID,
 	})
 }

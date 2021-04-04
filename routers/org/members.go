@@ -113,7 +113,7 @@ func MembersAction(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Action(%s): %v", ctx.Params(":action"), err)
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"ok":  false,
 			"err": err.Error(),
 		})

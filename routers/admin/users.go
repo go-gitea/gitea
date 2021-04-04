@@ -349,12 +349,12 @@ func DeleteUser(ctx *context.Context) {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.JSON(200, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
 			})
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.JSON(200, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
 			})
 		default:
@@ -365,7 +365,7 @@ func DeleteUser(ctx *context.Context) {
 	log.Trace("Account deleted by admin (%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
 }

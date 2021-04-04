@@ -5,6 +5,7 @@
 package lfs
 
 import (
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -21,19 +22,19 @@ import (
 func checkIsValidRequest(ctx *context.Context) bool {
 	if !setting.LFS.StartServer {
 		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return false
 	}
 	if !MetaMatcher(ctx.Req) {
 		log.Info("Attempt access LOCKs without accepting the correct media type: %s", metaMediaType)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return false
 	}
 	if !ctx.IsSigned {
 		user, _, _, err := parseToken(ctx.Req.Header.Get("Authorization"))
 		if err != nil {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-			writeStatus(ctx, 401)
+			writeStatus(ctx, http.StatusUnauthorized)
 			return false
 		}
 		ctx.User = user
@@ -44,7 +45,7 @@ func checkIsValidRequest(ctx *context.Context) bool {
 func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {
 	if err != nil {
 		if models.IsErrLFSLockNotExist(err) {
-			ctx.JSON(200, api.LFSLockList{
+			ctx.JSON(http.StatusOK, api.LFSLockList{
 				Locks: []*api.LFSLock{},
 			})
 			return
@@ -55,12 +56,12 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 		return
 	}
 	if repo.ID != lock.RepoID {
-		ctx.JSON(200, api.LFSLockList{
+		ctx.JSON(http.StatusOK, api.LFSLockList{
 			Locks: []*api.LFSLock{},
 		})
 		return
 	}
-	ctx.JSON(200, api.LFSLockList{
+	ctx.JSON(http.StatusOK, api.LFSLockList{
 		Locks: []*api.LFSLock{convert.ToLFSLock(lock)},
 	})
 }
@@ -146,7 +147,7 @@ func GetListLockHandler(ctx *context.Context) {
 	if limit > 0 && len(lockList) == limit {
 		next = strconv.Itoa(cursor + 1)
 	}
-	ctx.JSON(200, api.LFSLockList{
+	ctx.JSON(http.StatusOK, api.LFSLockList{
 		Locks: lockListAPI,
 		Next:  next,
 	})
@@ -281,7 +282,7 @@ func VerifyLockHandler(ctx *context.Context) {
 			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))
 		}
 	}
-	ctx.JSON(200, api.LFSLockListVerify{
+	ctx.JSON(http.StatusOK, api.LFSLockListVerify{
 		Ours:   lockOursListAPI,
 		Theirs: lockTheirsListAPI,
 		Next:   next,
@@ -343,5 +344,5 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.JSON(200, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
+	ctx.JSON(http.StatusOK, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
 }

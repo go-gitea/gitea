@@ -465,13 +465,13 @@ func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	}
 
 	if isDelTag {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": ctx.Repo.RepoLink + "/tags",
 		})
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/releases",
 	})
 }

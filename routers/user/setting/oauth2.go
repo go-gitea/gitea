@@ -136,7 +136,7 @@ func DeleteOAuth2Application(ctx *context.Context) {
 	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
@@ -153,7 +153,7 @@ func RevokeOAuth2Grant(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }

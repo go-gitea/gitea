@@ -710,7 +710,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
 }
@@ -781,7 +781,7 @@ func DeleteTeam(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
 }
@@ -949,7 +949,7 @@ func DeleteDeployKey(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
 }

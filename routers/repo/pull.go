@@ -1179,7 +1179,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	defer gitBaseRepo.Close()
 
 	defer func() {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
 		})
 	}()

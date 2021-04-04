@@ -54,7 +54,7 @@ func TopicsPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"status": "ok",
 	})
 }

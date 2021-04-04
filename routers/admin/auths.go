@@ -394,7 +394,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("DeleteSource: %v", err))
 		}
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": setting.AppSubURL + "/admin/auths/" + ctx.Params(":authid"),
 		})
 		return
@@ -402,7 +402,7 @@ func DeleteAuthSource(ctx *context.Context) {
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/auths",
 	})
 }

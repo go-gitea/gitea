@@ -334,7 +334,7 @@ func Monitor(ctx *context.Context) {
 func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
@@ -365,7 +365,7 @@ func WorkerCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }

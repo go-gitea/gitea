@@ -187,7 +187,7 @@ func DeleteProject(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.projects.deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/projects",
 	})
 }
@@ -342,7 +342,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -397,7 +397,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -431,7 +431,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -503,7 +503,7 @@ func EditProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -521,7 +521,7 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -599,7 +599,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }

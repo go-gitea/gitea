@@ -1665,7 +1665,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"title": issue.Title,
 	})
 }
@@ -1689,7 +1689,7 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ref": ref,
 	})
 }
@@ -1717,7 +1717,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -1743,7 +1743,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1789,7 +1789,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1914,7 +1914,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1954,7 +1954,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -2119,7 +2119,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	oldContent := comment.Content
 	comment.Content = ctx.Query("content")
 	if len(comment.Content) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"content": "",
 		})
 		return
@@ -2134,7 +2134,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
@@ -2244,7 +2244,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	if len(issue.Reactions) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"empty": true,
 			"html":  "",
 		})
@@ -2260,7 +2260,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"html": html,
 	})
 }
@@ -2344,7 +2344,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if len(comment.Reactions) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"empty": true,
 			"html":  "",
 		})
@@ -2360,7 +2360,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"html": html,
 	})
 }
@@ -2406,7 +2406,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
-	ctx.JSON(200, attachments)
+	ctx.JSON(http.StatusOK, attachments)
 }
 
 // GetCommentAttachments returns attachments for the comment
@@ -2426,7 +2426,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
 		}
 	}
-	ctx.JSON(200, attachments)
+	ctx.JSON(http.StatusOK, attachments)
 }
 
 func updateAttachments(item interface{}, files []string) error {

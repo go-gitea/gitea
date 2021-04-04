@@ -111,7 +111,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 		} else {
 			log.Error("Action(%s): %v", ctx.Params(":action"), err)
-			ctx.JSON(200, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"ok":  false,
 				"err": err.Error(),
 			})
@@ -168,7 +168,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	}
 
 	if action == "addall" || action == "removeall" {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
 		})
 		return
@@ -351,7 +351,7 @@ func DeleteTeam(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("org.teams.delete_team_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/teams",
 	})
 }

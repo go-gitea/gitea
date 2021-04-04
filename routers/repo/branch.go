@@ -164,7 +164,7 @@ func RestoreBranchPost(ctx *context.Context) {
 }
 
 func redirect(ctx *context.Context) {
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/branches",
 	})
 }

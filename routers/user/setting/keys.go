@@ -190,7 +190,7 @@ func DeleteKey(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
 }

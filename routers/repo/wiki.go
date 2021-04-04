@@ -654,7 +654,7 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",
 	})
 }

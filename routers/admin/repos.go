@@ -54,7 +54,7 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Query("page") + "&sort=" + ctx.Query("sort"),
 	})
 }

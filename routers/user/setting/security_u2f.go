@@ -54,7 +54,7 @@ func U2FRegister(ctx *context.Context) {
 		// we'll tolerate errors here as they *should* get saved elsewhere
 		log.Error("Unable to save changes to the session: %v", err)
 	}
-	ctx.JSON(200, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
+	ctx.JSON(http.StatusOK, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
 }
 
 // U2FRegisterPost receives the response of the security key
@@ -105,7 +105,7 @@ func U2FDelete(ctx *context.Context) {
 		ctx.ServerError("DeleteRegistration", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }

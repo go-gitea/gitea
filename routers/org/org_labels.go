@@ -85,7 +85,7 @@ func DeleteLabel(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/labels",
 	})
 }

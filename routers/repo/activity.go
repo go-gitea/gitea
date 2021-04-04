@@ -99,5 +99,5 @@ func ActivityAuthors(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, authors)
+	ctx.JSON(http.StatusOK, authors)
 }

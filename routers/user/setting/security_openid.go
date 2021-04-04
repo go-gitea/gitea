@@ -113,7 +113,7 @@ func DeleteOpenID(ctx *context.Context) {
 	log.Trace("OpenID address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }

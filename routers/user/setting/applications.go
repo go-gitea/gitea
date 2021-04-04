@@ -78,7 +78,7 @@ func DeleteApplication(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }

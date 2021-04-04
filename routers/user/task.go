@@ -19,7 +19,7 @@ func TaskStatus(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"status":    task.Status,
 		"err":       task.Errors,
 		"repo-id":   task.RepoID,

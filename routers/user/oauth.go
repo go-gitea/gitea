@@ -464,7 +464,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
 	}
-	ctx.JSON(200, accessToken)
+	ctx.JSON(http.StatusOK, accessToken)
 }
 
 func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
@@ -527,7 +527,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 		return
 	}
 	// send successful response
-	ctx.JSON(200, resp)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {

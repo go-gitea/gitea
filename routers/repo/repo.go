@@ -403,7 +403,7 @@ func InitiateDownload(ctx *context.Context) {
 		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"complete": complete,
 	})
 }

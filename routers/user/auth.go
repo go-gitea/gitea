@@ -427,7 +427,7 @@ func U2FChallenge(ctx *context.Context) {
 		ctx.ServerError("UserSignIn: unable to store session", err)
 	}
 
-	ctx.JSON(200, challenge.SignRequest(regs.ToRegistrations()))
+	ctx.JSON(http.StatusOK, challenge.SignRequest(regs.ToRegistrations()))
 }
 
 // U2FSign authenticates the user by signResp
