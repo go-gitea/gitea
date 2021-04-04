@@ -350,14 +350,14 @@ func UpdateIssueProject(ctx *context.Context) {
 // DeleteProjectBoard allows for the deletion of a project board
 func DeleteProjectBoard(ctx *context.Context) {
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
@@ -406,7 +406,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 func AddBoardToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*auth.EditProjectBoardForm)
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return
@@ -438,14 +438,14 @@ func AddBoardToProjectPost(ctx *context.Context) {
 
 func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, *models.ProjectBoard) {
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return nil, nil
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return nil, nil
@@ -530,14 +530,14 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 func MoveIssueAcrossBoards(ctx *context.Context) {
 
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
 		})
 		return
 	}
 
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
-		ctx.JSON(403, map[string]string{
+		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
 		return

@@ -50,7 +50,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 			})
 			return
 		}
-		ctx.JSON(500, api.LFSLockError{
+		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to list locks : Internal Server Error",
 		})
 		return
@@ -134,7 +134,7 @@ func GetListLockHandler(ctx *context.Context) {
 	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
-		ctx.JSON(500, api.LFSLockError{
+		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to list locks : Internal Server Error",
 		})
 		return
@@ -214,12 +214,12 @@ func PostLockHandler(ctx *context.Context) {
 			return
 		}
 		log.Error("Unable to CreateLFSLock in repository %-v at %s for user %-v: Error: %v", repository, req.Path, ctx.User, err)
-		ctx.JSON(500, api.LFSLockError{
+		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "internal server error : Internal Server Error",
 		})
 		return
 	}
-	ctx.JSON(201, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
+	ctx.JSON(http.StatusCreated, api.LFSLockResponse{Lock: convert.ToLFSLock(lock)})
 }
 
 // VerifyLockHandler list locks for verification
@@ -264,7 +264,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
-		ctx.JSON(500, api.LFSLockError{
+		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to list locks : Internal Server Error",
 		})
 		return
@@ -339,7 +339,7 @@ func UnLockHandler(ctx *context.Context) {
 			return
 		}
 		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.ParamsInt64("lid"), ctx.User, req.Force, err)
-		ctx.JSON(500, api.LFSLockError{
+		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to delete lock : Internal Server Error",
 		})
 		return

@@ -110,7 +110,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is not activated.",
 				})
 				return
@@ -118,14 +118,14 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is prohibited from signing in, please contact your site administrator.",
 				})
 				return
 			}
 
 			if ctx.User.MustChangePassword {
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
 				})
 				return
@@ -141,7 +141,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 		if options.SignInRequired {
 			if !ctx.IsSigned {
 				// Restrict API calls with error message.
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only signed in user is allowed to call APIs.",
 				})
 				return
@@ -166,7 +166,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 					return
 				}
 				if !ok {
-					ctx.JSON(403, map[string]string{
+					ctx.JSON(http.StatusForbidden, map[string]string{
 						"message": "Only signed in user is allowed to call APIs.",
 					})
 					return
@@ -176,7 +176,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 
 		if options.AdminRequired {
 			if !ctx.User.IsAdmin {
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You have no permission to request for this.",
 				})
 				return

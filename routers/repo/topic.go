@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -15,7 +16,7 @@ import (
 // TopicsPost response for creating repository
 func TopicsPost(ctx *context.Context) {
 	if ctx.User == nil {
-		ctx.JSON(403, map[string]interface{}{
+		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"message": "Only owners could change the topics.",
 		})
 		return
@@ -48,7 +49,7 @@ func TopicsPost(ctx *context.Context) {
 	err := models.SaveTopics(ctx.Repo.Repository.ID, validTopics...)
 	if err != nil {
 		log.Error("SaveTopics failed: %v", err)
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"message": "Save topics failed.",
 		})
 		return
