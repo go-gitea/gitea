@@ -324,7 +324,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	ctx.JSON(404, map[string]interface{}{
+	ctx.JSON(http.StatusNotFound, map[string]interface{}{
 		"message":           message,
 		"documentation_url": setting.API.SwaggerURL,
 		"errors":            errors,

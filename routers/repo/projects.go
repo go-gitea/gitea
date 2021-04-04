@@ -379,14 +379,14 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 	if pb.ProjectID != ctx.ParamsInt64(":id") {
-		ctx.JSON(422, map[string]string{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", pb.ID, project.ID),
 		})
 		return
 	}
 
 	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.JSON(422, map[string]string{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", pb.ID, ctx.Repo.Repository.ID),
 		})
 		return
@@ -467,14 +467,14 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 		return nil, nil
 	}
 	if board.ProjectID != ctx.ParamsInt64(":id") {
-		ctx.JSON(422, map[string]string{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Project[%d] as expected", board.ID, project.ID),
 		})
 		return nil, nil
 	}
 
 	if project.RepoID != ctx.Repo.Repository.ID {
-		ctx.JSON(422, map[string]string{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
 			"message": fmt.Sprintf("ProjectBoard[%d] is not in Repository[%d] as expected", board.ID, ctx.Repo.Repository.ID),
 		})
 		return nil, nil

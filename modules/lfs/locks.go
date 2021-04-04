@@ -87,7 +87,7 @@ func GetListLockHandler(ctx *context.Context) {
 	authenticated := authenticate(ctx, repository, rv.Authorization, false)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have pull access to list locks",
 		})
 		return
@@ -107,7 +107,7 @@ func GetListLockHandler(ctx *context.Context) {
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			ctx.JSON(400, api.LFSLockError{
+			ctx.JSON(http.StatusBadRequest, api.LFSLockError{
 				Message: "bad request : " + err.Error(),
 			})
 			return
@@ -176,7 +176,7 @@ func PostLockHandler(ctx *context.Context) {
 	authenticated := authenticate(ctx, repository, authorization, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to create locks",
 		})
 		return
@@ -200,7 +200,7 @@ func PostLockHandler(ctx *context.Context) {
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
-			ctx.JSON(409, api.LFSLockError{
+			ctx.JSON(http.StatusConflict, api.LFSLockError{
 				Lock:    convert.ToLFSLock(lock),
 				Message: "already created lock",
 			})
@@ -208,7 +208,7 @@ func PostLockHandler(ctx *context.Context) {
 		}
 		if models.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-			ctx.JSON(401, api.LFSLockError{
+			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 				Message: "You must have push access to create locks : " + err.Error(),
 			})
 			return
@@ -245,7 +245,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	authenticated := authenticate(ctx, repository, authorization, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to verify locks",
 		})
 		return
@@ -312,7 +312,7 @@ func UnLockHandler(ctx *context.Context) {
 	authenticated := authenticate(ctx, repository, authorization, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-		ctx.JSON(401, api.LFSLockError{
+		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 			Message: "You must have push access to delete locks",
 		})
 		return
@@ -333,7 +333,7 @@ func UnLockHandler(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-			ctx.JSON(401, api.LFSLockError{
+			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 				Message: "You must have push access to delete locks : " + err.Error(),
 			})
 			return

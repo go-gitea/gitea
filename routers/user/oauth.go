@@ -531,7 +531,7 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
-	ctx.JSON(400, acErr)
+	ctx.JSON(http.StatusBadRequest, acErr)
 }
 
 func handleServerError(ctx *context.Context, state string, redirectURI string) {

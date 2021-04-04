@@ -31,7 +31,7 @@ func TopicsPost(ctx *context.Context) {
 	validTopics, invalidTopics := models.SanitizeAndValidateTopics(topics)
 
 	if len(validTopics) > 25 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": nil,
 			"message":       ctx.Tr("repo.topic.count_prompt"),
 		})
@@ -39,7 +39,7 @@ func TopicsPost(ctx *context.Context) {
 	}
 
 	if len(invalidTopics) > 0 {
-		ctx.JSON(422, map[string]interface{}{
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"invalidTopics": invalidTopics,
 			"message":       ctx.Tr("repo.topic.format_prompt"),
 		})
