@@ -9,6 +9,11 @@ export async function initStopwatch() {
   }
 
   const stopwatchEl = $('.active-stopwatch-trigger');
+
+  if (!stopwatchEl.length) {
+    return;
+  }
+
   stopwatchEl.removeAttr('href'); // intended for noscript mode only
   stopwatchEl.popup({
     position: 'bottom right',
@@ -19,10 +24,6 @@ export async function initStopwatch() {
   $('form > button', stopwatchEl).on('click', function () {
     $(this).parent().trigger('submit');
   });
-
-  if (!stopwatchEl) {
-    return;
-  }
 
   if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
