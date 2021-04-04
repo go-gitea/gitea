@@ -671,11 +671,11 @@ npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
 
 .npm-cache: package-lock.json
 	rm -rf .npm-cache
-	$(eval ESBUILD_VERSION := `node -p "require('./package-lock.json').dependencies.esbuild.version"`)
+	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version"))
 	npm config --userconfig=.npmrc set cache=.npm-cache
 	rm -rf node_modules && npm install --no-save
 	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
-	echo esbuild-{darwin-64,linux-{arm,arm64,32,64},windows-{32,64}}@$(ESBUILD_VERSION) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
+	echo $(foreach build, darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}), esbuild-${build}@$(ESBUILD_VERSION)) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
 	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
 	@touch .npm-cache
 
