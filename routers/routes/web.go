@@ -90,6 +90,10 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 		}
 	}
 
+	if setting.EnableAccessLog {
+		handlers = append(handlers, context.AccessLogger())
+	}
+
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			// Why we need this? The Recovery() will try to render a beautiful
@@ -163,6 +167,15 @@ func WebRoutes() *web.Route {
 	r.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	r.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
+	// for health check
+	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
+
 	gob.Register(&u2f.Challenge{})
 
 	common := []interface{}{}
@@ -181,14 +194,21 @@ func WebRoutes() *web.Route {
 		r.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
+	if setting.HasRobotsTxt {
+		r.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
+			filePath := path.Join(setting.CustomPath, "robots.txt")
+			fi, err := os.Stat(filePath)
+			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
+				return
+			}
+			http.ServeFile(w, req, filePath)
+		})...)
+	}
+
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	common = append(common, context.Contexter())
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
-
-	if setting.EnableAccessLog {
-		common = append(common, context.AccessLogger())
-	}
 
 	common = append(common, user.GetNotificationCount)
 	common = append(common, repo.GetActiveStopwatch)
@@ -197,26 +217,6 @@ func WebRoutes() *web.Route {
 	for _, middle := range common {
 		r.Use(middle)
 	}
-
-	// for health check
-	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	if setting.HasRobotsTxt {
-		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
-			filePath := path.Join(setting.CustomPath, "robots.txt")
-			fi, err := os.Stat(filePath)
-			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
-				return
-			}
-			http.ServeFile(w, req, filePath)
-		})
-	}
-
-	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
-	})
 
 	// prometheus metrics endpoint
 	if setting.Metrics.Enabled {
