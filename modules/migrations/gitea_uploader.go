@@ -295,7 +295,8 @@ func (g *GiteaLocalUploader) CreateReleases(downloader base.Downloader, releases
 					}
 					rc = resp.Body
 				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				defer rc.Close()
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				return err
 			}()
 			if err != nil {
