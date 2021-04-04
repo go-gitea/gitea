@@ -30,7 +30,6 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
-	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/events"
 	"code.gitea.io/gitea/routers/org"
@@ -125,8 +124,8 @@ func NormalRoutes() *web.Route {
 	}
 
 	r.Mount("/", WebRoutes())
-	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
+	r.Mount("/api", apiv1.Routes())
 	return r
 }
 
@@ -224,11 +223,6 @@ func WebRoutes() *web.Route {
 		prometheus.MustRegister(c)
 
 		r.Get("/metrics", routers.Metrics)
-	}
-
-	if setting.API.EnableSwagger {
-		// Note: The route moved from apiroutes because it's in fact want to render a web page
-		r.Get("/api/swagger", misc.Swagger) // Render V1 by default
 	}
 
 	RegisterRoutes(r)

@@ -572,15 +572,16 @@ func Routes() *web.Route {
 	}
 	m.Use(context.APIContexter())
 
-	if setting.EnableAccessLog {
-		m.Use(context.AccessLogger())
-	}
-
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
 	}))
 
-	m.Group("", func() {
+	if setting.API.EnableSwagger {
+		// Note: The route moved back to apiroutes because it simplifies considerably the rest of the code
+		m.Get("/swagger", misc.Swagger) // Render V1 by default
+	}
+
+	m.Group("/v1", func() {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {

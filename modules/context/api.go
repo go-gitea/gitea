@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
@@ -219,6 +220,7 @@ func (ctx *APIContext) CheckForOTP() {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
+	var rnd = templates.HTMLRenderer()
 	var csrfOpts = getCsrfOpts()
 
 	return func(next http.Handler) http.Handler {
@@ -228,6 +230,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			var ctx = APIContext{
 				Context: &Context{
 					Resp:    NewResponse(w),
+					Render:  rnd,
 					Data:    map[string]interface{}{},
 					Locale:  locale,
 					Session: session.GetSession(req),
