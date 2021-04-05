@@ -43,7 +43,7 @@
 		</ol>
 		{{range $i, $file := .Diff.Files}}
 			{{if $file.IsIncomplete}}
-				<div class="diff-file-box diff-box file-content">
+				<div class="diff-file-box diff-box file-content mt-3">
 					<h4 class="ui top attached normal header rounded">
 						<a role="button" class="fold-file muted mr-2">
 							{{svg "octicon-chevron-down" 18}}
@@ -70,7 +70,7 @@
 					</h4>
 				</div>
 			{{else}}
-				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{.Index}}">
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							{{$isImage := false}}
@@ -79,6 +79,8 @@
 							{{else}}
 								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
 							{{end}}
+							{{$isCsv := (call $.IsCsvFile $file)}}
+							{{$showFileViewToggle := or $isImage $isCsv}}
 							<a role="button" class="fold-file muted mr-2">
 								{{svg "octicon-chevron-down" 18}}
 							</a>
@@ -92,6 +94,12 @@
 							<span class="file mono">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
 						</div>
 						<div class="diff-file-header-actions df ac">
+							{{if $showFileViewToggle}}
+								<div class="ui compact icon buttons">
+									<span class="ui tiny basic button poping up active file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button poping up file-view-toggle" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</span>
+								</div>
+							{{end}}
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
@@ -106,21 +114,30 @@
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
 						{{if ne $file.Type 4}}
-							<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
-								<table class="chroma{{if $isImage}} w-100{{end}}">
-									<tbody>
-										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $}}
-										{{else}}
-											{{if $.IsSplitStyle}}
-												{{template "repo/diff/section_split" dict "file" . "root" $}}
-											{{else}}
-												{{template "repo/diff/section_unified" dict "file" . "root" $}}
-											{{end}}
-										{{end}}
-									</tbody>
+							<div id="diff-source-{{$i}}" class="file-body file-code has-context-menu code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+								{{if $file.IsBin}}
+								<div class="diff-file-body binary" style="padding: 5px 10px;">{{$.i18n.Tr "repo.diff.bin_not_shown"}}</div>
+								{{else}}
+								<table class="chroma">
+									{{if $.IsSplitStyle}}
+										{{template "repo/diff/section_split" dict "file" . "root" $}}
+									{{else}}
+										{{template "repo/diff/section_unified" dict "file" . "root" $}}
+									{{end}}
+								</table>
+								{{end}}
+							</div>
+							{{if or $isImage $isCsv}}
+							<div id="diff-rendered-{{$i}}" class="file-body file-code has-context-menu{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
+								<table class="chroma w-100">
+									{{if $isImage}}
+										{{template "repo/diff/image_diff" dict "file" . "root" $}}
+									{{else}}
+										{{template "repo/diff/csv_diff" dict "file" . "root" $}}
+									{{end}}
 								</table>
 							</div>
+							{{end}}
 						{{end}}
 					</div>
 				</div>
@@ -128,7 +145,7 @@
 		{{end}}
 
 		{{if .Diff.IsIncomplete}}
-			<div class="diff-file-box diff-box file-content">
+			<div class="diff-file-box diff-box file-content mt-3">
 				<h4 class="ui top attached normal header">
 					{{$.i18n.Tr "repo.diff.too_many_files"}}
 				</h4>

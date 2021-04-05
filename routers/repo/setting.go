@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -55,7 +56,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 
-	ctx.HTML(200, tplSettingsOptions)
+	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for changes of a repository
@@ -69,7 +70,7 @@ func SettingsPost(ctx *context.Context) {
 	switch ctx.Query("action") {
 	case "update":
 		if ctx.HasError() {
-			ctx.HTML(200, tplSettingsOptions)
+			ctx.HTML(http.StatusOK, tplSettingsOptions)
 			return
 		}
 
@@ -393,6 +394,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowSquash:               form.PullsAllowSquash,
 					AllowManualMerge:          form.PullsAllowManualMerge,
 					AutodetectManualMerge:     form.EnableAutodetectManualMerge,
+					DefaultMergeStyle:         models.MergeStyle(form.PullsDefaultMergeStyle),
 				},
 			})
 		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
@@ -436,7 +438,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "admin":
 		if !ctx.User.IsAdmin {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 
@@ -456,7 +458,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "convert":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -465,7 +467,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !repo.IsMirror {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		repo.IsMirror = false
@@ -483,7 +485,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "convert_fork":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if err := repo.GetOwner(); err != nil {
@@ -496,7 +498,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if !repo.IsFork {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -520,7 +522,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -570,7 +572,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "cancel_transfer":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -602,7 +604,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -621,7 +623,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "delete-wiki":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if repo.Name != form.RepoName {
@@ -640,7 +642,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "archive":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 
@@ -663,7 +665,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 	case "unarchive":
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 
@@ -733,7 +735,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
 	ctx.Data["Units"] = models.Units
 
-	ctx.HTML(200, tplCollaboration)
+	ctx.HTML(http.StatusOK, tplCollaboration)
 }
 
 // CollaborationPost response for actions for a collaboration of a repository
@@ -804,7 +806,7 @@ func DeleteCollaboration(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
 }
@@ -875,7 +877,7 @@ func DeleteTeam(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
 }
@@ -917,7 +919,7 @@ func GitHooks(ctx *context.Context) {
 	}
 	ctx.Data["Hooks"] = hooks
 
-	ctx.HTML(200, tplGithooks)
+	ctx.HTML(http.StatusOK, tplGithooks)
 }
 
 // GitHooksEdit render for editing a hook of repository page
@@ -936,7 +938,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
-	ctx.HTML(200, tplGithookEdit)
+	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 
 // GitHooksEditPost response for editing a git hook of a repository
@@ -972,7 +974,7 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	ctx.HTML(200, tplDeployKeys)
+	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
 // DeployKeysPost response for adding a deploy key of a repository
@@ -989,7 +991,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Deploykeys"] = keys
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplDeployKeys)
+		ctx.HTML(http.StatusOK, tplDeployKeys)
 		return
 	}
 
@@ -1043,7 +1045,7 @@ func DeleteDeployKey(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/keys",
 	})
 }
