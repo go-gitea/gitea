@@ -1800,8 +1800,15 @@ table th[data-sortt-desc] {
 /* see https://github.com/go-gitea/gitea/issues/14014 */
 .ui.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
-  font-size: 16px !important;
-  margin: -2px -.5rem -2px .5rem !important;
+  height: auto !important;
+  margin-left: .5rem !important;
+  margin-top: -1px !important;
+  margin-bottom: -1px !important;
+  margin-right: -.5rem !important;
+}
+.tiny.button > .dropdown.icon {
+  margin-top: -2px !important;
+  margin-bottom: -2px !important;
 }
 .ui.button.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
