@@ -5,7 +5,7 @@ cloud.google.com/go/compute/metadata
 ## explicit
 code.gitea.io/gitea-vet
 code.gitea.io/gitea-vet/checks
-# code.gitea.io/sdk/gitea v0.13.2
+# code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
 # gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
@@ -597,7 +597,7 @@ github.com/mholt/acmez/acme
 # github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.4 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
+# github.com/microcosm-cc/bluemonday v1.0.5 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/miekg/dns v1.1.40
@@ -772,7 +772,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/unknwon/com v1.0.1
 ## explicit
 github.com/unknwon/com
-# github.com/unknwon/i18n v0.0.0-20200823051745-09abd91c7f2c
+# github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 ## explicit
 github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
@@ -891,7 +891,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.1
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+# golang.org/x/net v0.0.0-20210331212208-0fccb6fa2b5c
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -916,7 +916,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210228012217-479acdf4ea46
+# golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

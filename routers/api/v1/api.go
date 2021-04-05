@@ -538,7 +538,7 @@ func bind(obj interface{}) http.HandlerFunc {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.Error(422, "validationError", errs[0].Error())
+			ctx.Error(http.StatusUnprocessableEntity, "validationError", errs[0].Error())
 			return
 		}
 		web.SetForm(ctx, theObj)

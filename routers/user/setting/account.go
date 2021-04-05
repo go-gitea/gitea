@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -33,7 +34,7 @@ func Account(ctx *context.Context) {
 
 	loadAccountData(ctx)
 
-	ctx.HTML(200, tplSettingsAccount)
+	ctx.HTML(http.StatusOK, tplSettingsAccount)
 }
 
 // AccountPost response for change user's password
@@ -45,7 +46,7 @@ func AccountPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -132,7 +133,7 @@ func EmailPost(ctx *context.Context) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
-			mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+			mailer.SendActivateEmailMail(ctx.User, email)
 			address = email.Email
 		}
 
@@ -167,7 +168,7 @@ func EmailPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -194,7 +195,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+		mailer.SendActivateEmailMail(ctx.User, email)
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
@@ -216,7 +217,7 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/account",
 	})
 }

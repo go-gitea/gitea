@@ -313,21 +313,21 @@ func RegisterRoutes(m *web.Route) {
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
 
 	openIDSignUpEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignUp {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
 
 	reqMilestonesDashboardPageEnabled := func(ctx *context.Context) {
 		if !setting.Service.ShowMilestonesDashboardPage {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -335,7 +335,7 @@ func RegisterRoutes(m *web.Route) {
 	// webhooksEnabled requires webhooks to be enabled by admin.
 	webhooksEnabled := func(ctx *context.Context) {
 		if setting.DisableWebhooks {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -400,7 +400,7 @@ func RegisterRoutes(m *web.Route) {
 		})
 	}, reqSignOut)
 
-	m.Any("/user/events", reqSignIn, events.Events)
+	m.Any("/user/events", events.Events)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(auth.AuthorizationForm{}), user.AuthorizeOAuth)

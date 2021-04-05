@@ -6,13 +6,13 @@ package mailer
 
 import (
 	"bytes"
-	"fmt"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 const (
@@ -33,29 +33,40 @@ func MailNewRelease(rel *models.Release) {
 		return
 	}
 
-	tos := make([]string, 0, len(recipients))
-	for _, to := range recipients {
-		if to.ID != rel.PublisherID {
-			tos = append(tos, to.Email)
+	langMap := make(map[string][]string)
+	for _, user := range recipients {
+		if user.ID != rel.PublisherID {
+			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 	}
 
-	rel.RenderedNote = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
-	subject := fmt.Sprintf("%s in %s released", rel.TagName, rel.Repo.FullName())
+	for lang, tos := range langMap {
+		mailNewRelease(lang, tos, rel)
+	}
+}
 
+func mailNewRelease(lang string, tos []string, rel *models.Release) {
+	locale := translation.NewLocale(lang)
+
+	rel.RenderedNote = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
+
+	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]interface{}{
-		"Release": rel,
-		"Subject": subject,
+		"Release":  rel,
+		"Subject":  subject,
+		"i18n":     locale,
+		"Language": locale.Language(),
 	}
 
 	var mailBody bytes.Buffer
 
-	if err = bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	// TODO: i18n templates?
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}
 
-	msgs := make([]*Message, 0, len(recipients))
+	msgs := make([]*Message, 0, len(tos))
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {

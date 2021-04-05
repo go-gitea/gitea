@@ -104,14 +104,14 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{assignee.Email})
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{assignee})
 	}
 }
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []string{reviewer.Email})
+		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{reviewer})
 	}
 }
 
@@ -153,7 +153,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 }
 
 func (m *mailNotifier) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
-	if err := mailer.MailParticipantsComment(comment, models.ActionPullReviewDismissed, review.Issue, []*models.User{}); err != nil {
+	if err := mailer.MailParticipantsComment(comment, models.ActionPullReviewDismissed, review.Issue, nil); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}
 }
