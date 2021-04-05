@@ -898,12 +898,12 @@
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
 
-            .avatar.image {
+            .avatar.image:not(.signature) {
               margin-top: -2px;
             }
 
             .shabox .sha.label {
-              margin: 0;
+              margin-right: 0;
             }
           }
         }
@@ -1200,13 +1200,6 @@
   }
 
   &.compare.pull {
-    .header.commits-table {
-      .sha.label:last-of-type {
-        margin-left: 6px;
-        margin-right: 0;
-      }
-    }
-
     .show-form-container {
       text-align: left;
     }
