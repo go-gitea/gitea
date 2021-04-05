@@ -215,12 +215,13 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate   bool `xorm:"INDEX"`
+	IsEmpty     bool `xorm:"INDEX"`
+	IsArchived  bool `xorm:"INDEX"`
+	IsMirror    bool `xorm:"INDEX"`
+	*Mirror     `xorm:"-"`
+	PushMirrors []*PushMirror    `xorm:"-"`
+	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -658,6 +659,12 @@ func (repo *Repository) IssueStats(uid int64, filterMode int, isPull bool) (int6
 // GetMirror sets the repository mirror, returns an error upon failure
 func (repo *Repository) GetMirror() (err error) {
 	repo.Mirror, err = GetMirrorByRepoID(repo.ID)
+	return err
+}
+
+// LoadPushMirrors populates the repository push mirrors.
+func (repo *Repository) LoadPushMirrors() (err error) {
+	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
 	return err
 }
 

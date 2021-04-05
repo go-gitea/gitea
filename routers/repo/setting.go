@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -46,6 +48,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -169,30 +173,8 @@ func SettingsPost(ctx *context.Context) {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
 		}
 		if err != nil {
-			if models.IsErrInvalidCloneAddr(err) {
-				ctx.Data["Err_MirrorAddress"] = true
-				addrErr := err.(*models.ErrInvalidCloneAddr)
-				switch {
-				case addrErr.IsProtocolInvalid:
-					ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
-				case addrErr.IsURLError:
-					ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, &form)
-				case addrErr.IsPermissionDenied:
-					if addrErr.LocalPath {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
-					} else if len(addrErr.PrivateNet) == 0 {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, &form)
-					} else {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, &form)
-					}
-				case addrErr.IsInvalidPath:
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, &form)
-				default:
-					ctx.ServerError("Unknown error", err)
-				}
-			}
 			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			handleMirrorAddressError(ctx, err, form)
 			return
 		}
 
@@ -213,6 +195,95 @@ func SettingsPost(ctx *context.Context) {
 		mirror_service.StartToMirror(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-sync":
+		m, err := selectPushMirrorByForm(form, repo)
+		if err != nil {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		mirror_service.AddPushMirrorToQueue(m.ID)
+
+		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-remove":
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		m, err := selectPushMirrorByForm(form, repo)
+		if err != nil {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		if err = mirror_service.RemovePushMirrorRemote(m); err != nil {
+			ctx.ServerError("RemovePushMirrorRemote", err)
+			return
+		}
+
+		if err = models.DeletePushMirrorByID(m.ID); err != nil {
+			ctx.ServerError("DeletePushMirrorByID", err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-add":
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		interval, err := time.ParseDuration(form.PushMirrorInterval)
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_PushMirrorInterval"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		address, err := auth.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+		}
+		if err != nil {
+			ctx.Data["Err_PushMirrorAddress"] = true
+			handleMirrorAddressError(ctx, err, form)
+			return
+		}
+
+		remoteSuffix, err := generate.GetRandomString(10)
+		if err != nil {
+			ctx.ServerError("GetRandomString", err)
+			return
+		}
+
+		m := &models.PushMirror{
+			RepoID:     repo.ID,
+			Repo:       repo,
+			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			Interval:   interval,
+		}
+		if interval != 0 {
+			m.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
+		}
+		if err := models.InsertPushMirror(m); err != nil {
+			ctx.ServerError("InsertPushMirror", err)
+			return
+		}
+
+		if err := mirror_service.AddPushMirrorRemote(m, address); err != nil {
+			if err := models.DeletePushMirrorByID(m.ID); err != nil {
+				log.Error("DeletePushMirrorByID %v", err)
+			}
+			ctx.ServerError("AddPushMirrorRemote", err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
@@ -613,6 +684,31 @@ func SettingsPost(ctx *context.Context) {
 	}
 }
 
+func handleMirrorAddressError(ctx *context.Context, err error, form *auth.RepoSettingForm) {
+	if models.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*models.ErrInvalidCloneAddr)
+		switch {
+		case addrErr.IsProtocolInvalid:
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+		case addrErr.IsURLError:
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, form)
+		case addrErr.IsPermissionDenied:
+			if addrErr.LocalPath {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
+			} else if len(addrErr.PrivateNet) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, form)
+			}
+		case addrErr.IsInvalidPath:
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
+		default:
+			ctx.ServerError("Unknown error", err)
+		}
+	}
+	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
+}
+
 // Collaboration render a repository's collaboration page
 func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
@@ -1007,4 +1103,23 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+func selectPushMirrorByForm(form *auth.RepoSettingForm, repo *models.Repository) (*models.PushMirror, error) {
+	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = repo.LoadPushMirrors(); err != nil {
+		return nil, err
+	}
+
+	for _, m := range repo.PushMirrors {
+		if m.ID == id {
+			return m, nil
+		}
+	}
+
+	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 }

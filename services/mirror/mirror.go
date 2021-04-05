@@ -94,3 +94,8 @@ func InitSyncMirrors() {
 func StartToMirror(repoID int64) {
 	go mirrorQueue.Add(fmt.Sprintf("pull %d", repoID))
 }
+
+// AddPushMirrorToQueue adds the push mirror to the queue
+func AddPushMirrorToQueue(mirrorID int64) {
+	go mirrorQueue.Add(fmt.Sprintf("push %d", mirrorID))
+}

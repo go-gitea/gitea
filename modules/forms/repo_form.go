@@ -111,16 +111,21 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName       string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description    string `binding:"MaxSize(255)"`
-	Website        string `binding:"ValidUrl;MaxSize(255)"`
-	Interval       string
-	MirrorAddress  string
-	MirrorUsername string
-	MirrorPassword string
-	Private        bool
-	Template       bool
-	EnablePrune    bool
+	RepoName           string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description        string `binding:"MaxSize(255)"`
+	Website            string `binding:"ValidUrl;MaxSize(255)"`
+	Interval           string
+	MirrorAddress      string
+	MirrorUsername     string
+	MirrorPassword     string
+	PushMirrorID       string
+	PushMirrorAddress  string
+	PushMirrorUsername string
+	PushMirrorPassword string
+	PushMirrorInterval string
+	Private            bool
+	Template           bool
+	EnablePrune        bool
 
 	// Advanced settings
 	EnableWiki                            bool
