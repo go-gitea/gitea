@@ -67,6 +67,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 					return
 				}
 			case func(http.Handler) http.Handler:
+				// FIXME: next should be the remaining handlers
 				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
 				t(next).ServeHTTP(resp, req)
 				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
@@ -168,19 +169,6 @@ func (r *Route) Use(middlewares ...interface{}) {
 				panic(fmt.Sprintf("Unsupported middleware type: %#v", t))
 			}
 		}
-	}
-}
-
-func convertMiddleware(middleware interface{}) func(http.Handler) http.Handler {
-	switch t := middleware.(type) {
-	case func(http.Handler) http.Handler:
-		return t
-	case func(*context.Context):
-		return Middle(t)
-	case func(*context.APIContext):
-		return MiddleAPI(t)
-	default:
-		panic(fmt.Sprintf("Unsupported middleware type: %#v", t))
 	}
 }
 
