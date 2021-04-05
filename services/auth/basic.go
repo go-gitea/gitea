@@ -25,7 +25,7 @@ var (
 	_ Authenticator = &Basic{}
 )
 
-// Basic implements the SingleSignOn interface and authenticates requests (API requests
+// Basic implements the Authenticator interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
 type Basic struct {

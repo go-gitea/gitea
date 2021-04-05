@@ -35,10 +35,10 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ SingleSignOn = &SSPI{}
+	_ Authenticator = &SSPI{}
 )
 
-// SSPI implements the SingleSignOn interface and authenticates requests
+// SSPI implements the Authenticator interface and authenticates requests
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.

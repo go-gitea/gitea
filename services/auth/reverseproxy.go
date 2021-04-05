@@ -25,7 +25,7 @@ var (
 	_ Authenticator = &ReverseProxy{}
 )
 
-// ReverseProxy implements the SingleSignOn interface, but actually relies on
+// ReverseProxy implements the Authenticator interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the

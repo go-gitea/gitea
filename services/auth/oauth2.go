@@ -51,7 +51,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	return grant.UserID
 }
 
-// OAuth2 implements the SingleSignOn interface and authenticates requests
+// OAuth2 implements the Authenticator interface and authenticates requests
 // (API requests only) by looking for an OAuth token in query parameters or the
 // "Authorization" header.
 type OAuth2 struct {
