@@ -12,6 +12,12 @@ insert_final_newline = true
 [*.{go,tmpl,html}]
 indent_style = tab
 
+[templates/custom/*.tmpl]
+insert_final_newline = false
+
+[templates/swagger/v1_json.tmpl]
+indent_style = space
+
 [Makefile]
 indent_style = tab
 
