@@ -42,7 +42,7 @@ func Migrate(ctx *context.Context) {
 		ctx.Data["Org"] = ctx.Query("org")
 		ctx.Data["Mirror"] = ctx.Query("mirror")
 
-		ctx.HTML(200, tplMigrate)
+		ctx.HTML(http.StatusOK, tplMigrate)
 		return
 	}
 
@@ -62,7 +62,7 @@ func Migrate(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	ctx.HTML(200, base.TplName("repo/migrate/"+serviceType.Name()))
+	ctx.HTML(http.StatusOK, base.TplName("repo/migrate/"+serviceType.Name()))
 }
 
 func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
@@ -166,7 +166,7 @@ func MigratePost(ctx *context.Context) {
 	tpl := base.TplName("repo/migrate/" + serviceType.Name())
 
 	if ctx.HasError() {
-		ctx.HTML(200, tpl)
+		ctx.HTML(http.StatusOK, tpl)
 		return
 	}
 

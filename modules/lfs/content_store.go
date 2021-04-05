@@ -60,6 +60,10 @@ func (s *ContentStore) Get(pointer Pointer, fromByte int64) (io.ReadCloser, erro
 	}
 	if fromByte > 0 {
 		if fromByte >= pointer.Size {
+			err = f.Close()
+			if err != nil {
+				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", pointer.Oid, err)
+			}
 			return nil, ErrRangeNotSatisfiable{
 				FromByte: fromByte,
 			}
@@ -67,6 +71,10 @@ func (s *ContentStore) Get(pointer Pointer, fromByte int64) (io.ReadCloser, erro
 		_, err = f.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", pointer.Oid, fromByte, err)
+			errClose := f.Close()
+			if errClose != nil {
+				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", pointer.Oid, errClose)
+			}
 		}
 	}
 	return f, err
@@ -81,7 +89,7 @@ func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.Save(p, wrappedRd)
+	written, err := s.Save(p, wrappedRd, pointer.Size)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
 		return err

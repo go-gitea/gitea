@@ -102,6 +102,7 @@ type PullRequestsConfig struct {
 	AllowSquash               bool
 	AllowManualMerge          bool
 	AutodetectManualMerge     bool
+	DefaultMergeStyle         MergeStyle
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
@@ -123,6 +124,15 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
 		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
+}
+
+// GetDefaultMergeStyle returns the default merge style for this pull request
+func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
+	if len(cfg.DefaultMergeStyle) != 0 {
+		return cfg.DefaultMergeStyle
+	}
+
+	return MergeStyleMerge
 }
 
 // AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig

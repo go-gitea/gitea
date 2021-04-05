@@ -5,6 +5,8 @@
 package admin
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -53,7 +55,7 @@ func DefaultOrSystemWebhooks(ctx *context.Context) {
 	ctx.Data["DefaultWebhooks"] = def
 	ctx.Data["SystemWebhooks"] = sys
 
-	ctx.HTML(200, tplAdminHooks)
+	ctx.HTML(http.StatusOK, tplAdminHooks)
 }
 
 // DeleteDefaultOrSystemWebhook handler to delete an admin-defined system or default webhook
@@ -64,7 +66,7 @@ func DeleteDefaultOrSystemWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/hooks",
 	})
 }

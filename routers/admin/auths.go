@@ -7,6 +7,7 @@ package admin
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"regexp"
 
 	"code.gitea.io/gitea/models"
@@ -49,7 +50,7 @@ func Authentications(ctx *context.Context) {
 	}
 
 	ctx.Data["Total"] = models.CountLoginSources()
-	ctx.HTML(200, tplAuths)
+	ctx.HTML(http.StatusOK, tplAuths)
 }
 
 type dropdownItem struct {
@@ -109,7 +110,7 @@ func NewAuthSource(ctx *context.Context) {
 		break
 	}
 
-	ctx.HTML(200, tplAuthNew)
+	ctx.HTML(http.StatusOK, tplAuthNew)
 }
 
 func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
@@ -256,13 +257,13 @@ func NewAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 	ctx.Data["HasTLS"] = hasTLS
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplAuthNew)
+		ctx.HTML(http.StatusOK, tplAuthNew)
 		return
 	}
 
@@ -310,7 +311,7 @@ func EditAuthSource(ctx *context.Context) {
 	if source.IsOAuth2() {
 		ctx.Data["CurrentOAuth2Provider"] = models.OAuth2Providers[source.OAuth2().Provider]
 	}
-	ctx.HTML(200, tplAuthEdit)
+	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
 
 // EditAuthSourcePost response for editing auth source
@@ -333,7 +334,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplAuthEdit)
+		ctx.HTML(http.StatusOK, tplAuthEdit)
 		return
 	}
 
@@ -356,7 +357,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 			return
 		}
 	default:
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -367,7 +368,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	if err := models.UpdateSource(source); err != nil {
 		if models.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
-			ctx.HTML(200, tplAuthEdit)
+			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
 			ctx.ServerError("UpdateSource", err)
 		}
@@ -393,7 +394,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("DeleteSource: %v", err))
 		}
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": setting.AppSubURL + "/admin/auths/" + ctx.Params(":authid"),
 		})
 		return
@@ -401,7 +402,7 @@ func DeleteAuthSource(ctx *context.Context) {
 	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/auths",
 	})
 }

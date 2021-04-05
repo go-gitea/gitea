@@ -5,6 +5,8 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
@@ -23,7 +25,7 @@ func OpenIDPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadSecurityData(ctx)
 
-		ctx.HTML(200, tplSettingsSecurity)
+		ctx.HTML(http.StatusOK, tplSettingsSecurity)
 		return
 	}
 
@@ -111,7 +113,7 @@ func DeleteOpenID(ctx *context.Context) {
 	log.Trace("OpenID address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }
