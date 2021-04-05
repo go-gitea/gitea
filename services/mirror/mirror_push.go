@@ -20,14 +20,27 @@ import (
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(m *models.PushMirror, addr string) error {
-	if _, err := git.NewCommand("remote", "add", m.RemoteName, addr).RunInDir(m.Repo.RepoPath()); err != nil {
+	addRemoteAndConfig := func(addr, path string) error {
+		if _, err := git.NewCommand("remote", "add", "--mirror=push", m.RemoteName, addr).RunInDir(path); err != nil {
+			return err
+		}
+		if _, err := git.NewCommand("config", "--add", "remote."+m.RemoteName+".push", "+refs/heads/*:refs/heads/*").RunInDir(path); err != nil {
+			return err
+		}
+		if _, err := git.NewCommand("config", "--add", "remote."+m.RemoteName+".push", "+refs/tags/*:refs/tags/*").RunInDir(path); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if err := addRemoteAndConfig(addr, m.Repo.RepoPath()); err != nil {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
-		wikiRemotePath := repository.WikiRemoteURL(addr)
-		if len(wikiRemotePath) > 0 {
-			if _, err := git.NewCommand("remote", "add", m.RemoteName, wikiRemotePath).RunInDir(m.Repo.WikiPath()); err != nil {
+		wikiRemoteURL := repository.WikiRemoteURL(addr)
+		if len(wikiRemoteURL) > 0 {
+			if err := addRemoteAndConfig(wikiRemoteURL, m.Repo.WikiPath()); err != nil {
 				return err
 			}
 		}
