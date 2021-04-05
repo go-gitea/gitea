@@ -617,50 +617,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
 
 			// Get flash.
-			flashCookie := ctx.GetCookie("macaron_flash")
-			vals, _ := url.ParseQuery(flashCookie)
-			if len(vals) > 0 {
-				f := &middleware.Flash{
-					DataStore:  &ctx,
-					Values:     vals,
-					ErrorMsg:   vals.Get("error"),
-					SuccessMsg: vals.Get("success"),
-					InfoMsg:    vals.Get("info"),
-					WarningMsg: vals.Get("warning"),
-				}
-				ctx.Data["Flash"] = f
-			}
-
-			f := &middleware.Flash{
-				DataStore:  &ctx,
-				Values:     url.Values{},
-				ErrorMsg:   "",
-				WarningMsg: "",
-				InfoMsg:    "",
-				SuccessMsg: "",
-			}
-			ctx.Resp.Before(func(resp ResponseWriter) {
-				if flash := f.Encode(); len(flash) > 0 {
-					middleware.SetCookie(resp, "macaron_flash", flash, 0,
-						setting.SessionConfig.CookiePath,
-						middleware.Domain(setting.SessionConfig.Domain),
-						middleware.HTTPOnly(true),
-						middleware.Secure(setting.SessionConfig.Secure),
-						middleware.SameSite(setting.SessionConfig.SameSite),
-					)
-					return
-				}
-
-				middleware.SetCookie(ctx.Resp, "macaron_flash", "", -1,
-					setting.SessionConfig.CookiePath,
-					middleware.Domain(setting.SessionConfig.Domain),
-					middleware.HTTPOnly(true),
-					middleware.Secure(setting.SessionConfig.Secure),
-					middleware.SameSite(setting.SessionConfig.SameSite),
-				)
-			})
-
-			ctx.Flash = f
+			setupFlash(&ctx)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
