@@ -2010,7 +2010,16 @@ table th[data-sortt-desc] {
 }
 
 .ui.header .ui.label {
-  margin-left: 0;
+  margin-left: .25rem;
+  margin-right: .25rem;
+
+  &:first-child {
+    margin-left: 0;
+  }
+
+  &:last-child {
+    margin-right: 0;
+  }
 }
 
 .ui.header > .ui.label.compact {
