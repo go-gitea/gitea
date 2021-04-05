@@ -660,7 +660,10 @@ docs:
 	@hash hugo > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		curl -sL https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_0.74.3_Linux-64bit.tar.gz | tar zxf - -C /tmp && mv /tmp/hugo /usr/bin/hugo && chmod +x /usr/bin/hugo; \
 	fi
-	cd docs; make trans-copy clean build-offline;
+	cd docs; make trans-copy clean ;
+	git co release/v1.13 && PUBLIC=public/v1.13 make build-offline ;
+	git co release/v1.14 && PUBLIC=public/v1.14 make build-offline ;
+	git co master && PUBLIC=public make build-offline ;
 
 .PHONY: deps
 deps: deps-frontend deps-backend
