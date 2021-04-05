@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/dgrijalva/jwt-go"
 	jsoniter "github.com/json-iterator/go"
@@ -655,54 +654,6 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 	u, err := models.GetUserByID(claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
-		return nil, err
-	}
-	return u, nil
-}
-
-func handleOAuth2Token(tokenSHA string) (*models.User, error) {
-	if !strings.Contains(tokenSHA, ".") {
-		return nil, nil
-	}
-	token, err := models.ParseOAuth2Token(tokenSHA)
-	if err != nil {
-		if err.Error() == "invalid token" {
-			return nil, err
-		}
-		return nil, nil
-	}
-	if token.Type != models.TypeAccessToken || token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
-		return nil, fmt.Errorf("invalid token claim")
-	}
-	grant, err := models.GetOAuth2GrantByID(token.GrantID)
-	if err != nil {
-		log.Error("Unable to GetOAuth2GrantByID[%d]: Error: %v", token.GrantID, err)
-		return nil, err
-	}
-	u, err := models.GetUserByID(grant.UserID)
-	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", grant.UserID, err)
-		return nil, err
-	}
-
-	return u, nil
-}
-
-func handleStandardToken(tokenSHA string) (*models.User, error) {
-	t, err := models.GetAccessTokenBySHA(tokenSHA)
-	if err != nil {
-		if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-			log.Error("GetAccessTokenBySHA: %v", err)
-		}
-		return nil, err
-	}
-	t.UpdatedUnix = timeutil.TimeStampNow()
-	if err = models.UpdateAccessToken(t); err != nil {
-		log.Error("UpdateAccessToken: %v", err)
-	}
-	u, err := models.GetUserByID(t.UID)
-	if err != nil {
-		log.Error("Unable to GetUserById[%d]: Error: %v", t.UID, err)
 		return nil, err
 	}
 	return u, nil
