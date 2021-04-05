@@ -22,16 +22,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/auth"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -168,111 +165,25 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// check access
 	if askAuth {
-		// FIXME: middlewares/context.go did basic auth check already,
-		// maybe could use that one.
-		if setting.Service.EnableReverseProxyAuth {
-			authUsername := ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-			if len(authUsername) > 0 {
-				authUser, err = models.GetUserByName(authUsername)
-				if err != nil {
-					ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
-					return
-				}
-			}
+		// rely on the results of Contexter
+		if !ctx.IsSigned {
+			// TODO: support digit auth - which would be Authorization header with digit
+			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+			ctx.Error(http.StatusUnauthorized)
+			return
 		}
-		if authUser == nil {
-			authHead := ctx.Req.Header.Get("Authorization")
-			if len(authHead) == 0 {
-				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
-				ctx.Error(http.StatusUnauthorized)
+
+		authUser = ctx.User
+
+		if ctx.IsBasicAuth {
+			_, err = models.GetTwoFactorByUID(authUser.ID)
+			if err == nil {
+				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
+				ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
-			}
-
-			auths := strings.SplitN(authHead, " ", 2)
-			// currently check basic auth
-			// TODO: support digit auth
-			if len(auths) != 2 || strings.ToLower(auths[0]) != "basic" {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
+			} else if !models.IsErrTwoFactorNotEnrolled(err) {
+				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 				return
-			}
-			authUsername, authPasswd, err := base.BasicAuthDecode(auths[1])
-			if err != nil || (len(authUsername) == 0 && len(authPasswd) == 0) {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-				return
-			}
-
-			// Check if username or password is a token
-			isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
-			// Assume username is token
-			authToken := authUsername
-			if !isUsernameToken {
-				// Assume password is token
-				authToken = authPasswd
-			}
-			uid := auth.CheckOAuthAccessToken(authToken)
-			if uid != 0 {
-				ctx.Data["IsApiToken"] = true
-
-				authUser, err = models.GetUserByID(uid)
-				if err != nil {
-					ctx.ServerError("GetUserByID", err)
-					return
-				}
-			}
-
-			if authUser == nil {
-				// Assume password is a token.
-				token, err := models.GetAccessTokenBySHA(authToken)
-				if err == nil {
-					authUser, err = models.GetUserByID(token.UID)
-					if err != nil {
-						ctx.ServerError("GetUserByID", err)
-						return
-					}
-
-					ctx.Data["IsApiToken"] = true
-
-					token.UpdatedUnix = timeutil.TimeStampNow()
-					if err = models.UpdateAccessToken(token); err != nil {
-						ctx.ServerError("UpdateAccessToken", err)
-					}
-				} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-					log.Error("GetAccessTokenBySha: %v", err)
-				}
-			}
-
-			if authUser == nil && !setting.Service.EnableBasicAuth {
-				ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-				return
-			}
-
-			if authUser == nil {
-				// Check username and password
-				authUser, err = models.UserSignIn(authUsername, authPasswd)
-				if err != nil {
-					if models.IsErrUserProhibitLogin(err) {
-						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
-						return
-					} else if !models.IsErrUserNotExist(err) {
-						ctx.ServerError("UserSignIn error: %v", err)
-						return
-					}
-				}
-
-				if authUser == nil {
-					ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-					return
-				}
-
-				_, err = models.GetTwoFactorByUID(authUser.ID)
-				if err == nil {
-					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
-					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
-					return
-				} else if !models.IsErrTwoFactorNotEnrolled(err) {
-					ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-					return
-				}
 			}
 		}
 

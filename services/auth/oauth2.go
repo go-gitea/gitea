@@ -130,7 +130,7 @@ func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store 
 		return nil
 	}
 
-	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
 		return nil
 	}
 

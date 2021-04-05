@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
 )
@@ -71,12 +72,16 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 
 	user, err := models.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
-			store.GetData()["AuthenticationMechanism"] = ReverseProxyMechanism
-			return r.newUser(req)
+		if !models.IsErrUserNotExist(err) || r.isAutoRegisterAllowed() {
+			log.Error("GetUserByName: %v", err)
+			return nil
 		}
-		log.Error("GetUserByName: %v", err)
-		return nil
+		user = r.newUser(req)
+	}
+
+	// Make sure requests to API paths and PWA resources do not create a new session
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitOrLFSPath(req) {
+		handleSignIn(w, req, sess, user)
 	}
 
 	store.GetData()["AuthenticationMechanism"] = ReverseProxyMechanism

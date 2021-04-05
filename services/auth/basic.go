@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // BasicAuthenticationMechanism represents authentication using Basic authentication
@@ -51,6 +52,13 @@ func (b *Basic) IsEnabled() bool {
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+	// Basic authentication should only fire on API, Download or on Git or LFSPaths
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitOrLFSPath(req) {
+		log.Info("Skipping BASIC authentication")
+		return nil
+	}
+	log.Info("Doing BASIC authentication")
+
 	baHead := req.Header.Get("Authorization")
 	if len(baHead) == 0 {
 		return nil

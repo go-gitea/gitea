@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -723,66 +722,7 @@ func parseToken(authorization string, target *models.Repository, mode models.Acc
 	case "bearer":
 		fallthrough
 	case "token":
-		u, err := handleLFSToken(tokenSHA, target, mode)
-		if err != nil || u != nil {
-			return u, err
-		}
-		u, err = handleOAuth2Token(tokenSHA)
-		if u == nil && err == nil {
-			u, err = handleStandardToken(tokenSHA)
-		}
-		if err != nil {
-			return nil, err
-		}
-		if u != nil {
-			perm, err := models.GetUserRepoPermission(target, u)
-			if err != nil {
-				log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", u, target)
-				return nil, err
-			}
-			if perm.CanAccess(mode, models.UnitTypeCode) {
-				return u, nil
-			}
-		}
-	case "basic":
-		uname, passwd, _ := base.BasicAuthDecode(tokenSHA)
-		if len(uname) == 0 && len(passwd) == 0 {
-			return nil, fmt.Errorf("token not found")
-		}
-		// Check if username or password is a token
-		isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
-		// Assume username is token
-		tokenSHA = uname
-		if !isUsernameToken {
-			// Assume password is token
-			tokenSHA = passwd
-		}
-		u, err := handleOAuth2Token(tokenSHA)
-		if u == nil && err == nil {
-			u, err = handleStandardToken(tokenSHA)
-		}
-		if u == nil && err == nil {
-			if !setting.Service.EnableBasicAuth {
-				return nil, fmt.Errorf("token not found")
-			}
-			u, err = models.UserSignIn(uname, passwd)
-		}
-		if err != nil {
-			if !models.IsErrUserNotExist(err) {
-				log.Error("UserSignIn: %v", err)
-			}
-			return nil, fmt.Errorf("basic auth failed")
-		}
-		if u != nil {
-			perm, err := models.GetUserRepoPermission(target, u)
-			if err != nil {
-				log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", u, target)
-				return nil, err
-			}
-			if perm.CanAccess(mode, models.UnitTypeCode) {
-				return u, nil
-			}
-		}
+		return handleLFSToken(tokenSHA, target, mode)
 	}
 	return nil, fmt.Errorf("token not found")
 }
