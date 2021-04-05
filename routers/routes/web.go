@@ -131,10 +131,9 @@ func NormalRoutes() *web.Route {
 
 // WebRoutes returns all web routes
 func WebRoutes() *web.Route {
-	r := web.NewRoute()
-	all := r
+	routes := web.NewRoute()
 
-	r.Use(session.Sessioner(session.Options{
+	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -145,17 +144,17 @@ func WebRoutes() *web.Route {
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
-	r.Use(Recovery())
+	routes.Use(Recovery())
 
 	// TODO: we should consider if there is a way to mount these using r.Get as at present
 	// these two handlers mean that every request has to hit these "filesystems" twice
 	// before finally getting to the router. It allows them to override any matching router below.
-	r.Use(public.Custom(
+	routes.Use(public.Custom(
 		&public.Options{
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
-	r.Use(public.Static(
+	routes.Use(public.Static(
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
@@ -163,15 +162,15 @@ func WebRoutes() *web.Route {
 	))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
-	r.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	r.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	// for health check
-	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
+	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
 	})
 
@@ -190,11 +189,11 @@ func WebRoutes() *web.Route {
 	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
-		r.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
+		routes.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
 
 	if setting.HasRobotsTxt {
-		r.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
+		routes.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
 			filePath := path.Join(setting.CustomPath, "robots.txt")
 			fi, err := os.Stat(filePath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
@@ -204,30 +203,32 @@ func WebRoutes() *web.Route {
 		})...)
 	}
 
-	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
-	common = append(common, context.Contexter())
-	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	common = append(common, middleware.GetHead)
-
-	common = append(common, user.GetNotificationCount)
-	common = append(common, repo.GetActiveStopwatch)
-
-	r = web.NewRoute()
-	for _, middle := range common {
-		r.Use(middle)
-	}
-
 	// prometheus metrics endpoint
 	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
-		r.Get("/metrics", routers.Metrics)
+		routes.Get("/metrics", append(common, routers.Metrics)...)
 	}
 
-	RegisterRoutes(r)
-	all.Mount("", r)
-	return all
+	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
+	common = append(common, context.Contexter())
+
+	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
+	common = append(common, middleware.GetHead)
+
+	// TODO: These really seem like things that could be folded into Contexter or as helper functions
+	common = append(common, user.GetNotificationCount)
+	common = append(common, repo.GetActiveStopwatch)
+
+	others := web.NewRoute()
+	for _, middle := range common {
+		others.Use(middle)
+	}
+
+	RegisterRoutes(others)
+	routes.Mount("", others)
+	return routes
 }
 
 func goGet(ctx *context.Context) {
