@@ -2293,13 +2293,18 @@
     }
   }
 
-  &.diff .info .grid .column,
+  &.diff .shalist > *,
   &.diff .message {
     overflow: auto;
     white-space: nowrap;
   }
 
   &.diff .info {
+    .author,
+    .shalist {
+      max-width: 100%;
+    }
+
     .sha.label {
       margin-left: .75em;
       margin-right: 0;
