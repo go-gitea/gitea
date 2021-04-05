@@ -28,15 +28,15 @@
 				<pre class="commit-body">{{RenderCommitBody .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
-				<span class="text grey">{{svg "octicon-git-branch"}}{{.BranchName}}</span>
+				<span class="text grey">{{svg "octicon-git-branch" 16 "mr-2"}}{{.BranchName}}</span>
 			{{end}}
 			{{if .TagName}}
-				<span class="text grey">{{svg "octicon-tag"}}{{.TagName}}</span>
+				<span class="text grey">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</span>
 			{{end}}
 		</div>
 		<div class="ui attached info segment {{$class}}">
 			<div class="ui stackable grid">
-				<div class="nine wide column">
+				<div class="seven wide column">
 					{{if .Author}}
 						{{avatar .Author}}
 						{{if .Author.FullName}}
@@ -63,26 +63,23 @@
 					{{end}}
 
 				</div>
-				<div class="seven wide right aligned column">
-					<div class="ui horizontal list">
-						{{if .Parents}}
-							<div class="item">
-								{{.i18n.Tr "repo.diff.parent"}}
-							</div>
-							<div class="item">
-								{{range .Parents}}
-									{{if $.PageIsWiki}}
-										{{$href := (printf "%s%s" $.RepoLink "/wiki/commit/" .)}}
-									{{else}}
-										{{$href := (printf "%s%s" $.RepoLink "/commit/" .)}}
-									{{end}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}"><span class="mono">{{ShortSha .}}</span></a>
+				<div class="nine wide right aligned column di">
+					{{- if .Parents -}}
+						<div class="dif ac mr-4">
+							{{.i18n.Tr "repo.diff.parent"}}
+							{{range .Parents}}
+								{{if $.PageIsWiki}}
+									{{$href := (printf "%s%s" $.RepoLink "/wiki/commit/" .)}}
+								{{else}}
+									{{$href := (printf "%s%s" $.RepoLink "/commit/" .)}}
 								{{end}}
-							</div>
-						{{end}}
-						<div class="mobile-only"></div>
-						<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
-						<div class="item"><span class="ui blue sha label"><span class="mono">{{ShortSha .CommitID}}</span></div>
+								<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}"><span class="mono">{{ShortSha .}}</span></a>
+							{{end}}
+						</div>
+					{{- end -}}
+					<div class="dif ac">
+						{{.i18n.Tr "repo.diff.commit"}}
+						<span class="ui blue sha label"><span class="mono">{{ShortSha .CommitID}}</span></span>
 					</div>
 				</div><!-- end column -->
 			</div><!-- end grid -->
