@@ -7,6 +7,7 @@ package repo
 
 import (
 	"errors"
+	"net/http"
 	"path"
 	"strings"
 
@@ -85,7 +86,7 @@ func Commits(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Graph render commit graph - show commits from all branches.
@@ -167,11 +168,11 @@ func Graph(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = paginator
 	if ctx.QueryBool("div-only") {
-		ctx.HTML(200, tplGraphDiv)
+		ctx.HTML(http.StatusOK, tplGraphDiv)
 		return
 	}
 
-	ctx.HTML(200, tplGraph)
+	ctx.HTML(http.StatusOK, tplGraph)
 }
 
 // SearchCommits render commits filtered by keyword
@@ -205,7 +206,7 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // FileHistory show a file's reversions
@@ -253,7 +254,7 @@ func FileHistory(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Diff show different from current commit to previous commit
@@ -372,7 +373,7 @@ func Diff(ctx *context.Context) {
 		ctx.ServerError("commit.GetTagName", err)
 		return
 	}
-	ctx.HTML(200, tplCommitPage)
+	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"html/template"
 	"image/png"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -162,7 +163,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplSettingsTwofaEnroll)
+	ctx.HTML(http.StatusOK, tplSettingsTwofaEnroll)
 }
 
 // EnrollTwoFactorPost handles enrolling the user into 2FA.
@@ -187,7 +188,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
 		}
-		ctx.HTML(200, tplSettingsTwofaEnroll)
+		ctx.HTML(http.StatusOK, tplSettingsTwofaEnroll)
 		return
 	}
 

@@ -8,6 +8,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
@@ -47,7 +48,7 @@ func Webhooks(ctx *context.Context) {
 	}
 	ctx.Data["Webhooks"] = ws
 
-	ctx.HTML(200, tplHooks)
+	ctx.HTML(http.StatusOK, tplHooks)
 }
 
 type orgRepoCtx struct {
@@ -148,7 +149,7 @@ func WebhooksNew(ctx *context.Context) {
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
-	ctx.HTML(200, orCtx.NewTemplate)
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // ParseHookEvent convert web form content to models.HookEvent
@@ -198,7 +199,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -253,7 +254,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -301,7 +302,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -354,7 +355,7 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -397,7 +398,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -450,7 +451,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -506,7 +507,7 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -549,7 +550,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -610,7 +611,7 @@ func FeishuHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -695,7 +696,7 @@ func WebHooksEdit(ctx *context.Context) {
 	}
 	ctx.Data["Webhook"] = w
 
-	ctx.HTML(200, orCtx.NewTemplate)
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // WebHooksEditPost response for editing web hook
@@ -712,7 +713,7 @@ func WebHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -753,7 +754,7 @@ func GogsHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -793,7 +794,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -845,7 +846,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -889,7 +890,7 @@ func DingtalkHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -922,7 +923,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -964,7 +965,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -1009,7 +1010,7 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -1042,7 +1043,7 @@ func FeishuHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -1124,7 +1125,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
 	})
 }

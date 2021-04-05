@@ -213,7 +213,7 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.

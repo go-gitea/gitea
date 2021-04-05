@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -41,7 +42,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplNewComment)
+	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
@@ -120,12 +121,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -136,7 +137,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -144,7 +145,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -169,7 +170,7 @@ func renderConversation(ctx *context.Context, comment *models.Comment) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplConversation)
+	ctx.HTML(http.StatusOK, tplConversation)
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist

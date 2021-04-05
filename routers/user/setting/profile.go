@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +38,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
-	ctx.HTML(200, tplSettingsProfile)
+	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
@@ -79,7 +80,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsProfile"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsProfile)
+		ctx.HTML(http.StatusOK, tplSettingsProfile)
 		return
 	}
 
@@ -204,7 +205,7 @@ func Organization(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Orgs"] = orgs
-	ctx.HTML(200, tplSettingsOrganization)
+	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
 
 // Repos display a list of all repositories of the user
@@ -305,5 +306,5 @@ func Repos(ctx *context.Context) {
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsRepositories)
+	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }
