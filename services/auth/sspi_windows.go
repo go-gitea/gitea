@@ -98,6 +98,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		// Include the user login page in the 401 response to allow the user
 		// to login with another authentication method if SSPI authentication
 		// fails
+		// FIXME: This doesn't work
 		store.GetData()["Flash"] = map[string]string{
 			"ErrorMsg": err.Error(),
 		}

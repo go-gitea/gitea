@@ -649,6 +649,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+			// FIXME: do we really always need these setting?
 			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
