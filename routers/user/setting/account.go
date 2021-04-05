@@ -7,6 +7,7 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -33,7 +34,7 @@ func Account(ctx *context.Context) {
 
 	loadAccountData(ctx)
 
-	ctx.HTML(200, tplSettingsAccount)
+	ctx.HTML(http.StatusOK, tplSettingsAccount)
 }
 
 // AccountPost response for change user's password
@@ -45,7 +46,7 @@ func AccountPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -167,7 +168,7 @@ func EmailPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -216,7 +217,7 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/account",
 	})
 }

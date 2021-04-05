@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"path"
 	"strings"
 
@@ -51,5 +52,5 @@ func Search(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplSearch)
+	ctx.HTML(http.StatusOK, tplSearch)
 }

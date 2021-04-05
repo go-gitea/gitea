@@ -6,6 +6,7 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ func ProtectedBranch(ctx *context.Context) {
 
 	ctx.Data["LeftBranches"] = leftBranches
 
-	ctx.HTML(200, tplBranches)
+	ctx.HTML(http.StatusOK, tplBranches)
 }
 
 // ProtectedBranchPost response for protect for a branch of a repository
@@ -62,7 +63,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 	switch ctx.Query("action") {
 	case "default_branch":
 		if ctx.HasError() {
-			ctx.HTML(200, tplBranches)
+			ctx.HTML(http.StatusOK, tplBranches)
 			return
 		}
 
@@ -165,7 +166,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["Branch"] = protectBranch
-	c.HTML(200, tplProtectedBranch)
+	c.HTML(http.StatusOK, tplProtectedBranch)
 }
 
 // SettingsProtectedBranchPost updates the protected branch settings

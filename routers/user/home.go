@@ -8,6 +8,7 @@ package user
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -160,7 +161,7 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.HTML(200, tplDashboard)
+	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // Milestones render the user milestones page
@@ -320,7 +321,7 @@ func Milestones(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplMilestones)
+	ctx.HTML(http.StatusOK, tplMilestones)
 }
 
 // Pulls renders the user's pull request overview page
@@ -705,7 +706,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplIssues)
+	ctx.HTML(http.StatusOK, tplIssues)
 }
 
 func getRepoIDs(reposQuery string) []int64 {

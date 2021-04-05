@@ -6,6 +6,7 @@
 package org
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -35,7 +36,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
-	ctx.HTML(200, tplSettingsOptions)
+	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for settings change submited
@@ -46,7 +47,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsOptions)
+		ctx.HTML(http.StatusOK, tplSettingsOptions)
 		return
 	}
 
@@ -165,7 +166,7 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplSettingsDelete)
+	ctx.HTML(http.StatusOK, tplSettingsDelete)
 }
 
 // Webhooks render webhook list page
@@ -183,7 +184,7 @@ func Webhooks(ctx *context.Context) {
 	}
 
 	ctx.Data["Webhooks"] = ws
-	ctx.HTML(200, tplSettingsHooks)
+	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
 
 // DeleteWebhook response for delete webhook
@@ -194,7 +195,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
 }
@@ -205,5 +206,5 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.HTML(200, tplSettingsLabels)
+	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -25,7 +27,7 @@ func Applications(ctx *context.Context) {
 
 	loadApplicationsData(ctx)
 
-	ctx.HTML(200, tplSettingsApplications)
+	ctx.HTML(http.StatusOK, tplSettingsApplications)
 }
 
 // ApplicationsPost response for add user's access token
@@ -37,7 +39,7 @@ func ApplicationsPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
 
-		ctx.HTML(200, tplSettingsApplications)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
 		return
 	}
 
@@ -76,7 +78,7 @@ func DeleteApplication(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.delete_token_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }

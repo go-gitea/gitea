@@ -146,7 +146,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["PageIsLogin"] = true
 	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
 
-	ctx.HTML(200, tplSignIn)
+	ctx.HTML(http.StatusOK, tplSignIn)
 }
 
 // SignInPost response for sign in request
@@ -167,7 +167,7 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSignIn)
+		ctx.HTML(http.StatusOK, tplSignIn)
 		return
 	}
 
@@ -183,15 +183,15 @@ func SignInPost(ctx *context.Context) {
 		} else if models.IsErrUserProhibitLogin(err) {
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(200, "user/auth/prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 		} else if models.IsErrUserInactive(err) {
 			if setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, TplActivate)
+				ctx.HTML(http.StatusOK, TplActivate)
 			} else {
 				log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(200, "user/auth/prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 			}
 		} else {
 			ctx.ServerError("UserSignIn", err)
@@ -248,7 +248,7 @@ func TwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplTwofa)
+	ctx.HTML(http.StatusOK, tplTwofa)
 }
 
 // TwoFactorPost validates a user's two-factor authentication token.
@@ -327,7 +327,7 @@ func TwoFactorScratch(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplTwofaScratch)
+	ctx.HTML(http.StatusOK, tplTwofaScratch)
 }
 
 // TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
@@ -393,7 +393,7 @@ func U2F(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplU2F)
+	ctx.HTML(http.StatusOK, tplU2F)
 }
 
 // U2FChallenge submits a sign challenge to the browser
@@ -427,7 +427,7 @@ func U2FChallenge(ctx *context.Context) {
 		ctx.ServerError("UserSignIn: unable to store session", err)
 	}
 
-	ctx.JSON(200, challenge.SignRequest(regs.ToRegistrations()))
+	ctx.JSON(http.StatusOK, challenge.SignRequest(regs.ToRegistrations()))
 }
 
 // U2FSign authenticates the user by signResp
@@ -487,7 +487,7 @@ func U2FSign(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(401)
+	ctx.Error(http.StatusUnauthorized)
 }
 
 // This handles the final part of the sign-in process of the user.
@@ -791,7 +791,7 @@ func LinkAccount(ctx *context.Context) {
 		}
 	}
 
-	ctx.HTML(200, tplLinkAccount)
+	ctx.HTML(http.StatusOK, tplLinkAccount)
 }
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
@@ -821,7 +821,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplLinkAccount)
+		ctx.HTML(http.StatusOK, tplLinkAccount)
 		return
 	}
 
@@ -908,12 +908,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplLinkAccount)
+		ctx.HTML(http.StatusOK, tplLinkAccount)
 		return
 	}
 
 	if setting.Service.DisableRegistration {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1033,7 +1033,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(200, TplActivate)
+		ctx.HTML(http.StatusOK, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -1084,7 +1084,7 @@ func SignUp(ctx *context.Context) {
 	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
-	ctx.HTML(200, tplSignUp)
+	ctx.HTML(http.StatusOK, tplSignUp)
 }
 
 // SignUpPost response for sign up information submission
@@ -1104,12 +1104,12 @@ func SignUpPost(ctx *context.Context) {
 
 	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSignUp)
+		ctx.HTML(http.StatusOK, tplSignUp)
 		return
 	}
 
@@ -1218,7 +1218,7 @@ func SignUpPost(ctx *context.Context) {
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(200, TplActivate)
+		ctx.HTML(http.StatusOK, TplActivate)
 
 		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -1238,7 +1238,7 @@ func Activate(ctx *context.Context) {
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
 		if ctx.User.IsActive {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		// Resend confirmation email.
@@ -1256,7 +1256,7 @@ func Activate(ctx *context.Context) {
 		} else {
 			ctx.Data["ServiceNotEnabled"] = true
 		}
-		ctx.HTML(200, TplActivate)
+		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
 
@@ -1264,7 +1264,7 @@ func Activate(ctx *context.Context) {
 	// if code is wrong
 	if user == nil {
 		ctx.Data["IsActivateFailed"] = true
-		ctx.HTML(200, TplActivate)
+		ctx.HTML(http.StatusOK, TplActivate)
 		return
 	}
 
@@ -1273,12 +1273,12 @@ func Activate(ctx *context.Context) {
 		if len(password) == 0 {
 			ctx.Data["Code"] = code
 			ctx.Data["NeedsPassword"] = true
-			ctx.HTML(200, TplActivate)
+			ctx.HTML(http.StatusOK, TplActivate)
 			return
 		}
 		if !user.ValidatePassword(password) {
 			ctx.Data["IsActivateFailed"] = true
-			ctx.HTML(200, TplActivate)
+			ctx.HTML(http.StatusOK, TplActivate)
 			return
 		}
 	}
@@ -1291,7 +1291,7 @@ func Activate(ctx *context.Context) {
 	}
 	if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}
@@ -1348,7 +1348,7 @@ func ForgotPasswd(ctx *context.Context) {
 
 	if setting.MailService == nil {
 		ctx.Data["IsResetDisable"] = true
-		ctx.HTML(200, tplForgotPassword)
+		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
 	}
 
@@ -1356,7 +1356,7 @@ func ForgotPasswd(ctx *context.Context) {
 	ctx.Data["Email"] = email
 
 	ctx.Data["IsResetRequest"] = true
-	ctx.HTML(200, tplForgotPassword)
+	ctx.HTML(http.StatusOK, tplForgotPassword)
 }
 
 // ForgotPasswdPost response for forget password request
@@ -1377,7 +1377,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
 			ctx.Data["IsResetSent"] = true
-			ctx.HTML(200, tplForgotPassword)
+			ctx.HTML(http.StatusOK, tplForgotPassword)
 			return
 		}
 
@@ -1393,7 +1393,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
 		ctx.Data["ResendLimited"] = true
-		ctx.HTML(200, tplForgotPassword)
+		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
 	}
 
@@ -1405,7 +1405,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
 	ctx.Data["IsResetSent"] = true
-	ctx.HTML(200, tplForgotPassword)
+	ctx.HTML(http.StatusOK, tplForgotPassword)
 }
 
 func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
@@ -1461,7 +1461,7 @@ func ResetPasswd(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplResetPassword)
+	ctx.HTML(http.StatusOK, tplResetPassword)
 }
 
 // ResetPasswdPost response from account recovery request
@@ -1473,7 +1473,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	if u == nil {
 		// Flash error has been set
-		ctx.HTML(200, tplResetPassword)
+		ctx.HTML(http.StatusOK, tplResetPassword)
 		return
 	}
 
@@ -1578,7 +1578,7 @@ func MustChangePassword(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	ctx.Data["MustChangePassword"] = true
-	ctx.HTML(200, tplMustChangePassword)
+	ctx.HTML(http.StatusOK, tplMustChangePassword)
 }
 
 // MustChangePasswordPost response for updating a user's password after his/her
@@ -1588,7 +1588,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {
-		ctx.HTML(200, tplMustChangePassword)
+		ctx.HTML(http.StatusOK, tplMustChangePassword)
 		return
 	}
 	u := ctx.User

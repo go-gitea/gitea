@@ -5,6 +5,8 @@
 package org
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	auth "code.gitea.io/gitea/modules/forms"
@@ -58,7 +60,7 @@ func UpdateLabel(ctx *context.Context) {
 	if err != nil {
 		switch {
 		case models.IsErrOrgLabelNotExist(err):
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -83,7 +85,7 @@ func DeleteLabel(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/labels",
 	})
 }
