@@ -208,13 +208,13 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		// Request raw paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Body.Len())
+		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+		assert.Equal(t, littleSize, resp.Length)
 
 		setting.CheckLFSVersion()
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
+			resp := session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
 			assert.LessOrEqual(t, resp.Body.Len(), 1024)
 			if resp.Body.Len() != littleSize && resp.Body.Len() <= 1024 {
@@ -224,12 +224,12 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Body.Len())
+			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
+				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, bigSize, resp.Body.Len())
 				if resp.Body.Len() != bigSize && resp.Body.Len() <= 1024 {
 					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
