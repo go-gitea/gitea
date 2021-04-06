@@ -68,10 +68,11 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(http.Handler) http.Handler:
 				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-				t(next).ServeHTTP(resp, req)
-				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
-					return
+				if len(handlers) > i+1 {
+					next = Wrap(handlers[i+1:]...)
 				}
+				t(next).ServeHTTP(resp, req)
+				return
 			default:
 				panic(fmt.Sprintf("Unsupported handler type: %#v", t))
 			}
