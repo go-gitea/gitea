@@ -10,14 +10,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 )
@@ -99,31 +97,65 @@ func TestPatch(pr *models.PullRequest) error {
 }
 
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
-	// 1. Create a plain patch from head to base
-	tmpPatchFile, err := ioutil.TempFile("", "patch")
+	// 1. preset the pr.Status as checking (this is not saved at present)
+	pr.Status = models.PullRequestStatusChecking
+
+	// 2. Now get the pull request configuration to check if we need to ignore whitespace
+	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
 	if err != nil {
-		log.Error("Unable to create temporary patch file! Error: %v", err)
-		return false, fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
+		return false, err
 	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	// 3. Read the base branch in to the index of the temporary repository
+	if _, err := git.NewCommand("read-tree", "base").RunInDir(tmpBasePath); err != nil {
+		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
+	}
+
+	// 4. Now use read-tree -m to shortcut if there are no conflicts
+	if _, err := git.NewCommand("read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
+		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
+	}
+
+	// 4b. Now check git status to see if there are any conflicted files
+	statusReader, statusWriter := io.Pipe()
 	defer func() {
-		_ = util.Remove(tmpPatchFile.Name())
+		_ = statusReader.Close()
+		_ = statusWriter.Close()
 	}()
 
-	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
-		tmpPatchFile.Close()
-		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-		return false, fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-	}
-	stat, err := tmpPatchFile.Stat()
-	if err != nil {
-		tmpPatchFile.Close()
-		return false, fmt.Errorf("Unable to stat patch file: %v", err)
-	}
-	patchPath := tmpPatchFile.Name()
-	tmpPatchFile.Close()
+	go func() {
+		stderr := &strings.Builder{}
+		if err := git.NewCommand("status", "--porcelain", "-z").RunInDirPipeline(tmpBasePath, statusWriter, stderr); err != nil {
+			_ = statusWriter.CloseWithError(git.ConcatenateError(err, stderr.String()))
+		} else {
+			_ = statusWriter.Close()
+		}
+	}()
 
-	// 1a. if the size of that patch is 0 - there can be no conflicts!
-	if stat.Size() == 0 {
+	conflictFiles := []string{}
+	numFiles := 0
+
+	bufReader := bufio.NewReader(statusReader)
+loop:
+	for {
+		line, err := bufReader.ReadString('\000')
+		if err != nil {
+			break loop
+		}
+		numFiles++
+		if len(line) < 3 || line[3] != ' ' {
+			continue
+		}
+		// Conflicted statuses
+		if !strings.Contains("DD AU UD UA DU AA UU ", line[:3]) {
+			continue
+		}
+		conflictFiles = append(conflictFiles, line[3:])
+	}
+
+	// 4c. If there are no files changed this is an empty patch
+	if numFiles == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = models.PullRequestStatusEmpty
 		pr.ConflictedFiles = []string{}
@@ -131,33 +163,44 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPatch (patchPath): %s", pr.ID, patchPath)
-
-	// 2. preset the pr.Status as checking (this is not save at present)
-	pr.Status = models.PullRequestStatusChecking
-
-	// 3. Read the base branch in to the index of the temporary repository
-	_, err = git.NewCommand("read-tree", "base").RunInDir(tmpBasePath)
-	if err != nil {
-		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
+	// 4d. If there are no potentially conflicted files stop
+	if len(conflictFiles) == 0 {
+		pr.ConflictedFiles = []string{}
+		return false, nil
 	}
 
-	// 4. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
-	if err != nil {
-		return false, err
-	}
-	prConfig := prUnit.PullRequestsConfig()
+	// 5a. Prepare the diff
+	diffReader, diffWriter := io.Pipe()
+	defer func() {
+		_ = diffReader.Close()
+		_ = diffWriter.Close()
+	}()
 
-	// 5. Prepare the arguments to apply the patch against the index
-	args := []string{"apply", "--check", "--cached"}
+	args := make([]string, 0, len(conflictFiles)+5)
+	args = append(args, "diff", "-p", pr.MergeBase, "tracking", "--")
+	args = append(args, conflictFiles...)
+
+	// 5b. Create a plain patch from head to base
+	go func() {
+		if err := git.NewCommand(args...).RunInDirPipeline(tmpBasePath, diffWriter, nil); err != nil {
+			log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+			_ = diffWriter.CloseWithError(err)
+			return
+		}
+		_ = diffWriter.Close()
+	}()
+
+	args = args[:0]
+
+	// 5c. Prepare the arguments to apply the patch against the index
+	args = append(args, "apply", "--check", "--cached")
 	if prConfig.IgnoreWhitespaceConflicts {
 		args = append(args, "--ignore-whitespace")
 	}
-	args = append(args, patchPath)
+	args = append(args, "-")
 	pr.ConflictedFiles = make([]string, 0, 5)
 
-	// 6. Prep the pipe:
+	// 5d. Prep the pipe:
 	//   - Here we could do the equivalent of:
 	//  `git apply --check --cached patch_file > conflicts`
 	//     Then iterate through the conflicts. However, that means storing all the conflicts
@@ -165,72 +208,65 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	//   - alternatively we can do the equivalent of:
 	//  `git apply --check ... | grep ...`
 	//     meaning we don't store all of the conflicts unnecessarily.
-	stderrReader, stderrWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
-		return false, fmt.Errorf("Unable to open stderr pipe: %v", err)
-	}
+	stderrReader, stderrWriter := io.Pipe()
 	defer func() {
 		_ = stderrReader.Close()
 		_ = stderrWriter.Close()
 	}()
 
-	// 7. Run the check command
+	// 5e. Run the apply --check command
 	conflict := false
-	err = git.NewCommand(args...).
-		RunInDirTimeoutEnvFullPipelineFunc(
-			nil, -1, tmpBasePath,
-			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stderrWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stderrReader.Close()
-				}()
+	go func() {
+		if err := git.NewCommand(args...).RunInDirTimeoutEnvFullPipeline(nil, -1, tmpBasePath, nil, stderrWriter, diffReader); err != nil {
+			_ = stderrWriter.CloseWithError(err)
+			return
+		}
+		_ = stderrWriter.Close()
+	}()
+	const empty = "error: unrecognised input"
 
-				const prefix = "error: patch failed:"
-				const errorPrefix = "error: "
+	const prefix = "error: patch failed:"
+	const errorPrefix = "error: "
 
-				conflictMap := map[string]bool{}
+	conflictMap := map[string]bool{}
 
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stderrReader)
-				for scanner.Scan() {
-					line := scanner.Text()
-					if strings.HasPrefix(line, prefix) {
-						conflict = true
-						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+	// 5f. Now scan the output from the command
+	scanner := bufio.NewScanner(stderrReader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.EqualFold(line, empty) && !conflict {
+			// ignore
+		} else if strings.HasPrefix(line, prefix) {
+			conflict = true
+			filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
+			conflictMap[filepath] = true
+		} else if strings.HasPrefix(line, errorPrefix) {
+			conflict = true
+			for _, suffix := range patchErrorSuffices {
+				if strings.HasSuffix(line, suffix) {
+					filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
+					if filepath != "" {
 						conflictMap[filepath] = true
-					} else if strings.HasPrefix(line, errorPrefix) {
-						conflict = true
-						for _, suffix := range patchErrorSuffices {
-							if strings.HasSuffix(line, suffix) {
-								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
-								if filepath != "" {
-									conflictMap[filepath] = true
-								}
-								break
-							}
-						}
 					}
-					// only list 10 conflicted files
-					if len(conflictMap) >= 10 {
-						break
-					}
+					break
 				}
+			}
+		}
+		// only list 10 conflicted files
+		if len(conflictMap) >= 10 {
+			break
+		}
+	}
+	err = scanner.Err()
 
-				if len(conflictMap) > 0 {
-					pr.ConflictedFiles = make([]string, 0, len(conflictMap))
-					for key := range conflictMap {
-						pr.ConflictedFiles = append(pr.ConflictedFiles, key)
-					}
-				}
+	if len(conflictMap) > 0 {
+		pr.ConflictedFiles = make([]string, 0, len(conflictMap))
+		for key := range conflictMap {
+			pr.ConflictedFiles = append(pr.ConflictedFiles, key)
+		}
+	}
 
-				return nil
-			})
-
-	// 8. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
+	// 6. If there is a conflict the `git apply` command will return a non-zero error code - so there will be a positive error.
 	if err != nil {
 		if conflict {
 			pr.Status = models.PullRequestStatusConflict
