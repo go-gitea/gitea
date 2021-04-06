@@ -96,6 +96,8 @@ func TestPatch(pr *models.PullRequest) error {
 	return nil
 }
 
+const conflictStatus = "DD AU UD UA DU AA UU "
+
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
 	// 1. preset the pr.Status as checking (this is not saved at present)
 	pr.Status = models.PullRequestStatusChecking
@@ -148,7 +150,7 @@ loop:
 			continue
 		}
 		// Conflicted statuses
-		if !strings.Contains("DD AU UD UA DU AA UU ", line[:3]) {
+		if !strings.Contains(conflictStatus, line[:3]) {
 			continue
 		}
 		conflictFiles = append(conflictFiles, line[3:])
