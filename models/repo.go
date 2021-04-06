@@ -1466,6 +1466,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Watch{RepoID: repoID},
 		&Star{RepoID: repoID},
 		&Mirror{RepoID: repoID},
+		&PushMirror{RepoID: repoID},
 		&Milestone{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
