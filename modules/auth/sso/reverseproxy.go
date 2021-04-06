@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
 )
@@ -68,12 +69,21 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 
 	user, err := models.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) && r.isAutoRegisterAllowed() {
-			return r.newUser(req)
+		if !models.IsErrUserNotExist(err) || r.isAutoRegisterAllowed() {
+			log.Error("GetUserByName: %v", err)
+			return nil
 		}
-		log.Error("GetUserByName: %v", err)
-		return nil
+		user = r.newUser(req)
 	}
+
+	// Make sure requests to API paths and PWA resources do not create a new session
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitOrLFSPath(req) {
+		if sess.Get("uid").(int64) != user.ID {
+			handleSignIn(w, req, sess, user)
+		}
+	}
+	log.Info("Setting IsReverseProxy")
+	store.GetData()["IsReverseProxy"] = true
 
 	return user
 }
@@ -102,7 +112,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 	user := &models.User{
 		Name:     username,
 		Email:    email,
-		Passwd:   username,
 		IsActive: true,
 	}
 	if err := models.CreateUser(user); err != nil {
@@ -110,5 +119,6 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
 	return user
 }
