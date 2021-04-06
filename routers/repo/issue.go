@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	comment_service "code.gitea.io/gitea/services/comments"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -836,7 +836,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -934,7 +934,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateIssueForm)
+	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
@@ -1961,7 +1961,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 
 // NewComment create a comment for issue
 func NewComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateCommentForm)
+	form := web.GetForm(ctx).(*forms.CreateCommentForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -2171,7 +2171,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ReactionForm)
+	form := web.GetForm(ctx).(*forms.ReactionForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -2267,7 +2267,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ReactionForm)
+	form := web.GetForm(ctx).(*forms.ReactionForm)
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
