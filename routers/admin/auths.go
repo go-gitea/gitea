@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"xorm.io/xorm/convert"
 )
@@ -113,7 +113,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
 
-func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
+func parseLDAPConfig(form forms.AuthenticationForm) *models.LDAPConfig {
 	var pageSize uint32
 	if form.UsePagedSearch {
 		pageSize = uint32(form.SearchPageSize)
@@ -150,7 +150,7 @@ func parseLDAPConfig(form auth.AuthenticationForm) *models.LDAPConfig {
 	}
 }
 
-func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
+func parseSMTPConfig(form forms.AuthenticationForm) *models.SMTPConfig {
 	return &models.SMTPConfig{
 		Auth:           form.SMTPAuth,
 		Host:           form.SMTPHost,
@@ -161,7 +161,7 @@ func parseSMTPConfig(form auth.AuthenticationForm) *models.SMTPConfig {
 	}
 }
 
-func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
+func parseOAuth2Config(form forms.AuthenticationForm) *models.OAuth2Config {
 	var customURLMapping *oauth2.CustomURLMapping
 	if form.Oauth2UseCustomURL {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -183,7 +183,7 @@ func parseOAuth2Config(form auth.AuthenticationForm) *models.OAuth2Config {
 	}
 }
 
-func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*models.SSPIConfig, error) {
+func parseSSPIConfig(ctx *context.Context, form forms.AuthenticationForm) (*models.SSPIConfig, error) {
 	if util.IsEmptyString(form.SSPISeparatorReplacement) {
 		ctx.Data["Err_SSPISeparatorReplacement"] = true
 		return nil, errors.New(ctx.Tr("form.SSPISeparatorReplacement") + ctx.Tr("form.require_error"))
@@ -209,7 +209,7 @@ func parseSSPIConfig(ctx *context.Context, form auth.AuthenticationForm) (*model
 
 // NewAuthSourcePost response for adding an auth source
 func NewAuthSourcePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
+	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.new")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
@@ -316,7 +316,7 @@ func EditAuthSource(ctx *context.Context) {
 
 // EditAuthSourcePost response for editing auth source
 func EditAuthSourcePost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.AuthenticationForm)
+	form := *web.GetForm(ctx).(*forms.AuthenticationForm)
 	ctx.Data["Title"] = ctx.Tr("admin.auths.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true

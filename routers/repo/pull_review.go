@@ -11,9 +11,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -47,7 +47,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 
 // CreateCodeComment will create a code comment including an pending review if required
 func CreateCodeComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CodeCommentForm)
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
 	issue := GetActionIssue(ctx)
 	if !issue.IsPull {
 		return
@@ -175,7 +175,7 @@ func renderConversation(ctx *context.Context, comment *models.Comment) {
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.SubmitReviewForm)
+	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
 	if !issue.IsPull {
 		return
@@ -227,7 +227,7 @@ func SubmitReview(ctx *context.Context) {
 
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.DismissReviewForm)
+	form := web.GetForm(ctx).(*forms.DismissReviewForm)
 	comm, err := pull_service.DismissReview(form.ReviewID, form.Message, ctx.User, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
