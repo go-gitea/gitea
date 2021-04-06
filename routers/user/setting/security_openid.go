@@ -10,15 +10,15 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // OpenIDPost response for change user's openid
 func OpenIDPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AddOpenIDForm)
+	form := web.GetForm(ctx).(*forms.AddOpenIDForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -81,7 +81,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &auth.AddOpenIDForm{
+		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &forms.AddOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -92,7 +92,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	oid := &models.UserOpenID{UID: ctx.User.ID, URI: id}
 	if err = models.AddUserOpenID(oid); err != nil {
 		if models.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &auth.AddOpenIDForm{Openid: id})
+			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
