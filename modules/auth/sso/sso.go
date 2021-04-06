@@ -29,9 +29,9 @@ import (
 // for users that have already signed in.
 var ssoMethods = []SingleSignOn{
 	&OAuth2{},
+	&Basic{},
 	&Session{},
 	&ReverseProxy{},
-	&Basic{},
 }
 
 // The purpose of the following three function variables is to let the linter know that
