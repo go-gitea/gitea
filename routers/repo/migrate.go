@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -63,7 +63,7 @@ func Migrate(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, base.TplName("repo/migrate/"+serviceType.Name()))
 }
 
-func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *auth.MigrateRepoForm) {
+func handleMigrateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form *forms.MigrateRepoForm) {
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigrateError: the site administrator has disabled migrations")
 		return
@@ -98,7 +98,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
-		remoteAddr, _ := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+		remoteAddr, _ := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 		err = util.URLSanitizedError(err, remoteAddr)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
@@ -116,7 +116,7 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.MigrateRepoForm)
+	form := web.GetForm(ctx).(*forms.MigrateRepoForm)
 	if setting.Repository.DisableMigrations {
 		ctx.Error(http.StatusForbidden, "MigratePost: the site administrator has disabled migrations")
 		return
@@ -139,7 +139,7 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	remoteAddr, err := auth.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
+	remoteAddr, err := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
 	if err == nil {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
 	}
