@@ -89,6 +89,9 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	if setting.EnableAccessLog {
+		handlers = append(handlers, context.AccessLogger())
+	}
 
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -177,10 +180,6 @@ func WebRoutes() *web.Route {
 	r.Use(context.Contexter())
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	r.Use(middleware.GetHead)
-
-	if setting.EnableAccessLog {
-		r.Use(context.AccessLogger())
-	}
 
 	r.Use(user.GetNotificationCount)
 	r.Use(repo.GetActiveStopwatch)
