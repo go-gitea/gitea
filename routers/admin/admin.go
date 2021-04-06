@@ -7,6 +7,7 @@ package admin
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -128,7 +129,7 @@ func Dashboard(ctx *context.Context) {
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
-	ctx.HTML(200, tplDashboard)
+	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // DashboardPost run an admin operation
@@ -315,7 +316,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
-	ctx.HTML(200, tplConfig)
+	ctx.HTML(http.StatusOK, tplConfig)
 }
 
 // Monitor show admin monitor page
@@ -326,14 +327,14 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-	ctx.HTML(200, tplMonitor)
+	ctx.HTML(http.StatusOK, tplMonitor)
 }
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
@@ -350,7 +351,7 @@ func Queue(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Queue"] = mq
-	ctx.HTML(200, tplQueue)
+	ctx.HTML(http.StatusOK, tplQueue)
 }
 
 // WorkerCancel cancels a worker group
@@ -364,7 +365,7 @@ func WorkerCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }

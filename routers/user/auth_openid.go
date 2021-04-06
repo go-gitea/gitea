@@ -6,6 +6,7 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -59,7 +60,7 @@ func SignInOpenID(ctx *context.Context) {
 
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLoginOpenID"] = true
-	ctx.HTML(200, tplSignInOpenID)
+	ctx.HTML(http.StatusOK, tplSignInOpenID)
 }
 
 // Check if the given OpenID URI is allowed by blacklist/whitelist
@@ -95,7 +96,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	ctx.Data["PageIsLoginOpenID"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSignInOpenID)
+		ctx.HTML(http.StatusOK, tplSignInOpenID)
 		return
 	}
 
@@ -271,7 +272,7 @@ func ConnectOpenID(ctx *context.Context) {
 	if userName != "" {
 		ctx.Data["user_name"] = userName
 	}
-	ctx.HTML(200, tplConnectOID)
+	ctx.HTML(http.StatusOK, tplConnectOID)
 }
 
 // ConnectOpenIDPost handles submission of a form to connect an OpenID URI to an existing account
@@ -342,7 +343,7 @@ func RegisterOpenID(ctx *context.Context) {
 	if email != "" {
 		ctx.Data["email"] = email
 	}
-	ctx.HTML(200, tplSignUpOID)
+	ctx.HTML(http.StatusOK, tplSignUpOID)
 }
 
 // RegisterOpenIDPost handles submission of a form to create a new user authenticated via an OpenID URI
