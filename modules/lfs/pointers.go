@@ -67,5 +67,5 @@ func IsPointerFile(buf *[]byte) *models.LFSMetaObject {
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(meta *models.LFSMetaObject) (io.ReadCloser, error) {
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	return contentStore.Get(meta, 0)
+	return contentStore.Get(meta)
 }
