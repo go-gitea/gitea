@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -96,6 +98,20 @@ func SessionUser(sess SessionStore) *models.User {
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
+}
+
+var gitPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)`)
+var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+
+func isGitOrLFSPath(req *http.Request) bool {
+	log.Info("Checking: %q", req.URL.Path)
+	if gitPathRe.MatchString(req.URL.Path) {
+		return true
+	}
+	if setting.LFS.StartServer {
+		return lfsPathRe.MatchString(req.URL.Path)
+	}
+	return false
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
