@@ -85,7 +85,7 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.New().String()
 
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
+	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file), -1)
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
