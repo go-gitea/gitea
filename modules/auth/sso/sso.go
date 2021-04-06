@@ -104,7 +104,6 @@ var gitPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:git-(?:
 var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 
 func isGitOrLFSPath(req *http.Request) bool {
-	log.Info("Checking: %q", req.URL.Path)
 	if gitPathRe.MatchString(req.URL.Path) {
 		return true
 	}
