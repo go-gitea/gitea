@@ -67,12 +67,8 @@
 						<div class="dif ac mr-4">
 							{{.i18n.Tr "repo.diff.parent"}}
 							{{range .Parents}}
-								{{if $.PageIsWiki}}
-									{{$href := (printf "%s%s" $.RepoLink "/wiki/commit/" .)}}
-								{{else}}
-									{{$href := (printf "%s%s" $.RepoLink "/commit/" .)}}
-								{{end}}
-								<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}"><span class="mono">{{ShortSha .}}</span></a>
+								{{$subpath := or (and $.PageIsWiki "/wiki/commit/") "/commit/" }}
+								<a class="ui blue sha label" href="{{printf "%s%s%s" $.RepoLink $subpath .}}"><span class="mono">{{ShortSha .}}</span></a>
 							{{end}}
 						</div>
 					{{- end -}}
