@@ -130,6 +130,11 @@ func getContentHandler(ctx *context.Context) {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
 
+			if fromByte >= meta.Size {
+				writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
+				return
+			}
+
 			if match[2] != "" {
 				_toByte, _ := strconv.ParseInt(match[2], 10, 32)
 				if _toByte >= fromByte && _toByte < toByte {
@@ -143,17 +148,23 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	contentStore := lfs_module.NewContentStore()
-	content, err := contentStore.Get(meta.Pointer, fromByte)
+	content, err := contentStore.Get(meta.Pointer)
 	if err != nil {
-		if lfs_module.IsErrRangeNotSatisfiable(err) {
-			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
-		} else {
-			// Errors are logged in contentStore.Get
-			writeStatus(ctx, 404)
-		}
+		// Errors are logged in contentStore.Get
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 	defer content.Close()
+
+	if fromByte > 0 {
+		_, err = content.Seek(fromByte, io.SeekStart)
+		if err != nil {
+			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
+
+			writeStatus(ctx, http.StatusInternalServerError)
+			return
+		}
+	}
 
 	contentLength := toByte + 1 - fromByte
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))

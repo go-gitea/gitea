@@ -51,31 +51,12 @@ func NewContentStore() *ContentStore {
 }
 
 // Get takes a Meta object and retrieves the content from the store, returning
-// it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(pointer Pointer, fromByte int64) (io.ReadCloser, error) {
+// it as an io.ReadSeekCloser.
+func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
 	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
-	}
-	if fromByte > 0 {
-		if fromByte >= pointer.Size {
-			err = f.Close()
-			if err != nil {
-				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", pointer.Oid, err)
-			}
-			return nil, ErrRangeNotSatisfiable{
-				FromByte: fromByte,
-			}
-		}
-		_, err = f.Seek(fromByte, io.SeekStart)
-		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", pointer.Oid, fromByte, err)
-			errClose := f.Close()
-			if errClose != nil {
-				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", pointer.Oid, errClose)
-			}
-		}
 	}
 	return f, err
 }
@@ -135,7 +116,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 // ReadMetaObject will read a models.LFSMetaObject and return a reader
 func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
 	contentStore := NewContentStore()
-	return contentStore.Get(pointer, 0)
+	return contentStore.Get(pointer)
 }
 
 type hashingReader struct {
