@@ -120,6 +120,17 @@ server {
 }
 ```
 
+## Resolving Error: 413 Request Entity Too Large
+
+This error indicates nginx is configured to restrict the file upload size.
+
+In your `nginx.conf`,
+find the `http { ... }` block and add the line:
+`client_max_body_size 16M` to set this limit to 16 megabytes.
+
+The 16 can be swapped out the for number of your chosing.
+
+
 ## Apache HTTPD
 
 If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
