@@ -1,6 +1,6 @@
 // transform /path/to/file.ext to file.ext
 export function basename(path = '') {
-  return path ? path.replace(/\/+$/, '').replace(/^.*\//, '') : '';
+  return path ? path.replace(/^.*\//, '') : '';
 }
 
 // transform /path/to/file.ext to .ext

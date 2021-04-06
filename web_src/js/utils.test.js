@@ -4,7 +4,7 @@ import {
 
 test('basename', () => {
   expect(basename('/path/to/file.js')).toEqual('file.js');
-  expect(basename('/path/')).toEqual('path');
+  expect(basename('/path/to/file')).toEqual('file');
   expect(basename('file.js')).toEqual('file.js');
 });
 
