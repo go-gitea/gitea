@@ -44,23 +44,12 @@ type ContentStore struct {
 }
 
 // Get takes a Meta object and retrieves the content from the store, returning
-// it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
+// it as an io.ReadSeekCloser.
+func (s *ContentStore) Get(meta *models.LFSMetaObject) (storage.Object, error) {
 	f, err := s.Open(meta.RelativePath())
 	if err != nil {
 		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
 		return nil, err
-	}
-	if fromByte > 0 {
-		if fromByte >= meta.Size {
-			return nil, ErrRangeNotSatisfiable{
-				FromByte: fromByte,
-			}
-		}
-		_, err = f.Seek(fromByte, io.SeekStart)
-		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
-		}
 	}
 	return f, err
 }
