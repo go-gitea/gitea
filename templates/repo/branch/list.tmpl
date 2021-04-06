@@ -20,7 +20,13 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
-								<p class="info df ac my-2" title="{{$renderedCommitMessage}}">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>&nbsp;·&nbsp;<span class="commit-message">{{$renderedCommitMessage}}</span>&nbsp;·&nbsp;{{$.i18n.Tr "org.repo_updated"}}&nbsp;{{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+								<p class="info df ac my-2" title="{{$renderedCommitMessage}}">
+									{{- svg "octicon-git-commit" 16 "mr-2"}}{{/* p */ -}}
+									<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>{{/* p */ -}}
+									<span class="ml-2">·</span><span class="commit-message ml-2">{{$renderedCommitMessage}}</span>{{/* p */ -}}
+									<span class="ml-2">·</span><span class="ml-2">{{$.i18n.Tr "org.repo_updated"}}</span>{{/* p */ -}}
+									<span class="ml-2>{{TimeSince .Commit.Committer.When $.i18n.Lang}}</span>{{/* p */ -}}
+								</p>
 							{{end}}
 						{{end}}
 						</td>
@@ -28,8 +34,8 @@
 							<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-variation="tiny inverted" data-position="top right">
 							  <i class="download icon"></i>
 							  <div class="menu">
-							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.zip">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
+							    <a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
 							  </div>
 							</div>
 						</td>
@@ -51,14 +57,23 @@
 									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
-										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}}&nbsp;{{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
+										<p class="info">
+											{{- $.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}}{{/* p */ -}}
+											<span class="ml-2">{{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</span>{{/* p */ -}}
+										</p>
 									{{else}}
 										{{$renderedCommitMessage := RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}
 										{{if .IsProtected}}
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="info df ac my-2" title="{{$renderedCommitMessage}}">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>&nbsp;·&nbsp;<span class="commit-message">{{$renderedCommitMessage}}</span>&nbsp;·&nbsp;{{$.i18n.Tr "org.repo_updated"}}&nbsp;{{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info df ac my-2" title="{{$renderedCommitMessage}}">
+											{{- svg "octicon-git-commit" 16 "mr-2"}}{{/* p */ -}}
+											<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a>{{/* p */ -}}
+											<span class="ml-2">·</span><span class="commit-message ml-2">{{$renderedCommitMessage}}</span>{{/* p */ -}}
+											<span class="ml-2">·</span><span class="ml-2">{{$.i18n.Tr "org.repo_updated"}}</span>{{/* p */ -}}
+											<span class="ml-2>{{TimeSince .Commit.Committer.When $.i18n.Lang}}</span>{{/* p */ -}}
+										</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -108,8 +123,8 @@
 											<div class="ui basic jump dropdown icon button poping up" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-variation="tiny inverted" data-position="top right">
 												<i class="download icon"></i>
 												<div class="menu">
-													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.zip">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
+													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound .Name}}.tar.gz">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
 												</div>
 											</div>
 										{{end}}
