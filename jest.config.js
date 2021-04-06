@@ -1,10 +1,8 @@
 export default {
   setupFilesAfterEnv: ['jest-extended'],
-  testTimeout: 10000,
-  testPathIgnorePatterns: [
-    '/node_modules/',
-    '/public/',
-    '/vendor/',
+  testTimeout: 20000,
+  testMatch: [
+    '**/web_src/**/*.test.js',
   ],
   transform: {},
   verbose: false,
