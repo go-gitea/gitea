@@ -142,7 +142,8 @@ func init() {
 	}
 }
 
-func getEngine() (*xorm.Engine, error) {
+// GetNewEngine returns a new xorm engine from the configuration
+func GetNewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -172,7 +173,7 @@ func getEngine() (*xorm.Engine, error) {
 
 // NewTestEngine sets a new test xorm.Engine
 func NewTestEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
@@ -185,7 +186,7 @@ func NewTestEngine() (err error) {
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}

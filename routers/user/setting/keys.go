@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -28,7 +30,7 @@ func Keys(ctx *context.Context) {
 
 	loadKeysData(ctx)
 
-	ctx.HTML(200, tplSettingsKeys)
+	ctx.HTML(http.StatusOK, tplSettingsKeys)
 }
 
 // KeysPost response for change user's SSH/GPG keys
@@ -43,7 +45,7 @@ func KeysPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadKeysData(ctx)
 
-		ctx.HTML(200, tplSettingsKeys)
+		ctx.HTML(http.StatusOK, tplSettingsKeys)
 		return
 	}
 	switch form.Type {
@@ -188,7 +190,7 @@ func DeleteKey(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
 }

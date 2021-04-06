@@ -14,6 +14,8 @@ else
 
 # This is the "normal" part of the Makefile
 
+TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar --no-xattrs" || echo "tar" )
+
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
@@ -89,11 +91,11 @@ LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(G
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
-GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/integrations/migration-test,$(filter-out code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/)))
+GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/))
 
 FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
 FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
-FOMANTIC_DEST_DIR := web_src/fomantic/build
+FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
 WEBPACK_CONFIGS := webpack.config.js
@@ -399,8 +401,9 @@ test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
-test-sqlite-migration:  migrations.sqlite.test generate-ini-sqlite
+test-sqlite-migration:  migrations.sqlite.test migrations.individual.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.sqlite.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/sqlite.ini ./migrations.individual.sqlite.test
 
 generate-ini-mysql:
 	sed -e 's|{{TEST_MYSQL_HOST}}|${TEST_MYSQL_HOST}|g' \
@@ -419,8 +422,9 @@ test-mysql\#%: integrations.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql-migration
-test-mysql-migration: migrations.mysql.test generate-ini-mysql
+test-mysql-migration: migrations.mysql.test migrations.individual.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./migrations.mysql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql.ini ./migrations.individual.mysql.test
 
 generate-ini-mysql8:
 	sed -e 's|{{TEST_MYSQL8_HOST}}|${TEST_MYSQL8_HOST}|g' \
@@ -439,8 +443,9 @@ test-mysql8\#%: integrations.mysql8.test generate-ini-mysql8
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./integrations.mysql8.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql8-migration
-test-mysql8-migration: migrations.mysql8.test generate-ini-mysql8
+test-mysql8-migration: migrations.mysql8.test migrations.individual.mysql8.test generate-ini-mysql8
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./migrations.mysql8.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mysql8.ini ./migrations.individual.mysql8.test
 
 generate-ini-pgsql:
 	sed -e 's|{{TEST_PGSQL_HOST}}|${TEST_PGSQL_HOST}|g' \
@@ -460,8 +465,9 @@ test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-pgsql-migration
-test-pgsql-migration: migrations.pgsql.test generate-ini-pgsql
+test-pgsql-migration: migrations.pgsql.test migrations.individual.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./migrations.pgsql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/pgsql.ini ./migrations.individual.pgsql.test
 
 generate-ini-mssql:
 	sed -e 's|{{TEST_MSSQL_HOST}}|${TEST_MSSQL_HOST}|g' \
@@ -480,8 +486,9 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mssql-migration
-test-mssql-migration: migrations.mssql.test generate-ini-mssql
+test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -540,6 +547,26 @@ migrations.mssql.test: $(GO_SOURCES)
 .PHONY: migrations.sqlite.test
 migrations.sqlite.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/integrations/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
+
+.PHONY: migrations.individual.mysql.test
+migrations.individual.mysql.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql.test
+
+.PHONY: migrations.individual.mysql8.test
+migrations.individual.mysql8.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mysql8.test
+
+.PHONY: migrations.individual.pgsql.test
+migrations.individual.pgsql.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.pgsql.test
+
+.PHONY: migrations.individual.mssql.test
+migrations.individual.mssql.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.mssql.test
+
+.PHONY: migrations.individual.sqlite.test
+migrations.individual.sqlite.test: $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
 check: test
@@ -617,14 +644,16 @@ release-compress: | $(DIST_DIRS)
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: release-sources
-release-sources: | $(DIST_DIRS) node_modules
+release-sources: | $(DIST_DIRS) npm-cache
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	tar --exclude=./$(DIST) --exclude=./.git --exclude=./$(MAKE_EVIDENCE_DIR) --exclude=./node_modules/.cache --exclude=./$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+	$(eval EXCL := --exclude=$(shell [ ! "$(TAR)" = "tar" ] && echo "^" )./)
+	$(eval EXCL_RECURSIVE := --exclude=)
+	$(TAR) $(EXCL)$(DIST) $(EXCL).git $(EXCL)$(MAKE_EVIDENCE_DIR) $(EXCL_RECURSIVE)node_modules $(EXCL)$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	$(TAR) -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
 docs:
@@ -637,6 +666,25 @@ node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
+.PHONY: npm-cache
+npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
+
+.npm-cache: package-lock.json
+	rm -rf .npm-cache
+	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version"))
+	npm config --userconfig=.npmrc set cache=.npm-cache
+	rm -rf node_modules && npm install --no-save
+	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
+	echo $(foreach build, darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}), esbuild-${build}@$(ESBUILD_VERSION)) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
+	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
+	@touch .npm-cache
+
+.PHONY: npm-uncache
+npm-uncache:
+	rm -rf .npm-cache
+	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc rm cache
+	npm config --userconfig=.npmrc rm cache
+
 .PHONY: npm-update
 npm-update: node-check | node_modules
 	npx updates -cu
@@ -647,14 +695,22 @@ npm-update: node-check | node_modules
 .PHONY: fomantic
 fomantic: $(FOMANTIC_DEST)
 
-$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) | node_modules
-	@if [ ! -d node_modules/fomantic-ui ]; then \
-		npm install --no-save --no-package-lock fomantic-ui@2.8.7; \
-	fi
-	rm -rf $(FOMANTIC_DEST_DIR)
-	cp -f web_src/fomantic/theme.config.less node_modules/fomantic-ui/src/theme.config
-	cp -rf web_src/fomantic/_site/* node_modules/fomantic-ui/src/_site/
-	npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+$(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui:
+	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
+	cd $(FOMANTIC_WORK_DIR); \
+		rm -rf node_modules && mkdir node_modules && \
+		npm install fomantic-ui; \
+		rm -f semantic.json
+	@touch $(FOMANTIC_WORK_DIR)/node_modules
+
+$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
+	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
+	rm -rf $(FOMANTIC_WORK_DIR)/build
+	cd $(FOMANTIC_WORK_DIR); \
+		cp -f theme.config.less node_modules/fomantic-ui/src/theme.config; \
+		cp -rf _site node_modules/fomantic-ui/src/; \
+		npx gulp -f node_modules/fomantic-ui/gulpfile.js build; \
+		rm -f semantic.json
 	@touch $(FOMANTIC_DEST)
 
 .PHONY: webpack

@@ -53,6 +53,10 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 	}
 	if fromByte > 0 {
 		if fromByte >= meta.Size {
+			err = f.Close()
+			if err != nil {
+				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", meta.Oid, err)
+			}
 			return nil, ErrRangeNotSatisfiable{
 				FromByte: fromByte,
 			}
@@ -60,6 +64,10 @@ func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadC
 		_, err = f.Seek(fromByte, io.SeekStart)
 		if err != nil {
 			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
+			errClose := f.Close()
+			if errClose != nil {
+				log.Error("Whilst trying to read LFS OID[%s]: Unable to close Error: %v", meta.Oid, errClose)
+			}
 		}
 	}
 	return f, err
@@ -74,7 +82,7 @@ func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.Save(p, wrappedRd)
+	written, err := s.Save(p, wrappedRd, meta.Size)
 	if err != nil {
 		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, p, err)
 		return err

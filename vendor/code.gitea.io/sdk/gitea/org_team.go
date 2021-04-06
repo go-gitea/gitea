@@ -30,6 +30,9 @@ type ListTeamsOptions struct {
 
 // ListOrgTeams lists all teams of an organization
 func (c *Client) ListOrgTeams(org string, opt ListTeamsOptions) ([]*Team, *Response, error) {
+	if err := escapeValidatePathSegments(&org); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	teams := make([]*Team, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s/teams?%s", org, opt.getURLQuery().Encode()), nil, nil, &teams)
@@ -83,6 +86,9 @@ func (opt CreateTeamOption) Validate() error {
 
 // CreateTeam creates a team for an organization
 func (c *Client) CreateTeam(org string, opt CreateTeamOption) (*Team, *Response, error) {
+	if err := escapeValidatePathSegments(&org); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -159,6 +165,9 @@ func (c *Client) ListTeamMembers(id int64, opt ListTeamMembersOptions) ([]*User,
 
 // GetTeamMember gets a member of a team
 func (c *Client) GetTeamMember(id int64, user string) (*User, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	m := new(User)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/teams/%d/members/%s", id, user), nil, nil, m)
 	return m, resp, err
@@ -166,12 +175,18 @@ func (c *Client) GetTeamMember(id int64, user string) (*User, *Response, error) 
 
 // AddTeamMember adds a member to a team
 func (c *Client) AddTeamMember(id int64, user string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/teams/%d/members/%s", id, user), nil, nil)
 	return resp, err
 }
 
 // RemoveTeamMember removes a member from a team
 func (c *Client) RemoveTeamMember(id int64, user string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/teams/%d/members/%s", id, user), nil, nil)
 	return resp, err
 }
@@ -191,12 +206,18 @@ func (c *Client) ListTeamRepositories(id int64, opt ListTeamRepositoriesOptions)
 
 // AddTeamRepository adds a repository to a team
 func (c *Client) AddTeamRepository(id int64, org, repo string) (*Response, error) {
+	if err := escapeValidatePathSegments(&org, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/teams/%d/repos/%s/%s", id, org, repo), nil, nil)
 	return resp, err
 }
 
 // RemoveTeamRepository removes a repository from a team
 func (c *Client) RemoveTeamRepository(id int64, org, repo string) (*Response, error) {
+	if err := escapeValidatePathSegments(&org, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/teams/%d/repos/%s/%s", id, org, repo), nil, nil)
 	return resp, err
 }

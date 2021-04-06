@@ -38,12 +38,12 @@
   --color-secondary-dark-5: #818181;
   --color-secondary-dark-6: #717171;
   --color-secondary-dark-7: #626262;
-  --color-secondary-dark-7: #525252;
-  --color-secondary-dark-8: #434343;
-  --color-secondary-dark-8: #333333;
-  --color-secondary-dark-9: #242424;
-  --color-secondary-dark-10: #141414;
-  --color-secondary-dark-11: #040404;
+  --color-secondary-dark-8: #525252;
+  --color-secondary-dark-9: #434343;
+  --color-secondary-dark-10: #333333;
+  --color-secondary-dark-11: #242424;
+  --color-secondary-dark-12: #141414;
+  --color-secondary-dark-13: #040404;
   --color-secondary-light-1: #e5e5e5;
   --color-secondary-light-2: #ebebeb;
   --color-secondary-light-3: #f2f2f2;
@@ -114,15 +114,14 @@
   --color-navbar: #f8f8f8;
   --color-light: #00000004;
   --color-light-border: #0000001d;
-  --color-hover: #0000000d;
-  --color-active: #00000012;
+  --color-hover: #0000000f;
+  --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
   --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000008;
+  --color-markdown-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
-  --color-markdown-code-block: #00000010;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
   --color-dropdown-error-hover: #fbe7e7;
@@ -135,6 +134,7 @@
   --color-dropdown-error-red-hover: #d80e0e;
   --color-dropdown-error-red-active: #bb0202;
   --color-dropdown-error-red-active-hover: #990a0a;
+  --color-placeholder-text: #aaa;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -215,12 +215,14 @@ table {
 ::selection,
 .CodeMirror-selected {
   background: var(--color-primary-light-1) !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
 }
 
 ::placeholder,
-.CodeMirror-placeholder {
-  color: #aaa !important;
+.CodeMirror-placeholder,
+.ui.dropdown:not(.button) > .default.text,
+.ui.default.dropdown:not(.button) > .text {
+  color: var(--color-placeholder-text) !important;
   opacity: 1 !important;
 }
 
@@ -2080,7 +2082,7 @@ table th[data-sortt-desc] {
 .ui.secondary.pointing.menu .dropdown.item:hover,
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
-  color: var(--color-text);
+  color: var(--color-text-dark);
 }
 
 .ui.header {
