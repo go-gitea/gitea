@@ -6,6 +6,7 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -21,7 +22,7 @@ import (
 func U2FRegister(ctx *context.Context) {
 	form := web.GetForm(ctx).(*auth.U2FRegistrationForm)
 	if form.Name == "" {
-		ctx.Error(409)
+		ctx.Error(http.StatusConflict)
 		return
 	}
 	challenge, err := u2f.NewChallenge(setting.U2F.AppID, setting.U2F.TrustedFacets)
@@ -40,7 +41,7 @@ func U2FRegister(ctx *context.Context) {
 	}
 	for _, reg := range regs {
 		if reg.Name == form.Name {
-			ctx.Error(409, "Name already taken")
+			ctx.Error(http.StatusConflict, "Name already taken")
 			return
 		}
 	}
@@ -53,7 +54,7 @@ func U2FRegister(ctx *context.Context) {
 		// we'll tolerate errors here as they *should* get saved elsewhere
 		log.Error("Unable to save changes to the session: %v", err)
 	}
-	ctx.JSON(200, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
+	ctx.JSON(http.StatusOK, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
 }
 
 // U2FRegisterPost receives the response of the security key
@@ -104,7 +105,7 @@ func U2FDelete(ctx *context.Context) {
 		ctx.ServerError("DeleteRegistration", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }

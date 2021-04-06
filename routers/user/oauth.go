@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"html"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -339,7 +340,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		// we'll tolerate errors here as they *should* get saved elsewhere
 		log.Error("Unable to save changes to the session: %v", err)
 	}
-	ctx.HTML(200, tplGrantAccess)
+	ctx.HTML(http.StatusOK, tplGrantAccess)
 }
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
@@ -347,7 +348,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	form := web.GetForm(ctx).(*auth.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
@@ -463,7 +464,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
 	}
-	ctx.JSON(200, accessToken)
+	ctx.JSON(http.StatusOK, accessToken)
 }
 
 func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
@@ -526,11 +527,11 @@ func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
 		return
 	}
 	// send successful response
-	ctx.JSON(200, resp)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func handleAccessTokenError(ctx *context.Context, acErr AccessTokenError) {
-	ctx.JSON(400, acErr)
+	ctx.JSON(http.StatusBadRequest, acErr)
 }
 
 func handleServerError(ctx *context.Context, state string, redirectURI string) {

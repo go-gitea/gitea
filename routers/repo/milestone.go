@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -95,7 +96,7 @@ func Milestones(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplMilestone)
+	ctx.HTML(http.StatusOK, tplMilestone)
 }
 
 // NewMilestone render creating milestone page
@@ -103,7 +104,7 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.HTML(200, tplMilestoneNew)
+	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
 // NewMilestonePost response for creating milestone
@@ -114,7 +115,7 @@ func NewMilestonePost(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMilestoneNew)
+		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
 
@@ -163,7 +164,7 @@ func EditMilestone(ctx *context.Context) {
 	if len(m.DeadlineString) > 0 {
 		ctx.Data["deadline"] = m.DeadlineString
 	}
-	ctx.HTML(200, tplMilestoneNew)
+	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
 // EditMilestonePost response for edting milestone
@@ -174,7 +175,7 @@ func EditMilestonePost(ctx *context.Context) {
 	ctx.Data["PageIsEditMilestone"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMilestoneNew)
+		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
 
@@ -242,7 +243,7 @@ func DeleteMilestone(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/milestones",
 	})
 }
@@ -272,5 +273,5 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
 
-	ctx.HTML(200, tplMilestoneIssues)
+	ctx.HTML(http.StatusOK, tplMilestoneIssues)
 }

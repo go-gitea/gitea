@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -64,7 +65,7 @@ func Activity(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplActivity)
+	ctx.HTML(http.StatusOK, tplActivity)
 }
 
 // ActivityAuthors renders JSON with top commit authors for given time period over all branches
@@ -98,5 +99,5 @@ func ActivityAuthors(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, authors)
+	ctx.JSON(http.StatusOK, authors)
 }

@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -30,7 +32,7 @@ func Security(ctx *context.Context) {
 
 	loadSecurityData(ctx)
 
-	ctx.HTML(200, tplSettingsSecurity)
+	ctx.HTML(http.StatusOK, tplSettingsSecurity)
 }
 
 // DeleteAccountLink delete a single account link
@@ -46,7 +48,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }
