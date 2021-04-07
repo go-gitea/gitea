@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
@@ -243,7 +243,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doAPIMergePullRequest Merge",
 			Do:                string(models.MergeStyleMerge),
 		})
@@ -255,7 +255,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
-			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
 				Do:                string(models.MergeStyleMerge),
 			})
@@ -278,7 +278,7 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			Do:            string(models.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
 		})
