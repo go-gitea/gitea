@@ -147,6 +147,7 @@ var (
 		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
 		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
 		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
+		DisplayUser                    string            `ini:"SSH_DISPLAY_USER"`
 	}{
 		Disabled:            false,
 		StartBuiltinServer:  false,

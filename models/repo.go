@@ -915,6 +915,10 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		sshUser = setting.SSH.BuiltinServerUser
 	}
 
+	if setting.SSH.DisplayUser != "" {
+		sshUser = setting.SSH.DisplayUser
+	}
+
 	cl := new(CloneLink)
 
 	// if we have a ipv6 literal we need to put brackets around it
