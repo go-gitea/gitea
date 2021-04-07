@@ -66,7 +66,7 @@ func allowLFSFilters() []string {
 	filteredLFSGlobalArgs := make([]string, len(git.GlobalCommandArgs))
 	j := 0
 	for _, arg := range git.GlobalCommandArgs {
-		if strings.Contains(arg, "lfs") {
+		if strings.Contains(arg, "lfs") && !strings.Contains(arg, "filter.lfs.process") {
 			j--
 		} else {
 			filteredLFSGlobalArgs[j] = arg
