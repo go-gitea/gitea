@@ -115,7 +115,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	// 4. Now use read-tree -m to shortcut if there are no conflicts
-	if _, err := git.NewCommand("read-tree", "-m", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
+	if _, err := git.NewCommand("read-tree", "-m", "--aggressive", pr.MergeBase, "base", "tracking").RunInDir(tmpBasePath); err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
 
@@ -145,15 +145,23 @@ loop:
 		if err != nil {
 			break loop
 		}
-		if len(line) < 3 || line[3] != ' ' || line[0] == ' ' {
+		if len(line) < 3 {
+			continue
+		}
+		if line[0] == 'R' || line[1] == 'R' {
+			_, err = bufReader.ReadString('\000')
+			if err != nil {
+				break loop
+			}
+		}
+		if line[0] == ' ' {
 			continue
 		}
 		numFiles++
-		// Conflicted statuses
-		if !strings.Contains(conflictStatus, line[:3]) {
-			continue
+		filename := line[3 : len(line)-1]
+		if strings.Contains(conflictStatus, line[0:3]) {
+			conflictFiles = append(conflictFiles, filename[:len(filename)-1])
 		}
-		conflictFiles = append(conflictFiles, line[3:])
 	}
 
 	// 4c. If there are no files changed this is an empty patch
