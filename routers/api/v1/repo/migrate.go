@@ -126,7 +126,7 @@ func Migrate(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "", ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(form.LFSEndpoint, ctx.User)
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
 		if err != nil {
 			handleRemoteAddrError(ctx, err)
 			return

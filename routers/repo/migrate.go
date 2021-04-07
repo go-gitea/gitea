@@ -116,9 +116,8 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	}
 }
 
-func handleRemoteAddrError(ctx *context.Context, err error, errorField string, tpl base.TplName, form *forms.MigrateRepoForm) {
+func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplName, form *forms.MigrateRepoForm) {
 	if models.IsErrInvalidCloneAddr(err) {
-		ctx.Data[errorField] = true
 		addrErr := err.(*models.ErrInvalidCloneAddr)
 		switch {
 		case addrErr.IsProtocolInvalid:
@@ -127,11 +126,11 @@ func handleRemoteAddrError(ctx *context.Context, err error, errorField string, t
 			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
 			} else if len(addrErr.PrivateNet) == 0 {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, &form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, form)
 			}
 		case addrErr.IsInvalidPath:
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
@@ -141,7 +140,7 @@ func handleRemoteAddrError(ctx *context.Context, err error, errorField string, t
 		}
 	} else {
 		log.Error("Error whilst updating url: %v", err)
-		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
+		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
 	}
 }
 
@@ -175,7 +174,8 @@ func MigratePost(ctx *context.Context) {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
 	}
 	if err != nil {
-		handleRemoteAddrError(ctx, err, "Err_CloneAddr", tpl, form)
+		ctx.Data["Err_CloneAddr"] = true
+		handleMigrateRemoteAddrError(ctx, err, tpl, form)
 		return
 	}
 
@@ -190,7 +190,8 @@ func MigratePost(ctx *context.Context) {
 		}
 		err = migrations.IsMigrateURLAllowed(form.LFSEndpoint, ctx.User)
 		if err != nil {
-			handleRemoteAddrError(ctx, err, "Err_LFSEndpoint", tpl, form)
+			ctx.Data["Err_LFSEndpoint"] = true
+			handleMigrateRemoteAddrError(ctx, err, tpl, form)
 			return
 		}
 	}
