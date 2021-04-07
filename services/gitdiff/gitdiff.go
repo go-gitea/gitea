@@ -573,21 +573,22 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 // DiffFile represents a file diff.
 type DiffFile struct {
-	Name               string
-	OldName            string
-	Index              int
-	Addition, Deletion int
-	Type               DiffFileType
-	IsCreated          bool
-	IsDeleted          bool
-	IsBin              bool
-	IsLFSFile          bool
-	IsRenamed          bool
-	IsAmbiguous        bool
-	IsSubmodule        bool
-	Sections           []*DiffSection
-	IsIncomplete       bool
-	IsProtected        bool
+	Name                     string
+	OldName                  string
+	Index                    int
+	Addition, Deletion       int
+	Type                     DiffFileType
+	IsCreated                bool
+	IsDeleted                bool
+	IsBin                    bool
+	IsLFSFile                bool
+	IsRenamed                bool
+	IsAmbiguous              bool
+	IsSubmodule              bool
+	Sections                 []*DiffSection
+	IsIncomplete             bool
+	IsIncompleteTooMuchChars int
+	IsProtected              bool
 }
 
 // GetType returns type of diff file.
@@ -1072,6 +1073,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		}
 		if len(line) > maxLineCharacters {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteTooMuchChars = leftLine
 			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
