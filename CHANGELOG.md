@@ -6,11 +6,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.13.7](https://github.com/go-gitea/gitea/releases/tag/v1.13.7) - 2021-04-07
 
+* SECURITY
+  * Update to bluemonday-1.0.6 (#15294) (#15298)
 * API
   * Fix wrong user returned in API (#15139) (#15150)
 * BUGFIXES
   * Add 'fonts' into 'KnownPublicEntries' (#15188) (#15317)
-  * Update to bluemonday-1.0.6 (#15294) (#15298)
   * Speed up `enry.IsVendor` (#15213) (#15246)
   * Response 404 for diff/patch of a commit that not exist (#15221) (#15238)
   * Prevent NPE in CommentMustAsDiff if no hunk header (#15199) (#15201)
