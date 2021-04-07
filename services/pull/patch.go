@@ -145,10 +145,10 @@ loop:
 		if err != nil {
 			break loop
 		}
-		numFiles++
-		if len(line) < 3 || line[3] != ' ' {
+		if len(line) < 3 || line[3] != ' ' || line[0] == ' ' {
 			continue
 		}
+		numFiles++
 		// Conflicted statuses
 		if !strings.Contains(conflictStatus, line[:3]) {
 			continue
