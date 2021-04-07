@@ -221,7 +221,7 @@ func WebRoutes() *web.Route {
 
 	if setting.API.EnableSwagger {
 		// Note: The route moved from apiroutes because it's in fact want to render a web page
-		r.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
+		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
 	}
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
