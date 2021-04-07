@@ -267,6 +267,30 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
 
+## [1.13.7](https://github.com/go-gitea/gitea/releases/tag/v1.13.7) - 2021-04-07
+
+* API
+  * Fix wrong user returned in API (#15139) (#15150)
+* BUGFIXES
+  * Add 'fonts' into 'KnownPublicEntries' (#15188) (#15317)
+  * Update to bluemonday-1.0.6 (#15294) (#15298)
+  * Speed up `enry.IsVendor` (#15213) (#15246)
+  * Response 404 for diff/patch of a commit that not exist (#15221) (#15238)
+  * Prevent NPE in CommentMustAsDiff if no hunk header (#15199) (#15201)
+  * Clusterfuzz found another way (#15160) (#15169)
+* MISC
+  * Add size to Save function (#15264) (#15271)
+
+## [1.13.6](https://github.com/go-gitea/gitea/releases/tag/v1.13.6) - 2021-03-23
+
+* SECURITY
+  * Fix bug on avatar middleware (#15124) (#15125)
+  * Fix another clusterfuzz identified issue (#15096) (#15114)
+* API
+  * Fix nil exeption for get pull reviews API #15104 (#15106)
+* BUGFIXES
+  * Fix markdown rendering in milestone content (#15056) (#15092)
+
 ## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
 
 * SECURITY
