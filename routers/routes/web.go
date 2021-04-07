@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/dev"
 	"code.gitea.io/gitea/routers/events"
 	"code.gitea.io/gitea/routers/org"
@@ -217,6 +218,11 @@ func WebRoutes() *web.Route {
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
+
+	if setting.API.EnableSwagger {
+		// Note: The route moved from apiroutes because it's in fact want to render a web page
+		r.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
+	}
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
 	common = append(common, user.GetNotificationCount)
