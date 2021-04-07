@@ -1,3 +1,5 @@
+<!-- Template for domain.tld/user/repo/issues/new -->
+
 {{template "base/head" .}}
 <div class="page-content repository new issue">
 	{{template "repo/header" .}}
@@ -5,8 +7,13 @@
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
 		</div>
+		<!-- FIXME-QA(Krey): Ugly divider due to the use of `></div>` -->
 		<div class="ui divider"></div>
-		{{template "repo/issue/new_form" .}}
+			<form id="new-entry" class="ui comment form stackable grid" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				{{template "editors/default/core" .}}
+				{{template "repo/issue/sidebar" .}}
+			</form>
 	</div>
 </div>
 {{template "base/footer" .}}

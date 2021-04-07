@@ -1,0 +1,19 @@
+<!-- Error handling -->
+{{if .Flash}}
+	{{template "base/alert" .}}
+{{end}}
+
+<!-- Title -->
+<div>
+	<input placeholder="Title" required>
+</div>
+
+<!-- Content -->
+<div>
+	<textarea placeholder="Content"></textarea>
+</div>
+
+<!-- Button -->
+<div>
+	<button>SUBMIT</button>
+</div>

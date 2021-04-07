@@ -1,0 +1,25 @@
+<!-- DNM-PRE_MERGE_CHECKLIST(Krey):
+ - [ ] Separate the sidebar
+ - [ ] Fix "Preview"
+ - [ ] Works in issues
+ - [ ] Works in merge requests
+ - [ ] Works in test page
+-->
+
+<!-- Handling used to display errors -->
+{{template "editors/default/components/error-handling" .}}
+
+<div class="ui comments">
+	<div class="comment">
+		<!-- Avatar -->
+		{{template "editors/default/components/avatar" .}}
+		<div class="ui segment content">
+			<!-- Title -->
+			{{template "editors/default/components/title" .}}
+			<div class="text right">
+				<!-- Button -->
+				{{template "editors/default/components/button" .}}
+			</div>
+		</div>
+	</div>
+</div>

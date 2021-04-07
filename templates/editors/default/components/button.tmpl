@@ -1,0 +1,7 @@
+<button class="ui green button" tabindex="6">
+	{{if .PageIsComparePull}}
+		{{.i18n.Tr "repo.pulls.create"}}
+	{{else}}
+		{{.i18n.Tr "repo.issues.create"}}
+	{{end}}
+</button>
