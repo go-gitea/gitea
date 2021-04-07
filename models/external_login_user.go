@@ -53,8 +53,8 @@ func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 }
 
 // LinkExternalToUser link the external user to the user
-func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error {
-	has, err := x.Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
+func LinkExternalToUser(ctx DBContext, user *User, externalLoginUser *ExternalLoginUser) error {
+	has, err := ctx.e.Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
 	if err != nil {
@@ -63,7 +63,7 @@ func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error 
 		return ErrExternalLoginUserAlreadyExist{externalLoginUser.ExternalID, user.ID, externalLoginUser.LoginSourceID}
 	}
 
-	_, err = x.Insert(externalLoginUser)
+	_, err = ctx.e.Insert(externalLoginUser)
 	return err
 }
 

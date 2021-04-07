@@ -40,7 +40,7 @@ func LinkAccountToUser(user *models.User, gothUser goth.User) error {
 		ExpiresAt:         gothUser.ExpiresAt,
 	}
 
-	if err := models.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := models.LinkExternalToUser(models.DefaultDBContext(), user, externalLoginUser); err != nil {
 		return err
 	}
 

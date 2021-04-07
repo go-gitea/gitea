@@ -43,12 +43,6 @@ func Profile(ctx *context.Context) {
 
 // HandleUsernameChange handle username changes from user settings and admin interface
 func HandleUsernameChange(ctx *context.Context, user *models.User, newName string) error {
-	// Non-local users are not allowed to change their username.
-	if !user.IsLocal() {
-		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
-		return fmt.Errorf(ctx.Tr("form.username_change_not_local_user"))
-	}
-
 	// Check if user name has been changed
 	if user.LowerName != strings.ToLower(newName) {
 		if err := models.ChangeUserName(user, newName); err != nil {

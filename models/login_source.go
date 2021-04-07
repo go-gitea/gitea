@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	jsoniter "github.com/json-iterator/go"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -420,14 +421,7 @@ func UpdateSource(source *LoginSource) error {
 
 // DeleteSource deletes a LoginSource record in DB.
 func DeleteSource(source *LoginSource) error {
-	count, err := x.Count(&User{LoginSource: source.ID})
-	if err != nil {
-		return err
-	} else if count > 0 {
-		return ErrLoginSourceInUse{source.ID}
-	}
-
-	count, err = x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
+	count, err := x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
@@ -532,20 +526,24 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
-		LoginType:    source.Type,
-		LoginSource:  source.ID,
-		LoginName:    login,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
 		IsRestricted: sr.IsRestricted,
 	}
 
-	err := CreateUser(user)
-
-	if err == nil && isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
-		err = RewriteAllPublicKeys()
+	err := CreateUserAndLinkAccount(user, &ExternalLoginUser{
+		ExternalID:    login,
+		LoginSourceID: source.ID,
+		Email:         sr.Mail,
+		Name:          user.Name,
+	})
+	if err != nil {
+		return nil, err
 	}
 
+	if isAttributeSSHPublicKeySet && addLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+		err = RewriteAllPublicKeys()
+	}
 	return user, err
 }
 
@@ -660,16 +658,18 @@ func LoginViaSMTP(user *User, login, password string, sourceID int64, cfg *SMTPC
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(username),
-		Name:        strings.ToLower(username),
-		Email:       login,
-		Passwd:      password,
-		LoginType:   LoginSMTP,
-		LoginSource: sourceID,
-		LoginName:   login,
-		IsActive:    true,
+		LowerName: strings.ToLower(username),
+		Name:      strings.ToLower(username),
+		Email:     login,
+		Passwd:    password,
+		IsActive:  true,
 	}
-	return user, CreateUser(user)
+	return user, CreateUserAndLinkAccount(user, &ExternalLoginUser{
+		ExternalID:    login,
+		LoginSourceID: sourceID,
+		Email:         login,
+		Name:          username,
+	})
 }
 
 // __________  _____      _____
@@ -702,16 +702,18 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	}
 
 	user = &User{
-		LowerName:   strings.ToLower(username),
-		Name:        username,
-		Email:       pamLogin,
-		Passwd:      password,
-		LoginType:   LoginPAM,
-		LoginSource: sourceID,
-		LoginName:   login, // This is what the user typed in
-		IsActive:    true,
+		LowerName: strings.ToLower(username),
+		Name:      username,
+		Email:     pamLogin,
+		Passwd:    password,
+		IsActive:  true,
 	}
-	return user, CreateUser(user)
+	return user, CreateUserAndLinkAccount(user, &ExternalLoginUser{
+		ExternalID:    login,
+		LoginSourceID: sourceID,
+		Email:         pamLogin,
+		Name:          username,
+	})
 }
 
 // ExternalUserLogin attempts a login using external source types.
@@ -774,48 +776,41 @@ func UserSignIn(username, password string) (*User, error) {
 		return nil, err
 	}
 
+	var sources = make([]*LoginSource, 0, 5)
 	if hasUser {
-		switch user.LoginType {
-		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.IsPasswordSet() && user.ValidatePassword(password) {
-
-				// Update password hash if server password hash algorithm have changed
-				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
-					if err = user.SetPassword(password); err != nil {
-						return nil, err
-					}
-					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
-						return nil, err
-					}
+		if user.IsPasswordSet() && user.ValidatePassword(password) {
+			// Update password hash if server password hash algorithm have changed
+			if user.PasswdHashAlgo != setting.PasswordHashAlgo {
+				if err = user.SetPassword(password); err != nil {
+					return nil, err
 				}
-
-				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-				// user could be hint to resend confirm email.
-				if user.ProhibitLogin {
-					return nil, ErrUserProhibitLogin{user.ID, user.Name}
+				if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+					return nil, err
 				}
-
-				return user, nil
 			}
 
-			return nil, ErrUserNotExist{user.ID, user.Name, 0}
-
-		default:
-			var source LoginSource
-			hasSource, err := x.ID(user.LoginSource).Get(&source)
-			if err != nil {
-				return nil, err
-			} else if !hasSource {
-				return nil, ErrLoginSourceNotExist{user.LoginSource}
+			// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+			// user could be hint to resend confirm email.
+			if user.ProhibitLogin {
+				return nil, ErrUserProhibitLogin{user.ID, user.Name}
 			}
 
-			return ExternalUserLogin(user, user.LoginName, password, &source)
+			return user, nil
 		}
-	}
 
-	sources := make([]*LoginSource, 0, 5)
-	if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
-		return nil, err
+		if err = x.Where(
+			builder.In("id",
+				builder.Select("login_source_id").
+					From("external_login_user").
+					Where(builder.Eq{"user_id": user.ID}),
+			),
+		).Find(&sources); err != nil {
+			return nil, err
+		}
+	} else {
+		if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
+			return nil, err
+		}
 	}
 
 	for _, source := range sources {

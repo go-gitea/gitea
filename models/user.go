@@ -112,9 +112,6 @@ type User struct {
 	// is to change his/her password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
-	LoginType   LoginType
-	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
-	LoginName   string
 	Type        UserType
 	OwnedOrgs   []*User       `xorm:"-"`
 	Orgs        []*User       `xorm:"-"`
@@ -240,16 +237,6 @@ func (u *User) GetEmail() string {
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
 	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
-}
-
-// IsLocal returns true if user login type is LoginPlain.
-func (u *User) IsLocal() bool {
-	return u.LoginType <= LoginPlain
-}
-
-// IsOAuth2 returns true if user login type is LoginOAuth2.
-func (u *User) IsOAuth2() bool {
-	return u.LoginType == LoginOAuth2
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.
@@ -848,16 +835,12 @@ func IsUsableUsername(name string) error {
 }
 
 // CreateUser creates record of a new user.
-func CreateUser(u *User) (err error) {
+func CreateUser(ctx DBContext, u *User) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
+	sess := ctx.e
 
 	isExist, err := isUserExist(sess, 0, u.Name)
 	if err != nil {
@@ -910,7 +893,27 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return nil
+}
+
+// CreateUserAndLinkAccount creates user with linked account
+func CreateUserAndLinkAccount(user *User, account *ExternalLoginUser) error {
+	ctx, commiter, err := TxDBContext()
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	if err = CreateUser(ctx, user); err != nil {
+		return err
+	}
+
+	account.UserID = user.ID
+	if err = LinkExternalToUser(ctx, user, account); err != nil {
+		return err
+	}
+
+	return commiter.Commit()
 }
 
 func countUsers(e Engine) int64 {
@@ -1912,17 +1915,18 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 						LowerName:    strings.ToLower(su.Username),
 						Name:         su.Username,
 						FullName:     fullName,
-						LoginType:    s.Type,
-						LoginSource:  s.ID,
-						LoginName:    su.Username,
 						Email:        su.Mail,
 						IsAdmin:      su.IsAdmin,
 						IsRestricted: su.IsRestricted,
 						IsActive:     true,
 					}
 
-					err = CreateUser(usr)
-
+					err = CreateUserAndLinkAccount(usr, &ExternalLoginUser{
+						ExternalID:    su.Username,
+						LoginSourceID: s.ID,
+						Email:         su.Mail,
+						Name:          su.Username,
+					})
 					if err != nil {
 						log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
 					} else if isAttributeSSHPublicKeySet {

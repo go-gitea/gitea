@@ -22,26 +22,6 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 )
 
-func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
-	if sourceID == 0 {
-		return
-	}
-
-	source, err := models.GetLoginSourceByID(sourceID)
-	if err != nil {
-		if models.IsErrLoginSourceNotExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLoginSourceByID", err)
-		}
-		return
-	}
-
-	u.LoginType = source.Type
-	u.LoginSource = source.ID
-	u.LoginName = loginName
-}
-
 // CreateUser create a user
 func CreateUser(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users admin adminCreateUser
@@ -73,16 +53,11 @@ func CreateUser(ctx *context.APIContext) {
 		Passwd:             form.Password,
 		MustChangePassword: true,
 		IsActive:           true,
-		LoginType:          models.LoginPlain,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
 	}
 
-	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
-	if ctx.Written() {
-		return
-	}
 	if !password.IsComplexEnough(form.Password) {
 		err := errors.New("PasswordComplexity")
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
@@ -97,7 +72,17 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
-	if err := models.CreateUser(u); err != nil {
+	if form.SourceID == 0 {
+		err = models.CreateUser(models.DefaultDBContext(), u)
+	} else {
+		err = models.CreateUserAndLinkAccount(u, &models.ExternalLoginUser{
+			ExternalID:    form.Username,
+			LoginSourceID: form.SourceID,
+			Email:         form.Email,
+			Name:          form.Username,
+		})
+	}
+	if err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
@@ -147,11 +132,6 @@ func EditUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditUserOption)
 	u := user.GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
 	if ctx.Written() {
 		return
 	}
