@@ -192,6 +192,9 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
