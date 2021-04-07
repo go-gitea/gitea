@@ -6,17 +6,18 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -49,7 +50,7 @@ func ProtectedBranch(ctx *context.Context) {
 
 	ctx.Data["LeftBranches"] = leftBranches
 
-	ctx.HTML(200, tplBranches)
+	ctx.HTML(http.StatusOK, tplBranches)
 }
 
 // ProtectedBranchPost response for protect for a branch of a repository
@@ -62,7 +63,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 	switch ctx.Query("action") {
 	case "default_branch":
 		if ctx.HasError() {
-			ctx.HTML(200, tplBranches)
+			ctx.HTML(http.StatusOK, tplBranches)
 			return
 		}
 
@@ -165,12 +166,12 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	c.Data["Branch"] = protectBranch
-	c.HTML(200, tplProtectedBranch)
+	c.HTML(http.StatusOK, tplProtectedBranch)
 }
 
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
-	f := web.GetForm(ctx).(*auth.ProtectBranchForm)
+	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
 		ctx.NotFound("IsBranchExist", nil)

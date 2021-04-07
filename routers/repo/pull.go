@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -30,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -167,12 +167,12 @@ func Fork(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplFork)
+	ctx.HTML(http.StatusOK, tplFork)
 }
 
 // ForkPost response for forking a repository
 func ForkPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateRepoForm)
+	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
 	ctxUser := checkContextUser(ctx, form.UID)
@@ -188,7 +188,7 @@ func ForkPost(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplFork)
+		ctx.HTML(http.StatusOK, tplFork)
 		return
 	}
 
@@ -221,7 +221,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.ServerError("IsOwnedBy", err)
 			return
 		} else if !isOwner {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return
 		}
 	}
@@ -570,7 +570,7 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["CommitCount"] = commits.Len()
 
 	getBranchData(ctx, issue)
-	ctx.HTML(200, tplPullCommits)
+	ctx.HTML(http.StatusOK, tplPullCommits)
 }
 
 // ViewPullFiles render pull request changed files list page
@@ -692,7 +692,7 @@ func ViewPullFiles(ctx *context.Context) {
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.HTML(200, tplPullFiles)
+	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -764,7 +764,7 @@ func UpdatePullRequest(ctx *context.Context) {
 
 // MergePullRequest response for merging pull request
 func MergePullRequest(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
+	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -975,7 +975,7 @@ func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateIssueForm)
+	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
@@ -1015,7 +1015,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			return
 		}
 
-		ctx.HTML(200, tplCompareDiff)
+		ctx.HTML(http.StatusOK, tplCompareDiff)
 		return
 	}
 
@@ -1054,7 +1054,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if err := pull_service.NewPullRequest(repo, pullIssue, labelIDs, attachments, pullRequest, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		} else if git.IsErrPushRejected(err) {
 			pushrejErr := err.(*git.ErrPushRejected)
@@ -1090,7 +1090,7 @@ func TriggerTask(ctx *context.Context) {
 	branch := ctx.Query("branch")
 	secret := ctx.Query("secret")
 	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
 		return
 	}
@@ -1101,7 +1101,7 @@ func TriggerTask(ctx *context.Context) {
 	got := []byte(base.EncodeMD5(owner.Salt))
 	want := []byte(secret)
 	if subtle.ConstantTimeCompare(got, want) != 1 {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask [%s/%s]: invalid secret", owner.Name, repo.Name)
 		return
 	}
@@ -1109,7 +1109,7 @@ func TriggerTask(ctx *context.Context) {
 	pusher, err := models.GetUserByID(pusherID)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetUserByID", err)
 		}
@@ -1179,7 +1179,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	defer gitBaseRepo.Close()
 
 	defer func() {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
 		})
 	}()

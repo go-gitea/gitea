@@ -5,13 +5,15 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -26,12 +28,12 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.HTML(200, tplLabels)
+	ctx.HTML(http.StatusOK, tplLabels)
 }
 
 // InitializeLabels init labels for a repository
 func InitializeLabels(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.InitializeLabelsForm)
+	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
@@ -97,7 +99,7 @@ func RetrieveLabels(ctx *context.Context) {
 
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
 
@@ -122,12 +124,12 @@ func NewLabel(ctx *context.Context) {
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	l, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrRepoLabelNotExist(err):
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
 		}
@@ -152,7 +154,7 @@ func DeleteLabel(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/labels",
 	})
 }
@@ -176,7 +178,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		label, err := models.GetLabelByID(ctx.QueryInt64("id"))
 		if err != nil {
 			if models.IsErrRepoLabelNotExist(err) {
-				ctx.Error(404, "GetLabelByID")
+				ctx.Error(http.StatusNotFound, "GetLabelByID")
 			} else {
 				ctx.ServerError("GetLabelByID", err)
 			}
@@ -211,11 +213,11 @@ func UpdateIssueLabel(ctx *context.Context) {
 		}
 	default:
 		log.Warn("Unrecognized action: %s", action)
-		ctx.Error(500)
+		ctx.Error(http.StatusInternalServerError)
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }

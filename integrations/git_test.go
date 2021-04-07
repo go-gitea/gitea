@@ -208,13 +208,13 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		// Request raw paths
 		req := NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", little))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		assert.Equal(t, littleSize, resp.Body.Len())
+		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+		assert.Equal(t, littleSize, resp.Length)
 
 		setting.CheckLFSVersion()
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
-			resp = session.MakeRequest(t, req, http.StatusOK)
+			resp := session.MakeRequest(t, req, http.StatusOK)
 			assert.NotEqual(t, littleSize, resp.Body.Len())
 			assert.LessOrEqual(t, resp.Body.Len(), 1024)
 			if resp.Body.Len() != littleSize && resp.Body.Len() <= 1024 {
@@ -224,12 +224,12 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", big))
-			resp = session.MakeRequest(t, req, http.StatusOK)
-			assert.Equal(t, bigSize, resp.Body.Len())
+			resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+			assert.Equal(t, bigSize, resp.Length)
 
 			if setting.LFS.StartServer {
 				req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", bigLFS))
-				resp = session.MakeRequest(t, req, http.StatusOK)
+				resp := session.MakeRequest(t, req, http.StatusOK)
 				assert.NotEqual(t, bigSize, resp.Body.Len())
 				if resp.Body.Len() != bigSize && resp.Body.Len() <= 1024 {
 					assert.Contains(t, resp.Body.String(), models.LFSMetaFileIdentifier)
@@ -450,27 +450,27 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 
 		// Then get the diff string
-		var diffStr string
+		var diffHash string
 		t.Run("GetDiff", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-			resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-			diffStr = resp.Body.String()
+			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
+			diffHash = string(resp.Hash.Sum(nil))
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffStr))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
 	}
 }
 
@@ -514,22 +514,14 @@ func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.
 	}
 }
 
-func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffStr string) func(t *testing.T) {
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-		expectedMaxLen := len(diffStr)
-		if expectedMaxLen > 800 {
-			expectedMaxLen = 800
-		}
-		actual := resp.Body.String()
-		actualMaxLen := len(actual)
-		if actualMaxLen > 800 {
-			actualMaxLen = 800
-		}
+		resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
+		actual := string(resp.Hash.Sum(nil))
 
-		equal := diffStr == actual
-		assert.True(t, equal, "Unexpected change in the diff string: expected: %s but was actually: %s", diffStr[:expectedMaxLen], actual[:actualMaxLen])
+		equal := diffHash == actual
+		assert.True(t, equal, "Unexpected change in the diff string: expected hash: %s but was actually: %s", diffHash, actual)
 	}
 }
 

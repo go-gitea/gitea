@@ -74,6 +74,11 @@ export async function initNotificationCount() {
         });
         worker.port.close();
         window.location.href = AppSubUrl;
+      } else if (event.data.type === 'close') {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
       }
     });
     worker.port.addEventListener('error', (e) => {
