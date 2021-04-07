@@ -10,17 +10,17 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/tstranex/u2f"
 )
 
 // U2FRegister initializes the u2f registration procedure
 func U2FRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.U2FRegistrationForm)
+	form := web.GetForm(ctx).(*forms.U2FRegistrationForm)
 	if form.Name == "" {
 		ctx.Error(http.StatusConflict)
 		return
@@ -87,7 +87,7 @@ func U2FRegisterPost(ctx *context.Context) {
 
 // U2FDelete deletes an security key by id
 func U2FDelete(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.U2FDeleteForm)
+	form := web.GetForm(ctx).(*forms.U2FDeleteForm)
 	reg, err := models.GetU2FRegistrationByID(form.ID)
 	if err != nil {
 		if models.IsErrU2FRegistrationNotExist(err) {
