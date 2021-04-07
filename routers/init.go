@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/auth/sso"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -25,17 +24,14 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_migrations "code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
 )
 
@@ -51,16 +47,9 @@ func checkRunMode() {
 
 // NewServices init new services
 func NewServices() {
-	setting.NewServices()
-	if err := storage.Init(); err != nil {
-		log.Fatal("storage init failed: %v", err)
+	if err := services.Init(); err != nil {
+		log.Fatal("init services failed: %v", err)
 	}
-	if err := repository.NewContext(); err != nil {
-		log.Fatal("repository init failed: %v", err)
-	}
-	mailer.NewContext()
-	_ = cache.NewContext()
-	notification.NewContext()
 }
 
 // In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology

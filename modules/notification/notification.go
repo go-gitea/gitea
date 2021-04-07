@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,7 +28,7 @@ func RegisterNotifier(notifier base.Notifier) {
 }
 
 // NewContext registers notification handlers
-func NewContext() {
+func NewContext() error {
 	RegisterNotifier(ui.NewNotifier())
 	if setting.Service.EnableNotifyMail {
 		RegisterNotifier(mail.NewNotifier())
@@ -35,6 +36,11 @@ func NewContext() {
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
+	return nil
+}
+
+func init() {
+	services.RegisterService("notification", NewContext)
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
