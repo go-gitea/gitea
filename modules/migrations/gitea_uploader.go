@@ -283,7 +283,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					}
 				}
 				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				return err
 			}()
 			if err != nil {
