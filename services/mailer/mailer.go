@@ -338,7 +338,7 @@ func NewContext() error {
 }
 
 func init() {
-	services.RegisterService("mailer", NewContext)
+	services.RegisterService("mailer", NewContext, "setting")
 }
 
 // SendAsync send mail asynchronously

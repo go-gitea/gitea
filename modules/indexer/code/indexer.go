@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -262,6 +263,13 @@ func Init() {
 			}
 		}()
 	}
+}
+
+func init() {
+	services.RegisterService("indexer/code", func() error {
+		Init()
+		return nil
+	}, "setting")
 }
 
 // DeleteRepoFromIndexer remove all of a repository's entries from the indexer

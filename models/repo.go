@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
@@ -133,6 +134,13 @@ func NewRepoContext() {
 	loadUnitConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+}
+
+func init() {
+	services.RegisterService("models", func() error {
+		NewRepoContext()
+		return nil
+	}, "setting")
 }
 
 // RepositoryStatus defines the status of repository

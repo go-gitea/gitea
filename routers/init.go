@@ -12,27 +12,35 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
-	"code.gitea.io/gitea/modules/auth/sso"
-	"code.gitea.io/gitea/modules/cron"
-	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	stats_indexer "code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/external"
-	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
-	mirror_service "code.gitea.io/gitea/services/mirror"
-	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/webhook"
+
+	// run init on these packages, don't remove these references except you know what it means
+	_ "code.gitea.io/gitea/modules/auth/sso"
+	_ "code.gitea.io/gitea/modules/cron"
+	_ "code.gitea.io/gitea/modules/eventsource"
+	_ "code.gitea.io/gitea/modules/highlight"
+	_ "code.gitea.io/gitea/modules/indexer/code"
+	_ "code.gitea.io/gitea/modules/indexer/issues"
+	_ "code.gitea.io/gitea/modules/indexer/stats"
+	_ "code.gitea.io/gitea/modules/markup"
+	_ "code.gitea.io/gitea/modules/markup/external"
+	_ "code.gitea.io/gitea/modules/migrations"
+	_ "code.gitea.io/gitea/modules/notification/action"
+	_ "code.gitea.io/gitea/modules/notification/indexer"
+	_ "code.gitea.io/gitea/modules/notification/mail"
+	_ "code.gitea.io/gitea/modules/notification/ui"
+	_ "code.gitea.io/gitea/modules/notification/webhook"
+	_ "code.gitea.io/gitea/modules/ssh"
+	_ "code.gitea.io/gitea/modules/svg"
+	_ "code.gitea.io/gitea/modules/task"
+	_ "code.gitea.io/gitea/services/mirror"
+	_ "code.gitea.io/gitea/services/pull"
+	_ "code.gitea.io/gitea/services/webhook"
 )
 
 func checkRunMode() {
@@ -45,8 +53,8 @@ func checkRunMode() {
 	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 }
 
-// NewServices init new services
-func NewServices() {
+// InitServices init services
+func InitServices() {
 	if err := services.Init(); err != nil {
 		log.Fatal("init services failed: %v", err)
 	}
@@ -129,12 +137,6 @@ func GlobalInit(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales()
 
-	NewServices()
-
-	highlight.NewContext()
-	external.RegisterRenderers()
-	markup.Init()
-
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 Supported")
 	} else if setting.Database.UseSQLite3 {
@@ -146,39 +148,10 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("ORM engine initialization failed: %v", err)
 	}
 
+	// Init all services
+	InitServices()
+
 	if err := models.InitOAuth2(); err != nil {
 		log.Fatal("Failed to initialize OAuth2 support: %v", err)
 	}
-
-	models.NewRepoContext()
-
-	// Booting long running goroutines.
-	cron.NewContext()
-	issue_indexer.InitIssueIndexer(false)
-	code_indexer.Init()
-	if err := stats_indexer.Init(); err != nil {
-		log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
-	}
-	mirror_service.InitSyncMirrors()
-	webhook.InitDeliverHooks()
-	if err := pull_service.Init(); err != nil {
-		log.Fatal("Failed to initialize test pull requests queue: %v", err)
-	}
-	if err := task.Init(); err != nil {
-		log.Fatal("Failed to initialize task scheduler: %v", err)
-	}
-	if err := repo_migrations.Init(); err != nil {
-		log.Fatal("Failed to initialize repository migrations: %v", err)
-	}
-	eventsource.GetManager().Init()
-
-	if setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-	} else {
-		ssh.Unused()
-	}
-	sso.Init()
-
-	svg.Init()
 }

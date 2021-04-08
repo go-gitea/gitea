@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -31,6 +32,13 @@ func Init() {
 			extRenderers[strings.ToLower(ext)] = renderer
 		}
 	}
+}
+
+func init() {
+	services.RegisterService("markup", func() error {
+		Init()
+		return nil
+	}, "setting", "markup/external")
 }
 
 // RenderContext represents a render context

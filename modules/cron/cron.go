@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/sync"
 
 	"github.com/gogs/cron"
@@ -43,7 +44,13 @@ func NewContext() {
 		started = false
 		lock.Unlock()
 	})
+}
 
+func init() {
+	services.RegisterService("cron", func() error {
+		NewContext()
+		return nil
+	}, "setting")
 }
 
 // TaskTableRow represents a task row in the tasks table

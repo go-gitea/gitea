@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -59,6 +60,13 @@ func Init() {
 			log.Error("Could not initialize '%s' SSO method, error: %s", reflect.TypeOf(method).String(), err)
 		}
 	}
+}
+
+func init() {
+	services.RegisterService("auth/sso", func() error {
+		Init()
+		return nil
+	}, "setting")
 }
 
 // Free should be called exactly once when the application is terminating to allow SSO plugins

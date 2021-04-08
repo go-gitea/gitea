@@ -4,10 +4,19 @@
 
 package svg
 
+import "code.gitea.io/gitea/modules/services"
+
 // SVGs contains discovered SVGs
 var SVGs map[string]string
 
 // Init discovers SVGs and populates the `SVGs` variable
 func Init() {
 	SVGs = Discover()
+}
+
+func init() {
+	services.RegisterService("svg", func() error {
+		Init()
+		return nil
+	}, "setting")
 }

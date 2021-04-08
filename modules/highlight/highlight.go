@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
@@ -39,6 +40,13 @@ func NewContext() {
 		for i := range keys {
 			highlightMapping[keys[i].Name()] = keys[i].Value()
 		}
+	})
+}
+
+func init() {
+	services.RegisterService("highlight", func() error {
+		NewContext()
+		return nil
 	})
 }
 

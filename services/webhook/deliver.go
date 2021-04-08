@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
 )
@@ -278,4 +279,11 @@ func InitDeliverHooks() {
 	}
 
 	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)
+}
+
+func init() {
+	services.RegisterService("webhook", func() error {
+		InitDeliverHooks()
+		return nil
+	}, "setting")
 }

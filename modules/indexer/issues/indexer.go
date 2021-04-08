@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/services"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -229,6 +230,13 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 		}()
 	}
+}
+
+func init() {
+	services.RegisterService("indexer/issues", func() error {
+		InitIssueIndexer(false)
+		return nil
+	}, "setting")
 }
 
 // populateIssueIndexer populate the issue indexer with issue data
