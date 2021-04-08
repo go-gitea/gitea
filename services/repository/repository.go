@@ -103,5 +103,5 @@ func NewContext() error {
 }
 
 func init() {
-	services.RegisterService("repository", NewContext)
+	services.RegisterService("repository", NewContext, "setting", "pull")
 }

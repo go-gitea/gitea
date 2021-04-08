@@ -42,7 +42,7 @@ func NewContext() error {
 }
 
 func init() {
-	services.RegisterService("cache", NewContext)
+	services.RegisterService("cache", NewContext, "setting")
 }
 
 // GetCache returns the currently configured cache

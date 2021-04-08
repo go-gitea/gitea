@@ -34,7 +34,7 @@ func Init() error {
 }
 
 func init() {
-	services.RegisterService("notification/action", Init, "setting")
+	services.RegisterService("indexer/stats", Init, "setting")
 }
 
 // populateRepoIndexer populate the repo indexer with pre-existing data. This

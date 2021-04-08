@@ -303,12 +303,12 @@ var mailQueue queue.Queue
 var Sender gomail.Sender
 
 // NewContext start mail queue service
-func NewContext() error {
+func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
 	// before but swithed install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
-		return nil
+		return
 	}
 
 	switch setting.MailService.MailerType {
@@ -334,11 +334,13 @@ func NewContext() error {
 	}, &Message{})
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
-	return nil
 }
 
 func init() {
-	services.RegisterService("mailer", NewContext, "setting")
+	services.RegisterService("mailer", func() error {
+		NewContext()
+		return nil
+	}, "setting")
 }
 
 // SendAsync send mail asynchronously
