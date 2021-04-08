@@ -4,6 +4,6 @@ export default async function createDropzone(el, opts) {
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
   ]);
 
-  Dropzone.autoDiscover = false;
-  return new Dropzone(el, opts);
+  Dropzone.Dropzone.autoDiscover = false;
+  return new Dropzone.Dropzone(el, opts);
 }
