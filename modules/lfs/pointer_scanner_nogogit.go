@@ -63,8 +63,8 @@ func createPointerResultsFromCatFileBatch(ctx context.Context, catFileBatchReade
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
-	
-	loop:
+
+loop:
 	for {
 		select {
 		case <-ctx.Done():

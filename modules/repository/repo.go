@@ -379,7 +379,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 		return err
 	}
 
-	err, has := <- errChan
+	err, has := <-errChan
 	if has {
 		return err
 	}

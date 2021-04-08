@@ -489,7 +489,7 @@ func LFSPointerFiles(ctx *context.Context) {
 			results = append(results, result)
 		}
 
-		err, has := <- errChan
+		err, has := <-errChan
 		if has {
 			return err
 		}
