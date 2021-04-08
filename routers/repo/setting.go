@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -57,7 +57,7 @@ func Settings(ctx *context.Context) {
 
 // SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.RepoSettingForm)
+	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 
@@ -165,7 +165,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		address, err := auth.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
 		}
@@ -883,7 +883,7 @@ func DeployKeys(ctx *context.Context) {
 
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AddKeyForm)
+	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
@@ -955,7 +955,7 @@ func DeleteDeployKey(ctx *context.Context) {
 }
 
 // UpdateAvatarSetting update repo's avatar
-func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	ctxRepo := ctx.Repo.Repository
 
 	if form.Avatar == nil {
@@ -993,8 +993,8 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 
 // SettingsAvatar save new POSTed repository avatar
 func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AvatarForm)
-	form.Source = auth.AvatarLocal
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form.Source = forms.AvatarLocal
 	if err := UpdateAvatarSetting(ctx, *form); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

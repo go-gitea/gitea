@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
@@ -76,7 +76,7 @@ func InstallInit(next http.Handler) http.Handler {
 
 // Install render installation page
 func Install(ctx *context.Context) {
-	form := auth.InstallForm{}
+	form := forms.InstallForm{}
 
 	// Database settings
 	form.DbHost = setting.Database.Host
@@ -151,7 +151,7 @@ func Install(ctx *context.Context) {
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.InstallForm)
+	form := *web.GetForm(ctx).(*forms.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
