@@ -49,9 +49,7 @@
 							{{svg "octicon-chevron-down" 18}}
 						</a>
 						<div class="bold ui left df ac">
-							{{if not $file.IsRenamed}}
-								{{template "repo/diff/stats" dict "file" . "root" $}}
-							{{end}}
+							{{template "repo/diff/stats" dict "file" . "root" $}}
 						</div>
 						<span class="file mono">{{$file.Name}}</span>
 						<div class="diff-file-header-actions df ac">
@@ -85,7 +83,7 @@
 							<div class="bold df ac">
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
-								{{else if not $file.IsRenamed}}
+								{{else}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
@@ -105,23 +103,21 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						{{if ne $file.Type 4}}
-							<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
-								<table class="chroma{{if $isImage}} w-100{{end}}">
-									<tbody>
-										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $}}
+						<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
+							<table class="chroma{{if $isImage}} w-100{{end}}">
+								<tbody>
+									{{if $isImage}}
+										{{template "repo/diff/image_diff" dict "file" . "root" $}}
+									{{else}}
+										{{if $.IsSplitStyle}}
+											{{template "repo/diff/section_split" dict "file" . "root" $}}
 										{{else}}
-											{{if $.IsSplitStyle}}
-												{{template "repo/diff/section_split" dict "file" . "root" $}}
-											{{else}}
-												{{template "repo/diff/section_unified" dict "file" . "root" $}}
-											{{end}}
+											{{template "repo/diff/section_unified" dict "file" . "root" $}}
 										{{end}}
-									</tbody>
-								</table>
-							</div>
-						{{end}}
+									{{end}}
+								</tbody>
+							</table>
+						</div>
 					</div>
 				</div>
 			{{end}}
