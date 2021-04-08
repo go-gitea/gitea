@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	comment_service "code.gitea.io/gitea/services/comments"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -393,7 +393,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["CanWriteIssuesOrPulls"] = ctx.Repo.CanWriteIssuesOrPulls(isPullList)
 
-	ctx.HTML(200, tplIssues)
+	ctx.HTML(http.StatusOK, tplIssues)
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
@@ -819,7 +819,7 @@ func NewIssue(ctx *context.Context) {
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 
-	ctx.HTML(200, tplIssueNew)
+	ctx.HTML(http.StatusOK, tplIssueNew)
 }
 
 // NewIssueChooseTemplate render creating issue from template page
@@ -832,11 +832,11 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["IssueTemplates"] = issueTemplates
 
-	ctx.HTML(200, tplIssueChoose)
+	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
 
 // ValidateRepoMetas check and returns repository's meta informations
-func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
+func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
 		err  error
@@ -934,7 +934,7 @@ func ValidateRepoMetas(ctx *context.Context, form auth.CreateIssueForm, isPull b
 
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateIssueForm)
+	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
@@ -960,7 +960,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplIssueNew)
+		ctx.HTML(http.StatusOK, tplIssueNew)
 		return
 	}
 
@@ -981,7 +981,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
 		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
-			ctx.Error(400, "UserDoesNotHaveAccessToRepo", err.Error())
+			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 			return
 		}
 		ctx.ServerError("NewIssue", err)
@@ -1484,7 +1484,10 @@ func ViewIssue(ctx *context.Context) {
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
-			if prConfig.AllowMerge {
+			defaultMergeStyle := prConfig.GetDefaultMergeStyle()
+			if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
+				ctx.Data["MergeStyle"] = defaultMergeStyle
+			} else if prConfig.AllowMerge {
 				ctx.Data["MergeStyle"] = models.MergeStyleMerge
 			} else if prConfig.AllowRebase {
 				ctx.Data["MergeStyle"] = models.MergeStyleRebase
@@ -1575,7 +1578,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
-	ctx.HTML(200, tplIssueView)
+	ctx.HTML(http.StatusOK, tplIssueView)
 }
 
 // GetActionIssue will return the issue which is used in the context.
@@ -1647,13 +1650,13 @@ func UpdateIssueTitle(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	title := ctx.QueryTrim("title")
 	if len(title) == 0 {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -1662,7 +1665,7 @@ func UpdateIssueTitle(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"title": issue.Title,
 	})
 }
@@ -1675,7 +1678,7 @@ func UpdateIssueRef(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) || issue.IsPull {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1686,7 +1689,7 @@ func UpdateIssueRef(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ref": ref,
 	})
 }
@@ -1699,7 +1702,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -1714,7 +1717,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(issue.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -1740,7 +1743,7 @@ func UpdateIssueMilestone(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1786,7 +1789,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1911,7 +1914,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -1951,14 +1954,14 @@ func UpdateIssueStatus(ctx *context.Context) {
 			}
 		}
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
 
 // NewComment create a comment for issue
 func NewComment(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateCommentForm)
+	form := web.GetForm(ctx).(*forms.CreateCommentForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -1983,7 +1986,7 @@ func NewComment(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -2106,17 +2109,17 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
 	oldContent := comment.Content
 	comment.Content = ctx.Query("content")
 	if len(comment.Content) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"content": "",
 		})
 		return
@@ -2131,7 +2134,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		ctx.ServerError("UpdateAttachments", err)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"content":     string(markdown.Render([]byte(comment.Content), ctx.Query("context"), ctx.Repo.Repository.ComposeMetas())),
 		"attachments": attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
@@ -2151,10 +2154,10 @@ func DeleteComment(ctx *context.Context) {
 	}
 
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -2168,7 +2171,7 @@ func DeleteComment(ctx *context.Context) {
 
 // ChangeIssueReaction create a reaction for issue
 func ChangeIssueReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ReactionForm)
+	form := web.GetForm(ctx).(*forms.ReactionForm)
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -2193,7 +2196,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
@@ -2241,7 +2244,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 	}
 
 	if len(issue.Reactions) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"empty": true,
 			"html":  "",
 		})
@@ -2257,14 +2260,14 @@ func ChangeIssueReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeIssueReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"html": html,
 	})
 }
 
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ReactionForm)
+	form := web.GetForm(ctx).(*forms.ReactionForm)
 	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
@@ -2295,10 +2298,10 @@ func ChangeCommentReaction(ctx *context.Context) {
 			}
 		}
 
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	} else if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeCode {
-		ctx.Error(204)
+		ctx.Error(http.StatusNoContent)
 		return
 	}
 
@@ -2341,7 +2344,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	}
 
 	if len(comment.Reactions) == 0 {
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"empty": true,
 			"html":  "",
 		})
@@ -2357,7 +2360,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 		ctx.ServerError("ChangeCommentReaction.HTMLString", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"html": html,
 	})
 }
@@ -2403,7 +2406,7 @@ func GetIssueAttachments(ctx *context.Context) {
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
-	ctx.JSON(200, attachments)
+	ctx.JSON(http.StatusOK, attachments)
 }
 
 // GetCommentAttachments returns attachments for the comment
@@ -2423,7 +2426,7 @@ func GetCommentAttachments(ctx *context.Context) {
 			attachments = append(attachments, convert.ToReleaseAttachment(comment.Attachments[i]))
 		}
 	}
-	ctx.JSON(200, attachments)
+	ctx.JSON(http.StatusOK, attachments)
 }
 
 func updateAttachments(item interface{}, files []string) error {

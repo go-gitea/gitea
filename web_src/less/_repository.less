@@ -1107,15 +1107,6 @@
 
         .segments {
           box-shadow: none;
-
-          .show-outdated,
-          .hide-outdated {
-            display: block;
-          }
-
-          .label {
-            margin-left: 6px;
-          }
         }
       }
     }
@@ -1270,7 +1261,7 @@
         max-width: 90px;
 
         &:last-child {
-          border-left: 1px solid var(--color-secondary);
+          border-left: 1px solid var(--color-secondary-dark-2);
         }
       }
 
@@ -1289,7 +1280,7 @@
       .bar {
         height: 4px;
         position: absolute;
-        background-color: var(--color-secondary);
+        background-color: var(--color-secondary-dark-2);
 
         &.bar-behind {
           right: 0;
@@ -1455,6 +1446,65 @@
     }
   }
 
+  .data-table {
+    width: 100%;
+
+    tr {
+      border-top: 0;
+    }
+
+    td,
+    th {
+      padding: 5px !important;
+      overflow: hidden;
+      font-size: 12px;
+      text-align: left;
+      white-space: nowrap;
+      border: 1px solid var(--color-secondary);
+    }
+
+    td {
+      white-space: pre-line;
+    }
+
+    th {
+      font-weight: 600;
+      background: var(--color-box-header);
+      border-top: 0;
+    }
+
+    td.added,
+    th.added,
+    tr.added {
+      background-color: var(--color-diff-added-row-bg) !important;
+    }
+
+    td.removed,
+    th.removed,
+    tr.removed {
+      background-color: var(--color-diff-removed-row-bg) !important;
+    }
+
+    tbody.section {
+      border-top: 2px solid var(--color-secondary);
+    }
+
+    .line-num {
+      width: 1%;
+      min-width: 50px;
+      font-family: monospace;
+      line-height: 20px;
+      color: var(--color-secondary-dark-2);
+      white-space: nowrap;
+      vertical-align: top;
+      cursor: pointer;
+      user-select: none;
+      text-align: right;
+      background: var(--color-body);
+      border: 0;
+    }
+  }
+
   .diff-detail-box {
     padding: 7px 0;
     background: var(--color-body);
@@ -1576,9 +1626,6 @@
   }
 
   .diff-file-box {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-
     .header {
       background-color: var(--color-box-header);
     }
@@ -3029,8 +3076,8 @@ td.blob-excerpt {
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
-  background-color: #f8f8f8;
-  border: 1px solid #dddddd;
+  background-color: var(--color-markdown-code-block);
+  border: 1px solid var(--color-secondary);
   border-radius: 3px;
   font-size: 13px;
   line-height: 1.5;

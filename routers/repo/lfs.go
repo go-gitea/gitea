@@ -11,6 +11,7 @@ import (
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
@@ -63,7 +64,7 @@ func LFSFiles(ctx *context.Context) {
 	}
 	ctx.Data["LFSFiles"] = lfsMetaObjects
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsLFS)
+	ctx.HTML(http.StatusOK, tplSettingsLFS)
 }
 
 // LFSLocks shows a repository's LFS locks
@@ -97,7 +98,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if len(lfsLocks) == 0 {
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplSettingsLFSLocks)
+		ctx.HTML(http.StatusOK, tplSettingsLFSLocks)
 		return
 	}
 
@@ -186,7 +187,7 @@ func LFSLocks(ctx *context.Context) {
 	ctx.Data["Linkable"] = linkable
 
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsLFSLocks)
+	ctx.HTML(http.StatusOK, tplSettingsLFSLocks)
 }
 
 // LFSLockFile locks a file
@@ -339,7 +340,7 @@ func LFSFileGet(ctx *context.Context) {
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}
-	ctx.HTML(200, tplSettingsLFSFile)
+	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }
 
 // LFSDelete disassociates the provided oid from the repository and if the lfs file is no longer associated with any repositories - deletes it
@@ -404,7 +405,7 @@ func LFSFileFind(ctx *context.Context) {
 	}
 
 	ctx.Data["Results"] = results
-	ctx.HTML(200, tplSettingsLFSFileFind)
+	ctx.HTML(http.StatusOK, tplSettingsLFSFileFind)
 }
 
 // LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
@@ -478,7 +479,7 @@ func LFSPointerFiles(ctx *context.Context) {
 		}
 	default:
 	}
-	ctx.HTML(200, tplSettingsLFSPointers)
+	ctx.HTML(http.StatusOK, tplSettingsLFSPointers)
 }
 
 type pointerResult struct {

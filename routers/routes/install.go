@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"path"
 
-	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 )
