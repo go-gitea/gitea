@@ -13,12 +13,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -39,7 +39,7 @@ func Account(ctx *context.Context) {
 
 // AccountPost response for change user's password
 func AccountPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ChangePasswordForm)
+	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -84,7 +84,7 @@ func AccountPost(ctx *context.Context) {
 
 // EmailPost response for change user's email
 func EmailPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AddEmailForm)
+	form := web.GetForm(ctx).(*forms.AddEmailForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -257,7 +257,7 @@ func DeleteAccount(ctx *context.Context) {
 
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.UpdateThemeForm)
+	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 

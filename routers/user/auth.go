@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/externalaccount"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/markbates/goth"
@@ -173,7 +173,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	form := web.GetForm(ctx).(*auth.SignInForm)
+	form := web.GetForm(ctx).(*forms.SignInForm)
 	u, err := models.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -255,7 +255,7 @@ func TwoFactor(ctx *context.Context) {
 
 // TwoFactorPost validates a user's two-factor authentication token.
 func TwoFactorPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.TwoFactorAuthForm)
+	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
 	// Ensure user is in a 2FA session.
@@ -311,7 +311,7 @@ func TwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, auth.TwoFactorAuthForm{})
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_passcode_incorrect"), tplTwofa, forms.TwoFactorAuthForm{})
 }
 
 // TwoFactorScratch shows the scratch code form for two-factor authentication.
@@ -334,7 +334,7 @@ func TwoFactorScratch(ctx *context.Context) {
 
 // TwoFactorScratchPost validates and invalidates a user's two-factor scratch token.
 func TwoFactorScratchPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.TwoFactorScratchAuthForm)
+	form := web.GetForm(ctx).(*forms.TwoFactorScratchAuthForm)
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
 	// Ensure user is in a 2FA session.
@@ -377,7 +377,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 		return
 	}
 
-	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, auth.TwoFactorScratchAuthForm{})
+	ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplTwofaScratch, forms.TwoFactorScratchAuthForm{})
 }
 
 // U2F shows the U2F login page
@@ -871,7 +871,7 @@ func LinkAccount(ctx *context.Context) {
 
 // LinkAccountPostSignIn handle the coupling of external account with another account using signIn
 func LinkAccountPostSignIn(ctx *context.Context) {
-	signInForm := web.GetForm(ctx).(*auth.SignInForm)
+	signInForm := web.GetForm(ctx).(*forms.SignInForm)
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
 	ctx.Data["Title"] = ctx.Tr("link_account")
 	ctx.Data["LinkAccountMode"] = true
@@ -962,7 +962,7 @@ func linkAccount(ctx *context.Context, u *models.User, gothUser goth.User, remem
 
 // LinkAccountPostRegister handle the creation of a new account for an external account using signUp
 func LinkAccountPostRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.RegisterForm)
+	form := web.GetForm(ctx).(*forms.RegisterForm)
 	// TODO Make insecure passwords optional for local accounts also,
 	//      once email-based Second-Factor Auth is available
 	ctx.Data["DisablePassword"] = !setting.Service.RequireExternalRegistrationPassword || setting.Service.AllowOnlyExternalRegistration
@@ -1116,7 +1116,7 @@ func SignUp(ctx *context.Context) {
 
 // SignUpPost response for sign up information submission
 func SignUpPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.RegisterForm)
+	form := web.GetForm(ctx).(*forms.RegisterForm)
 	ctx.Data["Title"] = ctx.Tr("sign_up")
 
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/sign_up"
@@ -1678,7 +1678,7 @@ func MustChangePassword(ctx *context.Context) {
 // MustChangePasswordPost response for updating a user's password after his/her
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.MustChangePasswordForm)
+	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 	ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/settings/change_password"
 	if ctx.HasError() {

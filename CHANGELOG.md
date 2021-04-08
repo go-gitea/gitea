@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.14.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc2) - 2021-03-22
+
+* SECURITY
+  * Fix bug on avatar middleware (#15124) (#15125)
+  * Fix another clusterfuzz identified issue (#15096) (#15113)
+  * Update to goldmark 1.3.3 (#15059) (#15060)
+* BUGFIXES
+  * Fix the v176 migration (#15110) (#15111)
+  * Fix double 'push tag' action feed (#15078) (#15083)
+  * Remove possible resource leak (#15067) (#15082)
+  * Handle unauthorized user events gracefully (#15071) (#15074)
+
 ## [1.14.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc1) - 2021-03-19
 
 * SECURITY
@@ -266,6 +278,31 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Migrate to use jsoniter instead of encoding/json (#14841)
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
+
+## [1.13.7](https://github.com/go-gitea/gitea/releases/tag/v1.13.7) - 2021-04-07
+
+* SECURITY
+  * Update to bluemonday-1.0.6 (#15294) (#15298)
+  * Clusterfuzz found another way (#15160) (#15169)
+* API
+  * Fix wrong user returned in API (#15139) (#15150)
+* BUGFIXES
+  * Add 'fonts' into 'KnownPublicEntries' (#15188) (#15317)
+  * Speed up `enry.IsVendor` (#15213) (#15246)
+  * Response 404 for diff/patch of a commit that not exist (#15221) (#15238)
+  * Prevent NPE in CommentMustAsDiff if no hunk header (#15199) (#15201)
+* MISC
+  * Add size to Save function (#15264) (#15271)
+
+## [1.13.6](https://github.com/go-gitea/gitea/releases/tag/v1.13.6) - 2021-03-23
+
+* SECURITY
+  * Fix bug on avatar middleware (#15124) (#15125)
+  * Fix another clusterfuzz identified issue (#15096) (#15114)
+* API
+  * Fix nil exeption for get pull reviews API #15104 (#15106)
+* BUGFIXES
+  * Fix markdown rendering in milestone content (#15056) (#15092)
 
 ## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
 

@@ -14,12 +14,12 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -243,7 +243,7 @@ func NewRelease(ctx *context.Context) {
 
 // NewReleasePost response for creating a release
 func NewReleasePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewReleaseForm)
+	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -384,7 +384,7 @@ func EditRelease(ctx *context.Context) {
 
 // EditReleasePost response for edit release
 func EditReleasePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditReleaseForm)
+	form := web.GetForm(ctx).(*forms.EditReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
