@@ -243,6 +243,7 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 	return func(t *testing.T) (api.PullRequest, error) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/?token="+ctx.Token, ctx.Username, repo, index)
 		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -306,7 +307,7 @@ func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField:      "doAPIMergePullRequest Merge",
 			Do:                     string(models.MergeStyleMerge),
 			MergeWhenChecksSucceed: true,
