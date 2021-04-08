@@ -12,7 +12,7 @@
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
-			<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
+			<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				<img src="{{.Poster.RelAvatarLink}}">
