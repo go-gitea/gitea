@@ -188,7 +188,7 @@ func MigratePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(form.LFSEndpoint, ctx.User)
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
 		if err != nil {
 			ctx.Data["Err_LFSEndpoint"] = true
 			handleMigrateRemoteAddrError(ctx, err, tpl, form)
