@@ -7,6 +7,7 @@ package routers
 
 import (
 	"bytes"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -39,11 +40,11 @@ func Home(ctx *context.Context) {
 	if ctx.IsSigned {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(200, user.TplActivate)
+			ctx.HTML(http.StatusOK, user.TplActivate)
 		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(200, "user/auth/prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
@@ -68,7 +69,7 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsHome"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.HTML(200, tplHome)
+	ctx.HTML(http.StatusOK, tplHome)
 }
 
 // RepoSearchOptions when calling search repositories
@@ -166,7 +167,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, opts.TplName)
+	ctx.HTML(http.StatusOK, opts.TplName)
 }
 
 // ExploreRepos render explore repositories page
@@ -243,7 +244,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplName)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 // ExploreUsers render explore users page
@@ -402,7 +403,7 @@ func ExploreCode(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplExploreCode)
+	ctx.HTML(http.StatusOK, tplExploreCode)
 }
 
 // NotFound render 404 page

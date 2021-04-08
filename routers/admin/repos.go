@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -53,7 +54,7 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Query("page") + "&sort=" + ctx.Query("sort"),
 	})
 }
@@ -85,7 +86,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		pager.SetDefaultParams(ctx)
 		pager.AddParam(ctx, "search", "search")
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplUnadoptedRepos)
+		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
 	}
 
@@ -99,7 +100,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplUnadoptedRepos)
+	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
 
 // AdoptOrDeleteRepository adopts or deletes a repository
