@@ -5,8 +5,8 @@
 package repo
 
 import (
-  "net/http"
-  "strings"
+	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
