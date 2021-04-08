@@ -19,6 +19,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+var javascriptTypes = []string{"application/ecmascript", "application/javascript", "text/ecmascript", "text/javascript",
+	"text/jscript", "text/livescript"}
+
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
@@ -41,25 +44,43 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.ReplaceAll(name, ",", " ")
 
-	if base.IsTextFile(buf) || ctx.QueryBool("render") {
-		cs, err := charset.DetectEncoding(buf)
-		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
-			cs = "utf-8"
+	ct := base.DetectContentType(buf)
+	matches := func(mimes []string) bool {
+		for _, mime := range mimes {
+			if strings.Contains(ct, mime) {
+				return true
+			}
 		}
-		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
-	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
+		return false
+	}
+	if ct == "" {
+		log.Error("Detect raw file %s content type failed: %v, using by default text/plain", name, err)
+		ct = "text/plain"
+	} else if matches(javascriptTypes) {
+		// Serve JavaScript files as plain text to prevent XSS attacks
+		ct = "text/plain"
+	}
+
+	if matches([]string{"text/"}) || ctx.QueryBool("render") {
+		if !strings.Contains(ct, "charset=") {
+			cs, err := charset.DetectEncoding(buf)
+			if err != nil {
+				log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
+				cs = "utf-8"
+			}
+			ct += "; charset=" + cs
+		}
+	} else if matches([]string{"image/", "application/pdf"}) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if base.IsSVGImageFile(buf) {
-			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-			ctx.Resp.Header().Set("Content-Type", base.SVGMimeType)
-		}
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
+
+	ctx.Resp.Header().Set("Content-Type", strings.ToLower(ct))
+	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+	ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 
 	_, err = ctx.Resp.Write(buf)
 	if err != nil {
