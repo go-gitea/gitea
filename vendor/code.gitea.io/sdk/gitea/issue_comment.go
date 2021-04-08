@@ -47,6 +47,9 @@ func (opt *ListIssueCommentOptions) QueryEncode() string {
 
 // ListIssueComments list comments on an issue.
 func (c *Client) ListIssueComments(owner, repo string, index int64, opt ListIssueCommentOptions) ([]*Comment, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/issues/%d/comments", owner, repo, index))
 	link.RawQuery = opt.QueryEncode()
@@ -57,6 +60,9 @@ func (c *Client) ListIssueComments(owner, repo string, index int64, opt ListIssu
 
 // ListRepoIssueComments list comments for a given repo.
 func (c *Client) ListRepoIssueComments(owner, repo string, opt ListIssueCommentOptions) ([]*Comment, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/issues/comments", owner, repo))
 	link.RawQuery = opt.QueryEncode()
@@ -67,6 +73,9 @@ func (c *Client) ListRepoIssueComments(owner, repo string, opt ListIssueCommentO
 
 // GetIssueComment get a comment for a given repo by id.
 func (c *Client) GetIssueComment(owner, repo string, id int64) (*Comment, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	comment := new(Comment)
 	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return comment, nil, err
@@ -90,6 +99,9 @@ func (opt CreateIssueCommentOption) Validate() error {
 
 // CreateIssueComment create comment on an issue.
 func (c *Client) CreateIssueComment(owner, repo string, index int64, opt CreateIssueCommentOption) (*Comment, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -117,6 +129,9 @@ func (opt EditIssueCommentOption) Validate() error {
 
 // EditIssueComment edits an issue comment.
 func (c *Client) EditIssueComment(owner, repo string, commentID int64, opt EditIssueCommentOption) (*Comment, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -131,6 +146,9 @@ func (c *Client) EditIssueComment(owner, repo string, commentID int64, opt EditI
 
 // DeleteIssueComment deletes an issue comment.
 func (c *Client) DeleteIssueComment(owner, repo string, commentID int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/comments/%d", owner, repo, commentID), nil, nil)
 	return resp, err
 }

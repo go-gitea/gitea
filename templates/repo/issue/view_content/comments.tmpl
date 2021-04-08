@@ -44,7 +44,7 @@
 					</div>
 					<div class="comment-header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (eq .Issue.OriginalAuthorID .OriginalAuthorID) }}
+							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (and (eq .Issue.OriginalAuthorID .OriginalAuthorID) (not (eq .OriginalAuthorID 0))) }}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
@@ -124,7 +124,11 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-				{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+				{{if eq $.Issue.PullRequest.Status 3}}
+					{{$.i18n.Tr "repo.issues.manually_pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
@@ -379,7 +383,7 @@
 			</span>
 			{{if .DependentIssue}}
 				<div class="detail">
-					<span class="text grey">{{svg "octicon-trashcan"}}</span>
+					<span class="text grey">{{svg "octicon-trash"}}</span>
 					<span class="text grey">
 						<a href="{{.DependentIssue.HTMLURL}}">
 							{{if eq .DependentIssue.RepoID .Issue.RepoID}}
@@ -455,35 +459,39 @@
 				{{ range $filename, $lines := .Review.CodeComments}}
 					{{range $line, $comms := $lines}}
 							<div class="ui segments">
-								<div class="ui segment py-3">
+								<div class="ui segment py-3 df ac sb">
 									{{$invalid := (index $comms 0).Invalidated}}
 									{{$resolved := (index $comms 0).IsResolved}}
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
 									{{$isNotPending := (not (eq (index $comms 0).Review.Type 0))}}
-								{{if or $invalid $resolved}}
-									<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated">
-										{{svg "octicon-unfold"}}
-										{{if $resolved}}
-											{{$.i18n.Tr "repo.issues.review.show_resolved"}}
-										{{else}}
-											{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+									<div class="df ac">
+										<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment ml-3">{{$filename}}</a>
+										{{if $invalid }}
+											<span class="ui label basic small ml-3">
+												{{$.i18n.Tr "repo.issues.review.outdated"}}
+											</span>
 										{{end}}
-									</button>
-									<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated">
-										{{svg "octicon-fold"}}
-										{{if $resolved}}
-											{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
-										{{else}}
-											{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+									</div>
+									<div>
+										{{if or $invalid $resolved}}
+											<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated df ac">
+												{{svg "octicon-unfold" 16 "mr-3"}}
+												{{if $resolved}}
+													{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+												{{else}}
+													{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+												{{end}}
+											</button>
+											<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated df ac">
+												{{svg "octicon-fold" 16 "mr-3"}}
+												{{if $resolved}}
+													{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+												{{else}}
+													{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+												{{end}}
+											</button>
 										{{end}}
-									</button>
-								{{end}}
-								<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment">{{$filename}}</a>
-								{{if $invalid }}
-									<span class="ui label basic small yellow">
-										{{$.i18n.Tr "repo.issues.review.outdated"}}
-									</span>
-								{{end}}
+									</div>
 								</div>
 								{{$diff := (CommentMustAsDiff (index $comms 0))}}
 								{{if $diff}}

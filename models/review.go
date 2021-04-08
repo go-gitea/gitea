@@ -175,7 +175,7 @@ type FindReviewOptions struct {
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -334,8 +334,7 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 }
 
 // ContentEmptyErr represents an content empty error
-type ContentEmptyErr struct {
-}
+type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
 	return "Review content is empty"
@@ -355,7 +354,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		return nil, nil, err
 	}
 
-	var official = false
+	official := false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -668,7 +667,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	return comment, sess.Commit()
 }
 
-//RemoveReviewRequest remove a review request from one reviewer
+// RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -780,7 +779,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	return comment, sess.Commit()
 }
 
-//RemoveTeamReviewRequest remove a review request from one team
+// RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()

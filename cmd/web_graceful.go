@@ -14,16 +14,16 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-func runHTTP(network, listenAddr string, m http.Handler) error {
-	return graceful.HTTPListenAndServe(network, listenAddr, m)
+func runHTTP(network, listenAddr, name string, m http.Handler) error {
+	return graceful.HTTPListenAndServe(network, listenAddr, name, m)
 }
 
-func runHTTPS(network, listenAddr, certFile, keyFile string, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLS(network, listenAddr, certFile, keyFile, m)
+func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLS(network, listenAddr, name, certFile, keyFile, m)
 }
 
-func runHTTPSWithTLSConfig(network, listenAddr string, tlsConfig *tls.Config, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, tlsConfig, m)
+func runHTTPSWithTLSConfig(network, listenAddr, name string, tlsConfig *tls.Config, m http.Handler) error {
+	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m)
 }
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
@@ -43,9 +43,9 @@ func NoInstallListener() {
 	graceful.GetManager().InformCleanup()
 }
 
-func runFCGI(network, listenAddr string, m http.Handler) error {
+func runFCGI(network, listenAddr, name string, m http.Handler) error {
 	// This needs to handle stdin as fcgi point
-	fcgiServer := graceful.NewServer(network, listenAddr)
+	fcgiServer := graceful.NewServer(network, listenAddr, name)
 
 	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
 		return fcgi.Serve(listener, m)

@@ -35,6 +35,7 @@ const (
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
 	PullRequestStatusError
+	PullRequestStatusEmpty
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -240,7 +241,6 @@ func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
-
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
 		log.Error("Unable to getReviewedByLines: Error: %v", err)
@@ -332,6 +332,11 @@ func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
+// IsEmpty returns true if this pull request is empty.
+func (pr *PullRequest) IsEmpty() bool {
+	return pr.Status == PullRequestStatusEmpty
+}
+
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
 
@@ -344,6 +349,8 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
+	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
+	MergeStyleManuallyMerged MergeStyle = "manually-merged"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
@@ -496,7 +503,7 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
-func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,

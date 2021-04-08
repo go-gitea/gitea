@@ -261,7 +261,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
 
 ## 瀏覽器支援
 
-- 最近 2 個版本的 Chrome, Firefox, Safari, Edge (EdgeHTML), Edge (Chromium)
+- 最近 2 個版本的 Chrome, Firefox, Safari, Edge
 - Firefox ESR
 
 ## 元件

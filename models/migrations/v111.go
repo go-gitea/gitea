@@ -380,7 +380,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 	totalPages := totalIssues / pageSize
 
-	var executeBody = func(page, pageSize int64) error {
+	executeBody := func(page, pageSize int64) error {
 		// Find latest review of each user in each pull request, and set official field if appropriate
 		reviews := []*Review{}
 

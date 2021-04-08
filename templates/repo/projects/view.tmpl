@@ -58,7 +58,7 @@
 							</a>
 						{{end}}
 						<a class="item delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/delete" data-id="{{.Project.ID}}">
-							{{svg "octicon-trashcan"}}
+							{{svg "octicon-trash"}}
 							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_delete"}}</span>
 						</a>
 					</div>
@@ -92,7 +92,7 @@
 									</a>
 								{{end}}
 								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
-									{{svg "octicon-trashcan"}}
+									{{svg "octicon-trash"}}
 									{{$.i18n.Tr "repo.projects.board.delete"}}
 								</a>
 
@@ -175,9 +175,9 @@
 							{{- end }}
 							{{- range index $.LinkedPRs .ID }}
 							<div class="meta">
-								<a href="{{$.RepoLink}}/pulls/{{ .ID }}">
+								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
 									<span class="{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
-									{{ .Title}} (#{{ .ID }})
+									{{ .Title}} (#{{ .Index }})
 								</a>
 							</div>
 							{{- end }}
@@ -203,7 +203,7 @@
 {{if or .CanWriteIssues .CanWritePulls}}
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
-			{{svg "octicon-trashcan"}}
+			{{svg "octicon-trash"}}
 			{{.i18n.Tr "repo.projects.deletion"}}
 		</div>
 		<div class="content">

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
@@ -25,7 +26,6 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		logger.Critical("Error: %v whilst counting orphaned labels")
 		return err
 	}
-
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedLabels(); err != nil {
@@ -35,6 +35,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Info("%d labels without existing repository/organisation deleted", count)
 		} else {
 			logger.Warn("%d labels without existing repository/organisation", count)
+		}
+	}
+
+	// find IssueLabels without existing label
+	count, err = models.CountOrphanedIssueLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned issue_labels")
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedIssueLabels(); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned issue_labels")
+				return err
+			}
+			logger.Info("%d issue_labels without existing label deleted", count)
+		} else {
+			logger.Warn("%d issue_labels without existing label", count)
 		}
 	}
 
@@ -129,7 +147,65 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Warn("%d label comments with empty labels", count)
 		}
 	}
+
+	// find label comments with labels from outside the repository
+	count, err = models.CountCommentTypeLabelWithOutsideLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting label comments with outside labels", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			updatedCount, err := models.FixCommentTypeLabelWithOutsideLabels()
+			if err != nil {
+				logger.Critical("Error: %v whilst removing label comments with outside labels", err)
+				return err
+			}
+			log.Info("%d label comments with outside labels removed", updatedCount)
+		} else {
+			log.Warn("%d label comments with outside labels", count)
+		}
+	}
+
+	// find issue_label with labels from outside the repository
+	count, err = models.CountIssueLabelWithOutsideLabels()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting issue_labels from outside the repository or organisation", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			updatedCount, err := models.FixIssueLabelWithOutsideLabels()
+			if err != nil {
+				logger.Critical("Error: %v whilst removing issue_labels from outside the repository or organisation", err)
+				return err
+			}
+			logger.Info("%d issue_labels from outside the repository or organisation removed", updatedCount)
+		} else {
+			logger.Warn("%d issue_labels from outside the repository or organisation", count)
+		}
+	}
+
 	// TODO: function to recalc all counters
+
+	if setting.Database.UsePostgreSQL {
+		count, err = models.CountBadSequences()
+		if err != nil {
+			logger.Critical("Error: %v whilst checking sequence values")
+		}
+		if count > 0 {
+			if autofix {
+				err := models.FixBadSequences()
+				if err != nil {
+					logger.Critical("Error: %v whilst attempting to fix sequences")
+					return err
+				}
+				logger.Info("%d sequences updated", count)
+			} else {
+				logger.Warn("%d sequences with incorrect values", count)
+			}
+		}
+	}
 
 	return nil
 }

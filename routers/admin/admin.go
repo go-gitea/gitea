@@ -6,8 +6,8 @@
 package admin
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -27,7 +26,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	jsoniter "github.com/json-iterator/go"
 
 	"gitea.com/go-chi/session"
 )
@@ -128,12 +129,12 @@ func Dashboard(ctx *context.Context) {
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
-	ctx.HTML(200, tplDashboard)
+	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // DashboardPost run an admin operation
 func DashboardPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AdminDashboardForm)
+	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
@@ -274,6 +275,7 @@ func Config(ctx *context.Context) {
 	sessionCfg := setting.SessionConfig
 	if sessionCfg.Provider == "VirtualSession" {
 		var realSession session.Options
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
 			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}
@@ -314,7 +316,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
-	ctx.HTML(200, tplConfig)
+	ctx.HTML(http.StatusOK, tplConfig)
 }
 
 // Monitor show admin monitor page
@@ -325,14 +327,14 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-	ctx.HTML(200, tplMonitor)
+	ctx.HTML(http.StatusOK, tplMonitor)
 }
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
@@ -349,7 +351,7 @@ func Queue(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Queue"] = mq
-	ctx.HTML(200, tplQueue)
+	ctx.HTML(http.StatusOK, tplQueue)
 }
 
 // WorkerCancel cancels a worker group
@@ -363,7 +365,7 @@ func WorkerCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }

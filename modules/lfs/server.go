@@ -6,7 +6,6 @@ package lfs
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/dgrijalva/jwt-go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -175,6 +175,11 @@ func getContentHandler(ctx *context.Context) {
 			statusCode = 206
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
 
+			if fromByte >= meta.Size {
+				writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
+				return
+			}
+
 			if match[2] != "" {
 				_toByte, _ := strconv.ParseInt(match[2], 10, 32)
 				if _toByte >= fromByte && _toByte < toByte {
@@ -188,17 +193,23 @@ func getContentHandler(ctx *context.Context) {
 	}
 
 	contentStore := &ContentStore{ObjectStorage: storage.LFS}
-	content, err := contentStore.Get(meta, fromByte)
+	content, err := contentStore.Get(meta)
 	if err != nil {
-		if IsErrRangeNotSatisfiable(err) {
-			writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
-		} else {
-			// Errors are logged in contentStore.Get
-			writeStatus(ctx, 404)
-		}
+		// Errors are logged in contentStore.Get
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 	defer content.Close()
+
+	if fromByte > 0 {
+		_, err = content.Seek(fromByte, io.SeekStart)
+		if err != nil {
+			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
+
+			writeStatus(ctx, http.StatusInternalServerError)
+			return
+		}
+	}
 
 	contentLength := toByte + 1 - fromByte
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
@@ -233,6 +244,7 @@ func getMetaHandler(ctx *context.Context) {
 	ctx.Resp.Header().Set("Content-Type", metaMediaType)
 
 	if ctx.Req.Method == "GET" {
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(ctx.Resp)
 		if err := enc.Encode(Represent(rv, meta, true, false)); err != nil {
 			log.Error("Failed to encode representation as json. Error: %v", err)
@@ -304,6 +316,7 @@ func PostHandler(ctx *context.Context) {
 	}
 	ctx.Resp.WriteHeader(sentStatus)
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(Represent(rv, meta, meta.Existing, true)); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -394,6 +407,7 @@ func BatchHandler(ctx *context.Context) {
 
 	respobj := &BatchResponse{Objects: responseObjects}
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
@@ -531,6 +545,7 @@ func unpack(ctx *context.Context) *RequestVars {
 		var p RequestVars
 		bodyReader := r.Body
 		defer bodyReader.Close()
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dec := json.NewDecoder(bodyReader)
 		err := dec.Decode(&p)
 		if err != nil {
@@ -554,6 +569,7 @@ func unpackbatch(ctx *context.Context) *BatchVars {
 
 	bodyReader := r.Body
 	defer bodyReader.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dec := json.NewDecoder(bodyReader)
 	err := dec.Decode(&bv)
 	if err != nil {

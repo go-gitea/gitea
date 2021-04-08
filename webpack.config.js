@@ -1,16 +1,18 @@
-const fastGlob = require('fast-glob');
-const wrapAnsi = require('wrap-ansi');
-const AddAssetPlugin = require('add-asset-webpack-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {statSync} = require('fs');
-const {resolve, parse} = require('path');
-const {SourceMapDevToolPlugin} = require('webpack');
+import fastGlob from 'fast-glob';
+import wrapAnsi from 'wrap-ansi';
+import AddAssetPlugin from 'add-asset-webpack-plugin';
+import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
+import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
+import {VueLoaderPlugin} from 'vue-loader';
+import {ESBuildMinifyPlugin} from 'esbuild-loader';
+import {resolve, parse, dirname} from 'path';
+import webpack from 'webpack';
+import {fileURLToPath} from 'url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const {SourceMapDevToolPlugin} = webpack;
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
@@ -36,7 +38,7 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-module.exports = {
+export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
@@ -78,13 +80,9 @@ module.exports = {
   optimization: {
     minimize: isProduction,
     minimizer: [
-      new TerserPlugin({
-        extractComments: false,
-        terserOptions: {
-          output: {
-            comments: false,
-          },
-        },
+      new ESBuildMinifyPlugin({
+        target: 'es2015',
+        minify: true
       }),
       new CssMinimizerPlugin({
         sourceMap: true,
@@ -131,36 +129,9 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'babel-loader',
+            loader: 'esbuild-loader',
             options: {
-              sourceMaps: true,
-              cacheDirectory: true,
-              cacheCompression: false,
-              cacheIdentifier: [
-                resolve(__dirname, 'package.json'),
-                resolve(__dirname, 'package-lock.json'),
-                resolve(__dirname, 'webpack.config.js'),
-              ].map((path) => statSync(path).mtime.getTime()).join(':'),
-              presets: [
-                [
-                  '@babel/preset-env',
-                  {
-                    useBuiltIns: 'usage',
-                    corejs: 3,
-                  },
-                ],
-              ],
-              plugins: [
-                [
-                  '@babel/plugin-transform-runtime',
-                  {
-                    regenerator: true,
-                  }
-                ],
-              ],
-              generatorOpts: {
-                compact: false,
-              },
+              target: 'es2015'
             },
           },
         ],
@@ -207,37 +178,23 @@ module.exports = {
       {
         test: /\.svg$/,
         include: resolve(__dirname, 'public/img/svg'),
-        use: [
-          {
-            loader: 'raw-loader',
-          },
-        ],
+        type: 'asset/source',
       },
       {
         test: /\.(ttf|woff2?)$/,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-              outputPath: 'fonts/',
-              publicPath: (url) => `../fonts/${url}`, // required to remove css/ path segment
-            },
-          },
-        ],
+        type: 'asset/resource',
+        generator: {
+          filename: 'fonts/[name][ext]',
+          publicPath: '/', // required to remove css/ path segment
+        }
       },
       {
         test: /\.png$/i,
-        use: [
-          {
-            loader: 'file-loader',
-            options: {
-              name: '[name].[ext]',
-              outputPath: 'img/webpack/',
-              publicPath: (url) => `../img/webpack/${url}`, // required to remove css/ path segment
-            },
-          },
-        ],
+        type: 'asset/resource',
+        generator: {
+          filename: 'img/webpack/[name][ext]',
+          publicPath: '/', // required to remove css/ path segment
+        }
       },
     ],
   },
