@@ -28,7 +28,7 @@ COMMA := ,
 
 XGO_VERSION := go-1.16.x
 MIN_GO_VERSION := 001014000
-MIN_NODE_VERSION := 010013000
+MIN_NODE_VERSION := 012017000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -173,6 +173,9 @@ help:
 	@echo " - checks                           run various consistency checks"
 	@echo " - checks-frontend                  check frontend files"
 	@echo " - checks-backend                   check backend files"
+	@echo " - test                             test everything"
+	@echo " - test-frontend                    test frontend files"
+	@echo " - test-backend                     test backend files"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -322,7 +325,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 web_src/js build templates webpack.config.js
+	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js
 	npx stylelint --color --max-warnings=0 web_src/less
 
 .PHONY: lint-backend
@@ -345,16 +348,23 @@ watch-backend: go-check
 	air -c .air.conf
 
 .PHONY: test
-test:
+test: test-frontend test-backend
+
+.PHONY: test-backend
+test-backend:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
+
+.PHONY: test-frontend
+test-frontend:
+	@NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --color
 
 .PHONY: test-check
 test-check:
 	@echo "Running test-check...";
 	@diff=$$(git status -s); \
 	if [ -n "$$diff" ]; then \
-		echo "make test has changed files in the source tree:"; \
+		echo "make test-backend has changed files in the source tree:"; \
 		echo "$${diff}"; \
 		echo "You should change the tests to create these files in a temporary directory."; \
 		echo "Do not simply add these files to .gitignore"; \

@@ -1,8 +1,9 @@
 {
   "license": "MIT",
   "private": true,
+  "type": "module",
   "engines": {
-    "node": ">= 10.13.0"
+    "node": ">= 12.17.0"
   },
   "dependencies": {
     "@claviska/jquery-minicolors": "2.3.5",
@@ -50,6 +51,8 @@
     "eslint-plugin-import": "2.22.1",
     "eslint-plugin-unicorn": "29.0.0",
     "eslint-plugin-vue": "7.8.0",
+    "jest": "26.6.3",
+    "jest-extended": "0.11.5",
     "stylelint": "13.12.0",
     "stylelint-config-standard": "21.0.0",
     "svgo": "2.3.0",
