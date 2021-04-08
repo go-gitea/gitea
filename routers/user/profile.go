@@ -54,7 +54,7 @@ func Profile(ctx *context.Context) {
 
 	if strings.HasSuffix(uname, ".png") {
 		ctx.Error(http.StatusNotFound)
-    return
+		return
 	}
 
 	isShowKeys := false
