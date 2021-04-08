@@ -419,12 +419,11 @@ func LFSPointerFiles(ctx *context.Context) {
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
 	err = func() error {
-		pointerBlobs, err := lfs.SearchPointerBlobs(ctx.Repo.GitRepo)
-		if err != nil {
-			return err
-		}
+		pointerChan := make(chan lfs.PointerBlob)
+		errChan := make(chan error, 1)
+		go lfs.SearchPointerBlobs(ctx.Req.Context(), ctx.Repo.GitRepo, pointerChan, errChan)
 
-		numPointers := len(pointerBlobs)
+		numPointers := 0
 		var numAssociated, numNoExist, numAssociatable int
 
 		type pointerResult struct {
@@ -436,12 +435,14 @@ func LFSPointerFiles(ctx *context.Context) {
 			Accessible bool
 		}
 
-		results := make([]pointerResult, numPointers)
+		results := []pointerResult{}
 
 		contentStore := lfs.NewContentStore()
 		repo := ctx.Repo.Repository
 
-		for i, pointerBlob := range pointerBlobs {
+		for pointerBlob := range pointerChan {
+			numPointers++
+
 			result := pointerResult{
 				SHA:  pointerBlob.Hash,
 				Oid:  pointerBlob.Oid,
@@ -485,7 +486,12 @@ func LFSPointerFiles(ctx *context.Context) {
 				numAssociatable++
 			}
 
-			results[i] = result
+			results = append(results, result)
+		}
+
+		err, has := <- errChan
+		if has {
+			return err
 		}
 
 		ctx.Data["Pointers"] = results

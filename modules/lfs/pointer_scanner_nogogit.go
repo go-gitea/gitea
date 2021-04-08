@@ -8,6 +8,7 @@ package lfs
 
 import (
 	"bufio"
+	"context"
 	"io"
 	"strconv"
 	"sync"
@@ -17,33 +18,21 @@ import (
 )
 
 // SearchPointerBlobs scans the whole repository for LFS pointer files
-func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
+func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan chan<- PointerBlob, errChan chan<- error) {
 	basePath := repo.Path
-
-	pointerChan := make(chan PointerBlob)
 
 	catFileCheckReader, catFileCheckWriter := io.Pipe()
 	shasToBatchReader, shasToBatchWriter := io.Pipe()
 	catFileBatchReader, catFileBatchWriter := io.Pipe()
-	errChan := make(chan error, 1)
+
 	wg := sync.WaitGroup{}
-	wg.Add(5)
+	wg.Add(4)
 
 	// Create the go-routines in reverse order.
 
-	// 5. Copy the results from the channel into the result array
-	pointers := make([]PointerBlob, 0, 50)
-
-	go func() {
-		defer wg.Done()
-		for pointer := range pointerChan {
-			pointers = append(pointers, pointer)
-		}
-	}()
-
 	// 4. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store
-	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan)
+	go createPointerResultsFromCatFileBatch(ctx, catFileBatchReader, &wg, pointerChan)
 
 	// 3. Take the shas of the blobs and batch read them
 	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
@@ -64,24 +53,25 @@ func SearchPointerBlobs(repo *git.Repository) ([]PointerBlob, error) {
 	}
 	wg.Wait()
 
-	select {
-	case err, has := <-errChan:
-		if has {
-			return nil, err
-		}
-	default:
-	}
-
-	return pointers, nil
+	close(pointerChan)
+	close(errChan)
 }
 
-func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- PointerBlob) {
+func createPointerResultsFromCatFileBatch(ctx context.Context, catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- PointerBlob) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 
 	bufferedReader := bufio.NewReader(catFileBatchReader)
 	buf := make([]byte, 1025)
+	
+	loop:
 	for {
+		select {
+		case <-ctx.Done():
+			break loop
+		default:
+		}
+
 		// File descriptor line: sha
 		sha, err := bufferedReader.ReadString(' ')
 		if err != nil {
@@ -117,5 +107,4 @@ func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 
 		pointerChan <- PointerBlob{Hash: sha, Pointer: pointer}
 	}
-	close(pointerChan)
 }
