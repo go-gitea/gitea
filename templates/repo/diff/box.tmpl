@@ -49,9 +49,7 @@
 							{{svg "octicon-chevron-down" 18}}
 						</a>
 						<div class="bold ui left df ac">
-							{{if not $file.IsRenamed}}
-								{{template "repo/diff/stats" dict "file" . "root" $}}
-							{{end}}
+							{{template "repo/diff/stats" dict "file" . "root" $}}
 						</div>
 						<span class="file mono">{{$file.Name}}</span>
 						<div class="diff-file-header-actions df ac">
@@ -87,7 +85,7 @@
 							<div class="bold df ac">
 								{{if $file.IsBin}}
 									{{$.i18n.Tr "repo.diff.bin"}}
-								{{else if not $file.IsRenamed}}
+								{{else}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
@@ -113,11 +111,10 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						{{if ne $file.Type 4}}
-							<div id="diff-source-{{$i}}" class="file-body file-code has-context-menu code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
-								{{if $file.IsBin}}
+						<div id="diff-source-{{$i}}" class="file-body file-code has-context-menu code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+							{{if $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">{{$.i18n.Tr "repo.diff.bin_not_shown"}}</div>
-								{{else}}
+							{{else}}
 								<table class="chroma">
 									{{if $.IsSplitStyle}}
 										{{template "repo/diff/section_split" dict "file" . "root" $}}
@@ -125,9 +122,9 @@
 										{{template "repo/diff/section_unified" dict "file" . "root" $}}
 									{{end}}
 								</table>
-								{{end}}
-							</div>
-							{{if or $isImage $isCsv}}
+							{{end}}
+						</div>
+						{{if or $isImage $isCsv}}
 							<div id="diff-rendered-{{$i}}" class="file-body file-code has-context-menu{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
 								<table class="chroma w-100">
 									{{if $isImage}}
@@ -137,7 +134,6 @@
 									{{end}}
 								</table>
 							</div>
-							{{end}}
 						{{end}}
 					</div>
 				</div>
