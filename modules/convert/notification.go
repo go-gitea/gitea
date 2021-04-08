@@ -49,10 +49,8 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 
 			pr, _ := n.Issue.GetPullRequest()
-			if pr != nil {
-				if pr.HasMerged {
-					result.Subject.State = "merged"
-				}
+			if pr != nil && pr.HasMerged {
+				result.Subject.State = "merged"
 			}
 		}
 	case models.NotificationSourceCommit:
