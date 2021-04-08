@@ -93,6 +93,7 @@ export default {
               discardComments: {
                 removeAll: true,
               },
+              colormin: false,
             },
           ],
         },
