@@ -14,8 +14,6 @@ else
 
 # This is the "normal" part of the Makefile
 
-TAR := $(shell hash bsdtar > /dev/null 2>&1 && echo "bsdtar --no-xattrs" || echo "tar" )
-
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
@@ -93,8 +91,6 @@ LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64
 
 GO_PACKAGES ?= $(filter-out code.gitea.io/gitea/models/migrations code.gitea.io/gitea/integrations/migration-test code.gitea.io/gitea/integrations,$(shell $(GO) list -mod=vendor ./... | grep -v /vendor/))
 
-FOMANTIC_CONFIGS := semantic.json web_src/fomantic/theme.config.less web_src/fomantic/_site/globals/site.variables
-FOMANTIC_DEST := web_src/fomantic/build/semantic.js web_src/fomantic/build/semantic.css
 FOMANTIC_WORK_DIR := web_src/fomantic
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/less -type f)
@@ -114,6 +110,8 @@ TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= sqlite sqlite_unlock_notify
+
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := cmd integrations models modules routers build services vendor tools
 
@@ -589,7 +587,7 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: node-check $(WEBPACK_DEST)
+frontend: $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate $(EXECUTABLE)
@@ -654,16 +652,16 @@ release-compress: | $(DIST_DIRS)
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
 .PHONY: release-sources
-release-sources: | $(DIST_DIRS) npm-cache
+release-sources: | $(DIST_DIRS)
 	echo $(VERSION) > $(STORED_VERSION_FILE)
-	$(eval EXCL := --exclude=$(shell [ ! "$(TAR)" = "tar" ] && echo "^" )./)
-	$(eval EXCL_RECURSIVE := --exclude=)
-	$(TAR) $(EXCL)$(DIST) $(EXCL).git $(EXCL)$(MAKE_EVIDENCE_DIR) $(EXCL_RECURSIVE)node_modules $(EXCL)$(AIR_TMP_DIR) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+# bsdtar needs a ^ to prevent matching subdirectories
+	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
+	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
 release-docs: | $(DIST_DIRS) docs
-	$(TAR) -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
+	tar -czf $(DIST)/release/gitea-docs-$(VERSION).tar.gz -C ./docs/public .
 
 .PHONY: docs
 docs:
@@ -676,25 +674,6 @@ node_modules: package-lock.json
 	npm install --no-save
 	@touch node_modules
 
-.PHONY: npm-cache
-npm-cache: .npm-cache $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
-
-.npm-cache: package-lock.json
-	rm -rf .npm-cache
-	$(eval ESBUILD_VERSION := $(shell node -p "require('./package-lock.json').dependencies.esbuild.version"))
-	npm config --userconfig=.npmrc set cache=.npm-cache
-	rm -rf node_modules && npm install --no-save
-	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc set cache=../../.npm-cache
-	echo $(foreach build, darwin-64 $(foreach arch,arm arm64 32 64,linux-${arch}) $(foreach arch,32 64,windows-${arch}), esbuild-${build}@$(ESBUILD_VERSION)) | tr " " "\n" | xargs -n 1 -P 4 npm cache add
-	rm -rf $(FOMANTIC_WORK_DIR)/node_modules
-	@touch .npm-cache
-
-.PHONY: npm-uncache
-npm-uncache:
-	rm -rf .npm-cache
-	npm config --userconfig=$(FOMANTIC_WORK_DIR)/.npmrc rm cache
-	npm config --userconfig=.npmrc rm cache
-
 .PHONY: npm-update
 npm-update: node-check | node_modules
 	npx updates -cu
@@ -703,30 +682,18 @@ npm-update: node-check | node_modules
 	@touch node_modules
 
 .PHONY: fomantic
-fomantic: $(FOMANTIC_DEST)
-
-$(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui:
-	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
-	cd $(FOMANTIC_WORK_DIR); \
-		rm -rf node_modules && mkdir node_modules && \
-		npm install fomantic-ui; \
-		rm -f semantic.json
-	@touch $(FOMANTIC_WORK_DIR)/node_modules
-
-$(FOMANTIC_DEST): $(FOMANTIC_CONFIGS) $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui
-	ln -sf ../../semantic.json $(FOMANTIC_WORK_DIR)
+fomantic:
 	rm -rf $(FOMANTIC_WORK_DIR)/build
-	cd $(FOMANTIC_WORK_DIR); \
-		cp -f theme.config.less node_modules/fomantic-ui/src/theme.config; \
-		cp -rf _site node_modules/fomantic-ui/src/; \
-		npx gulp -f node_modules/fomantic-ui/gulpfile.js build; \
-		rm -f semantic.json
-	@touch $(FOMANTIC_DEST)
+	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
+	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
+	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
+	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json | node_modules
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
+	@$(MAKE) -s node-check node_modules
 	rm -rf $(WEBPACK_DEST_ENTRIES)
 	npx webpack
 	@touch $(WEBPACK_DEST)
