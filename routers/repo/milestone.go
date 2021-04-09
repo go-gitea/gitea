@@ -5,18 +5,20 @@
 package repo
 
 import (
+	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"xorm.io/builder"
 )
@@ -43,6 +45,9 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 
 	sortType := ctx.Query("sort")
+
+	keyword := strings.Trim(ctx.Query("q"), " ")
+
 	page := ctx.QueryInt("page")
 	if page <= 1 {
 		page = 1
@@ -66,6 +71,7 @@ func Milestones(ctx *context.Context) {
 		RepoID:   ctx.Repo.Repository.ID,
 		State:    state,
 		SortType: sortType,
+		Name:     keyword,
 	})
 	if err != nil {
 		ctx.ServerError("GetMilestones", err)
@@ -89,13 +95,15 @@ func Milestones(ctx *context.Context) {
 	}
 
 	ctx.Data["SortType"] = sortType
+	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "state", "State")
+	pager.AddParam(ctx, "q", "Keyword")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplMilestone)
+	ctx.HTML(http.StatusOK, tplMilestone)
 }
 
 // NewMilestone render creating milestone page
@@ -103,18 +111,18 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
-	ctx.HTML(200, tplMilestoneNew)
+	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateMilestoneForm)
+	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMilestoneNew)
+		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
 
@@ -163,18 +171,18 @@ func EditMilestone(ctx *context.Context) {
 	if len(m.DeadlineString) > 0 {
 		ctx.Data["deadline"] = m.DeadlineString
 	}
-	ctx.HTML(200, tplMilestoneNew)
+	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
 // EditMilestonePost response for edting milestone
 func EditMilestonePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateMilestoneForm)
+	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.edit")
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplMilestoneNew)
+		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
 
@@ -242,7 +250,7 @@ func DeleteMilestone(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/milestones",
 	})
 }
@@ -272,5 +280,5 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWriteIssuesOrPulls(false)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWriteIssuesOrPulls(true)
 
-	ctx.HTML(200, tplMilestoneIssues)
+	ctx.HTML(http.StatusOK, tplMilestoneIssues)
 }
