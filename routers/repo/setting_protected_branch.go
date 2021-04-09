@@ -13,11 +13,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -130,16 +130,16 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
 	contexts, _ := models.FindRepoRecentCommitStatusContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
-	for _, context := range protectBranch.StatusCheckContexts {
+	for _, ctx := range protectBranch.StatusCheckContexts {
 		var found bool
-		for _, ctx := range contexts {
-			if ctx == context {
+		for i := range contexts {
+			if contexts[i] == ctx {
 				found = true
 				break
 			}
 		}
 		if !found {
-			contexts = append(contexts, context)
+			contexts = append(contexts, ctx)
 		}
 	}
 
@@ -171,7 +171,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
-	f := web.GetForm(ctx).(*auth.ProtectBranchForm)
+	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
 	branch := ctx.Params("*")
 	if !ctx.Repo.GitRepo.IsBranchExist(branch) {
 		ctx.NotFound("IsBranchExist", nil)

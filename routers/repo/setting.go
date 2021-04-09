@@ -17,9 +17,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/repository"
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -61,7 +62,7 @@ func Settings(ctx *context.Context) {
 
 // SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.RepoSettingForm)
+	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 
@@ -169,18 +170,42 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		address, err := auth.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
+		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
 		}
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
-			handleMirrorAddressError(ctx, err, form)
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
 		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
+			return
+		}
+
+		form.LFS = form.LFS && setting.LFS.StartServer
+
+		if len(form.LFSEndpoint) > 0 {
+			ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+			if ep == nil {
+				ctx.Data["Err_LFSEndpoint"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
+				return
+			}
+			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+			if err != nil {
+				ctx.Data["Err_LFSEndpoint"] = true
+				handleSettingRemoteAddrError(ctx, err, form)
+				return
+			}
+		}
+
+		ctx.Repo.Mirror.LFS = form.LFS
+		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
+		if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			ctx.ServerError("UpdateMirror", err)
 			return
 		}
 
@@ -246,13 +271,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		address, err := auth.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
+		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
 		}
 		if err != nil {
 			ctx.Data["Err_PushMirrorAddress"] = true
-			handleMirrorAddressError(ctx, err, form)
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
@@ -686,7 +711,7 @@ func SettingsPost(ctx *context.Context) {
 	}
 }
 
-func handleMirrorAddressError(ctx *context.Context, err error, form *auth.RepoSettingForm) {
+func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.RepoSettingForm) {
 	if models.IsErrInvalidCloneAddr(err) {
 		addrErr := err.(*models.ErrInvalidCloneAddr)
 		switch {
@@ -979,7 +1004,7 @@ func DeployKeys(ctx *context.Context) {
 
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AddKeyForm)
+	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
@@ -1051,7 +1076,7 @@ func DeleteDeployKey(ctx *context.Context) {
 }
 
 // UpdateAvatarSetting update repo's avatar
-func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
+func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	ctxRepo := ctx.Repo.Repository
 
 	if form.Avatar == nil {
@@ -1089,8 +1114,8 @@ func UpdateAvatarSetting(ctx *context.Context, form auth.AvatarForm) error {
 
 // SettingsAvatar save new POSTed repository avatar
 func SettingsAvatar(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AvatarForm)
-	form.Source = auth.AvatarLocal
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form.Source = forms.AvatarLocal
 	if err := UpdateAvatarSetting(ctx, *form); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -1107,7 +1132,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func selectPushMirrorByForm(form *auth.RepoSettingForm, repo *models.Repository) (*models.PushMirror, error) {
+func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *models.Repository) (*models.PushMirror, error) {
 	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
 	if err != nil {
 		return nil, err

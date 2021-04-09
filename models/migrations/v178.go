@@ -5,35 +5,14 @@
 package migrations
 
 import (
-	"fmt"
-	"time"
-
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func createPushMirrorTable(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64 `xorm:"pk autoincr"`
-		RepoID     int64 `xorm:"INDEX"`
-		RemoteName string
-
-		Interval       time.Duration
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
-		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
-		LastError      string
+func addLFSMirrorColumns(x *xorm.Engine) error {
+	type Mirror struct {
+		LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
+		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync2(new(PushMirror)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(Mirror))
 }

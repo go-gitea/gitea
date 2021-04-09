@@ -5,6 +5,7 @@
 package mirror
 
 import (
+	"context"
 	"errors"
 	"strconv"
 	"time"
@@ -67,7 +68,7 @@ func RemovePushMirrorRemote(m *models.PushMirror) error {
 	return nil
 }
 
-func syncPushMirror(mirrorID string) {
+func syncPushMirror(ctx context.Context, mirrorID string) {
 	log.Trace("SyncPushMirror [mirror: %s]", mirrorID)
 	defer func() {
 		err := recover()
@@ -88,7 +89,7 @@ func syncPushMirror(mirrorID string) {
 	m.UpdatedUnix = timeutil.TimeStampNow()
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Running Sync", mirrorID, m.Repo)
-	err = runPushSync(m)
+	err = runPushSync(ctx, m)
 	if err != nil {
 		m.LastError = err.Error()
 	}
@@ -102,7 +103,7 @@ func syncPushMirror(mirrorID string) {
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Finished", mirrorID, m.Repo)
 }
 
-func runPushSync(m *models.PushMirror) error {
+func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {

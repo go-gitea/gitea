@@ -74,9 +74,9 @@ func syncMirrors(ctx context.Context) {
 			return
 		case item := <-mirrorQueue.Queue():
 			if strings.HasPrefix(item, "pull") {
-				syncPullMirror(item[5:])
+				syncPullMirror(ctx, item[5:])
 			} else if strings.HasPrefix(item, "push") {
-				syncPushMirror(item[5:])
+				syncPushMirror(ctx, item[5:])
 			} else {
 				log.Error("Unknown item in queue: %v", item)
 			}

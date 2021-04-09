@@ -1,12 +1,11 @@
-#!/usr/bin/env node
-'use strict';
+import imageminZopfli from 'imagemin-zopfli';
+import {optimize, extendDefaultPlugins} from 'svgo';
+import {fabric} from 'fabric';
+import {readFile, writeFile} from 'fs/promises';
+import {resolve, dirname} from 'path';
+import {fileURLToPath} from 'url';
 
-const imageminZopfli = require('imagemin-zopfli');
-const {optimize, extendDefaultPlugins} = require('svgo');
-const {fabric} = require('fabric');
-const {readFile, writeFile} = require('fs').promises;
-const {resolve} = require('path');
-
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const logoFile = resolve(__dirname, '../assets/logo.svg');
 
 function exit(err) {
