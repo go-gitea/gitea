@@ -10,8 +10,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-// UserInfoResponse represents a successful userinfo response
-type UserInfoResponse struct {
+// userInfoResponse represents a successful userinfo response
+type userInfoResponse struct {
 	Sub      string `json:"sub"`
 	Name     string `json:"name"`
 	Username string `json:"preferred_username"`
@@ -22,7 +22,7 @@ type UserInfoResponse struct {
 // UserInfoOAauth responds with OAuth formatted userinfo
 func UserInfoOAuth(ctx *context.Context) {
 	user := ctx.User
-	response := &UserInfoResponse{
+	response := &userInfoResponse{
 		Sub:      fmt.Sprint(user.ID),
 		Name:     user.FullName,
 		Username: user.Name,
