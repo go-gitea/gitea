@@ -76,9 +76,6 @@ const (
 )
 
 var (
-	// ErrUserNotKeyOwner user does not own this key error
-	ErrUserNotKeyOwner = errors.New("User does not own this public key")
-
 	// ErrEmailNotExist e-mail does not exist error
 	ErrEmailNotExist = errors.New("E-mail does not exist")
 
