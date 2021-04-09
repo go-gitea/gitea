@@ -602,6 +602,7 @@ a.ui.card:hover,
   }
 
   #navbar .dropdown .avatar {
+    vertical-align: -1px;
     margin-right: 0 !important;
   }
 
@@ -1135,8 +1136,6 @@ footer {
 
     .svg {
       margin-right: .15em;
-      vertical-align: top;
-      margin-top: calc(2em - 16px);
     }
   }
 
@@ -1809,12 +1808,20 @@ table th[data-sortt-desc] {
   margin-bottom: -1px !important;
   margin-right: -.5rem !important;
 }
+.ui.inline.dropdown > .dropdown.icon {
+  margin: -3px 0 !important;
+}
+.tiny.button > .dropdown.icon {
+  margin-top: -2px !important;
+  margin-bottom: -2px !important;
+}
 .ui.button.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
   float: right !important;
 
   @media (max-width: 480px) {
-    display: none;
+    margin-left: .125rem !important;
+    margin-right: -.25rem !important;
   }
 }
 .ui.selection.dropdown > .search.icon,
@@ -1998,6 +2005,7 @@ table th[data-sortt-desc] {
 
 .truncated-item-container {
   display: flex !important;
+  align-items: center;
 }
 
 .truncated-item-name {
