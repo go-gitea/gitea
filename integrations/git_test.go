@@ -11,7 +11,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -460,14 +459,16 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
 			diffHash = string(resp.Hash.Sum(nil))
 			diffLength = resp.Length
-			if diffLength == 0 {
-				fmt.Fprintf(os.Stdout, "Had to request diff twice due to 0 bytes\n")
-				req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
-				resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
-				diffHash = string(resp.Hash.Sum(nil))
-				diffLength = resp.Length
-			}
 		})
+
+		trueBool := true
+		falseBool := false
+
+		t.Run("AllowSetManuallyMergedAndSwitchOffAutodetectManualMerge", doAPIEditRepository(baseCtx, &api.EditRepoOption{
+			HasPullRequests:       &trueBool,
+			AllowManualMerge:      &trueBool,
+			AutodetectManualMerge: &falseBool,
+		}))
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
