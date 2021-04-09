@@ -278,6 +278,52 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Reduce make verbosity (#13803)
   * Add git command error directory on log (#13194)
 
+## [1.13.7](https://github.com/go-gitea/gitea/releases/tag/v1.13.7) - 2021-04-07
+
+* SECURITY
+  * Update to bluemonday-1.0.6 (#15294) (#15298)
+  * Clusterfuzz found another way (#15160) (#15169)
+* API
+  * Fix wrong user returned in API (#15139) (#15150)
+* BUGFIXES
+  * Add 'fonts' into 'KnownPublicEntries' (#15188) (#15317)
+  * Speed up `enry.IsVendor` (#15213) (#15246)
+  * Response 404 for diff/patch of a commit that not exist (#15221) (#15238)
+  * Prevent NPE in CommentMustAsDiff if no hunk header (#15199) (#15201)
+* MISC
+  * Add size to Save function (#15264) (#15271)
+
+## [1.13.6](https://github.com/go-gitea/gitea/releases/tag/v1.13.6) - 2021-03-23
+
+* SECURITY
+  * Fix bug on avatar middleware (#15124) (#15125)
+  * Fix another clusterfuzz identified issue (#15096) (#15114)
+* API
+  * Fix nil exeption for get pull reviews API #15104 (#15106)
+* BUGFIXES
+  * Fix markdown rendering in milestone content (#15056) (#15092)
+
+## [1.13.5](https://github.com/go-gitea/gitea/releases/tag/v1.13.5) - 2021-03-21
+
+* SECURITY
+  * Update to goldmark 1.3.3 (#15059) (#15061)
+  * Another clusterfuzz spotted issue (#15032) (#15034)
+* API
+  * Fix set milestone on PR creation (#14981) (#15001)
+  * Prevent panic when editing forked repos by API (#14960) (#14963)
+* BUGFIXES
+  * Fix bug when upload on web (#15042) (#15055)
+  * Delete Labels & IssueLabels on Repo Delete too (#15039) (#15051)
+  * Fix postgres ID sequences broken by recreate-table (#15015) (#15029)
+  * Fix several render issues (#14986) (#15013)
+  * Make sure sibling images get a link too (#14979) (#14995)
+  * Fix Anchor jumping with escaped query components (#14969) (#14977)
+  * Fix release mail html template (#14976)
+  * Fix excluding more than two labels on issues list (#14962) (#14973)
+  * Don't mark each comment poster as OP (#14971) (#14972)
+  * Add "captcha" to list of reserved usernames (#14930)
+  * Re-enable import local paths after reversion from #13610 (#14925) (#14927)
+
 ## [1.13.4](https://github.com/go-gitea/gitea/releases/tag/v1.13.4) - 2021-03-07
 
 * SECURITY
