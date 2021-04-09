@@ -64,8 +64,10 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err = pr.SetMerged(); err != nil {
+	if success, err := pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
+	} else {
+		log.Info("Setting pr #%d in %-v as merged with MergeCommitID %s. Success: %t", pr.Index, pr.BaseRepo, pr.MergedCommitID, success)
 	}
 
 	if err := pr.LoadIssue(); err != nil {
@@ -659,6 +661,7 @@ func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.
 	if merged, err = pr.SetMerged(); err != nil {
 		return
 	} else if !merged {
+		log.Info("Setting pr #%d in %-v as merged with MergeCommitID %s. Success: %t", pr.Index, pr.BaseRepo, pr.MergedCommitID, merged)
 		return fmt.Errorf("SetMerged failed")
 	}
 
