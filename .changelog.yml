@@ -58,4 +58,4 @@ groups:
     default: true
 
 # regex indicating which labels to skip for the changelog
-skip-labels: skip-changelog|backport\/.+
+skip-labels: skip-changelog|kind\/regression|backport\/.+
