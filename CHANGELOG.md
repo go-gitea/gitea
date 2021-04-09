@@ -4,20 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.14.0-RC2](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc2) - 2021-03-22
-
-* BUGFIXES
-  * Fix double 'push tag' action feed (#15078) (#15083)
-  * Remove possible resource leak (#15067) (#15082)
-  * Handle unauthorized user events gracefully (#15071) (#15074)
-
-## [1.14.0-RC1](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc1) - 2021-03-20
+## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc1) - 2021-03-20
 
 * SECURITY
   * Respect approved email domain list for externally validated user registration (#15014)
   * Add reverse proxy configuration support for remote IP address detection (#14959)
   * Ensure validation occurs on clone addresses too (#14994)
 * BREAKING
+  * Fix double 'push tag' action feed (#15078) (#15083)
+  * Remove possible resource leak (#15067) (#15082)
+  * Handle unauthorized user events gracefully (#15071) (#15074)
   * Restore Access.log following migration to Chi framework (Stops access logging of /api/internal routes) (#14475)
   * Migrate from Macaron to Chi framework (#14293)
   * Deprecate building for mips (#14174)
