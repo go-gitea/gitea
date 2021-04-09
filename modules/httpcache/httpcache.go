@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -54,12 +55,22 @@ func HandleFileEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInf
 
 // HandleGenericETagCache handles ETag-based caching for a HTTP request.
 // It returns true if the request was handled.
-func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag string) bool {
+func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag string) (handled bool) {
 	if len(etag) > 0 {
 		w.Header().Set("Etag", etag)
-		if req.Header.Get("If-None-Match") == etag {
-			w.WriteHeader(http.StatusNotModified)
+
+		ifNoneMatch := req.Header.Get("If-None-Match")
+		if ifNoneMatch == "*" {
 			return true
+		}
+
+		etag = strings.TrimPrefix(etag, "W/")
+		for _, item := range strings.Split(ifNoneMatch, ",") {
+			item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
+			if item == etag {
+				w.WriteHeader(http.StatusNotModified)
+				return true
+			}
 		}
 	}
 	w.Header().Set("Cache-Control", GetCacheControl())
