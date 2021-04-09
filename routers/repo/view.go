@@ -12,6 +12,7 @@ import (
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"path"
 	"strconv"
@@ -273,43 +274,42 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		// FIXME: what happens when README file is an image?
 		if isTextFile && setting.LFS.StartServer {
-			meta := lfs.IsPointerFile(&buf)
-			if meta != nil {
-				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+			pointer, _ := lfs.ReadPointerFromBuffer(buf)
+			if pointer.IsValid() {
+				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 					return
 				}
-			}
+				if meta != nil {
+					ctx.Data["IsLFSFile"] = true
+					isLFSFile = true
 
-			if meta != nil {
-				ctx.Data["IsLFSFile"] = true
-				isLFSFile = true
+					// OK read the lfs object
+					var err error
+					dataRc, err = lfs.ReadMetaObject(pointer)
+					if err != nil {
+						ctx.ServerError("ReadMetaObject", err)
+						return
+					}
+					defer dataRc.Close()
 
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(meta)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
+					buf = make([]byte, 1024)
+					n, err = dataRc.Read(buf)
+					if err != nil {
+						ctx.ServerError("Data", err)
+						return
+					}
+					buf = buf[:n]
+
+					isTextFile = base.IsTextFile(buf)
+					ctx.Data["IsTextFile"] = isTextFile
+
+					fileSize = meta.Size
+					ctx.Data["FileSize"] = meta.Size
+					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				if err != nil {
-					ctx.ServerError("Data", err)
-					return
-				}
-				buf = buf[:n]
-
-				isTextFile = base.IsTextFile(buf)
-				ctx.Data["IsTextFile"] = isTextFile
-
-				fileSize = meta.Size
-				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 			}
 		}
 
@@ -399,39 +399,39 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
-		meta := lfs.IsPointerFile(&buf)
-		if meta != nil {
-			meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+		pointer, _ := lfs.ReadPointerFromBuffer(buf)
+		if pointer.IsValid() {
+			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
-		}
-		if meta != nil {
-			isLFSFile = true
+			if meta != nil {
+				isLFSFile = true
 
-			// OK read the lfs object
-			var err error
-			dataRc, err = lfs.ReadMetaObject(meta)
-			if err != nil {
-				ctx.ServerError("ReadMetaObject", err)
-				return
+				// OK read the lfs object
+				var err error
+				dataRc, err = lfs.ReadMetaObject(pointer)
+				if err != nil {
+					ctx.ServerError("ReadMetaObject", err)
+					return
+				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, err = dataRc.Read(buf)
+				// Error EOF don't mean there is an error, it just means we read to
+				// the end
+				if err != nil && err != io.EOF {
+					ctx.ServerError("Data", err)
+					return
+				}
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				fileSize = meta.Size
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 			}
-			defer dataRc.Close()
-
-			buf = make([]byte, 1024)
-			n, err = dataRc.Read(buf)
-			// Error EOF don't mean there is an error, it just means we read to
-			// the end
-			if err != nil && err != io.EOF {
-				ctx.ServerError("Data", err)
-				return
-			}
-			buf = buf[:n]
-
-			isTextFile = base.IsTextFile(buf)
-			fileSize = meta.Size
-			ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 		}
 	}
 
@@ -582,7 +582,7 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
-			ctx.HTML(200, tplMigrating)
+			ctx.HTML(http.StatusOK, tplMigrating)
 			return
 		}
 
@@ -641,7 +641,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.HTML(200, tplRepoEMPTY)
+		ctx.HTML(http.StatusOK, tplRepoEMPTY)
 		return
 	}
 
@@ -704,7 +704,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.HTML(200, tplRepoHome)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
 // RenderUserCards render a page show users according the input templaet
@@ -726,7 +726,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	}
 	ctx.Data["Cards"] = items
 
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // Watchers render repository's watch users
@@ -765,5 +765,5 @@ func Forks(ctx *context.Context) {
 	}
 	ctx.Data["Forks"] = forks
 
-	ctx.HTML(200, tplForks)
+	ctx.HTML(http.StatusOK, tplForks)
 }

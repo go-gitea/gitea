@@ -5,16 +5,15 @@
 package repo
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	gotemplate "html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"path"
 	"strconv"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -63,7 +62,7 @@ func LFSFiles(ctx *context.Context) {
 	}
 	ctx.Data["LFSFiles"] = lfsMetaObjects
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsLFS)
+	ctx.HTML(http.StatusOK, tplSettingsLFS)
 }
 
 // LFSLocks shows a repository's LFS locks
@@ -97,7 +96,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if len(lfsLocks) == 0 {
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplSettingsLFSLocks)
+		ctx.HTML(http.StatusOK, tplSettingsLFSLocks)
 		return
 	}
 
@@ -186,7 +185,7 @@ func LFSLocks(ctx *context.Context) {
 	ctx.Data["Linkable"] = linkable
 
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsLFSLocks)
+	ctx.HTML(http.StatusOK, tplSettingsLFSLocks)
 }
 
 // LFSLockFile locks a file
@@ -265,7 +264,7 @@ func LFSFileGet(ctx *context.Context) {
 		return
 	}
 	ctx.Data["LFSFile"] = meta
-	dataRc, err := lfs.ReadMetaObject(meta)
+	dataRc, err := lfs.ReadMetaObject(meta.Pointer)
 	if err != nil {
 		ctx.ServerError("LFSFileGet", err)
 		return
@@ -339,7 +338,7 @@ func LFSFileGet(ctx *context.Context) {
 	case base.IsImageFile(buf):
 		ctx.Data["IsImageFile"] = true
 	}
-	ctx.HTML(200, tplSettingsLFSFile)
+	ctx.HTML(http.StatusOK, tplSettingsLFSFile)
 }
 
 // LFSDelete disassociates the provided oid from the repository and if the lfs file is no longer associated with any repositories - deletes it
@@ -384,9 +383,8 @@ func LFSFileFind(ctx *context.Context) {
 	ctx.Data["PageIsSettingsLFS"] = true
 	var hash git.SHA1
 	if len(sha) == 0 {
-		meta := models.LFSMetaObject{Oid: oid, Size: size}
-		pointer := meta.Pointer()
-		hash = git.ComputeBlobHash([]byte(pointer))
+		pointer := lfs.Pointer{Oid: oid, Size: size}
+		hash = git.ComputeBlobHash([]byte(pointer.StringContent()))
 		sha = hash.String()
 	} else {
 		hash = git.MustIDFromString(sha)
@@ -404,7 +402,7 @@ func LFSFileFind(ctx *context.Context) {
 	}
 
 	ctx.Data["Results"] = results
-	ctx.HTML(200, tplSettingsLFSFileFind)
+	ctx.HTML(http.StatusOK, tplSettingsLFSFileFind)
 }
 
 // LFSPointerFiles will search the repository for pointer files and report which are missing LFS files in the content store
@@ -420,156 +418,97 @@ func LFSPointerFiles(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
-	basePath := ctx.Repo.Repository.RepoPath()
+	err = func() error {
+		pointerChan := make(chan lfs.PointerBlob)
+		errChan := make(chan error, 1)
+		go lfs.SearchPointerBlobs(ctx.Req.Context(), ctx.Repo.GitRepo, pointerChan, errChan)
 
-	pointerChan := make(chan pointerResult)
+		numPointers := 0
+		var numAssociated, numNoExist, numAssociatable int
 
-	catFileCheckReader, catFileCheckWriter := io.Pipe()
-	shasToBatchReader, shasToBatchWriter := io.Pipe()
-	catFileBatchReader, catFileBatchWriter := io.Pipe()
-	errChan := make(chan error, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(5)
+		type pointerResult struct {
+			SHA        string
+			Oid        string
+			Size       int64
+			InRepo     bool
+			Exists     bool
+			Accessible bool
+		}
 
-	var numPointers, numAssociated, numNoExist, numAssociatable int
+		results := []pointerResult{}
 
-	go func() {
-		defer wg.Done()
-		pointers := make([]pointerResult, 0, 50)
-		for pointer := range pointerChan {
-			pointers = append(pointers, pointer)
-			if pointer.InRepo {
+		contentStore := lfs.NewContentStore()
+		repo := ctx.Repo.Repository
+
+		for pointerBlob := range pointerChan {
+			numPointers++
+
+			result := pointerResult{
+				SHA:  pointerBlob.Hash,
+				Oid:  pointerBlob.Oid,
+				Size: pointerBlob.Size,
+			}
+
+			if _, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid); err != nil {
+				if err != models.ErrLFSObjectNotExist {
+					return err
+				}
+			} else {
+				result.InRepo = true
+			}
+
+			result.Exists, err = contentStore.Exists(pointerBlob.Pointer)
+			if err != nil {
+				return err
+			}
+
+			if result.Exists {
+				if !result.InRepo {
+					// Can we fix?
+					// OK well that's "simple"
+					// - we need to check whether current user has access to a repo that has access to the file
+					result.Accessible, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					if err != nil {
+						return err
+					}
+				} else {
+					result.Accessible = true
+				}
+			}
+
+			if result.InRepo {
 				numAssociated++
 			}
-			if !pointer.Exists {
+			if !result.Exists {
 				numNoExist++
 			}
-			if !pointer.InRepo && pointer.Accessible {
+			if !result.InRepo && result.Accessible {
 				numAssociatable++
 			}
+
+			results = append(results, result)
 		}
-		numPointers = len(pointers)
-		ctx.Data["Pointers"] = pointers
+
+		err, has := <-errChan
+		if has {
+			return err
+		}
+
+		ctx.Data["Pointers"] = results
 		ctx.Data["NumPointers"] = numPointers
 		ctx.Data["NumAssociated"] = numAssociated
 		ctx.Data["NumAssociatable"] = numAssociatable
 		ctx.Data["NumNoExist"] = numNoExist
 		ctx.Data["NumNotAssociated"] = numPointers - numAssociated
+
+		return nil
 	}()
-	go createPointerResultsFromCatFileBatch(catFileBatchReader, &wg, pointerChan, ctx.Repo.Repository, ctx.User)
-	go pipeline.CatFileBatch(shasToBatchReader, catFileBatchWriter, &wg, basePath)
-	go pipeline.BlobsLessThan1024FromCatFileBatchCheck(catFileCheckReader, shasToBatchWriter, &wg)
-	if git.CheckGitVersionAtLeast("2.6.0") != nil {
-		revListReader, revListWriter := io.Pipe()
-		shasToCheckReader, shasToCheckWriter := io.Pipe()
-		wg.Add(2)
-		go pipeline.CatFileBatchCheck(shasToCheckReader, catFileCheckWriter, &wg, basePath)
-		go pipeline.BlobsFromRevListObjects(revListReader, shasToCheckWriter, &wg)
-		go pipeline.RevListAllObjects(revListWriter, &wg, basePath, errChan)
-	} else {
-		go pipeline.CatFileBatchCheckAllObjects(catFileCheckWriter, &wg, basePath, errChan)
+	if err != nil {
+		ctx.ServerError("LFSPointerFiles", err)
+		return
 	}
-	wg.Wait()
 
-	select {
-	case err, has := <-errChan:
-		if has {
-			ctx.ServerError("LFSPointerFiles", err)
-		}
-	default:
-	}
-	ctx.HTML(200, tplSettingsLFSPointers)
-}
-
-type pointerResult struct {
-	SHA        string
-	Oid        string
-	Size       int64
-	InRepo     bool
-	Exists     bool
-	Accessible bool
-}
-
-func createPointerResultsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pointerChan chan<- pointerResult, repo *models.Repository, user *models.User) {
-	defer wg.Done()
-	defer catFileBatchReader.Close()
-	contentStore := lfs.ContentStore{ObjectStorage: storage.LFS}
-
-	bufferedReader := bufio.NewReader(catFileBatchReader)
-	buf := make([]byte, 1025)
-	for {
-		// File descriptor line: sha
-		sha, err := bufferedReader.ReadString(' ')
-		if err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-		// Throw away the blob
-		if _, err := bufferedReader.ReadString(' '); err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-		sizeStr, err := bufferedReader.ReadString('\n')
-		if err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-		size, err := strconv.Atoi(sizeStr[:len(sizeStr)-1])
-		if err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-		pointerBuf := buf[:size+1]
-		if _, err := io.ReadFull(bufferedReader, pointerBuf); err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-		pointerBuf = pointerBuf[:size]
-		// Now we need to check if the pointerBuf is an LFS pointer
-		pointer := lfs.IsPointerFile(&pointerBuf)
-		if pointer == nil {
-			continue
-		}
-
-		result := pointerResult{
-			SHA:  strings.TrimSpace(sha),
-			Oid:  pointer.Oid,
-			Size: pointer.Size,
-		}
-
-		// Then we need to check that this pointer is in the db
-		if _, err := repo.GetLFSMetaObjectByOid(pointer.Oid); err != nil {
-			if err != models.ErrLFSObjectNotExist {
-				_ = catFileBatchReader.CloseWithError(err)
-				break
-			}
-		} else {
-			result.InRepo = true
-		}
-
-		result.Exists, err = contentStore.Exists(pointer)
-		if err != nil {
-			_ = catFileBatchReader.CloseWithError(err)
-			break
-		}
-
-		if result.Exists {
-			if !result.InRepo {
-				// Can we fix?
-				// OK well that's "simple"
-				// - we need to check whether current user has access to a repo that has access to the file
-				result.Accessible, err = models.LFSObjectAccessible(user, result.Oid)
-				if err != nil {
-					_ = catFileBatchReader.CloseWithError(err)
-					break
-				}
-			} else {
-				result.Accessible = true
-			}
-		}
-		pointerChan <- result
-	}
-	close(pointerChan)
+	ctx.HTML(http.StatusOK, tplSettingsLFSPointers)
 }
 
 // LFSAutoAssociate auto associates accessible lfs files

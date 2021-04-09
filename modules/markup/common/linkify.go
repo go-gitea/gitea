@@ -122,9 +122,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 			}
 		}
 	}
-	if m == nil {
-		return nil
-	}
+
 	if consumes != 0 {
 		s := segment.WithStop(segment.Start + 1)
 		ast.MergeOrAppendTextSegment(parent, s)
