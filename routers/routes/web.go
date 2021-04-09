@@ -168,15 +168,6 @@ func WebRoutes() *web.Route {
 		r.Use(h)
 	}
 
-	if (setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix) && setting.AppSubURL != "" {
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				req.URL.Path = strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
-				next.ServeHTTP(resp, req)
-			})
-		})
-	}
-
 	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
