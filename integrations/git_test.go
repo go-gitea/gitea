@@ -442,15 +442,6 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 		var pr api.PullRequest
 		var err error
 
-		trueBool := true
-		falseBool := false
-
-		t.Run("AllowSetManuallyMergedAndSwitchOffAutodetectManualMerge", doAPIEditRepository(baseCtx, &api.EditRepoOption{
-			HasPullRequests:       &trueBool,
-			AllowManualMerge:      &trueBool,
-			AutodetectManualMerge: &falseBool,
-		}))
-
 		// Create a test pullrequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
 			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
