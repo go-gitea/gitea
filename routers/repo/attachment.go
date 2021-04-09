@@ -124,19 +124,24 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
+	if err := attach.IncreaseDownloadCount(); err != nil {
+		ctx.ServerError("Update", err)
+		return
+	}
+
 	if setting.Attachment.ServeDirect {
 		//If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
 		if u != nil && err == nil {
-			if err := attach.IncreaseDownloadCount(); err != nil {
-				ctx.ServerError("Update", err)
-				return
-			}
-
 			ctx.Redirect(u.String())
 			return
 		}
+	}
+
+	etag := `"` + attach.UUID + `"`
+	if handleETag(ctx, etag) {
+		return
 	}
 
 	//If we have matched and access to release or issue
@@ -147,12 +152,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err := attach.IncreaseDownloadCount(); err != nil {
-		ctx.ServerError("Update", err)
-		return
-	}
-
-	if err = ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
+	if err = ServeData(ctx, etag, attach.Name, attach.Size, fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}
