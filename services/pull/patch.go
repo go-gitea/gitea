@@ -120,48 +120,9 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	// 4b. Now check git status to see if there are any conflicted files
-	statusReader, statusWriter := io.Pipe()
-	defer func() {
-		_ = statusReader.Close()
-		_ = statusWriter.Close()
-	}()
-
-	go func() {
-		stderr := &strings.Builder{}
-		if err := git.NewCommand("status", "--porcelain", "-z").RunInDirPipeline(tmpBasePath, statusWriter, stderr); err != nil {
-			_ = statusWriter.CloseWithError(git.ConcatenateError(err, stderr.String()))
-		} else {
-			_ = statusWriter.Close()
-		}
-	}()
-
-	conflictFiles := []string{}
-	numFiles := 0
-
-	bufReader := bufio.NewReader(statusReader)
-loop:
-	for {
-		line, err := bufReader.ReadString('\000')
-		if err != nil {
-			break loop
-		}
-		if len(line) < 3 {
-			continue
-		}
-		if line[0] == 'R' || line[1] == 'R' {
-			_, err = bufReader.ReadString('\000')
-			if err != nil {
-				break loop
-			}
-		}
-		if line[0] == ' ' {
-			continue
-		}
-		numFiles++
-		filename := line[3 : len(line)-1]
-		if strings.Contains(conflictStatus, line[0:3]) {
-			conflictFiles = append(conflictFiles, filename[:len(filename)-1])
-		}
+	numFiles, conflictFiles, err := doGitStatusCheck(tmpBasePath)
+	if err != nil {
+		return false, fmt.Errorf("git status --porcelain %s: %v", pr.BaseBranch, err)
 	}
 
 	// 4c. If there are no files changed this is an empty patch
@@ -179,60 +140,17 @@ loop:
 		return false, nil
 	}
 
-	// 5a. Prepare the diff
-	diffReader, diffWriter := io.Pipe()
-	defer func() {
-		_ = diffReader.Close()
-		_ = diffWriter.Close()
-	}()
+	// 5a. Prepare the patch from diff using only the conflicted files
+	diffReader, cancel := doGitDiffConflictedFiles(tmpBasePath, pr, conflictFiles)
+	defer cancel()
 
-	args := make([]string, 0, len(conflictFiles)+5)
-	args = append(args, "diff", "-p", pr.MergeBase, "tracking", "--")
-	args = append(args, conflictFiles...)
+	// 5b. Apply the patch against the index
+	stderrReader, cancel := doGitApplyCheckCached(tmpBasePath, pr, prConfig, diffReader)
+	defer cancel()
 
-	// 5b. Create a plain patch from head to base
-	go func() {
-		if err := git.NewCommand(args...).RunInDirPipeline(tmpBasePath, diffWriter, nil); err != nil {
-			log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
-			_ = diffWriter.CloseWithError(err)
-			return
-		}
-		_ = diffWriter.Close()
-	}()
-
-	args = args[:0]
-
-	// 5c. Prepare the arguments to apply the patch against the index
-	args = append(args, "apply", "--check", "--cached")
-	if prConfig.IgnoreWhitespaceConflicts {
-		args = append(args, "--ignore-whitespace")
-	}
-	args = append(args, "-")
 	pr.ConflictedFiles = make([]string, 0, 5)
-
-	// 5d. Prep the pipe:
-	//   - Here we could do the equivalent of:
-	//  `git apply --check --cached patch_file > conflicts`
-	//     Then iterate through the conflicts. However, that means storing all the conflicts
-	//     in memory - which is very wasteful.
-	//   - alternatively we can do the equivalent of:
-	//  `git apply --check ... | grep ...`
-	//     meaning we don't store all of the conflicts unnecessarily.
-	stderrReader, stderrWriter := io.Pipe()
-	defer func() {
-		_ = stderrReader.Close()
-		_ = stderrWriter.Close()
-	}()
-
-	// 5e. Run the apply --check command
 	conflict := false
-	go func() {
-		if err := git.NewCommand(args...).RunInDirTimeoutEnvFullPipeline(nil, -1, tmpBasePath, nil, stderrWriter, diffReader); err != nil {
-			_ = stderrWriter.CloseWithError(err)
-			return
-		}
-		_ = stderrWriter.Close()
-	}()
+
 	const empty = "error: unrecognised input"
 
 	const prefix = "error: patch failed:"
@@ -240,31 +158,38 @@ loop:
 
 	conflictMap := map[string]bool{}
 
-	// 5f. Now scan the output from the command
+	// 5c. Now scan the errors from the apply but only list the first 10 conflicted files
 	scanner := bufio.NewScanner(stderrReader)
-	for scanner.Scan() {
+	for len(conflictMap) < 10 && scanner.Scan() {
 		line := scanner.Text()
+
+		if !strings.HasPrefix(line, errorPrefix) {
+			continue
+		}
+
 		if strings.EqualFold(line, empty) && !conflict {
-			// ignore
-		} else if strings.HasPrefix(line, prefix) {
-			conflict = true
+			continue
+		}
+
+		conflict = true
+
+		if strings.HasPrefix(line, prefix) {
 			filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
 			conflictMap[filepath] = true
-		} else if strings.HasPrefix(line, errorPrefix) {
-			conflict = true
-			for _, suffix := range patchErrorSuffices {
-				if strings.HasSuffix(line, suffix) {
-					filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
-					if filepath != "" {
-						conflictMap[filepath] = true
-					}
-					break
-				}
-			}
+			continue
 		}
-		// only list 10 conflicted files
-		if len(conflictMap) >= 10 {
-			break
+
+	suffixLoop:
+		for _, suffix := range patchErrorSuffices {
+			if !strings.HasSuffix(line, suffix) {
+				continue
+			}
+
+			filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
+			if filepath != "" {
+				conflictMap[filepath] = true
+			}
+			break suffixLoop
 		}
 	}
 	err = scanner.Err()
@@ -287,6 +212,141 @@ loop:
 		return false, fmt.Errorf("git apply --check: %v", err)
 	}
 	return false, nil
+}
+
+func doGitStatusCheck(tmpBasePath string) (int, []string, error) {
+	// Create a pipe
+	statusReader, statusWriter := io.Pipe()
+	defer func() {
+		_ = statusReader.Close()
+		_ = statusWriter.Close()
+	}()
+
+	// Now run: git status --porcelain -z within the temporary repo
+	// This will emit a series of lines:
+	//
+	// "X" "Y" " " <PATH> \000
+	// "X" "Y" " " <ORIG_PATH> \000 <PATH> \0
+	//
+	// Where XY is the status code of the file and the second type of line is only used
+	// for renames or copies
+	//
+	// X and Y are in [ MARDC]
+	//
+	go func() {
+		stderr := &strings.Builder{}
+		if err := git.NewCommand("status", "--porcelain", "-z").RunInDirPipeline(tmpBasePath, statusWriter, stderr); err != nil {
+			_ = statusWriter.CloseWithError(git.ConcatenateError(err, stderr.String()))
+		} else {
+			_ = statusWriter.Close()
+		}
+	}()
+
+	conflictFiles := []string{}
+	numFiles := 0
+
+	var err error
+
+	bufReader := bufio.NewReader(statusReader)
+loop:
+	for {
+		var line string
+		line, err = bufReader.ReadString('\000')
+		if err != nil {
+			break loop
+		}
+
+		if len(line) < 3 {
+			continue
+		}
+
+		// if the file is renamed or copied then read the new file name and ignore it
+		// (neither file is conflicted)
+		if line[0] == 'R' || line[1] == 'R' || line[0] == 'C' || line[1] == 'C' {
+			_, err = bufReader.ReadString('\000')
+			if err != nil {
+				break loop
+			}
+		}
+
+		// If the left side is ' ' then the there cannot be conflict as the file is only on the base branch
+		if line[0] == ' ' {
+			continue
+		}
+
+		// Otherwise there has been a file change in some way - so count it
+		numFiles++
+
+		// Finally if the file is in a conflict status add it to the list of conflicted files
+		if strings.Contains(conflictStatus, line[0:3]) {
+			filename := line[3 : len(line)-1]
+			conflictFiles = append(conflictFiles, filename)
+		}
+	}
+	if err == io.EOF { // EOF is not an error
+		err = nil
+	}
+
+	// FIXME: conflictFiles could get large if this is a particularly badly conflicting PR - maybe we need to limit this in someway?
+	return numFiles, conflictFiles, err
+}
+
+func doGitDiffConflictedFiles(tmpBasePath string, pr *models.PullRequest, conflictFiles []string) (*io.PipeReader, context.CancelFunc) {
+	diffReader, diffWriter := io.Pipe()
+
+	args := make([]string, 0, len(conflictFiles)+5)
+	args = append(args, "diff", "-p", pr.MergeBase, "tracking", "--")
+	args = append(args, conflictFiles...)
+
+	// Create a plain patch from head to base
+	// NB: We're not using --binary here because if it's conflicted above git will not succeed here
+	go func() {
+		if err := git.NewCommand(args...).RunInDirPipeline(tmpBasePath, diffWriter, nil); err != nil {
+			log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
+			_ = diffWriter.CloseWithError(err)
+			return
+		}
+		_ = diffWriter.Close()
+	}()
+	return diffReader, func() {
+		_ = diffReader.Close()
+		_ = diffWriter.Close()
+	}
+}
+
+func doGitApplyCheckCached(tmpBasePath string, pr *models.PullRequest, prConfig *models.PullRequestsConfig, diffReader io.Reader) (*io.PipeReader, context.CancelFunc) {
+	args := make([]string, 0, 5)
+
+	// Prepare the arguments to apply the patch against the index
+	args = append(args, "apply", "--check", "--cached")
+	if prConfig.IgnoreWhitespaceConflicts {
+		args = append(args, "--ignore-whitespace")
+	}
+	args = append(args, "-")
+
+	// Prep the pipe:
+	//   - Here we could do the equivalent of:
+	//  `git apply --check --cached patch_file > conflicts`
+	//     Then iterate through the conflicts. However, that means storing all the conflicts
+	//     in memory - which is very wasteful.
+	//   - alternatively we can do the equivalent of:
+	//  `git apply --check ... | grep ...`
+	//     meaning we don't store all of the conflicts unnecessarily.
+	stderrReader, stderrWriter := io.Pipe()
+
+	// Run the apply --check command
+	go func() {
+		if err := git.NewCommand(args...).RunInDirTimeoutEnvFullPipeline(nil, -1, tmpBasePath, nil, stderrWriter, diffReader); err != nil {
+			_ = stderrWriter.CloseWithError(err)
+			return
+		}
+		_ = stderrWriter.Close()
+	}()
+
+	return stderrReader, func() {
+		_ = stderrReader.Close()
+		_ = stderrWriter.Close()
+	}
 }
 
 // CheckFileProtection check file Protection
