@@ -1802,7 +1802,8 @@ table th[data-sortt-desc] {
 /* see https://github.com/go-gitea/gitea/issues/14014 */
 .ui.dropdown > .dropdown.icon,
 .btn-review > .dropdown.icon {
-  height: auto !important;
+  /* when height is set to auto, Safari would shrink by the factor of zoom level */
+  height: 16px !important;
   margin-left: .5rem !important;
   margin-top: -1px !important;
   margin-bottom: -1px !important;
