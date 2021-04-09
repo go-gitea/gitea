@@ -19,8 +19,8 @@ type userInfoResponse struct {
 	Picture  string `json:"picture"`
 }
 
-// UserInfoOAauth responds with OAuth formatted userinfo
-func UserInfoOAuth(ctx *context.Context) {
+// InfoOAuth responds with OAuth formatted userinfo
+func InfoOAuth(ctx *context.Context) {
 	user := ctx.User
 	response := &userInfoResponse{
 		Sub:      fmt.Sprint(user.ID),

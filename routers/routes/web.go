@@ -403,7 +403,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Any("/user/events", events.Events)
 
 	m.Group("/login/oauth", func() {
-		m.Get("/userinfo", user.UserInfoOAuth)
+		m.Get("/userinfo", user.InfoOAuth)
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 		m.Post("/grant", bindIgnErr(forms.GrantApplicationForm{}), user.GrantApplicationOAuth)
 		// TODO manage redirection
