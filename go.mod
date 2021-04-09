@@ -86,7 +86,7 @@ require (
 	github.com/mgechev/revive v1.0.3
 	github.com/mholt/acmez v0.1.3 // indirect
 	github.com/mholt/archiver/v3 v3.5.0
-	github.com/microcosm-cc/bluemonday v1.0.6
+	github.com/microcosm-cc/bluemonday v1.0.7
 	github.com/miekg/dns v1.1.40 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.10
