@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -139,8 +140,7 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
-	etag := `"` + attach.UUID + `"`
-	if handleETag(ctx, etag) {
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+attach.UUID+`"`) {
 		return
 	}
 
@@ -152,7 +152,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err = ServeData(ctx, etag, attach.Name, attach.Size, fr); err != nil {
+	if err = ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}

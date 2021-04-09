@@ -31,6 +31,8 @@ func generateETag(fi os.FileInfo) string {
 
 // HandleTimeCache handles time-based caching for a HTTP request
 func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
+	w.Header().Set("Cache-Control", GetCacheControl())
+
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
 		t, err := time.Parse(http.TimeFormat, ifModifiedSince)
@@ -40,21 +42,27 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 		}
 	}
 
-	w.Header().Set("Cache-Control", GetCacheControl())
 	w.Header().Set("Last-Modified", fi.ModTime().Format(http.TimeFormat))
 	return false
 }
 
-// HandleEtagCache handles ETag-based caching for a HTTP request
-func HandleEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	etag := generateETag(fi)
-	if req.Header.Get("If-None-Match") == etag {
-		w.Header().Set("ETag", etag)
-		w.WriteHeader(http.StatusNotModified)
-		return true
-	}
-
+// HandleFileEtagCache handles ETag-based caching for a HTTP request
+func HandleFileEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
 	w.Header().Set("Cache-Control", GetCacheControl())
-	w.Header().Set("ETag", etag)
+	
+	etag := generateETag(fi)
+	return HandleGenericETagCache(req, w, etag)
+}
+
+// HandleGenericETagCache handles ETag-based caching for a HTTP request.
+// It returns true if the request was handled.
+func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag string) bool {
+	if len(etag) > 0 {
+		w.Header().Set("Etag", etag)
+		if req.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return true
+		}
+	}
 	return false
 }

@@ -8,7 +8,6 @@ package repo
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"path"
 	"strings"
 
@@ -16,12 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // ServeData download file from io.Reader
-func ServeData(ctx *context.Context, etag, name string, size int64, reader io.Reader) error {
+func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
 	n, err := reader.Read(buf)
 	if err != nil && err != io.EOF {
@@ -32,9 +32,7 @@ func ServeData(ctx *context.Context, etag, name string, size int64, reader io.Re
 	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
-	if len(etag) > 0 {
-		ctx.Resp.Header().Set("Etag", etag)
-	}
+
 	if size >= 0 {
 		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 	} else {
@@ -75,8 +73,7 @@ func ServeData(ctx *context.Context, etag, name string, size int64, reader io.Re
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
-	etag := `"` + blob.ID.String() + `"`
-	if handleETag(ctx, etag) {
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
 		return nil
 	}
 
@@ -90,12 +87,12 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	return ServeData(ctx, etag, ctx.Repo.TreePath, blob.Size(), dataRc)
+	return ServeData(ctx, ctx.Repo.TreePath, blob.Size(), dataRc)
 }
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
 func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
-	if handleETag(ctx, `"`+blob.ID.String()+`"`) {
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
 		return nil
 	}
 
@@ -115,8 +112,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		if meta == nil {
 			return ServeBlob(ctx, blob)
 		}
-		etag := `"` + pointer.Oid + `"`
-		if handleETag(ctx, etag) {
+		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return nil
 		}
 		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
@@ -128,20 +124,10 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
 			}
 		}()
-		return ServeData(ctx, etag, ctx.Repo.TreePath, meta.Size, lfsDataRc)
+		return ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
 	}
 
 	return ServeBlob(ctx, blob)
-}
-
-// handleETag returns true if the etag matches the request and sends StatusNotModified
-func handleETag(ctx *context.Context, etag string) bool {
-	if ctx.Req.Header.Get("If-None-Match") == etag {
-		ctx.Resp.Header().Set("Etag", etag)
-		ctx.Resp.WriteHeader(http.StatusNotModified)
-		return true
-	}
-	return false
 }
 
 // SingleDownload download a file by repos path
