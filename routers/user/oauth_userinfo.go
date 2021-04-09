@@ -29,5 +29,5 @@ func InfoOAuth(ctx *context.Context) {
 		Email:    user.Email,
 		Picture:  user.AvatarLink(),
 	}
-	ctx.JSON(200, response)
+	ctx.JSON(http.StatusOK, response)
 }
