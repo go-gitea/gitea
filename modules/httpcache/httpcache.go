@@ -26,7 +26,7 @@ func GetCacheControl() string {
 // generateETag generates an ETag based on size, filename and file modification time
 func generateETag(fi os.FileInfo) string {
 	etag := fmt.Sprint(fi.Size()) + fi.Name() + fi.ModTime().UTC().Format(http.TimeFormat)
-	return base64.StdEncoding.EncodeToString([]byte(etag))
+	return `"` + base64.StdEncoding.EncodeToString([]byte(etag)) + `"`
 }
 
 // HandleTimeCache handles time-based caching for a HTTP request
@@ -49,6 +49,7 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 func HandleEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
 	etag := generateETag(fi)
 	if req.Header.Get("If-None-Match") == etag {
+		w.Header().Set("ETag", etag)
 		w.WriteHeader(http.StatusNotModified)
 		return true
 	}
