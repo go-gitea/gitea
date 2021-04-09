@@ -126,7 +126,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 
 	if err := attach.IncreaseDownloadCount(); err != nil {
-		ctx.ServerError("Update", err)
+		ctx.ServerError("IncreaseDownloadCount", err)
 		return
 	}
 
