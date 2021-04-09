@@ -52,6 +52,12 @@ overrides:
     rules:
       import/no-unresolved: [0]
       import/no-extraneous-dependencies: [0]
+  - files: ["*.test.js"]
+    env:
+      jest: true
+  - files: ["*.config.js"]
+    rules:
+      import/no-unused-modules: [0]
 
 rules:
   accessor-pairs: [2]
