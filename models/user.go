@@ -239,10 +239,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users found in DB.
+// GetAllUsers returns a slice of all individual users found in DB.
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Find(&users)
+	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
