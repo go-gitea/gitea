@@ -180,7 +180,6 @@ func manuallyMerged(pr *models.PullRequest) bool {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		} else if !merged {
-			log.Info("Setting pr #%d in %-v as merged with MergeCommitID %s. Success: %t", pr.Index, pr.BaseRepo, pr.MergedCommitID, merged)
 			return false
 		}
 
