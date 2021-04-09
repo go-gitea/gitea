@@ -587,7 +587,7 @@ type DiffFile struct {
 	IsSubmodule              bool
 	Sections                 []*DiffSection
 	IsIncomplete             bool
-	IsIncompleteTooMuchChars int
+	IsIncompleteTooMuchChars bool
 	IsProtected              bool
 }
 
@@ -1073,7 +1073,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		}
 		if len(line) > maxLineCharacters {
 			curFile.IsIncomplete = true
-			curFile.IsIncompleteTooMuchChars = leftLine
+			curFile.IsIncompleteTooMuchChars = true
 			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line

@@ -55,8 +55,8 @@
 						</div>
 						<span class="file mono">{{$file.Name}}</span>
 						<div class="diff-file-header-actions df ac">
-							{{if ne $file.IsIncompleteTooMuchChars 0}}
-								<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed_too_much_chars" $file.IsIncompleteTooMuchChars}}</div>
+							{{if $file.IsIncompleteTooMuchChars}}
+								<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed_too_much_chars"}}</div>
 							{{else}}
 								<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
 							{{end}}
