@@ -70,11 +70,17 @@ steps:
       - make checks-backend
     depends_on: [lint-backend]
 
+  - name: test-frontend
+    image: node:14
+    commands:
+      - make test-frontend
+    depends_on: [lint-frontend]
+
   - name: build-frontend
     image: node:14
     commands:
       - make frontend
-    depends_on: [lint-frontend]
+    depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
     pull: always
@@ -495,7 +501,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs bsdtar\|libarchive-tools
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -591,7 +597,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs bsdtar\|libarchive-tools
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:

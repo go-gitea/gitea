@@ -1,15 +1,18 @@
-const fastGlob = require('fast-glob');
-const wrapAnsi = require('wrap-ansi');
-const AddAssetPlugin = require('add-asset-webpack-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const LicenseCheckerWebpackPlugin = require('license-checker-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
-const VueLoaderPlugin = require('vue-loader/lib/plugin');
-const {ESBuildMinifyPlugin} = require('esbuild-loader');
-const {resolve, parse} = require('path');
-const {SourceMapDevToolPlugin} = require('webpack');
+import fastGlob from 'fast-glob';
+import wrapAnsi from 'wrap-ansi';
+import AddAssetPlugin from 'add-asset-webpack-plugin';
+import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
+import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
+import {VueLoaderPlugin} from 'vue-loader';
+import {ESBuildMinifyPlugin} from 'esbuild-loader';
+import {resolve, parse, dirname} from 'path';
+import webpack from 'webpack';
+import {fileURLToPath} from 'url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const {SourceMapDevToolPlugin} = webpack;
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
@@ -35,7 +38,7 @@ const filterCssImport = (url, ...args) => {
   return true;
 };
 
-module.exports = {
+export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
@@ -90,6 +93,7 @@ module.exports = {
               discardComments: {
                 removeAll: true,
               },
+              colormin: false,
             },
           ],
         },
