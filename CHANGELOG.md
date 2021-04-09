@@ -134,6 +134,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
   * UI style improvements
+  * Add size to Save function (#15264) (#15270)
   * Monaco improvements (#15333) (#15345)
   * Support .mailmap in code activity stats (#15009)
   * Sort release attachments by name (#15008)  
@@ -275,7 +276,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add docs command (#13429)
   * Update external-renderers.en-us.md (#13165)
 * MISC
-  * Add size to Save function (#15264) (#15270)
   * Add builds for apple M1 (darwin arm64) (#14951)
   * Migrate to use jsoniter instead of encoding/json (#14841)
   * Reduce make verbosity (#13803)
@@ -302,7 +302,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix bug on avatar middleware (#15124) (#15125)
   * Fix another clusterfuzz identified issue (#15096) (#15114)
 * API
-  * Fix nil exeption for get pull reviews API #15104 (#15106)
+  * Fix nil pointer exception in get pull reviews API (#15106)
 * BUGFIXES
   * Fix markdown rendering in milestone content (#15056) (#15092)
 
