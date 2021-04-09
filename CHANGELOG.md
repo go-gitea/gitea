@@ -44,6 +44,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Dump github/gitlab/gitea repository data to a local directory and restore to gitea (#12244)
   * Create Rootless Docker image (#10154)
 * API
+  * Speedup issue search (#15179) (#15192)
   * Get pull, return head branch sha, even if deleted (#14931)
   * Export LFS & TimeTracking function status (#14753)
   * Show Gitea version in swagger (#14654)
@@ -68,6 +69,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more filters to issues search (#13514)
   * Add review request api (#11355)
 * BUGFIXES
+  * Show diff on rename with diff changes (#15338) (#15339)
+  * Fix handling of logout event (#15323) (#15337)
+  * Fix CanCreateRepo check (#15311) (#15321)
+  * Fix xorm log stack level (#15285) (#15316)
+  * Fix bug in Wrap (#15302) (#15309)
+  * Drop the event source if we are unauthorized (#15275) (#15280)
+  * Backport Fix graph pagination (#15225)  (#15249)
+  * Prevent NPE in CommentMustAsDiff if no hunk header (#15199) (#15200)
+  * should run RetrieveRepoMetas() for empty pr (#15187) (#15190)
   * Move setting to enable closing issue via commit in non default branch to repo settings (#14965)
   * Show correct issues for team dashboard (#14952)
   * Ensure that new pull request button works on forked forks owned by owner of the root and reduce ambiguity (#14932)
@@ -124,6 +134,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
   * UI style improvements
+  * Monaco improvements (#15333) (#15345)
   * Support .mailmap in code activity stats (#15009)
   * Sort release attachments by name (#15008)  
   * Add ui.explore settings to control view of explore pages (#14094)
@@ -264,6 +275,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add docs command (#13429)
   * Update external-renderers.en-us.md (#13165)
 * MISC
+  * Add size to Save function (#15264) (#15270)
   * Add builds for apple M1 (darwin arm64) (#14951)
   * Migrate to use jsoniter instead of encoding/json (#14841)
   * Reduce make verbosity (#13803)
