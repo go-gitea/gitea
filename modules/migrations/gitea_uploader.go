@@ -116,6 +116,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
+		LFS:            opts.LFS,
+		LFSEndpoint:    opts.LFSEndpoint,
 		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,6 +48,7 @@ func Migrate(ctx *context.Context) {
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
+	ctx.Data["lfs"] = ctx.Query("lfs") == "1"
 	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
 	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
 	ctx.Data["labels"] = ctx.Query("labels") == "1"
@@ -114,6 +116,34 @@ func handleMigrateError(ctx *context.Context, owner *models.User, err error, nam
 	}
 }
 
+func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplName, form *forms.MigrateRepoForm) {
+	if models.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*models.ErrInvalidCloneAddr)
+		switch {
+		case addrErr.IsProtocolInvalid:
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
+		case addrErr.IsURLError:
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		case addrErr.IsPermissionDenied:
+			if addrErr.LocalPath {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
+			} else if len(addrErr.PrivateNet) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, form)
+			}
+		case addrErr.IsInvalidPath:
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
+		default:
+			log.Error("Error whilst updating url: %v", err)
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		}
+	} else {
+		log.Error("Error whilst updating url: %v", err)
+		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+	}
+}
+
 // MigratePost response for migrating from external git repository
 func MigratePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.MigrateRepoForm)
@@ -144,33 +174,26 @@ func MigratePost(ctx *context.Context) {
 		err = migrations.IsMigrateURLAllowed(remoteAddr, ctx.User)
 	}
 	if err != nil {
-		if models.IsErrInvalidCloneAddr(err) {
-			ctx.Data["Err_CloneAddr"] = true
-			addrErr := err.(*models.ErrInvalidCloneAddr)
-			switch {
-			case addrErr.IsProtocolInvalid:
-				ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, &form)
-			case addrErr.IsURLError:
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
-			case addrErr.IsPermissionDenied:
-				if addrErr.LocalPath {
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, &form)
-				} else if len(addrErr.PrivateNet) == 0 {
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, &form)
-				} else {
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, &form)
-				}
-			case addrErr.IsInvalidPath:
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, &form)
-			default:
-				log.Error("Error whilst updating url: %v", err)
-				ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
-			}
-		} else {
-			log.Error("Error whilst updating url: %v", err)
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, &form)
-		}
+		ctx.Data["Err_CloneAddr"] = true
+		handleMigrateRemoteAddrError(ctx, err, tpl, form)
 		return
+	}
+
+	form.LFS = form.LFS && setting.LFS.StartServer
+
+	if form.LFS && len(form.LFSEndpoint) > 0 {
+		ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+		if ep == nil {
+			ctx.Data["Err_LFSEndpoint"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tpl, &form)
+			return
+		}
+		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+		if err != nil {
+			ctx.Data["Err_LFSEndpoint"] = true
+			handleMigrateRemoteAddrError(ctx, err, tpl, form)
+			return
+		}
 	}
 
 	var opts = migrations.MigrateOptions{
@@ -181,6 +204,8 @@ func MigratePost(ctx *context.Context) {
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
 		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
+		LFS:            form.LFS,
+		LFSEndpoint:    form.LFSEndpoint,
 		AuthUsername:   form.AuthUsername,
 		AuthPassword:   form.AuthPassword,
 		AuthToken:      form.AuthToken,

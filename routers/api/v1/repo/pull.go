@@ -580,7 +580,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {

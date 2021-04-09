@@ -15,7 +15,6 @@
 						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 						<span class="help">
 						{{.i18n.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate.clone_local_path"}}{{end}}
-						{{if .LFSActive}}<br/>{{.i18n.Tr "repo.migrate.lfs_mirror_unsupported"}}{{end}}
 						</span>
 					</div>
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
@@ -28,18 +27,7 @@
 						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">
 					</div>
 
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.migrate_options"}}</label>
-						<div class="ui checkbox">
-							{{if .DisableMirrors}}
-								<input id="mirror" name="mirror" type="checkbox" readonly>
-								<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
-							{{else}}
-								<input id="mirror" name="mirror" type="checkbox" {{if .mirror}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
-							{{end}}
-						</div>
-					</div>
+					{{template "repo/migrate/options" .}}
 
 					<div class="ui divider"></div>
 
