@@ -6,6 +6,7 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
 )
