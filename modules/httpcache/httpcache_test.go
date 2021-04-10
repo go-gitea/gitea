@@ -17,26 +17,12 @@ import (
 type mockFileInfo struct {
 }
 
-func (m mockFileInfo) Name() string { return "gitea.test" }
-func (m mockFileInfo) Size() int64 { return int64(10) }
-func (m mockFileInfo) Mode() os.FileMode { return os.ModePerm }
+func (m mockFileInfo) Name() string       { return "gitea.test" }
+func (m mockFileInfo) Size() int64        { return int64(10) }
+func (m mockFileInfo) Mode() os.FileMode  { return os.ModePerm }
 func (m mockFileInfo) ModTime() time.Time { return time.Time{} }
-func (m mockFileInfo) IsDir() bool { return false }
-func (m mockFileInfo) Sys() interface{} { return nil }
-
-type mockResponseWriter struct {
-	header     http.Header
-	StatusCode int
-}
-
-func (m mockResponseWriter) Header() http.Header {
-	if m.header == nil {
-		m.header = make(http.Header)
-	}
-	return m.header
-}
-func (m mockResponseWriter) Write([]byte) (int, error) { return 0, nil }
-func (m mockResponseWriter) WriteHeader(statusCode int) { m.StatusCode = statusCode }
+func (m mockFileInfo) IsDir() bool        { return false }
+func (m mockFileInfo) Sys() interface{}   { return nil }
 
 func TestHandleFileETagCache(t *testing.T) {
 	fi := mockFileInfo{}
