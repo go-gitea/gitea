@@ -58,8 +58,19 @@ func HandleFileEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInf
 func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag string) (handled bool) {
 	if len(etag) > 0 {
 		w.Header().Set("Etag", etag)
+		if checkIfNoneMatchIsValid(req, etag) {
+			w.WriteHeader(http.StatusNotModified)
+			return true
+		}
+	}
+	w.Header().Set("Cache-Control", GetCacheControl())
+	return false
+}
 
-		ifNoneMatch := req.Header.Get("If-None-Match")
+// checkIfNoneMatchIsValid tests if the header If-None-Match matches the ETag
+func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
+	ifNoneMatch := req.Header.Get("If-None-Match")
+	if len(ifNoneMatch) > 0 {
 		if ifNoneMatch == "*" {
 			return true
 		}
@@ -68,11 +79,9 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 		for _, item := range strings.Split(ifNoneMatch, ",") {
 			item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
 			if item == etag {
-				w.WriteHeader(http.StatusNotModified)
 				return true
 			}
 		}
 	}
-	w.Header().Set("Cache-Control", GetCacheControl())
 	return false
 }
