@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -26,7 +27,7 @@ func checkIsValidRequest(ctx *context.Context) bool {
 		return false
 	}
 	if !MetaMatcher(ctx.Req) {
-		log.Info("Attempt access LOCKs without accepting the correct media type: %s", metaMediaType)
+		log.Info("Attempt access LOCKs without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
 		return false
 	}
@@ -64,7 +65,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	rv := unpack(ctx)
+	rv, _ := unpack(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
@@ -85,7 +86,7 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	cursor := ctx.QueryInt("cursor")
 	if cursor < 0 {
@@ -178,7 +179,7 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
@@ -251,7 +252,7 @@ func VerifyLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	cursor := ctx.QueryInt("cursor")
 	if cursor < 0 {
@@ -322,7 +323,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", metaMediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
