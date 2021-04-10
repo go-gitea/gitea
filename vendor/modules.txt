@@ -596,7 +596,7 @@ github.com/mholt/acmez/acme
 # github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.6
+# github.com/microcosm-cc/bluemonday v1.0.7
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/miekg/dns v1.1.40
