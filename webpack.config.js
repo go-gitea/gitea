@@ -186,7 +186,7 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '/assets/', // required to remove css/ path segment
         }
       },
       {
@@ -194,7 +194,7 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '/assets/', // required to remove css/ path segment
         }
       },
     ],
