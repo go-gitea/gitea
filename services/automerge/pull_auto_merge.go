@@ -130,12 +130,12 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 			defer baseGitRepo.Close()
 
-			if err = pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
+			if err := pullservice.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, scheduledPRM.Message); err != nil {
 				return err
 			}
 
 			// Remove the schedule from the db
-			if err = models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
+			if err := models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
 				return err
 			}
 		}
