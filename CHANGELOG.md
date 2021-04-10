@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0-rc1) - 2021-03-20
+## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-09
 
 * SECURITY
   * Respect approved email domain list for externally validated user registration (#15014)
@@ -69,6 +69,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more filters to issues search (#13514)
   * Add review request api (#11355)
 * BUGFIXES
+  * Turn RepoRef and RepoAssignment back into func(*Context) (#15372) (#15377)
+  * Move FCGI req.URL.Path fix-up to the FCGI listener (#15292) (#15361)
   * Show diff on rename with diff changes (#15338) (#15339)
   * Fix handling of logout event (#15323) (#15337)
   * Fix CanCreateRepo check (#15311) (#15321)
@@ -134,6 +136,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use GO variable in go-check target (#13146) (#13147)
 * ENHANCEMENTS
   * UI style improvements
+  * Dropzone styling improvements (#15291) (#15374)
   * Add size to Save function (#15264) (#15270)
   * Monaco improvements (#15333) (#15345)
   * Support .mailmap in code activity stats (#15009)
