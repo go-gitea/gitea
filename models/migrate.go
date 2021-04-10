@@ -39,6 +39,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*Issue) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -194,6 +195,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 // InsertReleases migrates release
 func InsertReleases(rels ...*Release) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
