@@ -10221,6 +10221,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -13626,6 +13629,11 @@
           "type": "string",
           "x-go-name": "DefaultBranch"
         },
+        "default_merge_style": {
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
+        },
         "description": {
           "description": "a short description of the repository.",
           "type": "string",
@@ -14625,7 +14633,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14663,6 +14671,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -14705,7 +14721,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -14742,6 +14758,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -15455,6 +15479,9 @@
           "type": "string",
           "x-go-name": "HTMLPullURL"
         },
+        "resolver": {
+          "$ref": "#/definitions/User"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -15675,6 +15702,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "type": "string",

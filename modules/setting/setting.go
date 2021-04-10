@@ -213,6 +213,10 @@ var (
 			Enabled bool `ini:"ENABLE_RENDER"`
 		} `ini:"ui.svg"`
 
+		CSV struct {
+			MaxFileSize int64
+		} `ini:"ui.csv"`
+
 		Admin struct {
 			UserPagingNum   int
 			RepoPagingNum   int
@@ -257,6 +261,11 @@ var (
 			Enabled bool `ini:"ENABLE_RENDER"`
 		}{
 			Enabled: true,
+		},
+		CSV: struct {
+			MaxFileSize int64
+		}{
+			MaxFileSize: 524288,
 		},
 		Admin: struct {
 			UserPagingNum   int
@@ -304,12 +313,11 @@ var (
 	}
 
 	// Log settings
-	LogLevel           string
+	LogLevel           log.Level
 	StacktraceLogLevel string
 	LogRootPath        string
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
-	RouterLogMode      string
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
@@ -399,10 +407,6 @@ var (
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
-
-	// UILocation is the location on the UI, so that we can display the time on UI.
-	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
-	UILocation = time.Local
 )
 
 // IsProd if it's a production mode
@@ -553,7 +557,7 @@ func NewContext() {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", "Info")
+	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", log.INFO)
 	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)

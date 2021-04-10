@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -740,15 +741,12 @@ func (repo *Repository) updateSize(e Engine) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
 
-	repo.Size = size
+	repo.Size = size + lfsSize
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
@@ -1086,7 +1084,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: MergeStyleMerge},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1534,7 +1532,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}

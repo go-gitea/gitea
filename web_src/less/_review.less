@@ -35,11 +35,15 @@
   &:not(.top) {
     margin-bottom: .5em;
   }
+}
 
-  .show-outdated,
-  .hide-outdated {
-    display: block;
-    margin-left: auto;
+.show-outdated,
+.hide-outdated {
+  display: block !important;
+  user-select: none !important;
+
+  &:hover {
+    text-decoration: underline;
   }
 }
 
