@@ -75,9 +75,8 @@ func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 			return true
 		}
 
-		etag = strings.TrimPrefix(etag, "W/")
 		for _, item := range strings.Split(ifNoneMatch, ",") {
-			item = strings.TrimPrefix(strings.TrimSpace(item), "W/")
+			item = strings.TrimSpace(item)
 			if item == etag {
 				return true
 			}
