@@ -93,6 +93,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 
 	models.AssertNotExistsBean(t, &models.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
 
+	req = NewRequest(t, "DELETE", urlStr)
 	// Delete again will return not found
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
