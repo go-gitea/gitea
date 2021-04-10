@@ -62,7 +62,7 @@ func NewRedisUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	return queue, nil
 }
 
-var _ (UniqueByteFIFO) = &RedisUniqueByteFIFO{}
+var _ UniqueByteFIFO = &RedisUniqueByteFIFO{}
 
 // RedisUniqueByteFIFO represents a UniqueByteFIFO formed from a redisClient
 type RedisUniqueByteFIFO struct {

@@ -318,7 +318,6 @@ var (
 	LogRootPath        string
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
-	RouterLogMode      string
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
@@ -408,10 +407,6 @@ var (
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
-
-	// UILocation is the location on the UI, so that we can display the time on UI.
-	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
-	UILocation = time.Local
 )
 
 // IsProd if it's a production mode

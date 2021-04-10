@@ -81,8 +81,8 @@
 					<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
 						<label>{{.i18n.Tr "repo.mirror_prune"}}</label>
 						<div class="ui checkbox">
-					<input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
-					<label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
+							<input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
 						</div>
 					</div>
 					<div class="inline field {{if .Err_Interval}}error{{end}}">
@@ -111,6 +111,21 @@
 							</div>
 						</div>
 					</div>
+
+					{{if .LFSStartServer}}
+					<div class="inline field">
+						<label>{{.i18n.Tr "repo.mirror_lfs"}}</label>
+						<div class="ui checkbox">
+							<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .Mirror.LFS}}checked{{end}}>
+							<label>{{.i18n.Tr "repo.mirror_lfs_desc"}}</label>
+						</div>
+					</div>
+					<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
+						<label for="mirror_lfs_endpoint">{{.i18n.Tr "repo.mirror_lfs_endpoint"}}</label>
+						<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}" placeholder="{{.i18n.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+						<p class="help">{{.i18n.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
+					</div>
+					{{end}}
 
 					<div class="field">
 						<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>

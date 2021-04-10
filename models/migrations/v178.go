@@ -6,21 +6,13 @@ package migrations
 
 import (
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
-func convertAvatarURLToText(x *xorm.Engine) error {
-	dbType := x.Dialect().URI().DBType
-	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
-		return nil
+func addLFSMirrorColumns(x *xorm.Engine) error {
+	type Mirror struct {
+		LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
+		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 	}
 
-	// Some oauth2 providers may give very long avatar urls (i.e. Google)
-	return modifyColumn(x, "external_login_user", &schemas.Column{
-		Name: "avatar_url",
-		SQLType: schemas.SQLType{
-			Name: schemas.Text,
-		},
-		Nullable: true,
-	})
+	return x.Sync2(new(Mirror))
 }

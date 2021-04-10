@@ -303,6 +303,8 @@ var migrations = []Migration{
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
 	// v178 -> v179
+	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 }
 
