@@ -1,10 +1,14 @@
-// Copyright 2019 Gitea. All rights reserved.
+// Copyright 2021 Gitea. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package models
 
-import "code.gitea.io/gitea/modules/timeutil"
+import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/timeutil"
+)
 
 // ScheduledPullRequestMerge represents a pull request scheduled for merging when checks succeed
 type ScheduledPullRequestMerge struct {
@@ -19,8 +23,19 @@ type ScheduledPullRequestMerge struct {
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
 func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
+	if opts.Doer == nil {
+		return fmt.Errorf("ScheduleAutoMerge need Doer")
+	}
+	opts.DoerID = opts.Doer.ID
+
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
+
 	// Check if we already have a merge scheduled for that pull request
-	exists, err := x.Exist(&ScheduledPullRequestMerge{PullID: opts.PullID})
+	exists, err := sess.Exist(&ScheduledPullRequestMerge{PullID: opts.PullID})
 	if err != nil {
 		return
 	}
@@ -28,38 +43,52 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: opts.PullID}
 	}
 
-	opts.DoerID = opts.Doer.ID
-
-	if _, err = x.Insert(opts); err != nil {
+	if _, err = sess.Insert(opts); err != nil {
 		return
 	}
 
-	pr, err := GetPullRequestByID(opts.PullID)
+	pr, err := getPullRequestByID(sess, opts.PullID)
 	if err != nil {
 		return err
 	}
 
-	_, err = CreateScheduledPRToAutoMergeComment(opts.Doer, pr)
-	return err
+	if _, err := createAutoMergeComment(sess, CommentTypePRScheduledToAutoMerge, pr, opts.Doer); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // GetScheduledMergeRequestByPullID gets a scheduled pull request merge by pull request id
-func GetScheduledMergeRequestByPullID(pullID int64) (exists bool, scheduledPRM *ScheduledPullRequestMerge, err error) {
-	scheduledPRM = &ScheduledPullRequestMerge{}
-	exists, err = x.Where("pull_id = ?", pullID).Get(scheduledPRM)
-	if err != nil || !exists {
-		return
+func GetScheduledMergeRequestByPullID(pullID int64) (bool, *ScheduledPullRequestMerge, error) {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return false, nil, err
 	}
-	scheduledPRM.Doer, err = getUserByID(x, scheduledPRM.DoerID)
-	return
+	defer sess.Close()
+
+	scheduledPRM := &ScheduledPullRequestMerge{}
+	exists, err := sess.Where("pull_id = ?", pullID).Get(scheduledPRM)
+	if err != nil || !exists {
+		return false, nil, err
+	}
+
+	if doer, err := getUserByID(sess, scheduledPRM.DoerID); err != nil {
+		return false, nil, err
+	} else {
+		scheduledPRM.Doer = doer
+	}
+
+	return true, scheduledPRM, nil
 }
 
 // RemoveScheduledMergeRequest cancels a previously scheduled pull request
-func RemoveScheduledMergeRequest(scheduledPR *ScheduledPullRequestMerge) (err error) {
-	if scheduledPR.ID == 0 && scheduledPR.PullID != 0 {
-		_, err = x.Where("pull_id = ?", scheduledPR.PullID).Delete(&ScheduledPullRequestMerge{})
-		return
+func RemoveScheduledMergeRequest(scheduledPR *ScheduledPullRequestMerge) error {
+	if scheduledPR.ID != 0 {
+		_, err := x.ID(scheduledPR.ID).Delete(&ScheduledPullRequestMerge{})
+		return err
 	}
-	_, err = x.Where("id = ? AND pull_id = ?", scheduledPR.ID, scheduledPR.PullID).Delete(&ScheduledPullRequestMerge{})
-	return
+
+	_, err := x.Where("pull_id = ?", scheduledPR.PullID).Delete(&ScheduledPullRequestMerge{})
+	return err
 }

@@ -1018,6 +1018,7 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
+	// TODO: let RemoveScheduledMergeRequest call CreateUnScheduledPRToAutoMergeComment ?
 	if _, err := models.CreateUnScheduledPRToAutoMergeComment(ctx.User, pr); err != nil {
 		ctx.ServerError("CreateUnScheduledPRToAutoMergeComment", err)
 		return

@@ -1391,16 +1391,16 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	return nil
 }
 
-func createAutoMergeComment(typ CommentType, pr *PullRequest, user *User) (comment *Comment, err error) {
-	if err = pr.LoadIssue(); err != nil {
+func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest, user *User) (comment *Comment, err error) {
+	if err = pr.loadIssue(sess); err != nil {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.loadBaseRepo(sess); err != nil {
 		return
 	}
 
-	comment, err = CreateComment(&CreateCommentOptions{
+	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:  typ,
 		Doer:  user,
 		Repo:  pr.BaseRepo,
@@ -1409,12 +1409,17 @@ func createAutoMergeComment(typ CommentType, pr *PullRequest, user *User) (comme
 	return
 }
 
-// CreateScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
-func CreateScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
-	return createAutoMergeComment(CommentTypePRScheduledToAutoMerge, pr, user)
-}
-
 // CreateUnScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
 func CreateUnScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
-	return createAutoMergeComment(CommentTypePRUnScheduledToAutoMerge, pr, user)
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+	defer sess.Close()
+
+	if _, err := createAutoMergeComment(sess, CommentTypePRUnScheduledToAutoMerge, pr, user); err != nil {
+		return nil, err
+	}
+
+	return nil, sess.Commit()
 }
