@@ -52,8 +52,6 @@ const (
 )
 
 var (
-	// ErrTooManyFiles upload too many files
-	ErrTooManyFiles = errors.New("Maximum number of files to upload exceeded")
 	// IssueTemplateCandidates issue templates
 	IssueTemplateCandidates = []string{
 		"ISSUE_TEMPLATE.md",

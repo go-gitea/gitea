@@ -770,9 +770,6 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 
 	if team != nil {
 		env = ctxUser.AccessibleTeamReposEnv(team)
-		if err != nil {
-			return nil, fmt.Errorf("AccessibleTeamReposEnv: %v", err)
-		}
 	} else {
 		env, err = ctxUser.AccessibleReposEnv(ctxUser.ID)
 		if err != nil {

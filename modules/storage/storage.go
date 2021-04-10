@@ -19,8 +19,6 @@ import (
 var (
 	// ErrURLNotSupported represents url is not supported
 	ErrURLNotSupported = errors.New("url method not supported")
-	// ErrIterateObjectsNotSupported represents IterateObjects not supported
-	ErrIterateObjectsNotSupported = errors.New("iterateObjects method not supported")
 )
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage

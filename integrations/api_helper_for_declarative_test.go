@@ -241,8 +241,16 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 
 func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls/%d/?token="+ctx.Token, ctx.Username, repo, index)
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequest(t, http.MethodGet, urlStr)
+
+		expected := 200
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.Session.MakeRequest(t, req, expected)
+
 		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}

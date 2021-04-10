@@ -10221,6 +10221,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -14672,6 +14675,14 @@
           "type": "boolean",
           "x-go-name": "Labels"
         },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
+        },
         "milestones": {
           "type": "boolean",
           "x-go-name": "Milestones"
@@ -14750,6 +14761,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",

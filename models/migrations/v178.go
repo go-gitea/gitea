@@ -8,15 +8,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID         int64      `xorm:"pk autoincr"`
-		PullID     int64      `xorm:"BIGINT"`
-		DoerID     int64      `xorm:"BIGINT"`
-		MergeStyle MergeStyle `xorm:"varchar(50)"`
-		Message    string     `xorm:"TEXT"`
+func addLFSMirrorColumns(x *xorm.Engine) error {
+	type Mirror struct {
+		LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
+		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 	}
 
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	return x.Sync2(new(Mirror))
 }
