@@ -47,8 +47,8 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 	return false
 }
 
-// HandleFileEtagCache handles ETag-based caching for a HTTP request
-func HandleFileEtagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
+// HandleFileETagCache handles ETag-based caching for a HTTP request
+func HandleFileETagCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
 	etag := generateETag(fi)
 	return HandleGenericETagCache(req, w, etag)
 }
