@@ -70,6 +70,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add review request api (#11355)
 * BUGFIXES
   * Always set the merge base used to merge the commit (#15352) (#15385)
+  * Upgrade to bluemonday 1.0.7 (#15379) (#15380)
   * Turn RepoRef and RepoAssignment back into func(*Context) (#15372) (#15377)
   * Move FCGI req.URL.Path fix-up to the FCGI listener (#15292) (#15361)
   * Show diff on rename with diff changes (#15338) (#15339)
