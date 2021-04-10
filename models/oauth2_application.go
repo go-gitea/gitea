@@ -261,10 +261,10 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	defer sess.Close()
 
 	if err := deleteOAuth2Application(sess, id, userid); err != nil {
 		return err
