@@ -73,12 +73,12 @@ func GetScheduledMergeRequestByPullID(pullID int64) (bool, *ScheduledPullRequest
 		return false, nil, err
 	}
 
-	if doer, err := getUserByID(sess, scheduledPRM.DoerID); err != nil {
+	doer, err := getUserByID(sess, scheduledPRM.DoerID)
+	if err != nil {
 		return false, nil, err
-	} else {
-		scheduledPRM.Doer = doer
 	}
 
+	scheduledPRM.Doer = doer
 	return true, scheduledPRM, nil
 }
 
