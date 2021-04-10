@@ -41,3 +41,13 @@ export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
   }
   return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
 }
+
+const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+export function random(length = 7) {
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}

@@ -275,7 +275,6 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
   - [DropzoneJS](http://www.dropzonejs.com/)
   - [Highlight](https://highlightjs.org/)
   - [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  - [CodeMirror](https://codemirror.net/)
   - [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
 - 資料庫驅動程式：
   - [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)

@@ -13,7 +13,6 @@ import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initMarkdownAnchors from './markdown/anchors.js';
 import renderMarkdownContent from './markdown/content.js';
-import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
@@ -22,13 +21,13 @@ import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {createMarkdownEditor} from './features/markdowneditor.js';
 import {svg, svgs} from './svg.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
-const commentMDEditors = {};
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -286,101 +285,20 @@ function initReactionSelector(parent) {
   });
 }
 
-function insertAtCursor(field, value) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
-    field.selectionStart = startPos + value.length;
-    field.selectionEnd = startPos + value.length;
-  } else {
-    field.value += value;
-  }
-}
-
-function replaceAndKeepCursor(field, oldval, newval) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.replace(oldval, newval);
-    field.selectionStart = startPos + newval.length - oldval.length;
-    field.selectionEnd = endPos + newval.length - oldval.length;
-  } else {
-    field.value = field.value.replace(oldval, newval);
-  }
-}
-
-function getPastedImages(e) {
-  if (!e.clipboardData) return [];
-
-  const files = [];
-  for (const item of e.clipboardData.items || []) {
-    if (!item.type || !item.type.startsWith('image/')) continue;
-    files.push(item.getAsFile());
-  }
-
-  if (files.length) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  return files;
-}
-
-async function uploadFile(file) {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
-
-  const res = await fetch($('#dropzone').data('upload-url'), {
-    method: 'POST',
-    headers: {'X-Csrf-Token': csrf},
-    body: formData,
-  });
-  return await res.json();
-}
-
 function reload() {
   window.location.reload();
 }
-
-function initImagePaste(target) {
-  target.each(function () {
-    this.addEventListener('paste', async (e) => {
-      for (const img of getPastedImages(e)) {
-        const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(this, `![${name}]()`);
-        const data = await uploadFile(img);
-        replaceAndKeepCursor(this, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $('.files').append(input);
-      }
-    }, false);
-  });
-}
-
-function initSimpleMDEImagePaste(simplemde, files) {
-  simplemde.codemirror.on('paste', async (_, e) => {
-    for (const img of getPastedImages(e)) {
-      const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      const data = await uploadFile(img);
-      const pos = simplemde.codemirror.getCursor();
-      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
-      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-      files.append(input);
-    }
-  });
-}
-
-let autoSimpleMDE;
 
 function initCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
 
-  autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
+  const $textarea = $('.comment.form textarea:not(.review-textarea)');
+  createMarkdownEditor($textarea[0]);
+
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
-  initImagePaste($('.comment.form textarea'));
 
   // Listsubmit
   function initListSubmits(selector, outerSelector) {
@@ -916,29 +834,30 @@ async function initRepository() {
     });
 
     // Quote reply
-    $(document).on('click', '.quote-reply', function (event) {
+    $(document).on('click', '.quote-reply', function (e) {
+      e.preventDefault();
+
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const target = $(this).data('target');
       const quote = $(`#comment-${target}`).text().replace(/\n/g, '\n> ');
       const content = `> ${quote}\n\n`;
-      let $simplemde = autoSimpleMDE;
+
+      let textarea;
       if ($(this).hasClass('quote-reply-diff')) {
         const $parent = $(this).closest('.comment-code-cloud');
         $parent.find('button.comment-form-reply').trigger('click');
-        $simplemde = $parent.find('[name="content"]').data('simplemde');
+        textarea = $parent.find('[name="content"]')[0];
+      } else {
+        textarea = document.querySelector('.edit_area');
       }
-      if ($simplemde !== null) {
-        if ($simplemde.value() !== '') {
-          $simplemde.value(`${$simplemde.value()}\n\n${content}`);
-        } else {
-          $simplemde.value(`${content}`);
-        }
+
+      if (textarea.value !== '') {
+        textarea.value += `\n\n${content}`;
+      } else {
+        textarea.value(content);
       }
-      requestAnimationFrame(() => {
-        $simplemde.codemirror.focus();
-        $simplemde.codemirror.setCursor($simplemde.codemirror.lineCount(), 0);
-      });
-      event.preventDefault();
+
+      textarea.focus();
     });
 
     // Reference issue
@@ -970,13 +889,11 @@ async function initRepository() {
       const $renderContent = $segment.find('.render-content');
       const $rawContent = $segment.find('.raw-content');
       let $textarea;
-      let $simplemde;
 
       // Setup new form
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -1059,10 +976,9 @@ async function initRepository() {
         $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
         $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
         $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
-        $simplemde = setCommentSimpleMDE($textarea);
-        commentMDEditors[$editContentZone.data('write')] = $simplemde;
+
+        createMarkdownEditor($textarea[0]);
         initCommentPreviewTab($editContentForm);
-        initSimpleMDEImagePaste($simplemde, $files);
 
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
@@ -1111,7 +1027,6 @@ async function initRepository() {
         });
       } else {
         $textarea = $segment.find('textarea');
-        $simplemde = commentMDEditors[$editContentZone.data('write')];
       }
 
       // Show write/preview tab and copy raw content as needed
@@ -1119,11 +1034,9 @@ async function initRepository() {
       $renderContent.hide();
       if ($textarea.val().length === 0) {
         $textarea.val($rawContent.text());
-        $simplemde.value($rawContent.text());
       }
       requestAnimationFrame(() => {
         $textarea.focus();
-        $simplemde.codemirror.focus();
       });
       event.preventDefault();
     });
@@ -1250,7 +1163,6 @@ async function initRepository() {
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
       $repoComparePull.find('.pullrequest-form').show();
-      autoSimpleMDE.codemirror.refresh();
       $(this).parent().hide();
     });
   }
@@ -1337,16 +1249,7 @@ function initPullRequestReview() {
     const form = $(this).parent().find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
-    } else {
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = setCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
-    }
     $textarea.focus();
-    $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
   // The following part is only for diff views
@@ -1403,10 +1306,8 @@ function initPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const $simplemde = setCommentSimpleMDE($textarea);
+      createMarkdownEditor($textarea[0]);
       $textarea.focus();
-      $simplemde.codemirror.focus();
     }
   });
 }
@@ -1450,173 +1351,8 @@ function initTeamSettings() {
 }
 
 function initWikiForm() {
-  const $editArea = $('.repository.wiki textarea#edit_area');
-  let sideBySideChanges = 0;
-  let sideBySideTimeout = null;
-  let hasSimpleMDE = true;
-  if ($editArea.length > 0) {
-    const simplemde = new SimpleMDE({
-      autoDownloadFontAwesome: false,
-      element: $editArea[0],
-      forceSync: true,
-      previewRender(plainText, preview) { // Async method
-        // FIXME: still send render request when return back to edit mode
-        const render = function () {
-          sideBySideChanges = 0;
-          if (sideBySideTimeout !== null) {
-            clearTimeout(sideBySideTimeout);
-            sideBySideTimeout = null;
-          }
-          $.post($editArea.data('url'), {
-            _csrf: csrf,
-            mode: 'gfm',
-            context: $editArea.data('context'),
-            text: plainText,
-            wiki: true
-          }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            renderMarkdownContent();
-          });
-        };
-
-        setTimeout(() => {
-          if (!simplemde.isSideBySideActive()) {
-            render();
-          } else {
-            // delay preview by keystroke counting
-            sideBySideChanges++;
-            if (sideBySideChanges > 10) {
-              render();
-            }
-            // or delay preview by timeout
-            if (sideBySideTimeout !== null) {
-              clearTimeout(sideBySideTimeout);
-              sideBySideTimeout = null;
-            }
-            sideBySideTimeout = setTimeout(render, 600);
-          }
-        }, 0);
-        if (!simplemde.isSideBySideActive()) {
-          return 'Loading...';
-        }
-        return preview.innerHTML;
-      },
-      renderingConfig: {
-        singleLineBreaks: false
-      },
-      indentWithTabs: false,
-      tabSize: 4,
-      spellChecker: false,
-      toolbar: ['bold', 'italic', 'strikethrough', '|',
-        'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-        {
-          name: 'code-inline',
-          action(e) {
-            const cm = e.codemirror;
-            const selection = cm.getSelection();
-            cm.replaceSelection(`\`${selection}\``);
-            if (!selection) {
-              const cursorPos = cm.getCursor();
-              cm.setCursor(cursorPos.line, cursorPos.ch - 1);
-            }
-            cm.focus();
-          },
-          className: 'fa fa-angle-right',
-          title: 'Add Inline Code',
-        }, 'code', 'quote', '|', {
-          name: 'checkbox-empty',
-          action(e) {
-            const cm = e.codemirror;
-            cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-            cm.focus();
-          },
-          className: 'fa fa-square-o',
-          title: 'Add Checkbox (empty)',
-        },
-        {
-          name: 'checkbox-checked',
-          action(e) {
-            const cm = e.codemirror;
-            cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-            cm.focus();
-          },
-          className: 'fa fa-check-square-o',
-          title: 'Add Checkbox (checked)',
-        }, '|',
-        'unordered-list', 'ordered-list', '|',
-        'link', 'image', 'table', 'horizontal-rule', '|',
-        'clean-block', 'preview', 'fullscreen', 'side-by-side', '|',
-        {
-          name: 'revert-to-textarea',
-          action(e) {
-            e.toTextArea();
-            hasSimpleMDE = false;
-            const $form = $('.repository.wiki.new .ui.form');
-            const $root = $form.find('.field.content');
-            const loading = $root.data('loading');
-            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
-            initCommentPreviewTab($form);
-          },
-          className: 'fa fa-file',
-          title: 'Revert to simple textarea',
-        },
-      ]
-    });
-    $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
-
-    setTimeout(() => {
-      const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');
-      const $bPrev = $('.repository.wiki.new .previewtabs a[data-tab="preview"]');
-      const $toolbar = $('.editor-toolbar');
-      const $bPreview = $('.editor-toolbar button.preview');
-      const $bSideBySide = $('.editor-toolbar a.fa-columns');
-      $bEdit.on('click', (e) => {
-        if (!hasSimpleMDE) {
-          return false;
-        }
-        e.stopImmediatePropagation();
-        if ($toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.trigger('click');
-        }
-
-        return false;
-      });
-      $bPrev.on('click', (e) => {
-        if (!hasSimpleMDE) {
-          return false;
-        }
-        e.stopImmediatePropagation();
-        if (!$toolbar.hasClass('disabled-for-preview')) {
-          $bPreview.trigger('click');
-        }
-        return false;
-      });
-      $bPreview.on('click', () => {
-        setTimeout(() => {
-          if ($toolbar.hasClass('disabled-for-preview')) {
-            if ($bEdit.hasClass('active')) {
-              $bEdit.removeClass('active');
-            }
-            if (!$bPrev.hasClass('active')) {
-              $bPrev.addClass('active');
-            }
-          } else {
-            if (!$bEdit.hasClass('active')) {
-              $bEdit.addClass('active');
-            }
-            if ($bPrev.hasClass('active')) {
-              $bPrev.removeClass('active');
-            }
-          }
-        }, 0);
-
-        return false;
-      });
-      $bSideBySide.on('click', () => {
-        sideBySideChanges = 10;
-      });
-    }, 0);
-  }
+  const $editArea = $('.repository.wiki textarea.edit_area');
+  createMarkdownEditor($editArea[0]);
 }
 
 // Adding function to get the cursor position in a text field to jQuery object.
@@ -1634,71 +1370,6 @@ $.fn.getCursorPosition = function () {
   }
   return pos;
 };
-
-function setCommentSimpleMDE($editArea) {
-  const simplemde = new SimpleMDE({
-    autoDownloadFontAwesome: false,
-    element: $editArea[0],
-    forceSync: true,
-    renderingConfig: {
-      singleLineBreaks: false
-    },
-    indentWithTabs: false,
-    tabSize: 4,
-    spellChecker: false,
-    toolbar: ['bold', 'italic', 'strikethrough', '|',
-      'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
-      'code', 'quote', '|', {
-        name: 'checkbox-empty',
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [ ] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-square-o',
-        title: 'Add Checkbox (empty)',
-      },
-      {
-        name: 'checkbox-checked',
-        action(e) {
-          const cm = e.codemirror;
-          cm.replaceSelection(`\n- [x] ${cm.getSelection()}`);
-          cm.focus();
-        },
-        className: 'fa fa-check-square-o',
-        title: 'Add Checkbox (checked)',
-      }, '|',
-      'unordered-list', 'ordered-list', '|',
-      'link', 'image', 'table', 'horizontal-rule', '|',
-      'clean-block', '|',
-      {
-        name: 'revert-to-textarea',
-        action(e) {
-          e.toTextArea();
-        },
-        className: 'fa fa-file',
-        title: 'Revert to simple textarea',
-      },
-    ]
-  });
-  $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
-  simplemde.codemirror.setOption('extraKeys', {
-    Enter: () => {
-      const tributeContainer = document.querySelector('.tribute-container');
-      if (!tributeContainer || tributeContainer.style.display === 'none') {
-        return CodeMirror.Pass;
-      }
-    },
-    Backspace: (cm) => {
-      if (cm.getInputField().trigger) {
-        cm.getInputField().trigger('input');
-      }
-      cm.execCommand('delCharBefore');
-    }
-  });
-  attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
-  return simplemde;
-}
 
 async function initEditor() {
   $('.js-quick-pull-choice-option').on('change', function () {
@@ -1754,7 +1425,7 @@ async function initEditor() {
     $('#tree_path').val(parts.join('/'));
   }).trigger('keyup');
 
-  const $editArea = $('.repository.editor textarea#edit_area');
+  const $editArea = $('.repository.editor textarea.edit_area');
   if (!$editArea.length) return;
 
   await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
@@ -1801,11 +1472,8 @@ function initReleaseEditor() {
   }
 
   const $textarea = $editor.find('textarea');
-  attachTribute($textarea.get(), {mentions: false, emoji: true});
-  const $files = $editor.parent().find('.files');
-  const $simplemde = setCommentSimpleMDE($textarea);
+  createMarkdownEditor($textarea[0]);
   initCommentPreviewTab($editor);
-  initSimpleMDEImagePaste($simplemde, $files);
 }
 
 function initOrganization() {
@@ -2786,7 +2454,6 @@ $(document).ready(async () => {
   initCodeView();
   initVueApp();
   initTeamSettings();
-  initCtrlEnterSubmit();
   initNavbarContentToggle();
   initTopicbar();
   initU2FAuth();
@@ -2821,7 +2488,6 @@ $(document).ready(async () => {
 
   // parallel init of async loaded features
   await Promise.all([
-    attachTribute(document.querySelectorAll('#content, .emoji-input')),
     initGitGraph(),
     initClipboard(),
     initHeatmap(),
@@ -3364,14 +3030,6 @@ function initVueComponents() {
         }
         return 'octicon-repo';
       }
-    }
-  });
-}
-
-function initCtrlEnterSubmit() {
-  $('.js-quick-submit').on('keydown', function (e) {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').trigger('submit');
     }
   });
 }

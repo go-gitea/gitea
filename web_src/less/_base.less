@@ -187,14 +187,12 @@ table {
   background: transparent;
 }
 
-::selection,
-.CodeMirror-selected {
+::selection {
   background: var(--color-primary-light-1) !important;
   color: var(--color-white) !important;
 }
 
 ::placeholder,
-.CodeMirror-placeholder,
 .ui.dropdown:not(.button) > .default.text,
 .ui.default.dropdown:not(.button) > .text {
   color: var(--color-placeholder-text) !important;
@@ -234,10 +232,6 @@ a.muted:hover,
 .ui.input.focus > input,
 .ui.input > input:focus {
   border-color: var(--color-primary);
-}
-
-.CodeMirror-focused {
-  border-color: var(--color-primary) !important;
 }
 
 /* currently used for search bar dropdowns in repo search and explore code */
@@ -1842,15 +1836,6 @@ table th[data-sortt-desc] {
   max-width: 300px;
   overflow-x: hidden;
   text-overflow: ellipsis;
-}
-
-.dropdown:not(.selection) > .menu.review-box > * {
-  @media (max-height: 700px) {
-    .CodeMirror,
-    .CodeMirror-scroll {
-      min-height: 100px;
-    }
-  }
 }
 
 .ui.dropdown .menu .item {

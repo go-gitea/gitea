@@ -33,9 +33,6 @@
 			StaticUrlPrefix: '{{StaticUrlPrefix}}',
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
-			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
-			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
-			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
 			NotificationSettings: {
 				MinTimeout: {{NotificationSettings.MinTimeout}},
 				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
@@ -64,9 +61,6 @@
 	</script>
 	<link rel="icon" href="{{StaticUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{StaticUrlPrefix}}/img/favicon.png" type="image/png">
-{{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
-{{end}}
 	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>

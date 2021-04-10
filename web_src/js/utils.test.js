@@ -1,5 +1,5 @@
 import {
-  basename, extname, isObject, uniq, stripTags,
+  basename, extname, isObject, uniq, stripTags, random,
 } from './utils.js';
 
 test('basename', () => {
@@ -26,4 +26,9 @@ test('uniq', () => {
 
 test('stripTags', () => {
   expect(stripTags('<a>test</a>')).toEqual('test');
+});
+
+test('random', () => {
+  expect(random().length).toEqual(7);
+  expect(random(10).length).toEqual(10);
 });
