@@ -71,10 +71,6 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 func checkIfNoneMatchIsValid(req *http.Request, etag string) bool {
 	ifNoneMatch := req.Header.Get("If-None-Match")
 	if len(ifNoneMatch) > 0 {
-		if ifNoneMatch == "*" {
-			return true
-		}
-
 		for _, item := range strings.Split(ifNoneMatch, ",") {
 			item = strings.TrimSpace(item)
 			if item == etag {
