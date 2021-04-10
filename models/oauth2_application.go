@@ -264,6 +264,8 @@ func DeleteOAuth2Application(id, userid int64) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
+	defer sess.Close()
+
 	if err := deleteOAuth2Application(sess, id, userid); err != nil {
 		return err
 	}
