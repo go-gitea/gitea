@@ -467,8 +467,7 @@
 								</div>
 								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blocking');"
-											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button poping up ci" data-id="{{.Issue.ID}}" data-type="blocking" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
@@ -495,8 +494,7 @@
 								</div>
 								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button poping up ci" onclick="window.deleteDependencyModal({{.Issue.ID}}, 'blockedBy');"
-											data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button poping up ci" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
