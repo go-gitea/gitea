@@ -131,11 +131,11 @@ func (repo *Repository) CountLFSMetaObjects() (int64, error) {
 func LFSObjectAccessible(user *User, oid string) (bool, error) {
 	if user.IsAdmin {
 		count, err := x.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
-		return (count > 0), err
+		return count > 0, err
 	}
 	cond := accessibleRepositoryCondition(user)
 	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
-	return (count > 0), err
+	return count > 0, err
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects

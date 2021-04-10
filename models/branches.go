@@ -260,12 +260,6 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 	return r
 }
 
-// GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
-	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
-}
-
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
 	return getProtectedBranchBy(x, repoID, branchName)
@@ -274,19 +268,6 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, er
 func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := e.Get(rel)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, nil
-	}
-	return rel, nil
-}
-
-// GetProtectedBranchByID getting protected branch by ID
-func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{}
-	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
