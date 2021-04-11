@@ -118,7 +118,7 @@ var (
 )
 
 func init() {
-	services.RegisterService("storage", Init)
+	services.RegisterService("storage", Init, "setting")
 }
 
 // Init init the stoarge
