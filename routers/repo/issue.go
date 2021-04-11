@@ -1553,9 +1553,9 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 
 		// Check if there is a pending pr merge
-		ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = models.GetScheduledMergeRequestByPullID(pull.ID)
+		ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = models.GetScheduledPullRequestMergeByPullID(pull.ID)
 		if err != nil {
-			ctx.ServerError("GetScheduledMergeRequestByPullID", err)
+			ctx.ServerError("GetScheduledPullRequestMergeByPullID", err)
 			return
 		}
 	}

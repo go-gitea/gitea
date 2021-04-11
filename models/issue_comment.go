@@ -1408,18 +1408,3 @@ func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest
 	})
 	return
 }
-
-// CreateUnScheduledPRToAutoMergeComment creates a comment when a pr was set to auto merge once all checks succeed
-func CreateUnScheduledPRToAutoMergeComment(user *User, pr *PullRequest) (comment *Comment, err error) {
-	sess := x.NewSession()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
-	defer sess.Close()
-
-	if _, err := createAutoMergeComment(sess, CommentTypePRUnScheduledToAutoMerge, pr, user); err != nil {
-		return nil, err
-	}
-
-	return nil, sess.Commit()
-}

@@ -74,7 +74,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 
 			// Check if there is a scheduled pr in the db
-			exists, scheduledPRM, err := models.GetScheduledMergeRequestByPullID(pr.ID)
+			exists, scheduledPRM, err := models.GetScheduledPullRequestMergeByPullID(pr.ID)
 			if err != nil {
 				return err
 			}
@@ -135,7 +135,7 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 			}
 
 			// Remove the schedule from the db
-			if err := models.RemoveScheduledMergeRequest(scheduledPRM); err != nil {
+			if err := models.RemoveScheduledPullRequestMerge(nil, scheduledPRM.PullID, false); err != nil {
 				return err
 			}
 		}

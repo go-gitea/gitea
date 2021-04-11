@@ -5,8 +5,6 @@
 package models
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -22,12 +20,7 @@ type ScheduledPullRequestMerge struct {
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
-func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
-	if opts.Doer == nil {
-		return fmt.Errorf("ScheduleAutoMerge need Doer")
-	}
-	opts.DoerID = opts.Doer.ID
-
+func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message string) (err error) {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -35,45 +28,47 @@ func ScheduleAutoMerge(opts *ScheduledPullRequestMerge) (err error) {
 	defer sess.Close()
 
 	// Check if we already have a merge scheduled for that pull request
-	exists, err := sess.Exist(&ScheduledPullRequestMerge{PullID: opts.PullID})
+	exists, _, err := getScheduledPullRequestMergeByPullID(sess, pullID)
 	if err != nil {
 		return
-	}
-	if exists {
-		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: opts.PullID}
+	} else if exists {
+		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
-	if _, err = sess.Insert(opts); err != nil {
+	if _, err = sess.Insert(&ScheduledPullRequestMerge{
+		DoerID:     doer.ID,
+		PullID:     pullID,
+		MergeStyle: style,
+		Message:    message,
+	}); err != nil {
 		return
 	}
 
-	pr, err := getPullRequestByID(sess, opts.PullID)
+	pr, err := getPullRequestByID(sess, pullID)
 	if err != nil {
 		return err
 	}
 
-	if _, err := createAutoMergeComment(sess, CommentTypePRScheduledToAutoMerge, pr, opts.Doer); err != nil {
+	if _, err := createAutoMergeComment(sess, CommentTypePRScheduledToAutoMerge, pr, doer); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
-// GetScheduledMergeRequestByPullID gets a scheduled pull request merge by pull request id
-func GetScheduledMergeRequestByPullID(pullID int64) (bool, *ScheduledPullRequestMerge, error) {
-	sess := x.NewSession()
-	if err := sess.Begin(); err != nil {
-		return false, nil, err
-	}
-	defer sess.Close()
+// GetScheduledPullRequestMergeByPullID gets a scheduled pull request merge by pull request id
+func GetScheduledPullRequestMergeByPullID(pullID int64) (bool, *ScheduledPullRequestMerge, error) {
+	return getScheduledPullRequestMergeByPullID(x, pullID)
+}
 
+func getScheduledPullRequestMergeByPullID(e Engine, pullID int64) (bool, *ScheduledPullRequestMerge, error) {
 	scheduledPRM := &ScheduledPullRequestMerge{}
-	exists, err := sess.Where("pull_id = ?", pullID).Get(scheduledPRM)
+	exists, err := e.Where("pull_id = ?", pullID).Get(scheduledPRM)
 	if err != nil || !exists {
 		return false, nil, err
 	}
 
-	doer, err := getUserByID(sess, scheduledPRM.DoerID)
+	doer, err := getUserByID(e, scheduledPRM.DoerID)
 	if err != nil {
 		return false, nil, err
 	}
@@ -82,13 +77,38 @@ func GetScheduledMergeRequestByPullID(pullID int64) (bool, *ScheduledPullRequest
 	return true, scheduledPRM, nil
 }
 
-// RemoveScheduledMergeRequest cancels a previously scheduled pull request
-func RemoveScheduledMergeRequest(scheduledPR *ScheduledPullRequestMerge) error {
-	if scheduledPR.ID != 0 {
-		_, err := x.ID(scheduledPR.ID).Delete(&ScheduledPullRequestMerge{})
+// RemoveScheduledPullRequestMerge cancels a previously scheduled pull request
+func RemoveScheduledPullRequestMerge(doer *User, pullID int64, comment bool) error {
+	sess := x.NewSession()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	defer sess.Close()
+
+	exist, scheduledPRM, err := getScheduledPullRequestMergeByPullID(sess, pullID)
+	if err != nil {
+		return err
+	} else if !exist {
+		return ErrNotExist{ID: pullID}
+	}
+
+	if _, err := sess.ID(scheduledPRM.ID).Delete(&ScheduledPullRequestMerge{}); err != nil {
 		return err
 	}
 
-	_, err := x.Where("pull_id = ?", scheduledPR.PullID).Delete(&ScheduledPullRequestMerge{})
-	return err
+	// if pull got merged we dont need to add a "auto-merge canceled comment"
+	if !comment || doer == nil {
+		return sess.Commit()
+	}
+
+	pr, err := getPullRequestByID(sess, pullID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := createAutoMergeComment(sess, CommentTypePRUnScheduledToAutoMerge, pr, doer); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

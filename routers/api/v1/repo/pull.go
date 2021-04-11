@@ -852,13 +852,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 	if form.MergeWhenChecksSucceed && !lastCommitStatus.IsSuccess() {
-		err = models.ScheduleAutoMerge(&models.ScheduledPullRequestMerge{
-			PullID:     pr.ID,
-			Doer:       ctx.User,
-			MergeStyle: models.MergeStyle(form.Do),
-			Message:    message,
-		})
-		if err != nil {
+		if err := models.ScheduleAutoMerge(
+			ctx.User,
+			pr.ID,
+			models.MergeStyle(form.Do),
+			message,
+		); err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
 				ctx.Status(http.StatusOK)
 				return
@@ -872,9 +871,9 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
-	// scheduled before, hece we can remove it without checking for its existence.
-	if err := models.RemoveScheduledMergeRequest(&models.ScheduledPullRequestMerge{PullID: pr.ID}); err != nil {
-		ctx.ServerError("RemoveScheduledMergeRequest", err)
+	// scheduled before, hence we can remove it without checking for its existence.
+	if err := models.RemoveScheduledPullRequestMerge(ctx.User, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
+		ctx.ServerError("RemoveScheduledPullRequestMerge", err)
 		return
 	}
 

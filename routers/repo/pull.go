@@ -890,13 +890,12 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 	if form.MergeWhenChecksSucceed && !lastCommitStatus.IsSuccess() {
-		err = models.ScheduleAutoMerge(&models.ScheduledPullRequestMerge{
-			PullID:     pr.ID,
-			Doer:       ctx.User,
-			MergeStyle: models.MergeStyle(form.Do),
-			Message:    message,
-		})
-		if err != nil {
+		if err := models.ScheduleAutoMerge(
+			ctx.User,
+			pr.ID,
+			models.MergeStyle(form.Do),
+			message,
+		); err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
 				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
 				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
@@ -911,13 +910,13 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	// Removing an auto merge pull request is something we can execute whether or not a pull request auto merge was
-	// scheduled before, hece we can remove it without checking for its existence.
-	if err := models.RemoveScheduledMergeRequest(&models.ScheduledPullRequestMerge{PullID: pr.ID}); err != nil {
-		ctx.ServerError("RemoveScheduledMergeRequest", err)
+	// scheduled before, hence we can remove it without checking for its existence.
+	if err := models.RemoveScheduledPullRequestMerge(ctx.User, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
+		ctx.ServerError("RemoveScheduledPullRequestMerge", err)
 		return
 	}
 
-	if err = pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
@@ -1000,25 +999,14 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	pr := issue.PullRequest
-	exists, scheduledInfo, err := models.GetScheduledMergeRequestByPullID(pr.ID)
-	if err != nil {
-		ctx.ServerError("GetScheduledMergeRequestByPullID", err)
-		return
-	}
-	if !exists {
-		ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
-		ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
-		return
-	}
-	if err := models.RemoveScheduledMergeRequest(scheduledInfo); err != nil {
-		ctx.ServerError("RemoveScheduledMergeRequest", err)
-		return
-	}
 
-	// TODO: let RemoveScheduledMergeRequest call CreateUnScheduledPRToAutoMergeComment ?
-	if _, err := models.CreateUnScheduledPRToAutoMergeComment(ctx.User, pr); err != nil {
-		ctx.ServerError("CreateUnScheduledPRToAutoMergeComment", err)
+	if err := models.RemoveScheduledPullRequestMerge(ctx.User, issue.PullRequest.ID, true); err != nil {
+		if models.IsErrNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
+			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
+			return
+		}
+		ctx.ServerError("RemoveScheduledPullRequestMerge", err)
 		return
 	}
 
