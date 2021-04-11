@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "eslint": "7.23.0",
+    "editorconfig-checker": "4.0.2",
     "eslint-plugin-html": "6.1.2",
     "eslint-plugin-import": "2.22.1",
     "eslint-plugin-unicorn": "29.0.0",

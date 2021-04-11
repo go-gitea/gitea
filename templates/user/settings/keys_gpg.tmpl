@@ -39,7 +39,7 @@
 <p>{{.i18n.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
 <div {{if not .HasGPGError}}class="hide"{{end}} id="add-gpg-key-panel">
 	<h4 class="ui top attached header">
-		 {{.i18n.Tr "settings.add_new_gpg_key"}}
+		{{.i18n.Tr "settings.add_new_gpg_key"}}
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}" method="post">
