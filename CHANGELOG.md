@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-10
+## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-11
 
 * SECURITY
   * Respect approved email domain list for externally validated user registration (#15014)
@@ -69,6 +69,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add more filters to issues search (#13514)
   * Add review request api (#11355)
 * BUGFIXES
+  * Fix delete nonexist oauth application 500 and prevent deadlock (#15384) (#15396)
   * Always set the merge base used to merge the commit (#15352) (#15385)
   * Upgrade to bluemonday 1.0.7 (#15379) (#15380)
   * Turn RepoRef and RepoAssignment back into func(*Context) (#15372) (#15377)
