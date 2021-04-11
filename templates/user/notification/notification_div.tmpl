@@ -1,134 +1,134 @@
 <div class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}">
 	<div class="ui container">
 		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
-        <div class="ui top attached tabular menu">
-            {{ $notificationUnreadCount := call .NotificationUnreadCount}}
-            <a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
-                {{.i18n.Tr "notification.unread"}}
-                <div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
-            </a>
-            <a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
-                {{.i18n.Tr "notification.read"}}
-            </a>
-            {{if and (eq .Status 1)}}
-                <form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
-                    {{$.CsrfTokenHtml}}
-                    <div class="{{if not $notificationUnreadCount}}hide{{end}}">
-                        <button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
-                            {{svg "octicon-checklist"}}
-                        </button>
-                    </div>
-                </form>
-            {{end}}
-        </div>
-        <div class="ui bottom attached active tab segment">
-            {{if eq (len .Notifications) 0}}
-                {{if eq .Status 1}}
-                    {{.i18n.Tr "notification.no_unread"}}
-                {{else}}
-                    {{.i18n.Tr "notification.no_read"}}
-                {{end}}
-            {{else}}
-                <table class="ui unstackable striped very compact small selectable table" id="notification_table">
-                    <tbody>
-                        {{range $notification := .Notifications}}
-                            {{$issue := .Issue}}
-                            {{$repo := .Repository}}
-                            {{$repoOwner := $repo.MustOwner}}
-                            <tr id="notification_{{.ID}}">
-                                <td class="collapsing" data-href="{{.HTMLURL}}">
-                                    {{if eq .Status 3}}
-                                        <span class="blue">{{svg "octicon-pin"}}</span>
-                                    {{else if not $issue}}
-                                        <span class="gray">{{svg "octicon-repo"}}</span>
-                                    {{else if $issue.IsPull}}
-                                        {{if $issue.IsClosed}}
-                                            {{if $issue.GetPullRequest.HasMerged}}
-                                                <span class="purple">{{svg "octicon-git-merge"}}</span>
-                                            {{else}}
-                                                <span class="red">{{svg "octicon-git-pull-request"}}</span>
-                                            {{end}}
-                                        {{else}}
-                                            <span class="green">{{svg "octicon-git-pull-request"}}</span>
-                                        {{end}}
-                                    {{else}}
-                                        {{if $issue.IsClosed}}
-                                            <span class="red">{{svg "octicon-issue-closed"}}</span>
-                                        {{else}}
-                                            <span class="green">{{svg "octicon-issue-opened"}}</span>
-                                        {{end}}
-                                    {{end}}
-                                </td>
-                                <td class="eleven wide" data-href="{{.HTMLURL}}">
-                                    <a class="item" href="{{.HTMLURL}}">
-                                        {{if $issue}}
-                                            #{{$issue.Index}} - {{$issue.Title}}
-                                        {{else}}
-                                            {{$repo.FullName}}
-                                        {{end}}
-                                    </a>
-                                </td>
-                                <td data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
-                                    <a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
-                                        {{$repoOwner.Name}}/{{$repo.Name}}
-                                    </a>
-                                </td>
-                                <td class="collapsing">
-                                    {{if ne .Status 3}}
-                                        <form action="{{AppSubUrl}}/notifications/status" method="POST">
-                                            {{$.CsrfTokenHtml}}
-                                            <input type="hidden" name="notification_id" value="{{.ID}}" />
-                                            <input type="hidden" name="status" value="pinned" />
-                                            <button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'
-                                                data-url="{{AppSubUrl}}/notifications/status"
-                                                data-status="pinned"
-                                                data-page="{{$.Page.Paginater.Current}}"
-                                                data-notification-id="{{.ID}}"
-                                                data-q="{{$.Keyword}}">
-                                                {{svg "octicon-pin"}}
-                                            </button>
-                                        </form>
-                                    {{end}}
-                                </td>
-                                <td class="collapsing">
-                                    {{if or (eq .Status 1) (eq .Status 3)}}
-                                        <form action="{{AppSubUrl}}/notifications/status" method="POST">
-                                            {{$.CsrfTokenHtml}}
-                                            <input type="hidden" name="notification_id" value="{{.ID}}" />
-                                            <input type="hidden" name="status" value="read" />
-                                            <input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
-                                            <button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'
-                                                data-url="{{AppSubUrl}}/notifications/status"
-                                                data-status="read"
-                                                data-page="{{$.Page.Paginater.Current}}"
-                                                data-notification-id="{{.ID}}"
-                                                data-q="{{$.Keyword}}">
-                                                {{svg "octicon-check"}}
-                                            </button>
-                                        </form>
-                                    {{else if eq .Status 2}}
-                                        <form action="{{AppSubUrl}}/notifications/status" method="POST">
-                                            {{$.CsrfTokenHtml}}
-                                            <input type="hidden" name="notification_id" value="{{.ID}}" />
-                                            <input type="hidden" name="status" value="unread" />
-                                            <input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
-                                            <button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'
-                                                data-url="{{AppSubUrl}}/notifications/status"
-                                                data-status="unread"
-                                                data-page="{{$.Page.Paginater.Current}}"
-                                                data-notification-id="{{.ID}}"
-                                                data-q="{{$.Keyword}}">
-                                                {{svg "octicon-bell"}}
-                                            </button>
-                                        </form>
-                                    {{end}}
-                                </td>
-                            </tr>
-                        {{end}}
-                    </tbody>
-                </table>
-            {{end}}
-        </div>
-        {{template "base/paginate" .}}
-    </div>
+		<div class="ui top attached tabular menu">
+			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
+			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
+				{{.i18n.Tr "notification.unread"}}
+				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
+			</a>
+			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
+				{{.i18n.Tr "notification.read"}}
+			</a>
+			{{if and (eq .Status 1)}}
+				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
+					{{$.CsrfTokenHtml}}
+					<div class="{{if not $notificationUnreadCount}}hide{{end}}">
+						<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
+							{{svg "octicon-checklist"}}
+						</button>
+					</div>
+				</form>
+			{{end}}
+		</div>
+		<div class="ui bottom attached active tab segment">
+			{{if eq (len .Notifications) 0}}
+				{{if eq .Status 1}}
+					{{.i18n.Tr "notification.no_unread"}}
+				{{else}}
+					{{.i18n.Tr "notification.no_read"}}
+				{{end}}
+			{{else}}
+				<table class="ui unstackable striped very compact small selectable table" id="notification_table">
+					<tbody>
+						{{range $notification := .Notifications}}
+							{{$issue := .Issue}}
+							{{$repo := .Repository}}
+							{{$repoOwner := $repo.MustOwner}}
+							<tr id="notification_{{.ID}}">
+								<td class="collapsing" data-href="{{.HTMLURL}}">
+									{{if eq .Status 3}}
+										<span class="blue">{{svg "octicon-pin"}}</span>
+									{{else if not $issue}}
+										<span class="gray">{{svg "octicon-repo"}}</span>
+									{{else if $issue.IsPull}}
+										{{if $issue.IsClosed}}
+											{{if $issue.GetPullRequest.HasMerged}}
+												<span class="purple">{{svg "octicon-git-merge"}}</span>
+											{{else}}
+												<span class="red">{{svg "octicon-git-pull-request"}}</span>
+											{{end}}
+										{{else}}
+											<span class="green">{{svg "octicon-git-pull-request"}}</span>
+										{{end}}
+									{{else}}
+										{{if $issue.IsClosed}}
+											<span class="red">{{svg "octicon-issue-closed"}}</span>
+										{{else}}
+											<span class="green">{{svg "octicon-issue-opened"}}</span>
+										{{end}}
+									{{end}}
+								</td>
+								<td class="eleven wide" data-href="{{.HTMLURL}}">
+									<a class="item" href="{{.HTMLURL}}">
+										{{if $issue}}
+											#{{$issue.Index}} - {{$issue.Title}}
+										{{else}}
+											{{$repo.FullName}}
+										{{end}}
+									</a>
+								</td>
+								<td data-href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
+									<a class="item" href="{{AppSubUrl}}/{{$repoOwner.Name}}/{{$repo.Name}}">
+										{{$repoOwner.Name}}/{{$repo.Name}}
+									</a>
+								</td>
+								<td class="collapsing">
+									{{if ne .Status 3}}
+										<form action="{{AppSubUrl}}/notifications/status" method="POST">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="notification_id" value="{{.ID}}" />
+											<input type="hidden" name="status" value="pinned" />
+											<button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'
+												data-url="{{AppSubUrl}}/notifications/status"
+												data-status="pinned"
+												data-page="{{$.Page.Paginater.Current}}"
+												data-notification-id="{{.ID}}"
+												data-q="{{$.Keyword}}">
+												{{svg "octicon-pin"}}
+											</button>
+										</form>
+									{{end}}
+								</td>
+								<td class="collapsing">
+									{{if or (eq .Status 1) (eq .Status 3)}}
+										<form action="{{AppSubUrl}}/notifications/status" method="POST">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="notification_id" value="{{.ID}}" />
+											<input type="hidden" name="status" value="read" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'
+												data-url="{{AppSubUrl}}/notifications/status"
+												data-status="read"
+												data-page="{{$.Page.Paginater.Current}}"
+												data-notification-id="{{.ID}}"
+												data-q="{{$.Keyword}}">
+												{{svg "octicon-check"}}
+											</button>
+										</form>
+									{{else if eq .Status 2}}
+										<form action="{{AppSubUrl}}/notifications/status" method="POST">
+											{{$.CsrfTokenHtml}}
+											<input type="hidden" name="notification_id" value="{{.ID}}" />
+											<input type="hidden" name="status" value="unread" />
+											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
+											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'
+												data-url="{{AppSubUrl}}/notifications/status"
+												data-status="unread"
+												data-page="{{$.Page.Paginater.Current}}"
+												data-notification-id="{{.ID}}"
+												data-q="{{$.Keyword}}">
+												{{svg "octicon-bell"}}
+											</button>
+										</form>
+									{{end}}
+								</td>
+							</tr>
+						{{end}}
+					</tbody>
+				</table>
+			{{end}}
+		</div>
+		{{template "base/paginate" .}}
+	</div>
 </div>
