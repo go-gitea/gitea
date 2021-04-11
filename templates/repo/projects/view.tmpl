@@ -158,10 +158,23 @@
 					<div class="card board-card" data-issue="{{.ID}}">
 						<div class="content">
 							<div class="header">
-								<span class="{{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}{{svg "octicon-git-merge"}}
-									{{else if .IsClosed}}{{svg "octicon-issue-closed"}}
-									{{else}}{{svg "octicon-issue-opened"}}
+								<span>
+									{{if .IsPull}}
+										{{if .PullRequest.HasMerged}}
+											{{svg "octicon-git-merge" 16 "text purple"}}
+										{{else}}
+											{{if .IsClosed}}
+												{{svg "octicon-git-pull-request" 16 "text red"}}
+											{{else}}
+												{{svg "octicon-git-pull-request" 16 "text green"}}
+											{{end}}
+										{{end}}
+									{{else}}
+										{{if .IsClosed}}
+											{{svg "octicon-issue-closed" 16 "text red"}}
+										{{else}}
+											{{svg "octicon-issue-opened" 16 "text green"}}
+										{{end}}
 									{{end}}
 								</span>
 								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
