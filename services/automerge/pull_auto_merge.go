@@ -26,10 +26,6 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 	}
 
 	for _, branch := range branches {
-		// We get the branch name with a \n at the end which is not in the db so we strip it out
-		branch = strings.Trim(branch, "\n")
-		// Then get all prs for that branch
-
 		// If the branch starts with "pull/*" we know we're dealing with a fork.
 		// In that case, head and base branch are not in the same repo and we need to do some extra work
 		// to get the pull request for this branch.
@@ -40,6 +36,10 @@ func MergeScheduledPullRequest(sha string, repo *models.Repository) (err error) 
 		if strings.HasPrefix(branch, "refs/pull/") {
 
 			parts := strings.Split(branch, "/")
+
+			if len(parts) < 3 {
+				continue
+			}
 
 			prIndex, err := strconv.ParseInt(parts[2], 10, 64)
 			if err != nil {
