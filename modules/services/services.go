@@ -62,13 +62,17 @@ func initOne(initialized map[string]struct{}, services map[string]serviceHandler
 		}
 	}
 	log.Trace("Init service %s", service.Name)
-	return service.Init()
+	if err := service.Init(); err != nil {
+		return err
+	}
+	initialized[service.Name] = struct{}{}
+	return nil
 }
 
 // Init initializes services according the sequence
 func Init() error {
-	servicesLock.RLock()
-	defer servicesLock.RUnlock()
+	servicesLock.Lock()
+	defer servicesLock.Unlock()
 	var initialized = make(map[string]struct{})
 	for _, service := range services {
 		if err := initOne(initialized, services, service); err != nil {

@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:generate go run -mod=vendor ../build/generate-services.go .. generated_init.go code.gitea.io/gitea/modules/services RegisterService
+
 package routers
 
 import (
@@ -19,29 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
-
-	// run init on these packages, don't remove these references except you know what it means
-	_ "code.gitea.io/gitea/modules/auth/sso"
-	_ "code.gitea.io/gitea/modules/cron"
-	_ "code.gitea.io/gitea/modules/eventsource"
-	_ "code.gitea.io/gitea/modules/highlight"
-	_ "code.gitea.io/gitea/modules/indexer/code"
-	_ "code.gitea.io/gitea/modules/indexer/issues"
-	_ "code.gitea.io/gitea/modules/indexer/stats"
-	_ "code.gitea.io/gitea/modules/markup"
-	_ "code.gitea.io/gitea/modules/markup/external"
-	_ "code.gitea.io/gitea/modules/migrations"
-	_ "code.gitea.io/gitea/modules/notification/action"
-	_ "code.gitea.io/gitea/modules/notification/indexer"
-	_ "code.gitea.io/gitea/modules/notification/mail"
-	_ "code.gitea.io/gitea/modules/notification/ui"
-	_ "code.gitea.io/gitea/modules/notification/webhook"
-	_ "code.gitea.io/gitea/modules/ssh"
-	_ "code.gitea.io/gitea/modules/svg"
-	_ "code.gitea.io/gitea/modules/task"
-	_ "code.gitea.io/gitea/services/mirror"
-	_ "code.gitea.io/gitea/services/pull"
-	_ "code.gitea.io/gitea/services/webhook"
 )
 
 func checkRunMode() {
