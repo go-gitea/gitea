@@ -224,23 +224,21 @@ func runDump(ctx *cli.Context) error {
 
 		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
 			log.Info("Skip dumping LFS data")
-		} else {
-			if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
-				info, err := object.Stat()
-				if err != nil {
-					return err
-				}
-
-				return w.Write(archiver.File{
-					FileInfo: archiver.FileInfo{
-						FileInfo:   info,
-						CustomName: path.Join("data", "lfs", objPath),
-					},
-					ReadCloser: object,
-				})
-			}); err != nil {
-				fatal("Failed to dump LFS objects: %v", err)
+		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+			info, err := object.Stat()
+			if err != nil {
+				return err
 			}
+
+			return w.Write(archiver.File{
+				FileInfo: archiver.FileInfo{
+					FileInfo:   info,
+					CustomName: path.Join("data", "lfs", objPath),
+				},
+				ReadCloser: object,
+			})
+		}); err != nil {
+			fatal("Failed to dump LFS objects: %v", err)
 		}
 	}
 
@@ -327,23 +325,21 @@ func runDump(ctx *cli.Context) error {
 
 	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
 		log.Info("Skip dumping attachment data")
-	} else {
-		if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
-			info, err := object.Stat()
-			if err != nil {
-				return err
-			}
-
-			return w.Write(archiver.File{
-				FileInfo: archiver.FileInfo{
-					FileInfo:   info,
-					CustomName: path.Join("data", "attachments", objPath),
-				},
-				ReadCloser: object,
-			})
-		}); err != nil {
-			fatal("Failed to dump attachments: %v", err)
+	} else if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+		info, err := object.Stat()
+		if err != nil {
+			return err
 		}
+
+		return w.Write(archiver.File{
+			FileInfo: archiver.FileInfo{
+				FileInfo:   info,
+				CustomName: path.Join("data", "attachments", objPath),
+			},
+			ReadCloser: object,
+		})
+	}); err != nil {
+		fatal("Failed to dump attachments: %v", err)
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
