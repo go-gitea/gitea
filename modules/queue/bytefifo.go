@@ -23,7 +23,7 @@ type UniqueByteFIFO interface {
 	Has(data []byte) (bool, error)
 }
 
-var _ (ByteFIFO) = &DummyByteFIFO{}
+var _ ByteFIFO = &DummyByteFIFO{}
 
 // DummyByteFIFO represents a dummy fifo
 type DummyByteFIFO struct{}
@@ -48,7 +48,7 @@ func (*DummyByteFIFO) Len() int64 {
 	return 0
 }
 
-var _ (UniqueByteFIFO) = &DummyUniqueByteFIFO{}
+var _ UniqueByteFIFO = &DummyUniqueByteFIFO{}
 
 // DummyUniqueByteFIFO represents a dummy unique fifo
 type DummyUniqueByteFIFO struct {

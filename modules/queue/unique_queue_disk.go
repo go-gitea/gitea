@@ -59,7 +59,7 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	return queue, nil
 }
 
-var _ (UniqueByteFIFO) = &LevelUniqueQueueByteFIFO{}
+var _ UniqueByteFIFO = &LevelUniqueQueueByteFIFO{}
 
 // LevelUniqueQueueByteFIFO represents a ByteFIFO formed from a LevelUniqueQueue
 type LevelUniqueQueueByteFIFO struct {

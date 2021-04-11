@@ -296,7 +296,7 @@ func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byt
 
 		// our new section has length endPos - match[3]
 		// our old section has length match[9] - match[3]
-		(*contentBytes) = (*contentBytes)[:len((*contentBytes))-match[9]+endPos]
+		*contentBytes = (*contentBytes)[:len(*contentBytes)-match[9]+endPos]
 		pos = endPos
 	}
 }

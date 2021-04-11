@@ -512,7 +512,7 @@ func runDeleteUser(c *cli.Context) error {
 	return models.DeleteUser(user)
 }
 
-func runRepoSyncReleases(c *cli.Context) error {
+func runRepoSyncReleases(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -578,14 +578,14 @@ func getReleaseCount(id int64) (int64, error) {
 	)
 }
 
-func runRegenerateHooks(c *cli.Context) error {
+func runRegenerateHooks(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
 	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
-func runRegenerateKeys(c *cli.Context) error {
+func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}

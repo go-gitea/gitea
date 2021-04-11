@@ -124,8 +124,9 @@ func escapeUrlComponent(val string) string {
 
 // Query represents a query
 type Query struct {
-	Key   string
-	Value string
+	Key      string
+	Value    string
+	HasValue bool
 }
 
 func parseQuery(query string) (values []Query, err error) {
@@ -140,8 +141,10 @@ func parseQuery(query string) (values []Query, err error) {
 			continue
 		}
 		value := ""
+		hasValue := false
 		if i := strings.Index(key, "="); i >= 0 {
 			key, value = key[:i], key[i+1:]
+			hasValue = true
 		}
 		key, err1 := url.QueryUnescape(key)
 		if err1 != nil {
@@ -158,8 +161,9 @@ func parseQuery(query string) (values []Query, err error) {
 			continue
 		}
 		values = append(values, Query{
-			Key:   key,
-			Value: value,
+			Key:      key,
+			Value:    value,
+			HasValue: hasValue,
 		})
 	}
 	return values, err
@@ -169,8 +173,10 @@ func encodeQueries(queries []Query) string {
 	var b strings.Builder
 	for i, query := range queries {
 		b.WriteString(url.QueryEscape(query.Key))
-		b.WriteString("=")
-		b.WriteString(url.QueryEscape(query.Value))
+		if query.HasValue {
+			b.WriteString("=")
+			b.WriteString(url.QueryEscape(query.Value))
+		}
 		if i < len(queries)-1 {
 			b.WriteString("&")
 		}
@@ -964,7 +970,6 @@ func (p *Policy) matchRegex(elementName string) (map[string]attrPolicy, bool) {
 	}
 	return aps, matched
 }
-
 
 // normaliseElementName takes a HTML element like <script> which is user input
 // and returns a lower case version of it that is immune to UTF-8 to ASCII
