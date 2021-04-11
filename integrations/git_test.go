@@ -678,6 +678,9 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		)
 		ctx.Session.MakeRequest(t, req, http.StatusCreated)
 
+		// wait to let gitea merge stuff
+		time.Sleep(time.Second)
+
 		// test pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
 		assert.NoError(t, err)
