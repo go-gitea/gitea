@@ -13,7 +13,7 @@
 		<ui class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
 			{{if .Issue.OriginalAuthor }}
-				<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
+				<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
 			{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
 					{{avatar .Issue.Poster}}
@@ -66,9 +66,9 @@
 						</div>
 						<div id="comment-{{.Issue.ID}}" class="raw-content hide">{{.Issue.Content}}</div>
 						<div class="edit-content-zone hide" data-write="issue-{{.Issue.ID}}-write" data-preview="issue-{{.Issue.ID}}-preview" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/content" data-context="{{.RepoLink}}" data-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/attachments" data-view-attachment-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/view-attachments"></div>
-    					{{if .Issue.Attachments}}
-    						{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments "Content" .Issue.RenderedContent}}
-    					{{end}}
+						{{if .Issue.Attachments}}
+							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Issue.Attachments "Content" .Issue.RenderedContent}}
+						{{end}}
 					</div>
 					{{$reactions := .Issue.Reactions.GroupByType}}
 					{{if $reactions}}

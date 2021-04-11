@@ -92,6 +92,7 @@ github.com/anmitsu/go-shlex
 github.com/asaskevich/govalidator
 # github.com/aymerick/douceur v0.2.0
 github.com/aymerick/douceur/css
+github.com/aymerick/douceur/parser
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/blevesearch/bleve/v2 v2.0.2
@@ -178,8 +179,6 @@ github.com/cespare/xxhash/v2
 # github.com/chi-middleware/proxy v1.1.1
 ## explicit
 github.com/chi-middleware/proxy
-# github.com/chris-ramon/douceur v0.2.0
-github.com/chris-ramon/douceur/parser
 # github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448
 ## explicit
 github.com/couchbase/go-couchbase
@@ -597,7 +596,7 @@ github.com/mholt/acmez/acme
 # github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.5 => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8
+# github.com/microcosm-cc/bluemonday v1.0.7
 ## explicit
 github.com/microcosm-cc/bluemonday
 # github.com/miekg/dns v1.1.40
@@ -891,7 +890,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.1
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210331212208-0fccb6fa2b5c
+# golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1065,4 +1064,3 @@ xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.2.4
-# github.com/microcosm-cc/bluemonday => github.com/lunny/bluemonday v1.0.5-0.20201227154428-ca34796141e8

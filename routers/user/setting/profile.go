@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,12 +17,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/unknwon/i18n"
 )
@@ -37,7 +38,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
-	ctx.HTML(200, tplSettingsProfile)
+	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
@@ -74,12 +75,12 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.UpdateProfileForm)
+	form := web.GetForm(ctx).(*forms.UpdateProfileForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsProfile)
+		ctx.HTML(http.StatusOK, tplSettingsProfile)
 		return
 	}
 
@@ -126,8 +127,8 @@ func ProfilePost(ctx *context.Context) {
 
 // UpdateAvatarSetting update user's avatar
 // FIXME: limit size.
-func UpdateAvatarSetting(ctx *context.Context, form *auth.AvatarForm, ctxUser *models.User) error {
-	ctxUser.UseCustomAvatar = form.Source == auth.AvatarLocal
+func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *models.User) error {
+	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		if form.Avatar != nil {
 			ctxUser.Avatar = base.EncodeMD5(form.Gravatar)
@@ -175,7 +176,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *auth.AvatarForm, ctxUser *m
 
 // AvatarPost response for change user's avatar request
 func AvatarPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AvatarForm)
+	form := web.GetForm(ctx).(*forms.AvatarForm)
 	if err := UpdateAvatarSetting(ctx, form, ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -204,7 +205,7 @@ func Organization(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Orgs"] = orgs
-	ctx.HTML(200, tplSettingsOrganization)
+	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
 
 // Repos display a list of all repositories of the user
@@ -305,5 +306,5 @@ func Repos(ctx *context.Context) {
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplSettingsRepositories)
+	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }
