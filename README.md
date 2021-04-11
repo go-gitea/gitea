@@ -77,13 +77,11 @@ or if sqlite support is required:
 The `build` target is split into two sub-targets:
 
 - `make backend` which requires [Go 1.13](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
+- `make frontend` which requires [Node.js 12.17](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
 
-If pre-built frontend files are present it is possible to only build the backend:
+When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
 
-    TAGS="bindata" make backend
-
-Parallelism is not supported for these targets, so please don't include `-j <num>`.
+Parallelism (`make -j <num>`) is not supported.
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 

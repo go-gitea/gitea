@@ -193,7 +193,7 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = models.Units
-	var includesAllRepositories = (form.RepoAccess == "all")
+	var includesAllRepositories = form.RepoAccess == "all"
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -286,7 +286,7 @@ func EditTeamPost(ctx *context.Context) {
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	var includesAllRepositories = (form.RepoAccess == "all")
+	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)

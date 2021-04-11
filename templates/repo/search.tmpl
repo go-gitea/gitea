@@ -5,20 +5,16 @@
 		<div class="ui repo-search">
 			<form class="ui form ignore-dirty" method="get">
 				<div class="ui fluid action input">
-					<div class="twelve wide field">
-						<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "repo.search.search_repo"}}">
+					<div class="ui dropdown selection">
+						<input name="t" type="hidden" value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="text">{{.i18n.Tr (printf "repo.search.%s" (or .queryType "fuzzy"))}}</div>
+						<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+							<div class="item" data-value="">{{.i18n.Tr "repo.search.fuzzy"}}</div>
+							<div class="item" data-value="match">{{.i18n.Tr "repo.search.match"}}</div>
+						</div>
 					</div>
-					<div class="two wide field">
-						<select name="t">
-							<option value="">{{.i18n.Tr "repo.search.fuzzy"}}</option>
-							<option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "repo.search.match"}}</option>
-						</select>
-					</div>
-					<div class="three field">
-					  <button class="ui button" type="submit">
-						  <i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-					  </button>
-					</div>
+					<button class="ui icon button" type="submit">{{svg "octicon-search" 16}}</button>
 				</div>
 			</form>
 		</div>

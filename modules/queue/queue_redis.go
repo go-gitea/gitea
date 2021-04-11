@@ -69,7 +69,7 @@ type redisClient interface {
 	Close() error
 }
 
-var _ (ByteFIFO) = &RedisByteFIFO{}
+var _ ByteFIFO = &RedisByteFIFO{}
 
 // RedisByteFIFO represents a ByteFIFO formed from a redisClient
 type RedisByteFIFO struct {

@@ -111,6 +111,8 @@ func DeleteEmail(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	form := web.GetForm(ctx).(*api.DeleteEmailOption)
 	if len(form.Emails) == 0 {
 		ctx.Status(http.StatusNoContent)
@@ -126,6 +128,10 @@ func DeleteEmail(ctx *context.APIContext) {
 	}
 
 	if err := models.DeleteEmailAddresses(emails); err != nil {
+		if models.IsErrEmailAddressNotExist(err) {
+			ctx.Error(http.StatusNotFound, "DeleteEmailAddresses", err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteEmailAddresses", err)
 		return
 	}
