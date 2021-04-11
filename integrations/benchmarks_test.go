@@ -14,59 +14,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func BenchmarkRepo(b *testing.B) {
-	b.Skip("benchmark broken") // TODO fix
-	samples := []struct {
-		url       string
-		name      string
-		skipShort bool
-	}{
-		{url: "https://github.com/go-gitea/test_repo.git", name: "test_repo"},
-		{url: "https://github.com/ethantkoenig/manyfiles.git", name: "manyfiles", skipShort: true},
-	}
-	defer prepareTestEnv(b)()
-	session := loginUser(b, "user2")
-	b.ResetTimer()
-
-	for _, s := range samples {
-		b.Run(s.name, func(b *testing.B) {
-			if testing.Short() && s.skipShort {
-				b.Skip("skipping test in short mode.")
-			}
-			b.Run("Migrate "+s.name, func(b *testing.B) {
-				for i := 0; i < b.N; i++ {
-					req := NewRequestf(b, "DELETE", "/api/v1/repos/%s/%s", "user2", s.name)
-					session.MakeRequest(b, req, NoExpectedStatus)
-					testRepoMigrate(b, session, s.url, s.name)
-				}
-			})
-			b.Run("Access", func(b *testing.B) {
-				var branches []*api.Branch
-				b.Run("APIBranchList", func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						req := NewRequestf(b, "GET", "/api/v1/repos/%s/%s/branches?page=1&limit=1", "user2", s.name)
-						resp := session.MakeRequest(b, req, http.StatusOK)
-						b.StopTimer()
-						if len(branches) == 0 {
-							DecodeJSON(b, resp, &branches) //Store for next phase
-						}
-						b.StartTimer()
-					}
-				})
-
-				if len(branches) == 1 {
-					b.Run("WebViewCommit", func(b *testing.B) {
-						for i := 0; i < b.N; i++ {
-							req := NewRequestf(b, "GET", "/%s/%s/commit/%s", "user2", s.name, branches[0].Commit.ID)
-							session.MakeRequest(b, req, http.StatusOK)
-						}
-					})
-				}
-			})
-		})
-	}
-}
-
 // StringWithCharset random string (from https://www.calhoun.io/creating-random-strings-in-go/)
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
