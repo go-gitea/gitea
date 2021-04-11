@@ -128,10 +128,10 @@
 
 <script>
 function submitDeleteForm() {
-    var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
-    if (message != null) {
-        $("#delete-message").val(message);
-        $("#delete-file-form").submit()
-    }
+	var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
+	if (message != null) {
+		$("#delete-message").val(message);
+		$("#delete-file-form").submit()
+	}
 }
 </script>

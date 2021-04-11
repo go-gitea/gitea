@@ -19,12 +19,12 @@
 				<div class="ui key list">
 					{{range .Deploykeys}}
 						<div class="item">
-						    <div class="right floated content">
+							<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "settings.delete_key"}}
 								</button>
-						    </div>
-						    <div class="left floated content">
+							</div>
+							<div class="left floated content">
 								<i class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted"{{end}}>{{svg "octicon-key" 32}}</i>
 							</div>
 							<div class="content">
