@@ -48,8 +48,8 @@
 				<div class="desc issue-item-bottom-row df ac fw my-1">
 					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
-          		{{.Repo.FullName}}#{{.Index}}
-          	{{else}}
+							{{.Repo.FullName}}#{{.Index}}
+						{{else}}
 							#{{.Index}}
 						{{end}}
 					</a>
