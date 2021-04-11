@@ -859,7 +859,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			message,
 		); err != nil {
 			if models.IsErrPullRequestAlreadyScheduledToAutoMerge(err) {
-				ctx.Status(http.StatusOK)
+				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
