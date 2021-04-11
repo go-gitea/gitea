@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -452,26 +453,34 @@ func doMergeFork(ctx, baseCtx APITestContext, baseBranch, headBranch string) fun
 
 		// Then get the diff string
 		var diffHash string
+		var diffLength int
 		t.Run("GetDiff", func(t *testing.T) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(baseCtx.Username), url.PathEscape(baseCtx.Reponame), pr.Index))
 			resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
 			diffHash = string(resp.Hash.Sum(nil))
+			diffLength = resp.Length
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
 		t.Run("MergePR", doAPIMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
+		t.Run("CheckPR", func(t *testing.T) {
+			oldMergeBase := pr.MergeBase
+			pr2, err := doAPIGetPullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+			assert.NoError(t, err)
+			assert.Equal(t, oldMergeBase, pr2.MergeBase)
+		})
+		t.Run("EnsurDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
 
 		// Then: Delete the head branch & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadBranch", doBranchDelete(baseCtx, baseCtx.Username, baseCtx.Reponame, headBranch))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
 		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
-		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash))
+		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
 	}
 }
 
@@ -515,14 +524,15 @@ func doEnsureCanSeePull(ctx APITestContext, pr api.PullRequest) func(t *testing.
 	}
 }
 
-func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string) func(t *testing.T) {
+func doEnsureDiffNoChange(ctx APITestContext, pr api.PullRequest, diffHash string, diffLength int) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d.diff", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), pr.Index))
 		resp := ctx.Session.MakeRequestNilResponseHashSumRecorder(t, req, http.StatusOK)
 		actual := string(resp.Hash.Sum(nil))
+		actualLength := resp.Length
 
 		equal := diffHash == actual
-		assert.True(t, equal, "Unexpected change in the diff string: expected hash: %s but was actually: %s", diffHash, actual)
+		assert.True(t, equal, "Unexpected change in the diff string: expected hash: %s size: %d but was actually: %s size: %d", hex.EncodeToString([]byte(diffHash)), diffLength, hex.EncodeToString([]byte(actual)), actualLength)
 	}
 }
 
