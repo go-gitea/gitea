@@ -129,6 +129,14 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-custom-dir",
 			Usage: "Skip custom directory",
 		},
+		cli.BoolFlag{
+			Name:  "skip-lfs-data",
+			Usage: "Skip LFS data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-attachment-data",
+			Usage: "Skip attachment data",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -214,21 +222,25 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
-			info, err := object.Stat()
-			if err != nil {
-				return err
-			}
+		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
+			log.Info("Skip dumping LFS data")
+		} else {
+			if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+				info, err := object.Stat()
+				if err != nil {
+					return err
+				}
 
-			return w.Write(archiver.File{
-				FileInfo: archiver.FileInfo{
-					FileInfo:   info,
-					CustomName: path.Join("data", "lfs", objPath),
-				},
-				ReadCloser: object,
-			})
-		}); err != nil {
-			fatal("Failed to dump LFS objects: %v", err)
+				return w.Write(archiver.File{
+					FileInfo: archiver.FileInfo{
+						FileInfo:   info,
+						CustomName: path.Join("data", "lfs", objPath),
+					},
+					ReadCloser: object,
+				})
+			}); err != nil {
+				fatal("Failed to dump LFS objects: %v", err)
+			}
 		}
 	}
 
@@ -313,21 +325,25 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
-		info, err := object.Stat()
-		if err != nil {
-			return err
-		}
+	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
+		log.Info("Skip dumping attachment data")
+	} else {
+		if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+			info, err := object.Stat()
+			if err != nil {
+				return err
+			}
 
-		return w.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: path.Join("data", "attachments", objPath),
-			},
-			ReadCloser: object,
-		})
-	}); err != nil {
-		fatal("Failed to dump attachments: %v", err)
+			return w.Write(archiver.File{
+				FileInfo: archiver.FileInfo{
+					FileInfo:   info,
+					CustomName: path.Join("data", "attachments", objPath),
+				},
+				ReadCloser: object,
+			})
+		}); err != nil {
+			fatal("Failed to dump attachments: %v", err)
+		}
 	}
 
 	// Doesn't check if LogRootPath exists before processing --skip-log intentionally,
