@@ -3,17 +3,17 @@
 	{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
 
 	<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
-	 5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
-	 13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
-	 18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
-	 22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
-	 26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
-	 29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED 
-	 32 = DISMISSED_REVIEW -->
+	5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
+	13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
+	18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
+	22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
+	26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
+	29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
+	32 = DISMISSED_REVIEW -->
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
-			<span class="timeline-avatar"><img src="/img/avatar_default.png"></span>
+			<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				{{avatar .Poster}}
@@ -73,9 +73,9 @@
 					</div>
 					<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
 					<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
-    				{{if .Attachments}}
-    					{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
-    				{{end}}
+					{{if .Attachments}}
+						{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
+					{{end}}
 				</div>
 				{{$reactions := .Reactions.GroupByType}}
 				{{if $reactions}}

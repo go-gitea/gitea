@@ -7,17 +7,18 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -33,19 +34,19 @@ func Account(ctx *context.Context) {
 
 	loadAccountData(ctx)
 
-	ctx.HTML(200, tplSettingsAccount)
+	ctx.HTML(http.StatusOK, tplSettingsAccount)
 }
 
 // AccountPost response for change user's password
 func AccountPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.ChangePasswordForm)
+	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -83,7 +84,7 @@ func AccountPost(ctx *context.Context) {
 
 // EmailPost response for change user's email
 func EmailPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AddEmailForm)
+	form := web.GetForm(ctx).(*forms.AddEmailForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -167,7 +168,7 @@ func EmailPost(ctx *context.Context) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -216,7 +217,7 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/account",
 	})
 }
@@ -256,7 +257,7 @@ func DeleteAccount(ctx *context.Context) {
 
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.UpdateThemeForm)
+	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 

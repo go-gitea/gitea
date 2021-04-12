@@ -10068,6 +10068,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10095,6 +10098,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10120,6 +10126,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10153,6 +10162,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10221,6 +10233,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11489,6 +11504,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/AccessToken"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11522,6 +11540,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           },
           "422": {
             "$ref": "#/responses/error"
@@ -14630,7 +14651,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14668,6 +14689,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -14710,7 +14739,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -14747,6 +14776,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
