@@ -3318,6 +3318,11 @@ function initVueComponents() {
         this.searchRepos();
       },
 
+      searchReposInput() {
+        this.page = 1;
+        this.searchRepos();
+      },
+
       searchRepos() {
         this.isLoading = true;
 
