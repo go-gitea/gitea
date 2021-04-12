@@ -11,6 +11,7 @@ import (
 	"image/color/palette"
 
 	// Enable PNG support:
+	_ "image/jpeg"
 	_ "image/png"
 	"math/rand"
 	"time"
