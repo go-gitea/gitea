@@ -201,16 +201,23 @@
     .clone.button {
       font-size: 13px;
       padding: 7.5px 5px;
-
-      &:first-child {
-        border-radius: var(--border-radius) 0 0 var(--border-radius);
-      }
     }
 
     #repo-clone-https,
-    #repo-clone-ssh,
-    #clipboard-btn {
+    #repo-clone-ssh {
       border-right: none;
+    }
+
+    #download-btn {
+      border-left: none;
+    }
+
+    button:first-of-type {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    button:last-of-type {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
     }
 
     .icon.button {
