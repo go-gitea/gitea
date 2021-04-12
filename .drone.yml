@@ -420,7 +420,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      TAGS: bindata sqlite sqlite_unlock_notify
 
   - name: bench-sqlite
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -440,8 +440,7 @@ steps:
       - timeout -s ABRT 40m make bench-pgsql
     environment:
       GOPROXY: off
-      TAGS: bindata gogit
-      TEST_TAGS: gogit
+      TAGS: bindata
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
