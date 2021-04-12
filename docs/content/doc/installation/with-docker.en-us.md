@@ -256,7 +256,7 @@ favorite browser to finalize the installation. Visit http://server-ip:3000 and f
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
-## Configure the user inside Gitea usig environment variables 
+## Configure the user inside Gitea using environment variables 
 
 - `USER`: **git**: The username of the user that runs Gitea within the container.
 - `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
