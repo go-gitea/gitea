@@ -9,7 +9,6 @@ package git
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -69,6 +68,11 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	}()
 
 	bufReader := bufio.NewReader(stdoutReader)
+
+	return repo.getCommitFromReader(bufReader, id)
+}
+
+func (repo *Repository) getCommitFromReader(bufReader *bufio.Reader, id SHA1) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(bufReader)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -106,7 +110,6 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 	case "commit":
 		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
 	default:
-		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 		log("Unknown typ: %s", typ)
 		return nil, ErrNotExist{
 			ID: id.String(),
