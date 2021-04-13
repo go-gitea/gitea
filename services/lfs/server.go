@@ -49,12 +49,6 @@ func (rc *requestContext) VerifyLink() string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify")
 }
 
-var oidRegExp = regexp.MustCompile(`^[A-Fa-f0-9]+$`)
-
-func isOidValid(oid string) bool {
-	return oidRegExp.MatchString(oid)
-}
-
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
@@ -81,7 +75,7 @@ func ObjectOidHandler(ctx *context.Context) {
 }
 
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
-	if !isOidValid(p.Oid) {
+	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatus(ctx, http.StatusNotFound)
 		return nil, nil
@@ -237,7 +231,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !isOidValid(p.Oid) {
+	if !p.IsValid() {
 		log.Info("Invalid LFS OID[%s] attempt to POST in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatus(ctx, http.StatusNotFound)
 		return
@@ -305,7 +299,7 @@ func BatchHandler(ctx *context.Context) {
 
 	// Create a response object
 	for _, object := range bv.Objects {
-		if !isOidValid(object.Oid) {
+		if !object.IsValid() {
 			log.Info("Invalid LFS OID[%s] attempt to BATCH in %s/%s", object.Oid, reqCtx.User, reqCtx.Repo)
 			continue
 		}
