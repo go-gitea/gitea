@@ -297,12 +297,14 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ```ini
 [markup.asciidoc]
 ENABLED = false
+NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
 - ENABLED: 是否启用，默认为false。
+- NEED\_POSTPROCESS: **true** 设置为 true 则会替换渲染文件中的内部链接和Commit ID 等。
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
