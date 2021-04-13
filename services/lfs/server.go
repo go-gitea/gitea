@@ -295,6 +295,25 @@ func BatchHandler(ctx *context.Context) {
 		Authorization: ctx.Req.Header.Get("Authorization"),
 	}
 
+	repository, err := models.GetRepositoryByOwnerAndName(reqCtx.User, reqCtx.Repo)
+	if err != nil {
+		log.Error("Unable to get repository: %s/%s Error: %v", reqCtx.User, reqCtx.Repo, err)
+		writeStatus(ctx, http.StatusNotFound)
+		return
+	}
+
+	requireWrite := false
+	if bv.Operation == "upload" {
+		requireWrite = true
+	}
+
+	if !authenticate(ctx, repository, reqCtx.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return
+	}
+
+	contentStore := lfs_module.NewContentStore()
+
 	var responseObjects []*lfs_module.ObjectResponse
 
 	// Create a response object
@@ -304,54 +323,30 @@ func BatchHandler(ctx *context.Context) {
 			continue
 		}
 
-		repository, err := models.GetRepositoryByOwnerAndName(reqCtx.User, reqCtx.Repo)
-		if err != nil {
-			log.Error("Unable to get repository: %s/%s Error: %v", reqCtx.User, reqCtx.Repo, err)
-			writeStatus(ctx, http.StatusNotFound)
-			return
-		}
-
-		requireWrite := false
-		if bv.Operation == "upload" {
-			requireWrite = true
-		}
-
-		if !authenticate(ctx, repository, reqCtx.Authorization, requireWrite) {
-			requireAuth(ctx)
-			return
-		}
-
-		contentStore := lfs_module.NewContentStore()
-
-		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
-		if err == nil { // Object is found and exists
-			exist, err := contentStore.Exists(meta.Pointer)
-			if err != nil {
-				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
-				writeStatus(ctx, http.StatusInternalServerError)
-				return
-			}
-			if exist {
-				responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, true, false))
-				continue
-			}
-		}
-
 		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
 			log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Oid, object.Size, reqCtx.User, reqCtx.Repo, setting.LFS.MaxFileSize)
 			writeStatus(ctx, http.StatusRequestEntityTooLarge)
 			return
 		}
 
+		exist, err := contentStore.Exists(object)
+		if err != nil {
+			log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
+			writeStatus(ctx, http.StatusInternalServerError)
+			return
+		}
+
+		meta, err := repository.GetLFSMetaObjectByOid(object.Oid)
+		if err == nil { // Object is found and exists
+			if exist {
+				responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, true, false))
+				continue
+			}
+		}
+
 		// Object is not found
 		meta, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: object, RepositoryID: repository.ID})
 		if err == nil {
-			exist, err := contentStore.Exists(meta.Pointer)
-			if err != nil {
-				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
-				writeStatus(ctx, http.StatusInternalServerError)
-				return
-			}
 			responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, meta.Existing, !exist))
 		} else {
 			log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", object.Oid, object.Size, reqCtx.User, reqCtx.Repo, err)
