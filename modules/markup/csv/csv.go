@@ -72,7 +72,7 @@ func writeField(w io.Writer, element, class, field string) error {
 	return err
 }
 
-// Render implements markup.Parser
+// Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var tmpBlock = bufio.NewWriter(output)
 

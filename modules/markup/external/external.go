@@ -38,9 +38,9 @@ func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Parser
-func (p *Parser) NeedPostProcess() bool {
-	return p.MarkupParser.NeedPostProcess
+// NeedPostProcess implements markup.Renderer
+func (p *Renderer) NeedPostProcess() bool {
+	return p.MarkupRenderer.NeedPostProcess
 }
 
 // Extensions returns the supported extensions of the tool
