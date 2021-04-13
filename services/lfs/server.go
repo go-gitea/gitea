@@ -59,7 +59,7 @@ func isOidValid(oid string) bool {
 func ObjectOidHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
 		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
@@ -77,20 +77,20 @@ func ObjectOidHandler(ctx *context.Context) {
 	}
 
 	log.Warn("Unhandled LFS method: %s for %s/%s OID[%s]", ctx.Req.Method, ctx.Params("username"), ctx.Params("reponame"), ctx.Params("oid"))
-	writeStatus(ctx, 404)
+	writeStatus(ctx, http.StatusNotFound)
 }
 
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !isOidValid(p.Oid) {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return nil, nil
 	}
 
 	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return nil, nil
 	}
 
@@ -102,7 +102,7 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs
 	meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
 	if err != nil {
 		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return nil, nil
 	}
 
@@ -122,12 +122,12 @@ func getContentHandler(ctx *context.Context) {
 	// Support resume download using Range header
 	var fromByte, toByte int64
 	toByte = meta.Size - 1
-	statusCode := 200
+	statusCode := http.StatusOK
 	if rangeHdr := ctx.Req.Header.Get("Range"); rangeHdr != "" {
 		regex := regexp.MustCompile(`bytes=(\d+)\-(\d*).*`)
 		match := regex.FindStringSubmatch(rangeHdr)
 		if len(match) > 1 {
-			statusCode = 206
+			statusCode = http.StatusPartialContent
 			fromByte, _ = strconv.ParseInt(match[1], 10, 32)
 
 			if fromByte >= meta.Size {
@@ -206,20 +206,20 @@ func getMetaHandler(ctx *context.Context) {
 		}
 	}
 
-	logRequest(ctx.Req, 200)
+	logRequest(ctx.Req, http.StatusOK)
 }
 
 // PostHandler instructs the client how to upload data
 func PostHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
 		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
 		log.Info("Attempt to POST without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
@@ -228,7 +228,7 @@ func PostHandler(ctx *context.Context) {
 	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
@@ -239,35 +239,35 @@ func PostHandler(ctx *context.Context) {
 
 	if !isOidValid(p.Oid) {
 		log.Info("Invalid LFS OID[%s] attempt to POST in %s/%s", p.Oid, rc.User, rc.Repo)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
 	if setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
 		log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", p.Oid, p.Size, rc.User, rc.Repo, setting.LFS.MaxFileSize)
-		writeStatus(ctx, 413)
+		writeStatus(ctx, http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 	if err != nil {
 		log.Error("Unable to write LFS OID[%s] size %d meta object in %v/%v to database. Error: %v", p.Oid, p.Size, rc.User, rc.Repo, err)
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	sentStatus := 202
+	sentStatus := http.StatusAccepted
 	contentStore := lfs_module.NewContentStore()
 	exist, err := contentStore.Exists(p)
 	if err != nil {
 		log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", p.Oid, rc.User, rc.Repo, err)
-		writeStatus(ctx, 500)
+		writeStatus(ctx, http.StatusInternalServerError)
 		return
 	}
 	if meta.Existing && exist {
-		sentStatus = 200
+		sentStatus = http.StatusOK
 	}
 	ctx.Resp.WriteHeader(sentStatus)
 
@@ -283,13 +283,13 @@ func PostHandler(ctx *context.Context) {
 func BatchHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
 		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
 		log.Info("Attempt to BATCH without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
@@ -313,7 +313,7 @@ func BatchHandler(ctx *context.Context) {
 		repository, err := models.GetRepositoryByOwnerAndName(reqCtx.User, reqCtx.Repo)
 		if err != nil {
 			log.Error("Unable to get repository: %s/%s Error: %v", reqCtx.User, reqCtx.Repo, err)
-			writeStatus(ctx, 404)
+			writeStatus(ctx, http.StatusNotFound)
 			return
 		}
 
@@ -334,7 +334,7 @@ func BatchHandler(ctx *context.Context) {
 			exist, err := contentStore.Exists(meta.Pointer)
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
-				writeStatus(ctx, 500)
+				writeStatus(ctx, http.StatusInternalServerError)
 				return
 			}
 			if exist {
@@ -345,7 +345,7 @@ func BatchHandler(ctx *context.Context) {
 
 		if requireWrite && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
 			log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Oid, object.Size, reqCtx.User, reqCtx.Repo, setting.LFS.MaxFileSize)
-			writeStatus(ctx, 413)
+			writeStatus(ctx, http.StatusRequestEntityTooLarge)
 			return
 		}
 
@@ -355,7 +355,7 @@ func BatchHandler(ctx *context.Context) {
 			exist, err := contentStore.Exists(meta.Pointer)
 			if err != nil {
 				log.Error("Unable to check if LFS OID[%s] exist on %s / %s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
-				writeStatus(ctx, 500)
+				writeStatus(ctx, http.StatusInternalServerError)
 				return
 			}
 			responseObjects = append(responseObjects, represent(reqCtx, meta.Pointer, meta.Existing, !exist))
@@ -373,7 +373,7 @@ func BatchHandler(ctx *context.Context) {
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}
-	logRequest(ctx.Req, 200)
+	logRequest(ctx.Req, http.StatusOK)
 }
 
 // PutHandler receives data from the client and puts it into the content store
@@ -390,7 +390,7 @@ func PutHandler(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
 		// Put will log the error itself
-		ctx.Resp.WriteHeader(500)
+		ctx.Resp.WriteHeader(http.StatusInternalServerError)
 		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
 			fmt.Fprintf(ctx.Resp, `{"message":"%s"}`, err)
 		} else {
@@ -402,20 +402,20 @@ func PutHandler(ctx *context.Context) {
 		return
 	}
 
-	logRequest(ctx.Req, 200)
+	logRequest(ctx.Req, http.StatusOK)
 }
 
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
 	if !setting.LFS.StartServer {
 		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, 404)
+		writeStatus(ctx, http.StatusNotFound)
 		return
 	}
 
 	if !MetaMatcher(ctx.Req) {
 		log.Info("Attempt to VERIFY without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, 400)
+		writeStatus(ctx, http.StatusBadRequest)
 		return
 	}
 
@@ -431,16 +431,16 @@ func VerifyHandler(ctx *context.Context) {
 	ok, err := contentStore.Verify(meta.Pointer)
 	if err != nil {
 		// Error will be logged in Verify
-		ctx.Resp.WriteHeader(500)
+		ctx.Resp.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(ctx.Resp, `{"message":"Internal Server Error"}`)
 		return
 	}
 	if !ok {
-		writeStatus(ctx, 422)
+		writeStatus(ctx, http.StatusUnprocessableEntity)
 		return
 	}
 
-	logRequest(ctx.Req, 200)
+	logRequest(ctx.Req, http.StatusOK)
 }
 
 // represent takes a requestContext and Meta and turns it into a ObjectResponse suitable
@@ -662,5 +662,5 @@ func parseToken(authorization string) (*models.User, *models.Repository, string,
 
 func requireAuth(ctx *context.Context) {
 	ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-	writeStatus(ctx, 401)
+	writeStatus(ctx, http.StatusUnauthorized)
 }
