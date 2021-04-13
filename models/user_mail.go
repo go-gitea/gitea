@@ -6,7 +6,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
@@ -17,9 +16,6 @@ import (
 
 	"xorm.io/builder"
 )
-
-// ErrEmailAddressNotExist email address not exist
-var ErrEmailAddressNotExist = errors.New("Email address does not exist")
 
 // EmailAddress is the list of all email addresses of a user. Can contain the
 // primary email address, but is not obligatory.
@@ -243,7 +239,7 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 	if err != nil {
 		return err
 	} else if deleted != 1 {
-		return ErrEmailAddressNotExist
+		return ErrEmailAddressNotExist{Email: email.Email}
 	}
 	return nil
 }
