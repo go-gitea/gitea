@@ -675,7 +675,6 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 			gitRepos[issue.RepoID] = gitRepo
 		}
 
-		defer gitRepo.Close()
 		status, err := getLastCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
 			return nil, err
@@ -699,6 +698,7 @@ func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, e
 	return getLastCommitStatus(gitRepo, pr)
 }
 
+// getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
 func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status *models.CommitStatus, err error) {
 	sha, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
