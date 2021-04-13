@@ -80,6 +80,7 @@ coverage.all
 /public/css
 /public/fonts
 /public/img/webpack
+/web_src/fomantic/node_modules
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js
 !/web_src/fomantic/build/semantic.css

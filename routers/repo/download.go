@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,6 +33,7 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	}
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+
 	if size >= 0 {
 		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 	} else {
@@ -76,6 +78,10 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 
 // ServeBlob download a git.Blob
 func ServeBlob(ctx *context.Context, blob *git.Blob) error {
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
+		return nil
+	}
+
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return err
@@ -91,6 +97,10 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 
 // ServeBlobOrLFS download a git.Blob redirecting to LFS if necessary
 func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`) {
+		return nil
+	}
+
 	dataRc, err := blob.DataAsync()
 	if err != nil {
 		return err
@@ -101,12 +111,16 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		}
 	}()
 
-	if meta, _ := lfs.ReadPointerFile(dataRc); meta != nil {
-		meta, _ = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+	pointer, _ := lfs.ReadPointer(dataRc)
+	if pointer.IsValid() {
+		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 		if meta == nil {
 			return ServeBlob(ctx, blob)
 		}
-		lfsDataRc, err := lfs.ReadMetaObject(meta)
+		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+			return nil
+		}
+		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
 		if err != nil {
 			return err
 		}
