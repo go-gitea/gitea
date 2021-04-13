@@ -28,6 +28,9 @@ func (Parser) Name() string {
 	return "csv"
 }
 
+// NeedPostProcess implements markup.Parser
+func (Parser) NeedPostProcess() bool { return false }
+
 // Extensions implements markup.Parser
 func (Parser) Extensions() []string {
 	return []string{".csv", ".tsv"}

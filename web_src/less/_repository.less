@@ -201,16 +201,23 @@
     .clone.button {
       font-size: 13px;
       padding: 7.5px 5px;
-
-      &:first-child {
-        border-radius: var(--border-radius) 0 0 var(--border-radius);
-      }
     }
 
     #repo-clone-https,
-    #repo-clone-ssh,
-    #clipboard-btn {
+    #repo-clone-ssh {
       border-right: none;
+    }
+
+    #download-btn {
+      border-left: none;
+    }
+
+    button:first-of-type {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    button:last-of-type {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
     }
 
     .icon.button {
@@ -1021,11 +1028,6 @@
             color: var(--color-text-light-2);
             font-style: italic;
           }
-
-          .dropzone-attachments .thumbnails .ui.image {
-            max-height: 150px;
-          }
-
         }
 
         .ui.form {
@@ -2481,29 +2483,6 @@
 
 .page.buttons {
   padding-top: 15px;
-}
-
-.ui.form {
-  .dropzone {
-    border: 2px dashed var(--color-secondary);
-    background: none;
-    box-shadow: none !important;
-    padding: 0;
-    min-height: 5rem;
-    border-radius: 4px;
-
-    .dz-button {
-      color: rgba(0, 0, 0, .6);
-    }
-
-    &:hover .dz-button {
-      color: rgba(0, 0, 0, .8);
-    }
-
-    .dz-error-message {
-      top: 140px;
-    }
-  }
 }
 
 .settings {
