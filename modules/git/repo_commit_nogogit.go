@@ -11,6 +11,8 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,6 +35,18 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
+	if strings.HasPrefix(name, "refs/") {
+		// We're gonna try just reading the ref file as this is likely to be quicker than other options
+		fileInfo, err := os.Lstat(filepath.Join(repo.Path, name))
+		if err == nil && fileInfo.Mode().IsRegular() && fileInfo.Size() == 41 {
+			ref, err := ioutil.ReadFile(filepath.Join(repo.Path, name))
+
+			if err == nil && SHAPattern.Match(ref[:40]) && ref[40] == '\n' {
+				return string(ref[:40]), nil
+			}
+		}
+	}
+
 	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repo.Path)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
@@ -69,10 +83,10 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	bufReader := bufio.NewReader(stdoutReader)
 
-	return repo.getCommitFromReader(bufReader, id)
+	return repo.getCommitFromBatchReader(bufReader, id)
 }
 
-func (repo *Repository) getCommitFromReader(bufReader *bufio.Reader, id SHA1) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(bufReader *bufio.Reader, id SHA1) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(bufReader)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
