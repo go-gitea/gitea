@@ -443,7 +443,7 @@ relation to port exhaustion.
     - disabled - show an error
     - login - show an account linking login
     - auto - link directly with the account, please be aware that it may automatically merge two accounts
-      only because they have same names.
+      only because they have same names/emails depending on the setting you choose to defariate nickname & identity from.
 
 ## Service (`service`)
 
