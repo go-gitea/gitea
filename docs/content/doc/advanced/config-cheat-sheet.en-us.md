@@ -433,10 +433,17 @@ relation to port exhaustion.
 
 - `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
 - `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
-- `ENABLE_AUTO_REGISTRATION`: **false**: Enable this to allow auto-registration for oauth2 authentication.
-- `USERNAME`: **nickname**: The source of the username for new oauth2 accounts: userid, nickname, email (username part).
-- `UPDATE_AVATAR`: **false**: Set this to update user avatar if available from the oauth2 provider.
-- `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists: disabled / login / auto.
+- `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
+- `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
+    - userid - use the userid / sub attribute
+    - nickname - use the nickname attribute
+    - email - use the username part of the email attribute
+- `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
+- `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists:
+    - disabled - show an error
+    - login - show an account linking login
+    - auto - link directly with the account, please be aware that it may automatically merge two accounts
+      only because they have same names.
 
 ## Service (`service`)
 
