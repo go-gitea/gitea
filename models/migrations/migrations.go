@@ -307,6 +307,8 @@ var migrations = []Migration{
 
 	// v178 -> v179
 	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 }
 
 // GetCurrentDBVersion returns the current db version
