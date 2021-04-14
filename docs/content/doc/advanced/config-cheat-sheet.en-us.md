@@ -442,8 +442,7 @@ relation to port exhaustion.
 - `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists:
     - disabled - show an error
     - login - show an account linking login
-    - auto - link directly with the account, please be aware that it may automatically merge two accounts
-      only because they have same names/emails depending on the setting you choose to defariate nickname & identity from.
+    - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
 
 ## Service (`service`)
 
