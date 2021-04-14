@@ -58,7 +58,7 @@ func ObjectOidHandler(ctx *context.Context) {
 	}
 
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
-		if MetaMatcher(ctx.Req) {
+		if isValidAccept(ctx.Req) {
 			getMetaHandler(ctx)
 			return
 		}
@@ -211,7 +211,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !MetaMatcher(ctx.Req) {
+	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to POST without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -281,7 +281,7 @@ func BatchHandler(ctx *context.Context) {
 		return
 	}
 
-	if !MetaMatcher(ctx.Req) {
+	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to BATCH without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -402,7 +402,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	if !MetaMatcher(ctx.Req) {
+	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to VERIFY without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
 		return
@@ -473,9 +473,9 @@ func represent(rc *requestContext, pointer lfs_module.Pointer, download, upload 
 	return rep
 }
 
-// MetaMatcher provides a mux.MatcherFunc that only allows requests that contain
+// isValidAccept provides a mux.MatcherFunc that only allows requests that contain
 // an Accept header with the lfs_module.MediaType
-func MetaMatcher(r *http.Request) bool {
+func isValidAccept(r *http.Request) bool {
 	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
 	mt := mediaParts[0]
 	return mt == lfs_module.MediaType

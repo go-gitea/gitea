@@ -26,7 +26,7 @@ func checkIsValidRequest(ctx *context.Context) bool {
 		writeStatus(ctx, http.StatusNotFound)
 		return false
 	}
-	if !MetaMatcher(ctx.Req) {
+	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt access LOCKs without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
 		return false
