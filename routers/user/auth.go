@@ -1331,7 +1331,7 @@ func Activate(ctx *context.Context) {
 
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
-		if ctx.User.IsActive {
+		if ctx.User == nil || ctx.User.IsActive {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
