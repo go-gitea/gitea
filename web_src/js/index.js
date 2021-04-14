@@ -3109,7 +3109,7 @@ function initVueComponents() {
     },
 
     mounted() {
-      this.searchRepos(this.reposFilter);
+      this.changeReposFilter(this.reposFilter);
       $(this.$el).find('.poping.up').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
