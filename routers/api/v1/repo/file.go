@@ -43,6 +43,11 @@ func GetRawFile(ctx *context.APIContext) {
 	//   description: filepath of the file to get
 	//   type: string
 	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
 	// responses:
 	//   200:
 	//     description: success
@@ -54,7 +59,22 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	commit := ctx.Repo.Commit
+
+	if ref := ctx.QueryTrim("ref"); len(ref) > 0 {
+		var err error
+		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
+		if err != nil {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+			}
+			return
+		}
+	}
+
+	blob, err := commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
@@ -235,6 +255,7 @@ func CreateFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
@@ -323,6 +344,7 @@ func UpdateFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()
@@ -449,6 +471,7 @@ func DeleteFile(ctx *context.APIContext) {
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
+		Signoff: apiOpts.Signoff,
 	}
 	if opts.Dates.Author.IsZero() {
 		opts.Dates.Author = time.Now()

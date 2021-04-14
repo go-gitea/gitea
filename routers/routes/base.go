@@ -5,79 +5,27 @@
 package routes
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/session"
 )
-
-type routerLoggerOptions struct {
-	req            *http.Request
-	Identity       *string
-	Start          *time.Time
-	ResponseWriter http.ResponseWriter
-}
-
-// SignedUserName returns signed user's name via context
-func SignedUserName(req *http.Request) string {
-	ctx := context.GetContext(req)
-	if ctx != nil {
-		v := ctx.Data["SignedUserName"]
-		if res, ok := v.(string); ok {
-			return res
-		}
-	}
-	return ""
-}
-
-func accessLogger() func(http.Handler) http.Handler {
-	logger := log.GetLogger("access")
-	logTemplate, _ := template.New("log").Parse(setting.AccessLogTemplate)
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			start := time.Now()
-			next.ServeHTTP(w, req)
-			identity := "-"
-			if val := SignedUserName(req); val != "" {
-				identity = val
-			}
-			rw := w
-
-			buf := bytes.NewBuffer([]byte{})
-			err := logTemplate.Execute(buf, routerLoggerOptions{
-				req:            req,
-				Identity:       &identity,
-				Start:          &start,
-				ResponseWriter: rw,
-			})
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
-
-			err = logger.SendLog(log.INFO, "", "", 0, buf.String(), "")
-			if err != nil {
-				log.Error("Could not set up chi access logger: %v", err.Error())
-			}
-		})
-	}
-}
 
 // LoggerHandler is a handler that will log the routing to the default gitea log
 func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
@@ -140,13 +88,21 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
+			prefix := strings.Trim(prefix, "/")
+
+			if !strings.HasPrefix(req.URL.EscapedPath(), "/"+prefix+"/") {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
+			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
+			if rPath == "" {
+				http.Error(w, "file not found", 404)
+				return
+			}
+			rPath = path.Clean("/" + filepath.ToSlash(rPath))
+			rPath = rPath[1:]
 
 			fi, err := objStore.Stat(rPath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
@@ -206,7 +162,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						return
 					}
 
-					var lc = middlewares.Locale(w, req)
+					var lc = middleware.Locale(w, req)
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":   lc.Language(),

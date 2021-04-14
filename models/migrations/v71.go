@@ -79,7 +79,6 @@ func addScratchHash(x *xorm.Engine) error {
 		return err
 	}
 	return sess.Commit()
-
 }
 
 func hashToken(token, salt string) string {

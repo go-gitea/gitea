@@ -63,9 +63,10 @@ type Review struct {
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
-	Official bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID string `xorm:"VARCHAR(40)"`
-	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
+	Official  bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID  string `xorm:"VARCHAR(40)"`
+	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
+	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -174,7 +175,7 @@ type FindReviewOptions struct {
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -333,8 +334,7 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 }
 
 // ContentEmptyErr represents an content empty error
-type ContentEmptyErr struct {
-}
+type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
 	return "Review content is empty"
@@ -354,7 +354,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		return nil, nil, err
 	}
 
-	var official = false
+	official := false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -466,8 +466,8 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	}
 
 	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
 		return nil, err
 	}
@@ -554,6 +554,19 @@ func MarkReviewsAsStale(issueID int64) (err error) {
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
 func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+
+	return
+}
+
+// DismissReview change the dismiss status of a review
+func DismissReview(review *Review, isDismiss bool) (err error) {
+	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+		return nil
+	}
+
+	review.Dismissed = isDismiss
+
+	_, err = x.Cols("dismissed").Update(review)
 
 	return
 }
@@ -654,7 +667,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	return comment, sess.Commit()
 }
 
-//RemoveReviewRequest remove a review request from one reviewer
+// RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -766,7 +779,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	return comment, sess.Commit()
 }
 
-//RemoveTeamReviewRequest remove a review request from one team
+// RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()

@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"path"
 
-	"code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 )
@@ -46,7 +46,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 
-					lc := middlewares.Locale(w, req)
+					lc := middleware.Locale(w, req)
 					var store = dataStore{
 						Data: templates.Vars{
 							"Language":       lc.Language(),

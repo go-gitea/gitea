@@ -239,7 +239,7 @@ func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo
 
 		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
 	}
-	branches, _ := gitRepo.GetBranches()
+	branches, _, _ := gitRepo.GetBranches(0, 0)
 	found := false
 	hasDefault := false
 	hasMaster := false

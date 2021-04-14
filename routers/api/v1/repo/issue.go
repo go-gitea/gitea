@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -113,11 +112,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	// find repos user can access (for issue search)
-	repoIDs := make([]int64, 0)
 	opts := &models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
-			PageSize: 15,
-		},
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -132,21 +127,10 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 
-	for page := 1; ; page++ {
-		opts.Page = page
-		repos, count, err := models.SearchRepositoryByName(opts)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
-			return
-		}
-
-		if len(repos) == 0 {
-			break
-		}
-		log.Trace("Processing next %d repos of %d", len(repos), count)
-		for _, repo := range repos {
-			repoIDs = append(repoIDs, repo.ID)
-		}
+	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
+		return
 	}
 
 	var issues []*models.Issue
@@ -157,7 +141,6 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 	var issueIDs []int64
-	var labelIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
 		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
@@ -192,7 +175,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
@@ -691,7 +674,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {

@@ -27,24 +27,6 @@ func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 	})
 }
 
-// Cache is the interface that operates the cache data.
-type Cache interface {
-	// Put puts value into cache with key and expire time.
-	Put(key string, val interface{}, timeout int64) error
-	// Get gets cached value by given key.
-	Get(key string) interface{}
-	// Delete deletes cached value by given key.
-	Delete(key string) error
-	// Incr increases cached int-type value by given key as a counter.
-	Incr(key string) error
-	// Decr decreases cached int-type value by given key as a counter.
-	Decr(key string) error
-	// IsExist returns true if cached value exists.
-	IsExist(key string) bool
-	// Flush deletes all cached data.
-	Flush() error
-}
-
 // NewContext start cache service
 func NewContext() error {
 	var err error
@@ -59,7 +41,7 @@ func NewContext() error {
 }
 
 // GetCache returns the currently configured cache
-func GetCache() Cache {
+func GetCache() mc.Cache {
 	return conn
 }
 
@@ -76,7 +58,7 @@ func GetString(key string, getFunc func() (string, error)) (string, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return "", err
 		}
@@ -104,7 +86,7 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}
@@ -136,7 +118,7 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}

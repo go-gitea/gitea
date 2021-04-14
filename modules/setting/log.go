@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"encoding/json"
 	"fmt"
 	golog "log"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -94,7 +94,7 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel,
+		levelName:      LogLevel.String(),
 		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
@@ -115,9 +115,9 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("info")
-	return log.FromString(value).String()
+func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+	value := section.Key(key).MustString(defaultValue.String())
+	return log.FromString(value)
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
@@ -126,8 +126,7 @@ func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	levelName = getLogLevel(sec, "LEVEL", LogLevel)
-	level := log.FromString(levelName)
+	level := getLogLevel(sec, "LEVEL", LogLevel)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -205,6 +204,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
@@ -273,7 +273,7 @@ func newRouterLogService() {
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
-	if !DisableRouterLog && RedirectMacaronLog {
+	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags

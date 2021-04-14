@@ -34,7 +34,6 @@ func TestReview_LoadAttributes(t *testing.T) {
 
 	invalidReview2 := AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
 	assert.Error(t, invalidReview2.LoadAttributes())
-
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
@@ -141,4 +140,14 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
 		}
 	}
+}
+
+func TestDismissReview(t *testing.T) {
+	review1 := AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review2 := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.NoError(t, DismissReview(review1, true))
+	assert.NoError(t, DismissReview(review2, true))
+	assert.NoError(t, DismissReview(review2, true))
+	assert.NoError(t, DismissReview(review2, false))
+	assert.NoError(t, DismissReview(review2, false))
 }

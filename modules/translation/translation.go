@@ -36,6 +36,7 @@ func AllLangs() []LangType {
 
 // InitLocales loads the locales
 func InitLocales() {
+	i18n.Reset()
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
@@ -49,7 +50,6 @@ func InitLocales() {
 		}
 	}
 
-	// These codes will be used once macaron removed
 	tags := make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
 		tags[i] = language.Raw.Make(lang)
@@ -58,8 +58,8 @@ func InitLocales() {
 	matcher = language.NewMatcher(tags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err := i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Fatal("Failed to set messages to %s: %v", setting.Langs[i], err)
+		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
 	i18n.SetDefaultLang("en-US")

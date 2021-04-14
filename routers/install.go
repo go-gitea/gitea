@@ -16,16 +16,16 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/middlewares"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 	"gopkg.in/ini.v1"
@@ -47,11 +47,11 @@ func InstallInit(next http.Handler) http.Handler {
 			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
 			return
 		}
-		var locale = middlewares.Locale(resp, req)
+		var locale = middleware.Locale(resp, req)
 		var startTime = time.Now()
 		var ctx = context.Context{
 			Resp:    context.NewResponse(resp),
-			Flash:   &middlewares.Flash{},
+			Flash:   &middleware.Flash{},
 			Locale:  locale,
 			Render:  rnd,
 			Session: session.GetSession(req),
@@ -66,6 +66,7 @@ func InstallInit(next http.Handler) http.Handler {
 				"TmplLoadTimes": func() string {
 					return time.Since(startTime).String()
 				},
+				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
 			},
 		}
 		ctx.Req = context.WithContext(req, &ctx)
@@ -75,7 +76,7 @@ func InstallInit(next http.Handler) http.Handler {
 
 // Install render installation page
 func Install(ctx *context.Context) {
-	form := auth.InstallForm{}
+	form := forms.InstallForm{}
 
 	// Database settings
 	form.DbHost = setting.Database.Host
@@ -142,14 +143,15 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.NoReplyAddress = setting.Service.NoReplyAddress
+	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
-	middlewares.AssignForm(form, ctx.Data)
-	ctx.HTML(200, tplInstall)
+	middleware.AssignForm(form, ctx.Data)
+	ctx.HTML(http.StatusOK, tplInstall)
 }
 
 // InstallPost response for submit install items
 func InstallPost(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.InstallForm)
+	form := *web.GetForm(ctx).(*forms.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType
 
@@ -163,7 +165,7 @@ func InstallPost(ctx *context.Context) {
 			ctx.Data["Err_Admin"] = true
 		}
 
-		ctx.HTML(200, tplInstall)
+		ctx.HTML(http.StatusOK, tplInstall)
 		return
 	}
 
@@ -184,6 +186,8 @@ func InstallPost(ctx *context.Context) {
 	setting.Database.SSLMode = form.SSLMode
 	setting.Database.Charset = form.Charset
 	setting.Database.Path = form.DbPath
+
+	setting.PasswordHashAlgo = form.PasswordAlgorithm
 
 	if (setting.Database.Type == "sqlite3") &&
 		len(setting.Database.Path) == 0 {
@@ -369,10 +373,8 @@ func InstallPost(ctx *context.Context) {
 	cfg.Section("session").Key("PROVIDER").SetValue("file")
 
 	cfg.Section("log").Key("MODE").SetValue("console")
-	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel)
+	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
-	cfg.Section("log").Key("REDIRECT_MACARON_LOG").SetValue("true")
-	cfg.Section("log").Key("MACARON").SetValue("console")
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
@@ -382,6 +384,9 @@ func InstallPost(ctx *context.Context) {
 		return
 	}
 	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+	if len(form.PasswordAlgorithm) > 0 {
+		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
+	}
 
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
@@ -419,9 +424,10 @@ func InstallPost(ctx *context.Context) {
 		}
 
 		days := 86400 * setting.LogInRememberDays
-		ctx.SetCookie(setting.CookieUserName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+		ctx.SetCookie(setting.CookieUserName, u.Name, days)
+
 		ctx.SetSuperSecureCookie(base.EncodeMD5(u.Rands+u.Passwd),
-			setting.CookieRememberName, u.Name, days, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+			setting.CookieRememberName, u.Name, days)
 
 		// Auto-login for admin
 		if err = ctx.Session.Set("uid", u.ID); err != nil {
@@ -444,7 +450,7 @@ func InstallPost(ctx *context.Context) {
 	ctx.Flash.Success(ctx.Tr("install.install_success"))
 
 	ctx.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-	ctx.HTML(200, tplPostInstall)
+	ctx.HTML(http.StatusOK, tplPostInstall)
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown

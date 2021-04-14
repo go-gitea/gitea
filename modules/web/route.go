@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/middlewares"
+	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/chi"
@@ -68,10 +68,11 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(http.Handler) http.Handler:
 				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-				t(next).ServeHTTP(resp, req)
-				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
-					return
+				if len(handlers) > i+1 {
+					next = Wrap(handlers[i+1:]...)
 				}
+				t(next).ServeHTTP(resp, req)
+				return
 			default:
 				panic(fmt.Sprintf("Unsupported handler type: %#v", t))
 			}
@@ -120,17 +121,17 @@ func Bind(obj interface{}) http.HandlerFunc {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		binding.Bind(ctx.Req, theObj)
 		SetForm(ctx, theObj)
-		middlewares.AssignForm(theObj, ctx.Data)
+		middleware.AssignForm(theObj, ctx.Data)
 	})
 }
 
 // SetForm set the form object
-func SetForm(data middlewares.DataStore, obj interface{}) {
+func SetForm(data middleware.DataStore, obj interface{}) {
 	data.GetData()["__form"] = obj
 }
 
 // GetForm returns the validate form information
-func GetForm(data middlewares.DataStore) interface{} {
+func GetForm(data middleware.DataStore) interface{} {
 	return data.GetData()["__form"]
 }
 

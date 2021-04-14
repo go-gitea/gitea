@@ -260,9 +260,6 @@ func (p *parameterBuilder) buildFromField(fld *types.Var, tpe types.Type, typabl
 				typable.Typed("string", sfnm)
 				return nil
 			}
-			//if err := r.makeRef(decl, typable); err != nil {
-			//	return err
-			//}
 			sb := &schemaBuilder{ctx: p.ctx, decl: decl}
 			sb.inferNames()
 			if err := sb.buildFromType(decl.Type, typable); err != nil {
