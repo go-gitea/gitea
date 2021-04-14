@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // ServeData download file from io.Reader
@@ -62,8 +63,10 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	} else {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if strings.EqualFold(".apk", filepath.Ext(name)) && base.IsZipFile(buf) {
-			ctx.Resp.Header().Set("Content-Type", "application/vnd.android.package-archive")
+		if setting.MimeTypeMap.Enabled {
+			if mimetype, ok := setting.MimeTypeMap.Map[filepath.Ext(name)]; ok {
+				ctx.Resp.Header().Set("Content-Type", mimetype)
+			}
 		}
 	}
 
