@@ -733,7 +733,7 @@ generate-gitignore:
 	GO111MODULE=on $(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
-generate-images:
+generate-images: | node_modules
 	npm install --no-save --no-package-lock fabric@4 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
