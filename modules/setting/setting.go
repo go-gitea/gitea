@@ -1163,6 +1163,7 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 func NewServices() {
 	InitDBConfig()
 	newService()
+	newOAuth2Client()
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()
