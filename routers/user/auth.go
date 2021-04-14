@@ -1240,7 +1240,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 					}
 				}
 
-				// TODO: probably we should respect 'remeber' user's choice...
+				// TODO: probably we should respect 'remember' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
 				return // user is already created here, all redirects are handled
 			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
