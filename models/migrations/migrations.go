@@ -302,6 +302,9 @@ var migrations = []Migration{
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+
+	// Gitea 1.14.0 ends at v178
+
 	// v178 -> v179
 	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
 }
