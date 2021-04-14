@@ -1098,7 +1098,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/objects/{oid}/{filename}", lfs.ObjectOidHandler)
 				m.Any("/objects/{oid}", lfs.ObjectOidHandler)
 				m.Post("/objects", lfs.PostHandler)
-				m.Post("/verify", lfs.VerifyHandler)
+				m.Post("/verify/{oid}", lfs.VerifyHandler)
 				m.Group("/locks", func() {
 					m.Get("/", lfs.GetListLockHandler)
 					m.Post("/", lfs.PostLockHandler)
