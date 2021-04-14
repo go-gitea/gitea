@@ -143,11 +143,57 @@ func TestGetReviewersByIssueID(t *testing.T) {
 }
 
 func TestDismissReview(t *testing.T) {
-	review1 := AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
-	review2 := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
-	assert.NoError(t, DismissReview(review1, true))
-	assert.NoError(t, DismissReview(review2, true))
-	assert.NoError(t, DismissReview(review2, true))
-	assert.NoError(t, DismissReview(review2, false))
-	assert.NoError(t, DismissReview(review2, false))
+	assert.NoError(t, PrepareTestDatabase())
+
+	review_reject := AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	review_approve := AssertExistsAndLoadBean(t, &Review{ID: 8}).(*Review)
+	assert.False(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_reject, true))
+	review_reject = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+
+	assert.NoError(t, DismissReview(review_request, true))
+	review_reject = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_request, true))
+	review_reject = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_request, false))
+	review_reject = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_request, false))
+	review_reject = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	review_request = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_reject, false))
+	assert.False(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.False(t, review_approve.Dismissed)
+
+	assert.NoError(t, DismissReview(review_approve, true))
+	assert.False(t, review_reject.Dismissed)
+	assert.False(t, review_request.Dismissed)
+	assert.True(t, review_approve.Dismissed)
+
 }
