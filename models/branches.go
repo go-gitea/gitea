@@ -298,8 +298,8 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 }
 
 func updateProtectBranch(e Engine, repo *Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
-	if err = repo.GetOwner(); err != nil {
-		return fmt.Errorf("GetOwner: %v", err)
+	if err = repo.getOwner(e); err != nil {
+		return fmt.Errorf("getOwner: %v", err)
 	}
 
 	whitelist, err := updateUserWhitelist(e, repo, protectBranch.WhitelistUserIDs, opts.UserIDs)
