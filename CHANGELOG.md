@@ -7,22 +7,22 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.1](https://github.com/go-gitea/gitea/releases/tag/v1.14.1) - 2021-04-15
 
 * BUGFIXES
-  * migration: github: if rate limit is not enabled, ignore it (#15490) (#15495)
+  * Github Migration ignore rate limit, if not enabled (#15490) (#15495)
   * Use subdir for URL (#15446) (#15493)
   * Query the DB for the hash before inserting in to email_hash (#15457) (#15491)
   * Ensure review dismissal only dismisses the correct review (#15477) (#15489)
   * Use index of the supported tags to choose user lang (#15452) (#15488)
-  * fix wrong file link in code search page (#15466) (#15486)
+  * Fix wrong file link in code search page (#15466) (#15486)
   * Prevent superfluous response.WriteHeader (#15456) (#15476)
   * Fix ambiguous argument error on tags (#15432) (#15474)
-  * v172 migration adds created_unix field instead of expiry (#15458) (#15463)
+  * Add created_unix instead of expiry to migration (#15458) (#15463)
   * Fix repository search (#15428) (#15442)
   * Prevent NPE on avatar direct rendering if federated avatars disabled (#15434) (#15439)
   * Fix wiki clone urls (#15430) (#15431)
   * Fix dingtalk icon url at webhook (#15417) (#15426)
   * Standardise icon on projects PR page (#15387) (#15408)
 * ENHANCEMENTS
-  * dump: Add option to skip LFS/attachment files (#15407) (#15492)
+  * Add option to skip LFS/attachment files for `dump` (#15407) (#15492)
   * Clone panel fixes (#15436)
   * Use semantic dropdown for code search query type (#15276) (#15364)
 * BUILD
