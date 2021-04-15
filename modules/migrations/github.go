@@ -136,6 +136,8 @@ func (g *GithubDownloaderV3) RefreshRate() error {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			g.rate = nil
 			return nil
+		} else {
+			log.Error("TEST: RefreshRate resp status is nil!")
 		}
 		return err
 	}
