@@ -38,7 +38,7 @@
 			</h4>
 			<div class="ui attached segment repos-search">
 				<div class="ui fluid right action left icon input" :class="{loading: isLoading}">
-					<input @input="searchRepos(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
+					<input @input="changeReposFilter(reposFilter)" v-model="searchQuery" ref="search" placeholder="{{.i18n.Tr "home.search_repos"}}">
 					<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 					<div class="ui dropdown icon button" title="{{.i18n.Tr "home.filter"}}">
 						<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>

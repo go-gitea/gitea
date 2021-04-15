@@ -21,7 +21,7 @@ type ByteFIFOQueueConfiguration struct {
 	Name    string
 }
 
-var _ (Queue) = &ByteFIFOQueue{}
+var _ Queue = &ByteFIFOQueue{}
 
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
@@ -196,7 +196,7 @@ func (q *ByteFIFOQueue) IsTerminated() <-chan struct{} {
 	return q.terminated
 }
 
-var _ (UniqueQueue) = &ByteFIFOUniqueQueue{}
+var _ UniqueQueue = &ByteFIFOUniqueQueue{}
 
 // ByteFIFOUniqueQueue represents a UniqueQueue formed from a UniqueByteFifo
 type ByteFIFOUniqueQueue struct {

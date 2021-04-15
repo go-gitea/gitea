@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -1014,6 +1015,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine}
 			rightLine++
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case '-':
 			curFileLinesCount++
@@ -1026,6 +1032,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			if leftLine > 0 {
 				leftLine++
 			}
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case ' ':
 			curFileLinesCount++
@@ -1036,6 +1047,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			diffLine := &DiffLine{Type: DiffLinePlain, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
@@ -1062,12 +1078,12 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 
 		// handle LFS
-		if line[1:] == models.LFSMetaFileIdentifier {
+		if line[1:] == lfs.MetaFileIdentifier {
 			curFileLFSPrefix = true
-		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], models.LFSMetaFileOidPrefix) {
-			oid := strings.TrimPrefix(line[1:], models.LFSMetaFileOidPrefix)
+		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], lfs.MetaFileOidPrefix) {
+			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
-				m := &models.LFSMetaObject{Oid: oid}
+				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
 				count, err := models.Count(m)
 
 				if err == nil && count > 0 {
@@ -1288,6 +1304,14 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning
 func CommentMustAsDiff(c *models.Comment) *Diff {
+	if c == nil {
+		return nil
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
+		}
+	}()
 	diff, err := CommentAsDiff(c)
 	if err != nil {
 		log.Warn("CommentMustAsDiff: %v", err)

@@ -8,6 +8,7 @@ package user
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
@@ -104,9 +105,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
 
-	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
-	// so everyone would get the same empty heatmap
-	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
@@ -162,7 +161,7 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.HTML(200, tplDashboard)
+	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // Milestones render the user milestones page
@@ -203,6 +202,7 @@ func Milestones(ctx *context.Context) {
 		isShowClosed = ctx.Query("state") == "closed"
 		sortType     = ctx.Query("sort")
 		page         = ctx.QueryInt("page")
+		keyword      = strings.Trim(ctx.Query("q"), " ")
 	)
 
 	if page <= 1 {
@@ -235,15 +235,15 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestonesByRepoCond(userRepoCond, isShowClosed)
+	counts, err := models.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType)
+	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
 	if err != nil {
-		ctx.ServerError("GetMilestonesByRepoIDs", err)
+		ctx.ServerError("SearchMilestones", err)
 		return
 	}
 
@@ -278,7 +278,7 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStatsByRepoCond(repoCond)
+	milestoneStats, err := models.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
@@ -288,7 +288,7 @@ func Milestones(ctx *context.Context) {
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCond(userRepoCond)
+		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -311,18 +311,20 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Counts"] = counts
 	ctx.Data["MilestoneStats"] = milestoneStats
 	ctx.Data["SortType"] = sortType
+	ctx.Data["Keyword"] = keyword
 	if milestoneStats.Total() != totalMilestoneStats.Total() {
 		ctx.Data["RepoIDs"] = repoIDs
 	}
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	pager := context.NewPagination(pagerCount, setting.UI.IssuePagingNum, page, 5)
+	pager.AddParam(ctx, "q", "Keyword")
 	pager.AddParam(ctx, "repos", "RepoIDs")
 	pager.AddParam(ctx, "sort", "SortType")
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplMilestones)
+	ctx.HTML(http.StatusOK, tplMilestones)
 }
 
 // Pulls renders the user's pull request overview page
@@ -434,9 +436,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	case models.FilterModeCreate:
 		opts.PosterID = ctx.User.ID
 	case models.FilterModeMention:
-		opts.MentionedID = ctxUser.ID
+		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
-		opts.ReviewRequestedID = ctxUser.ID
+		opts.ReviewRequestedID = ctx.User.ID
 	}
 
 	if ctxUser.IsOrganization() {
@@ -707,11 +709,11 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	pager.AddParam(ctx, "assignee", "AssigneeID")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplIssues)
+	ctx.HTML(http.StatusOK, tplIssues)
 }
 
 func getRepoIDs(reposQuery string) []int64 {
-	if len(reposQuery) == 0 {
+	if len(reposQuery) == 0 || reposQuery == "[]" {
 		return []int64{}
 	}
 	if !issueReposQueryPattern.MatchString(reposQuery) {
@@ -768,9 +770,6 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 
 	if team != nil {
 		env = ctxUser.AccessibleTeamReposEnv(team)
-		if err != nil {
-			return nil, fmt.Errorf("AccessibleTeamReposEnv: %v", err)
-		}
 	} else {
 		env, err = ctxUser.AccessibleReposEnv(ctxUser.ID)
 		if err != nil {

@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -740,15 +741,12 @@ func (repo *Repository) updateSize(e Engine) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
 
-	repo.Size = size
+	repo.Size = size + lfsSize
 	_, err = e.ID(repo.ID).Cols("size").Update(repo)
 	return err
 }
@@ -1070,7 +1068,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	}
 
 	// insert units for repo
-	var units = make([]RepoUnit, 0, len(DefaultRepoUnits))
+	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
 	for _, tp := range DefaultRepoUnits {
 		if tp == UnitTypeIssues {
 			units = append(units, RepoUnit{
@@ -1086,7 +1084,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: MergeStyleMerge},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1447,11 +1445,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
-	if err = deleteBeans(sess,
+	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&Watch{RepoID: repoID},
@@ -1475,28 +1473,33 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	// Delete Labels and related objects
+	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
-		if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err := sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
 	if len(repo.Topics) > 0 {
-		if err = removeTopicsFromRepo(sess, repo.ID); err != nil {
+		if err := removeTopicsFromRepo(sess, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -1529,7 +1532,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}
@@ -1636,7 +1639,7 @@ func GetRepositoryByIDCtx(ctx DBContext, id int64) (*Repository, error) {
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
-	var repos = make(map[int64]*Repository, len(ids))
+	repos := make(map[int64]*Repository, len(ids))
 	return repos, x.In("id", ids).Find(&repos)
 }
 
@@ -1646,7 +1649,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		opts.OrderBy = "updated_unix DESC"
 	}
 
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
@@ -2096,9 +2099,9 @@ func DoctorUserStarNum() (err error) {
 // IterateRepository iterate repositories
 func IterateRepository(f func(repo *Repository) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var repos = make([]*Repository, 0, batchSize)
+		repos := make([]*Repository, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}

@@ -22,6 +22,9 @@ type topicsList struct {
 
 // ListRepoTopics list all repository's topics
 func (c *Client) ListRepoTopics(user, repo string, opt ListRepoTopicsOptions) ([]string, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 
 	list := new(topicsList)
@@ -34,9 +37,10 @@ func (c *Client) ListRepoTopics(user, repo string, opt ListRepoTopicsOptions) ([
 
 // SetRepoTopics replaces the list of repo's topics
 func (c *Client) SetRepoTopics(user, repo string, list []string) (*Response, error) {
-
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, err
+	}
 	l := topicsList{Topics: list}
-
 	body, err := json.Marshal(&l)
 	if err != nil {
 		return nil, err
@@ -47,12 +51,18 @@ func (c *Client) SetRepoTopics(user, repo string, list []string) (*Response, err
 
 // AddRepoTopic adds a topic to a repo's topics list
 func (c *Client) AddRepoTopic(user, repo, topic string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &topic); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("PUT", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
 	return resp, err
 }
 
 // DeleteRepoTopic deletes a topic from repo's topics list
 func (c *Client) DeleteRepoTopic(user, repo, topic string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &topic); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/topics/%s", user, repo, topic), nil, nil)
 	return resp, err
 }

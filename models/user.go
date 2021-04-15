@@ -76,9 +76,6 @@ const (
 )
 
 var (
-	// ErrUserNotKeyOwner user does not own this key error
-	ErrUserNotKeyOwner = errors.New("User does not own this public key")
-
 	// ErrEmailNotExist e-mail does not exist error
 	ErrEmailNotExist = errors.New("E-mail does not exist")
 
@@ -239,10 +236,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users found in DB.
+// GetAllUsers returns a slice of all individual users found in DB.
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Find(&users)
+	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -296,7 +293,7 @@ func (u *User) CanEditGitHook() bool {
 
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
-	if !setting.ImportLocalPaths {
+	if !setting.ImportLocalPaths || u == nil {
 		return false
 	}
 	return u.IsAdmin || u.AllowImportLocal
@@ -329,11 +326,6 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
 	return code
-}
-
-// GenerateActivateCode generates an activate code based on user information.
-func (u *User) GenerateActivateCode() string {
-	return u.GenerateEmailActivateCode(u.Email)
 }
 
 // GetFollowers returns range of user's followers.
@@ -789,6 +781,7 @@ var (
 		"assets",
 		"attachments",
 		"avatars",
+		"captcha",
 		"commits",
 		"debug",
 		"error",
@@ -1306,7 +1299,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 			Find(&users); err != nil {
 			return fmt.Errorf("get all inactive users: %v", err)
 		}
-
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range users {
@@ -1571,7 +1563,6 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
-
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1600,7 +1591,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		var accessCond = builder.NewCond()
+
+		var accessCond builder.Cond
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
 				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
@@ -1846,7 +1838,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 			log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
 
 			var existingUsers []int64
-			var isAttributeSSHPublicKeySet = len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
+			isAttributeSSHPublicKeySet := len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
@@ -2020,9 +2012,9 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 // IterateUser iterate users
 func IterateUser(f func(user *User) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var users = make([]*User, 0, batchSize)
+		users := make([]*User, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&users); err != nil {
 			return err
 		}

@@ -313,41 +313,27 @@ func RenderEmoji(
 	return ctx.postProcess(rawHTML)
 }
 
+var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
+var nulCleaner = strings.NewReplacer("\000", "")
+
 func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	if ctx.procs == nil {
 		ctx.procs = defaultProcessors
 	}
 
 	// give a generous extra 50 bytes
-	res := make([]byte, 0, len(rawHTML)+50)
-
+	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
 	// prepend "<html><body>"
-	res = append(res, "<html><body>"...)
+	_, _ = res.WriteString("<html><body>")
 
 	// Strip out nuls - they're always invalid
-	start := bytes.IndexByte(rawHTML, '\000')
-	if start >= 0 {
-		res = append(res, rawHTML[:start]...)
-		start++
-		for start < len(rawHTML) {
-			end := bytes.IndexByte(rawHTML[start:], '\000')
-			if end < 0 {
-				res = append(res, rawHTML[start:]...)
-				break
-			} else if end > 0 {
-				res = append(res, rawHTML[start:start+end]...)
-			}
-			start += end + 1
-		}
-	} else {
-		res = append(res, rawHTML...)
-	}
+	_, _ = res.Write(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
 
 	// close the tags
-	res = append(res, "</body></html>"...)
+	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(bytes.NewReader(res), nil)
+	nodes, err := html.ParseFragment(res, nil)
 	if err != nil {
 		return nil, &postProcessError{"invalid HTML", err}
 	}
@@ -384,17 +370,17 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
 	// reuse res, resetting its length to 0.
-	buf := bytes.NewBuffer(res[:0])
+	res.Reset()
 	// Render everything to buf.
 	for _, node := range nodes {
-		err = html.Render(buf, node)
+		err = html.Render(res, node)
 		if err != nil {
 			return nil, &postProcessError{"error rendering processed HTML", err}
 		}
 	}
 
 	// Everything done successfully, return parsed data.
-	return buf.Bytes(), nil
+	return res.Bytes(), nil
 }
 
 func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
