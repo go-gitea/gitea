@@ -613,6 +613,9 @@ release-windows: | $(DIST_DIRS)
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+ifeq (,$(findstring gogit,$(TAGS)))
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
+endif
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
