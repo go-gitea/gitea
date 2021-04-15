@@ -325,6 +325,7 @@ lint: lint-frontend lint-backend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js
 	npx stylelint --color --max-warnings=0 web_src/less
+	npx editorconfig-checker templates
 
 .PHONY: lint-backend
 lint-backend: golangci-lint revive vet
@@ -612,6 +613,9 @@ release-windows: | $(DIST_DIRS)
 		$(GO) install src.techknowlogick.com/xgo@latest; \
 	fi
 	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION) .
+ifeq (,$(findstring gogit,$(TAGS)))
+	CGO_CFLAGS="$(CGO_CFLAGS)" xgo -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
+endif
 ifeq ($(CI),drone)
 	cp /build/* $(DIST)/binaries
 endif
@@ -732,8 +736,8 @@ generate-gitignore:
 	GO111MODULE=on $(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
-generate-images:
-	npm install --no-save --no-package-lock fabric imagemin-zopfli
+generate-images: | node_modules
+	npm install --no-save --no-package-lock fabric@4 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage

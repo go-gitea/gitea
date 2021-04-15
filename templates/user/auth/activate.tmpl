@@ -19,7 +19,7 @@
 						{{end}}
 					{{else}}
 						{{if .NeedsPassword}}
-							<form class="ui form" action="/user/activate" method="post">
+							<form class="ui form" action="{{AppSubUrl}}/user/activate" method="post">
 								<div class="required inline field">
 									<label for="password">{{.i18n.Tr "password"}}</label>
 									<input id="password" name="password" type="password" autocomplete="off" required>

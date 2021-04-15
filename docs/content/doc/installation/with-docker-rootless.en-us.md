@@ -89,11 +89,11 @@ services:
   server:
     image: gitea/gitea:latest-rootless
 +    environment:
-+      - DB_TYPE=mysql
-+      - DB_HOST=db:3306
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++      - GITEA__database__TYPE=mysql
++      - GITEA__database__HOST=db:3306
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -130,11 +130,11 @@ services:
   server:
     image: gitea/gitea:latest-rootless
     environment:
-+      - DB_TYPE=postgres
-+      - DB_HOST=db:5432
-+      - DB_NAME=gitea
-+      - DB_USER=gitea
-+      - DB_PASSWD=gitea
++      - GITEA__database__TYPE=postgres
++      - GITEA__database__HOST=db:5432
++      - GITEA__database__NAME=gitea
++      - GITEA__database__USER=gitea
++      - GITEA__database__PASSWD=gitea
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -232,31 +232,6 @@ After starting the Docker setup via `docker-compose`, Gitea should be available 
 favorite browser to finalize the installation. Visit http://server-ip:3000 and follow the
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
-
-## Environments variables
-
-You can configure some of Gitea's settings via environment variables:
-
-(Default values are provided in **bold**)
-
-* `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
-* `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
-* `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed clone URL in Gitea's UI.
-* `SSH_PORT`: **2222**: SSH port displayed in clone URL.
-* `SSH_LISTEN_PORT`: **%(SSH\_PORT)s**: Port for the built-in SSH server.
-* `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
-* `HTTP_PORT`: **3000**: HTTP listen port.
-* `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
-* `LFS_START_SERVER`: **false**: Enables git-lfs support.
-* `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-* `DB_HOST`: **localhost:3306**: Database host address and port.
-* `DB_NAME`: **gitea**: Database name.
-* `DB_USER`: **root**: Database username.
-* `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-* `INSTALL_LOCK`: **false**: Disallow access to the install page.
-* `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
-* `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
-* `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
 
 # Customization
 
