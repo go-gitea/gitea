@@ -13,8 +13,8 @@ import {fileURLToPath} from 'url';
 
 const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const {SourceMapDevToolPlugin} = webpack;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};
