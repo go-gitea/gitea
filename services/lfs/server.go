@@ -49,6 +49,17 @@ func (rc *requestContext) VerifyLink(oid string) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify", oid)
 }
 
+// CheckAcceptMediaType checks if the client accepts the LFS media type.
+func CheckAcceptMediaType(ctx *context.Context) {
+	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
+
+	if mediaParts[0] != lfs_module.MediaType {
+		log.Info("Calling a LFS method without accepting the correct media type: %s", lfs_module.MediaType)
+		writeStatus(ctx, http.StatusBadRequest)
+		return
+	}
+}
+
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
@@ -157,12 +168,6 @@ func DownloadHandler(ctx *context.Context) {
 
 // LegacyMetaHandler retrieves metadata about the object
 func LegacyMetaHandler(ctx *context.Context) {
-	if !isValidAccept(ctx.Req) {
-		log.Info("Attempt to call without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return
-	}
-
 	rc, p := unpack(ctx)
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, false)
@@ -186,12 +191,6 @@ func LegacyMetaHandler(ctx *context.Context) {
 
 // LegacyPostHandler instructs the client how to upload data
 func LegacyPostHandler(ctx *context.Context) {
-	if !isValidAccept(ctx.Req) {
-		log.Info("Attempt to POST without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return
-	}
-
 	rc, p := unpack(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
@@ -250,12 +249,6 @@ func LegacyPostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-	if !isValidAccept(ctx.Req) {
-		log.Info("Attempt to BATCH without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return
-	}
-
 	bv := unpackbatch(ctx)
 
 	var isUpload bool
@@ -383,12 +376,6 @@ func UploadHandler(ctx *context.Context) {
 
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
-	if !isValidAccept(ctx.Req) {
-		log.Info("Attempt to VERIFY without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return
-	}
-
 	rc, p := unpack(ctx)
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, true)
@@ -447,14 +434,6 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 	}
 	return rep
-}
-
-// isValidAccept provides a mux.MatcherFunc that only allows requests that contain
-// an Accept header with the lfs_module.MediaType
-func isValidAccept(r *http.Request) bool {
-	mediaParts := strings.Split(r.Header.Get("Accept"), ";")
-	mt := mediaParts[0]
-	return mt == lfs_module.MediaType
 }
 
 func unpack(ctx *context.Context) (*requestContext, lfs_module.Pointer) {
