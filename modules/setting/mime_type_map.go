@@ -4,6 +4,8 @@
 
 package setting
 
+import "strings"
+
 var (
 	// MimeTypeMap defines custom mime type mapping settings
 	MimeTypeMap = struct {
@@ -20,7 +22,7 @@ func newMimeTypeMap() {
 	keys := sec.Keys()
 	m := make(map[string]string, len(keys))
 	for _, key := range keys {
-		m[key.Name()] = key.Value()
+		m[strings.ToLower(key.Name())] = key.Value()
 	}
 	MimeTypeMap.Map = m
 	if len(keys) > 0 {

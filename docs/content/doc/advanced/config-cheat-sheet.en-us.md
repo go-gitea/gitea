@@ -966,6 +966,15 @@ MINIO_USE_SSL = false
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
+## MIME type mapping (`download.mimetype.mapping`)
+
+Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
+
+The following configuration set `Content-Type: application/javascript` header when downloading files with `.js` file extension.
+```ini
+.js=application/javascript
+```
+
 ## Other (`other`)
 
 - `SHOW_FOOTER_BRANDING`: **false**: Show Gitea branding in the footer.

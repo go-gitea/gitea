@@ -332,11 +332,6 @@ func IsAudioFile(data []byte) bool {
 	return strings.Contains(DetectContentType(data), "audio/")
 }
 
-// IsZipFile detects if data is a zip format
-func IsZipFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), "application/zip")
-}
-
 // EntryIcon returns the octicon class for displaying files/directories
 func EntryIcon(entry *git.TreeEntry) string {
 	switch {

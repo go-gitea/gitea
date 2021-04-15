@@ -64,7 +64,8 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		if setting.MimeTypeMap.Enabled {
-			if mimetype, ok := setting.MimeTypeMap.Map[filepath.Ext(name)]; ok {
+			fileExtension := strings.ToLower(filepath.Ext(name))
+			if mimetype, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
 				ctx.Resp.Header().Set("Content-Type", mimetype)
 			}
 		}
