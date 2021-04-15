@@ -182,19 +182,19 @@ export default {
         type: 'asset/source',
       },
       {
-        test: /\.(ttf|woff2?)$/,
+        test: /\.(ttf|woff2?)$/g,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '../', // required to remove css/ path segment
         }
       },
       {
-        test: /\.png$/i,
+        test: /\.png$/ig,
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '../', // required to remove css/ path segment
         }
       },
     ],
