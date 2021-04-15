@@ -240,6 +240,15 @@ a.muted:hover,
   border-color: var(--color-primary) !important;
 }
 
+/* currently used for search bar dropdowns in repo search and explore code */
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
+  min-width: 10em;
+
+  &:not(:focus):not(:hover) {
+    border-right-color: transparent;
+  }
+}
+
 .ui.action.input:not([class*="left action"]) > input:focus {
   border-right-color: var(--color-primary);
 }
