@@ -317,7 +317,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if isWiki { // you cannot send wiki operation before create the repository
-			ctx.HandleText(http.StatusForbidden, "Repository not found")
+			ctx.HandleText(http.StatusNotFound, "Repository not found")
 			return
 		}
 
