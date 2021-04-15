@@ -96,6 +96,11 @@ func HashedAvatarLink(email string) string {
 			// we don't care about any DB problem just return the lowerEmail
 			return lowerEmail, nil
 		}
+		has, err := sess.Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
+		if has || err != nil {
+			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+			return lowerEmail, nil
+		}
 		_, _ = sess.Insert(emailHash)
 		if err := sess.Commit(); err != nil {
 			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time

@@ -75,6 +75,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
+- `DISABLE_STARS`: **false**: Disable stars feature.
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
@@ -428,6 +429,21 @@ relation to port exhaustion.
    OpenID URI's to permit.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to block.
+
+## OAuth2 Client (`oauth2_client`)
+
+- `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
+- `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
+- `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
+- `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
+    - userid - use the userid / sub attribute
+    - nickname - use the nickname attribute
+    - email - use the username part of the email attribute
+- `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
+- `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists:
+    - disabled - show an error
+    - login - show an account linking login
+    - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
 
 ## Service (`service`)
 
