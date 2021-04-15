@@ -167,11 +167,16 @@ func SetMessageWithDesc(lang, langDesc string, localeFile interface{}, otherLoca
 		lc.langDesc = langDesc
 		lc.message = message
 
-		if locales.Add(lc) == false {
+		if !locales.Add(lc) {
 			return ErrLangAlreadyExist
 		}
 	}
 	return err
+}
+
+// Reset resets locale store.
+func Reset() {
+	locales = &localeStore{store: make(map[string]*locale)}
 }
 
 // SetMessage sets the message file for localization.

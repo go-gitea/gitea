@@ -8,117 +8,155 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"hash"
 	"io"
 	"os"
-	"path/filepath"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 )
 
 var (
-	errHashMismatch = errors.New("Content hash does not match OID")
-	errSizeMismatch = errors.New("Content size does not match")
+	// ErrHashMismatch occurs if the content has does not match OID
+	ErrHashMismatch = errors.New("Content hash does not match OID")
+	// ErrSizeMismatch occurs if the content size does not match
+	ErrSizeMismatch = errors.New("Content size does not match")
 )
+
+// ErrRangeNotSatisfiable represents an error which request range is not satisfiable.
+type ErrRangeNotSatisfiable struct {
+	FromByte int64
+}
+
+// IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
+func IsErrRangeNotSatisfiable(err error) bool {
+	_, ok := err.(ErrRangeNotSatisfiable)
+	return ok
+}
+
+func (err ErrRangeNotSatisfiable) Error() string {
+	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
+}
 
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
-	BasePath string
+	storage.ObjectStorage
+}
+
+// NewContentStore creates the default ContentStore
+func NewContentStore() *ContentStore {
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	return contentStore
 }
 
 // Get takes a Meta object and retrieves the content from the store, returning
-// it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
-	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
-
-	f, err := os.Open(path)
+// it as an io.ReadSeekCloser.
+func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
+	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
-		log.Error("Whilst trying to read LFS OID[%s]: Unable to open %s Error: %v", meta.Oid, path, err)
+		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
-	}
-	if fromByte > 0 {
-		_, err = f.Seek(fromByte, os.SEEK_CUR)
-		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
-		}
 	}
 	return f, err
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
-	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
-	tmpPath := path + ".tmp"
+func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
+	p := pointer.RelativePath()
 
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0750); err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Unable to create the LFS directory: %s Error: %v", meta.Oid, dir, err)
-		return err
-	}
+	// Wrap the provided reader with an inline hashing and size checker
+	wrappedRd := newHashingReader(pointer.Size, pointer.Oid, r)
 
-	file, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0640)
+	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
+	// the errors returned by the newHashingReader should percolate up to here
+	written, err := s.Save(p, wrappedRd, pointer.Size)
 	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Unable to open temporary file for writing: %s Error: %v", tmpPath, err)
+		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
 		return err
 	}
-	defer os.Remove(tmpPath)
 
-	hash := sha256.New()
-	hw := io.MultiWriter(hash, file)
-
-	written, err := io.Copy(hw, r)
-	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, tmpPath, err)
-		file.Close()
-		return err
-	}
-	file.Close()
-
-	if written != meta.Size {
-		return errSizeMismatch
-	}
-
-	shaStr := hex.EncodeToString(hash.Sum(nil))
-	if shaStr != meta.Oid {
-		return errHashMismatch
-	}
-
-	if err := os.Rename(tmpPath, path); err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Unable to move tmp file to final destination: %s Error: %v", meta.Oid, path, err)
-		return err
+	// This shouldn't happen but it is sensible to test
+	if written != pointer.Size {
+		if err := s.Delete(p); err != nil {
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
+		}
+		return ErrSizeMismatch
 	}
 
 	return nil
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(meta *models.LFSMetaObject) bool {
-	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
+func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
+	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
-	path := filepath.Join(s.BasePath, transformKey(meta.Oid))
-
-	fi, err := os.Stat(path)
-	if os.IsNotExist(err) || err == nil && fi.Size() != meta.Size {
+func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
+	p := pointer.RelativePath()
+	fi, err := s.ObjectStorage.Stat(p)
+	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
 		return false, nil
 	} else if err != nil {
-		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", path, meta.Oid, err)
+		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
 		return false, err
 	}
 
 	return true, nil
 }
 
-func transformKey(key string) string {
-	if len(key) < 5 {
-		return key
+// ReadMetaObject will read a models.LFSMetaObject and return a reader
+func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
+	contentStore := NewContentStore()
+	return contentStore.Get(pointer)
+}
+
+type hashingReader struct {
+	internal     io.Reader
+	currentSize  int64
+	expectedSize int64
+	hash         hash.Hash
+	expectedHash string
+}
+
+func (r *hashingReader) Read(b []byte) (int, error) {
+	n, err := r.internal.Read(b)
+
+	if n > 0 {
+		r.currentSize += int64(n)
+		wn, werr := r.hash.Write(b[:n])
+		if wn != n || werr != nil {
+			return n, werr
+		}
 	}
 
-	return filepath.Join(key[0:2], key[2:4], key[4:])
+	if err != nil && err == io.EOF {
+		if r.currentSize != r.expectedSize {
+			return n, ErrSizeMismatch
+		}
+
+		shaStr := hex.EncodeToString(r.hash.Sum(nil))
+		if shaStr != r.expectedHash {
+			return n, ErrHashMismatch
+		}
+	}
+
+	return n, err
+}
+
+func newHashingReader(expectedSize int64, expectedHash string, reader io.Reader) *hashingReader {
+	return &hashingReader{
+		internal:     reader,
+		expectedSize: expectedSize,
+		expectedHash: expectedHash,
+		hash:         sha256.New(),
+	}
 }

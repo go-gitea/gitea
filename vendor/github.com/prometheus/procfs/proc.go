@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/procfs/internal/fs"
+	"github.com/prometheus/procfs/internal/util"
 )
 
 // Proc provides information about a running process.
@@ -104,7 +105,7 @@ func (fs FS) AllProcs() (Procs, error) {
 
 	names, err := d.Readdirnames(-1)
 	if err != nil {
-		return Procs{}, fmt.Errorf("could not read %s: %s", d.Name(), err)
+		return Procs{}, fmt.Errorf("could not read %q: %w", d.Name(), err)
 	}
 
 	p := Procs{}
@@ -121,13 +122,7 @@ func (fs FS) AllProcs() (Procs, error) {
 
 // CmdLine returns the command line of a process.
 func (p Proc) CmdLine() ([]string, error) {
-	f, err := os.Open(p.path("cmdline"))
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
+	data, err := util.ReadFileNoStat(p.path("cmdline"))
 	if err != nil {
 		return nil, err
 	}
@@ -139,15 +134,30 @@ func (p Proc) CmdLine() ([]string, error) {
 	return strings.Split(string(bytes.TrimRight(data, string("\x00"))), string(byte(0))), nil
 }
 
-// Comm returns the command name of a process.
-func (p Proc) Comm() (string, error) {
-	f, err := os.Open(p.path("comm"))
+// Wchan returns the wchan (wait channel) of a process.
+func (p Proc) Wchan() (string, error) {
+	f, err := os.Open(p.path("wchan"))
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
 
 	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		return "", err
+	}
+
+	wchan := string(data)
+	if wchan == "" || wchan == "0" {
+		return "", nil
+	}
+
+	return wchan, nil
+}
+
+// Comm returns the command name of a process.
+func (p Proc) Comm() (string, error) {
+	data, err := util.ReadFileNoStat(p.path("comm"))
 	if err != nil {
 		return "", err
 	}
@@ -196,7 +206,7 @@ func (p Proc) FileDescriptors() ([]uintptr, error) {
 	for i, n := range names {
 		fd, err := strconv.ParseInt(n, 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("could not parse fd %s: %s", n, err)
+			return nil, fmt.Errorf("could not parse fd %q: %w", n, err)
 		}
 		fds[i] = uintptr(fd)
 	}
@@ -252,13 +262,11 @@ func (p Proc) MountStats() ([]*Mount, error) {
 // It supplies information missing in `/proc/self/mounts` and
 // fixes various other problems with that file too.
 func (p Proc) MountInfo() ([]*MountInfo, error) {
-	f, err := os.Open(p.path("mountinfo"))
+	data, err := util.ReadFileNoStat(p.path("mountinfo"))
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
-
-	return parseMountInfo(f)
+	return parseMountInfo(data)
 }
 
 func (p Proc) fileDescriptors() ([]string, error) {
@@ -270,7 +278,7 @@ func (p Proc) fileDescriptors() ([]string, error) {
 
 	names, err := d.Readdirnames(-1)
 	if err != nil {
-		return nil, fmt.Errorf("could not read %s: %s", d.Name(), err)
+		return nil, fmt.Errorf("could not read %q: %w", d.Name(), err)
 	}
 
 	return names, nil

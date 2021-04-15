@@ -26,8 +26,67 @@ import (
 	"github.com/go-openapi/spec"
 )
 
-const swaggerBody = "body"
-const objectType = "object"
+const (
+	swaggerBody     = "body"
+	swaggerExample  = "example"
+	swaggerExamples = "examples"
+)
+
+const (
+	objectType  = "object"
+	arrayType   = "array"
+	stringType  = "string"
+	integerType = "integer"
+	numberType  = "number"
+	booleanType = "boolean"
+	fileType    = "file"
+	nullType    = "null"
+)
+
+const (
+	jsonProperties = "properties"
+	jsonItems      = "items"
+	jsonType       = "type"
+	// jsonSchema     = "schema"
+	jsonDefault = "default"
+)
+
+const (
+	stringFormatDate     = "date"
+	stringFormatDateTime = "date-time"
+	stringFormatPassword = "password"
+	stringFormatByte     = "byte"
+	// stringFormatBinary       = "binary"
+	stringFormatCreditCard   = "creditcard"
+	stringFormatDuration     = "duration"
+	stringFormatEmail        = "email"
+	stringFormatHexColor     = "hexcolor"
+	stringFormatHostname     = "hostname"
+	stringFormatIPv4         = "ipv4"
+	stringFormatIPv6         = "ipv6"
+	stringFormatISBN         = "isbn"
+	stringFormatISBN10       = "isbn10"
+	stringFormatISBN13       = "isbn13"
+	stringFormatMAC          = "mac"
+	stringFormatBSONObjectID = "bsonobjectid"
+	stringFormatRGBColor     = "rgbcolor"
+	stringFormatSSN          = "ssn"
+	stringFormatURI          = "uri"
+	stringFormatUUID         = "uuid"
+	stringFormatUUID3        = "uuid3"
+	stringFormatUUID4        = "uuid4"
+	stringFormatUUID5        = "uuid5"
+
+	integerFormatInt32  = "int32"
+	integerFormatInt64  = "int64"
+	integerFormatUInt32 = "uint32"
+	integerFormatUInt64 = "uint64"
+
+	numberFormatFloat32 = "float32"
+	numberFormatFloat64 = "float64"
+	numberFormatFloat   = "float"
+	numberFormatDouble  = "double"
+)
 
 // Helpers available at the package level
 var (
@@ -106,7 +165,7 @@ func (h *valueHelper) asInt64(val interface{}) int64 {
 	case reflect.Float32, reflect.Float64:
 		return int64(v.Float())
 	default:
-		//panic("Non numeric value in asInt64()")
+		// panic("Non numeric value in asInt64()")
 		return 0
 	}
 }
@@ -123,7 +182,7 @@ func (h *valueHelper) asUint64(val interface{}) uint64 {
 	case reflect.Float32, reflect.Float64:
 		return uint64(v.Float())
 	default:
-		//panic("Non numeric value in asUint64()")
+		// panic("Non numeric value in asUint64()")
 		return 0
 	}
 }
@@ -141,7 +200,7 @@ func (h *valueHelper) asFloat64(val interface{}) float64 {
 	case reflect.Float32, reflect.Float64:
 		return v.Float()
 	default:
-		//panic("Non numeric value in asFloat64()")
+		// panic("Non numeric value in asFloat64()")
 		return 0
 	}
 }
@@ -156,7 +215,7 @@ func (h *paramHelper) safeExpandedParamsFor(path, method, operationID string, re
 		// expand parameters first if necessary
 		resolvedParams := []spec.Parameter{}
 		for _, ppr := range operation.Parameters {
-			resolvedParam, red := h.resolveParam(path, method, operationID, &ppr, s)
+			resolvedParam, red := h.resolveParam(path, method, operationID, &ppr, s) //#nosec
 			res.Merge(red)
 			if resolvedParam != nil {
 				resolvedParams = append(resolvedParams, *resolvedParam)
@@ -205,7 +264,8 @@ func (h *paramHelper) checkExpandedParam(pr *spec.Parameter, path, in, operation
 	res := new(Result)
 	simpleZero := spec.SimpleSchema{}
 	// Try to explain why... best guess
-	if pr.In == swaggerBody && (pr.SimpleSchema != simpleZero && pr.SimpleSchema.Type != objectType) {
+	switch {
+	case pr.In == swaggerBody && (pr.SimpleSchema != simpleZero && pr.SimpleSchema.Type != objectType):
 		if isRef {
 			// Most likely, a $ref with a sibling is an unwanted situation: in itself this is a warning...
 			// but we detect it because of the following error:
@@ -213,13 +273,12 @@ func (h *paramHelper) checkExpandedParam(pr *spec.Parameter, path, in, operation
 			res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
 		}
 		res.AddErrors(invalidParameterDefinitionMsg(path, in, operation))
-	} else if pr.In != swaggerBody && pr.Schema != nil {
+	case pr.In != swaggerBody && pr.Schema != nil:
 		if isRef {
 			res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
 		}
 		res.AddErrors(invalidParameterDefinitionAsSchemaMsg(path, in, operation))
-	} else if (pr.In == swaggerBody && pr.Schema == nil) ||
-		(pr.In != swaggerBody && pr.SimpleSchema == simpleZero) { // Safeguard
+	case (pr.In == swaggerBody && pr.Schema == nil) || (pr.In != swaggerBody && pr.SimpleSchema == simpleZero):
 		// Other unexpected mishaps
 		res.AddErrors(invalidParameterDefinitionMsg(path, in, operation))
 	}
@@ -254,8 +313,8 @@ func (r *responseHelper) responseMsgVariants(
 	responseType string,
 	responseCode int) (responseName, responseCodeAsStr string) {
 	// Path variants for messages
-	if responseType == "default" {
-		responseCodeAsStr = "default"
+	if responseType == jsonDefault {
+		responseCodeAsStr = jsonDefault
 		responseName = "default response"
 	} else {
 		responseCodeAsStr = strconv.Itoa(responseCode)

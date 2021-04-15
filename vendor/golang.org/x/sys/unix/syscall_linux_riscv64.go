@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build riscv64 && linux
 // +build riscv64,linux
 
 package unix
@@ -154,7 +155,7 @@ func Pipe(p []int) (err error) {
 	return
 }
 
-//sysnb pipe2(p *[2]_C_int, flags int) (err error)
+//sysnb	pipe2(p *[2]_C_int, flags int) (err error)
 
 func Pipe2(p []int, flags int) (err error) {
 	if len(p) != 2 {
@@ -191,10 +192,6 @@ func InotifyInit() (fd int, err error) {
 	return InotifyInit1(0)
 }
 
-func Dup2(oldfd int, newfd int) (err error) {
-	return Dup3(oldfd, newfd, 0)
-}
-
 func Pause() error {
 	_, err := ppoll(nil, 0, nil, nil)
 	return err
@@ -228,3 +225,7 @@ func KexecFileLoad(kernelFd int, initrdFd int, cmdline string, flags int) error 
 	}
 	return kexecFileLoad(kernelFd, initrdFd, cmdlineLen, cmdline, flags)
 }
+
+// dup2 exists because func Dup3 in syscall_linux.go references
+// it in an unreachable path. dup2 isn't available on arm64.
+func dup2(oldfd int, newfd int) error

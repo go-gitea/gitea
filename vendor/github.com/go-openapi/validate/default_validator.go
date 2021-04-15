@@ -33,14 +33,8 @@ func (d *defaultValidator) resetVisited() {
 	d.visitedSchemas = map[string]bool{}
 }
 
-// beingVisited asserts a schema is being visited
-func (d *defaultValidator) beingVisited(path string) {
-	d.visitedSchemas[path] = true
-}
-
-// isVisited tells if a path has already been visited
-func (d *defaultValidator) isVisited(path string) bool {
-	found := d.visitedSchemas[path]
+func isVisited(path string, visitedSchemas map[string]bool) bool {
+	found := visitedSchemas[path]
 	if !found {
 		// search for overlapping paths
 		frags := strings.Split(path, ".")
@@ -70,6 +64,16 @@ func (d *defaultValidator) isVisited(path string) bool {
 	return found
 }
 
+// beingVisited asserts a schema is being visited
+func (d *defaultValidator) beingVisited(path string) {
+	d.visitedSchemas[path] = true
+}
+
+// isVisited tells if a path has already been visited
+func (d *defaultValidator) isVisited(path string) bool {
+	return isVisited(path, d.visitedSchemas)
+}
+
 // Validate validates the default values declared in the swagger spec
 func (d *defaultValidator) Validate() (errs *Result) {
 	errs = new(Result)
@@ -89,64 +93,60 @@ func (d *defaultValidator) validateDefaultValueValidAgainstSchema() *Result {
 	s := d.SpecValidator
 
 	for method, pathItem := range s.analyzer.Operations() {
-		if pathItem != nil { // Safeguard
-			for path, op := range pathItem {
-				// parameters
-				for _, param := range paramHelp.safeExpandedParamsFor(path, method, op.ID, res, s) {
-					if param.Default != nil && param.Required {
-						res.AddWarnings(requiredHasDefaultMsg(param.Name, param.In))
-					}
+		for path, op := range pathItem {
+			// parameters
+			for _, param := range paramHelp.safeExpandedParamsFor(path, method, op.ID, res, s) {
+				if param.Default != nil && param.Required {
+					res.AddWarnings(requiredHasDefaultMsg(param.Name, param.In))
+				}
 
-					// reset explored schemas to get depth-first recursive-proof exploration
-					d.resetVisited()
+				// reset explored schemas to get depth-first recursive-proof exploration
+				d.resetVisited()
 
-					// Check simple parameters first
-					// default values provided must validate against their inline definition (no explicit schema)
-					if param.Default != nil && param.Schema == nil {
-						// check param default value is valid
-						red := NewParamValidator(&param, s.KnownFormats).Validate(param.Default)
-						if red.HasErrorsOrWarnings() {
-							res.AddErrors(defaultValueDoesNotValidateMsg(param.Name, param.In))
-							res.Merge(red)
-						}
-					}
-
-					// Recursively follows Items and Schemas
-					if param.Items != nil {
-						red := d.validateDefaultValueItemsAgainstSchema(param.Name, param.In, &param, param.Items)
-						if red.HasErrorsOrWarnings() {
-							res.AddErrors(defaultValueItemsDoesNotValidateMsg(param.Name, param.In))
-							res.Merge(red)
-						}
-					}
-
-					if param.Schema != nil {
-						// Validate default value against schema
-						red := d.validateDefaultValueSchemaAgainstSchema(param.Name, param.In, param.Schema)
-						if red.HasErrorsOrWarnings() {
-							res.AddErrors(defaultValueDoesNotValidateMsg(param.Name, param.In))
-							res.Merge(red)
-						}
+				// Check simple parameters first
+				// default values provided must validate against their inline definition (no explicit schema)
+				if param.Default != nil && param.Schema == nil {
+					// check param default value is valid
+					red := NewParamValidator(&param, s.KnownFormats).Validate(param.Default) //#nosec
+					if red.HasErrorsOrWarnings() {
+						res.AddErrors(defaultValueDoesNotValidateMsg(param.Name, param.In))
+						res.Merge(red)
 					}
 				}
 
-				if op.Responses != nil {
-					if op.Responses.Default != nil {
-						// Same constraint on default Response
-						res.Merge(d.validateDefaultInResponse(op.Responses.Default, "default", path, 0, op.ID))
-					}
-					// Same constraint on regular Responses
-					if op.Responses.StatusCodeResponses != nil { // Safeguard
-						for code, r := range op.Responses.StatusCodeResponses {
-							res.Merge(d.validateDefaultInResponse(&r, "response", path, code, op.ID))
-						}
-					}
-				} else {
-					// Empty op.ID means there is no meaningful operation: no need to report a specific message
-					if op.ID != "" {
-						res.AddErrors(noValidResponseMsg(op.ID))
+				// Recursively follows Items and Schemas
+				if param.Items != nil {
+					red := d.validateDefaultValueItemsAgainstSchema(param.Name, param.In, &param, param.Items) //#nosec
+					if red.HasErrorsOrWarnings() {
+						res.AddErrors(defaultValueItemsDoesNotValidateMsg(param.Name, param.In))
+						res.Merge(red)
 					}
 				}
+
+				if param.Schema != nil {
+					// Validate default value against schema
+					red := d.validateDefaultValueSchemaAgainstSchema(param.Name, param.In, param.Schema)
+					if red.HasErrorsOrWarnings() {
+						res.AddErrors(defaultValueDoesNotValidateMsg(param.Name, param.In))
+						res.Merge(red)
+					}
+				}
+			}
+
+			if op.Responses != nil {
+				if op.Responses.Default != nil {
+					// Same constraint on default Response
+					res.Merge(d.validateDefaultInResponse(op.Responses.Default, jsonDefault, path, 0, op.ID))
+				}
+				// Same constraint on regular Responses
+				if op.Responses.StatusCodeResponses != nil { // Safeguard
+					for code, r := range op.Responses.StatusCodeResponses {
+						res.Merge(d.validateDefaultInResponse(&r, "response", path, code, op.ID)) //#nosec
+					}
+				}
+			} else if op.ID != "" {
+				// Empty op.ID means there is no meaningful operation: no need to report a specific message
+				res.AddErrors(noValidResponseMsg(op.ID))
 			}
 		}
 	}
@@ -154,7 +154,7 @@ func (d *defaultValidator) validateDefaultValueValidAgainstSchema() *Result {
 		// reset explored schemas to get depth-first recursive-proof exploration
 		d.resetVisited()
 		for nm, sch := range s.spec.Spec().Definitions {
-			res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("definitions.%s", nm), "body", &sch))
+			res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("definitions.%s", nm), "body", &sch)) //#nosec
 		}
 	}
 	return res
@@ -170,13 +170,14 @@ func (d *defaultValidator) validateDefaultInResponse(resp *spec.Response, respon
 
 	responseName, responseCodeAsStr := responseHelp.responseMsgVariants(responseType, responseCode)
 
+	// nolint: dupl
 	if response.Headers != nil { // Safeguard
 		for nm, h := range response.Headers {
 			// reset explored schemas to get depth-first recursive-proof exploration
 			d.resetVisited()
 
 			if h.Default != nil {
-				red := NewHeaderValidator(nm, &h, s.KnownFormats).Validate(h.Default)
+				red := NewHeaderValidator(nm, &h, s.KnownFormats).Validate(h.Default) //#nosec
 				if red.HasErrorsOrWarnings() {
 					res.AddErrors(defaultValueHeaderDoesNotValidateMsg(operationID, nm, responseName))
 					res.Merge(red)
@@ -185,7 +186,7 @@ func (d *defaultValidator) validateDefaultInResponse(resp *spec.Response, respon
 
 			// Headers have inline definition, like params
 			if h.Items != nil {
-				red := d.validateDefaultValueItemsAgainstSchema(nm, "header", &h, h.Items)
+				red := d.validateDefaultValueItemsAgainstSchema(nm, "header", &h, h.Items) //#nosec
 				if red.HasErrorsOrWarnings() {
 					res.AddErrors(defaultValueHeaderItemsDoesNotValidateMsg(operationID, nm, responseName))
 					res.Merge(red)
@@ -223,7 +224,7 @@ func (d *defaultValidator) validateDefaultValueSchemaAgainstSchema(path, in stri
 	s := d.SpecValidator
 
 	if schema.Default != nil {
-		res.Merge(NewSchemaValidator(schema, s.spec.Spec(), path+".default", s.KnownFormats).Validate(schema.Default))
+		res.Merge(NewSchemaValidator(schema, s.spec.Spec(), path+".default", s.KnownFormats, SwaggerSchema(true)).Validate(schema.Default))
 	}
 	if schema.Items != nil {
 		if schema.Items.Schema != nil {
@@ -232,7 +233,7 @@ func (d *defaultValidator) validateDefaultValueSchemaAgainstSchema(path, in stri
 		// Multiple schemas in items
 		if schema.Items.Schemas != nil { // Safeguard
 			for i, sch := range schema.Items.Schemas {
-				res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.items[%d].default", path, i), in, &sch))
+				res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.items[%d].default", path, i), in, &sch)) //#nosec
 			}
 		}
 	}
@@ -244,22 +245,24 @@ func (d *defaultValidator) validateDefaultValueSchemaAgainstSchema(path, in stri
 		res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.additionalItems", path), in, schema.AdditionalItems.Schema))
 	}
 	for propName, prop := range schema.Properties {
-		res.Merge(d.validateDefaultValueSchemaAgainstSchema(path+"."+propName, in, &prop))
+		res.Merge(d.validateDefaultValueSchemaAgainstSchema(path+"."+propName, in, &prop)) //#nosec
 	}
 	for propName, prop := range schema.PatternProperties {
-		res.Merge(d.validateDefaultValueSchemaAgainstSchema(path+"."+propName, in, &prop))
+		res.Merge(d.validateDefaultValueSchemaAgainstSchema(path+"."+propName, in, &prop)) //#nosec
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.Schema != nil {
 		res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.additionalProperties", path), in, schema.AdditionalProperties.Schema))
 	}
 	if schema.AllOf != nil {
 		for i, aoSch := range schema.AllOf {
-			res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.allOf[%d]", path, i), in, &aoSch))
+			res.Merge(d.validateDefaultValueSchemaAgainstSchema(fmt.Sprintf("%s.allOf[%d]", path, i), in, &aoSch)) //#nosec
 		}
 	}
 	return res
 }
 
+// TODO: Temporary duplicated code. Need to refactor with examples
+// nolint: dupl
 func (d *defaultValidator) validateDefaultValueItemsAgainstSchema(path, in string, root interface{}, items *spec.Items) *Result {
 	res := new(Result)
 	s := d.SpecValidator

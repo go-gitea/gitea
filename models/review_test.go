@@ -34,7 +34,6 @@ func TestReview_LoadAttributes(t *testing.T) {
 
 	invalidReview2 := AssertExistsAndLoadBean(t, &Review{ID: 3}).(*Review)
 	assert.Error(t, invalidReview2.LoadAttributes())
-
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
@@ -49,10 +48,10 @@ func TestReview_LoadCodeComments(t *testing.T) {
 
 func TestReviewType_Icon(t *testing.T) {
 	assert.Equal(t, "check", ReviewTypeApprove.Icon())
-	assert.Equal(t, "request-changes", ReviewTypeReject.Icon())
+	assert.Equal(t, "diff", ReviewTypeReject.Icon())
 	assert.Equal(t, "comment", ReviewTypeComment.Icon())
 	assert.Equal(t, "comment", ReviewTypeUnknown.Icon())
-	assert.Equal(t, "primitive-dot", ReviewTypeRequest.Icon())
+	assert.Equal(t, "dot-fill", ReviewTypeRequest.Icon())
 	assert.Equal(t, "comment", ReviewType(6).Icon())
 }
 
@@ -130,10 +129,71 @@ func TestGetReviewersByIssueID(t *testing.T) {
 		})
 
 	allReviews, err := GetReviewersByIssueID(issue.ID)
-	assert.NoError(t, err)
-	for i, review := range allReviews {
-		assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
-		assert.Equal(t, expectedReviews[i].Type, review.Type)
-		assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+	for _, reviewer := range allReviews {
+		assert.NoError(t, reviewer.LoadReviewer())
 	}
+	assert.NoError(t, err)
+	if assert.Len(t, allReviews, 3) {
+		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
+			assert.Equal(t, expectedReviews[i].Type, review.Type)
+			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)
+		}
+	}
+}
+
+func TestDismissReview(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	rejectReviewExample := AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample := AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	approveReviewExample := AssertExistsAndLoadBean(t, &Review{ID: 8}).(*Review)
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(rejectReviewExample, true))
+	rejectReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, true))
+	rejectReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, true))
+	rejectReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, false))
+	rejectReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(requestReviewExample, false))
+	rejectReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
+	requestReviewExample = AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)
+	assert.True(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(rejectReviewExample, false))
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.False(t, approveReviewExample.Dismissed)
+
+	assert.NoError(t, DismissReview(approveReviewExample, true))
+	assert.False(t, rejectReviewExample.Dismissed)
+	assert.False(t, requestReviewExample.Dismissed)
+	assert.True(t, approveReviewExample.Dismissed)
+
 }

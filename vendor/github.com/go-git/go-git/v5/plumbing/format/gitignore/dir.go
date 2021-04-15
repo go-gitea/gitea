@@ -1,6 +1,7 @@
 package gitignore
 
 import (
+	"bufio"
 	"bytes"
 	"io/ioutil"
 	"os"
@@ -15,7 +16,6 @@ import (
 const (
 	commentPrefix = "#"
 	coreSection   = "core"
-	eol           = "\n"
 	excludesfile  = "excludesfile"
 	gitDir        = ".git"
 	gitignoreFile = ".gitignore"
@@ -29,11 +29,11 @@ func readIgnoreFile(fs billy.Filesystem, path []string, ignoreFile string) (ps [
 	if err == nil {
 		defer f.Close()
 
-		if data, err := ioutil.ReadAll(f); err == nil {
-			for _, s := range strings.Split(string(data), eol) {
-				if !strings.HasPrefix(s, commentPrefix) && len(strings.TrimSpace(s)) > 0 {
-					ps = append(ps, ParsePattern(s, path))
-				}
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			s := scanner.Text()
+			if !strings.HasPrefix(s, commentPrefix) && len(strings.TrimSpace(s)) > 0 {
+				ps = append(ps, ParsePattern(s, path))
 			}
 		}
 	} else if !os.IsNotExist(err) {

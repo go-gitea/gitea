@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"strings"
+	"io"
 
 	"github.com/go-openapi/spec"
 )
 
 // ArrayType const for array
 var ArrayType = "array"
+
+// ObjectType const for object
+var ObjectType = "object"
 
 // Compare returns the result of analysing breaking and non breaking changes
 // between to Swagger specs
@@ -71,60 +73,6 @@ func getNameOnlyDiffNode(forLocation string) *Node {
 	return &node
 }
 
-func getSimpleSchemaDiffNode(name string, schema *spec.SimpleSchema) *Node {
-	node := Node{
-		Field: name,
-	}
-	if schema != nil {
-		node.TypeName, node.IsArray = getSimpleSchemaType(schema)
-	}
-	return &node
-}
-
-func getSchemaDiffNode(name string, schema *spec.Schema) *Node {
-	node := Node{
-		Field: name,
-	}
-	if schema != nil {
-		node.TypeName, node.IsArray = getSchemaType(&schema.SchemaProps)
-	}
-	return &node
-}
-
-func definitonFromURL(url *url.URL) string {
-	if url == nil {
-		return ""
-	}
-	fragmentParts := strings.Split(url.Fragment, "/")
-	numParts := len(fragmentParts)
-	if numParts == 0 {
-		return ""
-	}
-	return fragmentParts[numParts-1]
-}
-
-func getSimpleSchemaType(schema *spec.SimpleSchema) (typeName string, isArray bool) {
-	typeName = schema.Type
-	if typeName == ArrayType {
-		typeName, _ = getSimpleSchemaType(&schema.Items.SimpleSchema)
-		return typeName, true
-	}
-	return typeName, false
-}
-
-func getSchemaType(schema *spec.SchemaProps) (typeName string, isArray bool) {
-	refStr := definitonFromURL(schema.Ref.GetURL())
-	if len(refStr) > 0 {
-		return refStr, false
-	}
-	typeName = schema.Type[0]
-	if typeName == ArrayType {
-		typeName, _ = getSchemaType(&schema.Items.Schema.SchemaProps)
-		return typeName, true
-	}
-	return typeName, false
-}
-
 func primitiveTypeString(typeName, typeFormat string) string {
 	if typeFormat != "" {
 		return fmt.Sprintf("%s.%s", typeName, typeFormat)
@@ -153,10 +101,10 @@ var numberWideness = map[string]int{
 	"integer.int32": 0,
 }
 
-func prettyprint(b []byte) ([]byte, error) {
+func prettyprint(b []byte) (io.ReadWriter, error) {
 	var out bytes.Buffer
 	err := json.Indent(&out, b, "", "  ")
-	return out.Bytes(), err
+	return &out, err
 }
 
 // JSONMarshal allows the item to be correctly rendered to json

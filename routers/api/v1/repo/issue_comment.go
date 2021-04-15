@@ -11,7 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
@@ -56,7 +58,7 @@ func ListIssueComments(ctx *context.APIContext) {
 
 	before, since, err := utils.GetQueryBeforeSince(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetQueryBeforeSince", err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
@@ -85,7 +87,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	apiComments := make([]*api.Comment, len(comments))
 	for i, comment := range comments {
 		comment.Issue = issue
-		apiComments[i] = comments[i].APIFormat()
+		apiComments[i] = convert.ToComment(comments[i])
 	}
 	ctx.JSON(http.StatusOK, &apiComments)
 }
@@ -124,7 +126,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -132,7 +134,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 
 	before, since, err := utils.GetQueryBeforeSince(ctx)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetQueryBeforeSince", err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 
@@ -167,13 +169,13 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 	for i := range comments {
-		apiComments[i] = comments[i].APIFormat()
+		apiComments[i] = convert.ToComment(comments[i])
 	}
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
 // CreateIssueComment create a comment for an issue
-func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOption) {
+func CreateIssueComment(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/comments issue issueCreateComment
 	// ---
 	// summary: Add a comment to an issue
@@ -207,7 +209,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 	//     "$ref": "#/responses/Comment"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
+	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -225,7 +227,7 @@ func CreateIssueComment(ctx *context.APIContext, form api.CreateIssueCommentOpti
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, comment.APIFormat())
+	ctx.JSON(http.StatusCreated, convert.ToComment(comment))
 }
 
 // GetIssueComment Get a comment by ID
@@ -293,11 +295,11 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comment.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToComment(comment))
 }
 
 // EditIssueComment modify a comment of an issue
-func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
+func EditIssueComment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/{id} issue issueEditComment
 	// ---
 	// summary: Edit a comment
@@ -336,11 +338,12 @@ func EditIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	editIssueComment(ctx, form)
+	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	editIssueComment(ctx, *form)
 }
 
 // EditIssueCommentDeprecated modify a comment of an issue
-func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueCommentOption) {
+func EditIssueCommentDeprecated(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/comments/{id} issue issueEditCommentDeprecated
 	// ---
 	// summary: Edit a comment
@@ -385,7 +388,8 @@ func EditIssueCommentDeprecated(ctx *context.APIContext, form api.EditIssueComme
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	editIssueComment(ctx, form)
+	form := web.GetForm(ctx).(*api.EditIssueCommentOption)
+	editIssueComment(ctx, *form)
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
@@ -414,7 +418,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comment.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToComment(comment))
 }
 
 // DeleteIssueComment delete a comment from an issue
@@ -508,7 +512,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if err = comment_service.DeleteComment(comment, ctx.User); err != nil {
+	if err = comment_service.DeleteComment(ctx.User, comment); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCommentByID", err)
 		return
 	}

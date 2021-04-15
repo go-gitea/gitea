@@ -55,7 +55,7 @@ func (d *SimpleNonceStore) Accept(endpoint, nonce string) error {
 	now := time.Now()
 	diff := now.Sub(ts)
 	if diff > *maxNonceAge {
-		return fmt.Errorf("Nonce too old: %ds", diff.Seconds())
+		return fmt.Errorf("Nonce too old: %.2fs", diff.Seconds())
 	}
 
 	s := nonce[20:]

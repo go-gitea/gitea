@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build sparc64 && linux
 // +build sparc64,linux
 
 package unix
 
 //sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error)
 //sys	Fadvise(fd int, offset int64, length int64, advice int) (err error) = SYS_FADVISE64
-//sys	Dup2(oldfd int, newfd int) (err error)
+//sys	dup2(oldfd int, newfd int) (err error)
 //sys	Fchown(fd int, uid int, gid int) (err error)
 //sys	Fstat(fd int, stat *Stat_t) (err error)
 //sys	Fstatat(dirfd int, path string, stat *Stat_t, flags int) (err error) = SYS_FSTATAT64
@@ -115,7 +116,7 @@ func (cmsg *Cmsghdr) SetLen(length int) {
 	cmsg.Len = uint64(length)
 }
 
-//sysnb pipe(p *[2]_C_int) (err error)
+//sysnb	pipe(p *[2]_C_int) (err error)
 
 func Pipe(p []int) (err error) {
 	if len(p) != 2 {
@@ -128,7 +129,7 @@ func Pipe(p []int) (err error) {
 	return
 }
 
-//sysnb pipe2(p *[2]_C_int, flags int) (err error)
+//sysnb	pipe2(p *[2]_C_int, flags int) (err error)
 
 func Pipe2(p []int, flags int) (err error) {
 	if len(p) != 2 {

@@ -6,9 +6,11 @@
 package log
 
 import (
-	"encoding/json"
+	"fmt"
 	"net/smtp"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type smtpWriter struct {
@@ -55,9 +57,10 @@ func NewSMTPLogger() LoggerProvider {
 //		"level":LevelError
 //	}
 func (log *SMTPLogger) Init(jsonconfig string) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&smtpWriter{
 		owner: log,
@@ -95,6 +98,11 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 
 // Flush when log should be flushed
 func (log *SMTPLogger) Flush() {
+}
+
+// ReleaseReopen does nothing
+func (log *SMTPLogger) ReleaseReopen() error {
+	return nil
 }
 
 // GetName returns the default name for this implementation

@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -21,14 +23,17 @@ var LabelColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // Label represents a label of repository for issues.
 type Label struct {
-	ID                int64 `xorm:"pk autoincr"`
-	RepoID            int64 `xorm:"INDEX"`
-	OrgID             int64 `xorm:"INDEX"`
-	Name              string
-	Description       string
-	Color             string `xorm:"VARCHAR(7)"`
-	NumIssues         int
-	NumClosedIssues   int
+	ID              int64 `xorm:"pk autoincr"`
+	RepoID          int64 `xorm:"INDEX"`
+	OrgID           int64 `xorm:"INDEX"`
+	Name            string
+	Description     string
+	Color           string `xorm:"VARCHAR(7)"`
+	NumIssues       int
+	NumClosedIssues int
+	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+
 	NumOpenIssues     int    `xorm:"-"`
 	NumOpenRepoIssues int64  `xorm:"-"`
 	IsChecked         bool   `xorm:"-"`
@@ -42,7 +47,7 @@ type Label struct {
 func GetLabelTemplateFile(name string) ([][3]string, error) {
 	data, err := GetRepoInitFile("label", name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile: %v", err)
+		return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("GetRepoInitFile: %v", err)}
 	}
 
 	lines := strings.Split(string(data), "\n")
@@ -57,7 +62,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 
 		fields := strings.SplitN(parts[0], " ", 2)
 		if len(fields) != 2 {
-			return nil, fmt.Errorf("line is malformed: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("line is malformed: %s", line)}
 		}
 
 		color := strings.Trim(fields[0], " ")
@@ -65,7 +70,7 @@ func GetLabelTemplateFile(name string) ([][3]string, error) {
 			color = "#" + color
 		}
 		if !LabelColorPattern.MatchString(color) {
-			return nil, fmt.Errorf("bad HTML color code in line: %s", line)
+			return nil, ErrIssueLabelTemplateLoad{name, fmt.Errorf("bad HTML color code in line: %s", line)}
 		}
 
 		var description string
@@ -162,7 +167,7 @@ func (label *Label) ForegroundColor() template.CSS {
 func loadLabels(labelTemplate string) ([]string, error) {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return nil, ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return nil, err
 	}
 
 	labels := make([]string, len(list))
@@ -181,7 +186,7 @@ func LoadLabelsFormatted(labelTemplate string) (string, error) {
 func initializeLabels(e Engine, id int64, labelTemplate string, isOrg bool) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
-		return ErrIssueLabelTemplateLoad{labelTemplate, err}
+		return err
 	}
 
 	labels := make([]*Label, len(list))
@@ -246,12 +251,11 @@ func UpdateLabel(l *Label) error {
 	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
-	return updateLabel(x, l)
+	return updateLabelCols(x, l, "name", "description", "color")
 }
 
 // DeleteLabel delete a label
 func DeleteLabel(id, labelID int64) error {
-
 	label, err := GetLabelByID(labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
@@ -295,10 +299,8 @@ func getLabelByID(e Engine, labelID int64) (*Label, error) {
 		return nil, ErrLabelNotExist{labelID}
 	}
 
-	l := &Label{
-		ID: labelID,
-	}
-	has, err := e.Get(l)
+	l := &Label{}
+	has, err := e.ID(labelID).Get(l)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -318,7 +320,7 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	return labels, x.Table("label").
 		In("id", labelIDs).
 		Asc("name").
-		Cols("id").
+		Cols("id", "repo_id", "org_id").
 		Find(&labels)
 }
 
@@ -508,19 +510,6 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 		Find(&labelIDs)
 }
 
-// GetLabelIDsInOrgsByNames returns a list of labelIDs by names in one of the given
-// organization.
-// it silently ignores label names that do not belong to the organization.
-func GetLabelIDsInOrgsByNames(orgIDs []int64, labelNames []string) ([]int64, error) {
-	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table("label").
-		In("org_id", orgIDs).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
-}
-
 // GetLabelInOrgByID returns a label by ID in given organization.
 func GetLabelInOrgByID(orgID, labelID int64) (*Label, error) {
 	return getLabelInOrgByID(x, orgID, labelID)
@@ -587,7 +576,7 @@ func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
 	return getLabelsByIssueID(x, issueID)
 }
 
-func updateLabel(e Engine, l *Label) error {
+func updateLabelCols(e Engine, l *Label, cols ...string) error {
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
 			builder.Select("count(*)").From("issue_label").
@@ -601,7 +590,7 @@ func updateLabel(e Engine, l *Label) error {
 					"issue.is_closed":      true,
 				}),
 		).
-		AllCols().Update(l)
+		Cols(cols...).Update(l)
 	return err
 }
 
@@ -629,6 +618,8 @@ func HasIssueLabel(issueID, labelID int64) bool {
 	return hasIssueLabel(x, issueID, labelID)
 }
 
+// newIssueLabel this function creates a new label it does not check if the label is valid for the issue
+// YOU MUST CHECK THIS BEFORE THIS FUNCTION
 func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
@@ -641,7 +632,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -653,7 +644,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return err
 	}
 
-	return updateLabel(e, label)
+	return updateLabelCols(e, label, "num_issues", "num_closed_issue")
 }
 
 // NewIssueLabel creates a new issue-label relation.
@@ -668,20 +659,40 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	if err = issue.loadRepo(sess); err != nil {
+		return err
+	}
+
+	// Do NOT add invalid labels
+	if issue.RepoID != label.RepoID && issue.Repo.OwnerID != label.OrgID {
+		return nil
+	}
+
 	if err = newIssueLabel(sess, issue, label, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
 	return sess.Commit()
 }
 
+// newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
 func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) (err error) {
-	for i := range labels {
-		if hasIssueLabel(e, issue.ID, labels[i].ID) {
+	if err = issue.loadRepo(e); err != nil {
+		return err
+	}
+	for _, label := range labels {
+		// Don't add already present labels and invalid labels
+		if hasIssueLabel(e, issue.ID, label.ID) ||
+			(label.RepoID != issue.RepoID && label.OrgID != issue.Repo.OwnerID) {
 			continue
 		}
 
-		if err = newIssueLabel(e, issue, labels[i], doer); err != nil {
+		if err = newIssueLabel(e, issue, label, doer); err != nil {
 			return fmt.Errorf("newIssueLabel: %v", err)
 		}
 	}
@@ -698,6 +709,11 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 
 	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
+		return err
+	}
+
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
 		return err
 	}
 
@@ -718,7 +734,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
@@ -729,7 +745,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return err
 	}
 
-	return updateLabel(e, label)
+	return updateLabelCols(e, label, "num_issues", "num_closed_issue")
 }
 
 // DeleteIssueLabel deletes issue-label relation.
@@ -744,5 +760,22 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
+	issue.Labels = nil
+	if err = issue.loadLabels(sess); err != nil {
+		return err
+	}
+
 	return sess.Commit()
+}
+
+func deleteLabelsByRepoID(sess Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
+
+	if _, err := sess.In("label_id", deleteCond).
+		Delete(&IssueLabel{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&Label{RepoID: repoID})
+	return err
 }

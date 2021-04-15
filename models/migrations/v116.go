@@ -5,12 +5,15 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models"
-
 	"xorm.io/xorm"
 )
 
 func extendTrackedTimes(x *xorm.Engine) error {
+	type TrackedTime struct {
+		Time    int64 `xorm:"NOT NULL"`
+		Deleted bool  `xorm:"NOT NULL DEFAULT false"`
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
@@ -22,7 +25,7 @@ func extendTrackedTimes(x *xorm.Engine) error {
 		return err
 	}
 
-	if err := sess.Sync2(new(models.TrackedTime)); err != nil {
+	if err := sess.Sync2(new(TrackedTime)); err != nil {
 		return err
 	}
 

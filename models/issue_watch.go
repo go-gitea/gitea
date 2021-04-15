@@ -64,6 +64,23 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 	return
 }
 
+// CheckIssueWatch check if an user is watching an issue
+// it takes participants and repo watch into account
+func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
+	iw, exist, err := getIssueWatch(x, user.ID, issue.ID)
+	if err != nil {
+		return false, err
+	}
+	if exist {
+		return iw.IsWatching, nil
+	}
+	w, err := getWatch(x, user.ID, issue.RepoID)
+	if err != nil {
+		return false, err
+	}
+	return isWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
+}
+
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
@@ -102,7 +119,7 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 	return watches, sess.Find(&watches)
 }
 
-func removeIssueWatchersByRepoID(e Engine, userID int64, repoID int64) error {
+func removeIssueWatchersByRepoID(e Engine, userID, repoID int64) error {
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
 		Where("`issue_watch`.user_id = ?", userID).

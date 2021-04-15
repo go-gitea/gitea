@@ -48,11 +48,11 @@ type Server struct {
 }
 
 // NewServer creates a server on network at provided address
-func NewServer(network, address string) *Server {
+func NewServer(network, address, name string) *Server {
 	if GetManager().IsChild() {
-		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Restarting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	} else {
-		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
 		wg:      sync.WaitGroup{},
@@ -128,6 +128,8 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
 	go srv.awaitShutdown()
 
+	tlsConfig.MinVersion = tls.VersionTLS12
+
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
 		log.Error("Unable to get Listener: %v", err)
@@ -160,7 +162,7 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	srv.setState(stateTerminate)
 	GetManager().ServerDone()
 	// use of closed means that the listeners are closed - i.e. we should be shutting down - return nil
-	if err != nil && strings.Contains(err.Error(), "use of closed") {
+	if err == nil || strings.Contains(err.Error(), "use of closed") || strings.Contains(err.Error(), "http: Server closed") {
 		return nil
 	}
 	return err
@@ -250,6 +252,17 @@ type wrappedConn struct {
 
 func (w wrappedConn) Close() error {
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
+		defer func() {
+			if err := recover(); err != nil {
+				select {
+				case <-GetManager().IsHammer():
+					// Likely deadlocked request released at hammertime
+					log.Warn("Panic during connection close! %v. Likely there has been a deadlocked request which has been released by forced shutdown.", err)
+				default:
+					log.Error("Panic during connection close! %v", err)
+				}
+			}
+		}()
 		w.server.wg.Done()
 	}
 	return w.Conn.Close()

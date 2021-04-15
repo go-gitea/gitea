@@ -16,10 +16,10 @@ package procfs
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/prometheus/procfs/internal/fs"
+	"github.com/prometheus/procfs/internal/util"
 )
 
 // Originally, this USER_HZ value was dynamically retrieved via a sysconf call
@@ -113,13 +113,7 @@ func (p Proc) NewStat() (ProcStat, error) {
 
 // Stat returns the current status information of the process.
 func (p Proc) Stat() (ProcStat, error) {
-	f, err := os.Open(p.path("stat"))
-	if err != nil {
-		return ProcStat{}, err
-	}
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
+	data, err := util.ReadFileNoStat(p.path("stat"))
 	if err != nil {
 		return ProcStat{}, err
 	}
@@ -133,10 +127,7 @@ func (p Proc) Stat() (ProcStat, error) {
 	)
 
 	if l < 0 || r < 0 {
-		return ProcStat{}, fmt.Errorf(
-			"unexpected format, couldn't extract comm: %s",
-			data,
-		)
+		return ProcStat{}, fmt.Errorf("unexpected format, couldn't extract comm %q", data)
 	}
 
 	s.Comm = string(data[l+1 : r])

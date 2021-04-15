@@ -6,9 +6,9 @@ package issues
 
 import (
 	"io/ioutil"
-	"os"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		assert.Fail(t, "Unable to create temporary directory")
 		return
 	}
-	defer os.RemoveAll(dir)
+	defer util.RemoveAll(dir)
 	indexer := NewBleveIndexer(dir)
 	defer indexer.Close()
 
@@ -92,6 +92,6 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		for _, hit := range res.Hits {
 			ids = append(ids, hit.ID)
 		}
-		assert.EqualValues(t, kw.IDs, ids)
+		assert.ElementsMatch(t, kw.IDs, ids)
 	}
 }

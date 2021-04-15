@@ -32,9 +32,9 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user/login",
 		"/user/forgot_password",
 		"/api/swagger",
-		"/api/v1/swagger",
-		// TODO: follow this page and test every link
-		"/vendor/librejs.html",
+		"/user2/repo1",
+		"/user2/repo1/projects",
+		"/user2/repo1/projects/1",
 	}
 
 	for _, link := range links {
@@ -52,11 +52,26 @@ func TestRedirectsNoLogin(t *testing.T) {
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
 		"/user/avatar/Ghost/-1":                      "/img/avatar_default.png",
+		"/api/v1/swagger":                            "/api/swagger",
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
 		resp := MakeRequest(t, req, http.StatusFound)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
+	}
+}
+
+func TestNoLoginNotExist(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	var links = []string{
+		"/user5/repo4/projects",
+		"/user5/repo4/projects/3",
+	}
+
+	for _, link := range links {
+		req := NewRequest(t, "GET", link)
+		MakeRequest(t, req, http.StatusNotFound)
 	}
 }
 
@@ -71,7 +86,6 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/",
 		"/user/forgot_password",
 		"/api/swagger",
-		"/api/v1/swagger",
 		"/issues",
 		"/issues?type=your_repositories&repos=[0]&sort=&state=open",
 		"/issues?type=assigned&repos=[0]&sort=&state=open",

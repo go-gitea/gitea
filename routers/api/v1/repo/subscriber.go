@@ -37,7 +37,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -50,7 +50,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = convert.ToUser(subscriber, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(subscriber, ctx.User)
 	}
 	ctx.JSON(http.StatusOK, users)
 }

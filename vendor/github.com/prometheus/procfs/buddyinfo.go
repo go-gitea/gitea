@@ -31,7 +31,7 @@ type BuddyInfo struct {
 	Sizes []float64
 }
 
-// NewBuddyInfo reads the buddyinfo statistics from the specified `proc` filesystem.
+// BuddyInfo reads the buddyinfo statistics from the specified `proc` filesystem.
 func (fs FS) BuddyInfo() ([]BuddyInfo, error) {
 	file, err := os.Open(fs.proc.Path("buddyinfo"))
 	if err != nil {
@@ -74,7 +74,7 @@ func parseBuddyInfo(r io.Reader) ([]BuddyInfo, error) {
 		for i := 0; i < arraySize; i++ {
 			sizes[i], err = strconv.ParseFloat(parts[i+4], 64)
 			if err != nil {
-				return nil, fmt.Errorf("invalid value in buddyinfo: %s", err)
+				return nil, fmt.Errorf("invalid value in buddyinfo: %w", err)
 			}
 		}
 

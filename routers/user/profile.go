@@ -7,11 +7,13 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/org"
@@ -22,7 +24,11 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.NotFound("GetUserByName", nil)
+			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+				context.RedirectToUser(ctx, name, redirectUserID)
+			} else {
+				ctx.NotFound("GetUserByName", err)
+			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
@@ -44,7 +50,7 @@ func Profile(ctx *context.Context) {
 		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		return
 	} else if strings.HasSuffix(uname, ".png") {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
@@ -93,8 +99,20 @@ func Profile(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["EnableHeatmap"] = setting.Service.EnableUserHeatmap
-	ctx.Data["HeatmapUser"] = ctxUser.Name
+
+	if setting.Service.EnableUserHeatmap {
+		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserHeatmapDataByUser", err)
+			return
+		}
+		ctx.Data["HeatmapData"] = data
+	}
+
+	if len(ctxUser.Description) != 0 {
+		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+	}
+
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
 	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
@@ -183,6 +201,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
+			Date:            ctx.Query("date"),
 		})
 		if ctx.Written() {
 			return
@@ -209,6 +228,16 @@ func Profile(ctx *context.Context) {
 		}
 
 		total = int(count)
+	case "projects":
+		ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
+			Page:     -1,
+			IsClosed: util.OptionalBoolFalse,
+			Type:     models.ProjectTypeIndividual,
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{
@@ -240,7 +269,7 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
-	ctx.HTML(200, tplProfile)
+	ctx.HTML(http.StatusOK, tplProfile)
 }
 
 // Action response for follow/unfollow user request

@@ -14,8 +14,14 @@ import (
 	"github.com/olivere/elastic/v7/uritemplates"
 )
 
-// IndicesGetTemplateService returns an index template.
-// See https://www.elastic.co/guide/en/elasticsearch/reference/7.0/indices-templates.html.
+// IndicesGetTemplateService returns an index template (v1).
+//
+// Index templates have changed during in 7.8 update of Elasticsearch.
+// This service implements the legacy version (7.7 or lower). If you want
+// the new version, please use the IndicesGetIndexTemplateService.
+//
+// See https://www.elastic.co/guide/en/elasticsearch/reference/7.9/indices-get-template-v1.html
+// for more details.
 type IndicesGetTemplateService struct {
 	client *Client
 

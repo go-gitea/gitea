@@ -208,7 +208,7 @@ func TestAPIUpdateFile(t *testing.T) {
 		updateFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "PUT", url, &updateFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		expectedAPIError := context.APIError{
 			Message: "sha does not match [given: " + updateFileOptions.SHA + ", expected: " + correctSHA + "]",
 			URL:     setting.API.SwaggerURL,

@@ -19,7 +19,7 @@ const (
 	iriChar   = letter + mark + number
 	currency  = `\p{Sc}`
 	otherSymb = `\p{So}`
-	endChar   = iriChar + `/\-+&~%=#` + currency + otherSymb
+	endChar   = iriChar + `/\-_+&~%=#` + currency + otherSymb
 	otherPunc = `\p{Po}`
 	midChar   = endChar + "_*" + otherPunc
 	wellParen = `\([` + midChar + `]*(\([` + midChar + `]*\)[` + midChar + `]*)*\)`
@@ -76,7 +76,7 @@ func relaxedExp() string {
 	knownTLDs := anyOf(append(TLDs, PseudoTLDs...)...)
 	site := domain + `(?i)(` + punycode + `|` + knownTLDs + `)(?-i)`
 	hostName := `(` + site + `|` + ipAddr + `)`
-	webURL := hostName + port + `(/|/` + pathCont + `?|\b|(?m)$)`
+	webURL := hostName + port + `(/|/` + pathCont + `)?`
 	return strictExp() + `|` + webURL
 }
 

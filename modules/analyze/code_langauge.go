@@ -10,8 +10,8 @@ import (
 	"github.com/go-enry/go-enry/v2"
 )
 
-// GetCodeLanguageWithCallback detects code language based on file name and content using callback
-func GetCodeLanguageWithCallback(filename string, contentFunc func() ([]byte, error)) string {
+// GetCodeLanguage detects code language based on file name and content
+func GetCodeLanguage(filename string, content []byte) string {
 	if language, ok := enry.GetLanguageByExtension(filename); ok {
 		return language
 	}
@@ -20,17 +20,9 @@ func GetCodeLanguageWithCallback(filename string, contentFunc func() ([]byte, er
 		return language
 	}
 
-	content, err := contentFunc()
-	if err != nil {
+	if len(content) == 0 {
 		return enry.OtherLanguage
 	}
 
 	return enry.GetLanguage(filepath.Base(filename), content)
-}
-
-// GetCodeLanguage detects code language based on file name and content
-func GetCodeLanguage(filename string, content []byte) string {
-	return GetCodeLanguageWithCallback(filename, func() ([]byte, error) {
-		return content, nil
-	})
 }

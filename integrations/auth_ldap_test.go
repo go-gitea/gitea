@@ -141,7 +141,7 @@ func TestLDAPUserSignin(t *testing.T) {
 
 	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
 	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.GetInputValueByName("email"))
+	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
 }
 
 func TestLDAPUserSync(t *testing.T) {
@@ -151,7 +151,7 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
-	models.SyncExternalUsers(context.Background())
+	models.SyncExternalUsers(context.Background(), true)
 
 	session := loginUser(t, "user1")
 	// Check if users exists
@@ -172,14 +172,14 @@ func TestLDAPUserSync(t *testing.T) {
 		assert.Equal(t, u.UserName, strings.TrimSpace(tds.Find("td:nth-child(2) a").Text()))
 		assert.Equal(t, u.Email, strings.TrimSpace(tds.Find("td:nth-child(3) span").Text()))
 		if u.IsAdmin {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-check-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-check"))
 		} else {
-			assert.True(t, tds.Find("td:nth-child(5) i").HasClass("fa-square-o"))
+			assert.True(t, tds.Find("td:nth-child(5) svg").HasClass("octicon-x"))
 		}
 		if u.IsRestricted {
-			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-check-square-o"))
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-check"))
 		} else {
-			assert.True(t, tds.Find("td:nth-child(6) i").HasClass("fa-square-o"))
+			assert.True(t, tds.Find("td:nth-child(6) svg").HasClass("octicon-x"))
 		}
 	}
 
@@ -216,7 +216,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
 
-	models.SyncExternalUsers(context.Background())
+	models.SyncExternalUsers(context.Background(), true)
 
 	// Check if users has SSH keys synced
 	for _, u := range gitLDAPUsers {
@@ -237,6 +237,6 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 			syncedKeys[i] = strings.TrimSpace(divs.Eq(i).Text())
 		}
 
-		assert.ElementsMatch(t, u.SSHKeys, syncedKeys)
+		assert.ElementsMatch(t, u.SSHKeys, syncedKeys, "Unequal number of keys synchronized for user: %s", u.UserName)
 	}
 }

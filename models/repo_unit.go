@@ -5,11 +5,11 @@
 package models
 
 import (
-	"encoding/json"
+	"fmt"
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/unknwon/com"
+	jsoniter "github.com/json-iterator/go"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -24,16 +24,17 @@ type RepoUnit struct {
 }
 
 // UnitConfig describes common unit config
-type UnitConfig struct {
-}
+type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a UnitConfig to a serialized format.
 func (cfg *UnitConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -44,11 +45,13 @@ type ExternalWikiConfig struct {
 
 // FromDB fills up a ExternalWikiConfig from serialized format.
 func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a ExternalWikiConfig to a serialized format.
 func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -61,11 +64,13 @@ type ExternalTrackerConfig struct {
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
 func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a ExternalTrackerConfig to a serialized format.
 func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -78,11 +83,13 @@ type IssuesConfig struct {
 
 // FromDB fills up a IssuesConfig from serialized format.
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a IssuesConfig to a serialized format.
 func (cfg *IssuesConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -93,15 +100,20 @@ type PullRequestsConfig struct {
 	AllowRebase               bool
 	AllowRebaseMerge          bool
 	AllowSquash               bool
+	AllowManualMerge          bool
+	AutodetectManualMerge     bool
+	DefaultMergeStyle         MergeStyle
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal(bs, &cfg)
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
 func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -110,7 +122,35 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
-		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
+}
+
+// GetDefaultMergeStyle returns the default merge style for this pull request
+func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
+	if len(cfg.DefaultMergeStyle) != 0 {
+		return cfg.DefaultMergeStyle
+	}
+
+	return MergeStyleMerge
+}
+
+// AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
+func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
+	count := 0
+	if cfg.AllowMerge {
+		count++
+	}
+	if cfg.AllowRebase {
+		count++
+	}
+	if cfg.AllowRebaseMerge {
+		count++
+	}
+	if cfg.AllowSquash {
+		count++
+	}
+	return count
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
@@ -118,7 +158,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch UnitType(Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki:
+		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki, UnitTypeProjects:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
@@ -129,7 +169,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 		case UnitTypeIssues:
 			r.Config = new(IssuesConfig)
 		default:
-			panic("unrecognized repo unit type: " + com.ToStr(*val))
+			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
 		}
 	}
 }

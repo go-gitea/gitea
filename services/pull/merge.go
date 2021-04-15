@@ -25,8 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
-
-	"github.com/mcuadros/go-version"
 )
 
 // Merge merges pull request to base repository.
@@ -66,7 +64,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err = pr.SetMerged(); err != nil {
+	if _, err := pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
@@ -100,7 +98,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		if err = ref.Issue.LoadRepo(); err != nil {
 			return err
 		}
-		close := (ref.RefAction == references.XRefActionCloses)
+		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
 			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
 				return err
@@ -113,9 +111,9 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 
 // rawMerge perform the merge operation without changing any pull information in database
 func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (string, error) {
-	binVersion, err := git.BinVersion()
+	err := git.LoadGitVersion()
 	if err != nil {
-		log.Error("git.BinVersion: %v", err)
+		log.Error("git.LoadGitVersion: %v", err)
 		return "", fmt.Errorf("Unable to get git version: %v", err)
 	}
 
@@ -157,7 +155,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	}
 
 	var gitConfigCommand func() *git.Command
-	if version.Compare(binVersion, "1.8.0", ">=") {
+	if git.CheckGitVersionAtLeast("1.8.0") == nil {
 		gitConfigCommand = func() *git.Command {
 			return git.NewCommand("config", "--local")
 		}
@@ -211,18 +209,23 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	outbuf.Reset()
 	errbuf.Reset()
 
+	sig := doer.NewGitSig()
+	committer := sig
+
 	// Determine if we should sign
 	signArg := ""
-	if version.Compare(binVersion, "1.7.9", ">=") {
-		sign, keyID, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+	if git.CheckGitVersionAtLeast("1.7.9") == nil {
+		sign, keyID, signer, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
-		} else if version.Compare(binVersion, "2.0.0", ">=") {
+			if pr.BaseRepo.GetTrustModel() == models.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+				committer = signer
+			}
+		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			signArg = "--no-gpg-sign"
 		}
 	}
 
-	sig := doer.NewGitSig()
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -230,8 +233,8 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
+		"GIT_COMMITTER_NAME="+committer.Name,
+		"GIT_COMMITTER_EMAIL="+committer.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 
@@ -348,6 +351,10 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			}
 		} else {
+			if committer != sig {
+				// add trailer
+				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
+			}
 			if err := git.NewCommand("commit", signArg, fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email), "-m", message).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 				log.Error("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -404,7 +411,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	)
 
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", baseBranch+":"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
@@ -528,7 +535,7 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 		return true, nil
 	}
 
-	sign, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	sign, _, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
 
 	return sign, err
 }
@@ -544,7 +551,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 		return false, err
 	}
 
-	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID)) {
+	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
 		return true, nil
 	}
 
@@ -552,7 +559,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 }
 
 // CheckPRReadyToMerge checks whether the PR is ready to be merged (reviews and status checks)
-func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
+func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (err error) {
 	if err = pr.LoadBaseRepo(); err != nil {
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
@@ -574,16 +581,88 @@ func CheckPRReadyToMerge(pr *models.PullRequest) (err error) {
 		}
 	}
 
-	if enoughApprovals := pr.ProtectedBranch.HasEnoughApprovals(pr); !enoughApprovals {
+	if !pr.ProtectedBranch.HasEnoughApprovals(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if rejected := pr.ProtectedBranch.MergeBlockedByRejectedReview(pr); rejected {
+	if pr.ProtectedBranch.MergeBlockedByRejectedReview(pr) {
 		return models.ErrNotAllowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
+	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "There are official review requests",
+		}
+	}
 
+	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "The head branch is behind the base branch",
+		}
+	}
+
+	if skipProtectedFilesCheck {
+		return nil
+	}
+
+	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
+		return models.ErrNotAllowedToMerge{
+			Reason: "Changed protected files",
+		}
+	}
+
+	return nil
+}
+
+// MergedManually mark pr as merged manually
+func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	if err != nil {
+		return
+	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	// Check if merge style is correct and allowed
+	if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
+		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: models.MergeStyleManuallyMerged}
+	}
+
+	if len(commitID) < 40 {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	commit, err := baseGitRepo.GetCommit(commitID)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			return fmt.Errorf("Wrong commit ID")
+		}
+		return
+	}
+
+	ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+	if err != nil {
+		return
+	}
+	if !ok {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	pr.MergedCommitID = commitID
+	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+	pr.Status = models.PullRequestStatusManuallyMerged
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	merged := false
+	if merged, err = pr.SetMerged(); err != nil {
+		return
+	} else if !merged {
+		return fmt.Errorf("SetMerged failed")
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 	return nil
 }

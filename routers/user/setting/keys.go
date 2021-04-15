@@ -6,11 +6,14 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -22,26 +25,58 @@ func Keys(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	loadKeysData(ctx)
 
-	ctx.HTML(200, tplSettingsKeys)
+	ctx.HTML(http.StatusOK, tplSettingsKeys)
 }
 
 // KeysPost response for change user's SSH/GPG keys
-func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
+func KeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
+	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
+	ctx.Data["AllowPrincipals"] = setting.SSH.AuthorizedPrincipalsEnabled
 
 	if ctx.HasError() {
 		loadKeysData(ctx)
 
-		ctx.HTML(200, tplSettingsKeys)
+		ctx.HTML(http.StatusOK, tplSettingsKeys)
 		return
 	}
 	switch form.Type {
+	case "principal":
+		content, err := models.CheckPrincipalKeyString(ctx.User, form.Content)
+		if err != nil {
+			if models.IsErrSSHDisabled(err) {
+				ctx.Flash.Info(ctx.Tr("settings.ssh_disabled"))
+			} else {
+				ctx.Flash.Error(ctx.Tr("form.invalid_ssh_principal", err.Error()))
+			}
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
+		if _, err = models.AddPrincipalKey(ctx.User.ID, content, 0); err != nil {
+			ctx.Data["HasPrincipalError"] = true
+			switch {
+			case models.IsErrKeyAlreadyExist(err), models.IsErrKeyNameAlreadyUsed(err):
+				loadKeysData(ctx)
+
+				ctx.Data["Err_Content"] = true
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_principal_been_used"), tplSettingsKeys, &form)
+			default:
+				ctx.ServerError("AddPrincipalKey", err)
+			}
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		key, err := models.AddGPGKey(ctx.User.ID, form.Content)
+		keys, err := models.AddGPGKey(ctx.User.ID, form.Content)
 		if err != nil {
 			ctx.Data["HasGPGError"] = true
 			switch {
@@ -63,7 +98,15 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 			}
 			return
 		}
-		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", key.KeyID))
+		keyIDs := ""
+		for _, key := range keys {
+			keyIDs += key.KeyID
+			keyIDs += ", "
+		}
+		if len(keyIDs) > 0 {
+			keyIDs = keyIDs[:len(keyIDs)-2]
+		}
+		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", keyIDs))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "ssh":
 		content, err := models.CheckPublicKeyString(form.Content)
@@ -121,16 +164,33 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		keyID := ctx.QueryInt64("id")
+		external, err := models.PublicKeyIsExternallyManaged(keyID)
+		if err != nil {
+			ctx.ServerError("sshKeysExternalManaged", err)
+			return
+		}
+		if external {
+			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
+		if err := models.DeletePublicKey(ctx.User, keyID); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
+		}
+	case "principal":
+		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+			ctx.Flash.Error("DeletePublicKey: " + err.Error())
+		} else {
+			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
 		}
 	default:
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
 }
@@ -143,10 +203,24 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["Keys"] = keys
 
+	externalKeys, err := models.PublicKeysAreExternallyManaged(keys)
+	if err != nil {
+		ctx.ServerError("ListPublicKeys", err)
+		return
+	}
+	ctx.Data["ExternalKeys"] = externalKeys
+
 	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
+
+	principals, err := models.ListPrincipalKeys(ctx.User.ID, models.ListOptions{})
+	if err != nil {
+		ctx.ServerError("ListPrincipalKeys", err)
+		return
+	}
+	ctx.Data["Principals"] = principals
 }

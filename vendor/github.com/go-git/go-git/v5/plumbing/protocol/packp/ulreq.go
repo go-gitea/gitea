@@ -109,42 +109,42 @@ func NewUploadRequestFromCapabilities(adv *capability.List) *UploadRequest {
 //   - is a DepthReference is given capability.DeepenNot MUST be present
 //   - MUST contain only maximum of one of capability.Sideband and capability.Sideband64k
 //   - MUST contain only maximum of one of capability.MultiACK and capability.MultiACKDetailed
-func (r *UploadRequest) Validate() error {
-	if len(r.Wants) == 0 {
+func (req *UploadRequest) Validate() error {
+	if len(req.Wants) == 0 {
 		return fmt.Errorf("want can't be empty")
 	}
 
-	if err := r.validateRequiredCapabilities(); err != nil {
+	if err := req.validateRequiredCapabilities(); err != nil {
 		return err
 	}
 
-	if err := r.validateConflictCapabilities(); err != nil {
+	if err := req.validateConflictCapabilities(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *UploadRequest) validateRequiredCapabilities() error {
+func (req *UploadRequest) validateRequiredCapabilities() error {
 	msg := "missing capability %s"
 
-	if len(r.Shallows) != 0 && !r.Capabilities.Supports(capability.Shallow) {
+	if len(req.Shallows) != 0 && !req.Capabilities.Supports(capability.Shallow) {
 		return fmt.Errorf(msg, capability.Shallow)
 	}
 
-	switch r.Depth.(type) {
+	switch req.Depth.(type) {
 	case DepthCommits:
-		if r.Depth != DepthCommits(0) {
-			if !r.Capabilities.Supports(capability.Shallow) {
+		if req.Depth != DepthCommits(0) {
+			if !req.Capabilities.Supports(capability.Shallow) {
 				return fmt.Errorf(msg, capability.Shallow)
 			}
 		}
 	case DepthSince:
-		if !r.Capabilities.Supports(capability.DeepenSince) {
+		if !req.Capabilities.Supports(capability.DeepenSince) {
 			return fmt.Errorf(msg, capability.DeepenSince)
 		}
 	case DepthReference:
-		if !r.Capabilities.Supports(capability.DeepenNot) {
+		if !req.Capabilities.Supports(capability.DeepenNot) {
 			return fmt.Errorf(msg, capability.DeepenNot)
 		}
 	}
@@ -152,15 +152,15 @@ func (r *UploadRequest) validateRequiredCapabilities() error {
 	return nil
 }
 
-func (r *UploadRequest) validateConflictCapabilities() error {
+func (req *UploadRequest) validateConflictCapabilities() error {
 	msg := "capabilities %s and %s are mutually exclusive"
-	if r.Capabilities.Supports(capability.Sideband) &&
-		r.Capabilities.Supports(capability.Sideband64k) {
+	if req.Capabilities.Supports(capability.Sideband) &&
+		req.Capabilities.Supports(capability.Sideband64k) {
 		return fmt.Errorf(msg, capability.Sideband, capability.Sideband64k)
 	}
 
-	if r.Capabilities.Supports(capability.MultiACK) &&
-		r.Capabilities.Supports(capability.MultiACKDetailed) {
+	if req.Capabilities.Supports(capability.MultiACK) &&
+		req.Capabilities.Supports(capability.MultiACKDetailed) {
 		return fmt.Errorf(msg, capability.MultiACK, capability.MultiACKDetailed)
 	}
 

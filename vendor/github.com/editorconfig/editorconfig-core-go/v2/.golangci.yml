@@ -1,0 +1,16 @@
+linters-settings:
+  golint:
+    min-confidence: 0.3
+
+linters:
+  disable:
+    - exhaustivestruct
+    - gomnd
+  presets:
+    - bugs
+    - complexity
+    - format
+    - performance
+    - style
+    - unused
+  fast: false

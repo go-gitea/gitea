@@ -35,7 +35,7 @@ func (s *Submodule) Config() *config.Submodule {
 // Init initialize the submodule reading the recorded Entry in the index for
 // the given submodule
 func (s *Submodule) Init() error {
-	cfg, err := s.w.r.Storer.Config()
+	cfg, err := s.w.r.Config()
 	if err != nil {
 		return err
 	}

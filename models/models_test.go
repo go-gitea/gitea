@@ -21,6 +21,12 @@ func TestDumpDatabase(t *testing.T) {
 	dir, err := ioutil.TempDir(os.TempDir(), "dump")
 	assert.NoError(t, err)
 
+	type Version struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Version int64
+	}
+	assert.NoError(t, x.Sync2(Version{}))
+
 	for _, dbName := range setting.SupportedDatabases {
 		dbType := setting.GetDBTypeByName(dbName)
 		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))

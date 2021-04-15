@@ -93,6 +93,19 @@ func TestRender_Images(t *testing.T) {
 	test(
 		"[!["+title+"]("+url+")]("+href+")",
 		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
+	url = "/../../.images/src/02/train.jpg"
+	test(
+		"!["+title+"]("+url+")",
+		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
+	test(
+		"[["+title+"|"+url+"]]",
+		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" title="`+title+`" alt="`+title+`"/></a></p>`)
+	test(
+		"[!["+title+"]("+url+")]("+href+")",
+		`<p><a href="`+href+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+
 }
 
 func testAnswers(baseURLContent, baseURLImages string) []string {
@@ -133,13 +146,19 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 `,
 		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
 <ol>
-<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a>
+<li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a><br/>
 <a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" title="1.png" alt="images/1.png"/></a></li>
-<li>Perform a test run by hitting the Run! button.
+<li>Perform a test run by hitting the Run! button.<br/>
 <a href="` + baseURLImages + `/images/2.png" rel="nofollow"><img src="` + baseURLImages + `/images/2.png" title="2.png" alt="images/2.png"/></a></li>
 </ol>
 <h2 id="user-content-custom-id">More tests</h2>
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
+<h3 id="user-content-checkboxes">Checkboxes</h3>
+<ul>
+<li class="task-list-item"><input type="checkbox" disabled=""/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled=""/>still unchecked</li>
+</ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
 <dt>First Term</dt>
@@ -206,6 +225,12 @@ Here are some links to the most important topics. You can find the full list of 
 ## More tests {#custom-id}
 
 (from https://www.markdownguide.org/extended-syntax/)
+
+### Checkboxes
+
+- [ ] unchecked
+- [x] checked
+- [ ] still unchecked
 
 ### Definition list
 
@@ -295,4 +320,35 @@ func TestRender_RenderParagraphs(t *testing.T) {
 	test(t, "\n\nOne\nTwo\nThree\n\n\n", 1)
 	test(t, "A\n\nB\nC\n", 2)
 	test(t, "A\n\n\nB\nC\n", 2)
+}
+
+func TestMarkdownRenderRaw(t *testing.T) {
+	testcases := [][]byte{
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6267570554535936
+			0x2a, 0x20, 0x2d, 0x0a, 0x09, 0x20, 0x60, 0x5b, 0x0a, 0x09, 0x20, 0x60,
+			0x5b,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6278827345051648
+			0x2d, 0x20, 0x2d, 0x0d, 0x09, 0x60, 0x0d, 0x09, 0x60,
+		},
+		{ // clusterfuzz_testcase_minimized_fuzz_markdown_render_raw_6016973788020736[] = {
+			0x7b, 0x63, 0x6c, 0x61, 0x73, 0x73, 0x3d, 0x35, 0x7d, 0x0a, 0x3d,
+		},
+	}
+
+	for _, testcase := range testcases {
+		_ = RenderRaw(testcase, "", false)
+	}
+}
+
+func TestRenderSiblingImages_Issue12925(t *testing.T) {
+	testcase := `![image1](/image1)
+![image2](/image2)
+`
+	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+`
+	res := string(RenderRaw([]byte(testcase), "", false))
+	assert.Equal(t, expected, res)
+
 }

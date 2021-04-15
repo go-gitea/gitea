@@ -1,0 +1,324 @@
+#git-graph-container {
+  overflow-x: scroll;
+  width: 100%;
+  min-height: 350px;
+
+  > .ui.segment.loading {
+    border: 0;
+    z-index: 1;
+    min-height: 246px;
+  }
+
+  h2 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .color-buttons {
+    margin-right: 0;
+  }
+
+  .ui.header.dividing {
+    padding-bottom: 10px;
+  }
+
+  #flow-select-refs-dropdown {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    min-width: 250px;
+    border-right: none;
+
+    .ui.label {
+      max-width: 180px;
+      display: inline-flex !important;
+      align-items: center;
+
+      .truncate {
+        display: inline-block;
+        max-width: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top;
+        white-space: nowrap;
+      }
+    }
+
+    .dropdown.icon {
+      display: none;
+    }
+
+    .default.text {
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+
+    input.search {
+      position: relative;
+      top: 1px;
+    }
+  }
+
+  li {
+    list-style-type: none;
+    height: 24px;
+    line-height: 24px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+
+    .node-relation {
+      font-family: "Bitstream Vera Sans Mono", "Courier", monospace;
+    }
+
+    .author {
+      color: #666666;
+    }
+
+    .time {
+      color: #999999;
+      font-size: 80%;
+    }
+
+    a:not(.ui):hover {
+      text-decoration: underline;
+    }
+
+    a em {
+      color: #bb0000;
+      border-bottom: 1px dotted #bbbbbb;
+      text-decoration: none;
+      font-style: normal;
+    }
+  }
+
+  #rel-container {
+    max-width: 30%;
+    overflow-x: auto;
+    float: left;
+  }
+
+  #rev-container {
+    width: 100%;
+  }
+
+  #rev-list {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+
+    li.highlight.hover {
+      background-color: rgba(0, 0, 0, .05);
+    }
+
+    .tags a.button {
+      padding: 2px 4px;
+    }
+
+    .sha.label {
+      padding-top: 5px;
+      padding-bottom: 3px;
+    }
+
+    .sha.label .shortsha {
+      padding-top: 0;
+    }
+
+    .sha.label .shortsha-pad {
+      padding-right: 10px;
+    }
+
+    .sha.label .ui.detail.icon.button {
+      padding-top: 3px;
+      margin-top: -5px;
+      padding-bottom: 1px;
+    }
+
+    .author .ui.avatar.image {
+      width: auto;
+      height: 18px;
+    }
+  }
+
+  #graph-raw-list {
+    margin: 0;
+  }
+
+  &.monochrome #rel-container {
+    .flow-group {
+      stroke: grey;
+      fill: grey;
+    }
+
+    .flow-group.highlight {
+      stroke: black;
+      fill: black;
+    }
+  }
+
+  &:not(.monochrome) #rel-container {
+    .flow-group {
+      &.flow-color-16-1 {
+        stroke: #499a37;
+        fill: #499a37;
+      }
+
+      &.flow-color-16-2 {
+        stroke: hsl(356, 58%, 54%);
+        fill: #ce4751;
+      }
+
+      &.flow-color-16-3 {
+        stroke: #8f9121;
+        fill: #8f9121;
+      }
+
+      &.flow-color-16-4 {
+        stroke: #ac32a6;
+        fill: #ac32a6;
+      }
+
+      &.flow-color-16-5 {
+        stroke: #3d27aa;
+        fill: #3d27aa;
+      }
+
+      &.flow-color-16-6 {
+        stroke: #c67d28;
+        fill: #c67d28;
+      }
+
+      &.flow-color-16-7 {
+        stroke: #4db392;
+        fill: #4db392;
+      }
+
+      &.flow-color-16-8 {
+        stroke: #aa4d30;
+        fill: #aa4d30;
+      }
+
+      &.flow-color-16-9 {
+        stroke: #2a6f84;
+        fill: #2a6f84;
+      }
+
+      &.flow-color-16-10 {
+        stroke: #c45327;
+        fill: #c45327;
+      }
+
+      &.flow-color-16-11 {
+        stroke: #3d965c;
+        fill: #3d965c;
+      }
+
+      &.flow-color-16-12 {
+        stroke: #792a93;
+        fill: #792a93;
+      }
+
+      &.flow-color-16-13 {
+        stroke: #439d73;
+        fill: #439d73;
+      }
+
+      &.flow-color-16-14 {
+        stroke: #103aad;
+        fill: #103aad;
+      }
+
+      &.flow-color-16-15 {
+        stroke: #982e85;
+        fill: #982e85;
+      }
+
+      &.flow-color-16-0 {
+        stroke: #7db233;
+        fill: #7db233;
+      }
+    }
+
+    .flow-group.highlight {
+      &.flow-color-16-1 {
+        stroke: #5ac144;
+        fill: #5ac144;
+      }
+
+      &.flow-color-16-2 {
+        stroke: #ed5a8b;
+        fill: #ed5a8b;
+      }
+
+      &.flow-color-16-3 {
+        stroke: #ced049;
+        fill: #ced048;
+      }
+
+      &.flow-color-16-4 {
+        stroke: #db61d7;
+        fill: #db62d6;
+      }
+
+      &.flow-color-16-5 {
+        stroke: #4e33d1;
+        fill: #4f35d1;
+      }
+
+      &.flow-color-16-6 {
+        stroke: #e6a151;
+        fill: #e6a151;
+      }
+
+      &.flow-color-16-7 {
+        stroke: #44daaa;
+        fill: #44daaa;
+      }
+
+      &.flow-color-16-8 {
+        stroke: #dd7a5c;
+        fill: #dd7a5c;
+      }
+
+      &.flow-color-16-9 {
+        stroke: #38859c;
+        fill: #38859c;
+      }
+
+      &.flow-color-16-10 {
+        stroke: #d95520;
+        fill: #d95520;
+      }
+
+      &.flow-color-16-11 {
+        stroke: #42ae68;
+        fill: #42ae68;
+      }
+
+      &.flow-color-16-12 {
+        stroke: #9126b5;
+        fill: #9126b5;
+      }
+
+      &.flow-color-16-13 {
+        stroke: #4ab080;
+        fill: #4ab080;
+      }
+
+      &.flow-color-16-14 {
+        stroke: #284fb8;
+        fill: #284fb8;
+      }
+
+      &.flow-color-16-15 {
+        stroke: #971c80;
+        fill: #971c80;
+      }
+
+      &.flow-color-16-0 {
+        stroke: #87ca28;
+        fill: #87ca28;
+      }
+    }
+  }
+}

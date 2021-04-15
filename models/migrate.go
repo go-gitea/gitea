@@ -39,6 +39,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*Issue) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -55,8 +56,8 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
-	var issueLabels = make([]IssueLabel, 0, len(issue.Labels))
-	var labelIDs = make([]int64, 0, len(issue.Labels))
+	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
+	labelIDs := make([]int64, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
@@ -64,15 +65,20 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 		})
 		labelIDs = append(labelIDs, label.ID)
 	}
-	if _, err := sess.Insert(issueLabels); err != nil {
-		return err
+	if len(issueLabels) > 0 {
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
 	}
 
 	for _, reaction := range issue.Reactions {
 		reaction.IssueID = issue.ID
 	}
-	if _, err := sess.Insert(issue.Reactions); err != nil {
-		return err
+
+	if len(issue.Reactions) > 0 {
+		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
 	}
 
 	cols := make([]string, 0)
@@ -132,7 +138,7 @@ func InsertIssueComments(comments []*Comment) error {
 		return nil
 	}
 
-	var issueIDs = make(map[int64]bool)
+	issueIDs := make(map[int64]bool)
 	for _, comment := range comments {
 		issueIDs[comment.IssueID] = true
 	}
@@ -151,8 +157,10 @@ func InsertIssueComments(comments []*Comment) error {
 			reaction.IssueID = comment.IssueID
 			reaction.CommentID = comment.ID
 		}
-		if _, err := sess.Insert(comment.Reactions); err != nil {
-			return err
+		if len(comment.Reactions) > 0 {
+			if _, err := sess.Insert(comment.Reactions); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -187,6 +195,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 // InsertReleases migrates release
 func InsertReleases(rels ...*Release) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -196,12 +205,14 @@ func InsertReleases(rels ...*Release) error {
 			return err
 		}
 
-		for i := 0; i < len(rel.Attachments); i++ {
-			rel.Attachments[i].ReleaseID = rel.ID
-		}
+		if len(rel.Attachments) > 0 {
+			for i := range rel.Attachments {
+				rel.Attachments[i].ReleaseID = rel.ID
+			}
 
-		if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
-			return err
+			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+				return err
+			}
 		}
 	}
 

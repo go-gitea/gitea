@@ -8,8 +8,9 @@ import (
 )
 
 type Table struct {
-	Rows        []Row
-	ColumnInfos []ColumnInfo
+	Rows             []Row
+	ColumnInfos      []ColumnInfo
+	SeparatorIndices []int
 }
 
 type Row struct {
@@ -23,14 +24,15 @@ type Column struct {
 }
 
 type ColumnInfo struct {
-	Align string
-	Len   int
+	Align      string
+	Len        int
+	DisplayLen int
 }
 
 var tableSeparatorRegexp = regexp.MustCompile(`^(\s*)(\|[+-|]*)\s*$`)
 var tableRowRegexp = regexp.MustCompile(`^(\s*)(\|.*)`)
 
-var columnAlignRegexp = regexp.MustCompile(`^<(l|c|r)>$`)
+var columnAlignAndLengthRegexp = regexp.MustCompile(`^<(l|c|r)?(\d+)?>$`)
 
 func lexTable(line string) (token, bool) {
 	if m := tableSeparatorRegexp.FindStringSubmatch(line); m != nil {
@@ -42,7 +44,7 @@ func lexTable(line string) (token, bool) {
 }
 
 func (d *Document) parseTable(i int, parentStop stopFn) (int, Node) {
-	rawRows, start := [][]string{}, i
+	rawRows, separatorIndices, start := [][]string{}, []int{}, i
 	for ; !parentStop(d, i); i++ {
 		if t := d.tokens[i]; t.kind == "tableRow" {
 			rawRow := strings.FieldsFunc(d.tokens[i].content, func(r rune) bool { return r == '|' })
@@ -51,13 +53,14 @@ func (d *Document) parseTable(i int, parentStop stopFn) (int, Node) {
 			}
 			rawRows = append(rawRows, rawRow)
 		} else if t.kind == "tableSeparator" {
+			separatorIndices = append(separatorIndices, i-start)
 			rawRows = append(rawRows, nil)
 		} else {
 			break
 		}
 	}
 
-	table := Table{nil, getColumnInfos(rawRows)}
+	table := Table{nil, getColumnInfos(rawRows), separatorIndices}
 	for _, rawColumns := range rawRows {
 		row := Row{nil, isSpecialRow(rawColumns)}
 		if len(rawColumns) != 0 {
@@ -94,7 +97,7 @@ func getColumnInfos(rows [][]string) []ColumnInfo {
 				columnInfos[i].Len = n
 			}
 
-			if m := columnAlignRegexp.FindStringSubmatch(columns[i]); m != nil && isSpecialRow(columns) {
+			if m := columnAlignAndLengthRegexp.FindStringSubmatch(columns[i]); m != nil && isSpecialRow(columns) {
 				switch m[1] {
 				case "l":
 					columnInfos[i].Align = "left"
@@ -102,6 +105,10 @@ func getColumnInfos(rows [][]string) []ColumnInfo {
 					columnInfos[i].Align = "center"
 				case "r":
 					columnInfos[i].Align = "right"
+				}
+				if m[2] != "" {
+					l, _ := strconv.Atoi(m[2])
+					columnInfos[i].DisplayLen = l
 				}
 			} else if _, err := strconv.ParseFloat(columns[i], 32); err == nil {
 				countNumeric++
@@ -120,7 +127,7 @@ func getColumnInfos(rows [][]string) []ColumnInfo {
 func isSpecialRow(rawColumns []string) bool {
 	isAlignRow := true
 	for _, rawColumn := range rawColumns {
-		if !columnAlignRegexp.MatchString(rawColumn) && rawColumn != "" {
+		if !columnAlignAndLengthRegexp.MatchString(rawColumn) && rawColumn != "" {
 			isAlignRow = false
 		}
 	}

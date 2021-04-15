@@ -7,14 +7,15 @@ package repo
 import (
 	"io/ioutil"
 	"net/http"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,7 +32,7 @@ func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
 
 	return func() {
 		setting.SSH.RootPath = oldPath
-		os.RemoveAll(tmpDir)
+		util.RemoveAll(tmpDir)
 	}
 }
 
@@ -48,11 +49,12 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
 
-	addKeyForm := auth.AddKeyForm{
+	addKeyForm := forms.AddKeyForm{
 		Title:   "read-only",
-		Content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
+		Content: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
 	}
-	DeployKeysPost(ctx, addKeyForm)
+	web.SetForm(ctx, &addKeyForm)
+	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.DeployKey{
@@ -76,12 +78,13 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
 
-	addKeyForm := auth.AddKeyForm{
+	addKeyForm := forms.AddKeyForm{
 		Title:      "read-write",
-		Content:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDAu7tvIvX6ZHrRXuZNfkR3XLHSsuCK9Zn3X58lxBcQzuo5xZgB6vRwwm/QtJuF+zZPtY5hsQILBLmF+BZ5WpKZp1jBeSjH2G7lxet9kbcH+kIVj0tPFEoyKI9wvWqIwC4prx/WVk2wLTJjzBAhyNxfEq7C9CeiX9pQEbEqJfkKCQ== nocomment\n",
+		Content:    "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4cn+iXnA4KvcQYSV88vGn0Yi91vG47t1P7okprVmhNTkipNRIHWr6WdCO4VDr/cvsRkuVJAsLO2enwjGWWueOO6BodiBgyAOZ/5t5nJNMCNuLGT5UIo/RI1b0WRQwxEZTRjt6mFNw6lH14wRd8ulsr9toSWBPMOGWoYs1PDeDL0JuTjL+tr1SZi/EyxCngpYszKdXllJEHyI79KQgeD0Vt3pTrkbNVTOEcCNqZePSVmUH8X8Vhugz3bnE0/iE9Pb5fkWO9c4AnM1FgI/8Bvp27Fw2ShryIXuR6kKvUqhVMTuOSDHwu6A8jLE5Owt3GAYugDpDYuwTVNGrHLXKpPzrGGPE/jPmaLCMZcsdkec95dYeU3zKODEm8UQZFhmJmDeWVJ36nGrGZHL4J5aTTaeFUJmmXDaJYiJ+K2/ioKgXqnXvltu0A9R8/LGy4nrTJRr4JMLuJFoUXvGm1gXQ70w2LSpk6yl71RNC0hCtsBe8BP8IhYCM0EP5jh7eCMQZNvM= nocomment\n",
 		IsWritable: true,
 	}
-	DeployKeysPost(ctx, addKeyForm)
+	web.SetForm(ctx, &addKeyForm)
+	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.DeployKey{

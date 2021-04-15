@@ -5,20 +5,84 @@
 package setting
 
 import (
-	"encoding/json"
 	"fmt"
 	golog "log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 
 	ini "gopkg.in/ini.v1"
 )
 
 var filenameSuffix = ""
+
+var descriptionLock = sync.RWMutex{}
+var logDescriptions = make(map[string]*LogDescription)
+
+// GetLogDescriptions returns a race safe set of descriptions
+func GetLogDescriptions() map[string]*LogDescription {
+	descriptionLock.RLock()
+	defer descriptionLock.RUnlock()
+	descs := make(map[string]*LogDescription, len(logDescriptions))
+	for k, v := range logDescriptions {
+		subLogDescriptions := make([]SubLogDescription, len(v.SubLogDescriptions))
+		for i, s := range v.SubLogDescriptions {
+			subLogDescriptions[i] = s
+		}
+		descs[k] = &LogDescription{
+			Name:               v.Name,
+			SubLogDescriptions: subLogDescriptions,
+		}
+	}
+	return descs
+}
+
+// AddLogDescription adds a set of descriptions to the complete description
+func AddLogDescription(key string, description *LogDescription) {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	logDescriptions[key] = description
+}
+
+// AddSubLogDescription adds a sub log description
+func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	desc, ok := logDescriptions[key]
+	if !ok {
+		return false
+	}
+	for i, sub := range desc.SubLogDescriptions {
+		if sub.Name == subLogDescription.Name {
+			desc.SubLogDescriptions[i] = subLogDescription
+			return true
+		}
+	}
+	desc.SubLogDescriptions = append(desc.SubLogDescriptions, subLogDescription)
+	return true
+}
+
+// RemoveSubLogDescription removes a sub log description
+func RemoveSubLogDescription(key string, name string) bool {
+	descriptionLock.Lock()
+	defer descriptionLock.Unlock()
+	desc, ok := logDescriptions[key]
+	if !ok {
+		return false
+	}
+	for i, sub := range desc.SubLogDescriptions {
+		if sub.Name == name {
+			desc.SubLogDescriptions = append(desc.SubLogDescriptions[:i], desc.SubLogDescriptions[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
 
 type defaultLogOptions struct {
 	levelName      string // LogLevel
@@ -30,7 +94,7 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel,
+		levelName:      LogLevel.String(),
 		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
@@ -51,9 +115,9 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("info")
-	return log.FromString(value).String()
+func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+	value := section.Key(key).MustString(defaultValue.String())
+	return log.FromString(value)
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
@@ -62,8 +126,7 @@ func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	levelName = getLogLevel(sec, "LEVEL", LogLevel)
-	level := log.FromString(levelName)
+	level := getLogLevel(sec, "LEVEL", LogLevel)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -141,6 +204,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
@@ -185,20 +249,9 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
 	}
 
-	LogDescriptions[key] = &description
+	AddLogDescription(key, &description)
 
 	return &description
-}
-
-func newMacaronLogService() {
-	options := newDefaultLogOptions()
-	options.filename = filepath.Join(LogRootPath, "macaron.log")
-	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-
-	Cfg.Section("log").Key("MACARON").MustString("file")
-	if RedirectMacaronLog {
-		generateNamedLogger("macaron", options)
-	}
 }
 
 func newAccessLogService() {
@@ -220,7 +273,7 @@ func newRouterLogService() {
 	// Allow [log]  DISABLE_ROUTER_LOG to override [server] DISABLE_ROUTER_LOG
 	DisableRouterLog = Cfg.Section("log").Key("DISABLE_ROUTER_LOG").MustBool(DisableRouterLog)
 
-	if !DisableRouterLog && RedirectMacaronLog {
+	if !DisableRouterLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "router.log")
 		options.flags = "date,time" // For the router we don't want any prefixed flags
@@ -261,9 +314,12 @@ func newLogService() {
 			continue
 		}
 
-		sec, err := Cfg.GetSection("log." + name)
+		sec, err := Cfg.GetSection("log." + name + ".default")
 		if err != nil {
-			sec, _ = Cfg.NewSection("log." + name)
+			sec, err = Cfg.GetSection("log." + name)
+			if err != nil {
+				sec, _ = Cfg.NewSection("log." + name)
+			}
 		}
 
 		provider, config, levelName := generateLogConfig(sec, name, options)
@@ -276,7 +332,7 @@ func newLogService() {
 		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
 	}
 
-	LogDescriptions[log.DEFAULT] = &description
+	AddLogDescription(log.DEFAULT, &description)
 
 	// Finally redirect the default golog to here
 	golog.SetFlags(0)
@@ -293,7 +349,6 @@ func RestartLogsWithPIDSuffix() {
 // NewLogServices creates all the log services
 func NewLogServices(disableConsole bool) {
 	newLogService()
-	newMacaronLogService()
 	newRouterLogService()
 	newAccessLogService()
 	NewXORMLogService(disableConsole)

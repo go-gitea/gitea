@@ -429,11 +429,7 @@ func easyjson1ed00e60DecodeGithubComOlivereElasticV72(in *jlexer.Lexer, out *bul
 		in.Skip()
 	} else {
 		in.Delim('{')
-		if !in.IsDelim('}') {
-			*out = make(bulkUpdateRequestCommand)
-		} else {
-			*out = nil
-		}
+		*out = make(bulkUpdateRequestCommand)
 		for !in.IsDelim('}') {
 			key := string(in.String())
 			in.WantColon()

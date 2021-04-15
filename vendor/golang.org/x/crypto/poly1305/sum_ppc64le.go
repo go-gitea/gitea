@@ -2,23 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !gccgo,!purego
+//go:build gc && !purego
+// +build gc,!purego
 
 package poly1305
 
 //go:noescape
 func update(state *macState, msg []byte)
-
-func sum(out *[16]byte, m []byte, key *[32]byte) {
-	h := newMAC(key)
-	h.Write(m)
-	h.Sum(out)
-}
-
-func newMAC(key *[32]byte) (h mac) {
-	initialize(key, &h.r, &h.s)
-	return
-}
 
 // mac is a wrapper for macGeneric that redirects calls that would have gone to
 // updateGeneric to update.

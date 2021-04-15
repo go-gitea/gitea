@@ -5,13 +5,14 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Git environment variables
@@ -19,7 +20,27 @@ const (
 	GitAlternativeObjectDirectories = "GIT_ALTERNATE_OBJECT_DIRECTORIES"
 	GitObjectDirectory              = "GIT_OBJECT_DIRECTORY"
 	GitQuarantinePath               = "GIT_QUARANTINE_PATH"
+	GitPushOptionCount              = "GIT_PUSH_OPTION_COUNT"
 )
+
+// GitPushOptions is a wrapper around a map[string]string
+type GitPushOptions map[string]string
+
+// GitPushOptions keys
+const (
+	GitPushOptionRepoPrivate  = "repo.private"
+	GitPushOptionRepoTemplate = "repo.template"
+)
+
+// Bool checks for a key in the map and parses as a boolean
+func (g GitPushOptions) Bool(key string, def bool) bool {
+	if val, ok := g[key]; ok {
+		if b, err := strconv.ParseBool(val); err == nil {
+			return b
+		}
+	}
+	return def
+}
 
 // HookOptions represents the options for the Hook calls
 type HookOptions struct {
@@ -31,6 +52,7 @@ type HookOptions struct {
 	GitObjectDirectory              string
 	GitAlternativeObjectDirectories string
 	GitQuarantinePath               string
+	GitPushOptions                  GitPushOptions
 	ProtectedBranchID               int64
 	IsDeployKey                     bool
 }
@@ -58,6 +80,7 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 	)
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
@@ -84,6 +107,7 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	resp, err := req.Response()

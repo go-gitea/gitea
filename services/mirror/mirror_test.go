@@ -5,13 +5,14 @@
 package mirror
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/structs"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
-	opts := structs.MigrateRepoOption{
+	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
 		Private:     false,
@@ -47,7 +48,9 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	mirror, err := repository.MigrateRepositoryGitData(user, user, mirrorRepo, opts)
+	ctx := context.Background()
+
+	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(repoPath)
@@ -68,12 +71,12 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		IsDraft:      false,
 		IsPrerelease: false,
 		IsTag:        true,
-	}, nil))
+	}, nil, ""))
 
 	err = mirror.GetMirror()
 	assert.NoError(t, err)
 
-	_, ok := runSync(mirror.Mirror)
+	_, ok := runSync(ctx, mirror.Mirror)
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -84,7 +87,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
 
-	_, ok = runSync(mirror.Mirror)
+	_, ok = runSync(ctx, mirror.Mirror)
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)

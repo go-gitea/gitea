@@ -28,6 +28,10 @@ func (r *ReadOnlyFs) Chmod(n string, m os.FileMode) error {
 	return syscall.EPERM
 }
 
+func (r *ReadOnlyFs) Chown(n string, uid, gid int) error {
+	return syscall.EPERM
+}
+
 func (r *ReadOnlyFs) Name() string {
 	return "ReadOnlyFilter"
 }
@@ -42,6 +46,18 @@ func (r *ReadOnlyFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	}
 	fi, err := r.Stat(name)
 	return fi, false, err
+}
+
+func (r *ReadOnlyFs) SymlinkIfPossible(oldname, newname string) error {
+	return &os.LinkError{Op: "symlink", Old: oldname, New: newname, Err: ErrNoSymlink}
+}
+
+func (r *ReadOnlyFs) ReadlinkIfPossible(name string) (string, error) {
+	if srdr, ok := r.source.(LinkReader); ok {
+		return srdr.ReadlinkIfPossible(name)
+	}
+
+	return "", &os.PathError{Op: "readlink", Path: name, Err: ErrNoReadlink}
 }
 
 func (r *ReadOnlyFs) Rename(o, n string) error {

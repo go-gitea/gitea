@@ -47,7 +47,7 @@ func TestIssueAPIURL(t *testing.T) {
 
 func TestGetIssuesByIDs(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	testSuccess := func(expectedIssueIDs []int64, nonExistentIssueIDs []int64) {
+	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
 		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
 		assert.NoError(t, err)
 		actualIssueIDs := make([]int64, len(issues))
@@ -55,7 +55,6 @@ func TestGetIssuesByIDs(t *testing.T) {
 			actualIssueIDs[i] = issue.ID
 		}
 		assert.Equal(t, expectedIssueIDs, actualIssueIDs)
-
 	}
 	testSuccess([]int64{1, 2, 3}, []int64{})
 	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
@@ -87,7 +86,7 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 }
 
 func TestIssue_ClearLabels(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		issueID int64
 		doerID  int64
 	}{
@@ -299,7 +298,7 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 	total, ids, err = SearchIssueIDsByKeyword("for", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, total)
-	assert.EqualValues(t, []int64{1, 2, 3, 5, 11}, ids)
+	assert.ElementsMatch(t, []int64{1, 2, 3, 5, 11}, ids)
 
 	// issue1's comment id 2
 	total, ids, err = SearchIssueIDsByKeyword("good", []int64{1}, 10, 0)
@@ -342,7 +341,7 @@ func testInsertIssue(t *testing.T, title, content string) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	var issue = Issue{
+	issue := Issue{
 		RepoID:   repo.ID,
 		PosterID: user.ID,
 		Title:    title,
@@ -400,5 +399,5 @@ func TestIssue_ResolveMentions(t *testing.T) {
 	// Private repo, not a team member
 	testSuccess("user17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
 	// Private repo, whole team
-	testSuccess("user17", "big_test_private_4", "user15", []string{"owners"}, []int64{18})
+	testSuccess("user17", "big_test_private_4", "user15", []string{"user17/owners"}, []int64{18})
 }

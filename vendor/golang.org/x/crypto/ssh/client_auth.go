@@ -36,7 +36,7 @@ func (c *connection) clientAuthenticate(config *ClientConfig) error {
 
 	// during the authentication phase the client first attempts the "none" method
 	// then any untried methods suggested by the server.
-	tried := make(map[string]bool)
+	var tried []string
 	var lastMethods []string
 
 	sessionID := c.transport.getSessionID()
@@ -49,7 +49,9 @@ func (c *connection) clientAuthenticate(config *ClientConfig) error {
 			// success
 			return nil
 		} else if ok == authFailure {
-			tried[auth.method()] = true
+			if m := auth.method(); !contains(tried, m) {
+				tried = append(tried, m)
+			}
 		}
 		if methods == nil {
 			methods = lastMethods
@@ -61,7 +63,7 @@ func (c *connection) clientAuthenticate(config *ClientConfig) error {
 	findNext:
 		for _, a := range config.Auth {
 			candidateMethod := a.method()
-			if tried[candidateMethod] {
+			if contains(tried, candidateMethod) {
 				continue
 			}
 			for _, meth := range methods {
@@ -72,16 +74,16 @@ func (c *connection) clientAuthenticate(config *ClientConfig) error {
 			}
 		}
 	}
-	return fmt.Errorf("ssh: unable to authenticate, attempted methods %v, no supported methods remain", keys(tried))
+	return fmt.Errorf("ssh: unable to authenticate, attempted methods %v, no supported methods remain", tried)
 }
 
-func keys(m map[string]bool) []string {
-	s := make([]string, 0, len(m))
-
-	for key := range m {
-		s = append(s, key)
+func contains(list []string, e string) bool {
+	for _, s := range list {
+		if s == e {
+			return true
+		}
 	}
-	return s
+	return false
 }
 
 // An AuthMethod represents an instance of an RFC 4252 authentication method.
@@ -469,7 +471,7 @@ func (cb KeyboardInteractiveChallenge) auth(session []byte, user string, c packe
 		}
 
 		if len(answers) != len(prompts) {
-			return authFailure, nil, errors.New("ssh: not enough answers from keyboard-interactive callback")
+			return authFailure, nil, fmt.Errorf("ssh: incorrect number of answers from keyboard-interactive callback %d (expected %d)", len(answers), len(prompts))
 		}
 		responseLength := 1 + 4
 		for _, a := range answers {

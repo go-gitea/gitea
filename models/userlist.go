@@ -8,17 +8,16 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
-//UserList is a list of user.
+// UserList is a list of user.
 // This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User
 
 func (users UserList) getUserIDs() []int64 {
 	userIDs := make([]int64, len(users))
 	for _, user := range users {
-		userIDs = append(userIDs, user.ID) //Considering that user id are unique in the list
+		userIDs = append(userIDs, user.ID) // Considering that user id are unique in the list
 	}
 	return userIDs
 }
@@ -27,7 +26,7 @@ func (users UserList) getUserIDs() []int64 {
 func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
-		results[user.ID] = false //Set default to false
+		results[user.ID] = false // Set default to false
 	}
 	ownerMaps, err := users.loadOrganizationOwners(x, orgID)
 	if err == nil {
@@ -67,7 +66,7 @@ func (users UserList) loadOrganizationOwners(e Engine, orgID int64) (map[int64]*
 func (users UserList) GetTwoFaStatus() map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
-		results[user.ID] = false //Set default to false
+		results[user.ID] = false // Set default to false
 	}
 	tokenMaps, err := users.loadTwoFactorStatus(x)
 	if err == nil {
@@ -93,13 +92,4 @@ func (users UserList) loadTwoFactorStatus(e Engine) (map[int64]*TwoFactor, error
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return tokenMaps, nil
-}
-
-//APIFormat return list of users in api format
-func (users UserList) APIFormat() []*api.User {
-	result := make([]*api.User, 0, len(users))
-	for _, u := range users {
-		result = append(result, u.APIFormat())
-	}
-	return result
 }

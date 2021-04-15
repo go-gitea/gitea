@@ -26,7 +26,7 @@ var (
 	procLineRE = regexp.MustCompile(`(\d+) (\d+) (\d+)`)
 )
 
-// Schedstat contains scheduler statistics from /proc/schedstats
+// Schedstat contains scheduler statistics from /proc/schedstat
 //
 // See
 // https://www.kernel.org/doc/Documentation/scheduler/sched-stats.txt
@@ -36,7 +36,6 @@ var (
 // jiffies when they are actually in nanoseconds since 2.6.23 with the
 // introduction of CFS. A fix to the documentation is pending. See
 // https://lore.kernel.org/patchwork/project/lkml/list/?series=403473
-
 type Schedstat struct {
 	CPUs []*SchedstatCPU
 }
@@ -57,6 +56,7 @@ type ProcSchedstat struct {
 	RunTimeslices      uint64
 }
 
+// Schedstat reads data from /proc/schedstat
 func (fs FS) Schedstat() (*Schedstat, error) {
 	file, err := os.Open(fs.proc.Path("schedstat"))
 	if err != nil {
@@ -95,24 +95,27 @@ func (fs FS) Schedstat() (*Schedstat, error) {
 	return stats, nil
 }
 
-func parseProcSchedstat(contents string) (stats ProcSchedstat, err error) {
+func parseProcSchedstat(contents string) (ProcSchedstat, error) {
+	var (
+		stats ProcSchedstat
+		err   error
+	)
 	match := procLineRE.FindStringSubmatch(contents)
 
 	if match != nil {
 		stats.RunningNanoseconds, err = strconv.ParseUint(match[1], 10, 64)
 		if err != nil {
-			return
+			return stats, err
 		}
 
 		stats.WaitingNanoseconds, err = strconv.ParseUint(match[2], 10, 64)
 		if err != nil {
-			return
+			return stats, err
 		}
 
 		stats.RunTimeslices, err = strconv.ParseUint(match[3], 10, 64)
-		return
+		return stats, err
 	}
 
-	err = errors.New("could not parse schedstat")
-	return
+	return stats, errors.New("could not parse schedstat")
 }

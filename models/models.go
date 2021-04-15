@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
 
@@ -45,6 +47,7 @@ type Engine interface {
 	SQL(interface{}, ...interface{}) *xorm.Session
 	Where(interface{}, ...interface{}) *xorm.Session
 	Asc(colNames ...string) *xorm.Session
+	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 }
@@ -125,6 +128,12 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(UserRedirect),
+		new(Project),
+		new(ProjectBoard),
+		new(ProjectIssue),
+		new(Session),
+		new(RepoTransfer),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -133,39 +142,51 @@ func init() {
 	}
 }
 
-func getEngine() (*xorm.Engine, error) {
+// GetNewEngine returns a new xorm engine from the configuration
+func GetNewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	var engine *xorm.Engine
+
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// OK whilst we sort out our schema issues - create a schema aware postgres
+		registerPostgresSchemaDriver()
+		engine, err = xorm.NewEngine("postgresschema", connStr)
+	} else {
+		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 	if setting.Database.Type == "mysql" {
 		engine.Dialect().SetParams(map[string]string{"rowFormat": "DYNAMIC"})
+	} else if setting.Database.Type == "mssql" {
+		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
 	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(x *xorm.Engine) (err error) {
-	x, err = getEngine()
+func NewTestEngine() (err error) {
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.ProdMode))
-	x.ShowSQL(!setting.ProdMode)
+	x.SetLogger(NewXORMLogger(!setting.IsProd()))
+	x.ShowSQL(!setting.IsProd())
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -182,6 +203,10 @@ func SetEngine() (err error) {
 }
 
 // NewEngine initializes a new xorm.Engine
+// This function must never call .Sync2() if the provided migration function fails.
+// When called from the "doctor" command, the migration function is a version check
+// that prevents the doctor from fixing anything in the database if the migration level
+// is different from the expected value.
 func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	if err = SetEngine(); err != nil {
 		return err
@@ -202,6 +227,36 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	}
 
 	return nil
+}
+
+// NamesToBean return a list of beans or an error
+func NamesToBean(names ...string) ([]interface{}, error) {
+	beans := []interface{}{}
+	if len(names) == 0 {
+		beans = append(beans, tables...)
+		return beans, nil
+	}
+	// Need to map provided names to beans...
+	beanMap := make(map[string]interface{})
+	for _, bean := range tables {
+
+		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
+		beanMap[strings.ToLower(x.TableName(bean))] = bean
+		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
+	}
+
+	gotBean := make(map[interface{}]bool)
+	for _, name := range names {
+		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
+		if !ok {
+			return nil, fmt.Errorf("No table found that matches: %s", name)
+		}
+		if !gotBean[bean] {
+			beans = append(beans, bean)
+			gotBean[bean] = true
+		}
+	}
+	return beans, nil
 }
 
 // Statistic contains the database statistics
@@ -251,7 +306,7 @@ func Ping() error {
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath string, dbType string) error {
+func DumpDatabase(filePath, dbType string) error {
 	var tbs []*schemas.Table
 	for _, t := range tables {
 		t, err := x.TableInfo(t)
@@ -260,6 +315,17 @@ func DumpDatabase(filePath string, dbType string) error {
 		}
 		tbs = append(tbs, t)
 	}
+
+	type Version struct {
+		ID      int64 `xorm:"pk autoincr"`
+		Version int64
+	}
+	t, err := x.TableInfo(Version{})
+	if err != nil {
+		return err
+	}
+	tbs = append(tbs, t)
+
 	if len(dbType) > 0 {
 		return x.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}

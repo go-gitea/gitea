@@ -5,6 +5,7 @@
 package structs
 
 import (
+	"strings"
 	"time"
 )
 
@@ -46,16 +47,19 @@ type Issue struct {
 	OriginalAuthorID int64      `json:"original_author_id"`
 	Title            string     `json:"title"`
 	Body             string     `json:"body"`
+	Ref              string     `json:"ref"`
 	Labels           []*Label   `json:"labels"`
 	Milestone        *Milestone `json:"milestone"`
-	Assignee         *User      `json:"assignee"`
-	Assignees        []*User    `json:"assignees"`
 	Confidential     bool       `json:"confidential"`
+	// deprecated
+	Assignee  *User   `json:"assignee"`
+	Assignees []*User `json:"assignees"`
 	// Whether the issue is open or closed
 	//
 	// type: string
 	// enum: open,closed
 	State    StateType `json:"state"`
+	IsLocked bool      `json:"is_locked"`
 	Comments int       `json:"comments"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
@@ -70,18 +74,13 @@ type Issue struct {
 	Repo        *RepositoryMeta  `json:"repository"`
 }
 
-// ListIssueOption list issue options
-type ListIssueOption struct {
-	Page  int
-	State string
-}
-
 // CreateIssueOption options to create one issue
 type CreateIssueOption struct {
 	// required:true
 	Title string `json:"title" binding:"Required"`
 	Body  string `json:"body"`
-	// username of assignee
+	Ref   string `json:"ref"`
+	// deprecated
 	Assignee  string   `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	// swagger:strfmt date-time
@@ -96,8 +95,10 @@ type CreateIssueOption struct {
 
 // EditIssueOption options for editing an issue
 type EditIssueOption struct {
-	Title     string   `json:"title"`
-	Body      *string  `json:"body"`
+	Title string  `json:"title"`
+	Body  *string `json:"body"`
+	Ref   *string `json:"ref"`
+	// deprecated
 	Assignee  *string  `json:"assignee"`
 	Assignees []string `json:"assignees"`
 	Milestone *int64   `json:"milestone"`
@@ -120,4 +121,20 @@ type EditDeadlineOption struct {
 type IssueDeadline struct {
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+}
+
+// IssueTemplate represents an issue template for a repository
+// swagger:model
+type IssueTemplate struct {
+	Name     string   `json:"name" yaml:"name"`
+	Title    string   `json:"title" yaml:"title"`
+	About    string   `json:"about" yaml:"about"`
+	Labels   []string `json:"labels" yaml:"labels"`
+	Content  string   `json:"content" yaml:"-"`
+	FileName string   `json:"file_name" yaml:"-"`
+}
+
+// Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
+func (it IssueTemplate) Valid() bool {
+	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
 }

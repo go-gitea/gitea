@@ -5,6 +5,7 @@
 package misc
 
 import (
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -13,12 +14,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 
 	"mvdan.cc/xurls/v2"
 )
 
 // Markdown render markdown document to HTML
-func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
+func Markdown(ctx *context.APIContext) {
 	// swagger:operation POST /markdown miscellaneous renderMarkdown
 	// ---
 	// summary: Render a markdown document as HTML
@@ -37,6 +39,8 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.MarkdownOption)
+
 	if ctx.HasAPIError() {
 		ctx.Error(http.StatusUnprocessableEntity, "", ctx.GetErrMsg())
 		return
@@ -48,10 +52,12 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 	}
 
 	switch form.Mode {
+	case "comment":
+		fallthrough
 	case "gfm":
 		md := []byte(form.Text)
 		urlPrefix := form.Context
-		var meta map[string]string
+		meta := map[string]string{}
 		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
 			// check if urlPrefix is already set to a URL
 			linkRegex, _ := xurls.StrictMatchingScheme("https?://")
@@ -61,7 +67,15 @@ func Markdown(ctx *context.APIContext, form api.MarkdownOption) {
 			}
 		}
 		if ctx.Repo != nil && ctx.Repo.Repository != nil {
-			meta = ctx.Repo.Repository.ComposeMetas()
+			// "gfm" = Github Flavored Markdown - set this to render as a document
+			if form.Mode == "gfm" {
+				meta = ctx.Repo.Repository.ComposeDocumentMetas()
+			} else {
+				meta = ctx.Repo.Repository.ComposeMetas()
+			}
+		}
+		if form.Mode == "gfm" {
+			meta["mode"] = "document"
 		}
 		if form.Wiki {
 			_, err := ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
@@ -107,7 +121,7 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	body, err := ctx.Req.Body().Bytes()
+	body, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 		return

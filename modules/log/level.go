@@ -6,10 +6,11 @@ package log
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Level is the level of the logger
@@ -73,6 +74,16 @@ func (l Level) String() string {
 	return "info"
 }
 
+// Color returns the color string for this Level
+func (l Level) Color() *[]byte {
+	color, ok := levelToColor[l]
+	if ok {
+		return &(color)
+	}
+	none := levelToColor[NONE]
+	return &none
+}
+
 // MarshalJSON takes a Level and turns it into text
 func (l Level) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString(`"`)
@@ -93,6 +104,7 @@ func FromString(level string) Level {
 // UnmarshalJSON takes text and turns it into a Level
 func (l *Level) UnmarshalJSON(b []byte) error {
 	var tmp interface{}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(b, &tmp)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Err: %v", err)

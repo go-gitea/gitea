@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 const (
@@ -36,7 +37,13 @@ type Queue struct {
 func Open(dataDir string) (*Queue, error) {
 	db, err := leveldb.OpenFile(dataDir, nil)
 	if err != nil {
-		return nil, err
+		if !errors.IsCorrupted(err) {
+			return nil, err
+		}
+		db, err = leveldb.RecoverFile(dataDir, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return NewQueue(db, []byte{}, true)
 }

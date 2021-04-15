@@ -75,7 +75,7 @@ func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, err2)
 	assert.NoError(t, err3)
 	assert.Equal(t, int64(3), count)
-	assert.Equal(t, (privateCount + publicCount), count)
+	assert.Equal(t, privateCount+publicCount, count)
 }
 
 func TestGetPublicRepositoryCount(t *testing.T) {
@@ -141,7 +141,6 @@ func TestRepoAPIURL(t *testing.T) {
 }
 
 func TestUploadAvatar(t *testing.T) {
-
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer
@@ -156,7 +155,6 @@ func TestUploadAvatar(t *testing.T) {
 }
 
 func TestUploadBigAvatar(t *testing.T) {
-
 	// Generate BIG image
 	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
 	var buff bytes.Buffer
@@ -170,7 +168,6 @@ func TestUploadBigAvatar(t *testing.T) {
 }
 
 func TestDeleteAvatar(t *testing.T) {
-
 	// Generate image
 	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
 	var buff bytes.Buffer
@@ -186,4 +183,41 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", repo.Avatar)
+}
+
+func TestDoctorUserStarNum(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	assert.NoError(t, DoctorUserStarNum())
+}
+
+func TestRepoGetReviewers(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// test public repo
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+
+	reviewers, err := repo1.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 4, len(reviewers))
+
+	// test private repo
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	reviewers, err = repo2.GetReviewers(2, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, len(reviewers))
+}
+
+func TestRepoGetReviewerTeams(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	teams, err := repo2.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Empty(t, teams)
+
+	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	teams, err = repo3.GetReviewerTeams()
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(teams))
 }

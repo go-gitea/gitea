@@ -19,6 +19,7 @@ package hotp
 
 import (
 	"github.com/pquerna/otp"
+	"io"
 
 	"crypto/hmac"
 	"crypto/rand"
@@ -70,6 +71,17 @@ func GenerateCode(secret string, counter uint64) (string, error) {
 // GenerateCodeCustom uses a counter and secret value and options struct to
 // create a passcode.
 func GenerateCodeCustom(secret string, counter uint64, opts ValidateOpts) (passcode string, err error) {
+	// As noted in issue #10 and #17 this adds support for TOTP secrets that are
+	// missing their padding.
+	secret = strings.TrimSpace(secret)
+	if n := len(secret) % 8; n != 0 {
+		secret = secret + strings.Repeat("=", 8-n)
+	}
+
+	// As noted in issue #24 Google has started producing base32 in lower case,
+	// but the StdEncoding (and the RFC), expect a dictionary of only upper case letters.
+	secret = strings.ToUpper(secret)
+
 	secretBytes, err := base32.StdEncoding.DecodeString(secret)
 	if err != nil {
 		return "", otp.ErrValidateSecretInvalidBase32
@@ -135,11 +147,17 @@ type GenerateOpts struct {
 	AccountName string
 	// Size in size of the generated Secret. Defaults to 10 bytes.
 	SecretSize uint
+	// Secret to store. Defaults to a randomly generated secret of SecretSize.  You should generally leave this empty.
+	Secret []byte
 	// Digits to request. Defaults to 6.
 	Digits otp.Digits
 	// Algorithm to use for HMAC. Defaults to SHA1.
 	Algorithm otp.Algorithm
+	// Reader to use for generating HOTP Key.
+	Rand io.Reader
 }
+
+var b32NoPadding = base32.StdEncoding.WithPadding(base32.NoPadding)
 
 // Generate creates a new HOTP Key.
 func Generate(opts GenerateOpts) (*otp.Key, error) {
@@ -156,16 +174,28 @@ func Generate(opts GenerateOpts) (*otp.Key, error) {
 		opts.SecretSize = 10
 	}
 
+	if opts.Digits == 0 {
+		opts.Digits = otp.DigitsSix
+	}
+
+	if opts.Rand == nil {
+		opts.Rand = rand.Reader
+	}
+
 	// otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
 
 	v := url.Values{}
-	secret := make([]byte, opts.SecretSize)
-	_, err := rand.Read(secret)
-	if err != nil {
-		return nil, err
+	if len(opts.Secret) != 0 {
+		v.Set("secret", b32NoPadding.EncodeToString(opts.Secret))
+	} else {
+		secret := make([]byte, opts.SecretSize)
+		_, err := opts.Rand.Read(secret)
+		if err != nil {
+			return nil, err
+		}
+		v.Set("secret", b32NoPadding.EncodeToString(secret))
 	}
 
-	v.Set("secret", base32.StdEncoding.EncodeToString(secret))
 	v.Set("issuer", opts.Issuer)
 	v.Set("algorithm", opts.Algorithm.String())
 	v.Set("digits", opts.Digits.String())

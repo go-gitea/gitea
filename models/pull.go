@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // PullRequestType defines pull request type
@@ -34,6 +35,7 @@ const (
 	PullRequestStatusMergeable
 	PullRequestStatusManuallyMerged
 	PullRequestStatusError
+	PullRequestStatusEmpty
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -44,6 +46,8 @@ type PullRequest struct {
 	ConflictedFiles []string `xorm:"TEXT JSON"`
 	CommitsAhead    int
 	CommitsBehind   int
+
+	ChangedProtectedFiles []string `xorm:"TEXT JSON"`
 
 	IssueID int64  `xorm:"INDEX"`
 	Issue   *Issue `xorm:"-"`
@@ -232,12 +236,11 @@ func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
 func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := e.Where("issue_id = ?", pr.IssueID)
-	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ?", true).GroupBy("issue_id, type").Table("review").Find(&rCounts)
+	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
 }
 
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
-
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
 		log.Error("Unable to getReviewedByLines: Error: %v", err)
@@ -329,6 +332,11 @@ func (pr *PullRequest) CanAutoMerge() bool {
 	return pr.Status == PullRequestStatusMergeable
 }
 
+// IsEmpty returns true if this pull request is empty.
+func (pr *PullRequest) IsEmpty() bool {
+	return pr.Status == PullRequestStatusEmpty
+}
+
 // MergeStyle represents the approach to merge commits into base branch.
 type MergeStyle string
 
@@ -341,6 +349,8 @@ const (
 	MergeStyleRebaseMerge MergeStyle = "rebase-merge"
 	// MergeStyleSquash squash commits into single commit before merging
 	MergeStyleSquash MergeStyle = "squash"
+	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
+	MergeStyleManuallyMerged MergeStyle = "manually-merged"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
@@ -396,7 +406,8 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
@@ -493,7 +504,7 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
-func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,
@@ -635,4 +646,28 @@ func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
+}
+
+// GetBaseBranchHTMLURL returns the HTML URL of the base branch
+func (pr *PullRequest) GetBaseBranchHTMLURL() string {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
+	}
+	if pr.BaseRepo == nil {
+		return ""
+	}
+	return pr.BaseRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.BaseBranch)
+}
+
+// GetHeadBranchHTMLURL returns the HTML URL of the head branch
+func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+	if err := pr.LoadHeadRepo(); err != nil {
+		log.Error("LoadHeadRepo: %v", err)
+		return ""
+	}
+	if pr.HeadRepo == nil {
+		return ""
+	}
+	return pr.HeadRepo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(pr.HeadBranch)
 }

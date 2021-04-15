@@ -15,6 +15,7 @@
 // +build !freebsd
 // +build !dragonfly
 // +build !netbsd
+// +build !aix
 
 package afero
 

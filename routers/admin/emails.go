@@ -6,6 +6,7 @@ package admin
 
 import (
 	"bytes"
+	"net/http"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
@@ -14,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 const (
@@ -98,7 +97,7 @@ func Emails(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplEmails)
+	ctx.HTML(http.StatusOK, tplEmails)
 }
 
 var (
@@ -114,13 +113,13 @@ func ActivateEmail(ctx *context.Context) {
 
 	truefalse := map[string]bool{"1": true, "0": false}
 
-	uid := com.StrTo(ctx.Query("uid")).MustInt64()
+	uid := ctx.QueryInt64("uid")
 	email := ctx.Query("email")
 	primary, okp := truefalse[ctx.Query("primary")]
 	activate, oka := truefalse[ctx.Query("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 

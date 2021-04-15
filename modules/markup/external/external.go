@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // RegisterParsers registers all supported third part parsers according settings
@@ -35,6 +36,11 @@ type Parser struct {
 // Name returns the external tool name
 func (p *Parser) Name() string {
 	return p.MarkupName
+}
+
+// NeedPostProcess implements markup.Parser
+func (p *Parser) NeedPostProcess() bool {
+	return p.MarkupParser.NeedPostProcess
 }
 
 // Extensions returns the supported extensions of the tool
@@ -70,7 +76,12 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 			log.Error("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 			return []byte("")
 		}
-		defer os.Remove(f.Name())
+		tmpPath := f.Name()
+		defer func() {
+			if err := util.Remove(tmpPath); err != nil {
+				log.Warn("Unable to remove temporary file: %s: Error: %v", tmpPath, err)
+			}
+		}()
 
 		_, err = io.Copy(f, rd)
 		if err != nil {

@@ -19,19 +19,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/loads/fmts"
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands"
 	flags "github.com/jessevdk/go-flags"
-)
-
-func init() {
-	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
-}
-
-var (
-	// Debug is true when the SWAGGER_DEBUG env var is not empty
-	Debug = os.Getenv("SWAGGER_DEBUG") != ""
 )
 
 var opts struct {
@@ -46,7 +35,7 @@ func main() {
 	// Recovering from internal panics
 	// Stack may be printed in Debug mode
 	// Need import "runtime/debug".
-	//defer func() {
+	// defer func() {
 	//	r := recover()
 	//	if r != nil {
 	//		log.Printf("Fatal error:", r)
@@ -55,7 +44,7 @@ func main() {
 	//		}
 	//		os.Exit(1)
 	//	}
-	//}()
+	// }()
 
 	parser := flags.NewParser(&opts, flags.Default)
 	parser.ShortDescription = "helps you keep your API well described"
@@ -127,6 +116,9 @@ It aims to represent the contract of your API with a language agnostic descripti
 			cmd.LongDescription = cmd.ShortDescription
 		case "operation":
 			cmd.ShortDescription = "generate one or more server operations from the swagger spec"
+			cmd.LongDescription = cmd.ShortDescription
+		case "markdown":
+			cmd.ShortDescription = "generate a markdown representation from the swagger spec"
 			cmd.LongDescription = cmd.ShortDescription
 		}
 	}

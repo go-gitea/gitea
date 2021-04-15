@@ -17,6 +17,25 @@
 
 <body>
 	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
+	{{if eq .ActionName "push"}}
+		<p>
+			<b>{{.Doer.Name}}</b>
+			{{if .Comment.IsForcePush}}
+				{{ $oldCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
+				{{ $newCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
+				force-pushed the <b>{{.Comment.Issue.PullRequest.HeadBranch}}</b> from
+				<a href="{{$oldCommitLink}}"><b>{{ShortSha .Comment.OldCommit}}</b></a>
+				to
+				<a href="{{$newCommitLink}}"><b>{{ShortSha .Comment.NewCommit}}</b></a>.
+			{{else}}
+				{{if eq .Comment.Commits.Len 1}}
+					{{printf "pushed 1 commit to %s:" .Comment.Issue.PullRequest.HeadBranch}}
+				{{else}}
+					{{printf "pushed %d commits to %s:" .Comment.Commits.Len .Comment.Issue.PullRequest.HeadBranch}}
+				{{end}}
+			{{end}}
+		</p>
+	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
 			Closed #{{.Issue.Index}}.
@@ -30,6 +49,8 @@
 			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
 		{{else if eq .ActionName "review"}}
 			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{else if eq .ActionName "review_dismissed"}}
+			<b>@{{.Doer.Name}}</b> dismissed last review from {{.Comment.Review.Reviewer.Name}} for this pull request.
 		{{end}}
 
 		{{- if eq .Body ""}}
@@ -46,7 +67,19 @@
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>
 			</div>
-		{{end -}}		
+		{{end -}}
+		{{if eq .ActionName "push"}}
+			{{ $r:= List .Comment.Commits}}
+			<ul>
+			{{range $r}}
+				<li>
+					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
+						{{ShortSha .ID.String}}
+					</a>  -  {{.Summary}}
+				</li>
+			{{end}}
+			</ul>
+		{{end}}
 	</p>
 	<div class="footer">
 	<p>

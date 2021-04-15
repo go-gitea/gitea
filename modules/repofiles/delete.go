@@ -25,6 +25,7 @@ type DeleteRepoFileOptions struct {
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
+	Signoff      bool
 }
 
 // DeleteRepoFile deletes a file in the given repository
@@ -67,7 +68,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 				}
 			}
 			if protectedBranch.RequireSignedCommits {
-				_, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+				_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
 				if err != nil {
 					if !models.IsErrWontSign(err) {
 						return nil, err
@@ -199,9 +200,9 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Dates.Author, opts.Dates.Committer)
+		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
 	} else {
-		commitHash, err = t.CommitTree(author, committer, treeHash, message)
+		commitHash, err = t.CommitTree(author, committer, treeHash, message, opts.Signoff)
 	}
 	if err != nil {
 		return nil, err

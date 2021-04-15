@@ -24,7 +24,7 @@ type SpecFile struct {
 	ScanModels  bool           `long:"scan-models" short:"m" description:"includes models that were annotated with 'swagger:model'"`
 	Compact     bool           `long:"compact" description:"when present, doesn't prettify the json"`
 	Output      flags.Filename `long:"output" short:"o" description:"the file to write to"`
-	Input       flags.Filename `long:"input" short:"i" description:"the file to use as input"`
+	Input       flags.Filename `long:"input" short:"i" description:"an input swagger file with which to merge"`
 	Include     []string       `long:"include" short:"c" description:"include packages matching pattern"`
 	Exclude     []string       `long:"exclude" short:"x" description:"exclude packages matching pattern"`
 	IncludeTags []string       `long:"include-tag" short:"" description:"include routes having specified tags (can be specified many times)"`
@@ -94,7 +94,7 @@ func writeToFile(swspec *spec.Swagger, pretty bool, output string) error {
 		fmt.Println(string(b))
 		return nil
 	}
-	return ioutil.WriteFile(output, b, 0644)
+	return ioutil.WriteFile(output, b, 0644) // #nosec
 }
 
 func marshalToJSONFormat(swspec *spec.Swagger, pretty bool) ([]byte, error) {

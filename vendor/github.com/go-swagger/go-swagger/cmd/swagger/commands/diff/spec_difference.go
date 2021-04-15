@@ -1,9 +1,12 @@
 package diff
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
-	"log"
+	"io"
 	"sort"
+	"strings"
 )
 
 // SpecDifference encapsulates the details of an individual diff in part of a spec
@@ -87,37 +90,37 @@ func (sd SpecDifference) String() string {
 	prefix := ""
 	direction := ""
 
-	if isResponse {
-		direction = " Response"
+	if hasMethod {
 		if hasURL {
-			if hasMethod {
-				prefix = fmt.Sprintf("%s:%s -> %d", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method, sd.DifferenceLocation.Response)
-			} else {
-				prefix = fmt.Sprintf("%s ", sd.DifferenceLocation.URL)
-			}
+			prefix = fmt.Sprintf("%s:%s", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method)
+		}
+		if isResponse {
+			prefix += fmt.Sprintf(" -> %d", sd.DifferenceLocation.Response)
+			direction = "Response"
+		} else {
+			direction = "Request"
 		}
 	} else {
-		if hasURL {
-			if hasMethod {
-				direction = " Request"
-				prefix = fmt.Sprintf("%s:%s", sd.DifferenceLocation.URL, sd.DifferenceLocation.Method)
-			} else {
-				prefix = fmt.Sprintf("%s ", sd.DifferenceLocation.URL)
-			}
-		} else {
-			prefix = " Metadata"
-		}
+		prefix = sd.DifferenceLocation.URL
 	}
 
 	paramOrPropertyLocation := ""
 	if sd.DifferenceLocation.Node != nil {
-		paramOrPropertyLocation = " - " + sd.DifferenceLocation.Node.String() + " "
+		paramOrPropertyLocation = sd.DifferenceLocation.Node.String()
 	}
 	optionalInfo := ""
 	if sd.DiffInfo != "" {
-		optionalInfo = fmt.Sprintf(" <%s>", sd.DiffInfo)
+		optionalInfo = sd.DiffInfo
 	}
-	return fmt.Sprintf("%s%s%s- %s%s", prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo)
+
+	items := []string{}
+	for _, item := range []string{prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo} {
+		if item != "" {
+			items = append(items, item)
+		}
+	}
+	return strings.Join(items, " - ")
+	// return fmt.Sprintf("%s%s%s - %s%s", prefix, direction, paramOrPropertyLocation, sd.Code.Description(), optionalInfo)
 }
 
 func (sd SpecDifferences) addDiff(diff SpecDifference) SpecDifferences {
@@ -131,19 +134,23 @@ func (sd SpecDifferences) addDiff(diff SpecDifference) SpecDifferences {
 }
 
 // ReportCompatibility lists and spec
-func (sd *SpecDifferences) ReportCompatibility() error {
+func (sd *SpecDifferences) ReportCompatibility() (io.Reader, error, error) {
+	var out bytes.Buffer
 	breakingCount := sd.BreakingChangeCount()
 	if breakingCount > 0 {
-		fmt.Printf("\nBREAKING CHANGES:\n=================\n")
-		sd.reportChanges(Breaking)
-		return fmt.Errorf("compatibility Test FAILED: %d Breaking changes detected", breakingCount)
+		fmt.Fprintln(&out, "\nBREAKING CHANGES:\n=================")
+		_, _ = out.ReadFrom(sd.reportChanges(Breaking))
+		msg := fmt.Sprintf("compatibility test FAILED: %d breaking changes detected", breakingCount)
+		fmt.Fprintln(&out, msg)
+		return &out, nil, errors.New(msg)
 	}
-	log.Printf("Compatibility test OK. No breaking changes identified.")
-	return nil
+	fmt.Fprintf(&out, "compatibility test OK. No breaking changes identified.")
+	return &out, nil, nil
 }
 
-func (sd SpecDifferences) reportChanges(compat Compatibility) {
+func (sd SpecDifferences) reportChanges(compat Compatibility) io.Reader {
 	toReportList := []string{}
+	var out bytes.Buffer
 
 	for _, diff := range sd {
 		if diff.Compatibility == compat {
@@ -156,35 +163,36 @@ func (sd SpecDifferences) reportChanges(compat Compatibility) {
 	})
 
 	for _, eachDiff := range toReportList {
-		fmt.Println(eachDiff)
+		fmt.Fprintln(&out, eachDiff)
 	}
+	return &out
 }
 
 // ReportAllDiffs lists all the diffs between two specs
-func (sd SpecDifferences) ReportAllDiffs(fmtJSON bool) error {
+func (sd SpecDifferences) ReportAllDiffs(fmtJSON bool) (io.Reader, error, error) {
 	if fmtJSON {
-
 		b, err := JSONMarshal(sd)
 		if err != nil {
-			log.Fatalf("Couldn't print results: %v", err)
+			return nil, fmt.Errorf("couldn't print results: %v", err), nil
 		}
-		pretty, err := prettyprint(b)
-		if err != nil {
-			log.Fatalf("Couldn't print results: %v", err)
-		}
-		fmt.Println(string(pretty))
-		return nil
+		out, err := prettyprint(b)
+		return out, err, nil
 	}
 	numDiffs := len(sd)
 	if numDiffs == 0 {
-		fmt.Println("No changes identified")
-		return nil
+		return bytes.NewBuffer([]byte("No changes identified")), nil, nil
 	}
 
+	var out bytes.Buffer
 	if numDiffs != sd.BreakingChangeCount() {
-		fmt.Println("NON-BREAKING CHANGES:\n=====================")
-		sd.reportChanges(NonBreaking)
+		fmt.Fprintln(&out, "NON-BREAKING CHANGES:\n=====================")
+		_, _ = out.ReadFrom(sd.reportChanges(NonBreaking))
 	}
 
-	return sd.ReportCompatibility()
+	more, err, warn := sd.ReportCompatibility()
+	if err != nil {
+		return nil, err, warn
+	}
+	_, _ = out.ReadFrom(more)
+	return &out, nil, warn
 }

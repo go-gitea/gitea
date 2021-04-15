@@ -69,7 +69,7 @@ func functionName(programCounter uintptr) []byte {
 		name = name[period+1:]
 	}
 	// And we should just replace the interpunct with a dot
-	name = bytes.Replace(name, []byte("·"), []byte("."), -1)
+	name = bytes.ReplaceAll(name, []byte("·"), []byte("."))
 	return name
 }
 

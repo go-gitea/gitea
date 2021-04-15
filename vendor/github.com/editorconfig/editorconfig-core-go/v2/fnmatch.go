@@ -3,35 +3,37 @@ package editorconfig
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 )
 
 var (
-	// findLeftBrackets matches the opening left bracket {
+	// findLeftBrackets matches the opening left bracket {.
 	findLeftBrackets = regexp.MustCompile(`(^|[^\\])\{`)
-	// findLeftBrackets matches the closing right bracket {
+	// findDoubleLeftBrackets matches the duplicated opening left bracket {{.
+	findDoubleLeftBrackets = regexp.MustCompile(`(^|[^\\])\{\{`)
+	// findLeftBrackets matches the closing right bracket {.
 	findRightBrackets = regexp.MustCompile(`(^|[^\\])\}`)
-	// findNumericRange matches a range of number, e.g. -2..5
+	// findDoubleRightBrackets matches the duplicated opening left bracket {{.
+	findDoubleRightBrackets = regexp.MustCompile(`(^|[^\\])\}\}`)
+	// findNumericRange matches a range of number, e.g. -2..5.
 	findNumericRange = regexp.MustCompile(`^([+-]?\d+)\.\.([+-]?\d+)$`)
 )
 
 // FnmatchCase tests whether the name matches the given pattern case included.
 func FnmatchCase(pattern, name string) (bool, error) {
-	p, err := translate(pattern)
-	if err != nil {
-		return false, err
-	}
+	p := translate(pattern)
 
 	r, err := regexp.Compile(fmt.Sprintf("^%s$", p))
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error compiling %q: %w", pattern, err)
 	}
 
 	return r.MatchString(name), nil
 }
 
-func translate(pattern string) (string, error) {
+func translate(pattern string) string { // nolint: funlen,gocognit,gocyclo
 	index := 0
 	pat := []rune(pattern)
 	length := len(pat)
@@ -42,32 +44,44 @@ func translate(pattern string) (string, error) {
 	isEscaped := false
 	inBrackets := false
 
-	matchesBraces := len(findLeftBrackets.FindAllString(pattern, -1)) == len(findRightBrackets.FindAllString(pattern, -1))
+	// Double left and right is a hack to pass the core-test suite.
+	left := len(findLeftBrackets.FindAllString(pattern, -1))
+	doubleLeft := len(findDoubleLeftBrackets.FindAllString(pattern, -1))
+	right := len(findRightBrackets.FindAllString(pattern, -1))
+	doubleRight := len(findDoubleRightBrackets.FindAllString(pattern, -1))
+	matchesBraces := left+doubleLeft == right+doubleRight
+	pathSeparator := "/"
+
+	if runtime.GOOS == "windows" {
+		pathSeparator = regexp.QuoteMeta("\\")
+	}
 
 	for index < length {
 		r := pat[index]
 		index++
 
-		if r == '*' {
+		switch r {
+		case '*':
 			p := index
 			if p < length && pat[p] == '*' {
 				result.WriteString(".*")
 				index++
 			} else {
-				result.WriteString("[^/]*")
+				result.WriteString(fmt.Sprintf("[^%s]*", pathSeparator))
 			}
-		} else if r == '/' {
+		case '/':
 			p := index
 			if p+2 < length && pat[p] == '*' && pat[p+1] == '*' && pat[p+2] == '/' {
-				result.WriteString("(?:/|/.*/)")
+				result.WriteString(fmt.Sprintf("(?:%s|%s.*%s)", pathSeparator, pathSeparator, pathSeparator))
+
 				index += 3
 			} else {
 				result.WriteRune(r)
 			}
-		} else if r == '?' {
-			result.WriteString("[^/]")
-		} else if r == '[' {
-			if inBrackets {
+		case '?':
+			result.WriteString(fmt.Sprintf("[^%s]", pathSeparator))
+		case '[':
+			if inBrackets { // nolint: nestif
 				result.WriteString("\\[")
 			} else {
 				hasSlash := false
@@ -81,6 +95,7 @@ func translate(pattern string) (string, error) {
 					res.WriteRune(pat[p])
 					if pat[p] == '/' && pat[p-1] != '\\' {
 						hasSlash = true
+
 						break
 					}
 					p++
@@ -98,14 +113,14 @@ func translate(pattern string) (string, error) {
 					}
 				}
 			}
-		} else if r == ']' {
+		case ']':
 			if inBrackets && pat[index-2] == '\\' {
 				result.WriteString("\\]")
 			} else {
 				result.WriteRune(r)
 				inBrackets = false
 			}
-		} else if r == '{' {
+		case '{':
 			hasComma := false
 			p := index
 			res := strings.Builder{}
@@ -114,64 +129,79 @@ func translate(pattern string) (string, error) {
 				if pat[p] == '}' && pat[p-1] != '\\' {
 					break
 				}
+
 				res.WriteRune(pat[p])
+
 				if pat[p] == ',' && pat[p-1] != '\\' {
 					hasComma = true
+
 					break
 				}
 				p++
 			}
 
-			if !hasComma && p < length {
+			switch {
+			case !hasComma && p < length:
 				inner := res.String()
+
 				sub := findNumericRange.FindStringSubmatch(inner)
 				if len(sub) == 3 {
 					from, _ := strconv.Atoi(sub[1])
 					to, _ := strconv.Atoi(sub[2])
+
 					result.WriteString("(?:")
+
 					// XXX does not scale well
 					for i := from; i < to; i++ {
 						result.WriteString(strconv.Itoa(i))
 						result.WriteRune('|')
 					}
+
 					result.WriteString(strconv.Itoa(to))
 					result.WriteRune(')')
 				} else {
-					r, _ := translate(inner)
+					r := translate(inner)
+
 					result.WriteString(fmt.Sprintf("\\{%s\\}", r))
 				}
+
 				index = p + 1
-			} else if matchesBraces {
+			case matchesBraces:
 				result.WriteString("(?:")
 				braceLevel++
-			} else {
+			default:
 				result.WriteString("\\{")
 			}
-		} else if r == '}' {
+		case '}':
 			if braceLevel > 0 {
 				if isEscaped {
 					result.WriteRune('}')
+
 					isEscaped = false
 				} else {
 					result.WriteRune(')')
+
 					braceLevel--
 				}
 			} else {
 				result.WriteString("\\}")
 			}
-		} else if r == ',' {
+		case ',':
 			if braceLevel == 0 || isEscaped {
 				result.WriteRune(r)
 			} else {
 				result.WriteRune('|')
 			}
-		} else if r != '\\' || isEscaped {
-			result.WriteString(regexp.QuoteMeta(string(r)))
-			isEscaped = false
-		} else {
-			isEscaped = true
+		default:
+			if r != '\\' || isEscaped {
+				result.WriteString(regexp.QuoteMeta(string(r)))
+
+				isEscaped = false
+			} else {
+				isEscaped = true
+			}
 		}
 	}
 
-	return result.String(), nil
+	return result.String()
 }

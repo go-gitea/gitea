@@ -1,5 +1,10 @@
 goldmark-meta
 =========================
+[![GoDev][godev-image]][godev-url]
+
+[godev-image]: https://pkg.go.dev/badge/github.com/yuin/goldmark-meta
+[godev-url]: https://pkg.go.dev/github.com/yuin/goldmark-meta
+
 
 goldmark-meta is an extension for the [goldmark](http://github.com/yuin/goldmark) 
 that allows you to define document metadata in YAML format.

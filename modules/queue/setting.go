@@ -5,12 +5,12 @@
 package queue
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 )
 
 func validType(t string) (Type, error) {
@@ -27,26 +27,11 @@ func validType(t string) (Type, error) {
 
 func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	q := setting.GetQueueSettings(name)
-	opts := make(map[string]interface{})
-	opts["Name"] = name
-	opts["QueueLength"] = q.Length
-	opts["BatchLength"] = q.BatchLength
-	opts["DataDir"] = q.DataDir
-	opts["Addresses"] = q.Addresses
-	opts["Network"] = q.Network
-	opts["Password"] = q.Password
-	opts["DBIndex"] = q.DBIndex
-	opts["QueueName"] = q.QueueName
-	opts["SetName"] = q.SetName
-	opts["Workers"] = q.Workers
-	opts["MaxWorkers"] = q.MaxWorkers
-	opts["BlockTimeout"] = q.BlockTimeout
-	opts["BoostTimeout"] = q.BoostTimeout
-	opts["BoostWorkers"] = q.BoostWorkers
 
-	cfg, err := json.Marshal(opts)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	cfg, err := json.Marshal(q)
 	if err != nil {
-		log.Error("Unable to marshall generic options: %v Error: %v", opts, err)
+		log.Error("Unable to marshall generic options: %v Error: %v", q, err)
 		log.Error("Unable to create queue for %s", name, err)
 		return q, []byte{}
 	}
@@ -74,7 +59,8 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 			Timeout:     q.Timeout,
 			MaxAttempts: q.MaxAttempts,
 			Config:      cfg,
-			QueueLength: q.Length,
+			QueueLength: q.QueueLength,
+			Name:        name,
 		}, exemplar)
 	}
 	if err != nil {
@@ -112,7 +98,7 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 			Timeout:     q.Timeout,
 			MaxAttempts: q.MaxAttempts,
 			Config:      cfg,
-			QueueLength: q.Length,
+			QueueLength: q.QueueLength,
 		}, exemplar)
 	}
 	if err != nil {

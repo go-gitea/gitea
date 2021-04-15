@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -20,8 +19,15 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
-// Stopwatches is a List ful of Stopwatch
-type Stopwatches []Stopwatch
+// Seconds returns the amount of time passed since creation, based on local server time
+func (s Stopwatch) Seconds() int64 {
+	return int64(timeutil.TimeStampNow() - s.CreatedUnix)
+}
+
+// Duration returns a human-readable duration string based on local server time
+func (s Stopwatch) Duration() string {
+	return SecToTime(s.Seconds())
+}
 
 func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, err error) {
 	sw = new(Stopwatch)
@@ -33,14 +39,14 @@ func getStopwatch(e Engine, userID, issueID int64) (sw *Stopwatch, exists bool, 
 }
 
 // GetUserStopwatches return list of all stopwatches of a user
-func GetUserStopwatches(userID int64, listOptions ListOptions) (*Stopwatches, error) {
-	sws := new(Stopwatches)
+func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, error) {
+	sws := make([]*Stopwatch, 0, 8)
 	sess := x.Where("stopwatch.user_id = ?", userID)
 	if listOptions.Page != 0 {
 		sess = listOptions.setSessionPagination(sess)
 	}
 
-	err := sess.Find(sws)
+	err := sess.Find(&sws)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +54,7 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) (*Stopwatches, er
 }
 
 // StopwatchExists returns true if the stopwatch exists
-func StopwatchExists(userID int64, issueID int64) bool {
+func StopwatchExists(userID, issueID int64) bool {
 	_, exists, _ := getStopwatch(x, userID, issueID)
 	return exists
 }
@@ -94,6 +100,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			Repo:    issue.Repo,
 			Content: SecToTime(timediff),
 			Type:    CommentTypeStopTracking,
+			TimeID:  tt.ID,
 		}); err != nil {
 			return err
 		}
@@ -101,6 +108,21 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 			return err
 		}
 	} else {
+		// if another stopwatch is running: stop it
+		exists, sw, err := HasUserStopwatch(user.ID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			issue, err := getIssueByID(x, sw.IssueID)
+			if err != nil {
+				return err
+			}
+			if err := CreateOrStopIssueStopwatch(user, issue); err != nil {
+				return err
+			}
+		}
+
 		// Create stopwatch
 		sw = &Stopwatch{
 			UserID:  user.ID,
@@ -178,29 +200,4 @@ func SecToTime(duration int64) string {
 	}
 
 	return hrs
-}
-
-// APIFormat convert Stopwatch type to api.StopWatch type
-func (sw *Stopwatch) APIFormat() (api.StopWatch, error) {
-	issue, err := getIssueByID(x, sw.IssueID)
-	if err != nil {
-		return api.StopWatch{}, err
-	}
-	return api.StopWatch{
-		Created:    sw.CreatedUnix.AsTime(),
-		IssueIndex: issue.Index,
-	}, nil
-}
-
-// APIFormat convert Stopwatches type to api.StopWatches type
-func (sws Stopwatches) APIFormat() (api.StopWatches, error) {
-	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
-	for _, sw := range sws {
-		apiSW, err := sw.APIFormat()
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, apiSW)
-	}
-	return result, nil
 }

@@ -5,16 +5,16 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/satori/go.uuid"
+	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -42,28 +42,14 @@ func (a *Attachment) IncreaseDownloadCount() error {
 	return nil
 }
 
-// APIFormat converts models.Attachment to api.Attachment
-func (a *Attachment) APIFormat() *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
-	}
+// AttachmentRelativePath returns the relative path
+func AttachmentRelativePath(uuid string) string {
+	return path.Join(uuid[0:1], uuid[1:2], uuid)
 }
 
-// AttachmentLocalPath returns where attachment is stored in local file
-// system based on given UUID.
-func AttachmentLocalPath(uuid string) string {
-	return path.Join(setting.AttachmentPath, uuid[0:1], uuid[1:2], uuid)
-}
-
-// LocalPath returns where attachment is stored in local file system.
-func (a *Attachment) LocalPath() string {
-	return AttachmentLocalPath(a.UUID)
+// RelativePath returns the relative path of the attachment
+func (a *Attachment) RelativePath() string {
+	return AttachmentRelativePath(a.UUID)
 }
 
 // DownloadURL returns the download url of the attached file
@@ -97,31 +83,13 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 
 // NewAttachment creates a new attachment object.
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.NewV4().String()
+	attach.UUID = gouuid.New().String()
 
-	localPath := attach.LocalPath()
-	if err = os.MkdirAll(path.Dir(localPath), os.ModePerm); err != nil {
-		return nil, fmt.Errorf("MkdirAll: %v", err)
-	}
-
-	fw, err := os.Create(localPath)
+	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file), -1)
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
-	defer fw.Close()
-
-	if _, err = fw.Write(buf); err != nil {
-		return nil, fmt.Errorf("Write: %v", err)
-	} else if _, err = io.Copy(fw, file); err != nil {
-		return nil, fmt.Errorf("Copy: %v", err)
-	}
-
-	// Update file size
-	var fi os.FileInfo
-	if fi, err = fw.Stat(); err != nil {
-		return nil, fmt.Errorf("file size: %v", err)
-	}
-	attach.Size = fi.Size()
+	attach.Size = size
 
 	if _, err := x.Insert(attach); err != nil {
 		return nil, err
@@ -136,9 +104,8 @@ func GetAttachmentByID(id int64) (*Attachment, error) {
 }
 
 func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
-	attach := &Attachment{ID: id}
-
-	if has, err := e.Get(attach); err != nil {
+	attach := &Attachment{}
+	if has, err := e.ID(id).Get(attach); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrAttachmentNotExist{ID: id, UUID: ""}
@@ -147,8 +114,8 @@ func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
 }
 
 func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
-	attach := &Attachment{UUID: uuid}
-	has, err := e.Get(attach)
+	attach := &Attachment{}
+	has, err := e.Where("uuid=?", uuid).Get(attach)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -158,8 +125,8 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 }
 
 // GetAttachmentsByUUIDs returns attachment by given UUID list.
-func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
-	return getAttachmentsByUUIDs(x, uuids)
+func GetAttachmentsByUUIDs(ctx DBContext, uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(ctx.e, uuids)
 }
 
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
@@ -216,29 +183,29 @@ func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
 func DeleteAttachment(a *Attachment, remove bool) error {
-	_, err := DeleteAttachments([]*Attachment{a}, remove)
+	_, err := DeleteAttachments(DefaultDBContext(), []*Attachment{a}, remove)
 	return err
 }
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
-func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
+func DeleteAttachments(ctx DBContext, attachments []*Attachment, remove bool) (int, error) {
 	if len(attachments) == 0 {
 		return 0, nil
 	}
 
-	var ids = make([]int64, 0, len(attachments))
+	ids := make([]int64, 0, len(attachments))
 	for _, a := range attachments {
 		ids = append(ids, a.ID)
 	}
 
-	cnt, err := x.In("id", ids).NoAutoCondition().Delete(attachments[0])
+	cnt, err := ctx.e.In("id", ids).NoAutoCondition().Delete(attachments[0])
 	if err != nil {
 		return 0, err
 	}
 
 	if remove {
 		for i, a := range attachments {
-			if err := os.Remove(a.LocalPath()); err != nil {
+			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
 				return i, err
 			}
 		}
@@ -249,28 +216,35 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
 func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
 	attachments, err := GetAttachmentsByIssueID(issueID)
-
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(DefaultDBContext(), attachments, remove)
 }
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
 func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	attachments, err := GetAttachmentsByCommentID(commentID)
-
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(DefaultDBContext(), attachments, remove)
 }
 
 // UpdateAttachment updates the given attachment in database
 func UpdateAttachment(atta *Attachment) error {
 	return updateAttachment(x, atta)
+}
+
+// UpdateAttachmentByUUID Updates attachment via uuid
+func UpdateAttachmentByUUID(ctx DBContext, attach *Attachment, cols ...string) error {
+	if attach.UUID == "" {
+		return fmt.Errorf("Attachement uuid should not blank")
+	}
+	_, err := ctx.e.Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
+	return err
 }
 
 func updateAttachment(e Engine, atta *Attachment) error {
@@ -289,4 +263,26 @@ func updateAttachment(e Engine, atta *Attachment) error {
 func DeleteAttachmentsByRelease(releaseID int64) error {
 	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
+}
+
+// IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
+func IterateAttachment(f func(attach *Attachment) error) error {
+	var start int
+	const batchSize = 100
+	for {
+		attachments := make([]*Attachment, 0, batchSize)
+		if err := x.Limit(batchSize, start).Find(&attachments); err != nil {
+			return err
+		}
+		if len(attachments) == 0 {
+			return nil
+		}
+		start += len(attachments)
+
+		for _, attach := range attachments {
+			if err := f(attach); err != nil {
+				return err
+			}
+		}
+	}
 }

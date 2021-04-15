@@ -41,7 +41,7 @@ type ClientRequestWriter interface {
 // add information to a swagger client request
 type ClientRequest interface {
 	SetHeaderParam(string, ...string) error
-	
+
 	GetHeaderParams() http.Header
 
 	SetQueryParam(string, ...string) error
@@ -100,4 +100,54 @@ func (n *namedReadCloser) Read(p []byte) (int, error) {
 }
 func (n *namedReadCloser) Name() string {
 	return n.name
+}
+
+type TestClientRequest struct {
+	Headers http.Header
+	Body    interface{}
+}
+
+func (t *TestClientRequest) SetHeaderParam(name string, values ...string) error {
+	if t.Headers == nil {
+		t.Headers = make(http.Header)
+	}
+	t.Headers.Set(name, values[0])
+	return nil
+}
+
+func (t *TestClientRequest) SetQueryParam(_ string, _ ...string) error { return nil }
+
+func (t *TestClientRequest) SetFormParam(_ string, _ ...string) error { return nil }
+
+func (t *TestClientRequest) SetPathParam(_ string, _ string) error { return nil }
+
+func (t *TestClientRequest) SetFileParam(_ string, _ ...NamedReadCloser) error { return nil }
+
+func (t *TestClientRequest) SetBodyParam(body interface{}) error {
+	t.Body = body
+	return nil
+}
+
+func (t *TestClientRequest) SetTimeout(time.Duration) error {
+	return nil
+}
+
+func (t *TestClientRequest) GetQueryParams() url.Values { return nil }
+
+func (t *TestClientRequest) GetMethod() string { return "" }
+
+func (t *TestClientRequest) GetPath() string { return "" }
+
+func (t *TestClientRequest) GetBody() []byte { return nil }
+
+func (t *TestClientRequest) GetBodyParam() interface{} {
+	return t.Body
+}
+
+func (t *TestClientRequest) GetFileParam() map[string][]NamedReadCloser {
+	return nil
+}
+
+func (t *TestClientRequest) GetHeaderParams() http.Header {
+	return t.Headers
 }

@@ -6,12 +6,14 @@
 package pull
 
 import (
-	"bytes"
 	"fmt"
+	"io"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -29,7 +31,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	// - Comments that are part of a review
 	// - Comments that reply to an existing review
 
-	if !isReview {
+	if !isReview && replyReviewID != 0 {
 		// It's not part of a review; maybe a reply to a review comment or a single comment.
 		// Check if there are reviews for that line already; if there are, this is a reply
 		if existsReview, err = models.ReviewExists(issue, treePath, line); err != nil {
@@ -56,7 +58,12 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment)
+		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		if err != nil {
+			return nil, err
+		}
+
+		notification.NotifyCreateIssueComment(doer, issue.Repo, issue, comment, mentions)
 
 		return comment, nil
 	}
@@ -67,14 +74,13 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = models.CreateReview(models.CreateReviewOptions{
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
 			Official: false,
 			CommitID: latestCommitID,
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, err
 		}
 	}
@@ -104,6 +110,8 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 	return comment, nil
 }
 
+var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
+
 // createCodeComment creates a plain code comment at the specified line / path
 func createCodeComment(doer *models.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
@@ -120,41 +128,89 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	}
 	defer gitRepo.Close()
 
-	// FIXME validate treePath
-	// Get latest commit referencing the commented line
-	// No need for get commit for base branch changes
+	invalidated := false
+	head := pr.GetGitRefName()
 	if line > 0 {
-		commit, err := gitRepo.LineBlame(pr.GetGitRefName(), gitRepo.Path, treePath, uint(line))
-		if err == nil {
-			commitID = commit.ID.String()
-		} else if !strings.Contains(err.Error(), "exit status 128 - fatal: no such path") {
-			return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+		if reviewID != 0 {
+			first, err := models.FindComments(models.FindCommentsOptions{
+				ReviewID: reviewID,
+				Line:     line,
+				TreePath: treePath,
+				Type:     models.CommentTypeCode,
+				ListOptions: models.ListOptions{
+					PageSize: 1,
+					Page:     1,
+				},
+			})
+			if err == nil && len(first) > 0 {
+				commitID = first[0].CommitSHA
+				invalidated = first[0].Invalidated
+				patch = first[0].Patch
+			} else if err != nil && !models.IsErrCommentNotExist(err) {
+				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %v", reviewID, line, treePath, err)
+			} else {
+				review, err := models.GetReviewByID(reviewID)
+				if err == nil && len(review.CommitID) > 0 {
+					head = review.CommitID
+				} else if err != nil && !models.IsErrReviewNotExist(err) {
+					return nil, fmt.Errorf("GetReviewByID %d. Error: %v", reviewID, err)
+				}
+			}
+		}
+
+		if len(commitID) == 0 {
+			// FIXME validate treePath
+			// Get latest commit referencing the commented line
+			// No need for get commit for base branch changes
+			commit, err := gitRepo.LineBlame(head, gitRepo.Path, treePath, uint(line))
+			if err == nil {
+				commitID = commit.ID.String()
+			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
+				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %v", pr.GetGitRefName(), gitRepo.Path, treePath, line, err)
+			}
 		}
 	}
 
 	// Only fetch diff if comment is review comment
-	if reviewID != 0 {
+	if len(patch) == 0 && reviewID != 0 {
 		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
 		}
-		patchBuf := new(bytes.Buffer)
-		if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, patchBuf); err != nil {
-			return nil, fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", err, gitRepo.Path, pr.MergeBase, headCommitID, treePath)
+		if len(commitID) == 0 {
+			commitID = headCommitID
 		}
-		patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		reader, writer := io.Pipe()
+		defer func() {
+			_ = reader.Close()
+			_ = writer.Close()
+		}()
+		go func() {
+			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
+				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %v", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
+				return
+			}
+			_ = writer.Close()
+		}()
+
+		patch, err = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		if err != nil {
+			log.Error("Error whilst generating patch: %v", err)
+			return nil, err
+		}
 	}
 	return models.CreateComment(&models.CreateCommentOptions{
-		Type:      models.CommentTypeCode,
-		Doer:      doer,
-		Repo:      repo,
-		Issue:     issue,
-		Content:   content,
-		LineNum:   line,
-		TreePath:  treePath,
-		CommitSHA: commitID,
-		ReviewID:  reviewID,
-		Patch:     patch,
+		Type:        models.CommentTypeCode,
+		Doer:        doer,
+		Repo:        repo,
+		Issue:       issue,
+		Content:     content,
+		LineNum:     line,
+		TreePath:    treePath,
+		CommitSHA:   commitID,
+		ReviewID:    reviewID,
+		Patch:       patch,
+		Invalidated: invalidated,
 	})
 }
 
@@ -189,7 +245,76 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	notification.NotifyPullRequestReview(pr, review, comm)
+	ctx := models.DefaultDBContext()
+	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	notification.NotifyPullRequestReview(pr, review, comm, mentions)
+
+	for _, lines := range review.CodeComments {
+		for _, comments := range lines {
+			for _, codeComment := range comments {
+				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				if err != nil {
+					return nil, nil, err
+				}
+				notification.NotifyPullRequestCodeComment(pr, codeComment, mentions)
+			}
+		}
+	}
 
 	return review, comm, nil
+}
+
+// DismissReview dismissing stale review by repo admin
+func DismissReview(reviewID int64, message string, doer *models.User, isDismiss bool) (comment *models.Comment, err error) {
+	review, err := models.GetReviewByID(reviewID)
+	if err != nil {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+	}
+
+	if err = models.DismissReview(review, isDismiss); err != nil {
+		return
+	}
+
+	if !isDismiss {
+		return nil, nil
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadPullRequest(); err != nil {
+		return
+	}
+	if err = review.Issue.LoadAttributes(); err != nil {
+		return
+	}
+
+	comment, err = models.CreateComment(&models.CreateCommentOptions{
+		Doer:     doer,
+		Content:  message,
+		Type:     models.CommentTypeDismissReview,
+		ReviewID: review.ID,
+		Issue:    review.Issue,
+		Repo:     review.Issue.Repo,
+	})
+	if err != nil {
+		return
+	}
+
+	comment.Review = review
+	comment.Poster = doer
+	comment.Issue = review.Issue
+
+	notification.NotifyPullRevieweDismiss(doer, review, comment)
+
+	return
 }

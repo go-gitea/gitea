@@ -39,11 +39,14 @@ import (
 // EmptyDocumentLength is the length of a document that has been started/ended but has no elements.
 const EmptyDocumentLength = 5
 
+// nullTerminator is a string version of the 0 byte that is appended at the end of cstrings.
+const nullTerminator = string(byte(0))
+
 // AppendType will append t to dst and return the extended buffer.
 func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }
 
 // AppendKey will append key to dst and return the extended buffer.
-func AppendKey(dst []byte, key string) []byte { return append(dst, key+string(0x00)...) }
+func AppendKey(dst []byte, key string) []byte { return append(dst, key+nullTerminator...) }
 
 // AppendHeader will append Type t and key to dst and return the extended
 // buffer.
@@ -121,6 +124,9 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 	}
 	elemLength := 1 + idx + 1 + int(length)
 	if elemLength > len(src) {
+		return nil, src, false
+	}
+	if elemLength < 0 {
 		return nil, src, false
 	}
 	return src[:elemLength], src[elemLength:], true
@@ -424,7 +430,7 @@ func AppendNullElement(dst []byte, key string) []byte { return AppendHeader(dst,
 
 // AppendRegex will append pattern and options to dst and return the extended buffer.
 func AppendRegex(dst []byte, pattern, options string) []byte {
-	return append(dst, pattern+string(0x00)+options+string(0x00)...)
+	return append(dst, pattern+nullTerminator+options+nullTerminator...)
 }
 
 // AppendRegexElement will append a BSON regex element using key, pattern, and
@@ -723,13 +729,18 @@ func appendi32(dst []byte, i32 int32) []byte {
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
 // there aren't enough bytes to read a valid length, src is returned unomdified and the returned
 // bool will be false.
-func ReadLength(src []byte) (int32, []byte, bool) { return readi32(src) }
+func ReadLength(src []byte) (int32, []byte, bool) {
+	ln, src, ok := readi32(src)
+	if ln < 0 {
+		return ln, src, false
+	}
+	return ln, src, ok
+}
 
 func readi32(src []byte) (int32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
-
 	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24), src[4:], true
 }
 

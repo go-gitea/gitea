@@ -5,12 +5,12 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/structs"
-
 	"xorm.io/xorm"
 )
 
 func fixMigratedRepositoryServiceType(x *xorm.Engine) error {
-	_, err := x.Exec("UPDATE repository SET original_service_type = ? WHERE original_url LIKE 'https://github.com/%'", structs.GithubService)
+	// structs.GithubService:
+	// GithubService = 2
+	_, err := x.Exec("UPDATE repository SET original_service_type = ? WHERE original_url LIKE 'https://github.com/%'", 2)
 	return err
 }

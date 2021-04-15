@@ -25,7 +25,7 @@ Generate ASCII table on the fly ...  Installation is simple as
 - Set custom footer support
 - Optional identical cells merging
 - Set custom caption
-- Optional reflowing of paragrpahs in multi-line cells.
+- Optional reflowing of paragraphs in multi-line cells.
 
 #### Example   1 - Basic
 ```go
@@ -197,6 +197,41 @@ table.Render()
 +----------+--------------------------+-------+---------+
 ```
 
+#### Example 7  - Identical cells merging (specify the column index to merge)
+```go
+data := [][]string{
+  []string{"1/1/2014", "Domain name", "1234", "$10.98"},
+  []string{"1/1/2014", "January Hosting", "1234", "$10.98"},
+  []string{"1/4/2014", "February Hosting", "3456", "$51.00"},
+  []string{"1/4/2014", "February Extra Bandwidth", "4567", "$30.00"},
+}
+
+table := tablewriter.NewWriter(os.Stdout)
+table.SetHeader([]string{"Date", "Description", "CV2", "Amount"})
+table.SetFooter([]string{"", "", "Total", "$146.93"})
+table.SetAutoMergeCellsByColumnIndex([]int{2, 3})
+table.SetRowLine(true)
+table.AppendBulk(data)
+table.Render()
+```
+
+##### Output 7
+```
++----------+--------------------------+-------+---------+
+|   DATE   |       DESCRIPTION        |  CV2  | AMOUNT  |
++----------+--------------------------+-------+---------+
+| 1/1/2014 | Domain name              |  1234 | $10.98  |
++----------+--------------------------+       +         +
+| 1/1/2014 | January Hosting          |       |         |
++----------+--------------------------+-------+---------+
+| 1/4/2014 | February Hosting         |  3456 | $51.00  |
++----------+--------------------------+-------+---------+
+| 1/4/2014 | February Extra Bandwidth |  4567 | $30.00  |
++----------+--------------------------+-------+---------+
+|                                       TOTAL | $146.93 |
++----------+--------------------------+-------+---------+
+```
+
 
 #### Table with color
 ```go
@@ -233,7 +268,7 @@ table.Render()
 #### Table with color Output
 ![Table with Color](https://cloud.githubusercontent.com/assets/6460392/21101956/bbc7b356-c0a1-11e6-9f36-dba694746efc.png)
 
-#### Example - 7 Table Cells with Color
+#### Example - 8 Table Cells with Color
 
 Individual Cell Colors from `func Rich` take precedence over Column Colors
 
@@ -289,7 +324,7 @@ table.Render()
 ##### Table cells with color Output
 ![Table cells with Color](https://user-images.githubusercontent.com/9064687/63969376-bcd88d80-ca6f-11e9-9466-c3d954700b25.png)
 
-#### Example 8 - Set table caption
+#### Example 9 - Set table caption
 ```go
 data := [][]string{
     []string{"A", "The Good", "500"},
@@ -310,7 +345,7 @@ table.Render() // Send output
 
 Note: Caption text will wrap with total width of rendered table.
 
-##### Output 7
+##### Output 9
 ```
 +------+-----------------------+--------+
 | NAME |         SIGN          | RATING |
@@ -323,7 +358,7 @@ Note: Caption text will wrap with total width of rendered table.
 Movie ratings.
 ```
 
-#### Example 8 - Set NoWhiteSpace and TablePadding option
+#### Example 10 - Set NoWhiteSpace and TablePadding option
 ```go
 data := [][]string{
     {"node1.example.com", "Ready", "compute", "1.11"},
@@ -349,7 +384,7 @@ table.AppendBulk(data) // Add Bulk Data
 table.Render()
 ```
 
-##### Output 8
+##### Output 10
 ```
 NAME             	STATUS  	ROLE   	VERSION 
 node1.example.com	Ready   	compute	1.11   	

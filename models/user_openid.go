@@ -11,10 +11,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// ErrOpenIDNotExist openid is not known
-	ErrOpenIDNotExist = errors.New("OpenID is unknown")
-)
+// ErrOpenIDNotExist openid is not known
+var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
 type UserOpenID struct {
@@ -37,17 +35,13 @@ func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	return openids, nil
 }
 
+// isOpenIDUsed returns true if the openid has been used.
 func isOpenIDUsed(e Engine, uri string) (bool, error) {
 	if len(uri) == 0 {
 		return true, nil
 	}
 
 	return e.Get(&UserOpenID{URI: uri})
-}
-
-// IsOpenIDUsed returns true if the openid has been used.
-func IsOpenIDUsed(openid string) (bool, error) {
-	return isOpenIDUsed(x, openid)
 }
 
 // NOTE: make sure openid.URI is normalized already
@@ -72,7 +66,7 @@ func AddUserOpenID(openid *UserOpenID) error {
 func DeleteUserOpenID(openid *UserOpenID) (err error) {
 	var deleted int64
 	// ask to check UID
-	var address = UserOpenID{
+	address := UserOpenID{
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {
@@ -111,8 +105,8 @@ func GetUserByOpenID(uri string) (*User, error) {
 	log.Trace("Normalized OpenID URI: " + uri)
 
 	// Otherwise, check in openid table
-	oid := &UserOpenID{URI: uri}
-	has, err := x.Get(oid)
+	oid := &UserOpenID{}
+	has, err := x.Where("uri=?", uri).Get(oid)
 	if err != nil {
 		return nil, err
 	}

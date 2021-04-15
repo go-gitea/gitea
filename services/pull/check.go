@@ -20,8 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/unknwon/com"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // prQueue represents a queue to handle update pull request tests
@@ -61,7 +60,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	if !has {
-		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files"); err != nil {
+		if err := pr.UpdateColsIfNotMerged("merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 			log.Error("Update[%d]: %v", pr.ID, err)
 		}
 	}
@@ -82,7 +81,11 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
 	}
-	defer os.RemoveAll(indexTmpPath)
+	defer func() {
+		if err := util.RemoveAll(indexTmpPath); err != nil {
+			log.Warn("Unable to remove temporary index path: %s: Error: %v", indexTmpPath, err)
+		}
+	}()
 
 	headFile := pr.GetGitRefName()
 
@@ -113,7 +116,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
-		// PR was fast-forwarded, so just use last commit of PR
+		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = commitID[:40]
 	}
 
@@ -134,6 +137,21 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(pr *models.PullRequest) bool {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
+		return false
+	}
+
+	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		if !config.AutodetectManualMerge {
+			return false
+		}
+	} else {
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(models.UnitTypePullRequests): %v", pr.ID, err)
+		return false
+	}
+
 	commit, err := getMergeCommit(pr)
 	if err != nil {
 		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)
@@ -198,14 +216,13 @@ func InitializePullRequests(ctx context.Context) {
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
 	for _, datum := range data {
-		prID := datum.(string)
-		id := com.StrTo(prID).MustInt64()
+		id, _ := strconv.ParseInt(datum.(string), 10, 64)
 
 		log.Trace("Testing PR ID %d from the pull requests patch checking queue", id)
 
 		pr, err := models.GetPullRequestByID(id)
 		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
+			log.Error("GetPullRequestByID[%s]: %v", datum, err)
 			continue
 		} else if pr.HasMerged {
 			continue
@@ -221,6 +238,20 @@ func handle(data ...queue.Data) {
 		}
 		checkAndUpdateStatus(pr)
 	}
+}
+
+// CheckPrsForBaseBranch check all pulls with bseBrannch
+func CheckPrsForBaseBranch(baseRepo *models.Repository, baseBranchName string) error {
+	prs, err := models.GetUnmergedPullRequestsByBaseInfo(baseRepo.ID, baseBranchName)
+	if err != nil {
+		return err
+	}
+
+	for _, pr := range prs {
+		AddToTaskQueue(pr)
+	}
+
+	return nil
 }
 
 // Init runs the task queue to test all the checking status pull requests

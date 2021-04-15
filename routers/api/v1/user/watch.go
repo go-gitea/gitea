@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -28,7 +28,7 @@ func getWatchedRepos(user *models.User, private bool, listOptions models.ListOpt
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = watched.APIFormat(access)
+		repos[i] = convert.ToRepo(watched, access)
 	}
 	return repos, nil
 }
@@ -52,7 +52,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -81,7 +81,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -124,7 +124,7 @@ func IsWatching(ctx *context.APIContext) {
 			Reason:        nil,
 			CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 			URL:           subscriptionURL(ctx.Repo.Repository),
-			RepositoryURL: repositoryURL(ctx.Repo.Repository),
+			RepositoryURL: ctx.Repo.Repository.APIURL(),
 		})
 	} else {
 		ctx.NotFound()
@@ -162,7 +162,7 @@ func Watch(ctx *context.APIContext) {
 		Reason:        nil,
 		CreatedAt:     ctx.Repo.Repository.CreatedUnix.AsTime(),
 		URL:           subscriptionURL(ctx.Repo.Repository),
-		RepositoryURL: repositoryURL(ctx.Repo.Repository),
+		RepositoryURL: ctx.Repo.Repository.APIURL(),
 	})
 
 }
@@ -197,10 +197,5 @@ func Unwatch(ctx *context.APIContext) {
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo
 func subscriptionURL(repo *models.Repository) string {
-	return repositoryURL(repo) + "/subscription"
-}
-
-// repositoryURL returns the URL of the API endpoint of a repo
-func repositoryURL(repo *models.Repository) string {
-	return setting.AppURL + "api/v1/" + repo.FullName()
+	return repo.APIURL() + "/subscription"
 }

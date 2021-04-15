@@ -8,7 +8,7 @@ linters-settings:
   maligned:
     suggest-new: true
   dupl:
-    threshold: 100
+    threshold: 150
   goconst:
     min-len: 2
     min-occurrences: 4
@@ -25,3 +25,25 @@ linters:
     # linter rather than changing code that works.
     # see: https://github.com/kyoh86/scopelint/issues/4
     - scopelint
+    - godox
+    - gocognit
+    - whitespace
+    - wsl
+    - funlen
+    - testpackage
+    - wrapcheck
+    - nlreturn
+    - gomnd
+    - goerr113
+    - exhaustivestruct
+    - errorlint
+    - nestif
+    - gofumpt
+    - godot
+    - gci
+    - dogsled
+    - paralleltest
+    - tparallel
+    - thelper
+    - ifshort
+    - forbidigo

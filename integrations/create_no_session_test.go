@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,9 +13,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,11 +58,12 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		mac = routes.NewMacaron()
-		routes.RegisterRoutes(mac)
+		c = routes.NormalRoutes()
 	}()
 
 	var config session.Options
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(oldSessionConfig), &config)
 	assert.NoError(t, err)
 
@@ -72,7 +74,7 @@ func TestSessionFileCreation(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = os.RemoveAll(tmpDir)
+			_ = util.RemoveAll(tmpDir)
 		}
 	}()
 	config.ProviderConfig = tmpDir
@@ -82,8 +84,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routes.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

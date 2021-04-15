@@ -18,7 +18,7 @@ import (
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		apiUsers[i] = convert.ToUser(users[i], ctx.User)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }
@@ -44,7 +44,7 @@ func ListMyFollowers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// produces:
 	// - application/json
@@ -74,7 +74,7 @@ func ListFollowers(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":
@@ -108,7 +108,7 @@ func ListMyFollowing(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// produces:
 	// - application/json
@@ -138,7 +138,7 @@ func ListFollowing(ctx *context.APIContext) {
 	//   type: integer
 	// - name: limit
 	//   in: query
-	//   description: page size of results, maximum page size is 50
+	//   description: page size of results
 	//   type: integer
 	// responses:
 	//   "200":

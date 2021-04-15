@@ -1,0 +1,62 @@
+{{ $r:= List .comment.Commits}}
+{{ $index := 0}}
+<div class="timeline-item commits-list">
+{{range $r}}
+	{{ $tag := printf "%s-%d" $.comment.HashTag $index }}
+	{{ $index = Add $index 1}}
+	<div class="singular-commit" id="{{$tag}}">
+		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
+		{{if .User}}
+			<a href="{{AppSubUrl}}/{{.User.Name}}">
+				{{avatar .User}}
+			</a>
+		{{else}}
+			{{avatarByEmail .Author.Email .Author.Name}}
+		{{end}}
+
+		<span class="ui float right shabox">
+			{{if eq (CommitType .) "SignCommitWithStatuses"}}
+				{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $.root}}
+			{{end}}
+			{{$class := "ui sha label"}}
+			{{if .Signature}}
+				{{$class = (printf "%s%s" $class " isSigned")}}
+				{{if .Verification.Verified}}
+					{{if eq .Verification.TrustStatus "trusted"}}
+						{{$class = (printf "%s%s" $class " isVerified")}}
+					{{else if eq .Verification.TrustStatus "untrusted"}}
+						{{$class = (printf "%s%s" $class " isVerifiedUntrusted")}}
+					{{else}}
+						{{$class = (printf "%s%s" $class " isVerifiedUnmatched")}}
+					{{end}}
+				{{else if .Verification.Warning}}
+					{{$class = (printf "%s%s" $class " isWarning")}}
+				{{end}}
+			{{end}}
+			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
+				<a href="{{AppSubUrl}}/{{$.comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+			{{else}}
+				<span class="{{$class}}">
+			{{end}}
+			<span class="shortsha">{{ShortSha .ID.String}}</span>
+			{{if .Signature}}
+				{{template "repo/shabox_badge" dict "root" $.root "verification" .Verification}}
+			{{end}}
+			{{if $.comment.Issue.PullRequest.BaseRepo.Name}}
+				</a>
+			{{else}}
+				</span>
+			{{end}}
+		</span>
+
+		{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl  $.comment.Issue.PullRequest.BaseRepo.OwnerName $.comment.Issue.PullRequest.BaseRepo.Name .ID }}
+		<span class="mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
+		{{if IsMultilineCommitMessage .Message}}
+			<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+		{{end}}
+		{{if IsMultilineCommitMessage .Message}}
+			<pre class="commit-body" style="display: none;">{{RenderCommitBody .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</pre>
+		{{end}}
+	</div>
+{{end}}
+</div>

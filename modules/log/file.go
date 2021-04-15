@@ -7,7 +7,6 @@ package log
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -15,6 +14,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // FileLogger implements LoggerProvider.
@@ -99,8 +101,9 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), log); err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	if len(log.Filename) == 0 {
 		return errors.New("config must have filename")
@@ -214,11 +217,11 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 	if err != nil {
 		zw.Close()
 		fw.Close()
-		os.Remove(fname + ".gz")
+		util.Remove(fname + ".gz")
 		return err
 	}
 	reader.Close()
-	return os.Remove(fname)
+	return util.Remove(fname)
 }
 
 func (log *FileLogger) deleteOldLog() {
@@ -233,7 +236,7 @@ func (log *FileLogger) deleteOldLog() {
 		if !info.IsDir() && info.ModTime().Unix() < (time.Now().Unix()-60*60*24*log.Maxdays) {
 			if strings.HasPrefix(filepath.Base(path), filepath.Base(log.Filename)) {
 
-				if err := os.Remove(path); err != nil {
+				if err := util.Remove(path); err != nil {
 					returnErr = fmt.Errorf("Failed to remove %s: %v", path, err)
 				}
 			}
@@ -247,6 +250,19 @@ func (log *FileLogger) deleteOldLog() {
 // flush file means sync file from disk.
 func (log *FileLogger) Flush() {
 	_ = log.mw.fd.Sync()
+}
+
+// ReleaseReopen releases and reopens log files
+func (log *FileLogger) ReleaseReopen() error {
+	closingErr := log.mw.fd.Close()
+	startingErr := log.StartLogger()
+	if startingErr != nil {
+		if closingErr != nil {
+			return fmt.Errorf("Error during closing: %v Error during starting: %v", closingErr, startingErr)
+		}
+		return startingErr
+	}
+	return closingErr
 }
 
 // GetName returns the default name for this implementation

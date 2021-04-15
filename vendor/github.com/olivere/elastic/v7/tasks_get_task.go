@@ -162,7 +162,8 @@ func (s *TasksGetTaskService) Do(ctx context.Context) (*TasksGetTaskResponse, er
 }
 
 type TasksGetTaskResponse struct {
-	Header    http.Header `json:"-"`
-	Completed bool        `json:"completed"`
-	Task      *TaskInfo   `json:"task,omitempty"`
+	Header    http.Header   `json:"-"`
+	Completed bool          `json:"completed"`
+	Task      *TaskInfo     `json:"task,omitempty"`
+	Error     *ErrorDetails `json:"error,omitempty"`
 }

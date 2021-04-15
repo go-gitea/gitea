@@ -6,15 +6,17 @@
 package org
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -34,17 +36,18 @@ func Settings(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 	ctx.Data["RepoAdminChangeTeamAccess"] = ctx.Org.Organization.RepoAdminChangeTeamAccess
-	ctx.HTML(200, tplSettingsOptions)
+	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for settings change submited
-func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
+func SettingsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateOrgSettingForm)
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["CurrentVisibility"] = ctx.Org.Organization.Visibility
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplSettingsOptions)
+		ctx.HTML(http.StatusOK, tplSettingsOptions)
 		return
 	}
 
@@ -85,20 +88,39 @@ func SettingsPost(ctx *context.Context, form auth.UpdateOrgSettingForm) {
 	org.Description = form.Description
 	org.Website = form.Website
 	org.Location = form.Location
-	org.Visibility = form.Visibility
 	org.RepoAdminChangeTeamAccess = form.RepoAdminChangeTeamAccess
+
+	visibilityChanged := form.Visibility != org.Visibility
+	org.Visibility = form.Visibility
+
 	if err := models.UpdateUser(org); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
+
+	// update forks visibility
+	if visibilityChanged {
+		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+			ctx.ServerError("GetRepositories", err)
+			return
+		}
+		for _, repo := range org.Repos {
+			if err := models.UpdateRepository(repo, true); err != nil {
+				ctx.ServerError("UpdateRepository", err)
+				return
+			}
+		}
+	}
+
 	log.Trace("Organization setting updated: %s", org.Name)
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings")
 }
 
 // SettingsAvatar response for change avatar on settings page
-func SettingsAvatar(ctx *context.Context, form auth.AvatarForm) {
-	form.Source = auth.AvatarLocal
+func SettingsAvatar(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	form.Source = forms.AvatarLocal
 	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -124,12 +146,9 @@ func SettingsDelete(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 	if ctx.Req.Method == "POST" {
-		if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsDelete, nil)
-			} else {
-				ctx.ServerError("UserSignIn", err)
-			}
+		if org.Name != ctx.Query("org_name") {
+			ctx.Data["Err_OrgName"] = true
+			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
 			return
 		}
 
@@ -147,7 +166,7 @@ func SettingsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplSettingsDelete)
+	ctx.HTML(http.StatusOK, tplSettingsDelete)
 }
 
 // Webhooks render webhook list page
@@ -155,6 +174,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["BaseLink"] = ctx.Org.OrgLink + "/settings/hooks"
+	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
 	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})
@@ -164,7 +184,7 @@ func Webhooks(ctx *context.Context) {
 	}
 
 	ctx.Data["Webhooks"] = ws
-	ctx.HTML(200, tplSettingsHooks)
+	ctx.HTML(http.StatusOK, tplSettingsHooks)
 }
 
 // DeleteWebhook response for delete webhook
@@ -175,7 +195,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Org.OrgLink + "/settings/hooks",
 	})
 }
@@ -184,8 +204,7 @@ func DeleteWebhook(ctx *context.Context) {
 func Labels(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsOrgSettingsLabels"] = true
-	ctx.Data["RequireMinicolors"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.HTML(200, tplSettingsLabels)
+	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

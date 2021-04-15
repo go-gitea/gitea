@@ -189,7 +189,7 @@ func TestAPICreateFile(t *testing.T) {
 		treePath = "README.md"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "POST", url, &createFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusInternalServerError)
+		resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 		expectedAPIError := context.APIError{
 			Message: "repository file already exists [path: " + treePath + "]",
 			URL:     setting.API.SwaggerURL,

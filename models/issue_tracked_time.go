@@ -162,6 +162,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		Doer:    user,
 		Content: SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
+		TimeID:  t.ID,
 	}); err != nil {
 		return nil, err
 	}
@@ -192,14 +193,14 @@ func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	//Adding total time per user ID
+	// Adding total time per user ID
 	totalTimesByUser := make(map[int64]int64)
 	for _, t := range trackedTimes {
 		totalTimesByUser[t.UserID] += t.Time
 	}
 
 	totalTimes := make(map[*User]string)
-	//Fetching User and making time human readable
+	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
 		user, err := GetUserByID(userID)
 		if err != nil {
@@ -260,6 +261,10 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
+	if err := t.loadAttributes(sess); err != nil {
+		return err
+	}
+
 	if err := deleteTime(sess, t); err != nil {
 		return err
 	}
@@ -278,7 +283,6 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-
 	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil || removedTime == 0 {
 		return
@@ -299,10 +303,8 @@ func deleteTime(e Engine, t *TrackedTime) error {
 
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
 func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
-	time := &TrackedTime{
-		ID: id,
-	}
-	has, err := x.Get(time)
+	time := new(TrackedTime)
+	has, err := x.ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {

@@ -3,7 +3,7 @@ date: "2016-12-21T15:00:00-02:00"
 title: "注册为Windows服务"
 slug: "windows-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

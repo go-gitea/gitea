@@ -6,6 +6,8 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -21,6 +23,7 @@ const (
 func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["RequireU2F"] = true
 
 	if ctx.Query("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
@@ -29,7 +32,7 @@ func Security(ctx *context.Context) {
 
 	loadSecurityData(ctx)
 
-	ctx.HTML(200, tplSettingsSecurity)
+	ctx.HTML(http.StatusOK, tplSettingsSecurity)
 }
 
 // DeleteAccountLink delete a single account link
@@ -45,7 +48,7 @@ func DeleteAccountLink(ctx *context.Context) {
 		}
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }
@@ -68,10 +71,9 @@ func loadSecurityData(ctx *context.Context) {
 			ctx.ServerError("GetU2FRegistrationsByUID", err)
 			return
 		}
-		ctx.Data["RequireU2F"] = true
 	}
 
-	tokens, err := models.ListAccessTokens(ctx.User.ID, models.ListOptions{})
+	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
