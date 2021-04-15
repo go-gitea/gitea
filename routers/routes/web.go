@@ -1113,7 +1113,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
 					m.Post("/{lid}/unlock", lfs.UnLockHandler)
-				})
+				}, lfs.CheckAcceptMediaType)
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})

@@ -21,16 +21,6 @@ import (
 
 //checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
 func checkIsValidRequest(ctx *context.Context) bool {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return false
-	}
-	if !isValidAccept(ctx.Req) {
-		log.Info("Attempt access LOCKs without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return false
-	}
 	if !ctx.IsSigned {
 		user, _, _, err := parseToken(ctx.Req.Header.Get("Authorization"))
 		if err != nil {
