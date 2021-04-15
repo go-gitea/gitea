@@ -49,25 +49,6 @@ func (rc *requestContext) VerifyLink(oid string) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify", oid)
 }
 
-// ObjectOidHandler is the main request routing entry point into LFS server functions
-func ObjectOidHandler(ctx *context.Context) {
-	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
-		if isValidAccept(ctx.Req) {
-			getMetaHandler(ctx)
-			return
-		}
-
-		getContentHandler(ctx)
-		return
-	} else if ctx.Req.Method == "PUT" {
-		PutHandler(ctx)
-		return
-	}
-
-	log.Warn("Unhandled LFS method: %s for %s/%s OID[%s]", ctx.Req.Method, ctx.Params("username"), ctx.Params("reponame"), ctx.Params("oid"))
-	writeStatus(ctx, http.StatusNotFound)
-}
-
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
@@ -97,8 +78,8 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs
 	return meta, repository
 }
 
-// getContentHandler gets the content from the content store
-func getContentHandler(ctx *context.Context) {
+// DownloadHandler gets the content from the content store
+func DownloadHandler(ctx *context.Context) {
 	rc, p := unpack(ctx)
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, false)
@@ -174,8 +155,14 @@ func getContentHandler(ctx *context.Context) {
 	logRequest(ctx.Req, statusCode)
 }
 
-// getMetaHandler retrieves metadata about the object
-func getMetaHandler(ctx *context.Context) {
+// LegacyMetaHandler retrieves metadata about the object
+func LegacyMetaHandler(ctx *context.Context) {
+	if !isValidAccept(ctx.Req) {
+		log.Info("Attempt to call without accepting the correct media type: %s", lfs_module.MediaType)
+		writeStatus(ctx, http.StatusBadRequest)
+		return
+	}
+
 	rc, p := unpack(ctx)
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, false)
@@ -197,8 +184,8 @@ func getMetaHandler(ctx *context.Context) {
 	logRequest(ctx.Req, http.StatusOK)
 }
 
-// PostHandler instructs the client how to upload data
-func PostHandler(ctx *context.Context) {
+// LegacyPostHandler instructs the client how to upload data
+func LegacyPostHandler(ctx *context.Context) {
 	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to POST without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
@@ -369,8 +356,8 @@ func BatchHandler(ctx *context.Context) {
 	logRequest(ctx.Req, http.StatusOK)
 }
 
-// PutHandler receives data from the client and puts it into the content store
-func PutHandler(ctx *context.Context) {
+// UploadHandler receives data from the client and puts it into the content store
+func UploadHandler(ctx *context.Context) {
 	rc, p := unpack(ctx)
 
 	meta, repository := getAuthenticatedRepoAndMeta(ctx, rc, p, true)

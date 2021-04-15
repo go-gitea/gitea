@@ -1102,9 +1102,11 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {
 				m.Post("/objects/batch", lfs.BatchHandler)
-				m.Get("/objects/{oid}/{filename}", lfs.ObjectOidHandler)
-				m.Any("/objects/{oid}", lfs.ObjectOidHandler)
-				m.Post("/objects", lfs.PostHandler)
+				m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
+				m.Get("/objects/{oid}", lfs.DownloadHandler)
+				m.Put("/objects/{oid}", lfs.UploadHandler)
+				m.Any("/objects/{oid}", lfs.LegacyMetaHandler)
+				m.Post("/objects", lfs.LegacyPostHandler)
 				m.Post("/verify/{oid}", lfs.VerifyHandler)
 				m.Group("/locks", func() {
 					m.Get("/", lfs.GetListLockHandler)
