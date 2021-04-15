@@ -51,12 +51,6 @@ func (rc *requestContext) VerifyLink(oid string) string {
 
 // ObjectOidHandler is the main request routing entry point into LFS server functions
 func ObjectOidHandler(ctx *context.Context) {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return
-	}
-
 	if ctx.Req.Method == "GET" || ctx.Req.Method == "HEAD" {
 		if isValidAccept(ctx.Req) {
 			getMetaHandler(ctx)
@@ -205,12 +199,6 @@ func getMetaHandler(ctx *context.Context) {
 
 // PostHandler instructs the client how to upload data
 func PostHandler(ctx *context.Context) {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return
-	}
-
 	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to POST without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
@@ -275,12 +263,6 @@ func PostHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return
-	}
-
 	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to BATCH without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)
@@ -418,12 +400,6 @@ func PutHandler(ctx *context.Context) {
 
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return
-	}
-
 	if !isValidAccept(ctx.Req) {
 		log.Info("Attempt to VERIFY without accepting the correct media type: %s", lfs_module.MediaType)
 		writeStatus(ctx, http.StatusBadRequest)

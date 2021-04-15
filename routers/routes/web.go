@@ -331,6 +331,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	lfsServerEnabled := func(ctx *context.Context) {
+		if !setting.LFS.StartServer {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -1108,7 +1115,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})
-			}, ignSignInAndCsrf)
+			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
 				m.Post("/git-upload-pack", repo.ServiceUploadPack)
