@@ -5,6 +5,8 @@
 package user
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -13,13 +15,13 @@ import (
 func TaskStatus(ctx *context.Context) {
 	task, opts, err := models.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.User.ID)
 	if err != nil {
-		ctx.JSON(500, map[string]interface{}{
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err,
 		})
 		return
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"status":    task.Status,
 		"err":       task.Errors,
 		"repo-id":   task.RepoID,

@@ -69,6 +69,9 @@ type Policy struct {
 	// Will skip for href="/foo" or href="foo"
 	requireNoReferrerFullyQualifiedLinks bool
 
+	// When true, add crossorigin="anonymous" to HTML audio, img, link, script, and video tags
+	requireCrossOriginAnonymous bool
+
 	// When true add target="_blank" to fully qualified links
 	// Will add for href="http://foo"
 	// Will skip for href="/foo" or href="foo"
@@ -433,24 +436,24 @@ func (spb *stylePolicyBuilder) OnElements(elements ...string) *Policy {
 // and return the updated policy
 func (spb *stylePolicyBuilder) OnElementsMatching(regex *regexp.Regexp) *Policy {
 
-		for _, attr := range spb.propertyNames {
+	for _, attr := range spb.propertyNames {
 
-			if _, ok := spb.p.elsMatchingAndStyles[regex]; !ok {
-				spb.p.elsMatchingAndStyles[regex] = make(map[string]stylePolicy)
-			}
-
-			sp := stylePolicy{}
-			if spb.handler != nil {
-				sp.handler = spb.handler
-			} else if len(spb.enum) > 0 {
-				sp.enum = spb.enum
-			} else if spb.regexp != nil {
-				sp.regexp = spb.regexp
-			} else {
-				sp.handler = getDefaultHandler(attr)
-			}
-			spb.p.elsMatchingAndStyles[regex][attr] = sp
+		if _, ok := spb.p.elsMatchingAndStyles[regex]; !ok {
+			spb.p.elsMatchingAndStyles[regex] = make(map[string]stylePolicy)
 		}
+
+		sp := stylePolicy{}
+		if spb.handler != nil {
+			sp.handler = spb.handler
+		} else if len(spb.enum) > 0 {
+			sp.enum = spb.enum
+		} else if spb.regexp != nil {
+			sp.regexp = spb.regexp
+		} else {
+			sp.handler = getDefaultHandler(attr)
+		}
+		spb.p.elsMatchingAndStyles[regex][attr] = sp
+	}
 
 	return spb.p
 }
@@ -554,6 +557,16 @@ func (p *Policy) RequireNoReferrerOnFullyQualifiedLinks(require bool) *Policy {
 
 	p.requireNoReferrerFullyQualifiedLinks = require
 	p.requireParseableURLs = true
+
+	return p
+}
+
+// RequireCrossOriginAnonymous will result in all audio, img, link, script, and
+// video tags having a crossorigin="anonymous" added to them if one does not
+// already exist
+func (p *Policy) RequireCrossOriginAnonymous(require bool) *Policy {
+
+	p.requireCrossOriginAnonymous = require
 
 	return p
 }

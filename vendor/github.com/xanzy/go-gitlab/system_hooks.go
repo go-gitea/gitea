@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -47,7 +48,7 @@ func (h Hook) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/system_hooks.html#list-system-hooks
 func (s *SystemHooksService) ListHooks(options ...RequestOptionFunc) ([]*Hook, *Response, error) {
-	req, err := s.client.NewRequest("GET", "hooks", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "hooks", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -80,7 +81,7 @@ type AddHookOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/system_hooks.html#add-new-system-hook-hook
 func (s *SystemHooksService) AddHook(opt *AddHookOptions, options ...RequestOptionFunc) (*Hook, *Response, error) {
-	req, err := s.client.NewRequest("POST", "hooks", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "hooks", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -117,7 +118,7 @@ func (h HookEvent) String() string {
 func (s *SystemHooksService) TestHook(hook int, options ...RequestOptionFunc) (*HookEvent, *Response, error) {
 	u := fmt.Sprintf("hooks/%d", hook)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,7 +141,7 @@ func (s *SystemHooksService) TestHook(hook int, options ...RequestOptionFunc) (*
 func (s *SystemHooksService) DeleteHook(hook int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("hooks/%d", hook)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

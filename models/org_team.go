@@ -61,7 +61,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		opts.PageSize = 10
 	}
 
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -80,7 +80,6 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	count, err := sess.
 		Where(cond).
 		Count(new(Team))
-
 	if err != nil {
 		return nil, 0, err
 	}
@@ -109,7 +108,6 @@ func (t *Team) ColorFormat(s fmt.State) {
 		t.Name,
 		log.NewColoredIDValue(t.OrgID),
 		t.Authorize)
-
 }
 
 // GetUnits return a list of available units for a team
@@ -608,7 +606,7 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 }
 
 // UpdateTeam updates information of team.
-func UpdateTeam(t *Team, authChanged bool, includeAllChanged bool) (err error) {
+func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 	if len(t.Name) == 0 {
 		return errors.New("empty team name")
 	}
@@ -963,7 +961,7 @@ func isUserInTeams(e Engine, userID int64, teamIDs []int64) (bool, error) {
 }
 
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
-func UsersInTeamsCount(userIDs []int64, teamIDs []int64) (int64, error) {
+func UsersInTeamsCount(userIDs, teamIDs []int64) (int64, error) {
 	var ids []int64
 	if err := x.In("uid", userIDs).In("team_id", teamIDs).
 		Table("team_user").

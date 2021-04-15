@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "1.1.1"
+    "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
     "/admin/cron": {
       "get": {
@@ -7761,6 +7761,124 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Dismiss a review for a pull request",
+        "operationId": "repoDismissPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DismissPullReviewOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/{index}/reviews/{id}/undismissals": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cancel to dismiss a review for a pull request",
+        "operationId": "repoUnDismissPullReview",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/PullReview"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/update": {
       "post": {
         "produces": [
@@ -7845,6 +7963,12 @@
             "name": "filepath",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
           }
         ],
         "responses": {
@@ -8093,7 +8217,7 @@
           "repository"
         ],
         "summary": "Get a release by tag name",
-        "operationId": "repoGetReleaseTag",
+        "operationId": "repoGetReleaseByTag",
         "parameters": [
           {
             "type": "string",
@@ -8111,7 +8235,7 @@
           },
           {
             "type": "string",
-            "description": "tagname of the release to get",
+            "description": "tag name of the release to get",
             "name": "tag",
             "in": "path",
             "required": true
@@ -8130,8 +8254,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete a release tag",
-        "operationId": "repoDeleteReleaseTag",
+        "summary": "Delete a release by tag name",
+        "operationId": "repoDeleteReleaseByTag",
         "parameters": [
           {
             "type": "string",
@@ -8149,7 +8273,7 @@
           },
           {
             "type": "string",
-            "description": "name of the tag to delete",
+            "description": "tag name of the release to delete",
             "name": "tag",
             "in": "path",
             "required": true
@@ -8161,9 +8285,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -8943,6 +9064,52 @@
         "responses": {
           "200": {
             "$ref": "#/responses/TagList"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/tags/{tag}": {
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a repository's tag by name",
+        "operationId": "repoDeleteTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of tag to delete",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
           }
         }
       }
@@ -10033,6 +10200,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10060,6 +10230,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10085,6 +10258,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10118,6 +10294,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10186,6 +10365,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11454,6 +11636,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/AccessToken"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11487,6 +11672,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           },
           "422": {
             "$ref": "#/responses/error"
@@ -12933,6 +13121,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -13115,6 +13304,17 @@
         "url": {
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DismissPullReviewOptions": {
+      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13539,6 +13739,11 @@
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
       "properties": {
+        "allow_manual_merge": {
+          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowManualMerge"
+        },
         "allow_merge_commits": {
           "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
@@ -13564,10 +13769,20 @@
           "type": "boolean",
           "x-go-name": "Archived"
         },
+        "autodetect_manual_merge": {
+          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.",
+          "type": "boolean",
+          "x-go-name": "AutodetectManualMerge"
+        },
         "default_branch": {
           "description": "sets the default branch for this repository.",
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "description": "a short description of the repository.",
@@ -13682,6 +13897,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -13749,6 +13965,10 @@
         "prohibit_login": {
           "type": "boolean",
           "x-go-name": "ProhibitLogin"
+        },
+        "restricted": {
+          "type": "boolean",
+          "x-go-name": "Restricted"
         },
         "source_id": {
           "type": "integer",
@@ -14051,6 +14271,10 @@
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
         },
+        "lfs_disabled": {
+          "type": "boolean",
+          "x-go-name": "LFSDisabled"
+        },
         "migrations_disabled": {
           "type": "boolean",
           "x-go-name": "MigrationsDisabled"
@@ -14058,6 +14282,14 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "stars_disabled": {
+          "type": "boolean",
+          "x-go-name": "StarsDisabled"
+        },
+        "time_tracking_disabled": {
+          "type": "boolean",
+          "x-go-name": "TimeTrackingDisabled"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14536,8 +14768,12 @@
             "merge",
             "rebase",
             "rebase-merge",
-            "squash"
+            "squash",
+            "manually-merged"
           ]
+        },
+        "MergeCommitID": {
+          "type": "string"
         },
         "MergeMessageField": {
           "type": "string"
@@ -14551,7 +14787,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14589,6 +14825,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -14631,7 +14875,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -14668,6 +14912,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -15282,6 +15534,10 @@
           "type": "string",
           "x-go-name": "CommitID"
         },
+        "dismissed": {
+          "type": "boolean",
+          "x-go-name": "Dismissed"
+        },
         "html_url": {
           "type": "string",
           "x-go-name": "HTMLURL"
@@ -15376,6 +15632,9 @@
         "pull_request_url": {
           "type": "string",
           "x-go-name": "HTMLPullURL"
+        },
+        "resolver": {
+          "$ref": "#/definitions/User"
         },
         "updated_at": {
           "type": "string",
@@ -15597,6 +15856,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "type": "string",
@@ -15933,6 +16196,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -16159,6 +16423,11 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "restricted": {
+          "description": "Is user restricted",
+          "type": "boolean",
+          "x-go-name": "Restricted"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

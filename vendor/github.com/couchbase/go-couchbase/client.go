@@ -33,6 +33,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unsafe"
 
@@ -122,6 +123,8 @@ func (b *Bucket) Do(k string, f func(mc *memcached.Client, vb uint16) error) (er
 }
 
 func (b *Bucket) Do2(k string, f func(mc *memcached.Client, vb uint16) error, deadline bool) (err error) {
+	var lastError error
+
 	if SlowServerCallWarningThreshold > 0 {
 		defer slowLog(time.Now(), "call to Do(%q)", k)
 	}
@@ -131,7 +134,7 @@ func (b *Bucket) Do2(k string, f func(mc *memcached.Client, vb uint16) error, de
 	for i := 0; i < maxTries; i++ {
 		conn, pool, err := b.getConnectionToVBucket(vb)
 		if err != nil {
-			if isConnError(err) && backOff(i, maxTries, backOffDuration, true) {
+			if (err == errNoPool || isConnError(err)) && backOff(i, maxTries, backOffDuration, true) {
 				b.Refresh()
 				continue
 			}
@@ -143,13 +146,13 @@ func (b *Bucket) Do2(k string, f func(mc *memcached.Client, vb uint16) error, de
 		} else {
 			conn.SetDeadline(noDeadline)
 		}
-		err = f(conn, uint16(vb))
+		lastError = f(conn, uint16(vb))
 
-		var retry bool
-		discard := isOutOfBoundsError(err)
+		retry := false
+		discard := isOutOfBoundsError(lastError) || IsReadTimeOutError(lastError)
 
 		// MB-30967 / MB-31001 implement back off for transient errors
-		if resp, ok := err.(*gomemcached.MCResponse); ok {
+		if resp, ok := lastError.(*gomemcached.MCResponse); ok {
 			switch resp.Status {
 			case gomemcached.NOT_MY_VBUCKET:
 				b.Refresh()
@@ -162,12 +165,10 @@ func (b *Bucket) Do2(k string, f func(mc *memcached.Client, vb uint16) error, de
 				retry = true
 			case gomemcached.ENOMEM:
 				fallthrough
-			case gomemcached.TMPFAIL:
+			case gomemcached.TMPFAIL, gomemcached.EBUSY:
 				retry = backOff(i, maxTries, backOffDuration, true)
-			default:
-				retry = false
 			}
-		} else if err != nil && isConnError(err) && backOff(i, maxTries, backOffDuration, true) {
+		} else if lastError != nil && isConnError(lastError) && backOff(i, maxTries, backOffDuration, true) {
 			retry = true
 		}
 
@@ -178,11 +179,11 @@ func (b *Bucket) Do2(k string, f func(mc *memcached.Client, vb uint16) error, de
 		}
 
 		if !retry {
-			return err
+			return lastError
 		}
 	}
 
-	return fmt.Errorf("unable to complete action after %v attemps", maxTries)
+	return fmt.Errorf("unable to complete action after %v attemps: ", maxTries, lastError)
 }
 
 type GatheredStats struct {
@@ -209,6 +210,20 @@ func getStatsParallel(sn string, b *Bucket, offset int, which string,
 		sm, err := conn.StatsMap(which)
 		gatheredStats = GatheredStats{Server: sn, Stats: sm, Err: err}
 	}
+}
+
+func getStatsParallelFunc(fn func(key, val []byte), sn string, b *Bucket, offset int, which string,
+	ch chan<- GatheredStats) {
+	pool := b.getConnPool(offset)
+
+	conn, err := pool.Get()
+
+	if err == nil {
+		conn.SetDeadline(getDeadline(time.Time{}, DefaultTimeout))
+		err = conn.StatsFunc(which, fn)
+		pool.Return(conn)
+	}
+	ch <- GatheredStats{Server: sn, Err: err}
 }
 
 // GetStats gets a set of stats from all servers.
@@ -244,6 +259,108 @@ func (b *Bucket) GatherStats(which string) map[string]GatheredStats {
 		rv[gs.Server] = gs
 	}
 	return rv
+}
+
+// GatherStats returns a map of server ID -> GatheredStats from all servers.
+func (b *Bucket) GatherStatsFunc(which string, fn func(key, val []byte)) map[string]error {
+	var errMap map[string]error
+
+	vsm := b.VBServerMap()
+	if vsm.ServerList == nil {
+		return errMap
+	}
+
+	// Go grab all the things at once.
+	ch := make(chan GatheredStats, len(vsm.ServerList))
+	for i, sn := range vsm.ServerList {
+		go getStatsParallelFunc(fn, sn, b, i, which, ch)
+	}
+
+	// Gather the results
+	for range vsm.ServerList {
+		gs := <-ch
+		if gs.Err != nil {
+			if errMap == nil {
+				errMap = make(map[string]error)
+				errMap[gs.Server] = gs.Err
+			}
+		}
+	}
+	return errMap
+}
+
+type BucketStats int
+
+const (
+	StatCount = BucketStats(iota)
+	StatSize
+)
+
+var bucketStatString = []string{
+	"curr_items",
+	"ep_value_size",
+}
+
+var collectionStatString = []string{
+	"items",
+	"disk_size",
+}
+
+// Get selected bucket or collection stats
+func (b *Bucket) GetIntStats(refresh bool, which []BucketStats, context ...*memcached.ClientContext) ([]int64, error) {
+	if refresh {
+		b.Refresh()
+	}
+
+	var vals []int64 = make([]int64, len(which))
+	if len(vals) == 0 {
+		return vals, nil
+	}
+
+	var outErr error
+	if len(context) > 0 {
+
+		collKey := fmt.Sprintf("collections-byid 0x%x", context[0].CollId)
+		errs := b.GatherStatsFunc(collKey, func(key, val []byte) {
+			for i, f := range which {
+				lk := len(key)
+				ls := len(collectionStatString[f])
+				if lk >= ls && string(key[lk-ls:]) == collectionStatString[f] {
+					v, err := strconv.ParseInt(string(val), 10, 64)
+					if err == nil {
+						atomic.AddInt64(&vals[i], v)
+					} else if outErr == nil {
+						outErr = err
+					}
+				}
+			}
+		})
+
+		// have to use a range to access any one element of a map
+		for _, err := range errs {
+			return nil, err
+		}
+	} else {
+		errs := b.GatherStatsFunc("", func(key, val []byte) {
+			for i, f := range which {
+				if string(key) == bucketStatString[f] {
+					v, err := strconv.ParseInt(string(val), 10, 64)
+					if err == nil {
+						atomic.AddInt64(&vals[i], v)
+					} else if outErr == nil {
+						outErr = err
+					}
+				}
+			}
+		})
+
+		// have to use a range to access any one element of a map
+		for _, err := range errs {
+			return nil, err
+		}
+	}
+
+	return vals, outErr
 }
 
 // Get bucket count through the bucket stats
@@ -351,6 +468,9 @@ func isAuthError(err error) bool {
 }
 
 func IsReadTimeOutError(err error) bool {
+	if err == nil {
+		return false
+	}
 	estr := err.Error()
 	return strings.Contains(estr, "read tcp") ||
 		strings.Contains(estr, "i/o timeout")
@@ -456,6 +576,21 @@ func (b *Bucket) doBulkGet(vb uint16, keys []string, reqDeadline time.Time,
 					}
 					b.Refresh()
 					backOffAttempts++
+				} else if err == errNoPool {
+					if !backOff(backOffAttempts, MaxBackOffRetries, backOffDuration, true) {
+						logging.Errorf("Connection Error %v : %v", bname, err)
+						ech <- err
+						return err
+					}
+					err = b.Refresh()
+					if err != nil {
+						ech <- err
+						return err
+					}
+					backOffAttempts++
+
+					// retry, and make no noise
+					return nil
 				}
 				logging.Infof("Pool Get returned %v: %v", bname, err)
 				// retry
@@ -498,8 +633,8 @@ func (b *Bucket) doBulkGet(vb uint16, keys []string, reqDeadline time.Time,
 				ech <- err
 				return err
 			case error:
-				if isOutOfBoundsError(err) {
-					// We got an out of bound error, retry the operation
+				if isOutOfBoundsError(err) || IsReadTimeOutError(err) {
+					// We got an out of bounds error or a read timeout error; retry the operation
 					discard = true
 					return nil
 				} else if isConnError(err) && backOff(backOffAttempts, MaxBackOffRetries, backOffDuration, true) {
@@ -816,6 +951,14 @@ var ErrKeyExists = errors.New("key exists")
 func (b *Bucket) Write(k string, flags, exp int, v interface{},
 	opt WriteOptions, context ...*memcached.ClientContext) (err error) {
 
+	_, err = b.WriteWithCAS(k, flags, exp, v, opt, context...)
+
+	return err
+}
+
+func (b *Bucket) WriteWithCAS(k string, flags, exp int, v interface{},
+	opt WriteOptions, context ...*memcached.ClientContext) (cas uint64, err error) {
+
 	if ClientOpCallback != nil {
 		defer func(t time.Time) {
 			ClientOpCallback(fmt.Sprintf("Write(%v)", opt), k, t, err)
@@ -826,7 +969,7 @@ func (b *Bucket) Write(k string, flags, exp int, v interface{},
 	if opt&Raw == 0 {
 		data, err = json.Marshal(v)
 		if err != nil {
-			return err
+			return cas, err
 		}
 	} else if v != nil {
 		data = v.([]byte)
@@ -852,14 +995,18 @@ func (b *Bucket) Write(k string, flags, exp int, v interface{},
 			res, err = mc.Set(vb, k, flags, exp, data, context...)
 		}
 
+		if err == nil {
+			cas = res.Cas
+		}
+
 		return err
 	})
 
 	if err == nil && (opt&(Persist|Indexable) != 0) {
-		err = b.WaitForPersistence(k, res.Cas, data == nil)
+		err = b.WaitForPersistence(k, cas, data == nil)
 	}
 
-	return err
+	return cas, err
 }
 
 func (b *Bucket) WriteWithMT(k string, flags, exp int, v interface{},
@@ -1018,6 +1165,11 @@ func (b *Bucket) Set(k string, exp int, v interface{}, context ...*memcached.Cli
 	return b.Write(k, 0, exp, v, 0, context...)
 }
 
+// Set a value in this bucket.
+func (b *Bucket) SetWithCAS(k string, exp int, v interface{}, context ...*memcached.ClientContext) (uint64, error) {
+	return b.WriteWithCAS(k, 0, exp, v, 0, context...)
+}
+
 // Set a value in this bucket with with flags
 func (b *Bucket) SetWithMeta(k string, flags int, exp int, v interface{}, context ...*memcached.ClientContext) (*MutationToken, error) {
 	return b.WriteWithMT(k, flags, exp, v, 0, context...)
@@ -1037,6 +1189,16 @@ func (b *Bucket) Add(k string, exp int, v interface{}, context ...*memcached.Cli
 		return false, nil
 	}
 	return (err == nil), err
+}
+
+// Add adds a value to this bucket; like Set except that nothing
+// happens if the key exists. Return the CAS value.
+func (b *Bucket) AddWithCAS(k string, exp int, v interface{}, context ...*memcached.ClientContext) (bool, uint64, error) {
+	cas, err := b.WriteWithCAS(k, 0, exp, v, AddOnly, context...)
+	if err == ErrKeyExists {
+		return false, 0, nil
+	}
+	return (err == nil), cas, err
 }
 
 // AddRaw adds a value to this bucket; like SetRaw except that nothing

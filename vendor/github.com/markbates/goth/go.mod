@@ -14,6 +14,7 @@ require (
 	github.com/markbates/going v1.0.0
 	github.com/mrjones/oauth v0.0.0-20180629183705-f4e24b6d100c
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20200930145003-4acb6c075d10 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43

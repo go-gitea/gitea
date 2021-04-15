@@ -29,9 +29,9 @@ func addCommitStatusContext(x *xorm.Engine) error {
 	sess := x.NewSession()
 	defer sess.Close()
 
-	var start = 0
+	start := 0
 	for {
-		var statuses = make([]*CommitStatus, 0, 100)
+		statuses := make([]*CommitStatus, 0, 100)
 		err := sess.OrderBy("id").Limit(100, start).Find(&statuses)
 		if err != nil {
 			return err

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -87,13 +88,21 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
+			prefix := strings.Trim(prefix, "/")
+
+			if !strings.HasPrefix(req.URL.EscapedPath(), "/"+prefix+"/") {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
+			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
+			if rPath == "" {
+				http.Error(w, "file not found", 404)
+				return
+			}
+			rPath = path.Clean("/" + filepath.ToSlash(rPath))
+			rPath = rPath[1:]
 
 			fi, err := objStore.Stat(rPath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {

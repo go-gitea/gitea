@@ -7,6 +7,7 @@ package user
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
@@ -49,7 +50,7 @@ func Profile(ctx *context.Context) {
 		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		return
 	} else if strings.HasSuffix(uname, ".png") {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
@@ -99,9 +100,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
 
-	// no heatmap access for admins; GetUserHeatmapDataByUser ignores the calling user
-	// so everyone would get the same empty heatmap
-	if setting.Service.EnableUserHeatmap && !ctxUser.KeepActivityPrivate {
+	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
@@ -202,6 +201,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
+			Date:            ctx.Query("date"),
 		})
 		if ctx.Written() {
 			return
@@ -238,6 +238,27 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
+	case "watching":
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
+			Actor:              ctx.User,
+			Keyword:            keyword,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			WatchedByID:        ctxUser.ID,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
+		}
+
+		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{
@@ -269,7 +290,7 @@ func Profile(ctx *context.Context) {
 
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
-	ctx.HTML(200, tplProfile)
+	ctx.HTML(http.StatusOK, tplProfile)
 }
 
 // Action response for follow/unfollow user request

@@ -6,13 +6,13 @@ github.com/blevesearch/bleve_index_api v1.0.0 h1:Ds3XeuTxjXCkG6pgIwWDRyooJKNIuOK
 github.com/blevesearch/bleve_index_api v1.0.0/go.mod h1:fiwKS0xLEm+gBRgv5mumf0dhgFr2mDgZah1pqv1c1M4=
 github.com/blevesearch/mmap-go v1.0.2 h1:JtMHb+FgQCTTYIhtMvimw15dJwu1Y5lrZDMOFXVWPk0=
 github.com/blevesearch/mmap-go v1.0.2/go.mod h1:ol2qBqYaOUsGdm7aRMRrYGgPvnwLe6Y+7LMvAB5IbSA=
-github.com/blevesearch/scorch_segment_api v1.0.0 h1:BUkCPWDg2gimTEyVDXf85I2buqqt4lh28uaVMiJsIYk=
-github.com/blevesearch/scorch_segment_api v1.0.0/go.mod h1:KgRYmlfYC27NeM6cXOHx8LBgq7jn0atpV8mVWoBKBng=
+github.com/blevesearch/scorch_segment_api/v2 v2.0.1 h1:fd+hPtZ8GsbqPK1HslGp7Vhoik4arZteA/IsCEgOisw=
+github.com/blevesearch/scorch_segment_api/v2 v2.0.1/go.mod h1:lq7yK2jQy1yQjtjTfU931aVqz7pYxEudHaDwOt1tXfU=
+github.com/blevesearch/vellum v1.0.3 h1:U86G41A7CtXNzzpIJHM8lSTUqz1Mp8U870TkcdCzZc8=
+github.com/blevesearch/vellum v1.0.3/go.mod h1:2u5ax02KeDuNWu4/C+hVQMD6uLN4txH1JbtpaDNLJRo=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
-github.com/couchbase/vellum v1.0.2 h1:BrbP0NKiyDdndMPec8Jjhy0U47CZ0Lgx3xUC2r9rZqw=
-github.com/couchbase/vellum v1.0.2/go.mod h1:FcwrEivFpNi24R3jLOs3n+fs5RnuQnQqCLBJ1uAg1W4=
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

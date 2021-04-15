@@ -174,6 +174,11 @@ func SetMessageWithDesc(lang, langDesc string, localeFile interface{}, otherLoca
 	return err
 }
 
+// Reset resets locale store.
+func Reset() {
+	locales = &localeStore{store: make(map[string]*locale)}
+}
+
 // SetMessage sets the message file for localization.
 func SetMessage(lang string, localeFile interface{}, otherLocaleFiles ...interface{}) error {
 	return SetMessageWithDesc(lang, lang, localeFile, otherLocaleFiles...)

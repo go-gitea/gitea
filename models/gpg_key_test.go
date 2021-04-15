@@ -47,7 +47,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
-	//TODO verify value of key
+	// TODO verify value of key
 }
 
 func TestCheckArmoredbrainpoolP256r1GPGKeyString(t *testing.T) {
@@ -68,7 +68,7 @@ OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
-	//TODO verify value of key
+	// TODO verify value of key
 }
 
 func TestExtractSignature(t *testing.T) {
@@ -167,19 +167,19 @@ committer Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 
 Unknown GPG key with good email
 `
-	//Reading Sign
+	// Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
 	badSig, err := extractSignature(testBadSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
-	//Generating hash of commit
+	// Generating hash of commit
 	goodHash, err := populateHash(goodSig.Hash, []byte(testGoodPayload))
 	assert.NoError(t, err, "Could not generate a valid hash of payload", testGoodPayload)
 	badHash, err := populateHash(badSig.Hash, []byte(testBadPayload))
 	assert.NoError(t, err, "Could not generate a valid hash of payload", testBadPayload)
 
-	//Verify
+	// Verify
 	err = verifySign(goodSig, goodHash, key)
 	assert.NoError(t, err, "Could not validate a good signature")
 	err = verifySign(badSig, badHash, key)

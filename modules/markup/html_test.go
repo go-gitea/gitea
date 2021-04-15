@@ -124,7 +124,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
 	test(
 		"https://www.example.com/foo/?bar=baz&inga=42&quux",
-		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux=" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
+		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
 	test(
 		"http://142.42.1.1/",
 		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
