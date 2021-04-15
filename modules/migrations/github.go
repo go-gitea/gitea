@@ -130,14 +130,12 @@ func (g *GithubDownloaderV3) sleep() {
 
 // RefreshRate update the current rate (doesn't count in rate limit)
 func (g *GithubDownloaderV3) RefreshRate() error {
-	rates, resp, err := g.client.RateLimits(g.ctx)
+	rates, _, err := g.client.RateLimits(g.ctx)
 	if err != nil {
 		// if rate limit is not enabled, ignore it
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
+		if strings.Contains(err.Error(), "404") {
 			g.rate = nil
 			return nil
-		} else {
-			log.Error("TEST: RefreshRate resp status is nil!")
 		}
 		return err
 	}
