@@ -13,6 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Ensure review dismissal only dismisses the correct review (#15477) (#15489)
   * Use index of the supported tags to choose user lang (#15452) (#15488)
   * Fix wrong file link in code search page (#15466) (#15486)
+  * Quick template fix for built-in SSH server in admin config (#15464) (#15481)
   * Prevent superfluous response.WriteHeader (#15456) (#15476)
   * Fix ambiguous argument error on tags (#15432) (#15474)
   * Add created_unix instead of expiry to migration (#15458) (#15463)
@@ -27,11 +28,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use semantic dropdown for code search query type (#15276) (#15364)
 * BUILD
   * Build go-git variants for windows (#15482) (#15487)
-  * Quick template fix for built-in SSH server in admin config (#15464) (#15481)
   * Lock down build-images dependencies (Partial #15479) (#15480)
 * MISC
   * Fix potential copy lfs records failure when fork a repository (#15441) (#15485)
-
 
 ## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-11
 
