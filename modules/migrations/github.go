@@ -134,7 +134,7 @@ func (g *GithubDownloaderV3) RefreshRate() error {
 	if err != nil {
 		// if rate limit is not enabled, ignore it
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			g.rate = &github.Rate{}
+			g.rate = nil
 			return nil
 		}
 		return err
