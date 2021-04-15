@@ -12,9 +12,9 @@ import (
 
 func addSessionTable(x *xorm.Engine) error {
 	type Session struct {
-		Key         string `xorm:"pk CHAR(16)"`
-		Data        []byte `xorm:"BLOB"`
-		CreatedUnix timeutil.TimeStamp
+		Key    string `xorm:"pk CHAR(16)"`
+		Data   []byte `xorm:"BLOB"`
+		Expiry timeutil.TimeStamp
 	}
 	return x.Sync2(new(Session))
 }
