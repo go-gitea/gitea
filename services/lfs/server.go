@@ -269,11 +269,7 @@ func BatchHandler(ctx *context.Context) {
 		return
 	}
 
-	reqCtx := &requestContext{
-		User:          ctx.Params("username"),
-		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
-		Authorization: ctx.Req.Header.Get("Authorization"),
-	}
+	reqCtx := getRequestContext(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(reqCtx.User, reqCtx.Repo)
 	if err != nil {
@@ -291,22 +287,22 @@ func BatchHandler(ctx *context.Context) {
 
 	var responseObjects []*lfs_module.ObjectResponse
 
-	for _, object := range bv.Objects {
+	for _, p := range bv.Objects {
 		if !object.IsValid() {
-			responseObjects = append(responseObjects, buildDownloadObjectResponse(reqCtx, object, http.StatusUnprocessableEntity))
+			responseObjects = append(responseObjects, buildObjectResponse(reqCtx, p, false, false, http.StatusUnprocessableEntity))
 			continue
 		}
 
-		exist, err := contentStore.Exists(object)
+		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist on %s/%s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, err)
+			log.Error("Unable to check if LFS OID[%s] exist on %s/%s. Error: %v", p.Oid, reqCtx.User, reqCtx.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
 
-		meta, metaErr := repository.GetLFSMetaObjectByOid(object.Oid)
+		meta, metaErr := repository.GetLFSMetaObjectByOid(p.Oid)
 		if metaErr != nil && metaErr != models.ErrLFSObjectNotExist {
-			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, metaErr)
+			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, reqCtx.User, reqCtx.Repo, metaErr)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -314,32 +310,32 @@ func BatchHandler(ctx *context.Context) {
 		var responseObject *lfs_module.ObjectResponse
 		if isUpload {
 			if !exists && setting.LFS.MaxFileSize > 0 && object.Size > setting.LFS.MaxFileSize {
-				log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", object.Oid, object.Size, reqCtx.User, reqCtx.Repo, setting.LFS.MaxFileSize)
+				log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", p.Oid, p.Size, reqCtx.User, reqCtx.Repo, setting.LFS.MaxFileSize)
 				writeStatus(ctx, http.StatusRequestEntityTooLarge)
 				return
 			}
 
 			if exists {
 				if meta == nil {
-					_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: object, RepositoryID: repository.ID})
+					_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 					if err != nil {
-						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", object.Oid, reqCtx.User, reqCtx.Repo, metaErr)
+						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, reqCtx.User, reqCtx.Repo, metaErr)
 						writeStatus(ctx, http.StatusInternalServerError)
 						return
 					}
 				}
 			}
 
-			responseObject = buildObjectResponse(reqCtx, object, false, !exists, 0)
+			responseObject = buildObjectResponse(reqCtx, p, false, !exists, 0)
 		} else {
 			errorCode := 0
-			if !exist || meta == nil {
+			if !exists || meta == nil {
 				errorCode = http.StatusNotFound
-			} else if meta.Size != object.Size {
+			} else if meta.Size != p.Size {
 				errorCode = http.StatusUnprocessableEntity
 			}
 
-			responseObject = buildObjectResponse(reqCtx, object, true, false, errorCode)
+			responseObject = buildObjectResponse(reqCtx, p, true, false, errorCode)
 		}
 		responseObjects = append(responseObjects, responseObject)
 	}
@@ -397,7 +393,6 @@ func VerifyHandler(ctx *context.Context) {
 
 	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, true)
 	if meta == nil {
-		// Status already written in getAuthenticatedRepoAndMeta
 		return
 	}
 
@@ -409,19 +404,27 @@ func VerifyHandler(ctx *context.Context) {
 		fmt.Fprintf(ctx.Resp, `{"message":"Internal Server Error"}`)
 		return
 	}
-	if !ok {
-		writeStatus(ctx, http.StatusUnprocessableEntity)
-		return
-	}
 
-	logRequest(ctx.Req, http.StatusOK)
+	status := http.StatusOK
+	if !ok {
+		status = http.StatusUnprocessableEntity
+	}
+	writeStatus(ctx, status)
+}
+
+func getRequestContext(ctx *context.Context) *requestContext {
+	return &requestContext{
+		User:          ctx.Params("username"),
+		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
+		Authorization: ctx.Req.Header.Get("Authorization"),
+	}
 }
 
 func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, errorCode int) *lfs_module.ObjectResponse {
 	rep := &lfs_module.ObjectResponse{Pointer: pointer}
 	if errorCode > 0 {
-		rep.Error = &ObjectError{
-			Code: errorCode,
+		rep.Error = &lfs_module.ObjectError{
+			Code:    errorCode,
 			Message: http.StatusText(errorCode),
 		}
 	} else {
@@ -429,7 +432,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		header := make(map[string]string)
 		verifyHeader := make(map[string]string)
-		
+
 		if len(rc.Authorization) > 0 {
 			header["Authorization"] = rc.Authorization
 			verifyHeader["Authorization"] = rc.Authorization
@@ -455,17 +458,12 @@ func isValidAccept(r *http.Request) bool {
 }
 
 func unpack(ctx *context.Context) (*requestContext, lfs_module.Pointer) {
-	r := ctx.Req
-	rc := &requestContext{
-		User:          ctx.Params("username"),
-		Repo:          strings.TrimSuffix(ctx.Params("reponame"), ".git"),
-		Authorization: r.Header.Get("Authorization"),
-	}
+	rc := getRequestContext(ctx)
 	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
 
-	if r.Method == "POST" { // Maybe also check if +json
+	if ctx.Req.Method == "POST" { // Maybe also check if +json
 		var p2 lfs_module.Pointer
-		bodyReader := r.Body
+		bodyReader := ctx.Req.Body
 		defer bodyReader.Close()
 		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dec := json.NewDecoder(bodyReader)
