@@ -182,7 +182,7 @@ export default {
         type: 'asset/source',
       },
       {
-        test: /\.(ttf|woff2?)$/g,
+        test: /\.(ttf|woff2?)$/,
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
@@ -190,7 +190,7 @@ export default {
         }
       },
       {
-        test: /\.png$/ig,
+        test: /\.png$/i,
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
