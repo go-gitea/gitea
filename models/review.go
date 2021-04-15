@@ -566,7 +566,11 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 	review.Dismissed = isDismiss
 
-	_, err = x.Cols("dismissed").Update(review)
+	if review.ID == 0 {
+		return ErrReviewNotExist{}
+	}
+
+	_, err = x.ID(review.ID).Cols("dismissed").Update(review)
 
 	return
 }
