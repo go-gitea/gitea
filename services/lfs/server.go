@@ -55,7 +55,7 @@ func CheckAcceptMediaType(ctx *context.Context) {
 
 	if mediaParts[0] != lfs_module.MediaType {
 		log.Info("Calling a LFS method without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
+		writeStatus(ctx, http.StatusNotAcceptable)
 		return
 	}
 }
