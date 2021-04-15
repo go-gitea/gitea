@@ -1105,8 +1105,6 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
 				m.Get("/objects/{oid}", lfs.DownloadHandler)
 				m.Put("/objects/{oid}", lfs.UploadHandler)
-				m.Any("/objects/{oid}", lfs.CheckAcceptMediaType, lfs.LegacyMetaHandler)
-				m.Post("/objects", lfs.CheckAcceptMediaType, lfs.LegacyPostHandler)
 				m.Post("/verify/{oid}", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
 				m.Group("/locks", func() {
 					m.Get("/", lfs.GetListLockHandler)
