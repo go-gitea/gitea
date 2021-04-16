@@ -31,6 +31,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Build go-git variants for windows (#15482) (#15487)
   * Lock down build-images dependencies (Partial #15479) (#15480)
 * MISC
+  * Performance improvement for list pull requests (#15447) (#15500)
   * Fix potential copy lfs records failure when fork a repository (#15441) (#15485)
 
 ## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-11
