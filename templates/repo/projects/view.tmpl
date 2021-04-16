@@ -177,20 +177,36 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
+								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+									{{.Title}}
+								</a>
+							</div>
+							<div class="meta my-2">
+								<span class="text light grey">
+									#{{.Index}}
+									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+									{{if .OriginalAuthor }}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+									{{else if gt .Poster.ID 0}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+									{{else}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+									{{end}}
+								</span>
 							</div>
 							{{- if .MilestoneID }}
-							<div class="meta py-2">
+							<div class="meta my-2">
 								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-									{{svg "octicon-milestone" 16 "mr-2"}}{{ .Milestone.Name }}
+									{{svg "octicon-milestone" 16 "mr-2 vm"}}
+									<span class="vm">{{ .Milestone.Name }}</span>
 								</a>
 							</div>
 							{{- end }}
 							{{- range index $.LinkedPRs .ID }}
-							<div class="meta py-2">
+							<div class="meta my-2">
 								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
-									<span class="{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
-									{{ .Title}} (#{{ .Index }})
+									<span class="m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
+									<span class="vm">{{ .Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>
 							{{- end }}
