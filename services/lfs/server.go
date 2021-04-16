@@ -219,14 +219,14 @@ func BatchHandler(ctx *context.Context) {
 
 		exists, err := contentStore.Exists(p)
 		if err != nil {
-			log.Error("Unable to check if LFS OID[%s] exist on %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+			log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
 
-		meta, metaErr := repository.GetLFSMetaObjectByOid(p.Oid)
-		if metaErr != nil && metaErr != models.ErrLFSObjectNotExist {
-			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, metaErr)
+		meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+		if err != nil && err != models.ErrLFSObjectNotExist {
+			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
 		}
@@ -315,6 +315,18 @@ func UploadHandler(ctx *context.Context) {
 	}
 
 	contentStore := lfs_module.NewContentStore()
+
+	exists, err := contentStore.Exists(p)
+	if err != nil {
+		log.Error("Unable to check if LFS OID[%s] exist. Error: %v", p.Oid, err)
+		writeStatus(ctx, http.StatusInternalServerError)
+		return
+	}
+	if m.Existing || exisits {
+		ctx.Resp.WriteHeader(http.StatusOK)
+		return
+	}
+
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
 		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
