@@ -198,7 +198,7 @@ func TestGetLFSRange(t *testing.T) {
 		{"bytes=0-10", "123456789\n", http.StatusPartialContent},
 		// end-range bigger than length-1 is ignored
 		{"bytes=0-11", "123456789\n", http.StatusPartialContent},
-		{"bytes=11-", "Requested Range Not Satisfiable", http.StatusRequestedRangeNotSatisfiable},
+		{"bytes=11-", "{\"message\":\"Requested Range Not Satisfiable\"}", http.StatusRequestedRangeNotSatisfiable},
 		// incorrect header value cause whole header to be ignored
 		{"bytes=-", "123456789\n", http.StatusOK},
 		{"foobar", "123456789\n", http.StatusOK},
