@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.1](https://github.com/go-gitea/gitea/releases/tag/v1.14.1) - 2021-04-15
 
 * BUGFIXES
+  * Fix bug clone wiki (#15499) (#15502)
   * Github Migration ignore rate limit, if not enabled (#15490) (#15495)
   * Use subdir for URL (#15446) (#15493)
   * Query the DB for the hash before inserting in to email_hash (#15457) (#15491)
