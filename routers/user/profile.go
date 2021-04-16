@@ -238,6 +238,27 @@ func Profile(ctx *context.Context) {
 			ctx.ServerError("GetProjects", err)
 			return
 		}
+	case "watching":
+		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+			ListOptions: models.ListOptions{
+				PageSize: setting.UI.User.RepoPagingNum,
+				Page:     page,
+			},
+			Actor:              ctx.User,
+			Keyword:            keyword,
+			OrderBy:            orderBy,
+			Private:            ctx.IsSigned,
+			WatchedByID:        ctxUser.ID,
+			Collaborate:        util.OptionalBoolFalse,
+			TopicOnly:          topicOnly,
+			IncludeDescription: setting.UI.SearchRepoDescription,
+		})
+		if err != nil {
+			ctx.ServerError("SearchRepository", err)
+			return
+		}
+
+		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 			ListOptions: models.ListOptions{
