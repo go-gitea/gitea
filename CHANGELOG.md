@@ -4,6 +4,36 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.14.1](https://github.com/go-gitea/gitea/releases/tag/v1.14.1) - 2021-04-15
+
+* BUGFIXES
+  * Fix bug clone wiki (#15499) (#15502)
+  * Github Migration ignore rate limit, if not enabled (#15490) (#15495)
+  * Use subdir for URL (#15446) (#15493)
+  * Query the DB for the hash before inserting in to email_hash (#15457) (#15491)
+  * Ensure review dismissal only dismisses the correct review (#15477) (#15489)
+  * Use index of the supported tags to choose user lang (#15452) (#15488)
+  * Fix wrong file link in code search page (#15466) (#15486)
+  * Quick template fix for built-in SSH server in admin config (#15464) (#15481)
+  * Prevent superfluous response.WriteHeader (#15456) (#15476)
+  * Fix ambiguous argument error on tags (#15432) (#15474)
+  * Add created_unix instead of expiry to migration (#15458) (#15463)
+  * Fix repository search (#15428) (#15442)
+  * Prevent NPE on avatar direct rendering if federated avatars disabled (#15434) (#15439)
+  * Fix wiki clone urls (#15430) (#15431)
+  * Fix dingtalk icon url at webhook (#15417) (#15426)
+  * Standardise icon on projects PR page (#15387) (#15408)
+* ENHANCEMENTS
+  * Add option to skip LFS/attachment files for `dump` (#15407) (#15492)
+  * Clone panel fixes (#15436)
+  * Use semantic dropdown for code search query type (#15276) (#15364)
+* BUILD
+  * Build go-git variants for windows (#15482) (#15487)
+  * Lock down build-images dependencies (Partial #15479) (#15480)
+* MISC
+  * Performance improvement for list pull requests (#15447) (#15500)
+  * Fix potential copy lfs records failure when fork a repository (#15441) (#15485)
+
 ## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-11
 
 * SECURITY
