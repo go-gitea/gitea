@@ -293,7 +293,7 @@ func UploadHandler(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
 		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
-			writeStatusMessage(ctx, http.StatusInternalServerError, err)
+			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err)
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
@@ -302,6 +302,8 @@ func UploadHandler(ctx *context.Context) {
 		}
 		return
 	}
+
+	writeStatus(ctx, http.StatusOK)
 }
 
 // VerifyHandler verify oid and its size from the content store
@@ -326,7 +328,7 @@ func VerifyHandler(ctx *context.Context) {
 	if err != nil {
 		status = http.StatusInternalServerError
 	} else if !ok {
-		status = http.StatusUnprocessableEntity
+		status = http.StatusNotFound
 	}
 	writeStatus(ctx, status)
 }
@@ -351,7 +353,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) *models.LFSMetaObject {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
-		writeStatus(ctx, http.StatusUnprocessableEntity)
+		writeStatusMessage(ctx, http.StatusUnprocessableEntity, "Oid or size are invalid")
 		return nil
 	}
 
