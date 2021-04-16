@@ -199,15 +199,8 @@ func BatchHandler(ctx *context.Context) {
 
 	rc := getRequestContext(ctx)
 
-	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
-	if err != nil {
-		log.Trace("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
-		writeStatus(ctx, http.StatusNotFound)
-		return
-	}
-
-	if !authenticate(ctx, repository, rc.Authorization, isUpload) {
-		requireAuth(ctx)
+	repository := getAuthenticatedRepository(ctx, rc, isUpload)
+	if repository == nil {
 		return
 	}
 
@@ -248,10 +241,12 @@ func BatchHandler(ctx *context.Context) {
 
 		var responseObject *lfs_module.ObjectResponse
 		if isUpload {
+			var err *lfs_module.ObjectError
 			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
-				log.Info("Denied LFS OID[%s] upload of size %d to %s/%s because of LFS_MAX_FILE_SIZE=%d", p.Oid, p.Size, rc.User, rc.Repo, setting.LFS.MaxFileSize)
-				writeStatus(ctx, http.StatusRequestEntityTooLarge)
-				return
+				err = &lfs_module.ObjectError{
+					Code:    http.StatusUnprocessableEntity,
+					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
+				}
 			}
 
 			if exists {
@@ -265,7 +260,7 @@ func BatchHandler(ctx *context.Context) {
 				}
 			}
 
-			responseObject = buildObjectResponse(rc, p, false, !exists, nil)
+			responseObject = buildObjectResponse(rc, p, false, !exists, err)
 		} else {
 			var err *lfs_module.ObjectError
 			if !exists || meta == nil {
