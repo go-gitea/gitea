@@ -396,15 +396,10 @@
 
         .file-actions {
           .btn-octicon {
-            display: inline-block;
-            padding: 5px;
-            margin-left: 5px;
             line-height: 1;
-            color: var(--color-text);
+            padding: 10px 8px;
             vertical-align: middle;
-            background: transparent;
-            border: 0;
-            outline: none;
+            color: var(--color-text);
           }
 
           .btn-octicon:hover {
@@ -412,7 +407,7 @@
           }
 
           .btn-octicon-danger:hover {
-            color: #bd2c00;
+            color: var(--color-red);
           }
 
           .btn-octicon.disabled {
@@ -430,13 +425,18 @@
       .view-raw {
         padding: 5px;
 
-        * {
+        > * {
           max-width: 100%;
+          border: 1px solid var(--color-secondary);
         }
 
         img {
+          margin: 1rem 0;
           border-radius: 0;
+          object-fit: contain;
         }
+
+        /* also see misc.css for one more related rule */
       }
 
       .plain-text {
