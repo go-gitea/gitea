@@ -203,7 +203,10 @@ func BatchHandler(ctx *context.Context) {
 
 	for _, p := range br.Objects {
 		if !p.IsValid() {
-			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, http.StatusUnprocessableEntity))
+			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
+				Code:    http.StatusUnprocessableEntity,
+				Message: "Oid or size are invalid",
+			}))
 			continue
 		}
 
@@ -219,6 +222,14 @@ func BatchHandler(ctx *context.Context) {
 			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, metaErr)
 			writeStatus(ctx, http.StatusInternalServerError)
 			return
+		}
+
+		if meta != nil && p.Size != meta.Size {
+			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
+				Code:    http.StatusUnprocessableEntity,
+				Message: fmt.Sprintf("Object %s is not %d bytes", p.Oid, p.Size),
+			}))
+			continue
 		}
 
 		var responseObject *lfs_module.ObjectResponse
@@ -240,16 +251,17 @@ func BatchHandler(ctx *context.Context) {
 				}
 			}
 
-			responseObject = buildObjectResponse(rc, p, false, !exists, 0)
+			responseObject = buildObjectResponse(rc, p, false, !exists, nil)
 		} else {
-			errorCode := 0
+			var err *lfs_module.ObjectError
 			if !exists || meta == nil {
-				errorCode = http.StatusNotFound
-			} else if meta.Size != p.Size {
-				errorCode = http.StatusUnprocessableEntity
+				err = &lfs_module.ObjectError{
+					Code:    http.StatusNotFound,
+					Message: http.StatusText(http.StatusNotFound),
+				}
 			}
 
-			responseObject = buildObjectResponse(rc, p, true, false, errorCode)
+			responseObject = buildObjectResponse(rc, p, true, false, err)
 		}
 		responseObjects = append(responseObjects, responseObject)
 	}
@@ -333,13 +345,10 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	}
 }
 
-func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, errorCode int) *lfs_module.ObjectResponse {
+func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, err *lfs_module.ObjectError) *lfs_module.ObjectResponse {
 	rep := &lfs_module.ObjectResponse{Pointer: pointer}
-	if errorCode > 0 {
-		rep.Error = &lfs_module.ObjectError{
-			Code:    errorCode,
-			Message: http.StatusText(errorCode),
-		}
+	if err != nil {
+		rep.Error = err
 	} else {
 		rep.Actions = make(map[string]*lfs_module.Link)
 
