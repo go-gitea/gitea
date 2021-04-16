@@ -65,49 +65,12 @@ func CheckAcceptMediaType(ctx *context.Context) {
 	}
 }
 
-func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
-	if !p.IsValid() {
-		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
-		writeStatus(ctx, http.StatusUnprocessableEntity)
-		return nil, nil
-	}
-
-	repository := getAuthenticatedRepository(ctx, rc, requireWrite)
-	if repository == nil {
-		return nil, nil
-	}
-
-	meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
-	if err != nil {
-		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
-		writeStatus(ctx, http.StatusNotFound)
-		return nil, nil
-	}
-
-	return meta, repository
-}
-
-func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *models.Repository {
-	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
-	if err != nil {
-		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
-		writeStatus(ctx, http.StatusNotFound)
-		return nil
-	}
-
-	if !authenticate(ctx, repository, rc.Authorization, requireWrite) {
-		requireAuth(ctx)
-		return nil
-	}
-
-	return repository
-}
-
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
-	rc, p := unpack(ctx)
+	rc := getRequestContext(ctx)
+	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
 
-	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, false)
+	meta := getAuthenticatedMeta(ctx, rc, p, false)
 	if meta == nil {
 		return
 	}
@@ -253,7 +216,7 @@ func BatchHandler(ctx *context.Context) {
 				if meta == nil {
 					_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
 					if err != nil {
-						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, metaErr)
+						log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 						writeStatus(ctx, http.StatusInternalServerError)
 						return
 					}
@@ -322,7 +285,7 @@ func UploadHandler(ctx *context.Context) {
 		writeStatus(ctx, http.StatusInternalServerError)
 		return
 	}
-	if m.Existing || exisits {
+	if meta.Existing || exists {
 		ctx.Resp.WriteHeader(http.StatusOK)
 		return
 	}
@@ -351,7 +314,7 @@ func VerifyHandler(ctx *context.Context) {
 
 	rc := getRequestContext(ctx)
 
-	meta, _ := getAuthenticatedRepoAndMeta(ctx, rc, p, true)
+	meta := getAuthenticatedMeta(ctx, rc, p, true)
 	if meta == nil {
 		return
 	}
@@ -385,6 +348,44 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	}
 }
 
+func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) *models.LFSMetaObject {
+	if !p.IsValid() {
+		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
+		writeStatus(ctx, http.StatusUnprocessableEntity)
+		return nil
+	}
+
+	repository := getAuthenticatedRepository(ctx, rc, requireWrite)
+	if repository == nil {
+		return nil
+	}
+
+	meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+	if err != nil {
+		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
+		writeStatus(ctx, http.StatusNotFound)
+		return nil
+	}
+
+	return meta
+}
+
+func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *models.Repository {
+	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
+	if err != nil {
+		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
+		writeStatus(ctx, http.StatusNotFound)
+		return nil
+	}
+
+	if !authenticate(ctx, repository, rc.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return nil
+	}
+
+	return repository
+}
+
 func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, err *lfs_module.ObjectError) *lfs_module.ObjectResponse {
 	rep := &lfs_module.ObjectResponse{Pointer: pointer}
 	if err != nil {
@@ -409,13 +410,6 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 	}
 	return rep
-}
-
-func unpack(ctx *context.Context) (*requestContext, lfs_module.Pointer) {
-	rc := getRequestContext(ctx)
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
-
-	return rc, p
 }
 
 func writeStatus(ctx *context.Context, status int) {

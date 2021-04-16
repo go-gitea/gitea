@@ -65,7 +65,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	rv, _ := unpack(ctx)
+	rv := getRequestContext(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
