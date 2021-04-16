@@ -39,13 +39,18 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-// ObjectLink builds a URL linking to the object.
-func (rc *requestContext) ObjectLink(oid string) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", oid)
+// DownloadLink builds a URL to download the object.
+func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
+	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid)
+}
+
+// UploadLink builds a URL to upload the object.
+func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
+	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid, strconv.FormatInt(p.Size, 10))
 }
 
 // VerifyLink builds a URL for verifying the object.
-func (rc *requestContext) VerifyLink() string {
+func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify")
 }
 
@@ -63,19 +68,12 @@ func CheckAcceptMediaType(ctx *context.Context) {
 func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) (*models.LFSMetaObject, *models.Repository) {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
-		writeStatus(ctx, http.StatusNotFound)
+		writeStatus(ctx, http.StatusUnprocessableEntity)
 		return nil, nil
 	}
 
-	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
-	if err != nil {
-		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
-		writeStatus(ctx, http.StatusNotFound)
-		return nil, nil
-	}
-
-	if !authenticate(ctx, repository, rc.Authorization, requireWrite) {
-		requireAuth(ctx)
+	repository := getAuthenticatedRepository(ctx, rc, requireWrite)
+	if repository == nil {
 		return nil, nil
 	}
 
@@ -87,6 +85,22 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs
 	}
 
 	return meta, repository
+}
+
+func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *models.Repository {
+	repository, err := models.GetRepositoryByOwnerAndName(rc.User, rc.Repo)
+	if err != nil {
+		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
+		writeStatus(ctx, http.StatusNotFound)
+		return nil
+	}
+
+	if !authenticate(ctx, repository, rc.Authorization, requireWrite) {
+		requireAuth(ctx)
+		return nil
+	}
+
+	return repository
 }
 
 // DownloadHandler gets the content from the content store
@@ -279,10 +293,29 @@ func BatchHandler(ctx *context.Context) {
 
 // UploadHandler receives data from the client and puts it into the content store
 func UploadHandler(ctx *context.Context) {
-	rc, p := unpack(ctx)
+	rc := getRequestContext(ctx)
 
-	meta, repository := getAuthenticatedRepoAndMeta(ctx, rc, p, true)
-	if meta == nil {
+	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	var err error
+	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
+		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err)
+	}
+
+	if !p.IsValid() {
+		log.Trace("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
+		writeStatus(ctx, http.StatusUnprocessableEntity)
+		return
+	}
+
+	repository := getAuthenticatedRepository(ctx, rc, true)
+	if repository == nil {
+		return
+	}
+
+	meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
+	if err != nil {
+		log.Error("Unable to create LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
+		writeStatus(ctx, http.StatusInternalServerError)
 		return
 	}
 
@@ -361,11 +394,11 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 
 		if download {
-			rep.Actions["download"] = &lfs_module.Link{Href: rc.ObjectLink(pointer.Oid), Header: header}
+			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
 		}
 		if upload {
-			rep.Actions["upload"] = &lfs_module.Link{Href: rc.ObjectLink(pointer.Oid), Header: header}
-			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(), Header: verifyHeader}
+			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
+			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
 		}
 	}
 	return rep
