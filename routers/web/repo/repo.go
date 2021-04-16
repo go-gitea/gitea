@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -368,7 +367,7 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.RepoID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return
@@ -379,33 +378,29 @@ func Download(ctx *context.Context) {
 	}
 
 	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
-	complete := aReq.IsComplete()
-	if !complete {
-		aReq = archiver_service.ArchiveRepository(aReq)
-		complete = aReq.WaitForCompletion(ctx)
+
+	if err := archiver_service.ArchiveRepository(aReq); err != nil {
+		ctx.ServerError("ArchiveRepository", err)
+		return
 	}
 
-	if complete {
-		if setting.RepoArchive.ServeDirect {
-			//If we have a signed url (S3, object storage), redirect to this directly.
-			u, err := storage.RepoArchives.URL(aReq.GetArchivePath(), downloadName)
-			if u != nil && err == nil {
-				ctx.Redirect(u.String())
-				return
-			}
-		}
-
-		//If we have matched and access to release or issue
-		fr, err := storage.RepoArchives.Open(aReq.GetArchivePath())
-		if err != nil {
-			ctx.ServerError("Open", err)
+	if setting.RepoArchive.ServeDirect {
+		//If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.RepoArchives.URL(aReq.GetArchivePath(), downloadName)
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
 			return
 		}
-		defer fr.Close()
-		ctx.ServeStream(fr, downloadName)
-	} else {
-		ctx.Error(http.StatusNotFound)
 	}
+
+	//If we have matched and access to release or issue
+	fr, err := storage.RepoArchives.Open(aReq.GetArchivePath())
+	if err != nil {
+		ctx.ServerError("Open", err)
+		return
+	}
+	defer fr.Close()
+	ctx.ServeStream(fr, downloadName)
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
@@ -413,7 +408,7 @@ func Download(ctx *context.Context) {
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return
@@ -423,13 +418,13 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	complete := aReq.IsComplete()
-	if !complete {
-		aReq = archiver_service.ArchiveRepository(aReq)
-		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
+	err = archiver_service.ArchiveRepository(aReq)
+	if err != nil {
+		ctx.ServerError("archiver_service.ArchiveRepository", err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"complete": complete,
+		"complete": true,
 	})
 }

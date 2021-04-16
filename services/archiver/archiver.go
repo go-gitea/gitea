@@ -6,21 +6,16 @@
 package archiver
 
 import (
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
+	"io"
 	"path"
 	"regexp"
 	"strings"
-	"sync"
-	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -31,92 +26,28 @@ import (
 // This is entirely opaque to external entities, though, and mostly used as a
 // handle elsewhere.
 type ArchiveRequest struct {
-	uri             string
-	repo            *git.Repository
-	refName         string
-	ext             string
-	archivePath     string
-	archiveType     git.ArchiveType
-	archiveComplete bool
-	commit          *git.Commit
-	cchan           chan struct{}
+	uri         string
+	repoID      int64
+	repo        *git.Repository
+	refName     string
+	ext         string
+	archivePath string
+	archiveType git.ArchiveType
+	commit      *git.Commit
 }
-
-var archiveInProgress []*ArchiveRequest
-var archiveMutex sync.Mutex
 
 // SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
 // the way to 64.
 var shaRegex = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
-// These facilitate testing, by allowing the unit tests to control (to some extent)
-// the goroutine used for processing the queue.
-var archiveQueueMutex *sync.Mutex
-var archiveQueueStartCond *sync.Cond
-var archiveQueueReleaseCond *sync.Cond
-
-// GetArchivePath returns the path from which we can serve this archive.
-func (aReq *ArchiveRequest) GetArchivePath() string {
-	return aReq.archivePath
-}
-
-// GetArchiveName returns the name of the caller, based on the ref used by the
-// caller to create this request.
-func (aReq *ArchiveRequest) GetArchiveName() string {
-	return aReq.refName + aReq.ext
-}
-
-// IsComplete returns the completion status of this request.
-func (aReq *ArchiveRequest) IsComplete() bool {
-	return aReq.archiveComplete
-}
-
-// WaitForCompletion will wait for this request to complete, with no timeout.
-// It returns whether the archive was actually completed, as the channel could
-// have also been closed due to an error.
-func (aReq *ArchiveRequest) WaitForCompletion(ctx *context.Context) bool {
-	select {
-	case <-aReq.cchan:
-	case <-ctx.Done():
-	}
-
-	return aReq.IsComplete()
-}
-
-// TimedWaitForCompletion will wait for this request to complete, with timeout
-// happening after the specified Duration.  It returns whether the archive is
-// now complete and whether we hit the timeout or not.  The latter may not be
-// useful if the request is complete or we started to shutdown.
-func (aReq *ArchiveRequest) TimedWaitForCompletion(ctx *context.Context, dur time.Duration) (bool, bool) {
-	timeout := false
-	select {
-	case <-time.After(dur):
-		timeout = true
-	case <-aReq.cchan:
-	case <-ctx.Done():
-	}
-
-	return aReq.IsComplete(), timeout
-}
-
-// The caller must hold the archiveMutex across calls to getArchiveRequest.
-func getArchiveRequest(repo *git.Repository, commit *git.Commit, archiveType git.ArchiveType) *ArchiveRequest {
-	for _, r := range archiveInProgress {
-		// Need to be referring to the same repository.
-		if r.repo.Path == repo.Path && r.commit.ID == commit.ID && r.archiveType == archiveType {
-			return r
-		}
-	}
-	return nil
-}
-
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to ArchiveRepository()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repo *git.Repository, uri string) (*ArchiveRequest, error) {
+func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
-		uri:  uri,
-		repo: repo,
+		repoID: repoID,
+		uri:    uri,
+		repo:   repo,
 	}
 
 	switch {
@@ -155,12 +86,6 @@ func NewRequest(repo *git.Repository, uri string) (*ArchiveRequest, error) {
 		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
 	}
 
-	archiveMutex.Lock()
-	defer archiveMutex.Unlock()
-	if rExisting := getArchiveRequest(r.repo, r.commit, r.archiveType); rExisting != nil {
-		return rExisting, nil
-	}
-
 	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID.String())+r.ext)
 	if err != nil {
 		return nil, err
@@ -168,59 +93,65 @@ func NewRequest(repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	return r, nil
 }
 
-func doArchive(r *ArchiveRequest) {
-	// Close the channel to indicate to potential waiters that this request
-	// has finished.
-	defer close(r.cchan)
+// GetArchivePath returns the path from which we can serve this archive.
+func (aReq *ArchiveRequest) GetArchivePath() string {
+	return aReq.archivePath
+}
 
-	// It could have happened that we enqueued two archival requests, due to
-	// race conditions and difficulties in locking.  Do one last check that
-	// the archive we're referring to doesn't already exist.  If it does exist,
-	// then just mark the request as complete and move on.
-	_, err := storage.RepoArchives.Stat(r.archivePath)
-	if err == nil {
-		r.archiveComplete = true
-		return
-	}
-	if !errors.Is(err, os.ErrNotExist) {
-		log.Error("Unable to check if %s util.IsFile: %v. Will ignore and recreate.", r.archivePath, err)
-	}
+// GetArchiveName returns the name of the caller, based on the ref used by the
+// caller to create this request.
+func (aReq *ArchiveRequest) GetArchiveName() string {
+	return aReq.refName + aReq.ext
+}
 
-	// Create a temporary file to use while the archive is being built.  We
-	// will then copy it into place (r.archivePath) once it's fully
-	// constructed.
-	tmpArchive, err := ioutil.TempFile("", "archive")
+func doArchive(r *ArchiveRequest) error {
+	ctx, commiter, err := models.TxDBContext()
 	if err != nil {
-		log.Error("Unable to create a temporary archive file! Error: %v", err)
-		return
+		return err
 	}
-	defer func() {
-		tmpArchive.Close()
-		os.Remove(tmpArchive.Name())
-	}()
+	defer commiter.Close()
 
-	if err = r.commit.CreateArchive(graceful.GetManager().ShutdownContext(), tmpArchive.Name(), git.CreateArchiveOpts{
-		Format: r.archiveType,
-		Prefix: setting.Repository.PrefixArchiveFiles,
+	archiver, err := models.GetRepoArchiver(ctx, r.repoID, r.archiveType, r.commit.ID.String())
+	if err != nil {
+		return err
+	}
+	if archiver != nil {
+		return nil
+	}
+
+	if err := models.AddArchiver(ctx, &models.RepoArchiver{
+		RepoID:   r.repoID,
+		Type:     r.archiveType,
+		CommitID: r.commit.ID.String(),
+		Name:     r.GetArchiveName(),
 	}); err != nil {
-		log.Error("Download -> CreateArchive "+tmpArchive.Name(), err)
-		return
+		return err
 	}
 
-	f, err := os.Open(tmpArchive.Name())
+	rd, w := io.Pipe()
+	var done chan error
+
+	go func(done chan error, w io.Writer) {
+		err := r.repo.CreateArchive(
+			graceful.GetManager().ShutdownContext(),
+			r.archiveType,
+			w,
+			setting.Repository.PrefixArchiveFiles,
+			r.commit.ID.String(),
+		)
+		done <- err
+	}(done, w)
+
+	if _, err := storage.RepoArchives.Save(r.archivePath, rd, -1); err != nil {
+		return fmt.Errorf("Unable to write archive: %v", err)
+	}
+
+	err = <-done
 	if err != nil {
-		log.Error("Unable to open temp archive " + tmpArchive.Name())
-		return
-	}
-	defer f.Close()
-
-	if _, err := storage.RepoArchives.Save(r.archivePath, f); err != nil {
-		log.Error("Unable to write archive " + r.archivePath)
-		return
+		return err
 	}
 
-	// Block any attempt to finalize creating a new request if we're marking
-	r.archiveComplete = true
+	return commiter.Commit()
 }
 
 // ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing
@@ -229,65 +160,6 @@ func doArchive(r *ArchiveRequest) {
 // anything.  In all cases, the caller should be examining the *ArchiveRequest
 // being returned for completion, as it may be different than the one they passed
 // in.
-func ArchiveRepository(request *ArchiveRequest) *ArchiveRequest {
-	// We'll return the request that's already been enqueued if it has been
-	// enqueued, or we'll immediately enqueue it if it has not been enqueued
-	// and it is not marked complete.
-	archiveMutex.Lock()
-	defer archiveMutex.Unlock()
-	if rExisting := getArchiveRequest(request.repo, request.commit, request.archiveType); rExisting != nil {
-		return rExisting
-	}
-	if request.archiveComplete {
-		return request
-	}
-
-	request.cchan = make(chan struct{})
-	archiveInProgress = append(archiveInProgress, request)
-	go func() {
-		// Wait to start, if we have the Cond for it.  This is currently only
-		// useful for testing, so that the start and release of queued entries
-		// can be controlled to examine the queue.
-		if archiveQueueStartCond != nil {
-			archiveQueueMutex.Lock()
-			archiveQueueStartCond.Wait()
-			archiveQueueMutex.Unlock()
-		}
-
-		// Drop the mutex while we process the request.  This may take a long
-		// time, and it's not necessary now that we've added the reequest to
-		// archiveInProgress.
-		doArchive(request)
-
-		if archiveQueueReleaseCond != nil {
-			archiveQueueMutex.Lock()
-			archiveQueueReleaseCond.Wait()
-			archiveQueueMutex.Unlock()
-		}
-
-		// Purge this request from the list.  To do so, we'll just take the
-		// index at which we ended up at and swap the final element into that
-		// position, then chop off the now-redundant final element.  The slice
-		// may have change in between these two segments and we may have moved,
-		// so we search for it here.  We could perhaps avoid this search
-		// entirely if len(archiveInProgress) == 1, but we should verify
-		// correctness.
-		archiveMutex.Lock()
-		defer archiveMutex.Unlock()
-
-		idx := -1
-		for _idx, req := range archiveInProgress {
-			if req == request {
-				idx = _idx
-				break
-			}
-		}
-		if idx == -1 {
-			log.Error("ArchiveRepository: Failed to find request for removal.")
-			return
-		}
-		archiveInProgress = append(archiveInProgress[:idx], archiveInProgress[idx+1:]...)
-	}()
-
-	return request
+func ArchiveRepository(request *ArchiveRequest) error {
+	return doArchive(request)
 }
