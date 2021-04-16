@@ -30,6 +30,9 @@ func (Parser) Name() string {
 	return "orgmode"
 }
 
+// NeedPostProcess implements markup.Parser
+func (Parser) NeedPostProcess() bool { return true }
+
 // Extensions implements markup.Parser
 func (Parser) Extensions() []string {
 	return []string{".org"}

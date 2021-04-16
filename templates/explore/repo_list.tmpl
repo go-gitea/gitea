@@ -42,7 +42,9 @@
 					{{if .PrimaryLanguage }}
 					<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
 					{{end}}
-					<span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
+					{{if not $.DisableStars}}
+						<span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
+					{{end}}
 					<span class="text grey df ac mr-3">{{svg "octicon-git-branch" 16 "mr-3"}}{{.NumForks}}</span>
 				</div>
 			</div>
