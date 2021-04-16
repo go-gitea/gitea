@@ -14,29 +14,29 @@
 			{{if not .Repository.IsArchived}}
 				<div class="column right aligned">
 					{{if or .CanWriteIssues .CanWritePulls}}
-					<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
+						<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/edit">{{.i18n.Tr "repo.milestones.edit"}}</a>
 					{{end}}
 					<a class="ui primary button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}?milestone={{.MilestoneID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 				</div>
 			{{end}}
 		</div>
-        <div class="ui one column stackable grid">
-            <div class="column">
-                {{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
-                {{if .IsClosed}}
+		<div class="ui one column stackable grid">
+			<div class="column">
+				{{ $closedDate:= TimeSinceUnix .Milestone.ClosedDateUnix $.Lang }}
+				{{if .IsClosed}}
 					{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
-                {{else}}
+				{{else}}
 					{{svg "octicon-calendar"}}
-                    {{if .Milestone.DeadlineString}}
-                        <span {{if .IsOverdue}}class="overdue"{{end}}>{{.Milestone.DeadlineString}}</span>
-                    {{else}}
-                        {{$.i18n.Tr "repo.milestones.no_due_date"}}
-                    {{end}}
-                {{end}}
-                &nbsp;
-                <b>{{.i18n.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
-            </div>
-        </div>
+					{{if .Milestone.DeadlineString}}
+						<span {{if .IsOverdue}}class="overdue"{{end}}>{{.Milestone.DeadlineString}}</span>
+					{{else}}
+						{{$.i18n.Tr "repo.milestones.no_due_date"}}
+					{{end}}
+				{{end}}
+				&nbsp;
+				<b>{{.i18n.Tr "repo.milestones.completeness" .Milestone.Completeness}}</b>
+			</div>
+		</div>
 		<div class="ui divider"></div>
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">

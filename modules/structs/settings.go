@@ -9,6 +9,7 @@ type GeneralRepoSettings struct {
 	MirrorsDisabled      bool `json:"mirrors_disabled"`
 	HTTPGitDisabled      bool `json:"http_git_disabled"`
 	MigrationsDisabled   bool `json:"migrations_disabled"`
+	StarsDisabled        bool `json:"stars_disabled"`
 	TimeTrackingDisabled bool `json:"time_tracking_disabled"`
 	LFSDisabled          bool `json:"lfs_disabled"`
 }
