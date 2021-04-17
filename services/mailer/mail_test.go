@@ -95,7 +95,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body"}, "en-US", tos, false, "issue create")
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 
 	gomailMsg := msgs[0].ToMessage()
