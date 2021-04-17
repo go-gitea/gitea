@@ -85,10 +85,16 @@ func getPackage(e Engine, repoID int64, typ PackageType, name string) (*Package,
 	return pkg, nil
 }
 
-// UpdateCols updates some columns
-func (pkg *Package) UpdateCols(cols ...string) error {
+// updateCols updates some columns
+func (pkg *Package) updateCols(cols ...string) error {
 	_, err := x.ID(pkg.ID).Cols(cols...).Update(pkg)
 	return err
+}
+
+// UpdateLastUpdated update last update time
+func (pkg *Package) UpdateLastUpdated(updateTime timeutil.TimeStamp) error {
+	pkg.UpdatedUnix = updateTime
+	return pkg.updateCols("updated_unix")
 }
 
 // LoadRepo load package's repo

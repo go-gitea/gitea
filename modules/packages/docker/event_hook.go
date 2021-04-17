@@ -68,8 +68,7 @@ func HandleEvents(data *notifications.Envelope) error {
 			}
 
 			// update update time
-			pkg.UpdatedUnix = timeutil.TimeStamp(event.Timestamp.Unix())
-			err = pkg.UpdateCols("updated_unix")
+			err = pkg.UpdateLastUpdated(timeutil.TimeStamp(event.Timestamp.Unix()))
 			if err != nil {
 				return err
 			}
