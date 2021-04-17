@@ -105,7 +105,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
 		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{assignee}); err != nil {
-			log.Error("SendIssueAssignedMail faile: %v", err)
+			log.Error("Error in SendIssueAssignedMail for issue[%d] to assignee[%d]: %v", issue.ID, assignee.ID, err)
 		}
 	}
 }
@@ -114,7 +114,7 @@ func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{reviewer}); err != nil {
-			log.Error("SendIssueAssignedMail faile: %v", err)
+			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
 		}
 	}
 }
