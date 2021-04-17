@@ -16,7 +16,7 @@ function scrollToAnchor() {
 }
 
 export default function initMarkdownAnchors() {
-  if (!document.querySelector('.markdown')) return;
+  if (!document.querySelector('.markup')) return;
 
   for (const heading of document.querySelectorAll(headingSelector)) {
     const originalId = heading.id.replace(/^user-content-/, '');
