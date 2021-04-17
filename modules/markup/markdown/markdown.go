@@ -73,8 +73,8 @@ func (l *limitWriter) CloseWithError(err error) error {
 	return l.w.CloseWithError(err)
 }
 
-// NewGiteaParseContext creates a parser.Context with the gitea context set
-func NewGiteaParseContext(ctx *markup.RenderContext) parser.Context {
+// newParserContext creates a parser.Context with the render context set
+func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
 	pc.Set(urlPrefixKey, ctx.URLPrefix)
 	pc.Set(isWikiKey, ctx.IsWiki)
@@ -185,7 +185,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		}()
 
 		// FIXME: Don't read all to memory, but goldmark doesn't support
-		pc := NewGiteaParseContext(ctx)
+		pc := newParserContext(ctx)
 		buf, err := ioutil.ReadAll(input)
 		if err != nil {
 			log.Error("Unable to ReadAll: %v", err)
