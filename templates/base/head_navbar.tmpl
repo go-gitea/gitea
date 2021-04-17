@@ -100,7 +100,7 @@
 							class="ui button mini compact basic icon fitted poping up"
 							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right" data-variation="small inverted"
-						>{{svg "octicon-trashcan"}}</button>
+						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
@@ -157,10 +157,12 @@
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{svg "octicon-star"}}
-						{{.i18n.Tr "your_starred"}}
-					</a>
+					{{if not .DisableStars}}
+						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+							{{svg "octicon-star"}}
+							{{.i18n.Tr "your_starred"}}
+						</a>
+					{{end}}
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->

@@ -94,7 +94,7 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel,
+		levelName:      LogLevel.String(),
 		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
@@ -115,9 +115,9 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("info")
-	return log.FromString(value).String()
+func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+	value := section.Key(key).MustString(defaultValue.String())
+	return log.FromString(value)
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
@@ -126,8 +126,7 @@ func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	levelName = getLogLevel(sec, "LEVEL", LogLevel)
-	level := log.FromString(levelName)
+	level := getLogLevel(sec, "LEVEL", LogLevel)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name

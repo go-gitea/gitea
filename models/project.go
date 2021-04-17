@@ -89,7 +89,6 @@ func GetProjects(opts ProjectSearchOptions) ([]*Project, int64, error) {
 }
 
 func getProjects(e Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
-
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
 	var cond builder.Cond = builder.Eq{"repo_id": opts.RepoID}

@@ -5,6 +5,8 @@
 package dev
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -23,5 +25,5 @@ func TemplatePreview(ctx *context.Context) {
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
 	ctx.Data["CurDbValue"] = ""
 
-	ctx.HTML(200, base.TplName(ctx.Params("*")))
+	ctx.HTML(http.StatusOK, base.TplName(ctx.Params("*")))
 }

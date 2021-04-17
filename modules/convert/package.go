@@ -14,7 +14,7 @@ func ToPackage(pkg *models.Package) *api.Package {
 	rs := &api.Package{
 		Name:    pkg.Name,
 		Type:    pkg.Type.String(),
-		Owner:   ToUser(pkg.Repo.Owner, false, false),
+		Owner:   ToUser(pkg.Repo.Owner, nil),
 		Repo:    ToRepo(pkg.Repo, models.AccessModeNone),
 		Created: pkg.CreatedUnix.AsTimePtr(),
 		Updated: pkg.UpdatedUnix.AsTimePtr(),
