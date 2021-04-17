@@ -18,7 +18,7 @@ import (
 )
 
 // Init initialize regexps for markdown parsing
-func Init() {
+func Init() error {
 	getIssueFullPattern()
 	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
@@ -32,13 +32,11 @@ func Init() {
 			extRenderers[strings.ToLower(ext)] = renderer
 		}
 	}
+	return nil
 }
 
 func init() {
-	services.RegisterService("markup", func() error {
-		Init()
-		return nil
-	}, "setting", "markup/external")
+	services.RegisterService("markup", Init, "setting", "markup/external")
 }
 
 // RenderContext represents a render context

@@ -94,9 +94,9 @@ var (
 	holder            = newIndexerHolder()
 )
 
-// InitIssueIndexer initialize issue indexer, syncReindex is true then reindex until
+// Init initialize issue indexer, syncReindex is true then reindex until
 // all issue index done.
-func InitIssueIndexer(syncReindex bool) {
+func Init(syncReindex bool) {
 	waitChannel := make(chan time.Duration)
 
 	// Create the Queue
@@ -234,7 +234,7 @@ func InitIssueIndexer(syncReindex bool) {
 
 func init() {
 	services.RegisterService("indexer/issues", func() error {
-		InitIssueIndexer(false)
+		Init(false)
 		return nil
 	}, "setting")
 }

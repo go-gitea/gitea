@@ -590,15 +590,13 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 }
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
-func InitSyncMirrors() {
+func InitSyncMirrors() error {
 	go graceful.GetManager().RunWithShutdownContext(SyncMirrors)
+	return nil
 }
 
 func init() {
-	services.RegisterService("mirror", func() error {
-		InitSyncMirrors()
-		return nil
-	}, "setting")
+	services.RegisterService("mirror", InitSyncMirrors, "setting")
 }
 
 // StartToMirror adds repoID to mirror queue

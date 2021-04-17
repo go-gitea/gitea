@@ -129,18 +129,16 @@ func loadRepoConfig() {
 }
 
 // NewRepoContext creates a new repository context
-func NewRepoContext() {
+func NewRepoContext() error {
 	loadRepoConfig()
 	loadUnitConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	return nil
 }
 
 func init() {
-	services.RegisterService("models", func() error {
-		NewRepoContext()
-		return nil
-	}, "setting")
+	services.RegisterService("models", NewRepoContext, "setting")
 }
 
 // RepositoryStatus defines the status of repository

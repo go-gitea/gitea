@@ -10,13 +10,11 @@ import "code.gitea.io/gitea/modules/services"
 var SVGs map[string]string
 
 // Init discovers SVGs and populates the `SVGs` variable
-func Init() {
+func Init() error {
 	SVGs = Discover()
+	return nil
 }
 
 func init() {
-	services.RegisterService("svg", func() error {
-		Init()
-		return nil
-	}, "setting")
+	services.RegisterService("svg", Init, "setting")
 }

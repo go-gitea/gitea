@@ -76,7 +76,7 @@ func PreInstallInit(ctx context.Context) bool {
 			log.Info("SQLite3 Supported")
 		}
 		setting.InitDBConfig()
-		svg.Init()
+		_ = svg.Init()
 	}
 
 	return !setting.InstallLock
@@ -92,7 +92,7 @@ func PostInstallInit(ctx context.Context) {
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)
 		}
-		svg.Init()
+		_ = svg.Init()
 	}
 }
 

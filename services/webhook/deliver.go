@@ -264,7 +264,7 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 }
 
 // InitDeliverHooks starts the hooks delivery thread
-func InitDeliverHooks() {
+func InitDeliverHooks() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	webhookHTTPClient = &http.Client{
@@ -279,11 +279,9 @@ func InitDeliverHooks() {
 	}
 
 	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)
+	return nil
 }
 
 func init() {
-	services.RegisterService("webhook", func() error {
-		InitDeliverHooks()
-		return nil
-	}, "setting")
+	services.RegisterService("webhook", InitDeliverHooks, "setting")
 }
