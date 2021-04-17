@@ -82,6 +82,9 @@ func (u *User) RealSizedAvatarLink(size int) string {
 		if u.Avatar == "" {
 			return DefaultAvatarLink()
 		}
+		if size > 0 {
+			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
+		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
 		if u.Avatar == "" {
@@ -89,7 +92,9 @@ func (u *User) RealSizedAvatarLink(size int) string {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
-
+		if size > 0 {
+			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
+		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
 	return SizedAvatarLink(u.AvatarEmail, size)
