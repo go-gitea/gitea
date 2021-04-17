@@ -7,7 +7,6 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +15,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // HTTPClient is used to communicate with the LFS server
@@ -60,7 +61,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 
 	payload := new(bytes.Buffer)
-	err := json.NewEncoder(payload).Encode(request)
+	err := jsoniter.NewEncoder(payload).Encode(request)
 	if err != nil {
 		return nil, fmt.Errorf("lfs.HTTPClient.batch json.Encode: %w", err)
 	}
@@ -90,7 +91,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	}
 
 	var response BatchResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+	err = jsoniter.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		return nil, fmt.Errorf("lfs.HTTPClient.batch json.Decode: %w", err)
 	}
@@ -104,37 +105,92 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 
 // Download reads the specific LFS object from the LFS server
 func (c *HTTPClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
-	var objects []Pointer
-	objects = append(objects, p)
-
-	result, err := c.batch(ctx, "download", objects)
+	bc := batchContext{
+		IsUpload: false,
+		Pointer:  p,
+	}
+	err := c.performOperation(ctx, &bc)
 	if err != nil {
 		return nil, err
+	}
+	return bc.DownloadResult, nil
+}
+
+// Upload sends the specific LFS object to the LFS server
+func (c *HTTPClient) Upload(ctx context.Context, p Pointer, r io.Reader) error {
+	bc := batchContext{
+		IsUpload:      true,
+		Pointer:       p,
+		UploadContent: r,
+	}
+	return c.performOperation(ctx, &bc)
+}
+
+type batchContext struct {
+	Pointer
+	IsUpload bool
+
+	DownloadResult io.ReadCloser
+	UploadContent  io.Reader
+}
+
+func (c *HTTPClient) performOperation(ctx context.Context, bc *batchContext) error {
+	operation := "download"
+	if bc.IsUpload {
+		operation = "upload"
+	}
+
+	result, err := c.batch(ctx, operation, []Pointer{bc.Pointer})
+	if err != nil {
+		return err
 	}
 
 	transferAdapter, ok := c.transfers[result.Transfer]
 	if !ok {
-		return nil, fmt.Errorf("lfs.HTTPClient.Download Transferadapter not found: %s", result.Transfer)
+		return fmt.Errorf("LFS TransferAdapter not found: %s", result.Transfer)
 	}
 
 	if len(result.Objects) == 0 {
-		return nil, errors.New("lfs.HTTPClient.Download: No objects in result")
+		return errors.New("No LFS objects in result")
 	}
 
 	object := result.Objects[0]
 
 	if object.Error != nil {
-		return nil, errors.New(object.Error.Message)
+		return errors.New(object.Error.Message)
 	}
 
-	link, ok := object.Actions["download"]
-	if !ok {
-		return nil, errors.New("lfs.HTTPClient.Download: Action 'download' not found")
-	}
+	if bc.IsUpload {
+		if len(object.Actions) == 0 {
+			return nil
+		}
 
-	content, err := transferAdapter.Download(ctx, link)
-	if err != nil {
-		return nil, err
+		link, ok := object.Actions["upload"]
+		if !ok {
+			return errors.New("Action 'upload' not found")
+		}
+
+		if err := transferAdapter.Upload(ctx, link, bc.UploadContent); err != nil {
+			return err
+		}
+
+		link, ok = object.Actions["verify"]
+		if ok {
+			if err := transferAdapter.Verify(ctx, link, bc.Pointer); err != nil {
+				return err
+			}
+		}
+	} else {
+		link, ok := object.Actions["download"]
+		if !ok {
+			return errors.New("Action 'download' not found")
+		}
+
+		var err error
+		bc.DownloadResult, err = transferAdapter.Download(ctx, link)
+		if err != nil {
+			return err
+		}
 	}
-	return content, nil
+	return nil
 }

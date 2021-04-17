@@ -33,18 +33,27 @@ func (c *FilesystemClient) objectPath(oid string) string {
 	return filepath.Join(c.lfsdir, oid[0:2], oid[2:4], oid)
 }
 
-// Download reads the specific LFS object from the target repository
+// Download reads the specific LFS object from the target path
 func (c *FilesystemClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
 	objectPath := c.objectPath(p.Oid)
 
-	if _, err := os.Stat(objectPath); os.IsNotExist(err) {
-		return nil, err
+	return os.Open(objectPath)
+}
+
+// Upload writes the specific LFS object to the target path
+func (c *FilesystemClient) Upload(ctx context.Context, p Pointer, r io.Reader) error {
+	objectPath := c.objectPath(p.Oid)
+
+	if err := os.MkdirAll(filepath.Dir(objectPath), 0600); err != nil {
+		return err
 	}
 
-	file, err := os.Open(objectPath)
+	f, err := os.Create(objectPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return file, nil
+	_, err = io.Copy(f, r)
+
+	return err
 }

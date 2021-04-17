@@ -30,13 +30,20 @@ func (a *DummyTransferAdapter) Name() string {
 	return "dummy"
 }
 
-func (a *DummyTransferAdapter) Download(ctx context.Context, r *ObjectResponse) (io.ReadCloser, error) {
+func (a *DummyTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewBufferString("dummy")), nil
 }
 
+func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, r io.Reader) error {
+	return nil
+}
+
+func (a *DummyTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
+	return nil
+}
+
 func TestHTTPClientDownload(t *testing.T) {
-	oid := "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041"
-	size := int64(6)
+	p := Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6}
 
 	roundTripHandler := func(req *http.Request) *http.Response {
 		url := req.URL.String()
@@ -57,8 +64,8 @@ func TestHTTPClientDownload(t *testing.T) {
 
 			assert.Equal(t, "download", batchRequest.Operation)
 			assert.Equal(t, 1, len(batchRequest.Objects))
-			assert.Equal(t, oid, batchRequest.Objects[0].Oid)
-			assert.Equal(t, size, batchRequest.Objects[0].Size)
+			assert.Equal(t, p.Oid, batchRequest.Objects[0].Oid)
+			assert.Equal(t, p.Size, batchRequest.Objects[0].Size)
 
 			batchResponse := &BatchResponse{
 				Transfer: "dummy",
@@ -134,7 +141,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		}
 		client.transfers["dummy"] = dummy
 
-		_, err := client.Download(context.Background(), oid, size)
+		_, err := client.Download(context.Background(), p)
 		if len(c.expectederror) > 0 {
 			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 		} else {

@@ -40,35 +40,21 @@ func TestBasicTransferAdapterDownload(t *testing.T) {
 	a := &BasicTransferAdapter{hc}
 
 	var cases = []struct {
-		response      *ObjectResponse
+		link          *Link
 		expectederror string
 	}{
 		// case 0
 		{
-			response:      &ObjectResponse{},
-			expectederror: "Action 'download' not found",
-		},
-		// case 1
-		{
-			response: &ObjectResponse{
-				Actions: map[string]*Link{"upload": nil},
-			},
-			expectederror: "Action 'download' not found",
-		},
-		// case 2
-		{
-			response: &ObjectResponse{
-				Actions: map[string]*Link{"download": {
-					Href:   "https://valid-download-request.io",
-					Header: map[string]string{"test-header": "test-value"},
-				}},
+			link: &Link{
+				Href:   "https://valid-download-request.io",
+				Header: map[string]string{"test-header": "test-value"},
 			},
 			expectederror: "",
 		},
 	}
 
 	for n, c := range cases {
-		_, err := a.Download(context.Background(), c.response)
+		_, err := a.Download(context.Background(), c.link)
 		if len(c.expectederror) > 0 {
 			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 		} else {
