@@ -71,17 +71,19 @@
 							</a>
 						</div>
 					</form>
-					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
-						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.star_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
-							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
-								{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.i18n.Tr "repo.star"}}{{end}}
-							</button>
-							<a class="ui basic label" href="{{.Link}}/stars">
-								{{CountFmt .NumStars}}
-							</a>
-						</div>
-					</form>
+					{{if not $.DisableStars}}
+						<form method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}un{{end}}star?redirect_to={{$.Link}}">
+							{{$.CsrfTokenHtml}}
+							<div class="ui labeled button{{if not $.IsSigned}} poping up{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.star_guest_user" }}" data-position="top center" data-variation="tiny"{{end}}>
+								<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
+									{{if $.IsStaringRepo}}{{svg "octicon-star-fill"}}{{$.i18n.Tr "repo.unstar"}}{{else}}{{svg "octicon-star"}}{{$.i18n.Tr "repo.star"}}{{end}}
+								</button>
+								<a class="ui basic label" href="{{.Link}}/stars">
+									{{CountFmt .NumStars}}
+								</a>
+							</div>
+						</form>
+					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
 						<div class="ui labeled button{{if not $.CanSignedUserFork}} poping up disabled{{end}}"{{if and (not $.CanSignedUserFork) $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{else if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" data-variation="tiny" tabindex="0">
 							<a class="ui compact small basic button"{{if $.CanSignedUserFork}} href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{end}}>

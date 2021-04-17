@@ -5,35 +5,22 @@
 package migrations
 
 import (
-	"fmt"
-	"time"
-
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func createPushMirrorTable(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64 `xorm:"pk autoincr"`
-		RepoID     int64 `xorm:"INDEX"`
-		RemoteName string
-
-		Interval       time.Duration
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
-		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
-		LastError      string
+func convertAvatarURLToText(x *xorm.Engine) error {
+	dbType := x.Dialect().URI().DBType
+	if dbType == schemas.SQLITE { // For SQLITE, varchar or char will always be represented as TEXT
+		return nil
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync2(new(PushMirror)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-
-	return sess.Commit()
+	// Some oauth2 providers may give very long avatar urls (i.e. Google)
+	return modifyColumn(x, "external_login_user", &schemas.Column{
+		Name: "avatar_url",
+		SQLType: schemas.SQLType{
+			Name: schemas.Text,
+		},
+		Nullable: true,
+	})
 }

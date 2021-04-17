@@ -130,10 +130,12 @@
 									{{svg "octicon-archive" 16 "ml-2"}}
 								</span>
 							</div>
-							<div class="text light grey df ac">
-								${repo.stars_count}
-								{{svg "octicon-star" 16 "ml-2"}}
-							</div>
+							{{if not .DisableStars}}
+								<div class="text light grey df ac">
+									${repo.stars_count}
+									{{svg "octicon-star" 16 "ml-2"}}
+								</div>
+							{{end}}
 						</a>
 					</li>
 				</ul>
