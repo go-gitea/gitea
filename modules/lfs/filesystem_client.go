@@ -34,8 +34,8 @@ func (c *FilesystemClient) objectPath(oid string) string {
 }
 
 // Download reads the specific LFS object from the target repository
-func (c *FilesystemClient) Download(ctx context.Context, oid string, size int64) (io.ReadCloser, error) {
-	objectPath := c.objectPath(oid)
+func (c *FilesystemClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
+	objectPath := c.objectPath(p.Oid)
 
 	if _, err := os.Stat(objectPath); os.IsNotExist(err) {
 		return nil, err

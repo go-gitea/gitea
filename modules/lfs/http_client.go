@@ -103,9 +103,9 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 }
 
 // Download reads the specific LFS object from the LFS server
-func (c *HTTPClient) Download(ctx context.Context, oid string, size int64) (io.ReadCloser, error) {
+func (c *HTTPClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
 	var objects []Pointer
-	objects = append(objects, Pointer{oid, size})
+	objects = append(objects, p)
 
 	result, err := c.batch(ctx, "download", objects)
 	if err != nil {
@@ -121,7 +121,18 @@ func (c *HTTPClient) Download(ctx context.Context, oid string, size int64) (io.R
 		return nil, errors.New("lfs.HTTPClient.Download: No objects in result")
 	}
 
-	content, err := transferAdapter.Download(ctx, result.Objects[0])
+	object := result.Objects[0]
+
+	if object.Error != nil {
+		return nil, errors.New(object.Error.Message)
+	}
+
+	link, ok := object.Actions["download"]
+	if !ok {
+		return nil, errors.New("lfs.HTTPClient.Download: Action 'download' not found")
+	}
+
+	content, err := transferAdapter.Download(ctx, link)
 	if err != nil {
 		return nil, err
 	}

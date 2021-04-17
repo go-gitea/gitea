@@ -12,7 +12,7 @@ import (
 
 // Client is used to communicate with a LFS source
 type Client interface {
-	Download(ctx context.Context, oid string, size int64) (io.ReadCloser, error)
+	Download(ctx context.Context, p Pointer) (io.ReadCloser, error)
 }
 
 // NewClient creates a LFS client

@@ -346,7 +346,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 						return nil
 					}
 
-					stream, err := client.Download(ctx, pointerBlob.Oid, pointerBlob.Size)
+					stream, err := client.Download(ctx, pointerBlob.Pointer)
 					if err != nil {
 						return fmt.Errorf("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %w", pointerBlob.Oid, err)
 					}

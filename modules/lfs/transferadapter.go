@@ -15,8 +15,7 @@ import (
 // TransferAdapter represents an adapter for downloading/uploading LFS objects
 type TransferAdapter interface {
 	Name() string
-	Download(ctx context.Context, r *ObjectResponse) (io.ReadCloser, error)
-	//Upload(ctx context.Context, reader io.Reader) error
+	Download(ctx context.Context, l *Link) (io.ReadCloser, error)
 }
 
 // BasicTransferAdapter implements the "basic" adapter
@@ -30,17 +29,12 @@ func (a *BasicTransferAdapter) Name() string {
 }
 
 // Download reads the download location and downloads the data
-func (a *BasicTransferAdapter) Download(ctx context.Context, r *ObjectResponse) (io.ReadCloser, error) {
-	download, ok := r.Actions["download"]
-	if !ok {
-		return nil, errors.New("lfs.BasicTransferAdapter.Download: Action 'download' not found")
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "GET", download.Href, nil)
+func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", l.Href, nil)
 	if err != nil {
 		return nil, fmt.Errorf("lfs.BasicTransferAdapter.Download http.NewRequestWithContext: %w", err)
 	}
-	for key, value := range download.Header {
+	for key, value := range l.Header {
 		req.Header.Set(key, value)
 	}
 
