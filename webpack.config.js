@@ -5,14 +5,16 @@ import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-import {VueLoaderPlugin} from 'vue-loader';
-import {ESBuildMinifyPlugin} from 'esbuild-loader';
+import VueLoader from 'vue-loader';
+import EsBuildLoader from 'esbuild-loader';
 import {resolve, parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const {VueLoaderPlugin} = VueLoader;
+const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
 
 const themes = {};

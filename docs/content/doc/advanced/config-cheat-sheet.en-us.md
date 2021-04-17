@@ -75,6 +75,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
+- `DISABLE_STARS`: **false**: Disable stars feature.
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories

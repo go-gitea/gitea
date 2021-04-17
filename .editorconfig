@@ -18,6 +18,9 @@ insert_final_newline = false
 [templates/swagger/v1_json.tmpl]
 indent_style = space
 
+[templates/user/auth/oidc_wellknown.tmpl]
+indent_style = space
+
 [Makefile]
 indent_style = tab
 
