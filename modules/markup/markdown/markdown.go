@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
-	giteautil "code.gitea.io/gitea/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
@@ -170,7 +169,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
+	// FIXME: should we include a timeout that closes the pipe to abort the renderer and sanitizer if it takes too long?
 	go func() {
 		defer func() {
 			err := recover()
@@ -187,7 +186,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 		// FIXME: Don't read all to memory, but goldmark doesn't support
 		pc := NewGiteaParseContext(ctx)
-		buf, err := ioutil.ReadAll(giteautil.NormalizeEOLReader(input))
+		buf, err := ioutil.ReadAll(input)
 		if err != nil {
 			log.Error("Unable to ReadAll: %v", err)
 			return
