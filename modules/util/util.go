@@ -7,8 +7,6 @@ package util
 import (
 	"bytes"
 	"errors"
-	"io"
-	"io/ioutil"
 	"strings"
 )
 
@@ -68,59 +66,40 @@ func IsEmptyString(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
 }
 
-type normalizeEOLReader struct {
-	rd           io.Reader
-	isLastReturn bool
-}
-
-func (r *normalizeEOLReader) Read(bs []byte) (int, error) {
-	var p = make([]byte, len(bs))
-	n, err := r.rd.Read(p)
-	if err != nil {
-		return n, err
-	}
-
-	var j = 0
-	for i, c := range p[:n] {
-		if i == 0 {
-			if c == '\n' && r.isLastReturn {
-				r.isLastReturn = false
-				continue
-			}
-			r.isLastReturn = false
-		}
-		if c == '\r' {
-			if i < n-1 {
-				if p[i+1] != '\n' {
-					bs[j] = '\n'
-				} else {
-					continue
-				}
-			} else {
-				r.isLastReturn = true
-				bs[j] = '\n'
-			}
-		} else {
-			bs[j] = c
-		}
-		j++
-	}
-
-	return j, nil
-}
-
-// NormalizeEOLReader will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF) from a reader
-func NormalizeEOLReader(rd io.Reader) io.Reader {
-	return &normalizeEOLReader{
-		rd:           rd,
-		isLastReturn: false,
-	}
-}
-
 // NormalizeEOL will convert Windows (CRLF) and Mac (CR) EOLs to UNIX (LF)
 func NormalizeEOL(input []byte) []byte {
-	bs, _ := ioutil.ReadAll(NormalizeEOLReader(bytes.NewReader(input)))
-	return bs
+	var right, left, pos int
+	if right = bytes.IndexByte(input, '\r'); right == -1 {
+		return input
+	}
+	length := len(input)
+	tmp := make([]byte, length)
+
+	// We know that left < length because otherwise right would be -1 from IndexByte.
+	copy(tmp[pos:pos+right], input[left:left+right])
+	pos += right
+	tmp[pos] = '\n'
+	left += right + 1
+	pos++
+
+	for left < length {
+		if input[left] == '\n' {
+			left++
+		}
+
+		right = bytes.IndexByte(input[left:], '\r')
+		if right == -1 {
+			copy(tmp[pos:], input[left:])
+			pos += length - left
+			break
+		}
+		copy(tmp[pos:pos+right], input[left:left+right])
+		pos += right
+		tmp[pos] = '\n'
+		left += right + 1
+		pos++
+	}
+	return tmp[:pos]
 }
 
 // MergeInto merges pairs of values into a "dict"
