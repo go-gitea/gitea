@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/routes"
 
+	jsoniter "github.com/json-iterator/go"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -198,7 +199,7 @@ func TestGetLFSRange(t *testing.T) {
 		{"bytes=0-10", "123456789\n", http.StatusPartialContent},
 		// end-range bigger than length-1 is ignored
 		{"bytes=0-11", "123456789\n", http.StatusPartialContent},
-		{"bytes=11-", "{\"message\":\"Requested Range Not Satisfiable\"}", http.StatusRequestedRangeNotSatisfiable},
+		{"bytes=11-", "Requested Range Not Satisfiable", http.StatusRequestedRangeNotSatisfiable},
 		// incorrect header value cause whole header to be ignored
 		{"bytes=-", "123456789\n", http.StatusOK},
 		{"foobar", "123456789\n", http.StatusOK},
@@ -210,7 +211,14 @@ func TestGetLFSRange(t *testing.T) {
 				"Range": []string{tt.in},
 			}
 			resp := storeAndGetLfs(t, &content, &h, tt.status)
-			assert.Equal(t, tt.out, resp.Body.String())
+			if tt.status == http.StatusPartialContent || tt.status == http.StatusOK {
+				assert.Equal(t, tt.out, resp.Body.String())
+			} else {
+				var er lfs.ErrorResponse
+				err := jsoniter.Unmarshal(resp.Body.Bytes(), &er)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.out, er.Message)
+			}
 		})
 	}
 }
