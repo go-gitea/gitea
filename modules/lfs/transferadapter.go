@@ -58,6 +58,8 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 		return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
 	}
 
+	l.Header["Content-Type"] = MediaType
+
 	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b))
 	if err != nil {
 		return err
@@ -73,6 +75,7 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 	for key, value := range l.Header {
 		req.Header.Set(key, value)
 	}
+	req.Header.Set("Accept", MediaType)
 
 	res, err := a.client.Do(req)
 	if err != nil {

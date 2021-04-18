@@ -27,6 +27,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 	p := Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6}
 
 	roundTripHandler := func(req *http.Request) *http.Response {
+		assert.Equal(t, MediaType, req.Header.Get("Accept"))
 		assert.Equal(t, "test-value", req.Header.Get("test-header"))
 
 		url := req.URL.String()
@@ -44,6 +45,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 			return &http.Response{StatusCode: http.StatusOK}
 		} else if strings.Contains(url, "verify-request") {
 			assert.Equal(t, "POST", req.Method)
+			assert.Equal(t, MediaType, req.Header.Get("Content-Type"))
 
 			var vp Pointer
 			err := json.NewDecoder(req.Body).Decode(&vp)
