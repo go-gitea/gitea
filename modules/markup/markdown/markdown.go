@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
+	giteautil "code.gitea.io/gitea/modules/util"
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
@@ -191,7 +192,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 			log.Error("Unable to ReadAll: %v", err)
 			return
 		}
-		if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
+		if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
 			_ = lw.CloseWithError(err)
 			return
