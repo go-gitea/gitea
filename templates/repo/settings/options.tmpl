@@ -473,6 +473,24 @@
 		</div>
 		{{end}}
 
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "repo.settings.custom_repo_buttons"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="custom_repo_buttons">
+				<div class="field {{if .Err_CustomRepoButtons}}error{{end}}">
+					<label for="custom_repo_buttons_cfg">{{$.i18n.Tr "repo.custom_repo_buttons_cfg_desc"}}</label>
+					<textarea id="custom_repo_buttons_cfg" name="custom_repo_buttons_cfg" rows="4" placeholder="{{$.CustomRepoButtonExample}}">{{.Repository.CustomRepoButtonsConfig}}</textarea>
+				</div>
+				<div class="ui divider"></div>
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+				</div>
+			</form>
+		</div>
+
 		{{if .Permission.IsOwner}}
 		<h4 class="ui top attached error header">
 			{{.i18n.Tr "repo.settings.danger_zone"}}

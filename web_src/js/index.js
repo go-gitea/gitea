@@ -1279,6 +1279,22 @@ async function initRepository() {
       $('.language-stats-details, .repository-menu').slideToggle();
     });
   }
+
+  // custom repo buttons
+  (function() {
+    if ($('.repo-buttons').length === 0) {
+      return;
+    }
+
+    const $detailModal = $('#detail-modal');
+
+    $('.show-repo-button-content').on('click', function () {
+      $detailModal.find('.content .render-content').html($(this).data('content'));
+      $detailModal.find('.sub.header').text($(this).data('title'));
+      $detailModal.modal('show');
+      return false;
+    });
+  })();
 }
 
 function initPullRequestMergeInstruction() {

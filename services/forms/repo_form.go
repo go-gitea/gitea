@@ -156,6 +156,9 @@ type RepoSettingForm struct {
 
 	// Admin settings
 	EnableHealthCheck bool
+
+	// custom repo buttons
+	CustomRepoButtonsCfg string
 }
 
 // Validate validates the fields

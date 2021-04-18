@@ -42,6 +42,21 @@
 			</div>
 			{{if not .IsBeingCreated}}
 				<div class="repo-buttons">
+					{{range .CustomRepoButtons}}
+						<div class="ui labeled button">
+							{{if .IsLink}}
+								<a class="ui basic label" href="{{.Link}}" target="_blank" rel="noopener noreferrer">
+									{{.Title}}
+								</a>
+							{{else}}
+								<a class="ui basic label show-repo-button-content"
+									data-title="{{.Title}}"
+									data-content="{{.RenderedContent}}">
+									{{.Title}}
+								</a>
+							{{end}}
+						</div>
+					{{end}}
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
@@ -98,6 +113,16 @@
 			{{end}}
 		</div><!-- end grid -->
 	</div><!-- end container -->
+
+	<div class="ui modal custom-repo-buttons" id="detail-modal">
+		{{svg "octicon-x" 16 "close inside"}}
+		<div class="content">
+			<div class="sub header"></div>
+			<div class="ui divider"></div>
+			<div class="render-content markdown"></div>
+		</div>
+	</div>
+
 {{end}}
 	<div class="ui tabs container">
 		{{if not .Repository.IsBeingCreated}}

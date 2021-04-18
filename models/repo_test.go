@@ -221,3 +221,96 @@ func TestRepoGetReviewerTeams(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(teams))
 }
+
+func TestRepo_LoadCustomRepoButton(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+
+	repo1.CustomRepoButtonsConfig = CustomRepoButtonExample
+
+	assert.NoError(t, repo1.LoadCustomRepoButton())
+}
+
+func TestCustomRepoButtonConfigVaild(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     string
+		want    bool
+		wantErr bool
+	}{
+		// empty
+		{
+			name:    "empty",
+			cfg:     "",
+			want:    true,
+			wantErr: false,
+		},
+		// right config
+		{
+			name:    "right config",
+			cfg:     CustomRepoButtonExample,
+			want:    true,
+			wantErr: false,
+		},
+		// missing link
+		{
+			name: "missing link",
+			cfg: `-
+  title: Sponsor
+  type: link
+`,
+			want:    false,
+			wantErr: false,
+		},
+		// too many buttons
+		{
+			name: "too many buttons",
+			cfg: `- 
+  title: Sponsor
+  type: link
+  link: http://www.example.com
+
+- 
+  title: Sponsor
+  type: link
+  link: http://www.example.com
+
+- 
+  title: Sponsor
+  type: link
+  link: http://www.example.com
+
+- 
+  title: Sponsor
+  type: link
+  link: http://www.example.com
+`,
+			want:    false,
+			wantErr: false,
+		},
+		// too long title
+		{
+			name: "too long title",
+			cfg: `- 
+  title: Sponsor-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  type: link
+  link: http://www.example.com
+`,
+			want:    false,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := CustomRepoButtonConfigVaild(tt.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("CustomRepoButtonConfigVaild() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("CustomRepoButtonConfigVaild() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

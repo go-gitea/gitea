@@ -34,6 +34,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"gopkg.in/yaml.v3"
 
 	"xorm.io/builder"
 )
@@ -245,6 +246,9 @@ type Repository struct {
 
 	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
 	Avatar string `xorm:"VARCHAR(64)"`
+
+	CustomRepoButtonsConfig string             `xorm:"TEXT"`
+	CustomRepoButtons       []CustomRepoButton `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -2116,4 +2120,87 @@ func IterateRepository(f func(repo *Repository) error) error {
 			}
 		}
 	}
+}
+
+// CustomRepoButtonType type of custom repo button
+type CustomRepoButtonType string
+
+const (
+	// CustomRepoButtonTypeLink a single link (default)
+	CustomRepoButtonTypeLink CustomRepoButtonType = "link"
+	// CustomRepoButtonTypeContent some content with markdown format
+	CustomRepoButtonTypeContent = "content"
+	// CustomRepoButtonExample examle config
+	CustomRepoButtonExample string = `- 
+  title: Sponsor
+  type: link
+  link: http://www.example.com
+
+-
+  title: Sponsor 2
+  type: content
+  content: "## test content \n - [xx](http://www.example.com)"
+`
+)
+
+// CustomRepoButton a config of CustomRepoButton
+type CustomRepoButton struct {
+	Title           string               `yaml:"title"` // max length: 20
+	Typ             CustomRepoButtonType `yaml:"type"`
+	Link            string               `yaml:"link"`
+	Content         string               `yaml:"content"`
+	RenderedContent string               `yaml:"-"`
+}
+
+// IsLink check if it's a link button
+func (b CustomRepoButton) IsLink() bool {
+	return b.Typ != CustomRepoButtonTypeContent
+}
+
+// LoadCustomRepoButton by config
+func (repo *Repository) LoadCustomRepoButton() error {
+	if repo.CustomRepoButtons != nil {
+		return nil
+	}
+
+	repo.CustomRepoButtons = make([]CustomRepoButton, 0, 3)
+	err := yaml.Unmarshal([]byte(repo.CustomRepoButtonsConfig), &repo.CustomRepoButtons)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CustomRepoButtonConfigVaild format check
+func CustomRepoButtonConfigVaild(cfg string) (bool, error) {
+	btns := make([]CustomRepoButton, 0, 3)
+
+	err := yaml.Unmarshal([]byte(cfg), &btns)
+	if err != nil {
+		return false, err
+	}
+
+	// max button nums: 3
+	if len(btns) > 3 {
+		return false, nil
+	}
+
+	for _, btn := range btns {
+		if len(btn.Title) > 20 {
+			return false, nil
+		}
+		if btn.Typ != CustomRepoButtonTypeContent && len(btn.Link) == 0 {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// SetCustomRepoButtons sets custom button config
+func (repo *Repository) SetCustomRepoButtons(cfg string) (err error) {
+	repo.CustomRepoButtonsConfig = cfg
+	_, err = x.Where("id = ?", repo.ID).Cols("custom_repo_buttons_config").NoAutoTime().Update(repo)
+	return
 }

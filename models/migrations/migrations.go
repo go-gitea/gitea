@@ -309,6 +309,8 @@ var migrations = []Migration{
 	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
 	// v179 -> v180
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
+	// v180 -> v181
+	NewMigration("add custom_repo_buttons_config column for repository table", addCustomRepoButtonsConfigRepositoryColumn),
 }
 
 // GetCurrentDBVersion returns the current db version

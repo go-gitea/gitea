@@ -370,6 +370,19 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 	ctx.Repo.Repository = repo
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+
+	// load custom repo buttons
+	if err := ctx.Repo.Repository.LoadCustomRepoButton(); err != nil {
+		ctx.ServerError("LoadCustomRepoButton", err)
+		return
+	}
+
+	for index, btn := range repo.CustomRepoButtons {
+		if !btn.IsLink() {
+			repo.CustomRepoButtons[index].RenderedContent = string(markdown.Render([]byte(btn.Content), ctx.Repo.RepoLink,
+				ctx.Repo.Repository.ComposeMetas()))
+		}
+	}
 }
 
 // RepoIDAssignment returns a handler which assigns the repo to the context.

@@ -53,6 +53,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 
+	ctx.Data["CustomRepoButtonExample"] = models.CustomRepoButtonExample
+
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
@@ -612,7 +614,21 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository was un-archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
-
+	case "custom_repo_buttons":
+		if ok, _ := models.CustomRepoButtonConfigVaild(form.CustomRepoButtonsCfg); !ok {
+			ctx.Flash.Error(ctx.Tr("repo.settings.custom_repo_buttons.wrong_setting"))
+			ctx.Data["Err_CustomRepoButtons"] = true
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+		if err := repo.SetCustomRepoButtons(form.CustomRepoButtonsCfg); err != nil {
+			log.Error("repo.SetCustomRepoButtons: %s", err)
+			ctx.Flash.Error(ctx.Tr("repo.settings.custom_repo_buttons.error"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("repo.settings.custom_repo_buttons.success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 	default:
 		ctx.NotFound("", nil)
 	}
