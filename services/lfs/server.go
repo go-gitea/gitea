@@ -238,12 +238,11 @@ func BatchHandler(ctx *context.Context) {
 		responseObjects = append(responseObjects, responseObject)
 	}
 
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
-
 	respobj := &lfs_module.BatchResponse{Objects: responseObjects}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	enc := json.NewEncoder(ctx.Resp)
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+
+	enc := jsoniter.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}
@@ -256,7 +255,7 @@ func UploadHandler(ctx *context.Context) {
 	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
 	var err error
 	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
-		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err)
+		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 	}
 
 	if !p.IsValid() {
@@ -293,7 +292,7 @@ func UploadHandler(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
 		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
-			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err)
+			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
@@ -334,11 +333,9 @@ func VerifyHandler(ctx *context.Context) {
 }
 
 func decodeJSON(req *http.Request, v interface{}) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-
 	defer req.Body.Close()
 
-	dec := json.NewDecoder(req.Body)
+	dec := jsoniter.NewDecoder(req.Body)
 	return dec.Decode(v)
 }
 
@@ -418,9 +415,16 @@ func writeStatus(ctx *context.Context, status int) {
 	writeStatusMessage(ctx, status, http.StatusText(status))
 }
 
-func writeStatusMessage(ctx *context.Context, status int, message interface{}) {
+func writeStatusMessage(ctx *context.Context, status int, message string) {
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 	ctx.Resp.WriteHeader(status)
-	fmt.Fprintf(ctx.Resp, `{"message":"%v"}`, message)
+
+	er := lfs_module.ErrorResponse{Message: message}
+
+	enc := jsoniter.NewEncoder(ctx.Resp)
+	if err := enc.Encode(er); err != nil {
+		log.Error("Failed to encode error response as json. Error: %v", err)
+	}
 }
 
 // authenticate uses the authorization string to determine whether

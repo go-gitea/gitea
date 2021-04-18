@@ -67,3 +67,10 @@ type PointerBlob struct {
 	Hash string
 	Pointer
 }
+
+// ErrorResponse describes the error to the client.
+type ErrorResponse struct {
+	Message          string
+	DocumentationURL string `json:"documentation_url,omitempty"`
+	RequestID        string `json:"request_id,omitempty"`
+}
