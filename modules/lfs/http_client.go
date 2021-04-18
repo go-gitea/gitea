@@ -147,11 +147,11 @@ func (c *HTTPClient) performOperation(ctx context.Context, bc *batchContext) err
 
 	transferAdapter, ok := c.transfers[result.Transfer]
 	if !ok {
-		return fmt.Errorf("LFS TransferAdapter not found: %s", result.Transfer)
+		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
 	if len(result.Objects) == 0 {
-		return errors.New("No LFS objects in result")
+		return errors.New("No objects in result")
 	}
 
 	object := result.Objects[0]
