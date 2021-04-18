@@ -53,10 +53,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "valid-batch-request-download") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"download": &Link{},
+						"download": {},
 					},
 				},
 			},
@@ -64,10 +64,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "valid-batch-request-upload") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"upload": &Link{},
+						"upload": {},
 					},
 				},
 			},
@@ -79,10 +79,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "error-in-response-objects") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Error: &ObjectError{
-						Code: 404,
+						Code:    404,
 						Message: "Object not found",
 					},
 				},
@@ -91,8 +91,8 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "empty-actions-map") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{},
 				},
 			},
@@ -100,10 +100,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "download-actions-map") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"download": &Link{},
+						"download": {},
 					},
 				},
 			},
@@ -111,10 +111,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "upload-actions-map") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"upload": &Link{},
+						"upload": {},
 					},
 				},
 			},
@@ -122,10 +122,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "verify-actions-map") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"verify": &Link{},
+						"verify": {},
 					},
 				},
 			},
@@ -133,10 +133,10 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	} else if strings.Contains(url, "unknown-actions-map") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
-			Objects:  []*ObjectResponse{
-				&ObjectResponse{
+			Objects: []*ObjectResponse{
+				{
 					Actions: map[string]*Link{
-						"unknown": &Link{},
+						"unknown": {},
 					},
 				},
 			},
