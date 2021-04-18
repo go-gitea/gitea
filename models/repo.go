@@ -34,7 +34,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v2"
 
 	"xorm.io/builder"
 )
