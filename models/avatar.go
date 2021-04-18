@@ -81,7 +81,7 @@ func LibravatarURL(email string) (*url.URL, error) {
 }
 
 // HashedAvatarLink returns an avatar link for a provided email
-func HashedAvatarLink(email string) string {
+func HashedAvatarLink(email string, size int) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	sum := fmt.Sprintf("%x", md5.Sum([]byte(lowerEmail)))
 	_, _ = cache.GetString("Avatar:"+sum, func() (string, error) {
@@ -108,6 +108,9 @@ func HashedAvatarLink(email string) string {
 		}
 		return lowerEmail, nil
 	})
+	if size > 0 {
+		return setting.AppSubURL + "/avatar/" + url.PathEscape(sum) + "?size=" + strconv.Itoa(size)
+	}
 	return setting.AppSubURL + "/avatar/" + url.PathEscape(sum)
 }
 
@@ -129,7 +132,7 @@ func SizedAvatarLink(email string, size int) string {
 		// This is the slow path that would need to call LibravatarURL() which
 		// does DNS lookups. Avoid it by issuing a redirect so we don't block
 		// the template render with network requests.
-		return HashedAvatarLink(email)
+		return HashedAvatarLink(email, size)
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		copyOfGravatarSourceURL := *setting.GravatarSourceURL
