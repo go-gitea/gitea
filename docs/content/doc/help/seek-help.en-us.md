@@ -33,4 +33,4 @@ If you found a bug, please create an [issue on GitHub](https://github.com/go-git
 
 ## Chinese Support
 
-Support for the Chinese language is provided at [gocn.vip](https://gocn.vip/topic/gitea).
+Support for the Chinese language is provided at [Our discourse](https://discourse.gitea.io/c/5-category/5).
