@@ -42,7 +42,7 @@ environment variable; this can be used to override the default path to something
 `GITEA_CUSTOM` might, for example, be set by an init script. You can check whether the value
 is set under the "Configuration" tab on the site administration page.
 
-- [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
+- [List of Environment Variables](https://docs.gitea.io/en-us/environment-variables/)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
