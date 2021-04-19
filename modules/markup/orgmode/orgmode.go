@@ -8,9 +8,9 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 
@@ -18,58 +18,62 @@ import (
 )
 
 func init() {
-	markup.RegisterParser(Parser{})
+	markup.RegisterRenderer(Renderer{})
 }
 
-// Parser implements markup.Parser for orgmode
-type Parser struct {
+// Renderer implements markup.Renderer for orgmode
+type Renderer struct {
 }
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return "orgmode"
 }
 
-// NeedPostProcess implements markup.Parser
-func (Parser) NeedPostProcess() bool { return true }
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return []string{".org"}
 }
 
 // Render renders orgmode rawbytes to HTML
-func Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
 
-	renderer := &Renderer{
+	w := &Writer{
 		HTMLWriter: htmlWriter,
-		URLPrefix:  urlPrefix,
-		IsWiki:     isWiki,
+		URLPrefix:  ctx.URLPrefix,
+		IsWiki:     ctx.IsWiki,
 	}
 
-	htmlWriter.ExtendingWriter = renderer
+	htmlWriter.ExtendingWriter = w
 
-	res, err := org.New().Silent().Parse(bytes.NewReader(rawBytes), "").Write(renderer)
+	res, err := org.New().Silent().Parse(input, "").Write(w)
 	if err != nil {
-		log.Error("Panic in orgmode.Render: %v Just returning the rawBytes", err)
-		return rawBytes
+		return fmt.Errorf("orgmode.Render failed: %v", err)
 	}
-	return []byte(res)
+	_, err = io.Copy(output, strings.NewReader(res))
+	return err
 }
 
-// RenderString reners orgmode string to HTML string
-func RenderString(rawContent string, urlPrefix string, metas map[string]string, isWiki bool) string {
-	return string(Render([]byte(rawContent), urlPrefix, metas, isWiki))
+// RenderString renders orgmode string to HTML string
+func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
-// Render reners orgmode string to HTML string
-func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	return Render(rawBytes, urlPrefix, metas, isWiki)
+// Render renders orgmode string to HTML string
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return Render(ctx, input, output)
 }
 
-// Renderer implements org.Writer
-type Renderer struct {
+// Writer implements org.Writer
+type Writer struct {
 	*org.HTMLWriter
 	URLPrefix string
 	IsWiki    bool
@@ -78,7 +82,7 @@ type Renderer struct {
 var byteMailto = []byte("mailto:")
 
 // WriteRegularLink renders images, links or videos
-func (r *Renderer) WriteRegularLink(l org.RegularLink) {
+func (r *Writer) WriteRegularLink(l org.RegularLink) {
 	link := []byte(html.EscapeString(l.URL))
 	if l.Protocol == "file" {
 		link = link[len("file:"):]
