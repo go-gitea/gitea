@@ -209,7 +209,7 @@ func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sh
 		}
 		idx += read
 	}
-	sha = to40ByteSHA(shaBuf)
+	sha = shaBuf
 	return
 }
 
