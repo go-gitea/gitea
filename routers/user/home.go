@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -267,7 +268,15 @@ func Milestones(ctx *context.Context) {
 			continue
 		}
 
-		milestones[i].RenderedContent = string(markdown.Render([]byte(milestones[i].Content), milestones[i].Repo.Link(), milestones[i].Repo.ComposeMetas()))
+		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: milestones[i].Repo.Link(),
+			Metas:     milestones[i].Repo.ComposeMetas(),
+		}, milestones[i].Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+
 		if milestones[i].Repo.IsTimetrackerEnabled() {
 			err := milestones[i].LoadTotalTrackedTime()
 			if err != nil {
