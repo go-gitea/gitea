@@ -7,11 +7,14 @@ package mirror
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -87,10 +90,12 @@ func syncPushMirror(ctx context.Context, mirrorID string) {
 	}
 
 	m.UpdatedUnix = timeutil.TimeStampNow()
+	m.LastError = ""
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Running Sync", mirrorID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
+		log.Error("SyncPushMirror [mirror: %s][repo: %-v]: %v", err)
 		m.LastError = err.Error()
 	}
 
@@ -109,6 +114,28 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	performPush := func(path string) error {
 		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
+		remoteAddr, err := git.GetRemoteAddress(path, m.RemoteName)
+		if err != nil {
+			log.Error("GetRemoteAddress(%s) Error %v", path, err)
+			return errors.New("Unexpected error")
+		}
+
+		if setting.LFS.StartServer {
+			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+
+			gitRepo, err := git.OpenRepository(path)
+			if err != nil {
+				log.Error("OpenRepository: %v", err)
+				return errors.New("Unexpected error")
+			}
+			defer gitRepo.Close()
+
+			ep := lfs.DetermineEndpoint(remoteAddr.String(), "")
+			if err := pushAllLFSObjects(ctx, gitRepo, ep); err != nil {
+				return util.NewURLSanitizedError(err, remoteAddr, true)
+			}
+		}
+
 		if err := git.Push(path, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
@@ -117,13 +144,9 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 		}); err != nil {
 			log.Error("Error pushing %s mirror[%d] remote %s: %v", path, m.ID, m.RemoteName, err)
 
-			remoteAddr, remoteErr := git.GetRemoteAddress(path, m.RemoteName)
-			if remoteErr != nil {
-				log.Error("GetRemoteAddress(%s) Error %v", path, remoteErr)
-				return errors.New("Unexpected error")
-			}
 			return util.NewURLSanitizedError(err, remoteAddr, true)
 		}
+
 		return nil
 	}
 
@@ -132,13 +155,60 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 		return err
 	}
 
-	// TODO LFS
-
 	if m.Repo.HasWiki() {
 		err := performPush(m.Repo.WikiPath())
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *url.URL) error {
+	client := lfs.NewClient(endpoint)
+	contentStore := lfs.NewContentStore()
+
+	pointerChan := make(chan lfs.PointerBlob)
+	errChan := make(chan error, 1)
+	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
+
+	err := func() error {
+		for pointerBlob := range pointerChan {
+			err := func() error {
+				if exists, err := contentStore.Exists(pointerBlob.Pointer); !exists || err != nil {
+					return err
+				}
+
+				content, err := contentStore.Get(pointerBlob.Pointer)
+				if err != nil {
+					return err
+				}
+				defer content.Close()
+
+				if err := client.Upload(ctx, pointerBlob.Pointer, content); err != nil {
+					return fmt.Errorf("pushAllLFSObjects: LFS OID[%s] failed to upload: %w", pointerBlob.Oid, err)
+				}
+				return nil
+			}()
+			if err != nil {
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
+				return err
+			}
+		}
+		return nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	err, has := <-errChan
+	if has {
+		return err
 	}
 
 	return nil

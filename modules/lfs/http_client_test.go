@@ -34,7 +34,7 @@ func (a *DummyTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 	return ioutil.NopCloser(bytes.NewBufferString("dummy")), nil
 }
 
-func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, r io.Reader) error {
+func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
 	return nil
 }
 

@@ -24,7 +24,7 @@ func TestBasicTransferAdapterName(t *testing.T) {
 }
 
 func TestBasicTransferAdapter(t *testing.T) {
-	p := Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab041", Size: 6}
+	p := Pointer{Oid: "b5a2c96250612366ea272ffac6d9744aaf4b45aacd96aa7cfcb931ee3b558259", Size: 5}
 
 	roundTripHandler := func(req *http.Request) *http.Response {
 		assert.Equal(t, MediaType, req.Header.Get("Accept"))
@@ -37,6 +37,8 @@ func TestBasicTransferAdapter(t *testing.T) {
 			return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewBufferString("dummy"))}
 		} else if strings.Contains(url, "upload-request") {
 			assert.Equal(t, "PUT", req.Method)
+			assert.Equal(t, "application/octet-stream", req.Header.Get("Content-Type"))
+			assert.Equal(t, "5", req.Header.Get("Content-Length"))
 
 			b, err := io.ReadAll(req.Body)
 			assert.NoError(t, err)
@@ -128,7 +130,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			err := a.Upload(context.Background(), c.link, bytes.NewBuffer([]byte("dummy")))
+			err := a.Upload(context.Background(), c.link, p, bytes.NewBufferString("dummy"))
 			if len(c.expectederror) > 0 {
 				assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 			} else {

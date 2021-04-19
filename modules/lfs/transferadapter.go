@@ -11,6 +11,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+
+	"code.gitea.io/gitea/modules/log"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -19,7 +22,7 @@ import (
 type TransferAdapter interface {
 	Name() string
 	Download(ctx context.Context, l *Link) (io.ReadCloser, error)
-	Upload(ctx context.Context, l *Link, r io.Reader) error
+	Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error
 	Verify(ctx context.Context, l *Link, p Pointer) error
 }
 
@@ -43,8 +46,23 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 }
 
 // Upload sends the content to the LFS server
-func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, r io.Reader) error {
-	_, err := a.performRequest(ctx, "PUT", l, r)
+func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
+	_, err := a.performRequest(ctx, "PUT", l, func(req *http.Request) error {
+		if len(req.Header.Get("Content-Type")) == 0 {
+			req.Header.Set("Content-Type", "application/octet-stream")
+		}
+
+		if req.Header.Get("Transfer-Encoding") == "chunked" {
+			req.TransferEncoding = []string{"chunked"}
+		} else {
+			req.Header.Set("Content-Length", strconv.FormatInt(p.Size, 10))
+		}
+
+		req.Body = io.NopCloser(r)
+		req.ContentLength = p.Size
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
@@ -53,22 +71,32 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, r io.Reader)
 
 // Verify calls the verify handler on the LFS server
 func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
-	b, err := jsoniter.Marshal(p)
-	if err != nil {
-		return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
-	}
+	_, err := a.performRequest(ctx, "POST", l, func(req *http.Request) error {
+		b, err := jsoniter.Marshal(p)
+		if err != nil {
+			return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
+		}
 
-	l.Header["Content-Type"] = MediaType
+		size := int64(len(b))
 
-	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b))
+		req.Header.Set("Content-Type", MediaType)
+		req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
+
+		req.Body = io.NopCloser(bytes.NewReader(b))
+		req.ContentLength = size
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, r io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, l.Href, r)
+func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, rcb func(*http.Request) error) (*http.Response, error) {
+	log.Trace("lfs.BasicTransferAdapter.performRequest calling: %s %s", method, l.Href)
+
+	req, err := http.NewRequestWithContext(ctx, method, l.Href, nil)
 	if err != nil {
 		return nil, fmt.Errorf("lfs.BasicTransferAdapter.performRequest http.NewRequestWithContext: %w", err)
 	}
@@ -76,6 +104,12 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Accept", MediaType)
+
+	if rcb != nil {
+		if err := rcb(req); err != nil {
+			return nil, err
+		}
+	}
 
 	res, err := a.client.Do(req)
 	if err != nil {

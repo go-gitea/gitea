@@ -66,7 +66,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 		return nil, fmt.Errorf("lfs.HTTPClient.batch json.Encode: %w", err)
 	}
 
-	log.Trace("lfs.HTTPClient.batch NewRequestWithContext: %s", url)
+	log.Trace("lfs.HTTPClient.batch calling: %s", url)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
@@ -170,7 +170,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, bc *batchContext) err
 			return errors.New("Action 'upload' not found")
 		}
 
-		if err := transferAdapter.Upload(ctx, link, bc.UploadContent); err != nil {
+		if err := transferAdapter.Upload(ctx, link, bc.Pointer, bc.UploadContent); err != nil {
 			return err
 		}
 

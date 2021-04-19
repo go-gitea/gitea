@@ -193,7 +193,6 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
-	gitRepo.Close()
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
@@ -202,6 +201,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			log.Error("Failed to synchronize LFS objects for repository: %v", err)
 		}
 	}
+	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
