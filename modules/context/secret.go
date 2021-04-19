@@ -34,7 +34,7 @@ func randomBytes(len int64) ([]byte, error) {
 
 func randomString(len int64) (string, error) {
 	b, err := randomBytes(len)
-	return base64.URLEncoding.EncodeToString(b), err
+	return base64.RawURLEncoding.EncodeToString(b), err
 }
 
 // AesEncrypt encrypts text and given key with AES.
