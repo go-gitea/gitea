@@ -146,7 +146,11 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
 		// starting condition will need to be changed slightly
 		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
-			SendAsyncs(composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments"))
+			msgs, err := composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments")
+			if err != nil {
+				return err
+			}
+			SendAsyncs(msgs)
 			receivers = receivers[:i]
 		}
 	}
