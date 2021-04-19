@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -58,7 +59,11 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 			req.Header.Set("Content-Length", strconv.FormatInt(p.Size, 10))
 		}
 
-		req.Body = io.NopCloser(r)
+		rc, ok := r.(io.ReadCloser)
+		if !ok && r != nil {
+			rc = ioutil.NopCloser(r)
+		}
+		req.Body = rc
 		req.ContentLength = p.Size
 
 		return nil
@@ -82,7 +87,7 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 		req.Header.Set("Content-Type", MediaType)
 		req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
 
-		req.Body = io.NopCloser(bytes.NewReader(b))
+		req.Body = ioutil.NopCloser(bytes.NewReader(b))
 		req.ContentLength = size
 
 		return nil
