@@ -80,7 +80,7 @@ or on
 [gitea demo instance](https://try.gitea.io/api/swagger)
 
 The OpenAPI document is at:
-`https://gitea.your.host/api/swagger.v1.json`
+`https://gitea.your.host/swagger.v1.json`
 
 ## Listing your issued tokens via the API
 
