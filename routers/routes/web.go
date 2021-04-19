@@ -336,6 +336,7 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", routers.Home)
+	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
