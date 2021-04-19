@@ -38,6 +38,11 @@ func (p *Parser) Name() string {
 	return p.MarkupName
 }
 
+// NeedPostProcess implements markup.Parser
+func (p *Parser) NeedPostProcess() bool {
+	return p.MarkupParser.NeedPostProcess
+}
+
 // Extensions returns the supported extensions of the tool
 func (p *Parser) Extensions() []string {
 	return p.FileExtensions

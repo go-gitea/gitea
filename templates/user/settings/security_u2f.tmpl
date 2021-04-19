@@ -6,16 +6,16 @@
 	{{if .TwofaEnrolled}}
 		<div class="ui key list">
 			{{range .U2FRegistrations}}
-			    <div class="item">
-			    	<div class="right floated content">
-			    		<button class="ui red tiny button delete-button" id="delete-registration" data-url="{{$.Link}}/u2f/delete" data-id="{{.ID}}">
-			    		{{$.i18n.Tr "settings.delete_key"}}
-			    		</button>
-			    	</div>
-			    	<div class="content">
-			    		<strong>{{.Name}}</strong>
-			    	</div>
-			    </div>
+				<div class="item">
+					<div class="right floated content">
+						<button class="ui red tiny button delete-button" id="delete-registration" data-url="{{$.Link}}/u2f/delete" data-id="{{.ID}}">
+						{{$.i18n.Tr "settings.delete_key"}}
+						</button>
+					</div>
+					<div class="content">
+						<strong>{{.Name}}</strong>
+					</div>
+				</div>
 			{{end}}
 		</div>
 		<div class="ui form">
@@ -53,4 +53,3 @@
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
-

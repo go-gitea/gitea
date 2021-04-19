@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
@@ -41,7 +40,7 @@ func Search(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
 	ctx.Data["queryType"] = queryType
-	ctx.Data["SourcePath"] = path.Join(setting.AppSubURL, ctx.Repo.Repository.Owner.Name, ctx.Repo.Repository.Name)
+	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true
