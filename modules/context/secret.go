@@ -12,6 +12,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"strings"
 )
 
 // NewSecret creates a new secret
@@ -34,7 +35,11 @@ func randomBytes(len int64) ([]byte, error) {
 
 func randomString(len int64) (string, error) {
 	b, err := randomBytes(len)
-	return base64.RawURLEncoding.EncodeToString(b), err
+	if err != nil {
+		return "", err
+	}
+	encoded := base64.URLEncoding.EncodeToString(b)
+	return strings.TrimRight(encoded, "="), nil
 }
 
 // AesEncrypt encrypts text and given key with AES.
