@@ -110,8 +110,7 @@ Adds the following fields:
   - This option enables a periodic task that synchronizes the Gitea users with
     the LDAP server. The default period is every 24 hours but that can be
     changed in the app.ini file. See the _cron.sync_external_users_ section in
-    the [sample
-    app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+    the [config](https://docs.gitea.io/en-us/config-cheat-sheet/#cron---sync-external-users-cronsync_external_users)
     for detailed comments about that section. The _User Search Base_ and _User
     Filter_ settings described above will limit which users can use Gitea and
     which users will be synchronized. When initially run the task will create

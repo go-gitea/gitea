@@ -22,9 +22,7 @@ Any changes to the Gitea configuration file should be made in `custom/conf/app.i
 or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
-The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
-(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
+The defaults provided here are best-effort (not built automatically). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
