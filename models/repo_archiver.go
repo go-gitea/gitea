@@ -11,8 +11,10 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// RepoArchiverStatus represents repo archive status
 type RepoArchiverStatus int
 
+// enumerate all repo archive statuses
 const (
 	RepoArchiverGenerating = iota // the archiver is generating
 	RepoArchiverReady             // it's ready

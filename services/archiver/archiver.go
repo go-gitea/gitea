@@ -157,7 +157,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 			setting.Repository.PrefixArchiveFiles,
 			r.commitID,
 		)
-		w.CloseWithError(err)
+		_ = w.CloseWithError(err)
 		done <- err
 	}(done, w)
 
