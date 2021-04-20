@@ -10,9 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -39,7 +37,7 @@ func (a *BasicTransferAdapter) Name() string {
 
 // Download reads the download location and downloads the data
 func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
-	resp, err := a.performRequest(ctx, "GET", l, nil)
+	resp, err := a.performRequest(ctx, "GET", l, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,22 +46,15 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 
 // Upload sends the content to the LFS server
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
-	_, err := a.performRequest(ctx, "PUT", l, func(req *http.Request) error {
+	_, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) error {
 		if len(req.Header.Get("Content-Type")) == 0 {
 			req.Header.Set("Content-Type", "application/octet-stream")
 		}
 
 		if req.Header.Get("Transfer-Encoding") == "chunked" {
 			req.TransferEncoding = []string{"chunked"}
-		} else {
-			req.Header.Set("Content-Length", strconv.FormatInt(p.Size, 10))
 		}
 
-		rc, ok := r.(io.ReadCloser)
-		if !ok && r != nil {
-			rc = ioutil.NopCloser(r)
-		}
-		req.Body = rc
 		req.ContentLength = p.Size
 
 		return nil
@@ -76,19 +67,13 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 
 // Verify calls the verify handler on the LFS server
 func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
-	_, err := a.performRequest(ctx, "POST", l, func(req *http.Request) error {
-		b, err := jsoniter.Marshal(p)
-		if err != nil {
-			return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
-		}
+	b, err := jsoniter.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
+	}
 
-		size := int64(len(b))
-
+	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) error {
 		req.Header.Set("Content-Type", MediaType)
-		req.Header.Set("Content-Length", strconv.FormatInt(size, 10))
-
-		req.Body = ioutil.NopCloser(bytes.NewReader(b))
-		req.ContentLength = size
 
 		return nil
 	})
@@ -98,10 +83,10 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 	return nil
 }
 
-func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, rcb func(*http.Request) error) (*http.Response, error) {
+func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, body io.Reader, rcb func(*http.Request) error) (*http.Response, error) {
 	log.Trace("lfs.BasicTransferAdapter.performRequest calling: %s %s", method, l.Href)
 
-	req, err := http.NewRequestWithContext(ctx, method, l.Href, nil)
+	req, err := http.NewRequestWithContext(ctx, method, l.Href, body)
 	if err != nil {
 		return nil, fmt.Errorf("lfs.BasicTransferAdapter.performRequest http.NewRequestWithContext: %w", err)
 	}

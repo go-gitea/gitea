@@ -38,7 +38,6 @@ func TestBasicTransferAdapter(t *testing.T) {
 		} else if strings.Contains(url, "upload-request") {
 			assert.Equal(t, "PUT", req.Method)
 			assert.Equal(t, "application/octet-stream", req.Header.Get("Content-Type"))
-			assert.Equal(t, "5", req.Header.Get("Content-Length"))
 
 			b, err := io.ReadAll(req.Body)
 			assert.NoError(t, err)
