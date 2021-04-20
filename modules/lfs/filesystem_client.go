@@ -19,6 +19,11 @@ type FilesystemClient struct {
 	lfsdir string
 }
 
+// BatchSize returns the preferred size of batchs to process
+func (c *FilesystemClient) BatchSize() int {
+	return 1
+}
+
 func newFilesystemClient(endpoint *url.URL) *FilesystemClient {
 	path, _ := util.FileURLToPath(endpoint)
 
@@ -34,26 +39,55 @@ func (c *FilesystemClient) objectPath(oid string) string {
 }
 
 // Download reads the specific LFS object from the target path
-func (c *FilesystemClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
-	objectPath := c.objectPath(p.Oid)
+func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
+	for _, object := range objects {
+		p := Pointer{object.Oid, object.Size}
 
-	return os.Open(objectPath)
+		objectPath := c.objectPath(p.Oid)
+
+		f, err := os.Open(objectPath)
+		if err != nil {
+			return err
+		}
+
+		if err := callback(p, f, nil); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Upload writes the specific LFS object to the target path
-func (c *FilesystemClient) Upload(ctx context.Context, p Pointer, r io.Reader) error {
-	objectPath := c.objectPath(p.Oid)
+func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
+	for _, object := range objects {
+		p := Pointer{object.Oid, object.Size}
 
-	if err := os.MkdirAll(filepath.Dir(objectPath), 0600); err != nil {
-		return err
+		objectPath := c.objectPath(p.Oid)
+
+		if err := os.MkdirAll(filepath.Dir(objectPath), os.ModePerm); err != nil {
+			return err
+		}
+
+		content, err := callback(p, nil)
+		if err != nil {
+			return err
+		}
+
+		err = func() error {
+			defer content.Close()
+
+			f, err := os.Create(objectPath)
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(f, content)
+
+			return err
+		}()
+		if err != nil {
+			return err
+		}
 	}
-
-	f, err := os.Create(objectPath)
-	if err != nil {
-		return err
-	}
-
-	_, err = io.Copy(f, r)
-
-	return err
+	return nil
 }

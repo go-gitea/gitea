@@ -7,6 +7,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -323,60 +324,78 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 	errChan := make(chan error, 1)
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
-	err := func() error {
-		for pointerBlob := range pointerChan {
-			meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+	downloadObjects := func(pointers []lfs.Pointer) error {
+		err := client.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+			if objectError != nil {
+				return objectError
+			}
+
+			defer content.Close()
+
+			meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
 			}
-			if meta.Existing {
-				continue
-			}
 
-			log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
-
-			err = func() error {
-				exist, err := contentStore.Exists(pointerBlob.Pointer)
-				if err != nil {
-					return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
-				}
-				if !exist {
-					if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
-						log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
-						return nil
-					}
-
-					stream, err := client.Download(ctx, pointerBlob.Pointer)
-					if err != nil {
-						return fmt.Errorf("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %w", pointerBlob.Oid, err)
-					}
-					defer stream.Close()
-
-					if err := contentStore.Put(pointerBlob.Pointer, stream); err != nil {
-						return fmt.Errorf("StoreMissingLfsObjectsInRepository LFS OID[%s] contentStore.Put: %w", pointerBlob.Oid, err)
-					}
-				} else {
-					log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] already present in content store", pointerBlob.Oid)
-				}
-				return nil
-			}()
-			if err != nil {
+			if err := contentStore.Put(p, content); err != nil {
 				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
 					log.Error("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid[Oid: %s]: %w", meta.Oid, err2)
 				}
-
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-				}
-				return err
+				return fmt.Errorf("StoreMissingLfsObjectsInRepository LFS OID[%s] contentStore.Put: %w", p.Oid, err)
+			}
+			return nil
+		})
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
 			}
 		}
-		return nil
-	}()
-	if err != nil {
 		return err
+	}
+
+	var batch []lfs.Pointer
+	for pointerBlob := range pointerChan {
+		meta, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid)
+		if err != nil && err != models.ErrLFSObjectNotExist {
+			return fmt.Errorf("StoreMissingLfsObjectsInRepository models.GetLFSMetaObjectByOid: %w", err)
+		}
+		if meta != nil {
+			continue
+		}
+
+		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
+
+		exist, err := contentStore.Exists(pointerBlob.Pointer)
+		if err != nil {
+			return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
+		}
+
+		if exist {
+			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			if err != nil {
+				return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
+			}
+		} else {
+			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
+				continue
+			}
+
+			batch = append(batch, pointerBlob.Pointer)
+			if len(batch) >= client.BatchSize() {
+				if err := downloadObjects(batch); err != nil {
+					return err
+				}
+				batch = nil
+			}
+		}
+	}
+	if len(batch) > 0 {
+		if err := downloadObjects(batch); err != nil {
+			return err
+		}
 	}
 
 	err, has := <-errChan

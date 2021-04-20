@@ -7,7 +7,7 @@ package mirror
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"net/url"
 	"strconv"
 	"time"
@@ -173,37 +173,46 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 	errChan := make(chan error, 1)
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
-	err := func() error {
-		for pointerBlob := range pointerChan {
-			err := func() error {
-				if exists, err := contentStore.Exists(pointerBlob.Pointer); !exists || err != nil {
-					return err
-				}
+	uploadObjects := func(pointers []lfs.Pointer) error {
+		err := client.Upload(ctx, pointers, func(p lfs.Pointer, objectError error) (io.ReadCloser, error) {
+			if objectError != nil {
+				return nil, objectError
+			}
 
-				content, err := contentStore.Get(pointerBlob.Pointer)
-				if err != nil {
-					return err
-				}
-				defer content.Close()
-
-				if err := client.Upload(ctx, pointerBlob.Pointer, content); err != nil {
-					return fmt.Errorf("pushAllLFSObjects: LFS OID[%s] failed to upload: %w", pointerBlob.Oid, err)
-				}
+			return contentStore.Get(p)
+		})
+		if err != nil {
+			select {
+			case <-ctx.Done():
 				return nil
-			}()
-			if err != nil {
-				select {
-				case <-ctx.Done():
-					return nil
-				default:
-				}
-				return err
+			default:
 			}
 		}
-		return nil
-	}()
-	if err != nil {
 		return err
+	}
+
+	var batch []lfs.Pointer
+	for pointerBlob := range pointerChan {
+		exists, err := contentStore.Exists(pointerBlob.Pointer)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			continue
+		}
+
+		batch = append(batch, pointerBlob.Pointer)
+		if len(batch) >= client.BatchSize() {
+			if err := uploadObjects(batch); err != nil {
+				return err
+			}
+			batch = nil
+		}
+	}
+	if len(batch) > 0 {
+		if err := uploadObjects(batch); err != nil {
+			return err
+		}
 	}
 
 	err, has := <-errChan

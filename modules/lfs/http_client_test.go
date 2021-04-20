@@ -72,7 +72,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 				},
 			},
 		}
-	} else if strings.Contains(url, "invalid-response-no-objects") {
+	} else if strings.Contains(url, "response-no-objects") {
 		batchResponse = &BatchResponse{Transfer: "dummy"}
 	} else if strings.Contains(url, "unknown-transfer-adapter") {
 		batchResponse = &BatchResponse{Transfer: "unknown_adapter"}
@@ -193,8 +193,8 @@ func TestHTTPClientDownload(t *testing.T) {
 		},
 		// case 3
 		{
-			endpoint:      "https://invalid-response-no-objects.io",
-			expectederror: "No objects in result",
+			endpoint:      "https://response-no-objects.io",
+			expectederror: "",
 		},
 		// case 4
 		{
@@ -241,7 +241,15 @@ func TestHTTPClientDownload(t *testing.T) {
 		}
 		client.transfers["dummy"] = dummy
 
-		_, err := client.Download(context.Background(), p)
+		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+			if objectError != nil {
+				return objectError
+			}
+			b, err := io.ReadAll(content)
+			assert.NoError(t, err)
+			assert.Equal(t, []byte("dummy"), b)
+			return nil
+		})
 		if len(c.expectederror) > 0 {
 			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 		} else {
@@ -292,8 +300,8 @@ func TestHTTPClientUpload(t *testing.T) {
 		},
 		// case 3
 		{
-			endpoint:      "https://invalid-response-no-objects.io",
-			expectederror: "No objects in result",
+			endpoint:      "https://response-no-objects.io",
+			expectederror: "",
 		},
 		// case 4
 		{
@@ -332,7 +340,6 @@ func TestHTTPClientUpload(t *testing.T) {
 		},
 	}
 
-	r := new(bytes.Buffer)
 	for n, c := range cases {
 		client := &HTTPClient{
 			client:    hc,
@@ -341,7 +348,9 @@ func TestHTTPClientUpload(t *testing.T) {
 		}
 		client.transfers["dummy"] = dummy
 
-		err := client.Upload(context.Background(), p, r)
+		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
+			return ioutil.NopCloser(new(bytes.Buffer)), objectError
+		})
 		if len(c.expectederror) > 0 {
 			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)
 		} else {

@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,12 +18,19 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+const batchSize = 20
+
 // HTTPClient is used to communicate with the LFS server
 // https://github.com/git-lfs/git-lfs/blob/main/docs/api/batch.md
 type HTTPClient struct {
 	client    *http.Client
 	endpoint  string
 	transfers map[string]TransferAdapter
+}
+
+// BatchSize returns the preferred size of batchs to process
+func (c *HTTPClient) BatchSize() int {
+	return batchSize
 }
 
 func newHTTPClient(endpoint *url.URL) *HTTPClient {
@@ -104,43 +110,26 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 }
 
 // Download reads the specific LFS object from the LFS server
-func (c *HTTPClient) Download(ctx context.Context, p Pointer) (io.ReadCloser, error) {
-	bc := batchContext{
-		IsUpload: false,
-		Pointer:  p,
-	}
-	err := c.performOperation(ctx, &bc)
-	if err != nil {
-		return nil, err
-	}
-	return bc.DownloadResult, nil
+func (c *HTTPClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
+	return c.performOperation(ctx, objects, callback, nil)
 }
 
 // Upload sends the specific LFS object to the LFS server
-func (c *HTTPClient) Upload(ctx context.Context, p Pointer, r io.Reader) error {
-	bc := batchContext{
-		IsUpload:      true,
-		Pointer:       p,
-		UploadContent: r,
+func (c *HTTPClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
+	return c.performOperation(ctx, objects, nil, callback)
+}
+
+func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc DownloadCallback, uc UploadCallback) error {
+	if len(objects) == 0 {
+		return nil
 	}
-	return c.performOperation(ctx, &bc)
-}
 
-type batchContext struct {
-	Pointer
-	IsUpload bool
-
-	DownloadResult io.ReadCloser
-	UploadContent  io.Reader
-}
-
-func (c *HTTPClient) performOperation(ctx context.Context, bc *batchContext) error {
 	operation := "download"
-	if bc.IsUpload {
+	if uc != nil {
 		operation = "upload"
 	}
 
-	result, err := c.batch(ctx, operation, []Pointer{bc.Pointer})
+	result, err := c.batch(ctx, operation, objects)
 	if err != nil {
 		return err
 	}
@@ -150,47 +139,72 @@ func (c *HTTPClient) performOperation(ctx context.Context, bc *batchContext) err
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
-	if len(result.Objects) == 0 {
-		return errors.New("No objects in result")
-	}
+	if uc != nil {
+		for _, object := range result.Objects {
+			p := Pointer{object.Oid, object.Size}
 
-	object := result.Objects[0]
+			if object.Error != nil {
+				if _, err := uc(p, errors.New(object.Error.Message)); err != nil {
+					return err
+				}
+				continue
+			}
 
-	if object.Error != nil {
-		return errors.New(object.Error.Message)
-	}
+			if len(object.Actions) == 0 {
+				continue
+			}
 
-	if bc.IsUpload {
-		if len(object.Actions) == 0 {
-			return nil
-		}
+			link, ok := object.Actions["upload"]
+			if !ok {
+				return errors.New("Action 'upload' not found")
+			}
 
-		link, ok := object.Actions["upload"]
-		if !ok {
-			return errors.New("Action 'upload' not found")
-		}
-
-		if err := transferAdapter.Upload(ctx, link, bc.Pointer, bc.UploadContent); err != nil {
-			return err
-		}
-
-		link, ok = object.Actions["verify"]
-		if ok {
-			if err := transferAdapter.Verify(ctx, link, bc.Pointer); err != nil {
+			content, err := uc(p, nil)
+			if err != nil {
 				return err
+			}
+
+			err = transferAdapter.Upload(ctx, link, p, content)
+
+			content.Close()
+
+			if err != nil {
+				return err
+			}
+
+			link, ok = object.Actions["verify"]
+			if ok {
+				if err := transferAdapter.Verify(ctx, link, p); err != nil {
+					return err
+				}
 			}
 		}
 	} else {
-		link, ok := object.Actions["download"]
-		if !ok {
-			return errors.New("Action 'download' not found")
-		}
+		for _, object := range result.Objects {
+			p := Pointer{object.Oid, object.Size}
 
-		var err error
-		bc.DownloadResult, err = transferAdapter.Download(ctx, link)
-		if err != nil {
-			return err
+			if object.Error != nil {
+				if err := dc(p, nil, errors.New(object.Error.Message)); err != nil {
+					return err
+				}
+				continue
+			}
+
+			link, ok := object.Actions["download"]
+			if !ok {
+				return errors.New("Action 'download' not found")
+			}
+
+			content, err := transferAdapter.Download(ctx, link)
+			if err != nil {
+				return err
+			}
+
+			if err := dc(p, content, nil); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }
