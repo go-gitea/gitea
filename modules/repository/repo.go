@@ -332,16 +332,18 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 
 			defer content.Close()
 
-			meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
-				return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
+				log.Error("Error creating LFS meta object %v: %v", p, err)
+				return err
 			}
 
 			if err := contentStore.Put(p, content); err != nil {
-				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
-					log.Error("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid[Oid: %s]: %w", meta.Oid, err2)
+				log.Error("Error storing content for LFS meta object %v: %v", p, err)
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(p.Oid); err2 != nil {
+					log.Error("Error removing LFS meta object %v: %v", p, err2)
 				}
-				return fmt.Errorf("StoreMissingLfsObjectsInRepository LFS OID[%s] contentStore.Put: %w", p.Oid, err)
+				return err
 			}
 			return nil
 		})
@@ -359,27 +361,32 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 	for pointerBlob := range pointerChan {
 		meta, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid)
 		if err != nil && err != models.ErrLFSObjectNotExist {
-			return fmt.Errorf("StoreMissingLfsObjectsInRepository models.GetLFSMetaObjectByOid: %w", err)
+			log.Error("Error querying LFS meta object %v: %v", pointerBlob.Pointer, err)
+			return err
 		}
 		if meta != nil {
+			log.Trace("Skipping unknown LFS meta object %v", pointerBlob.Pointer)
 			continue
 		}
 
-		log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
+		log.Trace("LFS object %v not present in repository %s", pointerBlob.Pointer, repo.FullName())
 
 		exist, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
-			return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
+			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)
+			return err
 		}
 
 		if exist {
+			log.Trace("LFS object %v already present; creating meta object", pointerBlob.Pointer)
 			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
-				return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
+				log.Error("Error creating LFS meta object %v: %v", pointerBlob.Pointer, err)
+				return err
 			}
 		} else {
 			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
-				log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
+				log.Info("LFS object %v download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Pointer, setting.LFS.MaxFileSize, pointerBlob.Size)
 				continue
 			}
 
@@ -400,6 +407,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 
 	err, has := <-errChan
 	if has {
+		log.Error("Error enumerating LFS objects for repository: %v", err)
 		return err
 	}
 

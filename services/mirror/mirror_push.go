@@ -112,8 +112,6 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
-		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
-
 		remoteAddr, err := git.GetRemoteAddress(path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
@@ -135,6 +133,8 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 				return util.NewURLSanitizedError(err, remoteAddr, true)
 			}
 		}
+
+		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
 		if err := git.Push(path, git.PushOptions{
 			Remote:  m.RemoteName,
@@ -179,7 +179,11 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 				return nil, objectError
 			}
 
-			return contentStore.Get(p)
+			content, err := contentStore.Get(p)
+			if err != nil {
+				log.Error("Error reading LFS object %v: %v", p, err)
+			}
+			return content, err
 		})
 		if err != nil {
 			select {
@@ -195,9 +199,11 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 	for pointerBlob := range pointerChan {
 		exists, err := contentStore.Exists(pointerBlob.Pointer)
 		if err != nil {
+			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)
 			return err
 		}
 		if !exists {
+			log.Trace("Skipping missing LFS object %v", pointerBlob.Pointer)
 			continue
 		}
 
@@ -217,6 +223,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 
 	err, has := <-errChan
 	if has {
+		log.Error("Error enumerating LFS objects for repository: %v", err)
 		return err
 	}
 

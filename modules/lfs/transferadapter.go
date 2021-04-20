@@ -46,7 +46,7 @@ func (a *BasicTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCl
 
 // Upload sends the content to the LFS server
 func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
-	_, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) error {
+	_, err := a.performRequest(ctx, "PUT", l, r, func(req *http.Request) {
 		if len(req.Header.Get("Content-Type")) == 0 {
 			req.Header.Set("Content-Type", "application/octet-stream")
 		}
@@ -56,8 +56,6 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 		}
 
 		req.ContentLength = p.Size
-
-		return nil
 	})
 	if err != nil {
 		return err
@@ -69,13 +67,12 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
 	b, err := jsoniter.Marshal(p)
 	if err != nil {
-		return fmt.Errorf("lfs.BasicTransferAdapter.Verify json.Marshal: %w", err)
+		log.Error("Error encoding json: %v", err)
+		return err
 	}
 
-	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) error {
+	_, err = a.performRequest(ctx, "POST", l, bytes.NewReader(b), func(req *http.Request) {
 		req.Header.Set("Content-Type", MediaType)
-
-		return nil
 	})
 	if err != nil {
 		return err
@@ -83,22 +80,21 @@ func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) e
 	return nil
 }
 
-func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, body io.Reader, rcb func(*http.Request) error) (*http.Response, error) {
-	log.Trace("lfs.BasicTransferAdapter.performRequest calling: %s %s", method, l.Href)
+func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string, l *Link, body io.Reader, callback func(*http.Request)) (*http.Response, error) {
+	log.Trace("Calling: %s %s", method, l.Href)
 
 	req, err := http.NewRequestWithContext(ctx, method, l.Href, body)
 	if err != nil {
-		return nil, fmt.Errorf("lfs.BasicTransferAdapter.performRequest http.NewRequestWithContext: %w", err)
+		log.Error("Error creating request: %v", err)
+		return nil, err
 	}
 	for key, value := range l.Header {
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Accept", MediaType)
 
-	if rcb != nil {
-		if err := rcb(req); err != nil {
-			return nil, err
-		}
+	if callback != nil {
+		callback(req)
 	}
 
 	res, err := a.client.Do(req)
@@ -108,7 +104,8 @@ func (a *BasicTransferAdapter) performRequest(ctx context.Context, method string
 			return res, ctx.Err()
 		default:
 		}
-		return res, fmt.Errorf("lfs.BasicTransferAdapter.performRequest http.Do: %w", err)
+		log.Error("Error while processing request: %v", err)
+		return res, err
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -125,11 +122,15 @@ func handleErrorResponse(resp *http.Response) error {
 	if err != nil {
 		return fmt.Errorf("Request failed with status %s", resp.Status)
 	}
+	log.Trace("ErrorRespone: %v", er)
 	return errors.New(er.Message)
 }
 
 func decodeReponseError(r io.Reader) (ErrorResponse, error) {
 	var er ErrorResponse
 	err := jsoniter.NewDecoder(r).Decode(&er)
+	if err != nil {
+		log.Error("Error decoding json: %v", err)
+	}
 	return er, err
 }

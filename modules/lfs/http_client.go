@@ -62,6 +62,8 @@ func (c *HTTPClient) transferNames() []string {
 }
 
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
+	log.Trace("BATCH operation with objects: %v", objects)
+
 	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
 
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
@@ -69,14 +71,16 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	payload := new(bytes.Buffer)
 	err := jsoniter.NewEncoder(payload).Encode(request)
 	if err != nil {
-		return nil, fmt.Errorf("lfs.HTTPClient.batch json.Encode: %w", err)
+		log.Error("Error encoding json: %v", err)
+		return nil, err
 	}
 
-	log.Trace("lfs.HTTPClient.batch calling: %s", url)
+	log.Trace("Calling: %s", url)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, payload)
 	if err != nil {
-		return nil, fmt.Errorf("lfs.HTTPClient.batch http.NewRequestWithContext: %w", err)
+		log.Error("Error creating request: %v", err)
+		return nil, err
 	}
 	req.Header.Set("Content-type", MediaType)
 	req.Header.Set("Accept", MediaType)
@@ -88,18 +92,20 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 			return nil, ctx.Err()
 		default:
 		}
-		return nil, fmt.Errorf("lfs.HTTPClient.batch http.Do: %w", err)
+		log.Error("Error while processing request: %v", err)
+		return nil, err
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("lfs.HTTPClient.batch: Unexpected servers response: %s", res.Status)
+		return nil, fmt.Errorf("Unexpected server response: %s", res.Status)
 	}
 
 	var response BatchResponse
 	err = jsoniter.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, fmt.Errorf("lfs.HTTPClient.batch json.Decode: %w", err)
+		log.Error("Error decoding json: %v", err)
+		return nil, err
 	}
 
 	if len(response.Transfer) == 0 {
@@ -139,32 +145,40 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 		return fmt.Errorf("TransferAdapter not found: %s", result.Transfer)
 	}
 
-	if uc != nil {
-		for _, object := range result.Objects {
-			p := Pointer{object.Oid, object.Size}
-
-			if object.Error != nil {
-				if _, err := uc(p, errors.New(object.Error.Message)); err != nil {
+	for _, object := range result.Objects {
+		if object.Error != nil {
+			objectError := errors.New(object.Error.Message)
+			log.Trace("Error on object %v: %v", object.Pointer, objectError)
+			if uc != nil {
+				if _, err := uc(object.Pointer, objectError); err != nil {
 					return err
 				}
-				continue
+			} else {
+				if err := dc(object.Pointer, nil, objectError); err != nil {
+					return err
+				}
 			}
+			continue
+		}
 
+		if uc != nil {
 			if len(object.Actions) == 0 {
+				log.Trace("%v already present on server", object.Pointer)
 				continue
 			}
 
 			link, ok := object.Actions["upload"]
 			if !ok {
-				return errors.New("Action 'upload' not found")
+				log.Debug("%+v", object)
+				return errors.New("Action 'upload' is missing")
 			}
 
-			content, err := uc(p, nil)
+			content, err := uc(object.Pointer, nil)
 			if err != nil {
 				return err
 			}
 
-			err = transferAdapter.Upload(ctx, link, p, content)
+			err = transferAdapter.Upload(ctx, link, object.Pointer, content)
 
 			content.Close()
 
@@ -174,25 +188,15 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 
 			link, ok = object.Actions["verify"]
 			if ok {
-				if err := transferAdapter.Verify(ctx, link, p); err != nil {
+				if err := transferAdapter.Verify(ctx, link, object.Pointer); err != nil {
 					return err
 				}
 			}
-		}
-	} else {
-		for _, object := range result.Objects {
-			p := Pointer{object.Oid, object.Size}
-
-			if object.Error != nil {
-				if err := dc(p, nil, errors.New(object.Error.Message)); err != nil {
-					return err
-				}
-				continue
-			}
-
+		} else {
 			link, ok := object.Actions["download"]
 			if !ok {
-				return errors.New("Action 'download' not found")
+				log.Debug("%+v", object)
+				return errors.New("Action 'download' is mising")
 			}
 
 			content, err := transferAdapter.Download(ctx, link)
@@ -200,7 +204,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 				return err
 			}
 
-			if err := dc(p, content, nil); err != nil {
+			if err := dc(object.Pointer, content, nil); err != nil {
 				return err
 			}
 		}
