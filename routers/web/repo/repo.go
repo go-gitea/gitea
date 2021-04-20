@@ -431,7 +431,12 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
+	var completed bool
+	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+		completed = true
+	}
+
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"complete": archiver.Status == models.RepoArchiverReady,
+		"complete": completed,
 	})
 }
