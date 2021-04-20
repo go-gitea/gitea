@@ -8,12 +8,10 @@ package archiver
 import (
 	"fmt"
 	"io"
-	"path"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,9 +29,8 @@ type ArchiveRequest struct {
 	repo        *git.Repository
 	refName     string
 	ext         string
-	archivePath string
 	archiveType git.ArchiveType
-	commit      *git.Commit
+	commitID    string
 }
 
 // SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
@@ -53,49 +50,35 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 	switch {
 	case strings.HasSuffix(uri, ".zip"):
 		r.ext = ".zip"
-		r.archivePath = path.Join(r.repo.Path, "archives/zip")
 		r.archiveType = git.ZIP
 	case strings.HasSuffix(uri, ".tar.gz"):
 		r.ext = ".tar.gz"
-		r.archivePath = path.Join(r.repo.Path, "archives/targz")
 		r.archiveType = git.TARGZ
 	default:
 		return nil, fmt.Errorf("Unknown format: %s", uri)
 	}
 
 	r.refName = strings.TrimSuffix(r.uri, r.ext)
-	var err error
 
+	var err error
 	// Get corresponding commit.
 	if r.repo.IsBranchExist(r.refName) {
-		r.commit, err = r.repo.GetBranchCommit(r.refName)
+		r.commitID, err = r.repo.GetBranchCommitID(r.refName)
 		if err != nil {
 			return nil, err
 		}
 	} else if r.repo.IsTagExist(r.refName) {
-		r.commit, err = r.repo.GetTagCommit(r.refName)
+		r.commitID, err = r.repo.GetTagCommitID(r.refName)
 		if err != nil {
 			return nil, err
 		}
 	} else if shaRegex.MatchString(r.refName) {
-		r.commit, err = r.repo.GetCommit(r.refName)
-		if err != nil {
-			return nil, err
-		}
+		r.commitID = r.refName
 	} else {
 		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
 	}
 
-	r.archivePath = path.Join(r.archivePath, base.ShortSha(r.commit.ID.String())+r.ext)
-	if err != nil {
-		return nil, err
-	}
 	return r, nil
-}
-
-// GetArchivePath returns the path from which we can serve this archive.
-func (aReq *ArchiveRequest) GetArchivePath() string {
-	return aReq.archivePath
 }
 
 // GetArchiveName returns the name of the caller, based on the ref used by the
@@ -104,54 +87,69 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 	return aReq.refName + aReq.ext
 }
 
-func doArchive(r *ArchiveRequest) error {
+func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	ctx, commiter, err := models.TxDBContext()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer commiter.Close()
 
-	archiver, err := models.GetRepoArchiver(ctx, r.repoID, r.archiveType, r.commit.ID.String())
+	archiver, err := models.GetRepoArchiver(ctx, r.repoID, r.archiveType, r.commitID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if archiver != nil {
-		return nil
+		return archiver, nil
 	}
 
-	if err := models.AddArchiver(ctx, &models.RepoArchiver{
+	archiver = &models.RepoArchiver{
 		RepoID:   r.repoID,
 		Type:     r.archiveType,
-		CommitID: r.commit.ID.String(),
-		Name:     r.GetArchiveName(),
-	}); err != nil {
-		return err
+		CommitID: r.commitID,
+	}
+	if err := models.AddArchiver(ctx, archiver); err != nil {
+		return nil, err
+	}
+
+	rPath, err := archiver.RelativePath()
+	if err != nil {
+		return nil, err
 	}
 
 	rd, w := io.Pipe()
-	var done chan error
+	defer func() {
+		w.Close()
+		rd.Close()
+	}()
+	var done = make(chan error)
 
-	go func(done chan error, w io.Writer) {
+	go func(done chan error, w *io.PipeWriter) {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- fmt.Errorf("%v", r)
+			}
+		}()
 		err := r.repo.CreateArchive(
 			graceful.GetManager().ShutdownContext(),
 			r.archiveType,
 			w,
 			setting.Repository.PrefixArchiveFiles,
-			r.commit.ID.String(),
+			r.commitID,
 		)
+		w.CloseWithError(err)
 		done <- err
 	}(done, w)
 
-	if _, err := storage.RepoArchives.Save(r.archivePath, rd, -1); err != nil {
-		return fmt.Errorf("Unable to write archive: %v", err)
+	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
+		return nil, fmt.Errorf("unable to write archive: %v", err)
 	}
 
 	err = <-done
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return commiter.Commit()
+	return archiver, commiter.Commit()
 }
 
 // ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing
@@ -160,6 +158,6 @@ func doArchive(r *ArchiveRequest) error {
 // anything.  In all cases, the caller should be examining the *ArchiveRequest
 // being returned for completion, as it may be different than the one they passed
 // in.
-func ArchiveRepository(request *ArchiveRequest) error {
+func ArchiveRepository(request *ArchiveRequest) (*models.RepoArchiver, error) {
 	return doArchive(request)
 }

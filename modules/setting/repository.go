@@ -333,6 +333,7 @@ func newRepository() {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
 
-	repoAvatarSec := Cfg.Section("repository.archives")
-	RepoArchive.Storage = getStorage("repo-archive", "", repoAvatarSec)
+	repoAvatarSec := Cfg.Section("repo-archive")
+	storageType := repoAvatarSec.Key("STORAGE_TYPE").MustString("")
+	RepoArchive.Storage = getStorage("repo-archive", storageType, repoAvatarSec)
 }

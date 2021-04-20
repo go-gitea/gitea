@@ -367,7 +367,7 @@ func RedirectDownload(ctx *context.Context) {
 // Download an archive of a repository
 func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.RepoID, ctx.Repo.GitRepo, uri)
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
 		ctx.ServerError("archiver_service.NewRequest", err)
 		return
@@ -377,16 +377,23 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
-
-	if err := archiver_service.ArchiveRepository(aReq); err != nil {
+	archiver, err := archiver_service.ArchiveRepository(aReq)
+	if err != nil {
 		ctx.ServerError("ArchiveRepository", err)
 		return
 	}
 
+	rPath, err := archiver.RelativePath()
+	if err != nil {
+		ctx.ServerError("archiver.RelativePath", err)
+		return
+	}
+
+	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
+
 	if setting.RepoArchive.ServeDirect {
 		//If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(aReq.GetArchivePath(), downloadName)
+		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
 			return
@@ -394,7 +401,7 @@ func Download(ctx *context.Context) {
 	}
 
 	//If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(aReq.GetArchivePath())
+	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
 		ctx.ServerError("Open", err)
 		return
@@ -418,13 +425,13 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	err = archiver_service.ArchiveRepository(aReq)
+	archiver, err := archiver_service.ArchiveRepository(aReq)
 	if err != nil {
 		ctx.ServerError("archiver_service.ArchiveRepository", err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"complete": true,
+		"complete": archiver.Status == models.RepoArchiverReady,
 	})
 }
