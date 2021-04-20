@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -378,9 +379,16 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 	}
 
 	for index, btn := range repo.CustomRepoButtons {
-		if !btn.IsLink() {
-			repo.CustomRepoButtons[index].RenderedContent = string(markdown.Render([]byte(btn.Content), ctx.Repo.RepoLink,
-				ctx.Repo.Repository.ComposeMetas()))
+		if btn.IsLink() {
+			continue
+		}
+
+		if repo.CustomRepoButtons[index].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.Repository.Link(),
+			Metas:     ctx.Repo.Repository.ComposeMetas(),
+		}, btn.Content); err != nil {
+			ctx.ServerError("LoadCustomRepoButton", err)
+			return
 		}
 	}
 }

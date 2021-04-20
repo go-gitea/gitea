@@ -1286,12 +1286,8 @@ async function initRepository() {
       return;
     }
 
-    const $detailModal = $('#detail-modal');
-
     $('.show-repo-button-content').on('click', function () {
-      $detailModal.find('.content .render-content').html($(this).data('content'));
-      $detailModal.find('.sub.header').text($(this).data('title'));
-      $detailModal.modal('show');
+      $(`#detail-modal-${$(this).data('index')}`).modal('show');
       return false;
     });
   })();
