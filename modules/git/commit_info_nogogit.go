@@ -303,7 +303,7 @@ revListLoop:
 					commits[0] = string(commitID)
 				}
 			}
-			treeID = to40ByteSHA(treeID)
+			treeID = To40ByteSHA(treeID)
 			_, err = batchStdinWriter.Write(treeID)
 			if err != nil {
 				return nil, err

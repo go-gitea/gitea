@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -84,7 +85,14 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 	for _, m := range miles {
-		m.RenderedContent = string(markdown.Render([]byte(m.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+		m.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     ctx.Repo.Repository.ComposeMetas(),
+		}, m.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
 	}
 	ctx.Data["Milestones"] = miles
 
@@ -269,7 +277,14 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		return
 	}
 
-	milestone.RenderedContent = string(markdown.Render([]byte(milestone.Content), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+	milestone.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, milestone.Content)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
 
 	ctx.Data["Title"] = milestone.Name
 	ctx.Data["Milestone"] = milestone
