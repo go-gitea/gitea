@@ -27,14 +27,16 @@ type PushMirror struct {
 	RemoteName string
 
 	Interval       time.Duration
-	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
-	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
+	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX next_update"`
 	LastError      string
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *PushMirror) BeforeInsert() {
 	if m != nil {
+		m.Created = timeutil.TimeStampNow()
 		m.UpdatedUnix = 0
 		m.NextUpdateUnix = timeutil.TimeStampNow()
 	}

@@ -293,9 +293,6 @@ func SettingsPost(ctx *context.Context) {
 			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
 			Interval:   interval,
 		}
-		if interval != 0 {
-			m.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
-		}
 		if err := models.InsertPushMirror(m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return

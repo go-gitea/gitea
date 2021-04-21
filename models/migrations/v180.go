@@ -20,8 +20,9 @@ func createPushMirrorTable(x *xorm.Engine) error {
 		RemoteName string
 
 		Interval       time.Duration
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
-		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
+		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX next_update"`
 		LastError      string
 	}
 
