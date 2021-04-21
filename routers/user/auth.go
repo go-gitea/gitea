@@ -1372,7 +1372,7 @@ func Activate(ctx *context.Context) {
 	handleAccountActivation(ctx, user)
 }
 
-// Activate render activate user page
+// ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
 	code := ctx.Query("code")
 	if len(code) == 0 {
