@@ -36,7 +36,7 @@ type PushMirror struct {
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *PushMirror) BeforeInsert() {
 	if m != nil {
-		m.Created = timeutil.TimeStampNow()
+		m.CreatedUnix = timeutil.TimeStampNow()
 		m.UpdatedUnix = 0
 		m.NextUpdateUnix = timeutil.TimeStampNow()
 	}
