@@ -179,12 +179,12 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected servers response: ",
+			expectederror: "Unexpected server response: ",
 		},
 		// case 1
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectederror: "json.Decode: ",
+			expectederror: "invalid json",
 		},
 		// case 2
 		{
@@ -209,7 +209,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 6
 		{
 			endpoint:      "https://empty-actions-map.io",
-			expectederror: "Action 'download' not found",
+			expectederror: "Missing action 'download'",
 		},
 		// case 7
 		{
@@ -219,17 +219,17 @@ func TestHTTPClientDownload(t *testing.T) {
 		// case 8
 		{
 			endpoint:      "https://upload-actions-map.io",
-			expectederror: "Action 'download' not found",
+			expectederror: "Missing action 'download'",
 		},
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Action 'download' not found",
+			expectederror: "Missing action 'download'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Action 'download' not found",
+			expectederror: "Missing action 'download'",
 		},
 	}
 
@@ -286,12 +286,12 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 0
 		{
 			endpoint:      "https://status-not-ok.io",
-			expectederror: "Unexpected servers response: ",
+			expectederror: "Unexpected server response: ",
 		},
 		// case 1
 		{
 			endpoint:      "https://invalid-json-response.io",
-			expectederror: "json.Decode: ",
+			expectederror: "invalid json",
 		},
 		// case 2
 		{
@@ -321,7 +321,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 7
 		{
 			endpoint:      "https://download-actions-map.io",
-			expectederror: "Action 'upload' not found",
+			expectederror: "Missing action 'upload'",
 		},
 		// case 8
 		{
@@ -331,12 +331,12 @@ func TestHTTPClientUpload(t *testing.T) {
 		// case 9
 		{
 			endpoint:      "https://verify-actions-map.io",
-			expectederror: "Action 'upload' not found",
+			expectederror: "Missing action 'upload'",
 		},
 		// case 10
 		{
 			endpoint:      "https://unknown-actions-map.io",
-			expectederror: "Action 'upload' not found",
+			expectederror: "Missing action 'upload'",
 		},
 	}
 

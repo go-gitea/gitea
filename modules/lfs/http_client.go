@@ -170,7 +170,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["upload"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Action 'upload' is missing")
+				return errors.New("Missing action 'upload'")
 			}
 
 			content, err := uc(object.Pointer, nil)
@@ -196,7 +196,7 @@ func (c *HTTPClient) performOperation(ctx context.Context, objects []Pointer, dc
 			link, ok := object.Actions["download"]
 			if !ok {
 				log.Debug("%+v", object)
-				return errors.New("Action 'download' is mising")
+				return errors.New("Missing action 'download'")
 			}
 
 			content, err := transferAdapter.Download(ctx, link)
