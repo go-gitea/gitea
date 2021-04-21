@@ -38,8 +38,12 @@ func (db *DBIndexer) Index(id int64) error {
 	// Get latest commit for default branch
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
-		log.Debug("Unable to get commit ID for defaultbranch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
-		return nil
+		if git.IsErrBranchNotExist(err) {
+			log.Debug("Unable to get commit ID for defaultbranch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
+			return nil
+		}
+		log.Error("Unable to get commit ID for defaultbranch %s in %s. Error: %v", repo.DefaultBranch, repo.RepoPath(), err)
+		return err
 	}
 
 	// Do not recalculate stats if already calculated for this commit
