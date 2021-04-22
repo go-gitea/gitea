@@ -105,6 +105,36 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 	}
 }
 
+func BenchmarkAPICreateFileSmall(b *testing.B) {
+	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+		b := t.(*testing.B)
+		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
+		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+
+		for n := 0; n < b.N; n++ {
+			treePath := fmt.Sprintf("update/file%d.txt", n)
+			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+		}
+	})
+}
+
+func BenchmarkAPICreateFileMedium(b *testing.B) {
+	data := make([]byte, 10*1024*1024)
+
+	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+		b := t.(*testing.B)
+		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
+		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+
+		b.ResetTimer()
+		for n := 0; n < b.N; n++ {
+			treePath := fmt.Sprintf("update/file%d.txt", n)
+			copy(data, treePath)
+			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+		}
+	})
+}
+
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16

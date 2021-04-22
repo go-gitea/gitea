@@ -777,7 +777,7 @@ github.com/unknwon/i18n
 # github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 ## explicit
 github.com/unknwon/paginater
-# github.com/unrolled/render v1.0.3
+# github.com/unrolled/render v1.1.0
 ## explicit
 github.com/unrolled/render
 # github.com/urfave/cli v1.22.5

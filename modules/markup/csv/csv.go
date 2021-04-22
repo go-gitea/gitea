@@ -5,9 +5,11 @@
 package markup
 
 import (
+	"bufio"
 	"bytes"
 	"html"
 	"io"
+	"io/ioutil"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/csv"
@@ -16,55 +18,89 @@ import (
 )
 
 func init() {
-	markup.RegisterParser(Parser{})
+	markup.RegisterRenderer(Renderer{})
 }
 
-// Parser implements markup.Parser for csv files
-type Parser struct {
+// Renderer implements markup.Renderer for csv files
+type Renderer struct {
 }
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return "csv"
 }
 
-// NeedPostProcess implements markup.Parser
-func (Parser) NeedPostProcess() bool { return false }
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return false }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return []string{".csv", ".tsv"}
 }
 
-// Render implements markup.Parser
-func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	var tmpBlock bytes.Buffer
+func writeField(w io.Writer, element, class, field string) error {
+	if _, err := io.WriteString(w, "<"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	if len(class) > 0 {
+		if _, err := io.WriteString(w, " class=\""); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, class); err != nil {
+			return err
+		}
+		if _, err := io.WriteString(w, "\""); err != nil {
+			return err
+		}
+	}
+	if _, err := io.WriteString(w, ">"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, html.EscapeString(field)); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, "</"); err != nil {
+		return err
+	}
+	if _, err := io.WriteString(w, element); err != nil {
+		return err
+	}
+	_, err := io.WriteString(w, ">")
+	return err
+}
+
+// Render implements markup.Renderer
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	var tmpBlock = bufio.NewWriter(output)
+
+	// FIXME: don't read all to memory
+	rawBytes, err := ioutil.ReadAll(input)
+	if err != nil {
+		return err
+	}
 
 	if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < int64(len(rawBytes)) {
-		tmpBlock.WriteString("<pre>")
-		tmpBlock.WriteString(html.EscapeString(string(rawBytes)))
-		tmpBlock.WriteString("</pre>")
-		return tmpBlock.Bytes()
-	}
-
-	rd := csv.CreateReaderAndGuessDelimiter(rawBytes)
-
-	writeField := func(element, class, field string) {
-		tmpBlock.WriteString("<")
-		tmpBlock.WriteString(element)
-		if len(class) > 0 {
-			tmpBlock.WriteString(" class=\"")
-			tmpBlock.WriteString(class)
-			tmpBlock.WriteString("\"")
+		if _, err := tmpBlock.WriteString("<pre>"); err != nil {
+			return err
 		}
-		tmpBlock.WriteString(">")
-		tmpBlock.WriteString(html.EscapeString(field))
-		tmpBlock.WriteString("</")
-		tmpBlock.WriteString(element)
-		tmpBlock.WriteString(">")
+		if _, err := tmpBlock.WriteString(html.EscapeString(string(rawBytes))); err != nil {
+			return err
+		}
+		_, err = tmpBlock.WriteString("</pre>")
+		return err
 	}
 
-	tmpBlock.WriteString(`<table class="data-table">`)
+	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
+	if err != nil {
+		return err
+	}
+
+	if _, err := tmpBlock.WriteString(`<table class="data-table">`); err != nil {
+		return err
+	}
 	row := 1
 	for {
 		fields, err := rd.Read()
@@ -74,20 +110,29 @@ func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string,
 		if err != nil {
 			continue
 		}
-		tmpBlock.WriteString("<tr>")
+		if _, err := tmpBlock.WriteString("<tr>"); err != nil {
+			return err
+		}
 		element := "td"
 		if row == 1 {
 			element = "th"
 		}
-		writeField(element, "line-num", strconv.Itoa(row))
-		for _, field := range fields {
-			writeField(element, "", field)
+		if err := writeField(tmpBlock, element, "line-num", strconv.Itoa(row)); err != nil {
+			return err
 		}
-		tmpBlock.WriteString("</tr>")
+		for _, field := range fields {
+			if err := writeField(tmpBlock, element, "", field); err != nil {
+				return err
+			}
+		}
+		if _, err := tmpBlock.WriteString("</tr>"); err != nil {
+			return err
+		}
 
 		row++
 	}
-	tmpBlock.WriteString("</table>")
-
-	return tmpBlock.Bytes()
+	if _, err = tmpBlock.WriteString("</table>"); err != nil {
+		return err
+	}
+	return tmpBlock.Flush()
 }
