@@ -650,7 +650,7 @@ github.com/oliamb/cutter
 github.com/olivere/elastic/v7
 github.com/olivere/elastic/v7/config
 github.com/olivere/elastic/v7/uritemplates
-# github.com/pelletier/go-toml v1.8.1
+# github.com/pelletier/go-toml v1.9.0
 ## explicit
 github.com/pelletier/go-toml
 # github.com/pierrec/lz4/v4 v4.1.3

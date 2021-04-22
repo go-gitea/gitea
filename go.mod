@@ -91,7 +91,7 @@ require (
 	github.com/niklasfasching/go-org v1.5.0
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.24
-	github.com/pelletier/go-toml v1.8.1
+	github.com/pelletier/go-toml v1.9.0
 	github.com/pierrec/lz4/v4 v4.1.3 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.3.0
