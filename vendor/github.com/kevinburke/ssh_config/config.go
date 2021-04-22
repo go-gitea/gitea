@@ -102,6 +102,13 @@ func findVal(c *Config, alias, key string) (string, error) {
 	return val, nil
 }
 
+func findAll(c *Config, alias, key string) ([]string, error) {
+	if c == nil {
+		return nil, nil
+	}
+	return c.GetAll(alias, key)
+}
+
 // Get finds the first value for key within a declaration that matches the
 // alias. Get returns the empty string if no value was found, or if IgnoreErrors
 // is false and we could not parse the configuration file. Use GetStrict to
@@ -114,17 +121,49 @@ func Get(alias, key string) string {
 	return DefaultUserSettings.Get(alias, key)
 }
 
+// GetAll retrieves zero or more directives for key for the given alias. GetAll
+// returns nil if no value was found, or if IgnoreErrors is false and we could
+// not parse the configuration file. Use GetAllStrict to disambiguate the
+// latter cases.
+//
+// In most cases you want to use Get or GetStrict, which returns a single value.
+// However, a subset of ssh configuration values (IdentityFile, for example)
+// allow you to specify multiple directives.
+//
+// The match for key is case insensitive.
+//
+// GetAll is a wrapper around DefaultUserSettings.GetAll.
+func GetAll(alias, key string) []string {
+	return DefaultUserSettings.GetAll(alias, key)
+}
+
 // GetStrict finds the first value for key within a declaration that matches the
 // alias. If key has a default value and no matching configuration is found, the
 // default will be returned. For more information on default values and the way
 // patterns are matched, see the manpage for ssh_config.
 //
-// error will be non-nil if and only if a user's configuration file or the
-// system configuration file could not be parsed, and u.IgnoreErrors is false.
+// The returned error will be non-nil if and only if a user's configuration file
+// or the system configuration file could not be parsed, and u.IgnoreErrors is
+// false.
 //
 // GetStrict is a wrapper around DefaultUserSettings.GetStrict.
 func GetStrict(alias, key string) (string, error) {
 	return DefaultUserSettings.GetStrict(alias, key)
+}
+
+// GetAllStrict retrieves zero or more directives for key for the given alias.
+//
+// In most cases you want to use Get or GetStrict, which returns a single value.
+// However, a subset of ssh configuration values (IdentityFile, for example)
+// allow you to specify multiple directives.
+//
+// The returned error will be non-nil if and only if a user's configuration file
+// or the system configuration file could not be parsed, and u.IgnoreErrors is
+// false.
+//
+// GetAllStrict is a wrapper around DefaultUserSettings.GetAllStrict.
+func GetAllStrict(alias, key string) ([]string, error) {
+	return DefaultUserSettings.GetAllStrict(alias, key)
 }
 
 // Get finds the first value for key within a declaration that matches the
@@ -141,6 +180,17 @@ func (u *UserSettings) Get(alias, key string) string {
 	return val
 }
 
+// GetAll retrieves zero or more directives for key for the given alias. GetAll
+// returns nil if no value was found, or if IgnoreErrors is false and we could
+// not parse the configuration file. Use GetStrict to disambiguate the latter
+// cases.
+//
+// The match for key is case insensitive.
+func (u *UserSettings) GetAll(alias, key string) []string {
+	val, _ := u.GetAllStrict(alias, key)
+	return val
+}
+
 // GetStrict finds the first value for key within a declaration that matches the
 // alias. If key has a default value and no matching configuration is found, the
 // default will be returned. For more information on default values and the way
@@ -149,6 +199,52 @@ func (u *UserSettings) Get(alias, key string) string {
 // error will be non-nil if and only if a user's configuration file or the
 // system configuration file could not be parsed, and u.IgnoreErrors is false.
 func (u *UserSettings) GetStrict(alias, key string) (string, error) {
+	u.doLoadConfigs()
+	//lint:ignore S1002 I prefer it this way
+	if u.onceErr != nil && u.IgnoreErrors == false {
+		return "", u.onceErr
+	}
+	val, err := findVal(u.userConfig, alias, key)
+	if err != nil || val != "" {
+		return val, err
+	}
+	val2, err2 := findVal(u.systemConfig, alias, key)
+	if err2 != nil || val2 != "" {
+		return val2, err2
+	}
+	return Default(key), nil
+}
+
+// GetAllStrict retrieves zero or more directives for key for the given alias.
+// If key has a default value and no matching configuration is found, the
+// default will be returned. For more information on default values and the way
+// patterns are matched, see the manpage for ssh_config.
+//
+// The returned error will be non-nil if and only if a user's configuration file
+// or the system configuration file could not be parsed, and u.IgnoreErrors is
+// false.
+func (u *UserSettings) GetAllStrict(alias, key string) ([]string, error) {
+	u.doLoadConfigs()
+	//lint:ignore S1002 I prefer it this way
+	if u.onceErr != nil && u.IgnoreErrors == false {
+		return nil, u.onceErr
+	}
+	val, err := findAll(u.userConfig, alias, key)
+	if err != nil || val != nil {
+		return val, err
+	}
+	val2, err2 := findAll(u.systemConfig, alias, key)
+	if err2 != nil || val2 != nil {
+		return val2, err2
+	}
+	// TODO: IdentityFile has multiple default values that we should return.
+	if def := Default(key); def != "" {
+		return []string{def}, nil
+	}
+	return []string{}, nil
+}
+
+func (u *UserSettings) doLoadConfigs() {
 	u.loadConfigs.Do(func() {
 		// can't parse user file, that's ok.
 		var filename string
@@ -176,19 +272,6 @@ func (u *UserSettings) GetStrict(alias, key string) (string, error) {
 			return
 		}
 	})
-	//lint:ignore S1002 I prefer it this way
-	if u.onceErr != nil && u.IgnoreErrors == false {
-		return "", u.onceErr
-	}
-	val, err := findVal(u.userConfig, alias, key)
-	if err != nil || val != "" {
-		return val, err
-	}
-	val2, err2 := findVal(u.systemConfig, alias, key)
-	if err2 != nil || val2 != "" {
-		return val2, err2
-	}
-	return Default(key), nil
 }
 
 func parseFile(filename string) (*Config, error) {
@@ -280,6 +363,42 @@ func (c *Config) Get(alias, key string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// GetAll returns all values in the configuration that match the alias and
+// contains key, or nil if none are present.
+func (c *Config) GetAll(alias, key string) ([]string, error) {
+	lowerKey := strings.ToLower(key)
+	all := []string(nil)
+	for _, host := range c.Hosts {
+		if !host.Matches(alias) {
+			continue
+		}
+		for _, node := range host.Nodes {
+			switch t := node.(type) {
+			case *Empty:
+				continue
+			case *KV:
+				// "keys are case insensitive" per the spec
+				lkey := strings.ToLower(t.Key)
+				if lkey == "match" {
+					panic("can't handle Match directives")
+				}
+				if lkey == lowerKey {
+					all = append(all, t.Value)
+				}
+			case *Include:
+				val, _ := t.GetAll(alias, key)
+				if len(val) > 0 {
+					all = append(all, val...)
+				}
+			default:
+				return nil, fmt.Errorf("unknown Node type %v", t)
+			}
+		}
+	}
+
+	return all, nil
 }
 
 // String returns a string representation of the Config file.
@@ -609,6 +728,31 @@ func (inc *Include) Get(alias, key string) string {
 		}
 	}
 	return ""
+}
+
+// GetAll finds all values in the Include statement matching the alias and the
+// given key.
+func (inc *Include) GetAll(alias, key string) ([]string, error) {
+	inc.mu.Lock()
+	defer inc.mu.Unlock()
+	var vals []string
+
+	// TODO: we search files in any order which is not correct
+	for i := range inc.matches {
+		cfg := inc.files[inc.matches[i]]
+		if cfg == nil {
+			panic("nil cfg")
+		}
+		val, err := cfg.GetAll(alias, key)
+		if err == nil && len(val) != 0 {
+			// In theory if SupportsMultiple was false for this key we could
+			// stop looking here. But the caller has asked us to find all
+			// instances of the keyword (and could use Get() if they wanted) so
+			// let's keep looking.
+			vals = append(vals, val...)
+		}
+	}
+	return vals, nil
 }
 
 // String prints out a string representation of this Include directive. Note
