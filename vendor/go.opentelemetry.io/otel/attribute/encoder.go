@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package label // import "go.opentelemetry.io/otel/label"
+package attribute // import "go.opentelemetry.io/otel/attribute"
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ type (
 	Encoder interface {
 		// Encode returns the serialized encoding of the label
 		// set using its Iterator.  This result may be cached
-		// by a label.Set.
+		// by a attribute.Set.
 		Encode(iterator Iterator) string
 
 		// ID returns a value that is unique for each class of

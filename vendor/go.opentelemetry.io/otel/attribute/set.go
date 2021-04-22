@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package label // import "go.opentelemetry.io/otel/label"
+package attribute // import "go.opentelemetry.io/otel/attribute"
 
 import (
 	"encoding/json"
@@ -295,7 +295,7 @@ func NewSetWithFiltered(kvs []KeyValue, filter Filter) (Set, []KeyValue) {
 // - allocating a `Set` for storing the return value of this
 //   constructor.
 //
-// The result maintains a cache of encoded labels, by label.EncoderID.
+// The result maintains a cache of encoded labels, by attribute.EncoderID.
 // This value should not be copied after its first use.
 //
 // The second `[]KeyValue` return value is a list of labels that were

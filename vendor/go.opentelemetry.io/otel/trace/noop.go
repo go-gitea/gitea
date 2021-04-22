@@ -17,8 +17,8 @@ package trace // import "go.opentelemetry.io/otel/trace"
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/label"
 )
 
 // NewNoopTracerProvider returns an implementation of TracerProvider that
@@ -66,7 +66,7 @@ func (noopSpan) SetStatus(codes.Code, string) {}
 func (noopSpan) SetError(bool) {}
 
 // SetAttributes does nothing.
-func (noopSpan) SetAttributes(...label.KeyValue) {}
+func (noopSpan) SetAttributes(...attribute.KeyValue) {}
 
 // End does nothing.
 func (noopSpan) End(...SpanOption) {}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package label // import "go.opentelemetry.io/otel/label"
+package attribute // import "go.opentelemetry.io/otel/attribute"
 
 // Iterator allows iterating over the set of labels in order,
 // sorted by key.
@@ -55,7 +55,7 @@ func (i *Iterator) Attribute() KeyValue {
 	return i.Label()
 }
 
-// IndexedLabel returns current index and label. Must be called only
+// IndexedLabel returns current index and attribute. Must be called only
 // after Next returns true.
 func (i *Iterator) IndexedLabel() (int, KeyValue) {
 	return i.idx, i.Label()
