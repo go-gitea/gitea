@@ -298,13 +298,7 @@ func (c *Connector) open(ctx context.Context) (cn *conn, err error) {
 	// the user.
 	defer errRecoverNoErrBadConn(&err)
 
-	// Create a new values map (copy). This makes it so maps in different
-	// connections do not reference the same underlying data structure, so it
-	// is safe for multiple connections to concurrently write to their opts.
-	o := make(values)
-	for k, v := range c.opts {
-		o[k] = v
-	}
+	o := c.opts
 
 	bad := &atomic.Value{}
 	bad.Store(false)
@@ -1106,7 +1100,7 @@ func isDriverSetting(key string) bool {
 		return true
 	case "password":
 		return true
-	case "sslmode", "sslcert", "sslkey", "sslrootcert", "sslinline":
+	case "sslmode", "sslcert", "sslkey", "sslrootcert":
 		return true
 	case "fallback_application_name":
 		return true
@@ -1731,9 +1725,10 @@ func (cn *conn) processParameterStatus(r *readBuf) {
 	case "server_version":
 		var major1 int
 		var major2 int
-		_, err = fmt.Sscanf(r.string(), "%d.%d", &major1, &major2)
+		var minor int
+		_, err = fmt.Sscanf(r.string(), "%d.%d.%d", &major1, &major2, &minor)
 		if err == nil {
-			cn.parameterStatus.serverVersion = major1*10000 + major2*100
+			cn.parameterStatus.serverVersion = major1*10000 + major2*100 + minor
 		}
 
 	case "TimeZone":

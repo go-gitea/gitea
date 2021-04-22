@@ -21,7 +21,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.0.3
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.12.0
+	github.com/caddyserver/certmagic v0.13.0
 	github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af // indirect
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
@@ -68,8 +68,7 @@ require (
 	github.com/klauspost/compress v1.12.1
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.4.0
-	github.com/lib/pq v1.10.1
-	github.com/libdns/libdns v0.2.0 // indirect
+	github.com/lib/pq v1.10.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.67.1
 	github.com/mattn/go-isatty v0.0.12
@@ -77,7 +76,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.6
-	github.com/mholt/acmez v0.1.3 // indirect
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.8
 	github.com/miekg/dns v1.1.40 // indirect

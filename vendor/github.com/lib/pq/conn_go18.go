@@ -129,16 +129,7 @@ func (cn *conn) watchCancel(ctx context.Context) func() {
 }
 
 func (cn *conn) cancel(ctx context.Context) error {
-	// Create a new values map (copy). This makes sure the connection created
-	// in this method cannot write to the same underlying data, which could
-	// cause a concurrent map write panic. This is necessary because cancel
-	// is called from a goroutine in watchCancel.
-	o := make(values)
-	for k, v := range cn.opts {
-		o[k] = v
-	}
-
-	c, err := dial(ctx, cn.dialer, o)
+	c, err := dial(ctx, cn.dialer, cn.opts)
 	if err != nil {
 		return err
 	}
@@ -151,7 +142,7 @@ func (cn *conn) cancel(ctx context.Context) error {
 			c:   c,
 			bad: bad,
 		}
-		err = can.ssl(o)
+		err = can.ssl(cn.opts)
 		if err != nil {
 			return err
 		}
