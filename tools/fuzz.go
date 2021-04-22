@@ -32,7 +32,10 @@ var (
 )
 
 func FuzzMarkdownRenderRaw(data []byte) int {
-	_ = markdown.RenderRaw(&renderContext, bytes.NewReader(data), io.Discard)
+	err := markdown.RenderRaw(&renderContext, bytes.NewReader(data), io.Discard)
+	if err != nil {
+		return 0
+	}
 	return 1
 }
 
