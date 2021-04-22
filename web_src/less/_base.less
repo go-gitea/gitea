@@ -1594,6 +1594,14 @@ a.ui.label:hover {
   border-left: none;
 }
 
+.two-toggle-buttons .button:not(.active):first-of-type {
+  border-right: none;
+}
+
+.two-toggle-buttons .button.active:last-of-type {
+  border-left: 1px solid var(--color-light-border);
+}
+
 .ui.labeled.button.disabled > .button,
 .ui.basic.buttons .button,
 .ui.basic.button {
