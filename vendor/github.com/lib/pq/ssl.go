@@ -59,9 +59,6 @@ func ssl(o values) (func(net.Conn) (net.Conn, error), error) {
 		return nil, err
 	}
 
-	// This pseudo-parameter is not recognized by the PostgreSQL server, so let's delete it after use.
-	delete(o, "sslinline")
-
 	// Accept renegotiation requests initiated by the backend.
 	//
 	// Renegotiation was deprecated then removed from PostgreSQL 9.5, but
@@ -89,9 +86,6 @@ func sslClientCertificates(tlsConf *tls.Config, o values) error {
 	sslinline := o["sslinline"]
 	if sslinline == "true" {
 		cert, err := tls.X509KeyPair([]byte(o["sslcert"]), []byte(o["sslkey"]))
-		// Clear out these params, in case they were to be sent to the PostgreSQL server by mistake
-		o["sslcert"] = ""
-		o["sslkey"] = ""
 		if err != nil {
 			return err
 		}
@@ -157,8 +151,6 @@ func sslCertificateAuthority(tlsConf *tls.Config, o values) error {
 
 		var cert []byte
 		if sslinline == "true" {
-			// // Clear out this param, in case it were to be sent to the PostgreSQL server by mistake
-			o["sslrootcert"] = ""
 			cert = []byte(sslrootcert)
 		} else {
 			var err error
