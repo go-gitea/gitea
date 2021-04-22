@@ -41,7 +41,7 @@ require (
 	github.com/go-enry/go-enry/v2 v2.6.1
 	github.com/go-git/go-billy/v5 v5.1.0
 	github.com/go-git/go-git/v5 v5.3.0
-	github.com/go-ldap/ldap/v3 v3.2.4
+	github.com/go-ldap/ldap/v3 v3.3.0
 	github.com/go-openapi/errors v0.20.0 // indirect
 	github.com/go-openapi/validate v0.20.2 // indirect
 	github.com/go-redis/redis/v8 v8.6.0
