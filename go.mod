@@ -14,11 +14,11 @@ require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.5.1
-	github.com/RoaringBitmap/roaring v0.5.5 // indirect
+	github.com/RoaringBitmap/roaring v0.6.0 // indirect
 	github.com/alecthomas/chroma v0.8.2
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/blevesearch/bleve/v2 v2.0.2
+	github.com/blevesearch/bleve/v2 v2.0.3
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.12.0
@@ -35,7 +35,6 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v1.0.0
 	github.com/gliderlabs/ssh v0.3.2
-	github.com/glycerine/go-unsnap-stream v0.0.0-20210130063903-47dfef350d96 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/cors v1.1.1
@@ -53,6 +52,7 @@ require (
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.2.0
@@ -116,7 +116,6 @@ require (
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/tstranex/u2f v1.0.0
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/unknwon/com v1.0.1
@@ -138,7 +137,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
-	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
+	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
 	golang.org/x/text v0.3.5
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	golang.org/x/tools v0.1.0
