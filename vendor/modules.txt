@@ -223,7 +223,7 @@ github.com/dsnet/compress/internal/prefix
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/editorconfig/editorconfig-core-go/v2 v2.4.1
+# github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
 ## explicit
 github.com/editorconfig/editorconfig-core-go/v2
 # github.com/emirpasic/gods v1.12.0
@@ -881,7 +881,7 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/mod v0.4.1
+# golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
 # golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
