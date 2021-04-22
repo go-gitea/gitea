@@ -49,7 +49,6 @@ require (
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
-	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-github/v32 v32.1.0
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/context v1.1.1
@@ -65,7 +64,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
-	github.com/klauspost/compress v1.11.8
+	github.com/klauspost/compress v1.12.1
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.10.1

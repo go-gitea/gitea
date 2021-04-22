@@ -414,7 +414,6 @@ github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.3
-## explicit
 github.com/golang/snappy
 # github.com/google/go-github/v32 v32.1.0
 ## explicit
@@ -500,13 +499,12 @@ github.com/keybase/go-crypto/openpgp/errors
 github.com/keybase/go-crypto/openpgp/packet
 github.com/keybase/go-crypto/openpgp/s2k
 github.com/keybase/go-crypto/rsa
-# github.com/klauspost/compress v1.11.8
+# github.com/klauspost/compress v1.12.1
 ## explicit
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
-github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/cpuid v1.3.1
