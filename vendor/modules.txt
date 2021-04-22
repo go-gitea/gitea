@@ -421,7 +421,8 @@ github.com/golang/snappy
 # github.com/google/go-github/v32 v32.1.0
 ## explicit
 github.com/google/go-github/v32/github
-# github.com/google/go-querystring v1.0.0
+# github.com/google/go-querystring v1.1.0
+## explicit
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.2.0
 ## explicit
@@ -445,7 +446,6 @@ github.com/gorilla/sessions
 ## explicit
 github.com/hashicorp/go-cleanhttp
 # github.com/hashicorp/go-retryablehttp v0.6.8
-## explicit
 github.com/hashicorp/go-retryablehttp
 # github.com/hashicorp/go-version v1.2.1 => github.com/6543/go-version v1.2.4
 ## explicit
@@ -771,7 +771,7 @@ github.com/urfave/cli
 # github.com/willf/bitset v1.1.11
 ## explicit
 github.com/willf/bitset
-# github.com/xanzy/go-gitlab v0.44.0
+# github.com/xanzy/go-gitlab v0.48.0
 ## explicit
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.3.0
@@ -891,7 +891,7 @@ golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/proxy
 golang.org/x/net/publicsuffix
-# golang.org/x/oauth2 v0.0.0-20210323180902-22b0adad7558
+# golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/google

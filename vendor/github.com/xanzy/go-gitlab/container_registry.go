@@ -34,14 +34,14 @@ type ContainerRegistryService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/container_registry.html
 type RegistryRepository struct {
-	ID                    int                      `json:"id"`
-	Name                  string                   `json:"name"`
-	Path                  string                   `json:"path"`
-	Location              string                   `json:"location"`
-	CreatedAt             *time.Time               `json:"created_at"`
-	CreatePolicyStartedAt *time.Time               `json:"cleanup_policy_started_at"`
-	TagsCount             int                      `json:"tags_count"`
-	Tags                  []*RegistryRepositoryTag `json:"tags"`
+	ID                     int                      `json:"id"`
+	Name                   string                   `json:"name"`
+	Path                   string                   `json:"path"`
+	Location               string                   `json:"location"`
+	CreatedAt              *time.Time               `json:"created_at"`
+	CleanupPolicyStartedAt *time.Time               `json:"cleanup_policy_started_at"`
+	TagsCount              int                      `json:"tags_count"`
+	Tags                   []*RegistryRepositoryTag `json:"tags"`
 }
 
 func (s RegistryRepository) String() string {
