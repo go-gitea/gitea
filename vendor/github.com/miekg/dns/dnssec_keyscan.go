@@ -4,13 +4,12 @@ import (
 	"bufio"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"io"
 	"math/big"
 	"strconv"
 	"strings"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 // NewPrivateKey returns a PrivateKey by parsing the string s.

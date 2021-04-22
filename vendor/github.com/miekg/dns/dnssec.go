@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -17,8 +18,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 // DNSSEC encryption algorithm codes.
@@ -500,7 +499,7 @@ func (rr *RRSIG) ValidityPeriod(t time.Time) bool {
 	return ti <= utc && utc <= te
 }
 
-// Return the signatures base64 encodedig sigdata as a byte slice.
+// Return the signatures base64 encoding sigdata as a byte slice.
 func (rr *RRSIG) sigBuf() []byte {
 	sigbuf, err := fromBase64([]byte(rr.Signature))
 	if err != nil {

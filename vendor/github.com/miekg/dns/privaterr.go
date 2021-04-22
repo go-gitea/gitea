@@ -6,7 +6,7 @@ import "strings"
 // RFC 6895. This allows one to experiment with new RR types, without requesting an
 // official type code. Also see dns.PrivateHandle and dns.PrivateHandleRemove.
 type PrivateRdata interface {
-	// String returns the text presentaton of the Rdata of the Private RR.
+	// String returns the text presentation of the Rdata of the Private RR.
 	String() string
 	// Parse parses the Rdata of the private RR.
 	Parse([]string) error

@@ -379,7 +379,7 @@ func Dial(network, address string) (conn *Conn, err error) {
 func ExchangeContext(ctx context.Context, m *Msg, a string) (r *Msg, err error) {
 	client := Client{Net: "udp"}
 	r, _, err = client.ExchangeContext(ctx, m, a)
-	// ignorint rtt to leave the original ExchangeContext API unchanged, but
+	// ignoring rtt to leave the original ExchangeContext API unchanged, but
 	// this function will go away
 	return r, err
 }

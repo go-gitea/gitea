@@ -17,7 +17,7 @@ func (rr *SIG) Sign(k crypto.Signer, m *Msg) ([]byte, error) {
 	if k == nil {
 		return nil, ErrPrivKey
 	}
-	if rr.KeyTag == 0 || len(rr.SignerName) == 0 || rr.Algorithm == 0 {
+	if rr.KeyTag == 0 || rr.SignerName == "" || rr.Algorithm == 0 {
 		return nil, ErrKey
 	}
 
@@ -78,7 +78,7 @@ func (rr *SIG) Verify(k *KEY, buf []byte) error {
 	if k == nil {
 		return ErrKey
 	}
-	if rr.KeyTag == 0 || len(rr.SignerName) == 0 || rr.Algorithm == 0 {
+	if rr.KeyTag == 0 || rr.SignerName == "" || rr.Algorithm == 0 {
 		return ErrKey
 	}
 
