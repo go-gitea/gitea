@@ -44,7 +44,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.27.0
-	github.com/go-testfixtures/testfixtures/v3 v3.5.0
+	github.com/go-testfixtures/testfixtures/v3 v3.6.0
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
