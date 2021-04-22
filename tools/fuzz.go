@@ -29,16 +29,15 @@ var (
 			"repo": "gitea",
 		},
 	}
-	discardWriter = io.Discard
 )
 
 func FuzzMarkdownRenderRaw(data []byte) int {
-	_ = markdown.RenderRaw(&renderContext, bytes.NewReader(data), discardWriter)
+	_ = markdown.RenderRaw(&renderContext, bytes.NewReader(data), io.Discard)
 	return 1
 }
 
 func FuzzMarkupPostProcess(data []byte) int {
-	err := markup.PostProcess(&renderContext, bytes.NewReader(data), discardWriter)
+	err := markup.PostProcess(&renderContext, bytes.NewReader(data), io.Discard)
 	if err != nil {
 		return 0
 	}
