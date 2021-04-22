@@ -75,7 +75,7 @@ require (
 	github.com/markbates/goth v1.67.1
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-runewidth v0.0.10 // indirect
-	github.com/mattn/go-sqlite3 v1.14.6
+	github.com/mattn/go-sqlite3 v1.14.7
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.3
 	github.com/mholt/acmez v0.1.3 // indirect
