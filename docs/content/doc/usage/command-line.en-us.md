@@ -84,7 +84,7 @@ Admin operations:
         - `--username value`, `-u value`: Username. Required.
         - `--password value`, `-p value`: New password. Required.
       - Examples:
-        - `gitea admin user change-password --username myname --password asecurepassword`
+        - `gitea admin change-password --username myname --password asecurepassword`
   - `regenerate`
     - Options:
       - `hooks`: Regenerate git-hooks for all repositories
