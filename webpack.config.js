@@ -87,7 +87,6 @@ export default {
         minify: true
       }),
       new CssMinimizerPlugin({
-        sourceMap: true,
         minimizerOptions: {
           preset: [
             'default',
