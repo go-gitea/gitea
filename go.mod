@@ -37,7 +37,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.2
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-chi/chi v1.5.4
-	github.com/go-chi/cors v1.1.1
+	github.com/go-chi/cors v1.2.0
 	github.com/go-enry/go-enry/v2 v2.6.1
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/go-git/go-git/v5 v5.2.0

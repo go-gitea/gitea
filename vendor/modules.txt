@@ -255,7 +255,7 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
-# github.com/go-chi/cors v1.1.1
+# github.com/go-chi/cors v1.2.0
 ## explicit
 github.com/go-chi/cors
 # github.com/go-enry/go-enry/v2 v2.6.1
