@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -188,4 +190,30 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 // in.
 func ArchiveRepository(request *ArchiveRequest) (*models.RepoArchiver, error) {
 	return doArchive(request)
+}
+
+var archiverQueue queue.Queue
+
+// Init initlize archive
+func Init() error {
+	handler := func(data ...queue.Data) {
+		for _, datum := range data {
+			archiveReq, ok := datum.(*ArchiveRequest)
+			if !ok {
+				log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
+				continue
+			}
+			log.Trace("ArchiverData Process: %#v", archiveReq)
+			if _, err := doArchive(archiveReq); err != nil {
+				log.Error("Archive %v faild: %v", datum, err)
+			}
+		}
+	}
+
+	archiverQueue = queue.CreateQueue("repo-archive", handler, new(ArchiveRequest))
+	if archiverQueue == nil {
+		return errors.New("unable to create codes indexer queue")
+	}
+
+	return nil
 }
