@@ -177,6 +177,9 @@ github.com/bradfitz/gomemcache/memcache
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
+# github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af
+## explicit
+github.com/chavacava/garif
 # github.com/chi-middleware/proxy v1.1.1
 ## explicit
 github.com/chi-middleware/proxy
@@ -562,7 +565,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.10
+# github.com/mattn/go-runewidth v0.0.12
 ## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.14.7
@@ -573,7 +576,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 ## explicit
 github.com/mgechev/dots
-# github.com/mgechev/revive v1.0.3
+# github.com/mgechev/revive v1.0.6
 ## explicit
 github.com/mgechev/revive/formatter
 github.com/mgechev/revive/lint
@@ -638,7 +641,6 @@ github.com/nwaples/rardecode
 # github.com/oklog/ulid v1.3.1
 github.com/oklog/ulid
 # github.com/olekukonko/tablewriter v0.0.5
-## explicit
 github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
