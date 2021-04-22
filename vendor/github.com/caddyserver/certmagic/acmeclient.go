@@ -37,19 +37,104 @@ func init() {
 	weakrand.Seed(time.Now().UnixNano())
 }
 
-// acmeClient holds state necessary for us to perform
-// ACME operations for certificate management. Call
-// ACMEManager.newACMEClient() to get a valid one to .
+// acmeClient holds state necessary to perform ACME operations
+// for certificate management with an ACME account. Call
+// ACMEManager.newACMEClientWithAccount() to get a valid one.
 type acmeClient struct {
 	mgr        *ACMEManager
 	acmeClient *acmez.Client
 	account    acme.Account
 }
 
-// newACMEClient creates the underlying ACME library client type.
-// If useTestCA is true, am.TestCA will be used if it is set;
-// otherwise, the primary CA will still be used.
-func (am *ACMEManager) newACMEClient(ctx context.Context, useTestCA, interactive bool) (*acmeClient, error) {
+// newACMEClientWithAccount creates an ACME client ready to use with an account, including
+// loading one from storage or registering a new account with the CA if necessary. If
+// useTestCA is true, am.TestCA will be used if set; otherwise, the primary CA will be used.
+func (am *ACMEManager) newACMEClientWithAccount(ctx context.Context, useTestCA, interactive bool) (*acmeClient, error) {
+	// first, get underlying ACME client
+	client, err := am.newACMEClient(useTestCA)
+	if err != nil {
+		return nil, err
+	}
+
+	// look up or create the ACME account
+	var account acme.Account
+	if am.AccountKeyPEM != "" {
+		account, err = am.GetAccount(ctx, []byte(am.AccountKeyPEM))
+	} else {
+		account, err = am.getAccount(client.Directory, am.Email)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting ACME account: %v", err)
+	}
+
+	// register account if it is new
+	if account.Status == "" {
+		if am.NewAccountFunc != nil {
+			account, err = am.NewAccountFunc(ctx, am, account)
+			if err != nil {
+				return nil, fmt.Errorf("account pre-registration callback: %v", err)
+			}
+		}
+
+		// agree to terms
+		if interactive {
+			if !am.Agreed {
+				var termsURL string
+				dir, err := client.GetDirectory(ctx)
+				if err != nil {
+					return nil, fmt.Errorf("getting directory: %w", err)
+				}
+				if dir.Meta != nil {
+					termsURL = dir.Meta.TermsOfService
+				}
+				if termsURL != "" {
+					am.Agreed = am.askUserAgreement(termsURL)
+					if !am.Agreed {
+						return nil, fmt.Errorf("user must agree to CA terms")
+					}
+				}
+			}
+		} else {
+			// can't prompt a user who isn't there; they should
+			// have reviewed the terms beforehand
+			am.Agreed = true
+		}
+		account.TermsOfServiceAgreed = am.Agreed
+
+		// associate account with external binding, if configured
+		if am.ExternalAccount != nil {
+			err := account.SetExternalAccountBinding(ctx, client.Client, *am.ExternalAccount)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// create account
+		account, err = client.NewAccount(ctx, account)
+		if err != nil {
+			return nil, fmt.Errorf("registering account %v with server: %w", account.Contact, err)
+		}
+
+		// persist the account to storage
+		err = am.saveAccount(client.Directory, account)
+		if err != nil {
+			return nil, fmt.Errorf("could not save account %v: %v", account.Contact, err)
+		}
+	}
+
+	c := &acmeClient{
+		mgr:        am,
+		acmeClient: client,
+		account:    account,
+	}
+
+	return c, nil
+}
+
+// newACMEClient creates a new underlying ACME client using the settings in am,
+// independent of any particular ACME account. If useTestCA is true, am.TestCA
+// will be used if it is set; otherwise, the primary CA will be used.
+func (am *ACMEManager) newACMEClient(useTestCA bool) (*acmez.Client, error) {
 	// ensure defaults are filled in
 	var caURL string
 	if useTestCA {
@@ -76,12 +161,6 @@ func (am *ACMEManager) newACMEClient(ctx context.Context, useTestCA, interactive
 	}
 	if u.Scheme != "https" && !isLoopback(u.Host) && !isInternal(u.Host) {
 		return nil, fmt.Errorf("%s: insecure CA URL (HTTPS required)", caURL)
-	}
-
-	// look up or create the ACME account
-	account, err := am.getAccount(caURL, am.Email)
-	if err != nil {
-		return nil, fmt.Errorf("getting ACME account: %v", err)
 	}
 
 	// set up the dialers and resolver for the ACME client's HTTP client
@@ -153,12 +232,12 @@ func (am *ACMEManager) newACMEClient(ctx context.Context, useTestCA, interactive
 				useHTTPPort = am.AltHTTPPort
 			}
 			client.ChallengeSolvers[acme.ChallengeTypeHTTP01] = distributedSolver{
-				acmeManager: am,
+				storage:                am.config.Storage,
+				storageKeyIssuerPrefix: am.storageKeyCAPrefix(client.Directory),
 				solver: &httpSolver{
 					acmeManager: am,
 					address:     net.JoinHostPort(am.ListenHost, strconv.Itoa(useHTTPPort)),
 				},
-				caURL: client.Directory,
 			}
 		}
 
@@ -172,12 +251,12 @@ func (am *ACMEManager) newACMEClient(ctx context.Context, useTestCA, interactive
 				useTLSALPNPort = am.AltTLSALPNPort
 			}
 			client.ChallengeSolvers[acme.ChallengeTypeTLSALPN01] = distributedSolver{
-				acmeManager: am,
+				storage:                am.config.Storage,
+				storageKeyIssuerPrefix: am.storageKeyCAPrefix(client.Directory),
 				solver: &tlsALPNSolver{
 					config:  am.config,
 					address: net.JoinHostPort(am.ListenHost, strconv.Itoa(useTLSALPNPort)),
 				},
-				caURL: client.Directory,
 			}
 		}
 	} else {
@@ -185,68 +264,26 @@ func (am *ACMEManager) newACMEClient(ctx context.Context, useTestCA, interactive
 		client.ChallengeSolvers[acme.ChallengeTypeDNS01] = am.DNS01Solver
 	}
 
-	// register account if it is new
-	if account.Status == "" {
-		if am.NewAccountFunc != nil {
-			err = am.NewAccountFunc(ctx, am, account)
-			if err != nil {
-				return nil, fmt.Errorf("account pre-registration callback: %v", err)
-			}
-		}
-
-		// agree to terms
-		if interactive {
-			if !am.Agreed {
-				var termsURL string
-				dir, err := client.GetDirectory(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("getting directory: %w", err)
-				}
-				if dir.Meta != nil {
-					termsURL = dir.Meta.TermsOfService
-				}
-				if termsURL != "" {
-					am.Agreed = am.askUserAgreement(termsURL)
-					if !am.Agreed {
-						return nil, fmt.Errorf("user must agree to CA terms")
-					}
-				}
-			}
-		} else {
-			// can't prompt a user who isn't there; they should
-			// have reviewed the terms beforehand
-			am.Agreed = true
-		}
-		account.TermsOfServiceAgreed = am.Agreed
-
-		// associate account with external binding, if configured
-		if am.ExternalAccount != nil {
-			err := account.SetExternalAccountBinding(ctx, client.Client, *am.ExternalAccount)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// create account
-		account, err = client.NewAccount(ctx, account)
-		if err != nil {
-			return nil, fmt.Errorf("registering account with server: %w", err)
-		}
-
-		// persist the account to storage
-		err = am.saveAccount(caURL, account)
-		if err != nil {
-			return nil, fmt.Errorf("could not save account: %v", err)
-		}
+	// wrap solvers in our wrapper so that we can keep track of challenge
+	// info: this is useful for solving challenges globally as a process;
+	// for example, usually there is only one process that can solve the
+	// HTTP and TLS-ALPN challenges, and only one server in that process
+	// that can bind the necessary port(s), so if a server listening on
+	// a different port needed a certificate, it would have to know about
+	// the other server listening on that port, and somehow convey its
+	// challenge info or share its config, but this isn't always feasible;
+	// what the wrapper does is it accesses a global challenge memory so
+	// that unrelated servers in this process can all solve each others'
+	// challenges without having to know about each other - Caddy's admin
+	// endpoint uses this functionality since it and the HTTP/TLS modules
+	// do not know about each other
+	// (doing this here in a separate loop ensures that even if we expose
+	// solver config to users later, we will even wrap their own solvers)
+	for name, solver := range client.ChallengeSolvers {
+		client.ChallengeSolvers[name] = solverWrapper{solver}
 	}
 
-	c := &acmeClient{
-		mgr:        am,
-		acmeClient: client,
-		account:    account,
-	}
-
-	return c, nil
+	return client, nil
 }
 
 func (c *acmeClient) throttle(ctx context.Context, names []string) error {
@@ -325,7 +362,7 @@ var (
 
 	// RateLimitEvents is how many new events can be allowed
 	// in RateLimitEventsWindow.
-	RateLimitEvents = 10
+	RateLimitEvents = 20
 
 	// RateLimitEventsWindow is the size of the sliding
 	// window that throttles events.

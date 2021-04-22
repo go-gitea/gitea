@@ -21,7 +21,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.0.2
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.12.0
+	github.com/caddyserver/certmagic v0.13.0
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
@@ -75,7 +75,6 @@ require (
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.9.0
-	github.com/libdns/libdns v0.2.0 // indirect
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/markbates/goth v1.67.1
@@ -84,10 +83,9 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
 	github.com/mgechev/revive v1.0.3
-	github.com/mholt/acmez v0.1.3 // indirect
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.7
-	github.com/miekg/dns v1.1.40 // indirect
+	github.com/miekg/dns v1.1.41 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.10
 	github.com/minio/sha256-simd v1.0.0 // indirect
@@ -135,11 +133,11 @@ require (
 	go.jolheiser.com/pwn v0.0.3
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0 // indirect
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
+	golang.org/x/net v0.0.0-20210421230115-4e50805a0758
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
-	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
-	golang.org/x/text v0.3.5
+	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	golang.org/x/tools v0.1.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
