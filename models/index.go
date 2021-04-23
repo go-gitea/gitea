@@ -21,7 +21,7 @@ type ResourceIndex struct {
 // IssueIndex represents the issue index table
 type IssueIndex ResourceIndex
 
-// the function will not return until it acquires the lock or receives an error.
+// upsertResourceIndex the function will not return until it acquires the lock or receives an error.
 func upsertResourceIndex(e Engine, tableName string, groupID int64) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
 	// that ensures that the key is actually locked.
@@ -50,13 +50,19 @@ func upsertResourceIndex(e Engine, tableName string, groupID int64) (err error) 
 }
 
 var (
-	ErrResouceOutdated        = errors.New("resource outdated")
+	// ErrResouceOutdated represents an error when request resource outdated
+	ErrResouceOutdated = errors.New("resource outdated")
+	// ErrGetResourceIndexFailed represents an error when resource index retries 3 times
 	ErrGetResourceIndexFailed = errors.New("get resource index failed")
+)
+
+const (
+	maxDupIndexAttempts = 3
 )
 
 // GetNextResourceIndex retried 3 times to generate a resource index
 func GetNextResourceIndex(tableName string, groupID int64) (int64, error) {
-	for i := 0; i < 3; i++ {
+	for i := 0; i < maxDupIndexAttempts; i++ {
 		idx, err := getNextResourceIndex(tableName, groupID)
 		if err == ErrResouceOutdated {
 			continue
