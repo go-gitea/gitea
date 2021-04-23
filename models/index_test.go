@@ -5,6 +5,8 @@
 package models
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,4 +15,13 @@ import (
 func TestResourceIndex(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func(i int) {
+			testInsertIssue(t, fmt.Sprintf("issue %d", i+1), "my issue", 0)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
 }

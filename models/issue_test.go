@@ -338,25 +338,29 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 }
 
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Issue {
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-
-	issue := Issue{
-		RepoID:   repo.ID,
-		PosterID: user.ID,
-		Title:    title,
-		Content:  content,
-	}
-	err := NewIssue(repo, &issue, nil, nil)
-	assert.NoError(t, err)
-
 	var newIssue Issue
-	has, err := x.ID(issue.ID).Get(&newIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.EqualValues(t, issue.Title, newIssue.Title)
-	assert.EqualValues(t, issue.Content, newIssue.Content)
-	assert.EqualValues(t, expectIndex, newIssue.Index)
+	t.Run(title, func(t *testing.T) {
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+		issue := Issue{
+			RepoID:   repo.ID,
+			PosterID: user.ID,
+			Title:    title,
+			Content:  content,
+		}
+		err := NewIssue(repo, &issue, nil, nil)
+		assert.NoError(t, err)
+
+		has, err := x.ID(issue.ID).Get(&newIssue)
+		assert.NoError(t, err)
+		assert.True(t, has)
+		assert.EqualValues(t, issue.Title, newIssue.Title)
+		assert.EqualValues(t, issue.Content, newIssue.Content)
+		if expectIndex > 0 {
+			assert.EqualValues(t, expectIndex, newIssue.Index)
+		}
+	})
 	return &newIssue
 }
 
@@ -371,6 +375,7 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = x.ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
+
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
