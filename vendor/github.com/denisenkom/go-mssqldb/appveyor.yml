@@ -39,6 +39,9 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       GOVERSION: 115
       SQLINSTANCE: SQL2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      GOVERSION: 116
+      SQLINSTANCE: SQL2017
 
 install:
   - set GOROOT=c:\go%GOVERSION%

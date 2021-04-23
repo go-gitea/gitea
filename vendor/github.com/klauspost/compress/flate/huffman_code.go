@@ -122,6 +122,16 @@ func (h *huffmanEncoder) bitLength(freq []uint16) int {
 	return total
 }
 
+func (h *huffmanEncoder) bitLengthRaw(b []byte) int {
+	var total int
+	for _, f := range b {
+		if f != 0 {
+			total += int(h.codes[f].len)
+		}
+	}
+	return total
+}
+
 // Return the number of literals assigned to each bit size in the Huffman encoding
 //
 // This method is only called when list.length >= 3
@@ -327,37 +337,40 @@ func atLeastOne(v float32) float32 {
 	return v
 }
 
+// Unassigned values are assigned '1' in the histogram.
+func fillHist(b []uint16) {
+	for i, v := range b {
+		if v == 0 {
+			b[i] = 1
+		}
+	}
+}
+
 // histogramSize accumulates a histogram of b in h.
 // An estimated size in bits is returned.
-// Unassigned values are assigned '1' in the histogram.
 // len(h) must be >= 256, and h's elements must be all zeroes.
-func histogramSize(b []byte, h []uint16, fill bool) (int, int) {
+func histogramSize(b []byte, h []uint16, fill bool) (bits int) {
 	h = h[:256]
 	for _, t := range b {
 		h[t]++
 	}
-	invTotal := 1.0 / float32(len(b))
-	shannon := float32(0.0)
-	var extra float32
+	total := len(b)
 	if fill {
-		oneBits := atLeastOne(-mFastLog2(invTotal))
-		for i, v := range h[:] {
-			if v > 0 {
-				n := float32(v)
-				shannon += atLeastOne(-mFastLog2(n*invTotal)) * n
-			} else {
-				h[i] = 1
-				extra += oneBits
-			}
-		}
-	} else {
-		for _, v := range h[:] {
-			if v > 0 {
-				n := float32(v)
-				shannon += atLeastOne(-mFastLog2(n*invTotal)) * n
+		for _, v := range h {
+			if v == 0 {
+				total++
 			}
 		}
 	}
 
-	return int(shannon + 0.99), int(extra + 0.99)
+	invTotal := 1.0 / float32(total)
+	shannon := float32(0.0)
+	for _, v := range h {
+		if v > 0 {
+			n := float32(v)
+			shannon += atLeastOne(-mFastLog2(n*invTotal)) * n
+		}
+	}
+
+	return int(shannon + 0.99)
 }

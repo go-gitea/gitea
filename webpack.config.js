@@ -48,6 +48,7 @@ export default {
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
+      resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
