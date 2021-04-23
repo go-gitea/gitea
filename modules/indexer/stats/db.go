@@ -38,7 +38,7 @@ func (db *DBIndexer) Index(id int64) error {
 	// Get latest commit for default branch
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
-		if git.IsErrBranchNotExist(err) {
+		if git.IsErrBranchNotExist(err) || git.IsErrNotExist((err)) {
 			log.Debug("Unable to get commit ID for defaultbranch %s in %s ... skipping this repository", repo.DefaultBranch, repo.RepoPath())
 			return nil
 		}

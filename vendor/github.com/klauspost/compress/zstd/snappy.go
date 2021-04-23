@@ -10,8 +10,8 @@ import (
 	"hash/crc32"
 	"io"
 
+	"github.com/golang/snappy"
 	"github.com/klauspost/compress/huff0"
-	"github.com/klauspost/compress/snappy"
 )
 
 const (
@@ -185,7 +185,6 @@ func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
 				r.block.reset(nil)
 				r.block.literals, err = snappy.Decode(r.block.literals[:n], r.buf[snappyChecksumSize:chunkLen])
 				if err != nil {
-					println("snappy.Decode:", err)
 					return written, err
 				}
 				err = r.block.encodeLits(r.block.literals, false)
@@ -417,7 +416,7 @@ var crcTable = crc32.MakeTable(crc32.Castagnoli)
 // https://github.com/google/snappy/blob/master/framing_format.txt
 func snappyCRC(b []byte) uint32 {
 	c := crc32.Update(0, crcTable, b)
-	return uint32(c>>15|c<<17) + 0xa282ead8
+	return c>>15 | c<<17 + 0xa282ead8
 }
 
 // snappyDecodedLen returns the length of the decoded block and the number of bytes
