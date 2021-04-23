@@ -337,7 +337,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 	}
 }
 
-func testInsertIssue(t *testing.T, title, content string) {
+func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Issue {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
@@ -356,18 +356,21 @@ func testInsertIssue(t *testing.T, title, content string) {
 	assert.True(t, has)
 	assert.EqualValues(t, issue.Title, newIssue.Title)
 	assert.EqualValues(t, issue.Content, newIssue.Content)
-	// there are 5 issues and max index is 5 on repository 1, so this one should 6
-	assert.EqualValues(t, 6, newIssue.Index)
-
-	_, err = x.ID(issue.ID).Delete(new(Issue))
-	assert.NoError(t, err)
+	assert.EqualValues(t, expectIndex, newIssue.Index)
+	return &newIssue
 }
 
 func TestIssue_InsertIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	testInsertIssue(t, "my issue1", "special issue's comments?")
-	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
+	// there are 5 issues and max index is 5 on repository 1, so this one should 6
+	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
+	_, err := x.ID(issue.ID).Delete(new(Issue))
+	assert.NoError(t, err)
+
+	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
+	_, err = x.ID(issue.ID).Delete(new(Issue))
+	assert.NoError(t, err)
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
