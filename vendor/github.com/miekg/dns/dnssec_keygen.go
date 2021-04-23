@@ -3,11 +3,12 @@ package dns
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"math/big"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // Generate generates a DNSKEY of the given bit size.

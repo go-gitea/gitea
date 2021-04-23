@@ -525,7 +525,7 @@ func (e *EDNS0_N3U) String() string {
 }
 func (e *EDNS0_N3U) copy() EDNS0 { return &EDNS0_N3U{e.Code, e.AlgCode} }
 
-// EDNS0_EXPIRE implements the EDNS0 option as described in RFC 7314.
+// EDNS0_EXPIRE implementes the EDNS0 option as described in RFC 7314.
 type EDNS0_EXPIRE struct {
 	Code   uint16 // Always EDNS0EXPIRE
 	Expire uint32

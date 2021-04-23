@@ -70,6 +70,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterTypeEncoder(tByteSlice, defaultByteSliceCodec).
 		RegisterTypeEncoder(tTime, defaultTimeCodec).
 		RegisterTypeEncoder(tEmpty, defaultEmptyInterfaceCodec).
+		RegisterTypeEncoder(tCoreArray, defaultArrayCodec).
 		RegisterTypeEncoder(tOID, ValueEncoderFunc(dve.ObjectIDEncodeValue)).
 		RegisterTypeEncoder(tDecimal, ValueEncoderFunc(dve.Decimal128EncodeValue)).
 		RegisterTypeEncoder(tJSONNumber, ValueEncoderFunc(dve.JSONNumberEncodeValue)).
