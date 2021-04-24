@@ -19,8 +19,8 @@ import (
 	"net/url"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/internal/baggage"
-	"go.opentelemetry.io/otel/label"
 )
 
 const baggageHeader = "baggage"
@@ -38,7 +38,7 @@ func (b Baggage) Inject(ctx context.Context, carrier TextMapCarrier) {
 	baggageMap := baggage.MapFromContext(ctx)
 	firstIter := true
 	var headerValueBuilder strings.Builder
-	baggageMap.Foreach(func(kv label.KeyValue) bool {
+	baggageMap.Foreach(func(kv attribute.KeyValue) bool {
 		if !firstIter {
 			headerValueBuilder.WriteRune(',')
 		}
@@ -62,7 +62,7 @@ func (b Baggage) Extract(parent context.Context, carrier TextMapCarrier) context
 	}
 
 	baggageValues := strings.Split(bVal, ",")
-	keyValues := make([]label.KeyValue, 0, len(baggageValues))
+	keyValues := make([]attribute.KeyValue, 0, len(baggageValues))
 	for _, baggageValue := range baggageValues {
 		valueAndProps := strings.Split(baggageValue, ";")
 		if len(valueAndProps) < 1 {
@@ -92,7 +92,7 @@ func (b Baggage) Extract(parent context.Context, carrier TextMapCarrier) context
 			trimmedValueWithProps.WriteString(prop)
 		}
 
-		keyValues = append(keyValues, label.String(trimmedName, trimmedValueWithProps.String()))
+		keyValues = append(keyValues, attribute.String(trimmedName, trimmedValueWithProps.String()))
 	}
 
 	if len(keyValues) > 0 {
