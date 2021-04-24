@@ -28,13 +28,10 @@ import (
 // This is entirely opaque to external entities, though, and mostly used as a
 // handle elsewhere.
 type ArchiveRequest struct {
-	uri         string
-	repoID      int64
-	repo        *git.Repository
-	refName     string
-	ext         string
-	archiveType git.ArchiveType
-	commitID    string
+	RepoID   int64
+	refName  string
+	Type     git.ArchiveType
+	CommitID string
 }
 
 // SHA1 hashes will only go up to 40 characters, but SHA256 hashes will go all
@@ -46,38 +43,37 @@ var shaRegex = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 // if it's determined that the request still needs to be satisfied.
 func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest, error) {
 	r := &ArchiveRequest{
-		repoID: repoID,
-		uri:    uri,
-		repo:   repo,
+		RepoID: repoID,
 	}
 
+	var ext string
 	switch {
 	case strings.HasSuffix(uri, ".zip"):
-		r.ext = ".zip"
-		r.archiveType = git.ZIP
+		ext = ".zip"
+		r.Type = git.ZIP
 	case strings.HasSuffix(uri, ".tar.gz"):
-		r.ext = ".tar.gz"
-		r.archiveType = git.TARGZ
+		ext = ".tar.gz"
+		r.Type = git.TARGZ
 	default:
 		return nil, fmt.Errorf("Unknown format: %s", uri)
 	}
 
-	r.refName = strings.TrimSuffix(r.uri, r.ext)
+	r.refName = strings.TrimSuffix(uri, ext)
 
 	var err error
 	// Get corresponding commit.
-	if r.repo.IsBranchExist(r.refName) {
-		r.commitID, err = r.repo.GetBranchCommitID(r.refName)
+	if repo.IsBranchExist(r.refName) {
+		r.CommitID, err = repo.GetBranchCommitID(r.refName)
 		if err != nil {
 			return nil, err
 		}
-	} else if r.repo.IsTagExist(r.refName) {
-		r.commitID, err = r.repo.GetTagCommitID(r.refName)
+	} else if repo.IsTagExist(r.refName) {
+		r.CommitID, err = repo.GetTagCommitID(r.refName)
 		if err != nil {
 			return nil, err
 		}
 	} else if shaRegex.MatchString(r.refName) {
-		r.commitID = r.refName
+		r.CommitID = r.refName
 	} else {
 		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
 	}
@@ -88,7 +84,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 // GetArchiveName returns the name of the caller, based on the ref used by the
 // caller to create this request.
 func (aReq *ArchiveRequest) GetArchiveName() string {
-	return aReq.refName + aReq.ext
+	return aReq.refName + "." + aReq.Type.String()
 }
 
 func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
@@ -98,7 +94,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	}
 	defer commiter.Close()
 
-	archiver, err := models.GetRepoArchiver(ctx, r.repoID, r.archiveType, r.commitID)
+	archiver, err := models.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -111,9 +107,9 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		}
 	} else {
 		archiver = &models.RepoArchiver{
-			RepoID:   r.repoID,
-			Type:     r.archiveType,
-			CommitID: r.commitID,
+			RepoID:   r.RepoID,
+			Type:     r.Type,
+			CommitID: r.CommitID,
 			Status:   models.RepoArchiverGenerating,
 		}
 		if err := models.AddRepoArchiver(ctx, archiver); err != nil {
@@ -146,22 +142,34 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	}()
 	var done = make(chan error)
 
-	go func(done chan error, w *io.PipeWriter) {
+	go func(done chan error, w *io.PipeWriter, archiver *models.RepoArchiver) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
 			}
 		}()
-		err := r.repo.CreateArchive(
+		repo, err := archiver.LoadRepo()
+		if err != nil {
+			done <- err
+			return
+		}
+
+		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		if err != nil {
+			done <- err
+			return
+		}
+
+		err = gitRepo.CreateArchive(
 			graceful.GetManager().ShutdownContext(),
-			r.archiveType,
+			archiver.Type,
 			w,
 			setting.Repository.PrefixArchiveFiles,
-			r.commitID,
+			archiver.CommitID,
 		)
 		_ = w.CloseWithError(err)
 		done <- err
-	}(done, w)
+	}(done, w, archiver)
 
 	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
 		return nil, fmt.Errorf("unable to write archive: %v", err)
@@ -192,7 +200,7 @@ func ArchiveRepository(request *ArchiveRequest) (*models.RepoArchiver, error) {
 	return doArchive(request)
 }
 
-var archiverQueue queue.Queue
+var archiverQueue queue.UniqueQueue
 
 // Init initlize archive
 func Init() error {
@@ -210,10 +218,24 @@ func Init() error {
 		}
 	}
 
-	archiverQueue = queue.CreateQueue("repo-archive", handler, new(ArchiveRequest))
+	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))
 	if archiverQueue == nil {
 		return errors.New("unable to create codes indexer queue")
 	}
 
+	go graceful.GetManager().RunWithShutdownFns(archiverQueue.Run)
+
 	return nil
+}
+
+// StartArchive push the archive request to the queue
+func StartArchive(request *ArchiveRequest) error {
+	has, err := archiverQueue.Has(request)
+	if err != nil {
+		return err
+	}
+	if has {
+		return nil
+	}
+	return archiverQueue.Push(request)
 }

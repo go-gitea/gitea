@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -377,19 +379,57 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := archiver_service.ArchiveRepository(aReq)
+	archiver, err := models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
-		ctx.ServerError("ArchiveRepository", err)
+		ctx.ServerError("models.GetRepoArchiver", err)
 		return
 	}
+	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+		download(ctx, aReq.GetArchiveName(), archiver)
+		return
+	}
+
+	if err := archiver_service.StartArchive(aReq); err != nil {
+		ctx.ServerError("archiver_service.StartArchive", err)
+		return
+	}
+
+	var times int
+	var t = time.NewTicker(time.Second * 1)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-graceful.GetManager().HammerContext().Done():
+			log.Warn("exit archive downlaod because system stop")
+			return
+		case <-t.C:
+			if times > 20 {
+				ctx.ServerError("wait download timeout", nil)
+				return
+			}
+			times++
+			archiver, err = models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+			if err != nil {
+				ctx.ServerError("archiver_service.StartArchive", err)
+				return
+			}
+			if archiver != nil && archiver.Status == models.RepoArchiverReady {
+				download(ctx, aReq.GetArchiveName(), archiver)
+				return
+			}
+		}
+	}
+}
+
+func download(ctx *context.Context, archiveName string, archiver *models.RepoArchiver) {
+	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath, err := archiver.RelativePath()
 	if err != nil {
 		ctx.ServerError("archiver.RelativePath", err)
 		return
 	}
-
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
 
 	if setting.RepoArchive.ServeDirect {
 		//If we have a signed url (S3, object storage), redirect to this directly.
@@ -425,10 +465,16 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := archiver_service.ArchiveRepository(aReq)
+	archiver, err := models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
-		ctx.ServerError("archiver_service.ArchiveRepository", err)
+		ctx.ServerError("archiver_service.StartArchive", err)
 		return
+	}
+	if archiver == nil || archiver.Status != models.RepoArchiverReady {
+		if err := archiver_service.StartArchive(aReq); err != nil {
+			ctx.ServerError("archiver_service.StartArchive", err)
+			return
+		}
 	}
 
 	var completed bool
