@@ -456,7 +456,6 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 
 	pr.Index = issue.Index
 	pr.BaseRepo = repo
-
 	pr.IssueID = issue.ID
 	if _, err = sess.Insert(pr); err != nil {
 		return fmt.Errorf("insert pull repo: %v", err)
