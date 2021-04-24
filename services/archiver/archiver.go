@@ -90,7 +90,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 // GetArchiveName returns the name of the caller, based on the ref used by the
 // caller to create this request.
 func (aReq *ArchiveRequest) GetArchiveName() string {
-	return strings.Replace(aReq.refName, "/", "-", -1) + "." + aReq.Type.String()
+	return strings.ReplaceAll(aReq.refName, "/", "-") + "." + aReq.Type.String()
 }
 
 func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
@@ -147,24 +147,23 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		rd.Close()
 	}()
 	var done = make(chan error)
+	repo, err := archiver.LoadRepo()
+	if err != nil {
+		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
+	}
 
-	go func(done chan error, w *io.PipeWriter, archiver *models.RepoArchiver) {
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	go func(done chan error, w *io.PipeWriter, archiver *models.RepoArchiver, gitRepo *git.Repository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
 			}
 		}()
-		repo, err := archiver.LoadRepo()
-		if err != nil {
-			done <- err
-			return
-		}
-
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
-		if err != nil {
-			done <- err
-			return
-		}
 
 		err = gitRepo.CreateArchive(
 			graceful.GetManager().ShutdownContext(),
@@ -175,7 +174,10 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		)
 		_ = w.CloseWithError(err)
 		done <- err
-	}(done, w, archiver)
+	}(done, w, archiver, gitRepo)
+
+	// TODO: add lfs data to zip
+	// TODO: add submodule data to zip
 
 	if _, err := storage.RepoArchives.Save(rPath, rd, -1); err != nil {
 		return nil, fmt.Errorf("unable to write archive: %v", err)

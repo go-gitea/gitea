@@ -401,7 +401,7 @@ func Download(ctx *context.Context) {
 	for {
 		select {
 		case <-graceful.GetManager().HammerContext().Done():
-			log.Warn("exit archive downlaod because system stop")
+			log.Warn("exit archive download because system stop")
 			return
 		case <-t.C:
 			if times > 20 {
