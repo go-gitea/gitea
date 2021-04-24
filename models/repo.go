@@ -1587,6 +1587,22 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	// Remove archives
+	var archives []*RepoArchiver
+	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
+		return err
+	}
+
+	for _, v := range archives {
+		v.Repo = repo
+		p, _ := v.RelativePath()
+		removeStorageWithNotice(sess, storage.RepoArchives, "Delete repo archive file", p)
+	}
+
+	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		return err
+	}
+
 	if repo.NumForks > 0 {
 		if _, err = sess.Exec("UPDATE `repository` SET fork_id=0,is_fork=? WHERE fork_id=?", false, repo.ID); err != nil {
 			log.Error("reset 'fork_id' and 'is_fork': %v", err)
