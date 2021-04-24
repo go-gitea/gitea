@@ -29,33 +29,40 @@ func TestArchive_Basic(t *testing.T) {
 	ctx := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
 
-	bogusReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
-	assert.NoError(t, err)
-	assert.Nil(t, bogusReq)
-
 	test.LoadRepo(t, ctx, 49)
-	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
-	assert.NoError(t, err)
-	assert.Nil(t, bogusReq)
-
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
+
+	bogusReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")
+	assert.NoError(t, err)
+	assert.NotNil(t, bogusReq)
+	assert.EqualValues(t, firstCommit+".zip", bogusReq.GetArchiveName())
 
 	// Check a series of bogus requests.
 	// Step 1, valid commit with a bad extension.
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".dilbert")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 2, missing commit.
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "dbffff.zip")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
 
 	// Step 3, doesn't look like branch/tag/commit.
 	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "db.zip")
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.Nil(t, bogusReq)
+
+	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "master.zip")
+	assert.NoError(t, err)
+	assert.NotNil(t, bogusReq)
+	assert.EqualValues(t, "master.zip", bogusReq.GetArchiveName())
+
+	bogusReq, err = NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, "test/archive.zip")
+	assert.NoError(t, err)
+	assert.NotNil(t, bogusReq)
+	assert.EqualValues(t, "test-archive.zip", bogusReq.GetArchiveName())
 
 	// Now two valid requests, firstCommit with valid extensions.
 	zipReq, err := NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, firstCommit+".zip")

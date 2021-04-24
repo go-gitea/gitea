@@ -73,7 +73,13 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 			return nil, err
 		}
 	} else if shaRegex.MatchString(r.refName) {
-		r.CommitID = r.refName
+		if repo.IsCommitExist(r.refName) {
+			r.CommitID = r.refName
+		} else {
+			return nil, git.ErrNotExist{
+				ID: r.refName,
+			}
+		}
 	} else {
 		return nil, fmt.Errorf("Unknow ref %s type", r.refName)
 	}
@@ -84,7 +90,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 // GetArchiveName returns the name of the caller, based on the ref used by the
 // caller to create this request.
 func (aReq *ArchiveRequest) GetArchiveName() string {
-	return aReq.refName + "." + aReq.Type.String()
+	return strings.Replace(aReq.refName, "/", "-", -1) + "." + aReq.Type.String()
 }
 
 func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
