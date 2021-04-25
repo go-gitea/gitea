@@ -539,7 +539,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBacklink(w util.BufWriter, source [
 	if entering {
 		n := node.(*ast.FootnoteBacklink)
 		is := strconv.Itoa(n.Index)
-		_, _ = w.WriteString(` <a href="#`)
+		_, _ = w.WriteString(`&#160;<a href="#`)
 		_, _ = w.Write(r.idPrefix(node))
 		_, _ = w.WriteString(`fnref:`)
 		_, _ = w.WriteString(is)

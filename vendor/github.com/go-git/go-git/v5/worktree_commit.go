@@ -230,5 +230,9 @@ func (h *buildTreeHelper) copyTreeToStorageRecursive(parent string, t *object.Tr
 		return plumbing.ZeroHash, err
 	}
 
+	hash := o.Hash()
+	if h.s.HasEncodedObject(hash) == nil {
+		return hash, nil
+	}
 	return h.s.SetEncodedObject(o)
 }

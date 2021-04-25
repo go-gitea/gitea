@@ -3,7 +3,8 @@
 [![CI](https://github.com/open-telemetry/opentelemetry-go/workflows/ci/badge.svg)](https://github.com/open-telemetry/opentelemetry-go/actions?query=workflow%3Aci+branch%3Amain)
 [![PkgGoDev](https://pkg.go.dev/badge/go.opentelemetry.io/otel)](https://pkg.go.dev/go.opentelemetry.io/otel)
 [![Go Report Card](https://goreportcard.com/badge/go.opentelemetry.io/otel)](https://goreportcard.com/report/go.opentelemetry.io/otel)
-[![Gitter](https://badges.gitter.im/open-telemetry/opentelemetry-go.svg)](https://gitter.im/open-telemetry/opentelemetry-go?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Slack](https://img.shields.io/badge/slack-@cncf/otel--go-brightgreen.svg?logo=slack)](https://cloud-native.slack.com/archives/C01NPAXACKT)
+
 
 The Go [OpenTelemetry](https://opentelemetry.io/) implementation.
 
@@ -25,6 +26,26 @@ and
 
 Project versioning information and stability guarantees can be found in the
 [versioning documentation](./VERSIONING.md).
+
+### Compatibility
+
+This project is tested on the following systems.
+
+| OS      | Go Version | Architecture |
+| ------- | ---------- | ------------ |
+| Ubuntu  | 1.15       | amd64        |
+| Ubuntu  | 1.14       | amd64        |
+| Ubuntu  | 1.15       | 386          |
+| Ubuntu  | 1.14       | 386          |
+| MacOS   | 1.15       | amd64        |
+| MacOS   | 1.14       | amd64        |
+| Windows | 1.15       | amd64        |
+| Windows | 1.14       | amd64        |
+| Windows | 1.15       | 386          |
+| Windows | 1.14       | 386          |
+
+While this project should work for other systems, no compatibility guarantees
+are made for those systems currently.
 
 ## Getting Started
 

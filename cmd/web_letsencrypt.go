@@ -32,7 +32,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
 	})
 
-	magic.Issuer = myACME
+	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary
 	err := magic.ManageSync([]string{domain})

@@ -22,28 +22,44 @@ type blockEnc struct {
 	dictLitEnc *huff0.Scratch
 	wr         bitWriter
 
-	extraLits int
-	last      bool
-
+	extraLits         int
 	output            []byte
 	recentOffsets     [3]uint32
 	prevRecentOffsets [3]uint32
+
+	last   bool
+	lowMem bool
 }
 
 // init should be used once the block has been created.
 // If called more than once, the effect is the same as calling reset.
 func (b *blockEnc) init() {
-	if cap(b.literals) < maxCompressedLiteralSize {
-		b.literals = make([]byte, 0, maxCompressedLiteralSize)
+	if b.lowMem {
+		// 1K literals
+		if cap(b.literals) < 1<<10 {
+			b.literals = make([]byte, 0, 1<<10)
+		}
+		const defSeqs = 20
+		if cap(b.sequences) < defSeqs {
+			b.sequences = make([]seq, 0, defSeqs)
+		}
+		// 1K
+		if cap(b.output) < 1<<10 {
+			b.output = make([]byte, 0, 1<<10)
+		}
+	} else {
+		if cap(b.literals) < maxCompressedBlockSize {
+			b.literals = make([]byte, 0, maxCompressedBlockSize)
+		}
+		const defSeqs = 200
+		if cap(b.sequences) < defSeqs {
+			b.sequences = make([]seq, 0, defSeqs)
+		}
+		if cap(b.output) < maxCompressedBlockSize {
+			b.output = make([]byte, 0, maxCompressedBlockSize)
+		}
 	}
-	const defSeqs = 200
-	b.literals = b.literals[:0]
-	if cap(b.sequences) < defSeqs {
-		b.sequences = make([]seq, 0, defSeqs)
-	}
-	if cap(b.output) < maxCompressedBlockSize {
-		b.output = make([]byte, 0, maxCompressedBlockSize)
-	}
+
 	if b.coders.mlEnc == nil {
 		b.coders.mlEnc = &fseEncoder{}
 		b.coders.mlPrev = &fseEncoder{}
@@ -370,9 +386,9 @@ func (b *blockEnc) encodeLits(lits []byte, raw bool) error {
 		b.output = bh.appendTo(b.output)
 		b.output = append(b.output, lits[0])
 		return nil
+	case nil:
 	default:
 		return err
-	case nil:
 	}
 	// Compressed...
 	// Now, allow reuse
@@ -512,11 +528,6 @@ func (b *blockEnc) encode(org []byte, raw, rawAllLits bool) error {
 		if debug {
 			println("Adding literals RLE")
 		}
-	default:
-		if debug {
-			println("Adding literals ERROR:", err)
-		}
-		return err
 	case nil:
 		// Compressed litLen...
 		if reUsed {
@@ -547,6 +558,11 @@ func (b *blockEnc) encode(org []byte, raw, rawAllLits bool) error {
 		if debug {
 			println("Adding literals compressed")
 		}
+	default:
+		if debug {
+			println("Adding literals ERROR:", err)
+		}
+		return err
 	}
 	// Sequence compression
 
