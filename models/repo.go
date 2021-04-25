@@ -2149,7 +2149,7 @@ const (
 // CustomRepoButton a config of CustomRepoButton
 type CustomRepoButton struct {
 	Title           string               `yaml:"title"` // max length: 20
-	Typ             CustomRepoButtonType `yaml:"type"`
+	Type            CustomRepoButtonType `yaml:"type"`
 	Link            string               `yaml:"link"`
 	Content         string               `yaml:"content"`
 	RenderedContent string               `yaml:"-"`
@@ -2157,7 +2157,7 @@ type CustomRepoButton struct {
 
 // IsLink check if it's a link button
 func (b CustomRepoButton) IsLink() bool {
-	return b.Typ != CustomRepoButtonTypeContent
+	return b.Type != CustomRepoButtonTypeContent
 }
 
 // LoadCustomRepoButton by config
@@ -2193,7 +2193,7 @@ func CustomRepoButtonConfigVaild(cfg string) (bool, error) {
 		if len(btn.Title) > 20 {
 			return false, nil
 		}
-		if btn.Typ != CustomRepoButtonTypeContent && len(btn.Link) == 0 {
+		if btn.Type != CustomRepoButtonTypeContent && len(btn.Link) == 0 {
 			return false, nil
 		}
 	}
