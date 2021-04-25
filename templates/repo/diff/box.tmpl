@@ -72,10 +72,12 @@
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							{{$isImage := false}}
-							{{if $file.IsDeleted}}
-								{{$isImage = (call $.IsImageFileInBase $file.Name)}}
-							{{else}}
-								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
+							{{if $file.IsBin}}
+								{{if $file.IsDeleted}}
+									{{$isImage = (call $.IsImageFileInBase $file.Name)}}
+								{{else}}
+									{{$isImage = (call $.IsImageFileInHead $file.Name)}}
+								{{end}}
 							{{end}}
 							{{$isCsv := (call $.IsCsvFile $file)}}
 							{{$showFileViewToggle := or $isImage $isCsv}}
