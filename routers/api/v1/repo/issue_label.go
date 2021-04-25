@@ -7,6 +7,7 @@ package repo
 
 import (
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -122,7 +123,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 
 // DeleteIssueLabel delete a label for an issue
 func DeleteIssueLabel(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/labels/{id} issue issueRemoveLabel
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/labels/{name} issue issueRemoveLabel
 	// ---
 	// summary: Remove a label from an issue
 	// produces:
@@ -144,11 +145,10 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: id of the label to remove
-	//   type: integer
-	//   format: int64
+	//   description: name or id of the label to remove
+	//   type: string
 	//   required: true
 	// responses:
 	//   "204":
@@ -173,13 +173,14 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := models.GetLabelByID(ctx.ParamsInt64(":id"))
+	label, exist, err := paraseLabel(ctx.Params(":id"), ctx.Repo.Repository.ID)
 	if err != nil {
-		if models.IsErrLabelNotExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByID", err)
-		}
+		ctx.Error(http.StatusInternalServerError, "paraseLabel", err)
+		return
+	}
+
+	if !exist {
+		ctx.NotFound()
 		return
 	}
 
@@ -310,10 +311,20 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	labels, err = models.GetLabelsByIDs(form.Labels)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetLabelsByIDs", err)
-		return
+	labels = make([]*models.Label, 0, len(form.Labels))
+	for _, q := range form.Labels {
+		label, exist, err := paraseLabel(q, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+			return nil, nil, err
+		}
+
+		if !exist {
+			ctx.NotFound()
+			return nil, nil, nil
+		}
+
+		labels = append(labels, label)
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
@@ -322,4 +333,29 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	return
+}
+
+func paraseLabel(queryID string, repoID int64) (label *models.Label, exist bool, err error) {
+	var id int64
+	id, err = strconv.ParseInt(queryID, 10, 64)
+	if err == nil && id > 0 {
+		label, err = models.GetLabelByID(id)
+		if err != nil {
+			if models.IsErrLabelNotExist(err) {
+				return nil, false, nil
+			}
+			return nil, false, err
+		}
+		return label, true, nil
+	}
+
+	label, err = models.GetLabelInRepoByName(repoID, queryID)
+	if err != nil {
+		if models.IsErrLabelNotExist(err) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return label, true, nil
 }

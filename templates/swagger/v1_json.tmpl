@@ -5228,7 +5228,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/issues/{index}/labels/{id}": {
+    "/repos/{owner}/{repo}/issues/{index}/labels/{name}": {
       "delete": {
         "produces": [
           "application/json"
@@ -5262,10 +5262,9 @@
             "required": true
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the label to remove",
-            "name": "id",
+            "type": "string",
+            "description": "name or id of the label to remove",
+            "name": "name",
             "in": "path",
             "required": true
           }
@@ -14526,11 +14525,10 @@
       "type": "object",
       "properties": {
         "labels": {
-          "description": "list of label IDs",
+          "description": "list of label IDs or names",
           "type": "array",
           "items": {
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
           "x-go-name": "Labels"
         }
