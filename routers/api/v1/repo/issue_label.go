@@ -173,9 +173,9 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, exist, err := paraseLabel(ctx.Params(":id"), ctx.Repo.Repository.ID)
+	label, exist, err := parseLabel(ctx.Params(":id"), ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "paraseLabel", err)
+		ctx.Error(http.StatusInternalServerError, "parseLabel", err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 
 	labels = make([]*models.Label, 0, len(form.Labels))
 	for _, q := range form.Labels {
-		label, exist, err := paraseLabel(q, ctx.Repo.Repository.ID)
+		label, exist, err := parseLabel(q, ctx.Repo.Repository.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 			return nil, nil, err
@@ -335,7 +335,7 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	return
 }
 
-func paraseLabel(queryID string, repoID int64) (label *models.Label, exist bool, err error) {
+func parseLabel(queryID string, repoID int64) (label *models.Label, exist bool, err error) {
 	var id int64
 	id, err = strconv.ParseInt(queryID, 10, 64)
 	if err == nil && id > 0 {
