@@ -1128,6 +1128,13 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Head("/tasks/trigger", repo.TriggerTask)
 		})
+		m.Get("/{reponame}/*", func(ctx *context.Context) {
+			if ctx.Query("go-get") != "1" {
+				ctx.NotFound("", nil)
+				web.Wrap(routers.NotFound)
+			}
+		}, goGet)
+
 	})
 	// ***** END: Repository *****
 
