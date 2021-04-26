@@ -378,30 +378,17 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		} else if strings.HasPrefix(refFullName, git.TagPrefix) {
 			tagName := strings.TrimPrefix(refFullName, git.TagPrefix)
 
-			isAllowed := true
-			for _, tag := range protectedTags {
-				if err := tag.EnsureCompiledPattern(); err != nil {
-					log.Error("Error compiling pattern: %v", err)
-					ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
-						Err: err.Error(),
-					})
-					return
-				}
-
-				if !tag.NameGlob.Match(tagName) {
-					continue
-				}
-
-				isAllowed = tag.IsUserAllowed(opts.UserID)
-				if isAllowed {
-					break
-				}
+			isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, tagName, opts.UserID)
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+					Err: err.Error(),
+				})
+				return
 			}
-
 			if !isAllowed {
 				log.Warn("Forbidden: Tag %s in %-v is protected", tagName, repo)
 				ctx.JSON(http.StatusForbidden, private.HookPostReceiveResult{
-					Err: fmt.Sprintf("tag %s is protected", tagName),
+					Err: fmt.Sprintf("Tag %s is protected", tagName),
 				})
 				return
 			}

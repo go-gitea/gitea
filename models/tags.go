@@ -92,3 +92,26 @@ func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
 	return tags, x.Find(&tags, &ProtectedTag{RepoID: repo.ID})
 }
+
+// IsUserAllowedToControlTag checks if a user can control the specific tag.
+// It returns true if the tag name is not protected or the user is allowed to control it.
+func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int64) (bool, error) {
+	isAllowed := true
+	for _, tag := range tags {
+		if err := tag.EnsureCompiledPattern(); err != nil {
+			log.Error("EnsureCompiledPattern failed: %v", err)
+			return false, err
+		}
+
+		if !tag.NameGlob.Match(tagName) {
+			continue
+		}
+
+		isAllowed = tag.IsUserAllowed(userID)
+		if isAllowed {
+			break
+		}
+	}
+
+	return isAllowed, nil
+}

@@ -28,22 +28,10 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 				if err != nil {
 					return false, fmt.Errorf("GetProtectedTags: %v", err)
 				}
-				isAllowed := true
-				for _, tag := range protectedTags {
-					if err := tag.EnsureCompiledPattern(); err != nil {
-						return false, fmt.Errorf("EnsureCompiledPattern: %v", err)
-					}
-
-					if !tag.NameGlob.Match(rel.TagName) {
-						continue
-					}
-
-					isAllowed = tag.IsUserAllowed(rel.PublisherID)
-					if isAllowed {
-						break
-					}
+				isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+				if err != nil {
+					return false, err
 				}
-
 				if !isAllowed {
 					return false, models.ErrInvalidTagName{
 						TagName:   rel.TagName,
