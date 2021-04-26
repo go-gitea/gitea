@@ -48,6 +48,7 @@ export default {
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
+      resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
@@ -87,7 +88,6 @@ export default {
         minify: true
       }),
       new CssMinimizerPlugin({
-        sourceMap: true,
         minimizerOptions: {
           preset: [
             'default',
@@ -188,7 +188,7 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '../', // required to remove css/ path segment
         }
       },
       {
@@ -196,7 +196,7 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '/', // required to remove css/ path segment
+          publicPath: '../', // required to remove css/ path segment
         }
       },
     ],

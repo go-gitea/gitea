@@ -88,6 +88,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				repo = new(Repository)
 				has, err := sess.ID(release.RepoID).Get(repo)
 				if err != nil {
+					log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s", release.RepoID, release.ID, release.TagName)
 					return err
 				} else if !has {
 					log.Warn("Release[%d] is orphaned and refers to non-existing repository %d", release.ID, release.RepoID)
@@ -99,21 +100,29 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 					// v120.go migration may not have been run correctly - we'll just replicate it here
 					// because this appears to be a common-ish problem.
 					if _, err := sess.Exec("UPDATE repository SET owner_name = (SELECT name FROM `user` WHERE `user`.id = repository.owner_id)"); err != nil {
+						log.Error("Error whilst updating repository[%d] owner name", repo.ID)
 						return err
 					}
 
 					if _, err := sess.ID(release.RepoID).Get(repo); err != nil {
+						log.Error("Error whilst loading repository[%d] for release[%d] with tag name %s", release.RepoID, release.ID, release.TagName)
 						return err
 					}
 				}
 				gitRepo, err = git.OpenRepository(repoPath(repo.OwnerName, repo.Name))
 				if err != nil {
+					log.Error("Error whilst opening git repo for %-v", repo)
 					return err
 				}
 			}
 
 			commit, err := gitRepo.GetTagCommit(release.TagName)
 			if err != nil {
+				if git.IsErrNotExist(err) {
+					log.Warn("Unable to find commit %s for Tag: %s in %-v. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo)
+					continue
+				}
+				log.Error("Error whilst getting commit for Tag: %s in %-v.", release.TagName, repo)
 				return fmt.Errorf("GetTagCommit: %v", err)
 			}
 
@@ -121,6 +130,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 				user = new(User)
 				_, err = sess.Where("email=?", commit.Author.Email).Get(user)
 				if err != nil {
+					log.Error("Error whilst getting commit author by email: %s for Tag: %s in %-v.", commit.Author.Email, release.TagName, repo)
 					return err
 				}
 
@@ -133,6 +143,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 
 			release.PublisherID = user.ID
 			if _, err := sess.ID(release.ID).Cols("publisher_id").Update(release); err != nil {
+				log.Error("Error whilst updating publisher[%d] for release[%d] with tag name %s", release.PublisherID, release.ID, release.TagName)
 				return err
 			}
 		}

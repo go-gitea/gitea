@@ -195,10 +195,5 @@ func constraintPessimistic(v, c *Version) bool {
 	// Check the last part of the segment in the constraint. If the version segment at
 	// this index is less than the constraints segment at this index, then it cannot
 	// be valid against the constraint
-	if c.segments[cs-1] > v.segments[cs-1] {
-		return false
-	}
-
-	// If nothing has rejected the version by now, it's valid
-	return true
+	return c.segments[cs-1] <= v.segments[cs-1]
 }

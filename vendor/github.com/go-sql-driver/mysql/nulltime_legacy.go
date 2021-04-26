@@ -32,3 +32,8 @@ type NullTime struct {
 	Time  time.Time
 	Valid bool // Valid is true if Time is not NULL
 }
+
+// for internal use.
+// the mysql package uses sql.NullTime if it is available.
+// if not, the package uses mysql.NullTime.
+type nullTime = NullTime // sql.NullTime is not available

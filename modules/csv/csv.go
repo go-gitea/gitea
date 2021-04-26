@@ -7,7 +7,9 @@ package csv
 import (
 	"bytes"
 	"encoding/csv"
+	stdcsv "encoding/csv"
 	"errors"
+	"io"
 	"regexp"
 	"strings"
 
@@ -18,17 +20,31 @@ import (
 var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
 
 // CreateReader creates a csv.Reader with the given delimiter.
-func CreateReader(rawBytes []byte, delimiter rune) *csv.Reader {
-	rd := csv.NewReader(bytes.NewReader(rawBytes))
+func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
+	rd := stdcsv.NewReader(input)
 	rd.Comma = delimiter
 	rd.TrimLeadingSpace = true
 	return rd
 }
 
 // CreateReaderAndGuessDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
-func CreateReaderAndGuessDelimiter(rawBytes []byte) *csv.Reader {
-	delimiter := guessDelimiter(rawBytes)
-	return CreateReader(rawBytes, delimiter)
+func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
+	var data = make([]byte, 1e4)
+	size, err := rd.Read(data)
+	if err != nil {
+		return nil, err
+	}
+
+	delimiter := guessDelimiter(data[:size])
+
+	var newInput io.Reader
+	if size < 1e4 {
+		newInput = bytes.NewReader(data[:size])
+	} else {
+		newInput = io.MultiReader(bytes.NewReader(data), rd)
+	}
+
+	return CreateReader(newInput, delimiter), nil
 }
 
 // guessDelimiter scores the input CSV data against delimiters, and returns the best match.
