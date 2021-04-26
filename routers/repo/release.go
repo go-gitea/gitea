@@ -298,6 +298,15 @@ func NewReleasePost(ctx *context.Context) {
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
 					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 					return
+				} else if models.IsErrInvalidTagName(err) {
+					e := err.(models.ErrInvalidTagName)
+					if e.Protected {
+						ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+					} else {
+						ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
+					}
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					return
 				}
 
 				ctx.ServerError("releaseservice.CreateNewTag", err)
@@ -311,6 +320,7 @@ func NewReleasePost(ctx *context.Context) {
 
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
+			Repo:         ctx.Repo.Repository,
 			PublisherID:  ctx.User.ID,
 			Title:        form.Title,
 			TagName:      form.TagName,

@@ -23,6 +23,35 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 	// Only actual create when publish.
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
+			if rel.Repo != nil {
+				protectedTags, err := rel.Repo.GetProtectedTags()
+				if err != nil {
+					return false, fmt.Errorf("GetProtectedTags: %v", err)
+				}
+				isAllowed := true
+				for _, tag := range protectedTags {
+					if err := tag.EnsureCompiledPattern(); err != nil {
+						return false, fmt.Errorf("EnsureCompiledPattern: %v", err)
+					}
+
+					if !tag.NameGlob.Match(rel.TagName) {
+						continue
+					}
+
+					isAllowed = tag.IsUserAllowed(rel.PublisherID)
+					if isAllowed {
+						break
+					}
+				}
+
+				if !isAllowed {
+					return false, models.ErrInvalidTagName{
+						TagName:   rel.TagName,
+						Protected: true,
+					}
+				}
+			}
+
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
 				return false, fmt.Errorf("GetCommit: %v", err)
@@ -137,6 +166,7 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 
 	rel := &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  doer.ID,
 		TagName:      tagName,
 		Target:       commit,

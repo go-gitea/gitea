@@ -957,7 +957,8 @@ func (err ErrReleaseNotExist) Error() string {
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
 type ErrInvalidTagName struct {
-	TagName string
+	TagName   string
+	Protected bool
 }
 
 // IsErrInvalidTagName checks if an error is a ErrInvalidTagName.
@@ -967,6 +968,9 @@ func IsErrInvalidTagName(err error) bool {
 }
 
 func (err ErrInvalidTagName) Error() string {
+	if err.Protected {
+		return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
+	}
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 

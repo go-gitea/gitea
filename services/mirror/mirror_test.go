@@ -63,6 +63,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 
 	assert.NoError(t, release_service.CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.2",
 		Target:       "master",

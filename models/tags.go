@@ -5,7 +5,6 @@
 package models
 
 import (
-	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"

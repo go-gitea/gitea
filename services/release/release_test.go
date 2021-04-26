@@ -33,6 +33,7 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1",
 		Target:       "master",
@@ -45,6 +46,7 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.1",
 		Target:       "65f1bf27bc3bf70f64657658635e66094edbcb4d",
@@ -57,6 +59,7 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.2",
 		Target:       "65f1bf2",
@@ -69,6 +72,7 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.3",
 		Target:       "65f1bf2",
@@ -81,6 +85,7 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.4",
 		Target:       "65f1bf2",
@@ -99,6 +104,7 @@ func TestRelease_Create(t *testing.T) {
 
 	var release = models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v0.1.5",
 		Target:       "65f1bf2",
@@ -125,6 +131,7 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v1.1.1",
 		Target:       "master",
@@ -147,6 +154,7 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed draft
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v1.2.1",
 		Target:       "65f1bf2",
@@ -169,6 +177,7 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v1.3.1",
 		Target:       "65f1bf2",
@@ -192,6 +201,7 @@ func TestRelease_Update(t *testing.T) {
 	// Test create release
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
 		TagName:      "v1.1.2",
 		Target:       "master",
