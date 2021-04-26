@@ -710,11 +710,17 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/delete", repo.DeleteTeam)
 				})
 			})
+
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
+
+			m.Group("/tags", func() {
+				m.Combo("").Get(repo.Tags).
+					Post(context.RepoMustNotBeArchived(), repo.TagPost)
+			})
 
 			m.Group("/hooks/git", func() {
 				m.Get("", repo.GitHooks)
