@@ -36,3 +36,6 @@ linters:
     - funlen
     - gci
     - gocognit
+    - paralleltest
+    - thelper
+    - ifshort

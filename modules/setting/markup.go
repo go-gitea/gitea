@@ -13,19 +13,20 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// ExternalMarkupParsers represents the external markup parsers
+// ExternalMarkupRenderers represents the external markup renderers
 var (
-	ExternalMarkupParsers  []MarkupParser
-	ExternalSanitizerRules []MarkupSanitizerRule
+	ExternalMarkupRenderers []MarkupRenderer
+	ExternalSanitizerRules  []MarkupSanitizerRule
 )
 
-// MarkupParser defines the external parser configured in ini
-type MarkupParser struct {
-	Enabled        bool
-	MarkupName     string
-	Command        string
-	FileExtensions []string
-	IsInputFile    bool
+// MarkupRenderer defines the external parser configured in ini
+type MarkupRenderer struct {
+	Enabled         bool
+	MarkupName      string
+	Command         string
+	FileExtensions  []string
+	IsInputFile     bool
+	NeedPostProcess bool
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -123,11 +124,12 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 		return
 	}
 
-	ExternalMarkupParsers = append(ExternalMarkupParsers, MarkupParser{
-		Enabled:        sec.Key("ENABLED").MustBool(false),
-		MarkupName:     name,
-		FileExtensions: exts,
-		Command:        command,
-		IsInputFile:    sec.Key("IS_INPUT_FILE").MustBool(false),
+	ExternalMarkupRenderers = append(ExternalMarkupRenderers, MarkupRenderer{
+		Enabled:         sec.Key("ENABLED").MustBool(false),
+		MarkupName:      name,
+		FileExtensions:  exts,
+		Command:         command,
+		IsInputFile:     sec.Key("IS_INPUT_FILE").MustBool(false),
+		NeedPostProcess: sec.Key("NEED_POSTPROCESS").MustBool(true),
 	})
 }

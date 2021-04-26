@@ -6,12 +6,12 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // ByteFIFOQueueConfiguration is the configuration for a ByteFIFOQueue
@@ -21,7 +21,7 @@ type ByteFIFOQueueConfiguration struct {
 	Name    string
 }
 
-var _ (Queue) = &ByteFIFOQueue{}
+var _ Queue = &ByteFIFOQueue{}
 
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
@@ -71,6 +71,7 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
 		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -195,7 +196,7 @@ func (q *ByteFIFOQueue) IsTerminated() <-chan struct{} {
 	return q.terminated
 }
 
-var _ (UniqueQueue) = &ByteFIFOUniqueQueue{}
+var _ UniqueQueue = &ByteFIFOUniqueQueue{}
 
 // ByteFIFOUniqueQueue represents a UniqueQueue formed from a UniqueByteFifo
 type ByteFIFOUniqueQueue struct {
@@ -229,6 +230,7 @@ func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if !assignableTo(data, q.exemplar) {
 		return false, fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return false, err

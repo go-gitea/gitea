@@ -6,7 +6,6 @@
 package migrations
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -117,6 +116,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
+		LFS:            opts.LFS,
+		LFSEndpoint:    opts.LFSEndpoint,
 		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
@@ -284,7 +285,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					}
 				}
 				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				return err
 			}()
 			if err != nil {
@@ -802,13 +803,20 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			var patch string
-			patchBuf := new(bytes.Buffer)
-			if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
-				// We should ignore the error since the commit maybe removed when force push to the pull request
-				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
-			} else {
-				patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-			}
+			reader, writer := io.Pipe()
+			defer func() {
+				_ = reader.Close()
+				_ = writer.Close()
+			}()
+			go func() {
+				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
+					// We should ignore the error since the commit maybe removed when force push to the pull request
+					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+				}
+				_ = writer.Close()
+			}()
+
+			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,

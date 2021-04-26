@@ -114,9 +114,9 @@ func CreateUser(ctx *context.APIContext) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.User))
 }
 
 // EditUser api for modifying a user's information
@@ -224,6 +224,9 @@ func EditUser(ctx *context.APIContext) {
 	if form.ProhibitLogin != nil {
 		u.ProhibitLogin = *form.ProhibitLogin
 	}
+	if form.Restricted != nil {
+		u.IsRestricted = *form.Restricted
+	}
 
 	if err := models.UpdateUser(u); err != nil {
 		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {
@@ -235,7 +238,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // DeleteUser api for deleting a user
@@ -400,7 +403,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.User)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

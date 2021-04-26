@@ -74,7 +74,7 @@ type Client struct {
 // of "Create account" because this method signature does not have a way to return the udpated
 // account object. The account's status MUST be "valid" in order to succeed.
 //
-// As far as SANs go, this method currently only supports DNSNames on the csr.
+// As far as SANs go, this method currently only supports DNSNames and IPAddresses on the csr.
 func (c *Client) ObtainCertificateUsingCSR(ctx context.Context, account acme.Account, csr *x509.CertificateRequest) ([]acme.Certificate, error) {
 	if account.Status != acme.StatusValid {
 		return nil, fmt.Errorf("account status is not valid: %s", account.Status)
@@ -85,17 +85,15 @@ func (c *Client) ObtainCertificateUsingCSR(ctx context.Context, account acme.Acc
 
 	var ids []acme.Identifier
 	for _, name := range csr.DNSNames {
-		// "The domain name MUST be encoded in the form in which it would appear
-		// in a certificate.  That is, it MUST be encoded according to the rules
-		// in Section 7 of [RFC5280]." §7.1.4
-		normalizedName, err := idna.ToASCII(name)
-		if err != nil {
-			return nil, fmt.Errorf("converting identifier '%s' to ASCII: %v", name, err)
-		}
-
 		ids = append(ids, acme.Identifier{
-			Type:  "dns",
-			Value: normalizedName,
+			Type:  "dns", // RFC 8555 §9.7.7
+			Value: name,
+		})
+	}
+	for _, ip := range csr.IPAddresses {
+		ids = append(ids, acme.Identifier{
+			Type:  "ip", // RFC 8738
+			Value: ip.String(),
 		})
 	}
 	if len(ids) == 0 {
@@ -206,7 +204,14 @@ func (c *Client) ObtainCertificate(ctx context.Context, account acme.Account, ce
 		} else if u, err := url.Parse(name); err == nil && strings.Contains(name, "/") {
 			csrTemplate.URIs = append(csrTemplate.URIs, u)
 		} else {
-			csrTemplate.DNSNames = append(csrTemplate.DNSNames, name)
+			// "The domain name MUST be encoded in the form in which it would appear
+			// in a certificate.  That is, it MUST be encoded according to the rules
+			// in Section 7 of [RFC5280]." §7.1.4
+			normalizedName, err := idna.ToASCII(name)
+			if err != nil {
+				return nil, fmt.Errorf("converting identifier '%s' to ASCII: %v", name, err)
+			}
+			csrTemplate.DNSNames = append(csrTemplate.DNSNames, normalizedName)
 		}
 	}
 

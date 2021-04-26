@@ -186,7 +186,7 @@ func (a *Action) GetRepoLink() string {
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
+func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 	var err error
 	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
@@ -218,7 +218,7 @@ func (a *Action) getCommentLink(e Engine) string {
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
 	}
-	//Return link to issue
+	// Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 	if err != nil {
@@ -289,12 +289,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User // the user we want activity for
-	RequestedTeam   *Team // the team we want activity for
-	Actor           *User // the user viewing the activity
-	IncludePrivate  bool  // include private actions
-	OnlyPerformedBy bool  // only actions performed by requested user
-	IncludeDeleted  bool  // include deleted actions
+	RequestedUser   *User  // the user we want activity for
+	RequestedTeam   *Team  // the team we want activity for
+	Actor           *User  // the user viewing the activity
+	IncludePrivate  bool   // include private actions
+	OnlyPerformedBy bool   // only actions performed by requested user
+	IncludeDeleted  bool   // include deleted actions
+	Date            string // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -321,7 +322,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user *User, doer *User) bool {
+func activityReadable(user, doer *User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
@@ -378,6 +379,18 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
+	}
+
+	if opts.Date != "" {
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+		}
 	}
 
 	return cond, nil

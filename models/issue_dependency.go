@@ -71,7 +71,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 }
 
 // RemoveIssueDependency removes a dependency from an issue
-func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType DependencyType) (err error) {
+func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -107,7 +107,7 @@ func RemoveIssueDependency(user *User, issue *Issue, dep *Issue, depType Depende
 }
 
 // Check if the dependency already exists
-func issueDepExists(e Engine, issueID int64, depID int64) (bool, error) {
+func issueDepExists(e Engine, issueID, depID int64) (bool, error) {
 	return e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 

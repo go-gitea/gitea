@@ -9,7 +9,7 @@ See the [public meeting
 notes](https://docs.google.com/document/d/1A63zSWX0x2CyCK_LoNhmQC4rqhLpYXJzXbEPDUQ2n6w/edit#heading=h.9tngw7jdwd6b)
 for a summary description of past meetings. To request edit access,
 join the meeting or get in touch on
-[Gitter](https://gitter.im/open-telemetry/opentelemetry-go).
+[Slack](https://cloud-native.slack.com/archives/C01NPAXACKT).
 
 ## Development
 
@@ -100,7 +100,13 @@ A PR is considered to be **ready to merge** when:
   different companies). This is not enforced through technical means
   and a PR may be **ready to merge** with a single approval if the change
   and its approach have been discussed and consensus reached.
-* Major feedbacks are resolved.
+* Feedback has been addressed.
+* Any substantive changes to your PR will require that you clear any prior
+  Approval reviews, this includes changes resulting from other feedback. Unless
+  the approver explicitly stated that their approval will persist across
+  changes it should be assumed that the PR needs their review again. Other
+  project members (e.g. approvers, maintainers) can help with this if there are
+  any questions or if you forget to clear reviews.
 * It has been open for review for at least one working day. This gives
   people reasonable time to review.
 * Trivial changes (typo, cosmetic, doc, etc.) do not have to wait for
@@ -118,7 +124,7 @@ As with other OpenTelemetry clients, opentelemetry-go follows the
 [opentelemetry-specification](https://github.com/open-telemetry/opentelemetry-specification).
 
 It's especially valuable to read through the [library
-guidelines](https://github.com/open-telemetry/opentelemetry-specification/blob/master/specification/library-guidelines.md).
+guidelines](https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/library-guidelines.md).
 
 ### Focus on Capabilities, Not Structure Compliance
 
@@ -365,10 +371,10 @@ Approvers:
 
 Maintainers:
 
-- [Anthony Mirabella](https://github.com/Aneurysm9), Centene
-- [Tyler Yahn](https://github.com/MrAlias), New Relic
+- [Anthony Mirabella](https://github.com/Aneurysm9), AWS
+- [Tyler Yahn](https://github.com/MrAlias), Splunk
 
 ### Become an Approver or a Maintainer
 
 See the [community membership document in OpenTelemetry community
-repo](https://github.com/open-telemetry/community/blob/master/community-membership.md).
+repo](https://github.com/open-telemetry/community/blob/main/community-membership.md).

@@ -710,6 +710,13 @@ func (cmd *StringCmd) Bytes() ([]byte, error) {
 	return util.StringToBytes(cmd.val), cmd.err
 }
 
+func (cmd *StringCmd) Bool() (bool, error) {
+	if cmd.err != nil {
+		return false, cmd.err
+	}
+	return strconv.ParseBool(cmd.val)
+}
+
 func (cmd *StringCmd) Int() (int, error) {
 	if cmd.err != nil {
 		return 0, cmd.err
@@ -805,6 +812,55 @@ func (cmd *FloatCmd) String() string {
 
 func (cmd *FloatCmd) readReply(rd *proto.Reader) (err error) {
 	cmd.val, err = rd.ReadFloatReply()
+	return err
+}
+
+//------------------------------------------------------------------------------
+
+type FloatSliceCmd struct {
+	baseCmd
+
+	val []float64
+}
+
+var _ Cmder = (*FloatSliceCmd)(nil)
+
+func NewFloatSliceCmd(ctx context.Context, args ...interface{}) *FloatSliceCmd {
+	return &FloatSliceCmd{
+		baseCmd: baseCmd{
+			ctx:  ctx,
+			args: args,
+		},
+	}
+}
+
+func (cmd *FloatSliceCmd) Val() []float64 {
+	return cmd.val
+}
+
+func (cmd *FloatSliceCmd) Result() ([]float64, error) {
+	return cmd.val, cmd.err
+}
+
+func (cmd *FloatSliceCmd) String() string {
+	return cmdString(cmd, cmd.val)
+}
+
+func (cmd *FloatSliceCmd) readReply(rd *proto.Reader) error {
+	_, err := rd.ReadArrayReply(func(rd *proto.Reader, n int64) (interface{}, error) {
+		cmd.val = make([]float64, n)
+		for i := 0; i < len(cmd.val); i++ {
+			switch num, err := rd.ReadFloatReply(); {
+			case err == Nil:
+				cmd.val[i] = 0
+			case err != nil:
+				return nil, err
+			default:
+				cmd.val[i] = num
+			}
+		}
+		return nil, nil
+	})
 	return err
 }
 
@@ -1441,6 +1497,103 @@ func (cmd *XPendingExtCmd) readReply(rd *proto.Reader) error {
 		return nil, nil
 	})
 	return err
+}
+
+//------------------------------------------------------------------------------
+
+type XInfoConsumersCmd struct {
+	baseCmd
+	val []XInfoConsumer
+}
+
+type XInfoConsumer struct {
+	Name    string
+	Pending int64
+	Idle    int64
+}
+
+var _ Cmder = (*XInfoGroupsCmd)(nil)
+
+func NewXInfoConsumersCmd(ctx context.Context, stream string, group string) *XInfoConsumersCmd {
+	return &XInfoConsumersCmd{
+		baseCmd: baseCmd{
+			ctx:  ctx,
+			args: []interface{}{"xinfo", "consumers", stream, group},
+		},
+	}
+}
+
+func (cmd *XInfoConsumersCmd) Val() []XInfoConsumer {
+	return cmd.val
+}
+
+func (cmd *XInfoConsumersCmd) Result() ([]XInfoConsumer, error) {
+	return cmd.val, cmd.err
+}
+
+func (cmd *XInfoConsumersCmd) String() string {
+	return cmdString(cmd, cmd.val)
+}
+
+func (cmd *XInfoConsumersCmd) readReply(rd *proto.Reader) error {
+	n, err := rd.ReadArrayLen()
+	if err != nil {
+		return err
+	}
+
+	cmd.val = make([]XInfoConsumer, n)
+
+	for i := 0; i < n; i++ {
+		cmd.val[i], err = readXConsumerInfo(rd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readXConsumerInfo(rd *proto.Reader) (XInfoConsumer, error) {
+	var consumer XInfoConsumer
+
+	n, err := rd.ReadArrayLen()
+	if err != nil {
+		return consumer, err
+	}
+	if n != 6 {
+		return consumer, fmt.Errorf("redis: got %d elements in XINFO CONSUMERS reply, wanted 6", n)
+	}
+
+	for i := 0; i < 3; i++ {
+		key, err := rd.ReadString()
+		if err != nil {
+			return consumer, err
+		}
+
+		val, err := rd.ReadString()
+		if err != nil {
+			return consumer, err
+		}
+
+		switch key {
+		case "name":
+			consumer.Name = val
+		case "pending":
+			consumer.Pending, err = strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				return consumer, err
+			}
+		case "idle":
+			consumer.Idle, err = strconv.ParseInt(val, 0, 64)
+			if err != nil {
+				return consumer, err
+			}
+		default:
+			return consumer, fmt.Errorf("redis: unexpected content %s in XINFO CONSUMERS reply", key)
+		}
+	}
+
+	return consumer, nil
 }
 
 //------------------------------------------------------------------------------

@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer}}"
+    "version": "{{AppVer | JSEscape | Safe}}"
   },
-  "basePath": "{{AppSubUrl}}/api/v1",
+  "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
     "/admin/cron": {
       "get": {
@@ -10068,6 +10068,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10095,6 +10098,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10120,6 +10126,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10153,6 +10162,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10221,6 +10233,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11489,6 +11504,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/AccessToken"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11522,6 +11540,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           },
           "422": {
             "$ref": "#/responses/error"
@@ -12968,6 +12989,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -13585,6 +13607,11 @@
       "description": "EditRepoOption options when editing a repository's properties",
       "type": "object",
       "properties": {
+        "allow_manual_merge": {
+          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "type": "boolean",
+          "x-go-name": "AllowManualMerge"
+        },
         "allow_merge_commits": {
           "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
           "type": "boolean",
@@ -13610,10 +13637,20 @@
           "type": "boolean",
           "x-go-name": "Archived"
         },
+        "autodetect_manual_merge": {
+          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.",
+          "type": "boolean",
+          "x-go-name": "AutodetectManualMerge"
+        },
         "default_branch": {
           "description": "sets the default branch for this repository.",
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "description": "a short description of the repository.",
@@ -13728,6 +13765,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -13795,6 +13833,10 @@
         "prohibit_login": {
           "type": "boolean",
           "x-go-name": "ProhibitLogin"
+        },
+        "restricted": {
+          "type": "boolean",
+          "x-go-name": "Restricted"
         },
         "source_id": {
           "type": "integer",
@@ -14097,6 +14139,10 @@
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
         },
+        "lfs_disabled": {
+          "type": "boolean",
+          "x-go-name": "LFSDisabled"
+        },
         "migrations_disabled": {
           "type": "boolean",
           "x-go-name": "MigrationsDisabled"
@@ -14104,6 +14150,14 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "stars_disabled": {
+          "type": "boolean",
+          "x-go-name": "StarsDisabled"
+        },
+        "time_tracking_disabled": {
+          "type": "boolean",
+          "x-go-name": "TimeTrackingDisabled"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14582,8 +14636,12 @@
             "merge",
             "rebase",
             "rebase-merge",
-            "squash"
+            "squash",
+            "manually-merged"
           ]
+        },
+        "MergeCommitID": {
+          "type": "string"
         },
         "MergeMessageField": {
           "type": "string"
@@ -14597,7 +14655,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14635,6 +14693,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -14677,7 +14743,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -14714,6 +14780,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -15427,6 +15501,9 @@
           "type": "string",
           "x-go-name": "HTMLPullURL"
         },
+        "resolver": {
+          "$ref": "#/definitions/User"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -15647,6 +15724,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_merge_style": {
+          "type": "string",
+          "x-go-name": "DefaultMergeStyle"
         },
         "description": {
           "type": "string",
@@ -15983,6 +16064,7 @@
             "repo.wiki",
             "repo.pulls",
             "repo.releases",
+            "repo.projects",
             "repo.ext_wiki"
           ]
         }
@@ -16209,6 +16291,11 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "restricted": {
+          "description": "Is user restricted",
+          "type": "boolean",
+          "x-go-name": "Restricted"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

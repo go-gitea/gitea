@@ -63,7 +63,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 // the local explore page. Function returns immediately.
 // When applicable, the link is for an avatar of the indicated size (in pixels).
 func (u *User) SizedRelAvatarLink(size int) string {
-	return strings.TrimSuffix(setting.AppSubURL, "/") + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
+	return setting.AppSubURL + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
 }
 
 // RealSizedAvatarLink returns a link to the user's avatar. When
@@ -82,6 +82,9 @@ func (u *User) RealSizedAvatarLink(size int) string {
 		if u.Avatar == "" {
 			return DefaultAvatarLink()
 		}
+		if size > 0 {
+			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
+		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	case setting.DisableGravatar, setting.OfflineMode:
 		if u.Avatar == "" {
@@ -89,7 +92,9 @@ func (u *User) RealSizedAvatarLink(size int) string {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
-
+		if size > 0 {
+			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
+		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
 	return SizedAvatarLink(u.AvatarEmail, size)

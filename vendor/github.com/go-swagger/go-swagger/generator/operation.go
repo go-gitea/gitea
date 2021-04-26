@@ -1130,6 +1130,13 @@ func (b *codeGenOpBuilder) buildOperationSchema(schemaPath, containerName, schem
 		isInterface := schema.IsInterface
 		hasValidations := schema.HasValidations
 
+		// TODO: remove this and find a better way to get package name for anonymous models
+		// get the package that the param will be generated. Used by generate CLI
+		pkg := "operations"
+		if len(b.Operation.Tags) != 0 {
+			pkg = b.Operation.Tags[0]
+		}
+
 		// for complex anonymous objects, produce an extra schema
 		if hasProperties || isAllOf {
 			if b.ExtraSchemas == nil {
@@ -1138,6 +1145,7 @@ func (b *codeGenOpBuilder) buildOperationSchema(schemaPath, containerName, schem
 			schema.Name = schemaName
 			schema.GoType = schemaName
 			schema.IsAnonymous = false
+			schema.Pkg = pkg
 			b.ExtraSchemas[schemaName] = schema
 
 			// constructs new schema to refer to the newly created type
@@ -1147,6 +1155,7 @@ func (b *codeGenOpBuilder) buildOperationSchema(schemaPath, containerName, schem
 			schema.SwaggerType = schemaName
 			schema.HasValidations = hasValidations
 			schema.GoType = schemaName
+			schema.Pkg = pkg
 		} else if isInterface {
 			schema = GenSchema{}
 			schema.IsAnonymous = false
@@ -1287,4 +1296,9 @@ func renameServerPackage(pkg string) string {
 func renameAPIPackage(pkg string) string {
 	// favors readability over perfect deconfliction
 	return "swagger" + pkg
+}
+
+func renameImplementationPackage(pkg string) string {
+	// favors readability over perfect deconfliction
+	return "swagger" + pkg + "impl"
 }
