@@ -929,6 +929,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
+		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	m.Group("/{username}/{reponame}", func() {

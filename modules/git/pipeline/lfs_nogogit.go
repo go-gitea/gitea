@@ -127,11 +127,12 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, sha, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, sha20byte, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
+					sha := git.To40ByteSHA(sha20byte)
 					if bytes.Equal(sha, []byte(hashStr)) {
 						result := LFSResult{
 							Name:         curPath + string(fname),

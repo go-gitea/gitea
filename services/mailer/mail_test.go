@@ -58,8 +58,9 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
+	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
 		Content: "test body", Comment: comment}, "en-US", tos, false, "issue comment")
+	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 	gomailMsg := msgs[0].ToMessage()
 	mailto := gomailMsg.GetHeader("To")
@@ -92,8 +93,9 @@ func TestComposeIssueMessage(t *testing.T) {
 	InitMailRender(stpl, btpl)
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
-	msgs := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
+	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
 		Content: "test body"}, "en-US", tos, false, "issue create")
+	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 
 	gomailMsg := msgs[0].ToMessage()
@@ -218,7 +220,8 @@ func TestTemplateServices(t *testing.T) {
 }
 
 func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, tos []string, fromMention bool, info string) *Message {
-	msgs := composeIssueCommentMessages(ctx, "en-US", tos, fromMention, info)
+	msgs, err := composeIssueCommentMessages(ctx, "en-US", tos, fromMention, info)
+	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 	return msgs[0]
 }

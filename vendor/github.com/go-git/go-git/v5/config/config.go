@@ -89,6 +89,13 @@ type Config struct {
 		Window uint
 	}
 
+	Init struct {
+		// DefaultBranch Allows overriding the default branch name
+		// e.g. when initializing a new repository or when cloning
+		// an empty repository.
+		DefaultBranch string
+	}
+
 	// Remotes list of repository remotes, the key of the map is the name
 	// of the remote, should equal to RemoteConfig.Name.
 	Remotes map[string]*RemoteConfig
@@ -98,6 +105,9 @@ type Config struct {
 	// Branches list of branches, the key is the branch name and should
 	// equal Branch.Name
 	Branches map[string]*Branch
+	// URLs list of url rewrite rules, if repo url starts with URL.InsteadOf value, it will be replaced with the
+	// key instead.
+	URLs map[string]*URL
 	// Raw contains the raw information of a config file. The main goal is
 	// preserve the parsed information from the original format, to avoid
 	// dropping unsupported fields.
@@ -110,6 +120,7 @@ func NewConfig() *Config {
 		Remotes:    make(map[string]*RemoteConfig),
 		Submodules: make(map[string]*Submodule),
 		Branches:   make(map[string]*Branch),
+		URLs:       make(map[string]*URL),
 		Raw:        format.New(),
 	}
 
@@ -223,6 +234,8 @@ const (
 	userSection      = "user"
 	authorSection    = "author"
 	committerSection = "committer"
+	initSection      = "init"
+	urlSection       = "url"
 	fetchKey         = "fetch"
 	urlKey           = "url"
 	bareKey          = "bare"
@@ -233,6 +246,7 @@ const (
 	rebaseKey        = "rebase"
 	nameKey          = "name"
 	emailKey         = "email"
+	defaultBranchKey = "defaultBranch"
 
 	// DefaultPackWindow holds the number of previous objects used to
 	// generate deltas. The value 10 is the same used by git command.
@@ -251,12 +265,17 @@ func (c *Config) Unmarshal(b []byte) error {
 
 	c.unmarshalCore()
 	c.unmarshalUser()
+	c.unmarshalInit()
 	if err := c.unmarshalPack(); err != nil {
 		return err
 	}
 	unmarshalSubmodules(c.Raw, c.Submodules)
 
 	if err := c.unmarshalBranches(); err != nil {
+		return err
+	}
+
+	if err := c.unmarshalURLs(); err != nil {
 		return err
 	}
 
@@ -313,6 +332,25 @@ func (c *Config) unmarshalRemotes() error {
 		c.Remotes[r.Name] = r
 	}
 
+	// Apply insteadOf url rules
+	for _, r := range c.Remotes {
+		r.applyURLRules(c.URLs)
+	}
+
+	return nil
+}
+
+func (c *Config) unmarshalURLs() error {
+	s := c.Raw.Section(urlSection)
+	for _, sub := range s.Subsections {
+		r := &URL{}
+		if err := r.unmarshal(sub); err != nil {
+			return err
+		}
+
+		c.URLs[r.Name] = r
+	}
+
 	return nil
 }
 
@@ -344,6 +382,11 @@ func (c *Config) unmarshalBranches() error {
 	return nil
 }
 
+func (c *Config) unmarshalInit() {
+	s := c.Raw.Section(initSection)
+	c.Init.DefaultBranch = s.Options.Get(defaultBranchKey)
+}
+
 // Marshal returns Config encoded as a git-config file.
 func (c *Config) Marshal() ([]byte, error) {
 	c.marshalCore()
@@ -352,6 +395,8 @@ func (c *Config) Marshal() ([]byte, error) {
 	c.marshalRemotes()
 	c.marshalSubmodules()
 	c.marshalBranches()
+	c.marshalURLs()
+	c.marshalInit()
 
 	buf := bytes.NewBuffer(nil)
 	if err := format.NewEncoder(buf).Encode(c.Raw); err != nil {
@@ -475,6 +520,27 @@ func (c *Config) marshalBranches() {
 	s.Subsections = newSubsections
 }
 
+func (c *Config) marshalURLs() {
+	s := c.Raw.Section(urlSection)
+	s.Subsections = make(format.Subsections, len(c.URLs))
+
+	var i int
+	for _, r := range c.URLs {
+		section := r.marshal()
+		// the submodule section at config is a subset of the .gitmodule file
+		// we should remove the non-valid options for the config file.
+		s.Subsections[i] = section
+		i++
+	}
+}
+
+func (c *Config) marshalInit() {
+	s := c.Raw.Section(initSection)
+	if c.Init.DefaultBranch != "" {
+		s.SetOption(defaultBranchKey, c.Init.DefaultBranch)
+	}
+}
+
 // RemoteConfig contains the configuration for a given remote repository.
 type RemoteConfig struct {
 	// Name of the remote
@@ -482,6 +548,12 @@ type RemoteConfig struct {
 	// URLs the URLs of a remote repository. It must be non-empty. Fetch will
 	// always use the first URL, while push will use all of them.
 	URLs []string
+
+	// insteadOfRulesApplied have urls been modified
+	insteadOfRulesApplied bool
+	// originalURLs are the urls before applying insteadOf rules
+	originalURLs []string
+
 	// Fetch the default set of "refspec" for fetch operation
 	Fetch []RefSpec
 
@@ -542,7 +614,12 @@ func (c *RemoteConfig) marshal() *format.Subsection {
 	if len(c.URLs) == 0 {
 		c.raw.RemoveOption(urlKey)
 	} else {
-		c.raw.SetOption(urlKey, c.URLs...)
+		urls := c.URLs
+		if c.insteadOfRulesApplied {
+			urls = c.originalURLs
+		}
+
+		c.raw.SetOption(urlKey, urls...)
 	}
 
 	if len(c.Fetch) == 0 {
@@ -561,4 +638,21 @@ func (c *RemoteConfig) marshal() *format.Subsection {
 
 func (c *RemoteConfig) IsFirstURLLocal() bool {
 	return url.IsLocalEndpoint(c.URLs[0])
+}
+
+func (c *RemoteConfig) applyURLRules(urlRules map[string]*URL) {
+	// save original urls
+	originalURLs := make([]string, len(c.URLs))
+	copy(originalURLs, c.URLs)
+
+	for i, url := range c.URLs {
+		if matchingURLRule := findLongestInsteadOfMatch(url, urlRules); matchingURLRule != nil {
+			c.URLs[i] = matchingURLRule.ApplyInsteadOf(c.URLs[i])
+			c.insteadOfRulesApplied = true
+		}
+	}
+
+	if c.insteadOfRulesApplied {
+		c.originalURLs = originalURLs
+	}
 }
