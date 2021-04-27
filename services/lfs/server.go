@@ -393,11 +393,9 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		rep.Actions = make(map[string]*lfs_module.Link)
 
 		header := make(map[string]string)
-		verifyHeader := make(map[string]string)
 
 		if len(rc.Authorization) > 0 {
 			header["Authorization"] = rc.Authorization
-			verifyHeader["Authorization"] = rc.Authorization
 		}
 
 		if download {
@@ -405,6 +403,15 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 		if upload {
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
+
+			verifyHeader := make(map[string]string)
+			for key, value := range header {
+				verifyHeader[key] = value
+			}
+
+			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
+			verifyHeader["Accept"] = lfs_module.MediaType
+
 			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
 		}
 	}
