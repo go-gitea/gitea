@@ -27,60 +27,56 @@ func Tags(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTags)
 }
 
-// TagPost response for protect for a branch of a repository
+// TagPost handles creation of a protect tag
 func TagPost(ctx *context.Context) {
 	if setTagsContext(ctx) != nil {
 		return
 	}
 
-	repo := ctx.Repo.Repository
-
-	switch ctx.Query("action") {
-	case "create_protected_tag":
-		web.Bind(forms.ProtectTagForm{})(ctx.Resp, ctx.Req)
-		if ctx.HasError() {
-			ctx.HTML(http.StatusOK, tplTags)
-			return
-		}
-
-		form := web.GetForm(ctx).(*forms.ProtectTagForm)
-
-		pt := &models.ProtectedTag{
-			RepoID:      repo.ID,
-			NamePattern: form.NamePattern,
-		}
-
-		if strings.TrimSpace(form.WhitelistUsers) != "" {
-			pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
-		}
-		if strings.TrimSpace(form.WhitelistTeams) != "" {
-			pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
-		}
-
-		if err := models.InsertProtectedTag(pt); err != nil {
-			ctx.ServerError("InsertProtectedTag", err)
-			return
-		}
-
-		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
-	case "remove_protected_tag":
-		pt, err := selectProtectedTagByContext(ctx, repo)
-		if err != nil {
-			ctx.NotFound("", nil)
-			return
-		}
-
-		if err := models.DeleteProtectedTag(pt); err != nil {
-			ctx.ServerError("DeleteProtectedTag", err)
-			return
-		}
-
-		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
-	default:
-		ctx.NotFound("", nil)
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTags)
+		return
 	}
+
+	repo := ctx.Repo.Repository
+	form := web.GetForm(ctx).(*forms.ProtectTagForm)
+
+	pt := &models.ProtectedTag{
+		RepoID:      repo.ID,
+		NamePattern: form.NamePattern,
+	}
+
+	if strings.TrimSpace(form.WhitelistUsers) != "" {
+		pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
+	}
+	if strings.TrimSpace(form.WhitelistTeams) != "" {
+		pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
+	}
+
+	if err := models.InsertProtectedTag(pt); err != nil {
+		ctx.ServerError("InsertProtectedTag", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+}
+
+// TagDelete handles deletion of a protected tag
+func TagDelete(ctx *context.Context) {
+	pt, err := selectProtectedTagByContext(ctx)
+	if err != nil {
+		ctx.NotFound("", nil)
+		return
+	}
+
+	if err := models.DeleteProtectedTag(pt); err != nil {
+		ctx.ServerError("DeleteProtectedTag", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")
 }
 
 func setTagsContext(ctx *context.Context) error {
@@ -113,8 +109,8 @@ func setTagsContext(ctx *context.Context) error {
 	return nil
 }
 
-func selectProtectedTagByContext(ctx *context.Context, repo *models.Repository) (*models.ProtectedTag, error) {
-	pts, err := repo.GetProtectedTags()
+func selectProtectedTagByContext(ctx *context.Context) (*models.ProtectedTag, error) {
+	pts, err := ctx.Repo.Repository.GetProtectedTags()
 	if err != nil {
 		return nil, err
 	}
@@ -127,5 +123,5 @@ func selectProtectedTagByContext(ctx *context.Context, repo *models.Repository) 
 		}
 	}
 
-	return nil, fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, repo)
+	return nil, fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository)
 }

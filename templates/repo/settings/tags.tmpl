@@ -19,7 +19,6 @@
 						<div class="ui segment">
 							<form class="ui form" action="{{.Link}}" method="post">
 								{{.CsrfTokenHtml}}
-								<input type="hidden" name="action" value="create_protected_tag" />
 								<div class="field">
 									<label>{{.i18n.Tr "repo.settings.tags.protection.pattern"}}</label>
 									<div id="search-tag-box" class="ui search">
@@ -100,9 +99,8 @@
 											{{end}}
 										</td>
 										<td class="right aligned">
-											<form class="ui form" action="{{$.Link}}" method="post">
+											<form class="ui form" action="{{$.Link}}/delete" method="post">
 												{{$.CsrfTokenHtml}}
-												<input type="hidden" name="action" value="remove_protected_tag" />
 												<input type="hidden" name="id" value="{{.ID}}" />
 												<button class="ui tiny red button">{{$.i18n.Tr "remove"}}</button>
 											</form>
