@@ -199,10 +199,10 @@ func TestViewTagsList(t *testing.T) {
 	tags := htmlDoc.Find(".tag-list tr")
 	assert.Equal(t, 2, tags.Length())
 
-	tag_names := make([]string, 0, 5)
+	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
-		tag_names = append(tag_names, s.Find(".tag a.df.ac").Text())
+		tagNames = append(tagNames, s.Find(".tag a.df.ac").Text())
 	})
 
-	assert.EqualValues(t, []string{"delete-tag", "v1.1"}, tag_names)
+	assert.EqualValues(t, []string{"delete-tag", "v1.1"}, tagNames)
 }
