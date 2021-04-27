@@ -54,13 +54,23 @@ func TestAPILFSMediaType(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)
 }
 
+func createLFSTestRepository(t *testing.T, name string) *models.Repository {
+	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo")
+	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
+
+	repo, err := models.GetRepositoryByOwnerAndName("user2", "lfs-"+name+"-repo")
+	assert.NoError(t, err)
+
+	return repo
+}
+
 func TestAPILFSBatch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	setting.LFS.StartServer = true
 
-	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
-	assert.NoError(t, err)
+	repo := createLFSTestRepository(t, "batch")
+
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
 	defer repo.RemoveLFSMetaObjectByOid(oid)
@@ -68,7 +78,7 @@ func TestAPILFSBatch(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, br *lfs.BatchRequest) *http.Request {
-		req := NewRequestWithJSON(t, "POST", "/user2/repo1.git/info/lfs/objects/batch", br)
+		req := NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br)
 		req.Header.Set("Accept", lfs.MediaType)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		return req
@@ -312,8 +322,8 @@ func TestAPILFSUpload(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
-	assert.NoError(t, err)
+	repo := createLFSTestRepository(t, "upload")
+
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
 	defer repo.RemoveLFSMetaObjectByOid(oid)
@@ -321,7 +331,7 @@ func TestAPILFSUpload(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, p lfs.Pointer, content string) *http.Request {
-		req := NewRequestWithBody(t, "PUT", path.Join("/user2/repo1.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
+		req := NewRequestWithBody(t, "PUT", path.Join("/user2/lfs-upload-repo.git/info/lfs/objects/", p.Oid, strconv.FormatInt(p.Size, 10)), strings.NewReader(content))
 		return req
 	}
 
@@ -407,8 +417,8 @@ func TestAPILFSVerify(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
-	assert.NoError(t, err)
+	repo := createLFSTestRepository(t, "verify")
+
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
 	defer repo.RemoveLFSMetaObjectByOid(oid)
@@ -416,7 +426,7 @@ func TestAPILFSVerify(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, p *lfs.Pointer) *http.Request {
-		req := NewRequestWithJSON(t, "POST", "/user2/repo1.git/info/lfs/verify", p)
+		req := NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p)
 		req.Header.Set("Accept", lfs.MediaType)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		return req
