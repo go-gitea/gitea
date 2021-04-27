@@ -747,7 +747,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).NoAutoTime().Cols("size").Update(repo)
 	return err
 }
 
