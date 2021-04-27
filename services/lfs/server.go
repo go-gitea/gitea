@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package lfs
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -291,7 +292,7 @@ func UploadHandler(ctx *context.Context) {
 
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
-		if err == lfs_module.ErrSizeMismatch || err == lfs_module.ErrHashMismatch {
+		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) {
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
