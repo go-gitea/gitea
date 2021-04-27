@@ -22,21 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var lfsID = int64(20000)
-
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
-	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.Database.UsePostgreSQL {
-		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Pointer: pointer, RepositoryID: repositoryID}
-	} else {
-		lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID}
-	}
-
-	lfsID++
-	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
+	_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
