@@ -136,8 +136,6 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	t.Run("Git", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
-
 		onGiteaRun(t, func(t *testing.T, u *url.URL) {
 			username := "user2"
 			httpContext := NewAPITestContext(t, username, "repo1")

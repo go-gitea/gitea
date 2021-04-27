@@ -65,6 +65,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.2",
 		Target:       "master",
 		Title:        "v0.2 is released",

@@ -5,8 +5,6 @@
 package migrations
 
 import (
-	"fmt"
-
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -24,15 +22,5 @@ func createProtectedTagTable(x *xorm.Engine) error {
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if err := sess.Sync2(new(ProtectedTag)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-
-	return sess.Commit()
+	return x.Sync2(new(ProtectedTag))
 }

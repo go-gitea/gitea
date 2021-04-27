@@ -221,7 +221,7 @@ Gitea or set your environment appropriately.`, "")
 		total++
 		lastline++
 
-		// If the ref is a branch, check if it's protected
+		// If the ref is a branch or tag, check if it's protected
 		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID

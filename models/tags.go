@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/gobwas/glob"
@@ -70,21 +69,20 @@ func (pt *ProtectedTag) EnsureCompiledPattern() error {
 }
 
 // IsUserAllowed returns true if the user is allowed to modify the tag
-func (pt *ProtectedTag) IsUserAllowed(userID int64) bool {
+func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 	if base.Int64sContains(pt.WhitelistUserIDs, userID) {
-		return true
+		return true, nil
 	}
 
 	if len(pt.WhitelistTeamIDs) == 0 {
-		return false
+		return false, nil
 	}
 
 	in, err := IsUserInTeams(userID, pt.WhitelistTeamIDs)
 	if err != nil {
-		log.Error("IsUserInTeams: %v", err)
-		return false
+		return false, err
 	}
-	return in
+	return in, nil
 }
 
 // GetProtectedTags gets all protected tags
@@ -98,8 +96,8 @@ func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int64) (bool, error) {
 	isAllowed := true
 	for _, tag := range tags {
-		if err := tag.EnsureCompiledPattern(); err != nil {
-			log.Error("EnsureCompiledPattern failed: %v", err)
+		err := tag.EnsureCompiledPattern()
+		if err != nil {
 			return false, err
 		}
 
@@ -107,7 +105,10 @@ func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int6
 			continue
 		}
 
-		isAllowed = tag.IsUserAllowed(userID)
+		isAllowed, err = tag.IsUserAllowed(userID)
+		if err != nil {
+			return false, err
+		}
 		if isAllowed {
 			break
 		}
