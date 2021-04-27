@@ -749,7 +749,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = size
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
