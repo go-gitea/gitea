@@ -1472,7 +1472,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
-		&ProtectedBranch{RepoID: repoID},
 		&ProtectedTag{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
