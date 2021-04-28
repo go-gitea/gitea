@@ -27,8 +27,8 @@ func Tags(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTags)
 }
 
-// TagPost handles creation of a protect tag
-func TagPost(ctx *context.Context) {
+// ProtectedTagPost handles creation of a protect tag
+func ProtectedTagPost(ctx *context.Context) {
 	if setTagsContext(ctx) != nil {
 		return
 	}
@@ -62,8 +62,8 @@ func TagPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 }
 
-// TagDelete handles deletion of a protected tag
-func TagDelete(ctx *context.Context) {
+// ProtectedTagDelete handles deletion of a protected tag
+func ProtectedTagDelete(ctx *context.Context) {
 	pt, err := selectProtectedTagByContext(ctx)
 	if err != nil {
 		ctx.NotFound("", nil)
