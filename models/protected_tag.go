@@ -26,17 +26,6 @@ type ProtectedTag struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-func (pt *ProtectedTag) BeforeInsert() {
-	pt.CreatedUnix = timeutil.TimeStampNow()
-	pt.UpdatedUnix = timeutil.TimeStampNow()
-}
-
-// BeforeUpdate is invoked from XORM before updating this object.
-func (pt *ProtectedTag) BeforeUpdate() {
-	pt.UpdatedUnix = timeutil.TimeStampNow()
-}
-
 // InsertProtectedTag inserts a protected tag to database
 func InsertProtectedTag(pt *ProtectedTag) error {
 	_, err := x.Insert(pt)
