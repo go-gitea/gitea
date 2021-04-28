@@ -207,6 +207,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		}
 	}
 
+	// find protected branches without existing repository
+	count, err = models.CountOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects")
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d protected branches without existing repository deleted", count)
+		} else {
+			logger.Warn("%d protected branches without existing repository", count)
+		}
+	}
+
 	return nil
 }
 
