@@ -40,7 +40,7 @@ func UpdateProtectedTag(pt *ProtectedTag) error {
 
 // DeleteProtectedTag deletes a protected tag by ID
 func DeleteProtectedTag(pt *ProtectedTag) error {
-	_, err := x.Delete(&ProtectedTag{ID: pt.ID})
+	_, err := x.ID(pt.ID).Delete(&ProtectedTag{})
 	return err
 }
 
