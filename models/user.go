@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -772,7 +771,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = append([]string{
+	reservedUsernames = []string{
 		".",
 		"..",
 		".well-known",
@@ -807,7 +806,8 @@ var (
 		"stars",
 		"template",
 		"user",
-	}, public.KnownPublicEntries...)
+		"favicon.ico",
+	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
