@@ -1784,64 +1784,45 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
-	}); err != nil {
-		log.Trace("Error: ArchiveClean: %v", err)
-		return err
+	for {
+		var archivers []RepoArchiver
+		err := x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).
+			Asc("created_unix").
+			Limit(100).
+			Find(&archivers)
+		if err != nil {
+			log.Trace("Error: ArchiveClean: %v", err)
+			return err
+		}
+
+		for _, archiver := range archivers {
+			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
+				return err
+			}
+		}
+		if len(archivers) < 100 {
+			break
+		}
 	}
 
 	log.Trace("Finished: ArchiveCleanup")
 	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
-	repo := bean.(*Repository)
-	basePath := filepath.Join(repo.RepoPath(), "archives")
+var delRepoArchiver = new(RepoArchiver)
 
-	for _, ty := range []string{"zip", "targz"} {
-		select {
-		case <-ctx.Done():
-			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
-		default:
-		}
-
-		path := filepath.Join(basePath, ty)
-		file, err := os.Open(path)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Warn("Unable to open directory %s: %v", path, err)
-				return err
-			}
-
-			// If the directory doesn't exist, that's okay.
-			continue
-		}
-
-		files, err := file.Readdir(0)
-		file.Close()
-		if err != nil {
-			log.Warn("Unable to read directory %s: %v", path, err)
-			return err
-		}
-
-		minimumOldestTime := time.Now().Add(-olderThan)
-		for _, info := range files {
-			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
-				default:
-				}
-				toDelete := filepath.Join(path, info.Name())
-				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = util.Remove(toDelete); err != nil {
-					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
-				}
-			}
-		}
+func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+	p, err := archiver.RelativePath()
+	if err != nil {
+		return err
 	}
-
+	_, err = x.ID(archiver.ID).Delete(delRepoArchiver)
+	if err != nil {
+		return err
+	}
+	if err := storage.RepoArchives.Delete(p); err != nil {
+		log.Error("delete repo archive file failed: %v", err)
+	}
 	return nil
 }
 
