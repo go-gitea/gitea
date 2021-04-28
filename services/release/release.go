@@ -37,9 +37,8 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 				return false, err
 			}
 			if !isAllowed {
-				return false, models.ErrInvalidTagName{
-					TagName:   rel.TagName,
-					Protected: true,
+				return false, models.ErrProtectedTagName{
+					TagName: rel.TagName,
 				}
 			}
 

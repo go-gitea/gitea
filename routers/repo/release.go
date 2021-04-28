@@ -301,12 +301,13 @@ func NewReleasePost(ctx *context.Context) {
 				}
 
 				if models.IsErrInvalidTagName(err) {
-					e := err.(models.ErrInvalidTagName)
-					if e.Protected {
-						ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
-					} else {
-						ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
-					}
+					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					return
+				}
+
+				if models.IsErrProtectedTagName(err) {
+					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
 					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
 					return
 				}
@@ -341,6 +342,8 @@ func NewReleasePost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 			case models.IsErrInvalidTagName(err):
 				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
+			case models.IsErrProtectedTagName(err):
+				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
 			default:
 				ctx.ServerError("CreateRelease", err)
 			}

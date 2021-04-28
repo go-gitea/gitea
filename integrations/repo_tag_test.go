@@ -43,9 +43,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 		err = release.CreateNewTag(owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
-		assert.True(t, models.IsErrInvalidTagName(err))
-		e := err.(models.ErrInvalidTagName)
-		assert.True(t, e.Protected)
+		assert.True(t, models.IsErrProtectedTagName(err))
 
 		err = release.CreateNewTag(owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
