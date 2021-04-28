@@ -14,6 +14,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const sockoptReceiveInterface = unix.IP_RECVIF
+
 var (
 	ctlOpts = [ctlMax]ctlOpt{
 		ctlTTL:       {unix.IP_RECVTTL, 1, marshalTTL, parseTTL},

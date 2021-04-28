@@ -42,6 +42,8 @@ const (
 	SSN               string = `^\d{3}[- ]?\d{2}[- ]?\d{4}$`
 	WinPath           string = `^[a-zA-Z]:\\(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*$`
 	UnixPath          string = `^(/[^/\x00]*)+/?$`
+	WinARPath         string = `^(?:(?:[a-zA-Z]:|\\\\[a-z0-9_.$●-]+\\[a-z0-9_.$●-]+)\\|\\?[^\\/:*?"<>|\r\n]+\\?)(?:[^\\/:*?"<>|\r\n]+\\)*[^\\/:*?"<>|\r\n]*$`
+	UnixARPath        string = `^((\.{0,2}/)?([^/\x00]*))+/?$`
 	Semver            string = "^v?(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(-(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(\\.(0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\\+[0-9a-zA-Z-]+(\\.[0-9a-zA-Z-]+)*)?$"
 	tagName           string = "valid"
 	hasLowerCase      string = ".*[[:lower:]]"
@@ -50,6 +52,7 @@ const (
 	hasWhitespaceOnly string = "^[[:space:]]+$"
 	IMEI              string = "^[0-9a-f]{14}$|^\\d{15}$|^\\d{18}$"
 	IMSI              string = "^\\d{14,15}$"
+	E164              string = `^\+?[1-9]\d{1,14}$`
 )
 
 // Used by IsFilePath func
@@ -97,6 +100,8 @@ var (
 	rxSSN               = regexp.MustCompile(SSN)
 	rxWinPath           = regexp.MustCompile(WinPath)
 	rxUnixPath          = regexp.MustCompile(UnixPath)
+	rxARWinPath         = regexp.MustCompile(WinARPath)
+	rxARUnixPath        = regexp.MustCompile(UnixARPath)
 	rxSemver            = regexp.MustCompile(Semver)
 	rxHasLowerCase      = regexp.MustCompile(hasLowerCase)
 	rxHasUpperCase      = regexp.MustCompile(hasUpperCase)
@@ -104,4 +109,5 @@ var (
 	rxHasWhitespaceOnly = regexp.MustCompile(hasWhitespaceOnly)
 	rxIMEI              = regexp.MustCompile(IMEI)
 	rxIMSI              = regexp.MustCompile(IMSI)
+	rxE164              = regexp.MustCompile(E164)
 )

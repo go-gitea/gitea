@@ -89,7 +89,7 @@ services:
   server:
     image: gitea/gitea:latest-rootless
 +    environment:
-+      - GITEA__database__TYPE=mysql
++      - GITEA__database__DB_TYPE=mysql
 +      - GITEA__database__HOST=db:3306
 +      - GITEA__database__NAME=gitea
 +      - GITEA__database__USER=gitea
@@ -130,7 +130,7 @@ services:
   server:
     image: gitea/gitea:latest-rootless
     environment:
-+      - GITEA__database__TYPE=postgres
++      - GITEA__database__DB_TYPE=postgres
 +      - GITEA__database__HOST=db:5432
 +      - GITEA__database__NAME=gitea
 +      - GITEA__database__USER=gitea

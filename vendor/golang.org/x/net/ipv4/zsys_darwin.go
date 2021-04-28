@@ -4,10 +4,6 @@
 package ipv4
 
 const (
-	sysIP_RECVDSTADDR = 0x7
-	sysIP_RECVIF      = 0x14
-	sysIP_RECVTTL     = 0x18
-
 	sizeofSockaddrStorage = 0x80
 	sizeofSockaddrInet    = 0x10
 	sizeofInetPktinfo     = 0xc
