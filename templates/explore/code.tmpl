@@ -3,29 +3,26 @@
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		<form class="ui form ignore-dirty" style="max-width: 100%">
-            <input type="hidden" name="tab" value="{{$.TabName}}">
-            <div class="ui fluid action input">
-            <div class="twelve wide field">
-                <input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-            </div>
-            <div class="two wide field mx-2">
-                <select name="t">
-                    <option value="">{{.i18n.Tr "explore.search.fuzzy"}}</option>
-                    <option value="match" {{if eq .queryType "match"}}selected{{end}}>{{.i18n.Tr "explore.search.match"}}</option>
-                </select>
-            </div>
-            <div class="three field">
-                <button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
-            </div>
-            </div>
-        </form>
-        <div class="ui divider"></div>
-
+			<input type="hidden" name="tab" value="{{$.TabName}}">
+			<div class="ui fluid action input">
+				<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+				<div class="ui dropdown selection">
+					<input name="t" type="hidden" value="{{.queryType}}">{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="text">{{.i18n.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
+					<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+						<div class="item" data-value="">{{.i18n.Tr "explore.search.fuzzy"}}</div>
+						<div class="item" data-value="match">{{.i18n.Tr "explore.search.match"}}</div>
+					</div>
+				</div>
+				<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+			</div>
+		</form>
+		<div class="ui divider"></div>
 		<div class="ui user list">
 			{{if .SearchResults}}
-                <h3>
-                    {{.i18n.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
-                </h3>
+				<h3>
+					{{.i18n.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
+				</h3>
 				<div class="df ac fw">
 					{{range $term := .SearchResultLanguages}}
 					<a class="ui text-label df ac mr-1 my-1 {{if eq $.Language $term.Language}}primary {{end}}basic label" href="{{AppSubUrl}}/explore/code?q={{$.Keyword}}{{if ne $.Language $term.Language}}&l={{$term.Language}}{{end}}{{if ne $.queryType ""}}&t={{$.queryType}}{{end}}">
@@ -35,34 +32,34 @@
 					</a>
 					{{end}}
 				</div>
-                <div class="repository search">
-                    {{range $result := .SearchResults}}
-                        {{$repo := (index $.RepoMaps .RepoID)}}
-                        <div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
-                            <h4 class="ui top attached normal header">
-                                <span class="file"><a rel="nofollow" href="{{EscapePound $repo.HTMLURL}}">{{$repo.FullName}}</a> - {{.Filename}}</span>
-                                <a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-                            </h4>
-                            <div class="ui attached table segment">
-                                <div class="file-body file-code code-view">
-                                    <table>
-                                        <tbody>
-                                            <tr>
-                                                <td class="lines-num">
-                                                    {{range .LineNumbers}}
-                                                        <a href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
-                                                    {{end}}
-                                                </td>
-                                                <td class="lines-code"><pre><code class="chroma"><ol class="linenums">{{.FormattedLines | Safe}}</ol></code></pre></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            {{template "shared/searchbottom" dict "root" $ "result" .}}
-                        </div>
-                    {{end}}
-                </div>
+				<div class="repository search">
+					{{range $result := .SearchResults}}
+						{{$repo := (index $.RepoMaps .RepoID)}}
+						<div class="diff-file-box diff-box file-content non-diff-file-content repo-search-result">
+							<h4 class="ui top attached normal header">
+								<span class="file"><a rel="nofollow" href="{{EscapePound $repo.HTMLURL}}">{{$repo.FullName}}</a> - {{.Filename}}</span>
+								<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound .Filename}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+							</h4>
+							<div class="ui attached table segment">
+								<div class="file-body file-code code-view">
+									<table>
+										<tbody>
+											<tr>
+												<td class="lines-num">
+													{{range .LineNumbers}}
+														<a href="{{EscapePound $repo.HTMLURL}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+													{{end}}
+												</td>
+												<td class="lines-code"><pre><code class="chroma"><ol class="linenums">{{.FormattedLines | Safe}}</ol></code></pre></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+							{{template "shared/searchbottom" dict "root" $ "result" .}}
+						</div>
+					{{end}}
+				</div>
 			{{else}}
 				<div>{{$.i18n.Tr "explore.code_no_results"}}</div>
 			{{end}}

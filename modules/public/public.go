@@ -32,7 +32,6 @@ var KnownPublicEntries = []string{
 	"js",
 	"serviceworker.js",
 	"vendor",
-	"favicon.ico",
 }
 
 // Custom implements the static handler for serving custom assets.
@@ -165,7 +164,7 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		log.Println("[Static] Serving " + file)
 	}
 
-	if httpcache.HandleEtagCache(req, w, fi) {
+	if httpcache.HandleFileETagCache(req, w, fi) {
 		return true
 	}
 

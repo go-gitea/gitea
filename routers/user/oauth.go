@@ -389,6 +389,16 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect.String(), 302)
 }
 
+// OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
+func OIDCWellKnown(ctx *context.Context) {
+	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
+		log.Error("%v", err)
+		ctx.Error(http.StatusInternalServerError)
+	}
+}
+
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)

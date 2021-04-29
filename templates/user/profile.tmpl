@@ -84,16 +84,22 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
 						{{svg "octicon-rss"}} {{.i18n.Tr "user.activity"}}
 					</a>
-					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-						{{svg "octicon-star"}}  {{.i18n.Tr "user.starred"}}
-						<div class="ui label">{{.Owner.NumStars}}</div>
-					</a>
+					{{if not .DisableStars}}
+						<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
+							{{svg "octicon-star"}}  {{.i18n.Tr "user.starred"}}
+							<div class="ui label">{{.Owner.NumStars}}</div>
+						</a>
+					{{else}}
+						<a class='{{if eq .TabName "watching"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=watching">
+							{{svg "octicon-eye"}}  {{.i18n.Tr "user.watched"}}
+						</a>
+					{{end}}
 					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
 						{{svg "octicon-person"}}  {{.i18n.Tr "user.following"}}
 						<div class="ui label">{{.Owner.NumFollowing}}</div>
