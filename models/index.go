@@ -28,8 +28,8 @@ func upsertResourceIndex(e Engine, tableName string, groupID int64) (err error) 
 	switch {
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
 		_, err = e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
-			"VALUES (?,1) ON CONFLICT (group_id) DO UPDATE SET max_index = max_index+1",
-			tableName), groupID)
+			"VALUES (?,1) ON CONFLICT (group_id) DO UPDATE SET max_index = %s.max_index+1",
+			tableName, tableName), groupID)
 	case setting.Database.UseMySQL:
 		_, err = e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
 			"VALUES (?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1", tableName),
