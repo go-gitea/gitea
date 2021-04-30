@@ -36,14 +36,22 @@ type Manager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdown               context.Context
+	hammer                 context.Context
+	terminate              context.Context
+	done                   context.Context
+	shutdownCancel         context.CancelFunc
+	hammerCancel           context.CancelFunc
+	terminateCancel        context.CancelFunc
+	doneCancel             context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
 	shutdownRequested      chan struct{}
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {

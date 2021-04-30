@@ -81,14 +81,23 @@ func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 		}
 	}()
 	run(func(ctx context.Context, atShutdown func()) {
-		go func() {
-			select {
-			case <-g.IsShutdown():
-				atShutdown()
-			case <-ctx.Done():
-				return
-			}
-		}()
+		g.lock.Lock()
+		defer g.lock.Unlock()
+		g.toRunAtShutdown = append(g.toRunAtShutdown,
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						log.Critical("PANIC during RunWithShutdownFns: %v\nStacktrace: %s", err, log.Stack(2))
+						g.doShutdown()
+					}
+				}()
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					atShutdown()
+				}
+			})
 	}, func(ctx context.Context, atTerminate func()) {
 		g.RunAtTerminate(ctx, atTerminate)
 	})
@@ -138,58 +147,73 @@ func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 // RunAtTerminate adds to the terminate wait group and creates a go-routine to run the provided function at termination
 func (g *Manager) RunAtTerminate(ctx context.Context, terminate func()) {
 	g.terminateWaitGroup.Add(1)
-	go func() {
-		defer g.terminateWaitGroup.Done()
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtTerminate = append(g.toRunAtTerminate,
+		func() {
+			defer g.terminateWaitGroup.Done()
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				terminate()
 			}
-		}()
-		select {
-		case <-g.IsTerminate():
-			terminate()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
 
 // RunAtShutdown creates a go-routine to run the provided function at shutdown
 func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtShutdown = append(g.toRunAtShutdown,
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtShutdown: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				shutdown()
 			}
-		}()
-		select {
-		case <-g.IsShutdown():
-			shutdown()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
 
 // RunAtHammer creates a go-routine to run the provided function at shutdown
 func (g *Manager) RunAtHammer(ctx context.Context, hammer func()) {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
+	g.lock.Lock()
+	defer g.lock.Unlock()
+	g.toRunAtHammer = append(g.toRunAtHammer,
+		func() {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
+				}
+			}()
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				hammer()
 			}
-		}()
-		select {
-		case <-g.IsHammer():
-			hammer()
-		case <-ctx.Done():
-		}
-	}()
+		})
 }
 func (g *Manager) doShutdown() {
 	if !g.setStateTransition(stateRunning, stateShuttingDown) {
 		return
 	}
 	g.lock.Lock()
-	close(g.shutdown)
+	g.shutdownCancel()
+	for _, fn := range g.toRunAtShutdown {
+		go fn()
+	}
 	g.lock.Unlock()
 
 	if setting.GracefulHammerTime >= 0 {
@@ -203,7 +227,7 @@ func (g *Manager) doShutdown() {
 		g.doTerminate()
 		g.WaitForTerminate()
 		g.lock.Lock()
-		close(g.done)
+		g.doneCancel()
 		g.lock.Unlock()
 	}()
 }
@@ -212,10 +236,13 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	time.Sleep(d)
 	g.lock.Lock()
 	select {
-	case <-g.hammer:
+	case <-g.hammer.Done():
 	default:
 		log.Warn("Setting Hammer condition")
-		close(g.hammer)
+		g.hammerCancel()
+		for _, fn := range g.toRunAtHammer {
+			go fn()
+		}
 	}
 	g.lock.Unlock()
 }
@@ -226,10 +253,13 @@ func (g *Manager) doTerminate() {
 	}
 	g.lock.Lock()
 	select {
-	case <-g.terminate:
+	case <-g.terminate.Done():
 	default:
 		log.Warn("Terminating")
-		close(g.terminate)
+		g.terminateCancel()
+		for _, fn := range g.toRunAtTerminate {
+			go fn()
+		}
 	}
 	g.lock.Unlock()
 }
@@ -242,7 +272,7 @@ func (g *Manager) IsChild() bool {
 // IsShutdown returns a channel which will be closed at shutdown.
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 func (g *Manager) IsShutdown() <-chan struct{} {
-	return g.shutdown
+	return g.shutdown.Done()
 }
 
 // IsHammer returns a channel which will be closed at hammer
@@ -250,14 +280,14 @@ func (g *Manager) IsShutdown() <-chan struct{} {
 // Servers running within the running server wait group should respond to IsHammer
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
-	return g.hammer
+	return g.hammer.Done()
 }
 
 // IsTerminate returns a channel which will be closed at terminate
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 // IsTerminate will only close once all running servers have stopped
 func (g *Manager) IsTerminate() <-chan struct{} {
-	return g.terminate
+	return g.terminate.Done()
 }
 
 // ServerDone declares a running server done and subtracts one from the
@@ -314,25 +344,20 @@ func (g *Manager) InformCleanup() {
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
-	return g.done
+	return g.done.Done()
 }
 
-// Err allows the manager to be viewed as a context.Context done at Terminate, it returns ErrTerminate
+// Err allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Err() error {
-	select {
-	case <-g.Done():
-		return ErrTerminate
-	default:
-		return nil
-	}
+	return g.done.Err()
 }
 
 // Value allows the manager to be viewed as a context.Context done at Terminate, it has no values
 func (g *Manager) Value(key interface{}) interface{} {
-	return nil
+	return g.done.Value(key)
 }
 
 // Deadline returns nil as there is no fixed Deadline for the manager, it allows the manager to be viewed as a context.Context
 func (g *Manager) Deadline() (deadline time.Time, ok bool) {
-	return
+	return g.done.Deadline()
 }
