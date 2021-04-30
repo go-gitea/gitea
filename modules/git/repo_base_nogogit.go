@@ -71,6 +71,9 @@ func (repo *Repository) CatFileBatchCheck() (WriteCloserError, *bufio.Reader, fu
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
 func (repo *Repository) Close() {
+	if repo == nil {
+		return
+	}
 	if repo.batchCancel != nil {
 		repo.batchCancel()
 		repo.batchReader = nil
