@@ -21,7 +21,8 @@
 //     - text/html
 //
 //     Security:
-//     - BasicOrReverseProxyAuth :
+//     - BasicAuth :
+//     - ReverseProxyAuth :
 //     - Token :
 //     - AccessToken :
 //     - AuthorizationHeaderToken :
@@ -30,9 +31,11 @@
 //     - TOTPHeader :
 //
 //     SecurityDefinitions:
-//     BasicOrReverseProxyAuth:
-//          type: basicOrReverseProxy
-//          description: Basic auth or rexerse proxy auth using HTTP header.
+//     BasicAuth:
+//          type: basic
+//     ReverseProxyAuth:
+//          type: reverseProxy
+//          description: Reverse proxy auth using HTTP header.
 //     Token:
 //          type: apiKey
 //          name: token
