@@ -301,7 +301,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return setting.AppSubURL + "/org/" + u.Name + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard/"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -314,6 +314,11 @@ func (u *User) HomeLink() string {
 // HTMLURL returns the user or organization's full link.
 func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
+}
+
+// OrganisationLink returns the organization sub page link.
+func (u *User) OrganisationLink() string {
+	return setting.AppSubURL + "/org/" + u.Name
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.

@@ -59,7 +59,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MIRROR_QUEUE_LENGTH`: **1000**: Patch test queue length, increase if pull request patch
    testing starts hanging.
 - `PREFERRED_LICENSES`: **Apache License 2.0,MIT License**: Preferred Licenses to place at
-   the top of the list. Name must match file name in conf/license or custom/conf/license.
+   the top of the list. Name must match file name in options/license or custom/options/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
