@@ -53,7 +53,7 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start(ctx context.Context) {
-	// Make channels
+	// Make contexts
 	g.terminate, g.terminateCancel = context.WithCancel(ctx)
 	g.shutdown, g.shutdownCancel = context.WithCancel(ctx)
 	g.hammer, g.hammerCancel = context.WithCancel(ctx)
