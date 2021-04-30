@@ -179,7 +179,7 @@ hammerLoop:
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
 			}
-		case <-g.hammer:
+		case <-g.hammer.Done():
 			break hammerLoop
 		}
 	}
