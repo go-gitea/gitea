@@ -49,7 +49,7 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
-		return io.NopCloser(bytes.NewReader(bs)), err
+		return ioutil.NopCloser(bytes.NewReader(bs)), err
 	}
 
 	return &blobReader{
