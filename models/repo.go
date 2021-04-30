@@ -1473,6 +1473,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&RepoUnit{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1485,10 +1488,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
-		return err
-	}
-
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
