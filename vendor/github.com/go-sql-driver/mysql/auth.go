@@ -15,6 +15,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"sync"
 )
 
@@ -136,10 +137,6 @@ func pwHash(password []byte) (result [2]uint32) {
 
 // Hash password using insecure pre 4.1 method
 func scrambleOldPassword(scramble []byte, password string) []byte {
-	if len(password) == 0 {
-		return nil
-	}
-
 	scramble = scramble[:8]
 
 	hashPw := pwHash([]byte(password))
@@ -246,6 +243,9 @@ func (mc *mysqlConn) auth(authData []byte, plugin string) ([]byte, error) {
 	case "mysql_old_password":
 		if !mc.cfg.AllowOldPasswords {
 			return nil, ErrOldPassword
+		}
+		if len(mc.cfg.Passwd) == 0 {
+			return nil, nil
 		}
 		// Note: there are edge cases where this should work but doesn't;
 		// this is currently "wontfix":
@@ -372,7 +372,10 @@ func (mc *mysqlConn) handleAuthResult(oldAuthData []byte, plugin string) error {
 							return err
 						}
 
-						block, _ := pem.Decode(data[1:])
+						block, rest := pem.Decode(data[1:])
+						if block == nil {
+							return fmt.Errorf("No Pem data found, data: %s", rest)
+						}
 						pkix, err := x509.ParsePKIXPublicKey(block.Bytes)
 						if err != nil {
 							return err

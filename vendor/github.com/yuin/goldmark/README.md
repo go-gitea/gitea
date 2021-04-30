@@ -303,7 +303,7 @@ This extension has some options:
 | `extension.WithFootnoteBacklinkClass` | `[]byte` |  a class for footnote backlinks. This defaults to `footnote-backref`. |
 | `extension.WithFootnoteBacklinkHTML` | `[]byte` |  a class for footnote backlinks. This defaults to `&#x21a9;&#xfe0e;`. |
 
-Some options can have special substitutions. Occurances of “^^” in the string will be replaced by the corresponding footnote number in the HTML output. Occurances of “%%” will be replaced by a number for the reference (footnotes can have multiple references).
+Some options can have special substitutions. Occurrences of “^^” in the string will be replaced by the corresponding footnote number in the HTML output. Occurrences of “%%” will be replaced by a number for the reference (footnotes can have multiple references).
 
 `extension.WithFootnoteIDPrefix` and `extension.WithFootnoteIDPrefixFunction` are useful if you have multiple Markdown documents displayed inside one HTML document to avoid footnote ids to clash each other.
 

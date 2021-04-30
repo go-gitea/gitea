@@ -119,7 +119,7 @@ func fixPublisherIDforTagReleases(x *xorm.Engine) error {
 			commit, err := gitRepo.GetTagCommit(release.TagName)
 			if err != nil {
 				if git.IsErrNotExist(err) {
-					log.Warn("Unable to find commit %s for Tag: %s in %-v. Cannot update publisher ID.", err.(*git.ErrNotExist).ID, release.TagName, repo)
+					log.Warn("Unable to find commit %s for Tag: %s in %-v. Cannot update publisher ID.", err.(git.ErrNotExist).ID, release.TagName, repo)
 					continue
 				}
 				log.Error("Error whilst getting commit for Tag: %s in %-v.", release.TagName, repo)
