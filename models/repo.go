@@ -1471,7 +1471,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&RepoIndexerStatus{RepoID: repoID},
 		&RepoRedirect{RedirectRepoID: repoID},
 		&RepoUnit{RepoID: repoID},
-		&RepoUnit{RepoID: repoID},
 		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
 		&Watch{RepoID: repoID},
