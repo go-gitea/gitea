@@ -118,7 +118,7 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 // ConvertToSHA1 returns a Hash object from a potential ID string
 func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 {
+	if len(commitID) == 40 && SHAPattern.MatchString(commitID) {
 		sha1, err := NewIDFromString(commitID)
 		if err == nil {
 			return sha1, nil
@@ -139,5 +139,5 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		return SHA1{}, err
 	}
 
-	return MustID(sha), nil
+	return MustIDFromString(string(sha)), nil
 }

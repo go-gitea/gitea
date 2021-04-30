@@ -82,6 +82,7 @@ func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 // ReadBatchLine reads the header line from cat-file --batch
 // We expect:
 // <sha> SP <type> SP <size> LF
+// sha is a 40byte not 20byte here
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	sha, err = rd.ReadBytes(' ')
 	if err != nil {
