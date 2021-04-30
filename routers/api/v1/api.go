@@ -63,7 +63,7 @@
 //          type: apiKey
 //          name: X-GITEA-OTP
 //          in: header
-//          description: Must be used in combination with BasicOrReverseProxyAuth if two-factor authentication is enabled.
+//          description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
