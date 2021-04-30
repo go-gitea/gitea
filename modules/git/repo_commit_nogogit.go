@@ -115,3 +115,29 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 		}
 	}
 }
+
+// ConvertToSHA1 returns a Hash object from a potential ID string
+func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
+	if len(commitID) == 40 {
+		sha1, err := NewIDFromString(commitID)
+		if err == nil {
+			return sha1, nil
+		}
+	}
+
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(commitID + "\n"))
+	if err != nil {
+		return SHA1{}, err
+	}
+	sha, _, _, err := ReadBatchLine(rd)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return SHA1{}, ErrNotExist{commitID, ""}
+		}
+		return SHA1{}, err
+	}
+
+	return MustID(sha), nil
+}
