@@ -35,7 +35,10 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 
 	wr, rd, cancel := repo.CatFileBatchCheck()
 	defer cancel()
-	wr.Write([]byte(commitID + "\n"))
+	_, err := wr.Write([]byte(commitID + "\n"))
+	if err != nil {
+		return SHA1{}, err
+	}
 	sha, _, _, err := ReadBatchLine(rd)
 	if err != nil {
 		if IsErrNotExist(err) {
