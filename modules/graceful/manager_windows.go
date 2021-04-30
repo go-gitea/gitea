@@ -66,11 +66,14 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start() {
+
 	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
+	g.terminate, g.terminateCancel = context.WithCancel(ctx)
+	g.shutdown, g.shutdownCancel = context.WithCancel(ctx)
+	g.hammer, g.hammerCancel = context.WithCancel(ctx)
+	g.done, g.doneCancel = context.WithCancel(ctx)
+
+	// Make channels
 	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
