@@ -103,6 +103,7 @@ func InstallRoutes() *web.Route {
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
+			Prefix:      "/assets",
 		},
 	))
 
