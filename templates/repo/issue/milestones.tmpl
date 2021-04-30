@@ -12,34 +12,52 @@
 		</div>
 		<div class="ui divider"></div>
 		{{template "base/alert" .}}
-		<div class="ui compact tiny menu">
-			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open">
-				{{svg "octicon-milestone" 16 "mr-3"}}
-				{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
-			</a>
-			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed">
-				{{svg "octicon-milestone" 16 "mr-3"}}
-				{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
-			</a>
-		</div>
 
-		<div class="ui right floated secondary filter menu">
-		<!-- Sort -->
-			<div class="ui dropdown type jump item">
-				<span class="text">
-					{{.i18n.Tr "repo.issues.filter_sort"}}
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				</span>
-				<div class="menu">
-					<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-					<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
-					<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-					<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-					<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?sort=mostissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-					<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?sort=leastissues&state={{$.State}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+		<div class="ui three column stackable grid">
+			<div class="column">
+				<div class="ui compact tiny menu">
+					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
+						{{svg "octicon-milestone" 16 "mr-3"}}
+						{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
+					</a>
+					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
+						{{svg "octicon-milestone" 16 "mr-3"}}
+						{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
+					</a>
+				</div>
+			</div>
+
+			<!-- Search -->
+			<div class="column center aligned">
+				<form class="ui form ignore-dirty">
+					<div class="ui search fluid action input">
+						<input type="hidden" name="state" value="{{$.State}}"/>
+						<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
+						<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+					</div>
+				</form>
+			</div>
+
+			<div class="column right aligned df ac je">
+				<!-- Sort -->
+				<div class="ui dropdown type jump item">
+					<span class="text">
+						{{.i18n.Tr "repo.issues.filter_sort"}}
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</span>
+					<div class="menu">
+						<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
+						<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+						<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+						<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+						<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+						<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+					</div>
 				</div>
 			</div>
 		</div>
+
+		<!-- milestone list -->
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">

@@ -91,7 +91,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		strings.HasSuffix(ctx.Req.URL.Path, "git-upload-archive") {
 		isPull = true
 	} else {
-		isPull = (ctx.Req.Method == "GET")
+		isPull = ctx.Req.Method == "GET"
 	}
 
 	var accessMode models.AccessMode
@@ -103,9 +103,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	isWiki := false
 	var unitType = models.UnitTypeCode
+	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
 		unitType = models.UnitTypeWiki
+		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
 
@@ -314,6 +316,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
+		if isWiki { // you cannot send wiki operation before create the repository
+			ctx.HandleText(http.StatusNotFound, "Repository not found")
+			return
+		}
+
 		if owner.IsOrganization() && !setting.Repository.EnablePushCreateOrg {
 			ctx.HandleText(http.StatusForbidden, "Push to create is not enabled for organizations.")
 			return
@@ -363,6 +370,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	r.URL.Path = strings.ToLower(r.URL.Path) // blue: In case some repo name has upper case name
 
 	dir := models.RepoPath(username, reponame)
+	if isWiki {
+		dir = models.RepoPath(username, wikiRepoName)
+	}
 
 	return &serviceHandler{cfg, w, r, dir, cfg.Env}
 }

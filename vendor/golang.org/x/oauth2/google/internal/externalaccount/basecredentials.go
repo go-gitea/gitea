@@ -14,7 +14,9 @@ import (
 )
 
 // now aliases time.Now for testing
-var now = time.Now
+var now = func() time.Time {
+	return time.Now().UTC()
+}
 
 // Config stores the configuration for fetching tokens with external credentials.
 type Config struct {

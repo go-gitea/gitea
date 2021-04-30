@@ -1,11 +1,15 @@
+<p align="center">
+  <a href="https://uptrace.dev/?utm_source=gh-redis&utm_campaign=gh-redis-banner1">
+    <img src="https://raw.githubusercontent.com/uptrace/roadmap/master/banner1.png" alt="All-in-one tool to optimize performance and monitor errors & logs">
+  </a>
+</p>
+
 # Redis client for Golang
 
-[![Build Status](https://travis-ci.org/go-redis/redis.png?branch=master)](https://travis-ci.org/go-redis/redis)
+![build workflow](https://github.com/go-redis/redis/actions/workflows/build.yml/badge.svg)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-redis/redis/v8)](https://pkg.go.dev/github.com/go-redis/redis/v8?tab=doc)
 [![Documentation](https://img.shields.io/badge/redis-documentation-informational)](https://redis.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
-
-> :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://redis.uptrace.dev)
@@ -129,10 +133,13 @@ vals, err := rdb.Eval(ctx, "return {KEYS[1],ARGV[1]}", []string{"key"}, "hello")
 // custom command
 res, err := rdb.Do(ctx, "set", "key", "value").Result()
 ```
+
 ## Run the test
-go-redis will start a redis-server and run the test cases. 
+
+go-redis will start a redis-server and run the test cases.
 
 The paths of redis-server bin file and redis config file are definded in `main_test.go`:
+
 ```
 var (
 	redisServerBin, _  = filepath.Abs(filepath.Join("testdata", "redis", "src", "redis-server"))
@@ -140,13 +147,16 @@ var (
 )
 ```
 
-For local testing, you can change the variables to refer to your local files, or create a soft link to the corresponding folder for redis-server and copy the config file to `testdata/redis/`:
+For local testing, you can change the variables to refer to your local files, or create a soft link
+to the corresponding folder for redis-server and copy the config file to `testdata/redis/`:
+
 ```
 ln -s /usr/bin/redis-server ./go-redis/testdata/redis/src
 cp ./go-redis/testdata/redis.conf ./go-redis/testdata/redis/
 ```
 
 Lastly, run:
+
 ```
 go test
 ```

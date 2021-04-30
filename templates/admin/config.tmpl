@@ -70,7 +70,7 @@
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
 					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
-					<dd>{{if not .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+					<dd>{{if .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
 					<dd>{{.SSH.Domain}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>

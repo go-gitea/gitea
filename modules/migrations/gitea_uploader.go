@@ -116,6 +116,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
+		LFS:            opts.LFS,
+		LFSEndpoint:    opts.LFSEndpoint,
 		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
@@ -283,7 +285,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					}
 				}
 				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				return err
 			}()
 			if err != nil {

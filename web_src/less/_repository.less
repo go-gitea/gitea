@@ -201,16 +201,23 @@
     .clone.button {
       font-size: 13px;
       padding: 7.5px 5px;
-
-      &:first-child {
-        border-radius: var(--border-radius) 0 0 var(--border-radius);
-      }
     }
 
     #repo-clone-https,
-    #repo-clone-ssh,
-    #clipboard-btn {
+    #repo-clone-ssh {
       border-right: none;
+    }
+
+    #download-btn {
+      border-left: none;
+    }
+
+    button:first-of-type {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    button:last-of-type {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
     }
 
     .icon.button {
@@ -389,15 +396,10 @@
 
         .file-actions {
           .btn-octicon {
-            display: inline-block;
-            padding: 5px;
-            margin-left: 5px;
             line-height: 1;
-            color: var(--color-text);
+            padding: 10px 8px;
             vertical-align: middle;
-            background: transparent;
-            border: 0;
-            outline: none;
+            color: var(--color-text);
           }
 
           .btn-octicon:hover {
@@ -405,7 +407,7 @@
           }
 
           .btn-octicon-danger:hover {
-            color: #bd2c00;
+            color: var(--color-red);
           }
 
           .btn-octicon.disabled {
@@ -423,13 +425,18 @@
       .view-raw {
         padding: 5px;
 
-        * {
+        > * {
           max-width: 100%;
+          border: 1px solid var(--color-secondary);
         }
 
         img {
+          margin: 1rem 0;
           border-radius: 0;
+          object-fit: contain;
         }
+
+        /* also see misc.css for one more related rule */
       }
 
       .plain-text {
@@ -1021,11 +1028,6 @@
             color: var(--color-text-light-2);
             font-style: italic;
           }
-
-          .dropzone-attachments .thumbnails .ui.image {
-            max-height: 150px;
-          }
-
         }
 
         .ui.form {
@@ -1107,15 +1109,6 @@
 
         .segments {
           box-shadow: none;
-
-          .show-outdated,
-          .hide-outdated {
-            display: block;
-          }
-
-          .label {
-            margin-left: 6px;
-          }
         }
       }
     }
@@ -1270,7 +1263,7 @@
         max-width: 90px;
 
         &:last-child {
-          border-left: 1px solid var(--color-secondary);
+          border-left: 1px solid var(--color-secondary-dark-2);
         }
       }
 
@@ -1289,7 +1282,7 @@
       .bar {
         height: 4px;
         position: absolute;
-        background-color: var(--color-secondary);
+        background-color: var(--color-secondary-dark-2);
 
         &.bar-behind {
           right: 0;
@@ -1455,6 +1448,65 @@
     }
   }
 
+  .data-table {
+    width: 100%;
+
+    tr {
+      border-top: 0;
+    }
+
+    td,
+    th {
+      padding: 5px !important;
+      overflow: hidden;
+      font-size: 12px;
+      text-align: left;
+      white-space: nowrap;
+      border: 1px solid var(--color-secondary);
+    }
+
+    td {
+      white-space: pre-line;
+    }
+
+    th {
+      font-weight: 600;
+      background: var(--color-box-header);
+      border-top: 0;
+    }
+
+    td.added,
+    th.added,
+    tr.added {
+      background-color: var(--color-diff-added-row-bg) !important;
+    }
+
+    td.removed,
+    th.removed,
+    tr.removed {
+      background-color: var(--color-diff-removed-row-bg) !important;
+    }
+
+    tbody.section {
+      border-top: 2px solid var(--color-secondary);
+    }
+
+    .line-num {
+      width: 1%;
+      min-width: 50px;
+      font-family: monospace;
+      line-height: 20px;
+      color: var(--color-secondary-dark-2);
+      white-space: nowrap;
+      vertical-align: top;
+      cursor: pointer;
+      user-select: none;
+      text-align: right;
+      background: var(--color-body);
+      border: 0;
+    }
+  }
+
   .diff-detail-box {
     padding: 7px 0;
     background: var(--color-body);
@@ -1576,9 +1628,6 @@
   }
 
   .diff-file-box {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-
     .header {
       background-color: var(--color-box-header);
     }
@@ -2436,29 +2485,6 @@
   padding-top: 15px;
 }
 
-.ui.form {
-  .dropzone {
-    border: 2px dashed var(--color-secondary);
-    background: none;
-    box-shadow: none !important;
-    padding: 0;
-    min-height: 5rem;
-    border-radius: 4px;
-
-    .dz-button {
-      color: rgba(0, 0, 0, .6);
-    }
-
-    &:hover .dz-button {
-      color: rgba(0, 0, 0, .8);
-    }
-
-    .dz-error-message {
-      top: 140px;
-    }
-  }
-}
-
 .settings {
   .content {
     margin-top: 2px;
@@ -2914,82 +2940,6 @@ tbody.commit-list {
   padding-top: 0 !important;
 }
 
-.board {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  margin: 0 .5em;
-}
-
-.board-column {
-  background-color: rgba(0, 0, 0, .05) !important;
-  border: 1px solid var(--color-secondary) !important;
-  margin: 0 .5rem !important;
-  padding: .5rem !important;
-  width: 320px;
-  height: 60vh;
-  overflow-y: scroll;
-  flex: 0 0 auto;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-}
-
-.board-column-header {
-  display: flex;
-  justify-content: space-between;
-}
-
-.board-label {
-  background: none !important;
-  line-height: 1.25 !important;
-}
-
-.board-column > .cards {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin: 0 !important;
-  padding: 0 !important;
-
-  .card .meta > a.milestone {
-    color: #999999;
-  }
-}
-
-.board-column > .divider {
-  margin: 5px 0;
-}
-
-.board-column:first-child {
-  margin-left: auto !important;
-}
-
-.board-column:last-child {
-  margin-right: auto !important;
-}
-
-.board-card {
-  margin: 3px !important;
-  width: auto !important;
-  background-color: #fff;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.board-card .header {
-  font-size: 1.1em !important;
-}
-
-.board-card .content {
-  padding: 8px 8px 5px !important;
-}
-
-.board-card .extra.content {
-  padding: 5px 8px !important;
-}
-
 td.blob-excerpt {
   background-color: #fafafa;
 }
@@ -3029,8 +2979,8 @@ td.blob-excerpt {
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
-  background-color: #f8f8f8;
-  border: 1px solid #dddddd;
+  background-color: var(--color-markdown-code-block);
+  border: 1px solid var(--color-secondary);
   border-radius: 3px;
   font-size: 13px;
   line-height: 1.5;

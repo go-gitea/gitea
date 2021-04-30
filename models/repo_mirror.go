@@ -25,6 +25,9 @@ type Mirror struct {
 	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX"`
 
+	LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
+	LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
+
 	Address string `xorm:"-"`
 }
 

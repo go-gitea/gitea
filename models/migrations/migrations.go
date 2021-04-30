@@ -302,6 +302,13 @@ var migrations = []Migration{
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+
+	// Gitea 1.14.0 ends at v178
+
+	// v178 -> v179
+	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -819,9 +826,24 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
+		sql = fmt.Sprintf("SELECT DISTINCT Name FROM SYS.INDEXES INNER JOIN SYS.INDEX_COLUMNS ON INDEXES.INDEX_ID = INDEX_COLUMNS.INDEX_ID AND INDEXES.OBJECT_ID = INDEX_COLUMNS.OBJECT_ID WHERE INDEXES.OBJECT_ID = OBJECT_ID('%[1]s') AND INDEX_COLUMNS.COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.ReplaceAll(cols, "`", "'"))
+		constraints = make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT IF EXISTS `%s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop table `%s` index constraint `%s`: %v", tableName, constraint, err)
+			}
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX IF EXISTS `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+			}
+		}
+
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}
