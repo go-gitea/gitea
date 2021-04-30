@@ -29,7 +29,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedLabels(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned labels")
+				logger.Critical("Error: %v whilst deleting orphaned labels", err)
 				return err
 			}
 			logger.Info("%d labels without existing repository/organisation deleted", count)
@@ -47,7 +47,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedIssueLabels(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned issue_labels")
+				logger.Critical("Error: %v whilst deleting orphaned issue_labels", err)
 				return err
 			}
 			logger.Info("%d issue_labels without existing label deleted", count)
@@ -65,7 +65,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedIssues(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned issues")
+				logger.Critical("Error: %v whilst deleting orphaned issues", err)
 				return err
 			}
 			logger.Info("%d issues without existing repository deleted", count)
@@ -83,7 +83,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects")
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
 				return err
 			}
 			logger.Info("%d pull requests without existing issue deleted", count)
@@ -101,7 +101,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if count > 0 {
 		if autofix {
 			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects")
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
 				return err
 			}
 			logger.Info("%d tracked times without existing issue deleted", count)
@@ -120,7 +120,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		if autofix {
 			updatedCount, err := models.FixNullArchivedRepository()
 			if err != nil {
-				logger.Critical("Error: %v whilst fixing null archived repositories")
+				logger.Critical("Error: %v whilst fixing null archived repositories", err)
 				return err
 			}
 			logger.Info("%d repositories with null is_archived updated", updatedCount)
@@ -139,7 +139,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		if autofix {
 			updatedCount, err := models.FixCommentTypeLabelWithEmptyLabel()
 			if err != nil {
-				logger.Critical("Error: %v whilst removing label comments with empty labels")
+				logger.Critical("Error: %v whilst removing label comments with empty labels", err)
 				return err
 			}
 			logger.Info("%d label comments with empty labels removed", updatedCount)
@@ -197,13 +197,31 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			if autofix {
 				err := models.FixBadSequences()
 				if err != nil {
-					logger.Critical("Error: %v whilst attempting to fix sequences")
+					logger.Critical("Error: %v whilst attempting to fix sequences", err)
 					return err
 				}
 				logger.Info("%d sequences updated", count)
 			} else {
 				logger.Warn("%d sequences with incorrect values", count)
 			}
+		}
+	}
+
+	// find protected branches without existing repository
+	count, err = models.CountOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects")
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d protected branches without existing repository deleted", count)
+		} else {
+			logger.Warn("%d protected branches without existing repository", count)
 		}
 	}
 

@@ -747,7 +747,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
@@ -1472,6 +1472,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&Task{RepoID: repoID},
+		&ProtectedBranch{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
