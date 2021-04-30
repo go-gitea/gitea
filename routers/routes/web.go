@@ -719,9 +719,11 @@ func RegisterRoutes(m *web.Route) {
 			}, repo.MustBeNotEmpty)
 
 			m.Group("/tags", func() {
-				m.Combo("").Get(repo.Tags).
-					Post(bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.ProtectedTagPost)
-				m.Post("/delete", context.RepoMustNotBeArchived(), repo.ProtectedTagDelete)
+				m.Get("", repo.Tags)
+				m.Post("", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.NewProtectedTagPost)
+				m.Post("/delete", context.RepoMustNotBeArchived(), repo.DeleteProtectedTagPost)
+				m.Get("/{id}", repo.EditProtectedTag)
+				m.Post("/{id}", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.EditProtectedTagPost)
 			})
 
 			m.Group("/hooks/git", func() {

@@ -61,7 +61,13 @@
 									</div>
 								{{end}}
 								<div class="field">
-									<button class="ui green button">{{$.i18n.Tr "repo.settings.tags.protection.create"}}</button>
+									<button class="ui green button">
+										{{if .PageIsEditProtectedTag}}
+											{{$.i18n.Tr "save"}}
+										{{else}}
+											{{$.i18n.Tr "repo.settings.tags.protection.create"}}
+										{{end}}
+									</button>
 								</div>
 							</form>
 						</div>
@@ -99,7 +105,8 @@
 											{{end}}
 										</td>
 										<td class="right aligned">
-											<form class="ui form" action="{{$.Link}}/delete" method="post">
+											<a class="ui tiny blue button" href="{{$.Link}}/{{.ID}}">{{$.i18n.Tr "edit"}}</a>
+											<form style="display: inline-block" action="{{$.Link}}/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}" />
 												<button class="ui tiny red button">{{$.i18n.Tr "remove"}}</button>

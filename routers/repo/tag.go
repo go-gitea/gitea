@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -27,8 +26,8 @@ func Tags(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTags)
 }
 
-// ProtectedTagPost handles creation of a protect tag
-func ProtectedTagPost(ctx *context.Context) {
+// NewProtectedTagPost handles creation of a protect tag
+func NewProtectedTagPost(ctx *context.Context) {
 	if setTagsContext(ctx) != nil {
 		return
 	}
@@ -62,11 +61,66 @@ func ProtectedTagPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 }
 
-// ProtectedTagDelete handles deletion of a protected tag
-func ProtectedTagDelete(ctx *context.Context) {
+// EditProtectedTag render the page to edit a protect tag
+func EditProtectedTag(ctx *context.Context) {
+	if setTagsContext(ctx) != nil {
+		return
+	}
+
+	ctx.Data["PageIsEditProtectedTag"] = true
+
 	pt, err := selectProtectedTagByContext(ctx)
 	if err != nil {
-		ctx.NotFound("", nil)
+		ctx.NotFound("", err)
+		return
+	}
+
+	ctx.Data["name_pattern"] = pt.NamePattern
+	ctx.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(pt.WhitelistUserIDs), ",")
+	ctx.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(pt.WhitelistTeamIDs), ",")
+
+	ctx.HTML(http.StatusOK, tplTags)
+}
+
+// EditProtectedTagPost handles creation of a protect tag
+func EditProtectedTagPost(ctx *context.Context) {
+	if setTagsContext(ctx) != nil {
+		return
+	}
+
+	ctx.Data["PageIsEditProtectedTag"] = true
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplTags)
+		return
+	}
+
+	pt, err := selectProtectedTagByContext(ctx)
+	if err != nil {
+		ctx.NotFound("", err)
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.ProtectTagForm)
+
+	pt.NamePattern = form.NamePattern
+	pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
+	pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
+
+	if err := models.UpdateProtectedTag(pt); err != nil {
+		ctx.ServerError("UpdateProtectedTag", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(ctx.Repo.Repository.Link() + "/settings/tags")
+}
+
+// DeleteProtectedTagPost handles deletion of a protected tag
+func DeleteProtectedTagPost(ctx *context.Context) {
+	pt, err := selectProtectedTagByContext(ctx)
+	if err != nil {
+		ctx.NotFound("", err)
 		return
 	}
 
@@ -115,7 +169,10 @@ func selectProtectedTagByContext(ctx *context.Context) (*models.ProtectedTag, er
 		return nil, err
 	}
 
-	id, _ := strconv.ParseInt(ctx.Query("id"), 10, 64)
+	id := ctx.QueryInt64("id")
+	if id == 0 {
+		id = ctx.ParamsInt64(":id")
+	}
 
 	for _, pt := range pts {
 		if pt.ID == id {
