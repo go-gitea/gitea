@@ -2,9 +2,6 @@ package render
 
 import "bytes"
 
-// bufPool represents a reusable buffer pool for executing templates into.
-var bufPool *BufferPool
-
 // BufferPool implements a pool of bytes.Buffers in the form of a bounded channel.
 // Pulled from the github.com/oxtoacart/bpool package (Apache licensed).
 type BufferPool struct {
@@ -38,9 +35,4 @@ func (bp *BufferPool) Put(b *bytes.Buffer) {
 	case bp.c <- b:
 	default: // Discard the buffer if the pool is full.
 	}
-}
-
-// Initialize buffer pool for writing templates into.
-func init() {
-	bufPool = NewBufferPool(64)
 }
