@@ -834,8 +834,6 @@ func RepoRefByType(refType RepoRefType) func(*Context) {
 		ctx.Data["IsViewTag"] = ctx.Repo.IsViewTag
 		ctx.Data["IsViewCommit"] = ctx.Repo.IsViewCommit
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch()
-		ctx.Data["ShowBranchesInDropdown"] = true
-		ctx.Data["ShowTagsInDropdown"] = true
 
 		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
 		if err != nil {

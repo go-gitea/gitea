@@ -72,10 +72,9 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["IsViewBranch"] = false
 	ctx.Data["IsViewTag"] = true
-	// Disable the showCreateNewBranch form on this page.
+	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
-	ctx.Data["ShowBranchesInDropdown"] = false
-	ctx.Data["ShowTagsInDropdown"] = true
+	ctx.Data["HideBranchesInDropdown"] = true
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")

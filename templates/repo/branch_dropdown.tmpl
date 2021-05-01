@@ -1,4 +1,5 @@
 {{$release := .release}}
+{{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
 <div class="fitted item choose reference{{if not $release}} mr-1{{end}}">
 	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.root.CanCreateBranch}}" data-no-results="{{.root.i18n.Tr "repo.pulls.no_results"}}">
 		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
@@ -14,23 +15,21 @@
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
 		<div class="data" style="display: none" data-mode="{{if .root.IsViewTag}}tags{{else}}branches{{end}}">
-			{{if .root.ShowBranchesInDropdown}}
+			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
 					<div class="item branch {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
 				{{end}}
 			{{end}}
-			{{if .root.ShowTagsInDropdown}}
-				{{range .root.Tags}}
-					<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $release}}compare/{{EscapePound .}}...{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}{{else}}{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}{{end}}">{{.}}</div>
-				{{end}}
+			{{range .root.Tags}}
+				<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $release}}compare/{{EscapePound .}}...{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}{{else}}{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}{{end}}">{{.}}</div>
 			{{end}}
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
 				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if .root.ShowBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
+				<input name="search" ref="searchField" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $showBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
 			</div>
-			{{if and .root.ShowBranchesInDropdown .root.ShowTagsInDropdown}}
+			{{if $showBranchesInDropdown}}
 				<div class="header branch-tag-choice">
 					<div class="ui grid">
 						<div class="two column row">
