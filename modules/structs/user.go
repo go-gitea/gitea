@@ -37,8 +37,8 @@ type User struct {
 	Location string `json:"location"`
 	// the user's website
 	Website string `json:"website"`
-	// the user's biography
-	Description string `json:"bio"`
+	// the user's description
+	Description string `json:"description"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
