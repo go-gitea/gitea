@@ -22,6 +22,7 @@ type CreateOrgOption struct {
 	// required: true
 	UserName    string `json:"username" binding:"Required"`
 	FullName    string `json:"full_name"`
+	Description string `json:"description" binding:"MaxSize(255)"`
 	Website     string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Location    string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public` (default), `limited` or `private`
@@ -33,6 +34,7 @@ type CreateOrgOption struct {
 // EditOrgOption options for editing an organization
 type EditOrgOption struct {
 	FullName    string `json:"full_name"`
+	Description string `json:"description" binding:"MaxSize(255)"`
 	Website     string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Location    string `json:"location" binding:"MaxSize(50)"`
 	// possible values are `public`, `limited` or `private`

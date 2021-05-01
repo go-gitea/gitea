@@ -34,6 +34,7 @@ type EditUserOption struct {
 	MustChangePassword      *bool   `json:"must_change_password"`
 	Website                 *string `json:"website" binding:"ValidUrl;MaxSize(255)"`
 	Location                *string `json:"location" binding:"MaxSize(50)"`
+	Description             *string `json:"description" binding:"MaxSize(255)"`
 	Active                  *bool   `json:"active"`
 	Admin                   *bool   `json:"admin"`
 	AllowGitHook            *bool   `json:"allow_git_hook"`
