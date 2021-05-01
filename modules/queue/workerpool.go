@@ -93,7 +93,7 @@ func (p *WorkerPool) zeroBoost() {
 		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
 
 		start := time.Now()
-		pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
+		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
 		go func() {
 			select {
 			case <-ctx.Done():
@@ -150,7 +150,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
+				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
 				go func() {
 					<-ctx.Done()
 					mq.RemoveWorkers(pid)
