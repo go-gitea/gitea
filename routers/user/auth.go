@@ -1240,7 +1240,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 					}
 				}
 
-				// TODO: probably we should respect 'remeber' user's choice...
+				// TODO: probably we should respect 'remember' user's choice...
 				linkAccount(ctx, user, *gothUser, true)
 				return // user is already created here, all redirects are handled
 			} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingLogin {
@@ -1327,12 +1327,11 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 // Activate render activate user page
 func Activate(ctx *context.Context) {
 	code := ctx.Query("code")
-	password := ctx.Query("password")
 
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
-		if ctx.User.IsActive {
-			ctx.Error(http.StatusNotFound)
+		if ctx.User == nil || ctx.User.IsActive {
+			ctx.NotFound("invalid user", nil)
 			return
 		}
 		// Resend confirmation email.
@@ -1364,6 +1363,34 @@ func Activate(ctx *context.Context) {
 
 	// if account is local account, verify password
 	if user.LoginSource == 0 {
+		ctx.Data["Code"] = code
+		ctx.Data["NeedsPassword"] = true
+		ctx.HTML(http.StatusOK, TplActivate)
+		return
+	}
+
+	handleAccountActivation(ctx, user)
+}
+
+// ActivatePost handles account activation with password check
+func ActivatePost(ctx *context.Context) {
+	code := ctx.Query("code")
+	if len(code) == 0 {
+		ctx.Redirect(setting.AppSubURL + "/user/activate")
+		return
+	}
+
+	user := models.VerifyUserActiveCode(code)
+	// if code is wrong
+	if user == nil {
+		ctx.Data["IsActivateFailed"] = true
+		ctx.HTML(http.StatusOK, TplActivate)
+		return
+	}
+
+	// if account is local account, verify password
+	if user.LoginSource == 0 {
+		password := ctx.Query("password")
 		if len(password) == 0 {
 			ctx.Data["Code"] = code
 			ctx.Data["NeedsPassword"] = true
@@ -1377,6 +1404,10 @@ func Activate(ctx *context.Context) {
 		}
 	}
 
+	handleAccountActivation(ctx, user)
+}
+
+func handleAccountActivation(ctx *context.Context, user *models.User) {
 	user.IsActive = true
 	var err error
 	if user.Rands, err = models.GetUserSalt(); err != nil {
@@ -1385,7 +1416,7 @@ func Activate(ctx *context.Context) {
 	}
 	if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
 		if models.IsErrUserNotExist(err) {
-			ctx.Error(http.StatusNotFound)
+			ctx.NotFound("UpdateUserCols", err)
 		} else {
 			ctx.ServerError("UpdateUser", err)
 		}
