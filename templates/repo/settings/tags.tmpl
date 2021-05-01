@@ -96,7 +96,7 @@
 													{{$teamIDs := .WhitelistTeamIDs}}
 													{{range $.Teams}}
 														{{if contain $teamIDs .ID }}
-															<a class="ui basic image label" href="{{AppSubUrl}}/org/{{$.Owner.Name}}/teams/{{.LowerName}}">{{.Name}}</a>
+															<a class="ui basic image label" href="{{$.Owner.OrganisationLink}}/teams/{{.LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
 												{{end}}
