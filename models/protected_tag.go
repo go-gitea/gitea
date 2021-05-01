@@ -15,7 +15,7 @@ import (
 
 // ProtectedTag struct
 type ProtectedTag struct {
-	ID               int64     `xorm:"pk autoincr"`
+	ID               int64 `xorm:"pk autoincr"`
 	RepoID           int64
 	NamePattern      string
 	NameGlob         glob.Glob `xorm:"-"`
