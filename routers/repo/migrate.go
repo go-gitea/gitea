@@ -234,7 +234,7 @@ func MigratePost(ctx *context.Context) {
 
 	err = task.MigrateRepository(ctx.User, ctxUser, opts)
 	if err == nil {
-		ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + opts.RepoName)
+		ctx.Redirect(ctxUser.HomeLink() + "/" + opts.RepoName)
 		return
 	}
 

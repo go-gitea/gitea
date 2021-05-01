@@ -6,6 +6,7 @@
 package flate
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/bits"
 )
@@ -65,26 +66,15 @@ func load32(b []byte, i int) uint32 {
 }
 
 func load64(b []byte, i int) uint64 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:8]
-	return uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 |
-		uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
+	return binary.LittleEndian.Uint64(b[i:])
 }
 
 func load3232(b []byte, i int32) uint32 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:4]
-	return uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
+	return binary.LittleEndian.Uint32(b[i:])
 }
 
 func load6432(b []byte, i int32) uint64 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:8]
-	return uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 |
-		uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
+	return binary.LittleEndian.Uint64(b[i:])
 }
 
 func hash(u uint32) uint32 {
@@ -225,9 +215,9 @@ func (e *fastGen) Reset() {
 func matchLen(a, b []byte) int {
 	b = b[:len(a)]
 	var checked int
-	if len(a) > 4 {
+	if len(a) >= 4 {
 		// Try 4 bytes first
-		if diff := load32(a, 0) ^ load32(b, 0); diff != 0 {
+		if diff := binary.LittleEndian.Uint32(a) ^ binary.LittleEndian.Uint32(b); diff != 0 {
 			return bits.TrailingZeros32(diff) >> 3
 		}
 		// Switch to 8 byte matching.
@@ -236,7 +226,7 @@ func matchLen(a, b []byte) int {
 		b = b[4:]
 		for len(a) >= 8 {
 			b = b[:len(a)]
-			if diff := load64(a, 0) ^ load64(b, 0); diff != 0 {
+			if diff := binary.LittleEndian.Uint64(a) ^ binary.LittleEndian.Uint64(b); diff != 0 {
 				return checked + (bits.TrailingZeros64(diff) >> 3)
 			}
 			checked += 8
@@ -247,7 +237,7 @@ func matchLen(a, b []byte) int {
 	b = b[:len(a)]
 	for i := range a {
 		if a[i] != b[i] {
-			return int(i) + checked
+			return i + checked
 		}
 	}
 	return len(a) + checked

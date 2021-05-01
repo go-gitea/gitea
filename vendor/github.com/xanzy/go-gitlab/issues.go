@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -86,6 +87,7 @@ type IssueLinks struct {
 type Issue struct {
 	ID                   int              `json:"id"`
 	IID                  int              `json:"iid"`
+	ExternalID           string           `json:"external_id"`
 	State                string           `json:"state"`
 	Description          string           `json:"description"`
 	Author               *IssueAuthor     `json:"author"`
@@ -98,6 +100,7 @@ type Issue struct {
 	ClosedBy             *IssueCloser     `json:"closed_by"`
 	Title                string           `json:"title"`
 	CreatedAt            *time.Time       `json:"created_at"`
+	MovedToID            int              `json:"moved_to_id"`
 	Labels               Labels           `json:"labels"`
 	LabelDetails         []*LabelDetails  `json:"label_details"`
 	Upvotes              int              `json:"upvotes"`
@@ -136,26 +139,29 @@ func (i *Issue) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if reflect.TypeOf(raw["id"]).Kind() == reflect.String {
+		raw["external_id"] = raw["id"]
+		delete(raw, "id")
+	}
+
 	labelDetails, ok := raw["labels"].([]interface{})
 	if ok && len(labelDetails) > 0 {
 		// We only want to change anything if we got label details.
-		if _, ok := labelDetails[0].(map[string]interface{}); !ok {
-			return json.Unmarshal(data, (*alias)(i))
-		}
+		if _, ok := labelDetails[0].(map[string]interface{}); ok {
+			labels := make([]interface{}, len(labelDetails))
+			for i, details := range labelDetails {
+				labels[i] = details.(map[string]interface{})["name"]
+			}
 
-		labels := make([]interface{}, len(labelDetails))
-		for i, details := range labelDetails {
-			labels[i] = details.(map[string]interface{})["name"]
+			// Set the correct values
+			raw["labels"] = labels
+			raw["label_details"] = labelDetails
 		}
+	}
 
-		// Set the correct values
-		raw["labels"] = labels
-		raw["label_details"] = labelDetails
-
-		data, err = json.Marshal(raw)
-		if err != nil {
-			return err
-		}
+	data, err = json.Marshal(raw)
+	if err != nil {
+		return err
 	}
 
 	return json.Unmarshal(data, (*alias)(i))
