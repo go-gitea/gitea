@@ -17,8 +17,9 @@ import (
 // ByteFIFOQueueConfiguration is the configuration for a ByteFIFOQueue
 type ByteFIFOQueueConfiguration struct {
 	WorkerPoolConfiguration
-	Workers int
-	Name    string
+	Workers     int
+	Name        string
+	WaitOnEmpty bool
 }
 
 var _ Queue = &ByteFIFOQueue{}
@@ -26,14 +27,16 @@ var _ Queue = &ByteFIFOQueue{}
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
 	*WorkerPool
-	byteFIFO   ByteFIFO
-	typ        Type
-	closed     chan struct{}
-	terminated chan struct{}
-	exemplar   interface{}
-	workers    int
-	name       string
-	lock       sync.Mutex
+	byteFIFO    ByteFIFO
+	typ         Type
+	closed      chan struct{}
+	terminated  chan struct{}
+	exemplar    interface{}
+	workers     int
+	name        string
+	lock        sync.Mutex
+	waitOnEmpty bool
+	pushed      chan struct{}
 }
 
 // NewByteFIFOQueue creates a new ByteFIFOQueue
@@ -45,14 +48,16 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 	config := configInterface.(ByteFIFOQueueConfiguration)
 
 	return &ByteFIFOQueue{
-		WorkerPool: NewWorkerPool(handle, config.WorkerPoolConfiguration),
-		byteFIFO:   byteFIFO,
-		typ:        typ,
-		closed:     make(chan struct{}),
-		terminated: make(chan struct{}),
-		exemplar:   exemplar,
-		workers:    config.Workers,
-		name:       config.Name,
+		WorkerPool:  NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		byteFIFO:    byteFIFO,
+		typ:         typ,
+		closed:      make(chan struct{}),
+		terminated:  make(chan struct{}),
+		exemplar:    exemplar,
+		workers:     config.Workers,
+		name:        config.Name,
+		waitOnEmpty: config.WaitOnEmpty,
+		pushed:      make(chan struct{}, 1),
 	}, nil
 }
 
@@ -75,6 +80,14 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
+	}
+	if q.waitOnEmpty {
+		defer func() {
+			select {
+			case q.pushed <- struct{}{}:
+			default:
+			}
+		}()
 	}
 	return q.byteFIFO.PushFunc(bs, fn)
 }
@@ -131,6 +144,16 @@ func (q *ByteFIFOQueue) readToChan() {
 			}
 
 			if len(bs) == 0 {
+				if q.waitOnEmpty && q.byteFIFO.Len() == 0 {
+					q.lock.Unlock()
+					log.Trace("%s: %s Waiting on Empty", q.typ, q.name)
+					select {
+					case <-q.pushed:
+						continue
+					case <-q.closed:
+						continue
+					}
+				}
 				q.lock.Unlock()
 				time.Sleep(time.Millisecond * 100)
 				continue

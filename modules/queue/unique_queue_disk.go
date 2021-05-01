@@ -41,6 +41,7 @@ func NewLevelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
+	config.WaitOnEmpty = true
 
 	byteFIFO, err := NewLevelUniqueQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {

@@ -37,6 +37,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
+	config.WaitOnEmpty = true
 
 	byteFIFO, err := NewLevelQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {
