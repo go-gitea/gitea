@@ -21,7 +21,11 @@
 				{{end}}
 			{{end}}
 			{{range .root.Tags}}
-				<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $release}}compare/{{EscapePound .}}...{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}{{else}}{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}{{end}}">{{.}}</div>
+				{{if $release}}
+					<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/compare/{{EscapePound .}}...{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}">{{.}}</div>
+				{{else}}
+					<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
