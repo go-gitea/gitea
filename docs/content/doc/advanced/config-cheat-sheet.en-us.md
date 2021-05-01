@@ -786,6 +786,13 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
+#### Cron -  Delete all old actions from database ('cron.delete_old_actions')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 128h**: Cron syntax for scheduling a work, e.g. `@every 128h`.
+- `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
