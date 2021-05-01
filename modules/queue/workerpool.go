@@ -95,12 +95,22 @@ func (p *WorkerPool) zeroBoost() {
 		start := time.Now()
 		pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
 		go func() {
-			<-ctx.Done()
+			select {
+			case <-ctx.Done():
+			case <-time.After(p.boostTimeout):
+			}
 			mq.RemoveWorkers(pid)
 			cancel()
 		}()
 	} else {
 		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+		go func() {
+			select {
+			case <-ctx.Done():
+			case <-time.After(p.boostTimeout):
+			}
+			cancel()
+		}()
 	}
 	p.lock.Unlock()
 	p.addWorkers(ctx, boost)
