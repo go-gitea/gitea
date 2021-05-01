@@ -70,12 +70,40 @@ func (p *WorkerPool) Push(data Data) {
 	atomic.AddInt64(&p.numInQueue, 1)
 	p.lock.Lock()
 	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
-		p.lock.Unlock()
+		if p.numberOfWorkers == 0 {
+			p.zeroBoost()
+		} else {
+			p.lock.Unlock()
+		}
 		p.pushBoost(data)
 	} else {
 		p.lock.Unlock()
 		p.dataChan <- data
 	}
+}
+
+func (p *WorkerPool) zeroBoost() {
+	ctx, cancel := context.WithCancel(p.baseCtx)
+	mq := GetManager().GetManagedQueue(p.qid)
+	boost := p.boostWorkers
+	if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
+		boost = p.maxNumberOfWorkers - p.numberOfWorkers
+	}
+	if mq != nil {
+		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
+
+		start := time.Now()
+		pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
+		go func() {
+			<-ctx.Done()
+			mq.RemoveWorkers(pid)
+			cancel()
+		}()
+	} else {
+		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+	}
+	p.lock.Unlock()
+	p.addWorkers(ctx, boost)
 }
 
 func (p *WorkerPool) pushBoost(data Data) {
