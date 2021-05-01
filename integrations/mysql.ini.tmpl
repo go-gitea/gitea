@@ -12,9 +12,9 @@ SSL_MODE = disable
 [indexer]
 ISSUE_INDEXER_TYPE = elasticsearch
 ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
-ISSUE_INDEXER_PATH = integrations/indexers-mysql/issues.bleve
+ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mysql/repos.bleve
+REPO_INDEXER_PATH = integrations/gitea-integration-mysql/indexers/repos.bleve
 
 [queue.code_indexer]
 TYPE = immediate
@@ -26,8 +26,10 @@ TYPE = immediate
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-mysql
-LOCAL_WIKI_PATH = tmp/local-wiki-mysql
+LOCAL_COPY_PATH = integrations/gitea-integration-mysql/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = integrations/gitea-integration-mysql/tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none
