@@ -70,6 +70,12 @@ func TagsList(ctx *context.Context) {
 func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["IsViewBranch"] = false
+	ctx.Data["IsViewTag"] = true
+	// Disable the showCreateNewBranch form on this page.
+	ctx.Data["CanCreateBranch"] = false
+	ctx.Data["ShowBranchesInDropdown"] = false
+	ctx.Data["ShowTagsInDropdown"] = true
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
@@ -78,6 +84,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 		ctx.Data["PageIsTagList"] = false
 	}
+
+	tags, err := ctx.Repo.GitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
