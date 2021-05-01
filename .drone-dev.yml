@@ -490,7 +490,7 @@ trigger:
 
 depends_on:
   - testing-amd64
-  - testing-arm64
+#  - testing-arm64
 
 steps:
   - name: fetch-tags
@@ -584,7 +584,7 @@ trigger:
     - tag
 
 depends_on:
-  - testing-arm64
+#  - testing-arm64
   - testing-amd64
 
 steps:
@@ -698,7 +698,7 @@ platform:
 
 depends_on:
   - testing-amd64
-  - testing-arm64
+#  - testing-arm64
 
 trigger:
   ref:
