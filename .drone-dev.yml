@@ -121,13 +121,6 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
 
-  - name: mssql
-    image: mcr.microsoft.com/mssql/server:latest
-    environment:
-      ACCEPT_EULA: Y
-      MSSQL_PID: Standard
-      SA_PASSWORD: MwantsaSecurePassword1
-
   - name: ldap
     image: gitea/test-openldap:latest
 
@@ -215,52 +208,6 @@ steps:
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
-
-  - name: test-mssql
-    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
-    commands:
-      - make test-mssql-migration test-mssql
-    environment:
-      GOPROXY: off
-      TAGS: bindata
-      TEST_LDAP: 1
-      USE_REPO_TEST_DIR: 1
-    depends_on:
-      - build
-
-  - name: generate-coverage
-    image: golang:1.16
-    commands:
-      - make coverage
-    environment:
-      GOPROXY: off
-      TAGS: bindata
-    depends_on:
-      - unit-test
-      - test-mysql
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
-
-  - name: coverage-codecov
-    pull: always
-    image: plugins/codecov
-    settings:
-      files:
-        - coverage.all
-      token:
-        from_secret: codecov_token
-    depends_on:
-      - generate-coverage
-    when:
-      branch:
-        - master
-      event:
-        - push
-        - pull_request
 
 ---
 kind: pipeline
