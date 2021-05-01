@@ -123,6 +123,13 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
 
+  - name: mssql
+    image: mcr.microsoft.com/mssql/server:latest
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_PID: Standard
+      SA_PASSWORD: MwantsaSecurePassword1
+
   - name: ldap
     image: gitea/test-openldap:latest
 
