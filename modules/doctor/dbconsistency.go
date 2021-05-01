@@ -23,7 +23,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find labels without existing repo or org
 	count, err := models.CountOrphanedLabels()
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned labels")
+		logger.Critical("Error: %v whilst counting orphaned labels", err)
 		return err
 	}
 	if count > 0 {
@@ -41,7 +41,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find IssueLabels without existing label
 	count, err = models.CountOrphanedIssueLabels()
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned issue_labels")
+		logger.Critical("Error: %v whilst counting orphaned issue_labels", err)
 		return err
 	}
 	if count > 0 {
@@ -59,7 +59,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find issues without existing repository
 	count, err = models.CountOrphanedIssues()
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned issues")
+		logger.Critical("Error: %v whilst counting orphaned issues", err)
 		return err
 	}
 	if count > 0 {
@@ -77,7 +77,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find pulls without existing issues
 	count, err = models.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects")
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
 		return err
 	}
 	if count > 0 {
@@ -95,7 +95,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find tracked times without existing issues/pulls
 	count, err = models.CountOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id")
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects")
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
 		return err
 	}
 	if count > 0 {
@@ -113,7 +113,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find null archived repositories
 	count, err = models.CountNullArchivedRepository()
 	if err != nil {
-		logger.Critical("Error: %v whilst counting null archived repositories")
+		logger.Critical("Error: %v whilst counting null archived repositories", err)
 		return err
 	}
 	if count > 0 {
@@ -132,7 +132,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find label comments with empty labels
 	count, err = models.CountCommentTypeLabelWithEmptyLabel()
 	if err != nil {
-		logger.Critical("Error: %v whilst counting label comments with empty labels")
+		logger.Critical("Error: %v whilst counting label comments with empty labels", err)
 		return err
 	}
 	if count > 0 {
@@ -191,7 +191,8 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if setting.Database.UsePostgreSQL {
 		count, err = models.CountBadSequences()
 		if err != nil {
-			logger.Critical("Error: %v whilst checking sequence values")
+			logger.Critical("Error: %v whilst checking sequence values", err)
+			return err
 		}
 		if count > 0 {
 			if autofix {
@@ -210,7 +211,7 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// find protected branches without existing repository
 	count, err = models.CountOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id")
 	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects")
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
 		return err
 	}
 	if count > 0 {
@@ -222,6 +223,42 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Info("%d protected branches without existing repository deleted", count)
 		} else {
 			logger.Warn("%d protected branches without existing repository", count)
+		}
+	}
+
+	// find deleted branches without existing repository
+	count, err = models.CountOrphanedObjects("deleted_branch", "repository", "deleted_branch.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("deleted_branch", "repository", "deleted_branch.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d deleted branches without existing repository deleted", count)
+		} else {
+			logger.Warn("%d deleted branches without existing repository", count)
+		}
+	}
+
+	// find LFS locks without existing repository
+	count, err = models.CountOrphanedObjects("lfs_lock", "repository", "lfs_lock.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("lfs_lock", "repository", "lfs_lock.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d LFS locks without existing repository deleted", count)
+		} else {
+			logger.Warn("%d LFS locks without existing repository", count)
 		}
 	}
 
