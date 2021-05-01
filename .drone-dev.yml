@@ -4,7 +4,7 @@ name: compliance
 
 platform:
   os: linux
-  arch: arm64
+  arch: amd64
 
 trigger:
   event:
@@ -27,33 +27,21 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOPROXY: off
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-
-  - name: lint-backend-windows
-    pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
-    commands:
-      - make golangci-lint vet
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-      GOOS: windows
-      GOARCH: amd64
 
   - name: lint-backend-gogit
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOPROXY: off
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
@@ -90,31 +78,6 @@ steps:
       GOPROXY: off
     commands:
       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [checks-backend]
-
-  - name: build-backend-arm64
-    image: golang:1.16
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: linux
-      GOARCH: arm64
-      TAGS: bindata gogit
-    commands:
-      - make backend # test cross compile
-      - rm ./gitea # clean
-    depends_on: [checks-backend]
-
-  - name: build-backend-windows
-    image: golang:1.16
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: windows
-      GOARCH: amd64
-      TAGS: bindata gogit
-    commands:
-      - go build -mod=vendor -o gitea_windows
     depends_on: [checks-backend]
 
   - name: build-backend-386
