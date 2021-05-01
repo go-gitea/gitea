@@ -1,132 +1,132 @@
----
-kind: pipeline
-name: compliance
+# ---
+# kind: pipeline
+# name: compliance
 
-platform:
-  os: linux
-  arch: arm64
+# platform:
+#   os: linux
+#   arch: arm64
 
-trigger:
-  event:
-    - push
-    - tag
-    - pull_request
+# trigger:
+#   event:
+#     - push
+#     - tag
+#     - pull_request
 
-steps:
-  - name: deps-frontend
-    pull: always
-    image: node:14
-    commands:
-      - make node_modules
+# steps:
+#   - name: deps-frontend
+#     pull: always
+#     image: node:14
+#     commands:
+#       - make node_modules
 
-  - name: lint-frontend
-    image: node:14
-    commands:
-      - make lint-frontend
-    depends_on: [deps-frontend]
+#   - name: lint-frontend
+#     image: node:14
+#     commands:
+#       - make lint-frontend
+#     depends_on: [deps-frontend]
 
-  - name: lint-backend
-    pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
-    commands:
-      - make lint-backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
+#   - name: lint-backend
+#     pull: always
+#     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+#     commands:
+#       - make lint-backend
+#     environment:
+#       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+#       GOSUMDB: sum.golang.org
+#       TAGS: bindata sqlite sqlite_unlock_notify
 
-  - name: lint-backend-windows
-    pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
-    commands:
-      - make golangci-lint vet
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-      GOOS: windows
-      GOARCH: amd64
+#   - name: lint-backend-windows
+#     pull: always
+#     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+#     commands:
+#       - make golangci-lint vet
+#     environment:
+#       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+#       GOSUMDB: sum.golang.org
+#       TAGS: bindata sqlite sqlite_unlock_notify
+#       GOOS: windows
+#       GOARCH: amd64
 
-  - name: lint-backend-gogit
-    pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
-    commands:
-      - make lint-backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata gogit sqlite sqlite_unlock_notify
+#   - name: lint-backend-gogit
+#     pull: always
+#     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+#     commands:
+#       - make lint-backend
+#     environment:
+#       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+#       GOSUMDB: sum.golang.org
+#       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
-  - name: checks-frontend
-    image: node:14
-    commands:
-      - make checks-frontend
-    depends_on: [deps-frontend]
+#   - name: checks-frontend
+#     image: node:14
+#     commands:
+#       - make checks-frontend
+#     depends_on: [deps-frontend]
 
-  - name: checks-backend
-    pull: always
-    image: golang:1.16
-    commands:
-      - make checks-backend
-    depends_on: [lint-backend]
+#   - name: checks-backend
+#     pull: always
+#     image: golang:1.16
+#     commands:
+#       - make checks-backend
+#     depends_on: [lint-backend]
 
-  - name: test-frontend
-    image: node:14
-    commands:
-      - make test-frontend
-    depends_on: [lint-frontend]
+#   - name: test-frontend
+#     image: node:14
+#     commands:
+#       - make test-frontend
+#     depends_on: [lint-frontend]
 
-  - name: build-frontend
-    image: node:14
-    commands:
-      - make frontend
-    depends_on: [test-frontend]
+#   - name: build-frontend
+#     image: node:14
+#     commands:
+#       - make frontend
+#     depends_on: [test-frontend]
 
-  - name: build-backend-no-gcc
-    pull: always
-    image: golang:1.14 # this step is kept as the lowest version of golang that we support
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-    commands:
-      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [checks-backend]
+#   - name: build-backend-no-gcc
+#     pull: always
+#     image: golang:1.14 # this step is kept as the lowest version of golang that we support
+#     environment:
+#       GO111MODULE: on
+#       GOPROXY: off
+#     commands:
+#       - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+#     depends_on: [checks-backend]
 
-  - name: build-backend-arm64
-    image: golang:1.16
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: linux
-      GOARCH: arm64
-      TAGS: bindata gogit
-    commands:
-      - make backend # test cross compile
-      - rm ./gitea # clean
-    depends_on: [checks-backend]
+#   - name: build-backend-arm64
+#     image: golang:1.16
+#     environment:
+#       GO111MODULE: on
+#       GOPROXY: off
+#       GOOS: linux
+#       GOARCH: arm64
+#       TAGS: bindata gogit
+#     commands:
+#       - make backend # test cross compile
+#       - rm ./gitea # clean
+#     depends_on: [checks-backend]
 
-  - name: build-backend-windows
-    image: golang:1.16
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: windows
-      GOARCH: amd64
-      TAGS: bindata gogit
-    commands:
-      - go build -mod=vendor -o gitea_windows
-    depends_on: [checks-backend]
+#   - name: build-backend-windows
+#     image: golang:1.16
+#     environment:
+#       GO111MODULE: on
+#       GOPROXY: off
+#       GOOS: windows
+#       GOARCH: amd64
+#       TAGS: bindata gogit
+#     commands:
+#       - go build -mod=vendor -o gitea_windows
+#     depends_on: [checks-backend]
 
-  - name: build-backend-386
-    image: golang:1.16
-    environment:
-      GO111MODULE: on
-      GOPROXY: off
-      GOOS: linux
-      GOARCH: 386
-    commands:
-      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [checks-backend]
+#   - name: build-backend-386
+#     image: golang:1.16
+#     environment:
+#       GO111MODULE: on
+#       GOPROXY: off
+#       GOOS: linux
+#       GOARCH: 386
+#     commands:
+#       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+#     depends_on: [checks-backend]
 
 ---
 kind: pipeline
@@ -374,100 +374,100 @@ steps:
 #     depends_on:
 #       - build
 
----
-kind: pipeline
-name: update_translations
+# ---
+# kind: pipeline
+# name: update_translations
 
-platform:
-  os: linux
-  arch: arm64
+# platform:
+#   os: linux
+#   arch: arm64
 
-trigger:
-  branch:
-    - master
-  event:
-    - cron
-  cron:
-    - update_translations
+# trigger:
+#   branch:
+#     - master
+#   event:
+#     - cron
+#   cron:
+#     - update_translations
 
-steps:
-  - name: download
-    pull: always
-    image: jonasfranz/crowdin
-    settings:
-      download: true
-      export_dir: options/locale/
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
+# steps:
+#   - name: download
+#     pull: always
+#     image: jonasfranz/crowdin
+#     settings:
+#       download: true
+#       export_dir: options/locale/
+#       ignore_branch: true
+#       project_identifier: gitea
+#     environment:
+#       CROWDIN_KEY:
+#         from_secret: crowdin_key
 
-  - name: update
-    pull: default
-    image: alpine:3.13
-    commands:
-      - ./build/update-locales.sh
+#   - name: update
+#     pull: default
+#     image: alpine:3.13
+#     commands:
+#       - ./build/update-locales.sh
 
-  - name: push
-    pull: always
-    image: appleboy/drone-git-push
-    settings:
-      author_email: "teabot@gitea.io"
-      author_name: GiteaBot
-      commit: true
-      commit_message: "[skip ci] Updated translations via Crowdin"
-      remote: "git@github.com:go-gitea/gitea.git"
-    environment:
-      GIT_PUSH_SSH_KEY:
-        from_secret: git_push_ssh_key
+#   - name: push
+#     pull: always
+#     image: appleboy/drone-git-push
+#     settings:
+#       author_email: "teabot@gitea.io"
+#       author_name: GiteaBot
+#       commit: true
+#       commit_message: "[skip ci] Updated translations via Crowdin"
+#       remote: "git@github.com:go-gitea/gitea.git"
+#     environment:
+#       GIT_PUSH_SSH_KEY:
+#         from_secret: git_push_ssh_key
 
-  - name: upload_translations
-    pull: always
-    image: jonasfranz/crowdin
-    settings:
-      files:
-        locale_en-US.ini: options/locale/locale_en-US.ini
-      ignore_branch: true
-      project_identifier: gitea
-    environment:
-      CROWDIN_KEY:
-        from_secret: crowdin_key
+#   - name: upload_translations
+#     pull: always
+#     image: jonasfranz/crowdin
+#     settings:
+#       files:
+#         locale_en-US.ini: options/locale/locale_en-US.ini
+#       ignore_branch: true
+#       project_identifier: gitea
+#     environment:
+#       CROWDIN_KEY:
+#         from_secret: crowdin_key
 
----
-kind: pipeline
-name: update_gitignore_and_licenses
+# ---
+# kind: pipeline
+# name: update_gitignore_and_licenses
 
-platform:
-  os: linux
-  arch: arm64
+# platform:
+#   os: linux
+#   arch: arm64
 
-trigger:
-  branch:
-    - master
-  event:
-    - cron
-  cron:
-    - update_gitignore_and_licenses
+# trigger:
+#   branch:
+#     - master
+#   event:
+#     - cron
+#   cron:
+#     - update_gitignore_and_licenses
 
-steps:
-  - name: download
-    image: golang:1.16
-    commands:
-      - timeout -s ABRT 40m make generate-license generate-gitignore
+# steps:
+#   - name: download
+#     image: golang:1.16
+#     commands:
+#       - timeout -s ABRT 40m make generate-license generate-gitignore
 
-  - name: push
-    pull: always
-    image: appleboy/drone-git-push
-    settings:
-      author_email: "teabot@gitea.io"
-      author_name: GiteaBot
-      commit: true
-      commit_message: "[skip ci] Updated licenses and gitignores "
-      remote: "git@github.com:go-gitea/gitea.git"
-    environment:
-      GIT_PUSH_SSH_KEY:
-        from_secret: git_push_ssh_key
+#   - name: push
+#     pull: always
+#     image: appleboy/drone-git-push
+#     settings:
+#       author_email: "teabot@gitea.io"
+#       author_name: GiteaBot
+#       commit: true
+#       commit_message: "[skip ci] Updated licenses and gitignores "
+#       remote: "git@github.com:go-gitea/gitea.git"
+#     environment:
+#       GIT_PUSH_SSH_KEY:
+#         from_secret: git_push_ssh_key
 
 ---
 kind: pipeline
@@ -647,46 +647,46 @@ steps:
       GITHUB_TOKEN:
         from_secret: github_token
 
----
-kind: pipeline
-name: docs
+# ---
+# kind: pipeline
+# name: docs
 
-platform:
-  os: linux
-  arch: arm64
+# platform:
+#   os: linux
+#   arch: arm64
 
-depends_on:
-  - compliance
+# depends_on:
+#   - compliance
 
-trigger:
-  event:
-    - push
-    - tag
-    - pull_request
+# trigger:
+#   event:
+#     - push
+#     - tag
+#     - pull_request
 
-steps:
-  - name: build-docs
-    pull: always
-    image: plugins/hugo:latest
-    commands:
-      - apk add --no-cache make bash curl
-      - cd docs
-      - make trans-copy clean build
+# steps:
+#   - name: build-docs
+#     pull: always
+#     image: plugins/hugo:latest
+#     commands:
+#       - apk add --no-cache make bash curl
+#       - cd docs
+#       - make trans-copy clean build
 
-  - name: publish-docs
-    pull: always
-    image: techknowlogick/drone-netlify:latest
-    settings:
-      path: docs/public/
-      site_id: d2260bae-7861-4c02-8646-8f6440b12672
-    environment:
-      NETLIFY_TOKEN:
-        from_secret: netlify_token
-    when:
-      branch:
-        - master
-      event:
-        - push
+#   - name: publish-docs
+#     pull: always
+#     image: techknowlogick/drone-netlify:latest
+#     settings:
+#       path: docs/public/
+#       site_id: d2260bae-7861-4c02-8646-8f6440b12672
+#     environment:
+#       NETLIFY_TOKEN:
+#         from_secret: netlify_token
+#     when:
+#       branch:
+#         - master
+#       event:
+#         - push
 
 ---
 kind: pipeline
@@ -895,7 +895,7 @@ trigger:
 
 depends_on:
   - docker-linux-amd64-release
-  - docker-linux-arm64-release
+#  - docker-linux-arm64-release
 
 # ---
 # kind: pipeline
