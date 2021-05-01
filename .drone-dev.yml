@@ -1,6 +1,6 @@
-# ---
-# kind: pipeline
-# name: compliance
+---
+kind: pipeline
+name: compliance
 
 platform:
   os: linux
@@ -93,6 +93,7 @@ platform:
 
 node:
   oss: amd64
+
 ---
 kind: pipeline
 name: testing-amd64
