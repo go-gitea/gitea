@@ -150,8 +150,21 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	atShutdown(context.Background(), q.Shutdown)
 	atTerminate(context.Background(), q.Terminate)
 
-	// Just run the level queue - we shut it down later
-	go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len() != 0 {
+		// Just run the level queue - we shut it down once it's flushed
+		go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+		go func() {
+			_ = q.internal.Flush(0)
+			log.Debug("LevelQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
+			q.internal.(*LevelQueue).Shutdown()
+			GetManager().Remove(q.internal.(*LevelQueue).qid)
+
+		}()
+	} else {
+		log.Debug("PersistableChannelQueue: %s Skipping running the empty level queue", q.delayedStarter.name)
+		q.internal.(*LevelQueue).Shutdown()
+		GetManager().Remove(q.internal.(*LevelQueue).qid)
+	}
 
 	go func() {
 		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)

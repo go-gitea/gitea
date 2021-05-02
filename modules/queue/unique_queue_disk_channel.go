@@ -182,8 +182,20 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(context
 	atShutdown(context.Background(), q.Shutdown)
 	atTerminate(context.Background(), q.Terminate)
 
-	// Just run the level queue - we shut it down later
-	go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len() != 0 {
+		// Just run the level queue - we shut it down once it's flushed
+		go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+		go func() {
+			_ = q.internal.Flush(0)
+			log.Debug("LevelUniqueQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
+			q.internal.(*LevelUniqueQueue).Shutdown()
+			GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
+		}()
+	} else {
+		log.Debug("PersistableChannelUniqueQueue: %s Skipping running the empty level queue", q.delayedStarter.name)
+		q.internal.(*LevelUniqueQueue).Shutdown()
+		GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
+	}
 
 	go func() {
 		_ = q.ChannelUniqueQueue.AddWorkers(q.workers, 0)
