@@ -7,6 +7,7 @@
 package git
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -55,6 +56,10 @@ func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
 
+	return repo.getCommitFromBatchReader(rd, id)
+}
+
+func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
