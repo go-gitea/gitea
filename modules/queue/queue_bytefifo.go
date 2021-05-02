@@ -112,9 +112,9 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(context.Context, func()
 		_ = q.AddWorkers(q.workers, 0)
 	}()
 
-	go q.readToChan()
+	log.Trace("%s: %s Now running", q.typ, q.name)
+	q.readToChan()
 
-	log.Trace("%s: %s Waiting til closed", q.typ, q.name)
 	<-q.closed
 	log.Trace("%s: %s Waiting til done", q.typ, q.name)
 	q.Wait()
