@@ -83,7 +83,7 @@ func (p *WorkerPool) Push(data Data) {
 }
 
 func (p *WorkerPool) zeroBoost() {
-	ctx, cancel := context.WithCancel(p.baseCtx)
+	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
 	mq := GetManager().GetManagedQueue(p.qid)
 	boost := p.boostWorkers
 	if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
@@ -94,23 +94,11 @@ func (p *WorkerPool) zeroBoost() {
 
 		start := time.Now()
 		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
-		go func() {
-			select {
-			case <-ctx.Done():
-			case <-time.After(p.boostTimeout):
-			}
+		cancel = func() {
 			mq.RemoveWorkers(pid)
-			cancel()
-		}()
+		}
 	} else {
 		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
-		go func() {
-			select {
-			case <-ctx.Done():
-			case <-time.After(p.boostTimeout):
-			}
-			cancel()
-		}()
 	}
 	p.lock.Unlock()
 	p.addWorkers(ctx, cancel, boost)
