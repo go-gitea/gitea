@@ -30,6 +30,8 @@ type HTML struct {
 	Head
 	Name      string
 	Templates *template.Template
+
+	bp GenericBufferPool
 }
 
 // JSON built-in renderer.
@@ -82,9 +84,14 @@ func (d Data) Render(w io.Writer, v interface{}) error {
 
 // Render a HTML response.
 func (h HTML) Render(w io.Writer, binding interface{}) error {
-	// Retrieve a buffer from the pool to write to.
-	out := bufPool.Get()
-	err := h.Templates.ExecuteTemplate(out, h.Name, binding)
+	var buf *bytes.Buffer
+	if h.bp != nil {
+		// If we have a bufferpool, allocate from it
+		buf = h.bp.Get()
+		defer h.bp.Put(buf)
+	}
+
+	err := h.Templates.ExecuteTemplate(buf, h.Name, binding)
 	if err != nil {
 		return err
 	}
@@ -92,10 +99,8 @@ func (h HTML) Render(w io.Writer, binding interface{}) error {
 	if hw, ok := w.(http.ResponseWriter); ok {
 		h.Head.Write(hw)
 	}
-	out.WriteTo(w)
+	buf.WriteTo(w)
 
-	// Return the buffer to the pool.
-	bufPool.Put(out)
 	return nil
 }
 

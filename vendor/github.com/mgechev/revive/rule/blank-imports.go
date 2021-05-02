@@ -2,6 +2,7 @@ package rule
 
 import (
 	"go/ast"
+	"strings"
 
 	"github.com/mgechev/revive/lint"
 )
@@ -9,66 +10,66 @@ import (
 // BlankImportsRule lints given else constructs.
 type BlankImportsRule struct{}
 
-// Apply applies the rule to given file.
-func (r *BlankImportsRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
-	var failures []lint.Failure
-
-	fileAst := file.AST
-	walker := lintBlankImports{
-		file:    file,
-		fileAst: fileAst,
-		onFailure: func(failure lint.Failure) {
-			failures = append(failures, failure)
-		},
-	}
-
-	ast.Walk(walker, fileAst)
-
-	return failures
-}
-
 // Name returns the rule name.
 func (r *BlankImportsRule) Name() string {
 	return "blank-imports"
 }
 
-type lintBlankImports struct {
-	fileAst   *ast.File
-	file      *lint.File
-	onFailure func(lint.Failure)
-}
-
-func (w lintBlankImports) Visit(_ ast.Node) ast.Visitor {
-	// In package main and in tests, we don't complain about blank imports.
-	if w.file.Pkg.IsMain() || w.file.IsTest() {
+// Apply applies the rule to given file.
+func (r *BlankImportsRule) Apply(file *lint.File, _ lint.Arguments) []lint.Failure {
+	if file.Pkg.IsMain() || file.IsTest() {
 		return nil
 	}
 
+	const (
+		message  = "a blank import should be only in a main or test package, or have a comment justifying it"
+		category = "imports"
+
+		embedImportPath = `"embed"`
+	)
+
+	var failures []lint.Failure
+
 	// The first element of each contiguous group of blank imports should have
 	// an explanatory comment of some kind.
-	for i, imp := range w.fileAst.Imports {
-		pos := w.file.ToPosition(imp.Pos())
+	for i, imp := range file.AST.Imports {
+		pos := file.ToPosition(imp.Pos())
 
 		if !isBlank(imp.Name) {
 			continue // Ignore non-blank imports.
 		}
+
 		if i > 0 {
-			prev := w.fileAst.Imports[i-1]
-			prevPos := w.file.ToPosition(prev.Pos())
-			if isBlank(prev.Name) && prevPos.Line+1 == pos.Line {
-				continue // A subsequent blank in a group.
+			prev := file.AST.Imports[i-1]
+			prevPos := file.ToPosition(prev.Pos())
+
+			isSubsequentBlancInAGroup := isBlank(prev.Name) && prevPos.Line+1 == pos.Line && prev.Path.Value != embedImportPath
+			if isSubsequentBlancInAGroup {
+				continue
 			}
+		}
+
+		if imp.Path.Value == embedImportPath && r.fileHasValidEmbedComment(file.AST) {
+			continue
 		}
 
 		// This is the first blank import of a group.
 		if imp.Doc == nil && imp.Comment == nil {
-			w.onFailure(lint.Failure{
-				Node:       imp,
-				Failure:    "a blank import should be only in a main or test package, or have a comment justifying it",
-				Confidence: 1,
-				Category:   "imports",
-			})
+			failures = append(failures, lint.Failure{Failure: message, Category: category, Node: imp, Confidence: 1})
 		}
 	}
-	return nil
+
+	return failures
+}
+
+func (r *BlankImportsRule) fileHasValidEmbedComment(fileAst *ast.File) bool {
+	for _, commentGroup := range fileAst.Comments {
+		for _, comment := range commentGroup.List {
+			if strings.HasPrefix(comment.Text, "//go:embed ") {
+				return true
+			}
+		}
+	}
+
+	return false
 }

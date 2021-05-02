@@ -157,7 +157,11 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 				emailURL = customURLMapping.EmailURL
 			}
 		}
-		provider = github.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, emailURL)
+		scopes := []string{}
+		if setting.OAuth2Client.EnableAutoRegistration {
+			scopes = append(scopes, "user:email")
+		}
+		provider = github.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, emailURL, scopes...)
 	case "gitlab":
 		authURL := gitlab.AuthURL
 		tokenURL := gitlab.TokenURL
@@ -175,9 +179,13 @@ func createProvider(providerName, providerType, clientID, clientSecret, openIDCo
 		}
 		provider = gitlab.NewCustomisedURL(clientID, clientSecret, callbackURL, authURL, tokenURL, profileURL, "read_user")
 	case "gplus": // named gplus due to legacy gplus -> google migration (Google killed Google+). This ensures old connections still work
-		provider = google.New(clientID, clientSecret, callbackURL)
+		scopes := []string{"email"}
+		if setting.OAuth2Client.UpdateAvatar || setting.OAuth2Client.EnableAutoRegistration {
+			scopes = append(scopes, "profile")
+		}
+		provider = google.New(clientID, clientSecret, callbackURL, scopes...)
 	case "openidConnect":
-		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL); err != nil {
+		if provider, err = openidConnect.New(clientID, clientSecret, callbackURL, openIDConnectAutoDiscoveryURL, setting.OAuth2Client.OpenIDConnectScopes...); err != nil {
 			log.Warn("Failed to create OpenID Connect Provider with name '%s' with url '%s': %v", providerName, openIDConnectAutoDiscoveryURL, err)
 		}
 	case "twitter":

@@ -828,6 +828,54 @@ func (s *UsersService) RevokeImpersonationToken(user, token int, options ...Requ
 	return s.client.Do(req, nil)
 }
 
+// PersonalAccessToken represents a personal access token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#create-a-personal-access-token
+type PersonalAccessToken struct {
+	ID        int        `json:"id"`
+	Name      string     `json:"name"`
+	Revoked   bool       `json:"revoked"`
+	CreatedAt *time.Time `json:"created_at"`
+	Scopes    []string   `json:"scopes"`
+	UserID    string     `json:"user_id"`
+	Active    bool       `json:"active"`
+	ExpiresAt *ISOTime   `json:"expires_at"`
+	Token     string     `json:"token"`
+}
+
+// CreatePersonalAccessTokenOptions represents the available
+// CreatePersonalAccessToken() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#create-a-personal-access-token
+type CreatePersonalAccessTokenOptions struct {
+	Name      *string  `url:"name,omitempty" json:"name,omitempty"`
+	ExpiresAt *ISOTime `url:"expires_at,omitempty" json:"expires_at,omitempty"`
+	Scopes    []string `url:"scopes,omitempty" json:"scopes,omitempty"`
+}
+
+// CreatePersonalAccessToken creates a personal access token.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/users.html#create-a-personal-access-token
+func (s *UsersService) CreatePersonalAccessToken(user int, opt *CreatePersonalAccessTokenOptions, options ...RequestOptionFunc) (*PersonalAccessToken, *Response, error) {
+	u := fmt.Sprintf("users/%d/personal_access_tokens", user)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(PersonalAccessToken)
+	resp, err := s.client.Do(req, &t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, err
+}
+
 // UserActivity represents an entry in the user/activities response
 //
 // GitLab API docs:
