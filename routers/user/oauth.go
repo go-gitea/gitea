@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -191,6 +192,39 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 		RefreshToken: signedRefreshToken,
 		IDToken:      signedIDToken,
 	}, nil
+}
+
+type userInfoResponse struct {
+	Sub      string `json:"sub"`
+	Name     string `json:"name"`
+	Username string `json:"preferred_username"`
+	Email    string `json:"email"`
+	Picture  string `json:"picture"`
+}
+
+func UserInfoOAuth(ctx *context.Context) {
+	header := ctx.Req.Header.Get("Authorization")
+	auths := strings.Fields(header)
+	if len(auths) != 2 || auths[0] != "Bearer" {
+		ctx.HandleText(http.StatusUnauthorized, "no valid auth token authorization")
+		return
+	}
+	uid := sso.CheckOAuthAccessToken(auths[1])
+	if uid != 0 {
+		authUser, err := models.GetUserByID(uid)
+		if err != nil {
+			ctx.ServerError("GetUserByID", err)
+			return
+		}
+		response := &userInfoResponse{
+			Sub:      fmt.Sprint(authUser.ID),
+			Name:     authUser.FullName,
+			Username: authUser.Name,
+			Email:    authUser.Email,
+			Picture:  authUser.AvatarLink(),
+		}
+		ctx.JSON(http.StatusOK, response)
+	}
 }
 
 // AuthorizeOAuth manages authorize requests
