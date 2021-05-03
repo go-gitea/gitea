@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -40,9 +39,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -94,9 +93,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 

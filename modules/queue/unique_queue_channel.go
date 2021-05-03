@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -65,11 +64,11 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 }
 
 // Run starts to run the queue
-func (q *ChannelUniqueQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
-	atShutdown(context.Background(), func() {
+func (q *ChannelUniqueQueue) Run(atShutdown, atTerminate func(func())) {
+	atShutdown(func() {
 		log.Warn("ChannelUniqueQueue: %s is not shutdownable!", q.name)
 	})
-	atTerminate(context.Background(), func() {
+	atTerminate(func() {
 		log.Warn("ChannelUniqueQueue: %s is not terminatable!", q.name)
 	})
 	log.Debug("ChannelUniqueQueue: %s Starting", q.name)

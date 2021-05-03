@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -21,7 +20,7 @@ func TestChannelQueue(t *testing.T) {
 		}
 	}
 
-	nilFn := func(_ context.Context, _ func()) {}
+	nilFn := func(_ func()) {}
 
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{
@@ -61,7 +60,7 @@ func TestChannelQueue_Batch(t *testing.T) {
 		}
 	}
 
-	nilFn := func(_ context.Context, _ func()) {}
+	nilFn := func(_ func()) {}
 
 	queue, err := NewChannelQueue(handle,
 		ChannelQueueConfiguration{

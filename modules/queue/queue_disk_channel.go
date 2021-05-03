@@ -133,7 +133,7 @@ func (q *PersistableChannelQueue) Push(data Data) error {
 }
 
 // Run starts to run the queue
-func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	log.Debug("PersistableChannelQueue: %s Starting", q.delayedStarter.name)
 
 	q.lock.Lock()
@@ -147,12 +147,12 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(context.Conte
 	} else {
 		q.lock.Unlock()
 	}
-	atShutdown(context.Background(), q.Shutdown)
-	atTerminate(context.Background(), q.Terminate)
+	atShutdown(q.Shutdown)
+	atTerminate(q.Terminate)
 
 	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len() != 0 {
 		// Just run the level queue - we shut it down once it's flushed
-		go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {
 			_ = q.internal.Flush(0)
 			log.Debug("LevelQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())

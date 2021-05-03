@@ -54,8 +54,8 @@ func InitManager(ctx context.Context) {
 	})
 }
 
-// CallbackWithContext is combined runnable and context to watch to see if the caller has finished
-type CallbackWithContext func(ctx context.Context, callback func())
+// WithCallback is a runnable to call when the caller has finished
+type WithCallback func(callback func())
 
 // RunnableWithShutdownFns is a runnable with functions to run at shutdown and terminate
 // After the callback to atShutdown is called and is complete, the main function must return.
@@ -63,7 +63,7 @@ type CallbackWithContext func(ctx context.Context, callback func())
 // Please note that use of the atShutdown and atTerminate callbacks will create go-routines that will wait till their respective signals
 // - users must therefore be careful to only call these as necessary.
 // If run is not expected to run indefinitely RunWithShutdownChan is likely to be more appropriate.
-type RunnableWithShutdownFns func(atShutdown, atTerminate func(context.Context, func()))
+type RunnableWithShutdownFns func(atShutdown, atTerminate func(func()))
 
 // RunWithShutdownFns takes a function that has both atShutdown and atTerminate callbacks
 // After the callback to atShutdown is called and is complete, the main function must return.
@@ -80,7 +80,7 @@ func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 			g.doShutdown()
 		}
 	}()
-	run(func(ctx context.Context, atShutdown func()) {
+	run(func(atShutdown func()) {
 		g.lock.Lock()
 		defer g.lock.Unlock()
 		g.toRunAtShutdown = append(g.toRunAtShutdown,
@@ -91,15 +91,10 @@ func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 						g.doShutdown()
 					}
 				}()
-				select {
-				case <-ctx.Done():
-					return
-				default:
-					atShutdown()
-				}
+				atShutdown()
 			})
-	}, func(ctx context.Context, atTerminate func()) {
-		g.RunAtTerminate(ctx, atTerminate)
+	}, func(atTerminate func()) {
+		g.RunAtTerminate(atTerminate)
 	})
 }
 
@@ -108,7 +103,7 @@ func (g *Manager) RunWithShutdownFns(run RunnableWithShutdownFns) {
 // (Optionally IsHammer may be waited for instead however, this should be avoided if possible.)
 // The callback function provided to atTerminate must return once termination is complete.
 // Please note that use of the atTerminate function will create a go-routine that will wait till terminate - users must therefore be careful to only call this as necessary.
-type RunnableWithShutdownChan func(atShutdown <-chan struct{}, atTerminate CallbackWithContext)
+type RunnableWithShutdownChan func(atShutdown <-chan struct{}, atTerminate WithCallback)
 
 // RunWithShutdownChan takes a function that has channel to watch for shutdown and atTerminate callbacks
 // After the atShutdown channel is closed, the main function must return once shutdown is complete.
@@ -124,8 +119,8 @@ func (g *Manager) RunWithShutdownChan(run RunnableWithShutdownChan) {
 			g.doShutdown()
 		}
 	}()
-	run(g.IsShutdown(), func(ctx context.Context, atTerminate func()) {
-		g.RunAtTerminate(ctx, atTerminate)
+	run(g.IsShutdown(), func(atTerminate func()) {
+		g.RunAtTerminate(atTerminate)
 	})
 }
 
@@ -145,7 +140,7 @@ func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 }
 
 // RunAtTerminate adds to the terminate wait group and creates a go-routine to run the provided function at termination
-func (g *Manager) RunAtTerminate(ctx context.Context, terminate func()) {
+func (g *Manager) RunAtTerminate(terminate func()) {
 	g.terminateWaitGroup.Add(1)
 	g.lock.Lock()
 	defer g.lock.Unlock()
@@ -157,12 +152,7 @@ func (g *Manager) RunAtTerminate(ctx context.Context, terminate func()) {
 					log.Critical("PANIC during RunAtTerminate: %v\nStacktrace: %s", err, log.Stack(2))
 				}
 			}()
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				terminate()
-			}
+			terminate()
 		})
 }
 
@@ -187,7 +177,7 @@ func (g *Manager) RunAtShutdown(ctx context.Context, shutdown func()) {
 }
 
 // RunAtHammer creates a go-routine to run the provided function at shutdown
-func (g *Manager) RunAtHammer(ctx context.Context, hammer func()) {
+func (g *Manager) RunAtHammer(hammer func()) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.toRunAtHammer = append(g.toRunAtHammer,
@@ -197,12 +187,7 @@ func (g *Manager) RunAtHammer(ctx context.Context, hammer func()) {
 					log.Critical("PANIC during RunAtHammer: %v\nStacktrace: %s", err, log.Stack(2))
 				}
 			}()
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				hammer()
-			}
+			hammer()
 		})
 }
 func (g *Manager) doShutdown() {

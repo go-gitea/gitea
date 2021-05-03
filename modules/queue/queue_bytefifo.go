@@ -27,16 +27,18 @@ var _ Queue = &ByteFIFOQueue{}
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
 	*WorkerPool
-	byteFIFO    ByteFIFO
-	typ         Type
-	closed      chan struct{}
-	terminated  chan struct{}
-	exemplar    interface{}
-	workers     int
-	name        string
-	lock        sync.Mutex
-	waitOnEmpty bool
-	pushed      chan struct{}
+	byteFIFO        ByteFIFO
+	typ             Type
+	shutdownCtx     context.Context
+	shutdownCancel  context.CancelFunc
+	terminateCtx    context.Context
+	terminateCancel context.CancelFunc
+	exemplar        interface{}
+	workers         int
+	name            string
+	lock            sync.Mutex
+	waitOnEmpty     bool
+	pushed          chan struct{}
 }
 
 // NewByteFIFOQueue creates a new ByteFIFOQueue
@@ -47,17 +49,22 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 	}
 	config := configInterface.(ByteFIFOQueueConfiguration)
 
+	terminateCtx, terminateCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
+
 	return &ByteFIFOQueue{
-		WorkerPool:  NewWorkerPool(handle, config.WorkerPoolConfiguration),
-		byteFIFO:    byteFIFO,
-		typ:         typ,
-		closed:      make(chan struct{}),
-		terminated:  make(chan struct{}),
-		exemplar:    exemplar,
-		workers:     config.Workers,
-		name:        config.Name,
-		waitOnEmpty: config.WaitOnEmpty,
-		pushed:      make(chan struct{}, 1),
+		WorkerPool:      NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		byteFIFO:        byteFIFO,
+		typ:             typ,
+		shutdownCtx:     shutdownCtx,
+		shutdownCancel:  shutdownCancel,
+		terminateCtx:    terminateCtx,
+		terminateCancel: terminateCancel,
+		exemplar:        exemplar,
+		workers:         config.Workers,
+		name:            config.Name,
+		waitOnEmpty:     config.WaitOnEmpty,
+		pushed:          make(chan struct{}, 1),
 	}, nil
 }
 
@@ -103,9 +110,9 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 }
 
 // Run runs the bytefifo queue
-func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
-	atShutdown(context.Background(), q.Shutdown)
-	atTerminate(context.Background(), q.Terminate)
+func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
+	atShutdown(q.Shutdown)
+	atTerminate(q.Terminate)
 	log.Debug("%s: %s Starting", q.typ, q.name)
 
 	go func() {
@@ -115,21 +122,19 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(context.Context, func()
 	log.Trace("%s: %s Now running", q.typ, q.name)
 	q.readToChan()
 
-	<-q.closed
+	<-q.shutdownCtx.Done()
 	log.Trace("%s: %s Waiting til done", q.typ, q.name)
 	q.Wait()
 
 	log.Trace("%s: %s Waiting til cleaned", q.typ, q.name)
-	ctx, cancel := context.WithCancel(context.Background())
-	atTerminate(ctx, cancel)
-	q.CleanUp(ctx)
-	cancel()
+	q.CleanUp(q.terminateCtx)
+	q.terminateCancel()
 }
 
 func (q *ByteFIFOQueue) readToChan() {
 	for {
 		select {
-		case <-q.closed:
+		case <-q.shutdownCtx.Done():
 			// tell the pool to shutdown.
 			q.cancel()
 			return
@@ -150,7 +155,7 @@ func (q *ByteFIFOQueue) readToChan() {
 					select {
 					case <-q.pushed:
 						continue
-					case <-q.closed:
+					case <-q.shutdownCtx.Done():
 						continue
 					}
 				}
@@ -177,34 +182,30 @@ func (q *ByteFIFOQueue) readToChan() {
 // Shutdown processing from this queue
 func (q *ByteFIFOQueue) Shutdown() {
 	log.Trace("%s: %s Shutting down", q.typ, q.name)
-	q.lock.Lock()
 	select {
-	case <-q.closed:
+	case <-q.shutdownCtx.Done():
+		return
 	default:
-		close(q.closed)
 	}
-	q.lock.Unlock()
+	q.shutdownCancel()
 	log.Debug("%s: %s Shutdown", q.typ, q.name)
 }
 
 // IsShutdown returns a channel which is closed when this Queue is shutdown
 func (q *ByteFIFOQueue) IsShutdown() <-chan struct{} {
-	return q.closed
+	return q.shutdownCtx.Done()
 }
 
 // Terminate this queue and close the queue
 func (q *ByteFIFOQueue) Terminate() {
 	log.Trace("%s: %s Terminating", q.typ, q.name)
 	q.Shutdown()
-	q.lock.Lock()
 	select {
-	case <-q.terminated:
-		q.lock.Unlock()
+	case <-q.terminateCtx.Done():
 		return
 	default:
 	}
-	close(q.terminated)
-	q.lock.Unlock()
+	q.terminateCancel()
 	if log.IsDebug() {
 		log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len())
 	}
@@ -216,7 +217,7 @@ func (q *ByteFIFOQueue) Terminate() {
 
 // IsTerminated returns a channel which is closed when this Queue is terminated
 func (q *ByteFIFOQueue) IsTerminated() <-chan struct{} {
-	return q.terminated
+	return q.terminateCtx.Done()
 }
 
 var _ UniqueQueue = &ByteFIFOUniqueQueue{}
@@ -233,17 +234,21 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 		return nil, err
 	}
 	config := configInterface.(ByteFIFOQueueConfiguration)
+	terminateCtx, terminateCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
 
 	return &ByteFIFOUniqueQueue{
 		ByteFIFOQueue: ByteFIFOQueue{
-			WorkerPool: NewWorkerPool(handle, config.WorkerPoolConfiguration),
-			byteFIFO:   byteFIFO,
-			typ:        typ,
-			closed:     make(chan struct{}),
-			terminated: make(chan struct{}),
-			exemplar:   exemplar,
-			workers:    config.Workers,
-			name:       config.Name,
+			WorkerPool:      NewWorkerPool(handle, config.WorkerPoolConfiguration),
+			byteFIFO:        byteFIFO,
+			typ:             typ,
+			shutdownCtx:     shutdownCtx,
+			shutdownCancel:  shutdownCancel,
+			terminateCtx:    terminateCtx,
+			terminateCancel: terminateCancel,
+			exemplar:        exemplar,
+			workers:         config.Workers,
+			name:            config.Name,
 		},
 	}, nil
 }
