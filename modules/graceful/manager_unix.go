@@ -25,13 +25,21 @@ type Manager struct {
 	forked                 bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdown               context.Context
+	hammer                 context.Context
+	terminate              context.Context
+	done                   context.Context
+	shutdownCancel         context.CancelFunc
+	hammerCancel           context.CancelFunc
+	terminateCancel        context.CancelFunc
+	doneCancel             context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -45,11 +53,11 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start(ctx context.Context) {
-	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
+	// Make contexts
+	g.terminate, g.terminateCancel = context.WithCancel(ctx)
+	g.shutdown, g.shutdownCancel = context.WithCancel(ctx)
+	g.hammer, g.hammerCancel = context.WithCancel(ctx)
+	g.done, g.doneCancel = context.WithCancel(ctx)
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)
