@@ -207,7 +207,7 @@ func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
 	return q.channelQueue.Flush(timeout)
 }
 
-// Flush flushes the queue
+// FlushWithContext flushes the queue
 func (q *PersistableChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
 	return q.channelQueue.FlushWithContext(ctx)
 }
