@@ -378,3 +378,28 @@ func TestDeleteIssueLabel(t *testing.T) {
 
 	CheckConsistencyFor(t, &Issue{}, &Label{})
 }
+
+func TestGetLabelsInRepoByNames(t *testing.T) {
+	labels, err := GetLabelsInRepoByNames(1, []string{"label1", "label2"})
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(labels))
+}
+
+func TestGetLabelByIDOrName(t *testing.T) {
+	label, exist, err := GetLabelByIDOrName("1", 1)
+	assert.NoError(t, err)
+	assert.Equal(t, true, exist)
+	assert.Equal(t, int64(1), label.ID)
+
+	label, exist, err = GetLabelByIDOrName("label2", 1)
+	assert.NoError(t, err)
+	assert.Equal(t, true, exist)
+	assert.Equal(t, int64(2), label.ID)
+}
+
+func TestGetLabelByIDsOrNames(t *testing.T) {
+	labels, allExist, err := GetLabelByIDsOrNames([]string{"1", "label2"}, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, true, allExist)
+	assert.Equal(t, 2, len(labels))
+}

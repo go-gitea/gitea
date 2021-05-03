@@ -150,6 +150,10 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   description: name or id of the label to remove
 	//   type: string
 	//   required: true
+	// - name: mode
+	//   in: query
+	//   description: the type of id is id or name
+	//   type: string
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -173,15 +177,42 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, exist, err := parseLabel(ctx.Params(":id"), ctx.Repo.Repository.ID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "parseLabel", err)
-		return
-	}
+	mode := ctx.Query("mode")
+	var (
+		label *models.Label
+	)
+	if mode == "id" {
+		label, err = models.GetLabelByID(ctx.ParamsInt64(":id"))
+		if err != nil {
+			if models.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
+			return
+		}
+	} else if mode == "name" {
+		label, err = models.GetLabelInRepoByName(ctx.Repo.Repository.ID, ctx.Params(":id"))
+		if err != nil {
+			if models.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
+			return
+		}
+	} else {
+		exist := false
+		label, exist, err = models.GetLabelByIDOrName(ctx.Params(":id"), ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDOrName", err)
+			return
+		}
 
-	if !exist {
-		ctx.NotFound()
-		return
+		if !exist {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
 	}
 
 	if err := issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
@@ -311,20 +342,54 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	labels = make([]*models.Label, 0, len(form.Labels))
-	for _, q := range form.Labels {
-		label, exist, err := parseLabel(q, ctx.Repo.Repository.ID)
+	if form.Mode != nil && *form.Mode == "id_only" {
+		ids := make([]int64, 0, len(form.Labels))
+		for _, q := range form.Labels {
+			if len(q) == 0 {
+				continue
+			}
+
+			var id int64
+			id, err = strconv.ParseInt(q, 10, 64)
+			if err == nil && id > 0 {
+				ids = append(ids, id)
+				continue
+			}
+		}
+
+		labels, err = models.GetLabelsByIDs(ids)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
-			return nil, nil, err
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
+			return
 		}
 
-		if !exist {
+		if len(labels) != len(form.Labels) {
 			ctx.NotFound()
-			return nil, nil, nil
+			return
+		}
+	} else if form.Mode != nil && *form.Mode == "name_only" {
+		labels, err = models.GetLabelsInRepoByNames(ctx.Repo.Repository.ID, form.Labels)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
+			return
 		}
 
-		labels = append(labels, label)
+		if len(labels) != len(form.Labels) {
+			ctx.NotFound()
+			return
+		}
+	} else {
+		allExist := false
+		labels, allExist, err = models.GetLabelByIDsOrNames(form.Labels, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
+			return
+		}
+
+		if !allExist {
+			ctx.NotFound()
+			return
+		}
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
@@ -333,29 +398,4 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 	}
 
 	return
-}
-
-func parseLabel(queryID string, repoID int64) (label *models.Label, exist bool, err error) {
-	var id int64
-	id, err = strconv.ParseInt(queryID, 10, 64)
-	if err == nil && id > 0 {
-		label, err = models.GetLabelByID(id)
-		if err != nil {
-			if models.IsErrLabelNotExist(err) {
-				return nil, false, nil
-			}
-			return nil, false, err
-		}
-		return label, true, nil
-	}
-
-	label, err = models.GetLabelInRepoByName(repoID, queryID)
-	if err != nil {
-		if models.IsErrLabelNotExist(err) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return label, true, nil
 }

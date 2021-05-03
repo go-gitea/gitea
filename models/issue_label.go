@@ -387,6 +387,90 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 		Find(&labelIDs)
 }
 
+// GetLabelsInRepoByNames get labels in a repo by label names
+func GetLabelsInRepoByNames(repoID int64, labelNames []string) ([]*Label, error) {
+	labels := make([]*Label, 0, len(labelNames))
+	return labels, x.Table("label").
+		In("name", labelNames).
+		Asc("name").
+		Cols("id", "repo_id", "org_id").
+		Find(&labels)
+}
+
+// GetLabelByIDOrName get label by id or name and repo id
+func GetLabelByIDOrName(queryID string, repoID int64) (label *Label, exist bool, err error) {
+	var id int64
+	id, err = strconv.ParseInt(queryID, 10, 64)
+	if err == nil && id > 0 {
+		label, err = GetLabelByID(id)
+		if err != nil {
+			if IsErrLabelNotExist(err) {
+				return nil, false, nil
+			}
+			return nil, false, err
+		}
+		return label, true, nil
+	}
+
+	label, err = GetLabelInRepoByName(repoID, queryID)
+	if err != nil {
+		if IsErrLabelNotExist(err) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+
+	return label, true, nil
+}
+
+// GetLabelByIDsOrNames gets label by ids or names and repo id
+func GetLabelByIDsOrNames(queryIDs []string, repoID int64) (labels []*Label, allExist bool, err error) {
+	tmpIDs := make([]int64, 0, 5)
+	tmpNames := make([]string, 0, 5)
+	var id int64
+
+	for _, q := range queryIDs {
+		if len(q) == 0 {
+			continue
+		}
+
+		id, err = strconv.ParseInt(q, 10, 64)
+		if err == nil && id > 0 {
+			tmpIDs = append(tmpIDs, id)
+			continue
+		}
+
+		tmpNames = append(tmpNames, q)
+	}
+
+	if len(tmpNames) > 0 {
+		var labelIdsByNames []int64
+		labelIdsByNames, err = GetLabelIDsInRepoByNames(repoID, tmpNames)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if len(labelIdsByNames) != len(tmpNames) {
+			return nil, false, nil
+		}
+
+		tmpIDs = append(tmpIDs, labelIdsByNames...)
+	}
+
+	if len(tmpIDs) > 0 {
+		labels, err = GetLabelsByIDs(tmpIDs)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if len(labels) != len(tmpIDs) {
+			return nil, false, nil
+		}
+	}
+
+	return labels, true, nil
+}
+
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
 func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 	return builder.Select("issue_label.issue_id").

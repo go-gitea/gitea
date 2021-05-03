@@ -109,6 +109,56 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: 2})
 }
 
+func TestAPIAddIssueLabelIDOnly(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
+	_ = models.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID, ID: 2}).(*models.Label)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
+		repo.OwnerName, repo.Name, issue.Index, token)
+	idOnly := "id_only"
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
+		Labels: []string{"1", "2"},
+		Mode:   &idOnly,
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiLabels []*api.Label
+	DecodeJSON(t, resp, &apiLabels)
+	assert.Len(t, apiLabels, models.GetCount(t, &models.IssueLabel{IssueID: issue.ID}))
+
+	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: 2})
+}
+
+func TestAPIAddIssueLabelNameOnly(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	issue := models.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
+	_ = models.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID, ID: 2}).(*models.Label)
+	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, owner.Name)
+	token := getTokenForLoggedInUser(t, session)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
+		repo.OwnerName, repo.Name, issue.Index, token)
+	nameOnly := "name_only"
+	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
+		Labels: []string{"label1", "label2"},
+		Mode:   &nameOnly,
+	})
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiLabels []*api.Label
+	DecodeJSON(t, resp, &apiLabels)
+	assert.Len(t, apiLabels, models.GetCount(t, &models.IssueLabel{IssueID: issue.ID}))
+
+	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: 2})
+}
+
 func TestAPIReplaceIssueLabels(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
@@ -135,6 +185,25 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 }
 
+func TestAPIDeletIssueLabel(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+
+	session := loginUser(t, repo1.OwnerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?token=%s",
+		repo1.OwnerName, repo1.Name, issue2.Index, token)
+
+	req := NewRequest(t, "DELETE", singleURLStr)
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	models.AssertCount(t, &models.IssueLabel{IssueID: issue2.ID}, 1)
+	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue2.ID, LabelID: 4})
+}
+
 func TestAPIDeletIssueLabelByID(t *testing.T) {
 	assert.NoError(t, models.LoadFixtures())
 
@@ -144,7 +213,7 @@ func TestAPIDeletIssueLabelByID(t *testing.T) {
 	session := loginUser(t, repo1.OwnerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/1?token=%s",
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/1?mode=id&token=%s",
 		repo1.OwnerName, repo1.Name, issue2.Index, token)
 
 	req := NewRequest(t, "DELETE", singleURLStr)
@@ -164,6 +233,25 @@ func TestAPIDeletIssueLabelByName(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?token=%s",
+		repo1.OwnerName, repo1.Name, issue2.Index, token)
+
+	req := NewRequest(t, "DELETE", singleURLStr)
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	models.AssertCount(t, &models.IssueLabel{IssueID: issue2.ID}, 1)
+	models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue2.ID, LabelID: 4})
+}
+
+func TestAPIDeletIssueLabelByNameOnly(t *testing.T) {
+	assert.NoError(t, models.LoadFixtures())
+
+	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	issue2 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+
+	session := loginUser(t, repo1.OwnerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?mode=name&token=%s",
 		repo1.OwnerName, repo1.Name, issue2.Index, token)
 
 	req := NewRequest(t, "DELETE", singleURLStr)

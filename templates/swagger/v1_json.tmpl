@@ -5267,6 +5267,12 @@
             "name": "name",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "string",
+            "description": "the type of id is id or name",
+            "name": "mode",
+            "in": "query"
           }
         ],
         "responses": {
@@ -14531,6 +14537,10 @@
             "type": "string"
           },
           "x-go-name": "Labels"
+        },
+        "mode": {
+          "type": "string",
+          "x-go-name": "Mode"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
