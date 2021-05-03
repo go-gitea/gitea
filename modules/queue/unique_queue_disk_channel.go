@@ -199,9 +199,29 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 	go func() {
 		_ = q.ChannelUniqueQueue.AddWorkers(q.workers, 0)
 	}()
+}
 
-	log.Trace("PersistableChannelUniqueQueue: %s Waiting til closed", q.delayedStarter.name)
-	<-q.closed
+// Flush flushes the queue
+func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
+	return q.ChannelUniqueQueue.Flush(timeout)
+}
+
+// Shutdown processing this queue
+func (q *PersistableChannelUniqueQueue) Shutdown() {
+	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
+	q.lock.Lock()
+	select {
+	case <-q.closed:
+		q.lock.Unlock()
+		return
+	default:
+		if q.internal != nil {
+			q.internal.(*LevelUniqueQueue).Shutdown()
+		}
+		close(q.closed)
+		q.lock.Unlock()
+	}
+
 	log.Trace("PersistableChannelUniqueQueue: %s Cancelling pools", q.delayedStarter.name)
 	q.internal.(*LevelUniqueQueue).cancel()
 	q.ChannelUniqueQueue.cancel()
@@ -216,27 +236,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 		}
 		log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 	}()
-	log.Trace("PersistableChannelUniqueQueue: %s Done main loop", q.delayedStarter.name)
-}
 
-// Flush flushes the queue
-func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
-	return q.ChannelUniqueQueue.Flush(timeout)
-}
-
-// Shutdown processing this queue
-func (q *PersistableChannelUniqueQueue) Shutdown() {
-	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
-	q.lock.Lock()
-	defer q.lock.Unlock()
-	select {
-	case <-q.closed:
-	default:
-		if q.internal != nil {
-			q.internal.(*LevelUniqueQueue).Shutdown()
-		}
-		close(q.closed)
-	}
 	log.Debug("PersistableChannelUniqueQueue: %s Shutdown", q.delayedStarter.name)
 }
 

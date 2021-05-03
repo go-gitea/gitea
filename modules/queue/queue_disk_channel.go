@@ -169,25 +169,6 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	go func() {
 		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 	}()
-
-	log.Trace("PersistableChannelQueue: %s Waiting til closed", q.delayedStarter.name)
-	<-q.closed
-	log.Trace("PersistableChannelQueue: %s Cancelling pools", q.delayedStarter.name)
-	q.channelQueue.cancel()
-	q.internal.(*LevelQueue).cancel()
-	log.Trace("PersistableChannelQueue: %s Waiting til done", q.delayedStarter.name)
-	q.channelQueue.Wait()
-	q.internal.(*LevelQueue).Wait()
-	// Redirect all remaining data in the chan to the internal channel
-	go func() {
-		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
-		for data := range q.channelQueue.dataChan {
-			_ = q.internal.Push(data)
-			atomic.AddInt64(&q.channelQueue.numInQueue, -1)
-		}
-		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
-	}()
-	log.Trace("PersistableChannelQueue: %s Done main loop", q.delayedStarter.name)
 }
 
 // Flush flushes the queue and blocks till the queue is empty
@@ -245,16 +226,36 @@ func (q *PersistableChannelQueue) IsEmpty() bool {
 func (q *PersistableChannelQueue) Shutdown() {
 	log.Trace("PersistableChannelQueue: %s Shutting down", q.delayedStarter.name)
 	q.lock.Lock()
-	defer q.lock.Unlock()
+
 	select {
 	case <-q.closed:
+		q.lock.Unlock()
+		return
 	default:
-		if q.internal != nil {
-			q.internal.(*LevelQueue).Shutdown()
-		}
-		close(q.closed)
-		log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 	}
+	if q.internal != nil {
+		q.internal.(*LevelQueue).Shutdown()
+	}
+	close(q.closed)
+	q.lock.Unlock()
+
+	log.Trace("PersistableChannelQueue: %s Cancelling pools", q.delayedStarter.name)
+	q.channelQueue.cancel()
+	q.internal.(*LevelQueue).cancel()
+	log.Trace("PersistableChannelQueue: %s Waiting til done", q.delayedStarter.name)
+	q.channelQueue.Wait()
+	q.internal.(*LevelQueue).Wait()
+	// Redirect all remaining data in the chan to the internal channel
+	go func() {
+		log.Trace("PersistableChannelQueue: %s Redirecting remaining data", q.delayedStarter.name)
+		for data := range q.channelQueue.dataChan {
+			_ = q.internal.Push(data)
+			atomic.AddInt64(&q.channelQueue.numInQueue, -1)
+		}
+		log.Trace("PersistableChannelQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
+	}()
+
+	log.Debug("PersistableChannelQueue: %s Shutdown", q.delayedStarter.name)
 }
 
 // Terminate this queue and close the queue
