@@ -91,7 +91,14 @@ func (q *ChannelQueue) Shutdown() {
 		return
 	default:
 	}
-	go q.FlushWithContext(q.terminateCtx)
+	go func() {
+		log.Trace("ChannelQueue: %s Flushing", q.name)
+		if err := q.FlushWithContext(q.terminateCtx); err != nil {
+			log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
+			return
+		}
+		log.Debug("ChannelQueue: %s Flushed", q.name)
+	}()
 	q.shutdownCancel()
 	log.Debug("ChannelQueue: %s Shutdown", q.name)
 }
