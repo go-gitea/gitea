@@ -5,6 +5,7 @@
 package queue
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -35,7 +36,7 @@ type PersistableChannelUniqueQueueConfiguration struct {
 // task cannot be processed twice or more at the same time. Uniqueness is
 // only guaranteed whilst the task is waiting in the queue.
 type PersistableChannelUniqueQueue struct {
-	*ChannelUniqueQueue
+	channelQueue *ChannelUniqueQueue
 	delayedStarter
 	lock   sync.Mutex
 	closed chan struct{}
@@ -84,8 +85,8 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 	}
 
 	queue := &PersistableChannelUniqueQueue{
-		ChannelUniqueQueue: channelUniqueQueue.(*ChannelUniqueQueue),
-		closed:             make(chan struct{}),
+		channelQueue: channelUniqueQueue.(*ChannelUniqueQueue),
+		closed:       make(chan struct{}),
 	}
 
 	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) {
@@ -137,14 +138,14 @@ func (q *PersistableChannelUniqueQueue) PushFunc(data Data, fn func() error) err
 	case <-q.closed:
 		return q.internal.(UniqueQueue).PushFunc(data, fn)
 	default:
-		return q.ChannelUniqueQueue.PushFunc(data, fn)
+		return q.channelQueue.PushFunc(data, fn)
 	}
 }
 
 // Has will test if the queue has the data
 func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 	// This is more difficult...
-	has, err := q.ChannelUniqueQueue.Has(data)
+	has, err := q.channelQueue.Has(data)
 	if err != nil || has {
 		return has, err
 	}
@@ -169,7 +170,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 					log.Error("Unable push to channelled queue: %v", err)
 				}
 			}
-		}, q.exemplar)
+		}, q.channelQueue.exemplar)
 		q.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to create internal queue for %s Error: %v", q.Name(), err)
@@ -197,13 +198,23 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 	}
 
 	go func() {
-		_ = q.ChannelUniqueQueue.AddWorkers(q.workers, 0)
+		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 	}()
 }
 
 // Flush flushes the queue
 func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
-	return q.ChannelUniqueQueue.Flush(timeout)
+	return q.channelQueue.Flush(timeout)
+}
+
+// Flush flushes the queue
+func (q *PersistableChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
+	return q.channelQueue.FlushWithContext(ctx)
+}
+
+// IsEmpty checks if a queue is empty
+func (q *PersistableChannelUniqueQueue) IsEmpty() bool {
+	return q.channelQueue.IsEmpty()
 }
 
 // Shutdown processing this queue
@@ -224,14 +235,14 @@ func (q *PersistableChannelUniqueQueue) Shutdown() {
 
 	log.Trace("PersistableChannelUniqueQueue: %s Cancelling pools", q.delayedStarter.name)
 	q.internal.(*LevelUniqueQueue).cancel()
-	q.ChannelUniqueQueue.cancel()
+	q.channelQueue.cancel()
 	log.Trace("PersistableChannelUniqueQueue: %s Waiting til done", q.delayedStarter.name)
-	q.ChannelUniqueQueue.Wait()
+	q.channelQueue.Wait()
 	q.internal.(*LevelUniqueQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
 	go func() {
 		log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
-		for data := range q.ChannelUniqueQueue.dataChan {
+		for data := range q.channelQueue.dataChan {
 			_ = q.internal.Push(data)
 		}
 		log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
