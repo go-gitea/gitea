@@ -512,6 +512,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
+			buf, _ := ioutil.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,

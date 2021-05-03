@@ -70,7 +70,7 @@ IS_INPUT_FILE = true
 [markup.restructuredtext]
 ENABLED = true
 FILE_EXTENSIONS = .rst
-RENDER_COMMAND = rst2html.py
+RENDER_COMMAND = "timeout 30s pandoc +RTS -M512M -RTS -f rst"
 IS_INPUT_FILE = false
 ```
 
