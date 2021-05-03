@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
 )
 
@@ -69,6 +70,11 @@ func TagsList(ctx *context.Context) {
 func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["IsViewBranch"] = false
+	ctx.Data["IsViewTag"] = true
+	// Disable the showCreateNewBranch form in the dropdown on this page.
+	ctx.Data["CanCreateBranch"] = false
+	ctx.Data["HideBranchesInDropdown"] = true
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
@@ -77,6 +83,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 		ctx.Data["PageIsTagList"] = false
 	}
+
+	tags, err := ctx.Repo.GitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
@@ -132,7 +145,14 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			ctx.ServerError("calReleaseNumCommitsBehind", err)
 			return
 		}
-		r.Note = markdown.RenderString(r.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
+		r.Note, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     ctx.Repo.Repository.ComposeMetas(),
+		}, r.Note)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
 	}
 
 	ctx.Data["Releases"] = releases
@@ -182,7 +202,14 @@ func SingleRelease(ctx *context.Context) {
 		ctx.ServerError("calReleaseNumCommitsBehind", err)
 		return
 	}
-	release.Note = markdown.RenderString(release.Note, ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas())
+	release.Note, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, release.Note)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
 
 	ctx.Data["Releases"] = []*models.Release{release}
 	ctx.HTML(http.StatusOK, tplReleases)
@@ -243,7 +270,7 @@ func NewRelease(ctx *context.Context) {
 
 // NewReleasePost response for creating a release
 func NewReleasePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewReleaseForm)
+	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -384,7 +411,7 @@ func EditRelease(ctx *context.Context) {
 
 // EditReleasePost response for edit release
 func EditReleasePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditReleaseForm)
+	form := web.GetForm(ctx).(*forms.EditReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true

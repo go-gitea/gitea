@@ -10,7 +10,7 @@
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 
-					<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" "/repo/migrate" | Safe}}</p>
+					<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" (printf "%s%s" AppSubUrl "/repo/migrate") | Safe}}</p>
 
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">

@@ -13,10 +13,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -188,12 +188,12 @@ func NewTeam(ctx *context.Context) {
 
 // NewTeamPost response for create new team
 func NewTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateTeamForm)
+	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = models.Units
-	var includesAllRepositories = (form.RepoAccess == "all")
+	var includesAllRepositories = form.RepoAccess == "all"
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -277,7 +277,7 @@ func EditTeam(ctx *context.Context) {
 
 // EditTeamPost response for modify team information
 func EditTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateTeamForm)
+	form := web.GetForm(ctx).(*forms.CreateTeamForm)
 	t := ctx.Org.Team
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
@@ -286,7 +286,7 @@ func EditTeamPost(ctx *context.Context) {
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
-	var includesAllRepositories = (form.RepoAccess == "all")
+	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
 		auth := models.ParseAccessMode(form.Permission)

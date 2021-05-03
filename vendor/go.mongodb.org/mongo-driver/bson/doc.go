@@ -43,7 +43,7 @@
 // 		6. BSON embedded document unmarshals to the parent type (i.e. D for a D, M for an M).
 // 		7. BSON array unmarshals to a bson.A.
 // 		8. BSON ObjectId unmarshals to a primitive.ObjectID.
-// 		9. BSON datetime unmarshals to a primitive.Datetime.
+// 		9. BSON datetime unmarshals to a primitive.DateTime.
 // 		10. BSON binary unmarshals to a primitive.Binary.
 // 		11. BSON regular expression unmarshals to a primitive.Regex.
 // 		12. BSON JavaScript unmarshals to a primitive.JavaScript.
@@ -90,14 +90,26 @@
 //     unmarshalled into an interface{} field will be unmarshalled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag.
-// The tag gives the name of the field, possibly followed by a comma-separated list of options.
+//
+// This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON tags
+// are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
+//
+// Example:
+//      structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
+//
+// The bson tag gives the name of the field, possibly followed by a comma-separated list of options.
 // The name may be empty in order to specify options without overriding the default field name. The following options can be used
 // to configure behavior:
 //
 //     1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
-//     the zero value. By default, a struct field is only considered empty if the field's type implements the Zeroer
-//     interface and the IsZero method returns true. Struct fields of types that do not implement Zeroer are always
-//     marshalled as embedded documents. This tag should be used for all slice and map values.
+//     the zero value. Fields with language primitive types such as integers, booleans, and strings are considered empty if
+//     their value is equal to the zero value for the type (i.e. 0 for integers, false for booleans, and "" for strings).
+//     Slices, maps, and arrays are considered empty if they are of length zero. Interfaces and pointers are considered
+//     empty if their value is nil. By default, structs are only considered empty if the struct type implements the
+//     bsoncodec.Zeroer interface and the IsZero method returns true. Struct fields whose types do not implement Zeroer are
+//     never considered empty and will be marshalled as embedded documents.
+//     NOTE: It is recommended that this tag be used for all slice and map fields.
 //
 //     2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
 //     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For other

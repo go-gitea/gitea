@@ -8,10 +8,11 @@ import (
 	"xorm.io/xorm"
 )
 
-func addKeyIsVerified(x *xorm.Engine) error {
-	type GPGKey struct {
-		Verified bool `xorm:"NOT NULL DEFAULT false"`
+func addLFSMirrorColumns(x *xorm.Engine) error {
+	type Mirror struct {
+		LFS         bool   `xorm:"lfs_enabled NOT NULL DEFAULT false"`
+		LFSEndpoint string `xorm:"lfs_endpoint TEXT"`
 	}
 
-	return x.Sync(new(GPGKey))
+	return x.Sync2(new(Mirror))
 }

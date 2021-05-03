@@ -52,6 +52,12 @@ overrides:
     rules:
       import/no-unresolved: [0]
       import/no-extraneous-dependencies: [0]
+  - files: ["*.test.js"]
+    env:
+      jest: true
+  - files: ["*.config.js"]
+    rules:
+      import/no-unused-modules: [0]
 
 rules:
   accessor-pairs: [2]
@@ -406,6 +412,7 @@ rules:
   unicorn/prefer-spread: [0]
   unicorn/prefer-starts-ends-with: [2]
   unicorn/prefer-string-slice: [0]
+  unicorn/prefer-switch: [0]
   unicorn/prefer-ternary: [0]
   unicorn/prefer-text-content: [2]
   unicorn/prefer-trim-start-end: [2]

@@ -35,17 +35,13 @@ func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	return openids, nil
 }
 
+// isOpenIDUsed returns true if the openid has been used.
 func isOpenIDUsed(e Engine, uri string) (bool, error) {
 	if len(uri) == 0 {
 		return true, nil
 	}
 
 	return e.Get(&UserOpenID{URI: uri})
-}
-
-// IsOpenIDUsed returns true if the openid has been used.
-func IsOpenIDUsed(openid string) (bool, error) {
-	return isOpenIDUsed(x, openid)
 }
 
 // NOTE: make sure openid.URI is normalized already

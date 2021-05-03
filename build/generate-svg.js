@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-'use strict';
+import fastGlob from 'fast-glob';
+import {optimize, extendDefaultPlugins} from 'svgo';
+import {resolve, parse, dirname} from 'path';
+import fs from 'fs';
+import {fileURLToPath} from 'url';
 
-const fastGlob = require('fast-glob');
-const {optimize, extendDefaultPlugins} = require('svgo');
-const {resolve, parse} = require('path');
-const {readFile, writeFile, mkdir} = require('fs').promises;
-
+const {readFile, writeFile, mkdir} = fs.promises;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: resolve(__dirname), absolute: true});
 const outputDir = resolve(__dirname, '../public/img/svg');
 

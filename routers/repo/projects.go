@@ -12,11 +12,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -77,7 +78,14 @@ func Projects(ctx *context.Context) {
 	}
 
 	for i := range projects {
-		projects[i].RenderedContent = string(markdown.Render([]byte(projects[i].Description), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+		projects[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     ctx.Repo.Repository.ComposeMetas(),
+		}, projects[i].Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
 	}
 
 	ctx.Data["Projects"] = projects
@@ -115,7 +123,7 @@ func NewProject(ctx *context.Context) {
 
 // NewProjectPost creates a new project
 func NewProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateProjectForm)
+	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
@@ -221,7 +229,7 @@ func EditProject(ctx *context.Context) {
 
 // EditProjectPost response for editing a project
 func EditProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateProjectForm)
+	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
 	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
@@ -311,7 +319,14 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	project.RenderedContent = string(markdown.Render([]byte(project.Description), ctx.Repo.RepoLink, ctx.Repo.Repository.ComposeMetas()))
+	project.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeMetas(),
+	}, project.Description)
+	if err != nil {
+		ctx.ServerError("RenderString", err)
+		return
+	}
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
@@ -404,7 +419,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditProjectBoardForm)
+	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
 	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
@@ -484,7 +499,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 
 // EditProjectBoard allows a project board's to be updated
 func EditProjectBoard(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.EditProjectBoardForm)
+	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
 	_, board := checkProjectBoardChangePermissions(ctx)
 	if ctx.Written() {
 		return
@@ -614,7 +629,7 @@ func CreateProject(ctx *context.Context) {
 }
 
 // CreateProjectPost creates an individual and/or organization project
-func CreateProjectPost(ctx *context.Context, form auth.UserCreateProjectForm) {
+func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
 
 	user := checkContextUser(ctx, form.UID)
 	if ctx.Written() {

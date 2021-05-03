@@ -318,7 +318,6 @@ var (
 	LogRootPath        string
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
-	RouterLogMode      string
 	EnableAccessLog    bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
@@ -408,10 +407,6 @@ var (
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
-
-	// UILocation is the location on the UI, so that we can display the time on UI.
-	// Currently only show the default time.Local, it could be added to app.ini after UI is ready
-	UILocation = time.Local
 )
 
 // IsProd if it's a production mode
@@ -1144,12 +1139,12 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		StartURL:  appURL,
 		Icons: []manifestIcon{
 			{
-				Src:   absoluteAssetURL + "/img/logo.png",
+				Src:   absoluteAssetURL + "/assets/img/logo.png",
 				Type:  "image/png",
 				Sizes: "512x512",
 			},
 			{
-				Src:   absoluteAssetURL + "/img/logo.svg",
+				Src:   absoluteAssetURL + "/assets/img/logo.svg",
 				Type:  "image/svg+xml",
 				Sizes: "512x512",
 			},
@@ -1168,6 +1163,7 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 func NewServices() {
 	InitDBConfig()
 	newService()
+	newOAuth2Client()
 	NewLogServices(false)
 	newCacheService()
 	newSessionService()

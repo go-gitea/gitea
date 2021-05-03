@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -30,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -172,7 +172,7 @@ func Fork(ctx *context.Context) {
 
 // ForkPost response for forking a repository
 func ForkPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateRepoForm)
+	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_fork")
 
 	ctxUser := checkContextUser(ctx, form.UID)
@@ -201,7 +201,7 @@ func ForkPost(ctx *context.Context) {
 		}
 		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
 		if has {
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 		if !traverseParentRepo.IsFork {
@@ -243,7 +243,7 @@ func ForkPost(ctx *context.Context) {
 	}
 
 	log.Trace("Repository forked[%d]: %s/%s", forkRepo.ID, ctxUser.Name, repo.Name)
-	ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+	ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 }
 
 func checkPullInfo(ctx *context.Context) *models.Issue {
@@ -764,7 +764,7 @@ func UpdatePullRequest(ctx *context.Context) {
 
 // MergePullRequest response for merging pull request
 func MergePullRequest(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
+	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -975,7 +975,7 @@ func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
 
 // CompareAndPullRequestPost response for creating pull request
 func CompareAndPullRequestPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateIssueForm)
+	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true

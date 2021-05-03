@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
 	"github.com/dgrijalva/jwt-go"
@@ -195,7 +195,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 
 // AuthorizeOAuth manages authorize requests
 func AuthorizeOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.AuthorizationForm)
+	form := web.GetForm(ctx).(*forms.AuthorizationForm)
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
@@ -345,7 +345,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 // GrantApplicationOAuth manages the post request submitted when a user grants access to an application
 func GrantApplicationOAuth(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.GrantApplicationForm)
+	form := web.GetForm(ctx).(*forms.GrantApplicationForm)
 	if ctx.Session.Get("client_id") != form.ClientID || ctx.Session.Get("state") != form.State ||
 		ctx.Session.Get("redirect_uri") != form.RedirectURI {
 		ctx.Error(http.StatusBadRequest)
@@ -389,9 +389,19 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect.String(), 302)
 }
 
+// OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
+func OIDCWellKnown(ctx *context.Context) {
+	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
+		log.Error("%v", err)
+		ctx.Error(http.StatusInternalServerError)
+	}
+}
+
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
-	form := *web.GetForm(ctx).(*auth.AccessTokenForm)
+	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
 	if form.ClientID == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)
@@ -431,7 +441,7 @@ func AccessTokenOAuth(ctx *context.Context) {
 	}
 }
 
-func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
+func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm) {
 	token, err := models.ParseOAuth2Token(form.RefreshToken)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -467,7 +477,7 @@ func handleRefreshToken(ctx *context.Context, form auth.AccessTokenForm) {
 	ctx.JSON(http.StatusOK, accessToken)
 }
 
-func handleAuthorizationCode(ctx *context.Context, form auth.AccessTokenForm) {
+func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{

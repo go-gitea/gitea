@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	archiver_service "code.gitea.io/gitea/services/archiver"
+	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -185,13 +185,16 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateRepoForm)
+	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
+
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -237,7 +240,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	} else {
@@ -256,7 +259,7 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	}

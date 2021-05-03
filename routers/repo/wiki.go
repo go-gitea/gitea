@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -211,12 +212,34 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	metas := ctx.Repo.Repository.ComposeDocumentMetas()
-	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+	var rctx = &markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+		IsWiki:    true,
+	}
+
+	var buf strings.Builder
+	if err := markdown.Render(rctx, bytes.NewReader(data), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
+	ctx.Data["content"] = buf.String()
+
+	buf.Reset()
+	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
+	ctx.Data["sidebarContent"] = buf.String()
+
+	buf.Reset()
+	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
+	ctx.Data["footerContent"] = buf.String()
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -559,7 +582,7 @@ func NewWiki(ctx *context.Context) {
 
 // NewWikiPost response for wiki create request
 func NewWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewWikiForm)
+	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true
@@ -617,7 +640,7 @@ func EditWiki(ctx *context.Context) {
 
 // EditWikiPost response for wiki modify request
 func EditWikiPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewWikiForm)
+	form := web.GetForm(ctx).(*forms.NewWikiForm)
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 	ctx.Data["PageIsWiki"] = true
 	ctx.Data["RequireSimpleMDE"] = true

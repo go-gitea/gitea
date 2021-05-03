@@ -10,10 +10,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -33,7 +32,7 @@ func Labels(ctx *context.Context) {
 
 // InitializeLabels init labels for a repository
 func InitializeLabels(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.InitializeLabelsForm)
+	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
@@ -88,7 +87,7 @@ func RetrieveLabels(ctx *context.Context) {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
 			}
-			ctx.Org.OrgLink = setting.AppSubURL + "/org/" + org.LowerName
+			ctx.Org.OrgLink = org.OrganisationLink()
 			ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 			ctx.Data["OrganizationLink"] = ctx.Org.OrgLink
 		}
@@ -99,7 +98,7 @@ func RetrieveLabels(ctx *context.Context) {
 
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
 
@@ -124,7 +123,7 @@ func NewLabel(ctx *context.Context) {
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	l, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {

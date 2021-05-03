@@ -104,6 +104,12 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 	if err != nil {
 		return nil, err
 	}
+	if opts.LFS && len(opts.LFSEndpoint) > 0 {
+		err := IsMigrateURLAllowed(opts.LFSEndpoint, doer)
+		if err != nil {
+			return nil, err
+		}
+	}
 	downloader, err := newDownloader(ctx, ownerName, opts)
 	if err != nil {
 		return nil, err

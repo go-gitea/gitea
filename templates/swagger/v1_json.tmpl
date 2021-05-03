@@ -10068,6 +10068,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -10095,6 +10098,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10120,6 +10126,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       },
@@ -10153,6 +10162,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10221,6 +10233,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -11535,6 +11550,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/AccessToken"
+          },
+          "400": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -11568,6 +11586,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           },
           "422": {
             "$ref": "#/responses/error"
@@ -13829,6 +13850,10 @@
           "type": "boolean",
           "x-go-name": "AllowImportLocal"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -14183,6 +14208,10 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "stars_disabled": {
+          "type": "boolean",
+          "x-go-name": "StarsDisabled"
         },
         "time_tracking_disabled": {
           "type": "boolean",
@@ -14684,7 +14713,7 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoForm": {
       "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
@@ -14722,6 +14751,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -14764,7 +14801,7 @@
           "x-go-name": "Wiki"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/modules/forms"
+      "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
       "description": "MigrateRepoOptions options for migrating repository's\nthis is used to interact with api v1",
@@ -14801,6 +14838,14 @@
         "labels": {
           "type": "boolean",
           "x-go-name": "Labels"
+        },
+        "lfs": {
+          "type": "boolean",
+          "x-go-name": "LFS"
+        },
+        "lfs_endpoint": {
+          "type": "string",
+          "x-go-name": "LFSEndpoint"
         },
         "milestones": {
           "type": "boolean",
@@ -16269,6 +16314,11 @@
           "format": "date-time",
           "x-go-name": "Created"
         },
+        "description": {
+          "description": "the user's description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -16300,6 +16350,11 @@
           "format": "date-time",
           "x-go-name": "LastLogin"
         },
+        "location": {
+          "description": "the user's location",
+          "type": "string",
+          "x-go-name": "Location"
+        },
         "login": {
           "description": "the user's username",
           "type": "string",
@@ -16309,6 +16364,11 @@
           "description": "Is user restricted",
           "type": "boolean",
           "x-go-name": "Restricted"
+        },
+        "website": {
+          "description": "the user's website",
+          "type": "string",
+          "x-go-name": "Website"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

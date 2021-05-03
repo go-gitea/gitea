@@ -24,5 +24,6 @@ type Generate struct {
 	Server    *generate.Server    `command:"server"`
 	Spec      *generate.SpecFile  `command:"spec"`
 	Client    *generate.Client    `command:"client"`
+	Cli       *generate.Cli       `command:"cli"`
 	Markdown  *generate.Markdown  `command:"markdown"`
 }

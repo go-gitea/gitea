@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // RetrieveLabels find all the labels of an organization
@@ -30,7 +30,7 @@ func RetrieveLabels(ctx *context.Context) {
 
 // NewLabel create new label for organization
 func NewLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
 
@@ -55,7 +55,7 @@ func NewLabel(ctx *context.Context) {
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.CreateLabelForm)
+	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	l, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, form.ID)
 	if err != nil {
 		switch {
@@ -92,7 +92,7 @@ func DeleteLabel(ctx *context.Context) {
 
 // InitializeLabels init labels for an organization
 func InitializeLabels(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.InitializeLabelsForm)
+	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 		return
