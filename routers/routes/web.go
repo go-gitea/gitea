@@ -158,6 +158,7 @@ func WebRoutes() *web.Route {
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
+			Prefix:      "/assets",
 		},
 	))
 
@@ -480,7 +481,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
-		m.Any("/activate", user.Activate, reqSignIn)
+		m.Get("/activate", user.Activate, reqSignIn)
+		m.Post("/activate", user.ActivatePost, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.Avatar)
 		m.Get("/email2user", user.Email2User)
@@ -938,6 +940,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
+		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	m.Group("/{username}/{reponame}", func() {

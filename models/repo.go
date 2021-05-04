@@ -747,7 +747,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
@@ -863,7 +863,10 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		URLPrefix: repo.HTMLURL(),
+		Metas:     repo.ComposeMetas(),
+	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
@@ -1452,23 +1455,26 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Watch{RepoID: repoID},
-		&Star{RepoID: repoID},
-		&Mirror{RepoID: repoID},
-		&Milestone{RepoID: repoID},
-		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
-		&RepoUnit{RepoID: repoID},
-		&RepoRedirect{RedirectRepoID: repoID},
-		&Webhook{RepoID: repoID},
-		&HookTask{RepoID: repoID},
-		&Notification{RepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&RepoIndexerStatus{RepoID: repoID},
-		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&CommitStatus{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&HookTask{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
+		&Milestone{RepoID: repoID},
+		&Mirror{RepoID: repoID},
+		&Notification{RepoID: repoID},
+		&ProtectedBranch{RepoID: repoID},
+		&PullRequest{BaseRepoID: repoID},
+		&Release{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
+		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
+		&Watch{RepoID: repoID},
+		&Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1481,10 +1487,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
-		return err
-	}
-
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
