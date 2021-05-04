@@ -80,6 +80,7 @@
 							<span class="commit">
 								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 							</span>
+							{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 						{{end}}
 					</div>
 					<div class="ui twelve wide column detail">
