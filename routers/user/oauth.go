@@ -202,7 +202,8 @@ type userInfoResponse struct {
 	Picture  string `json:"picture"`
 }
 
-func UserInfoOAuth(ctx *context.Context) {
+// InfoOAuth manages request for userinfo endpoint
+func InfoOAuth(ctx *context.Context) {
 	header := ctx.Req.Header.Get("Authorization")
 	auths := strings.Fields(header)
 	if len(auths) != 2 || auths[0] != "Bearer" {
