@@ -54,8 +54,8 @@ loop:
 					// OK we're back so lets reset the timer and start again
 					// We won't change the "then" time because there could be concurrency issues
 					select {
-					  case <-timer.C:
-					  default:
+					case <-timer.C:
+					default:
 					}
 					continue
 				}
