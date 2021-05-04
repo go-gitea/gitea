@@ -182,7 +182,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 
-	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len() != 0 {
+	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len(luq.shutdownCtx) != 0 {
 		// Just run the level queue - we shut it down once it's flushed
 		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {

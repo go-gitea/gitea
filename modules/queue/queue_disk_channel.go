@@ -150,7 +150,7 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 
-	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len() != 0 {
+	if lq, ok := q.internal.(*LevelQueue); ok && lq.byteFIFO.Len(lq.shutdownCtx) != 0 {
 		// Just run the level queue - we shut it down once it's flushed
 		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {

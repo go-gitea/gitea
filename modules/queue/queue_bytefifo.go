@@ -96,7 +96,7 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 			}
 		}()
 	}
-	return q.byteFIFO.PushFunc(bs, fn)
+	return q.byteFIFO.PushFunc(q.terminateCtx, bs, fn)
 }
 
 // IsEmpty checks if the queue is empty
@@ -106,7 +106,7 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 	if !q.WorkerPool.IsEmpty() {
 		return false
 	}
-	return q.byteFIFO.Len() == 0
+	return q.byteFIFO.Len(q.terminateCtx) == 0
 }
 
 // Run runs the bytefifo queue
@@ -140,16 +140,20 @@ func (q *ByteFIFOQueue) readToChan() {
 			return
 		default:
 			q.lock.Lock()
-			bs, err := q.byteFIFO.Pop()
+			bs, err := q.byteFIFO.Pop(q.shutdownCtx)
 			if err != nil {
 				q.lock.Unlock()
+				if err == context.Canceled {
+					q.cancel()
+					return
+				}
 				log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
 				time.Sleep(time.Millisecond * 100)
 				continue
 			}
 
 			if len(bs) == 0 {
-				if q.waitOnEmpty && q.byteFIFO.Len() == 0 {
+				if q.waitOnEmpty && q.byteFIFO.Len(q.shutdownCtx) == 0 {
 					q.lock.Unlock()
 					log.Trace("%s: %s Waiting on Empty", q.typ, q.name)
 					select {
@@ -205,10 +209,10 @@ func (q *ByteFIFOQueue) Terminate() {
 		return
 	default:
 	}
-	q.terminateCancel()
 	if log.IsDebug() {
-		log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len())
+		log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len(q.terminateCtx))
 	}
+	q.terminateCancel()
 	if err := q.byteFIFO.Close(); err != nil {
 		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
 	}
@@ -263,5 +267,5 @@ func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return q.byteFIFO.(UniqueByteFIFO).Has(bs)
+	return q.byteFIFO.(UniqueByteFIFO).Has(q.terminateCtx, bs)
 }
