@@ -114,6 +114,23 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(context.Context, func()
 }
 
 func (q *ByteFIFOQueue) readToChan() {
+	backOffTime := time.Millisecond * 100
+	maxBackOffTime := time.Second * 3
+	backOff := func() time.Duration {
+		backOffTime += backOffTime / 2
+		if backOffTime > maxBackOffTime {
+			backOffTime = maxBackOffTime
+			return maxBackOffTime
+		}
+		return backOffTime
+	}
+	doBackOff := func() {
+		select {
+		case <-q.closed:
+		case <-time.After(backOff()):
+		}
+	}
+
 	for {
 		select {
 		case <-q.closed:
@@ -126,21 +143,23 @@ func (q *ByteFIFOQueue) readToChan() {
 			if err != nil {
 				q.lock.Unlock()
 				log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
-				time.Sleep(time.Millisecond * 100)
+				doBackOff()
 				continue
 			}
 
 			if len(bs) == 0 {
 				q.lock.Unlock()
-				time.Sleep(time.Millisecond * 100)
+				doBackOff()
 				continue
 			}
+
+			backOffTime = time.Millisecond * 100
 
 			data, err := unmarshalAs(bs, q.exemplar)
 			if err != nil {
 				log.Error("%s: %s Failed to unmarshal with error: %v", q.typ, q.name, err)
 				q.lock.Unlock()
-				time.Sleep(time.Millisecond * 100)
+				doBackOff()
 				continue
 			}
 
