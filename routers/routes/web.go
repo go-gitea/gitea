@@ -472,7 +472,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
-		m.Any("/activate", user.Activate, reqSignIn)
+		m.Get("/activate", user.Activate, reqSignIn)
+		m.Post("/activate", user.ActivatePost, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.Avatar)
 		m.Get("/email2user", user.Email2User)

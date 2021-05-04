@@ -53,7 +53,13 @@
 						</div>
 						<span class="file mono">{{$file.Name}}</span>
 						<div class="diff-file-header-actions df ac">
-							<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+							<div class="text grey">
+								{{if $file.IsIncompleteLineTooLong}}
+									{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
+								{{else}}
+									{{$.i18n.Tr "repo.diff.file_suppressed"}}
+								{{end}}
+							</div>
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
