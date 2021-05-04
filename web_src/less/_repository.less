@@ -1803,6 +1803,10 @@
           text-align: right;
           position: relative;
 
+          .label {
+            margin-right: 0;
+          }
+
           .tag:not(.icon) {
             display: block;
             margin-top: 15px;
@@ -1811,6 +1815,14 @@
           .commit {
             display: block;
             margin-top: 10px;
+          }
+
+          .choose {
+            margin-top: 15px;
+
+            .button {
+              margin-right: 0;
+            }
           }
         }
 
@@ -1855,7 +1867,7 @@
             width: 9px;
             height: 9px;
             background-color: #ddd;
-            z-index: 999;
+            z-index: 9;
             position: absolute;
             display: block;
             left: -5px;
