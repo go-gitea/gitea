@@ -89,6 +89,9 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	if setting.EnableAccessLog {
+		handlers = append(handlers, context.AccessLogger())
+	}
 
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -128,9 +131,9 @@ func NormalRoutes() *web.Route {
 
 // WebRoutes returns all web routes
 func WebRoutes() *web.Route {
-	r := web.NewRoute()
+	routes := web.NewRoute()
 
-	r.Use(session.Sessioner(session.Options{
+	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -141,14 +144,17 @@ func WebRoutes() *web.Route {
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
-	r.Use(Recovery())
+	routes.Use(Recovery())
 
-	r.Use(public.Custom(
+	// TODO: we should consider if there is a way to mount these using r.Route as at present
+	// these two handlers mean that every request has to hit these "filesystems" twice
+	// before finally getting to the router. It allows them to override any matching router below.
+	routes.Use(public.Custom(
 		&public.Options{
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
-	r.Use(public.Static(
+	routes.Use(public.Static(
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
@@ -156,78 +162,81 @@ func WebRoutes() *web.Route {
 		},
 	))
 
-	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
+	routes.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+
+	// for health check - doeesn't need to be passed through gzip handler
+	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
+	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
 
 	gob.Register(&u2f.Challenge{})
+
+	common := []interface{}{}
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		r.Use(h)
+		common = append(common, h)
 	}
 
 	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
-		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
+		routes.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
-	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
-	r.Use(context.Contexter())
-	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	r.Use(middleware.GetHead)
-
-	if setting.EnableAccessLog {
-		r.Use(context.AccessLogger())
-	}
-
-	r.Use(user.GetNotificationCount)
-	r.Use(repo.GetActiveStopwatch)
-	r.Use(func(ctx *context.Context) {
-		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
-	})
-
-	// for health check
-	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 
 	if setting.HasRobotsTxt {
-		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+		routes.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
 			filePath := path.Join(setting.CustomPath, "robots.txt")
 			fi, err := os.Stat(filePath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
 				return
 			}
 			http.ServeFile(w, req, filePath)
-		})
+		})...)
 	}
 
-	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
-	})
-
-	// prometheus metrics endpoint
+	// prometheus metrics endpoint - do not need to go through contexter
 	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
-		r.Get("/metrics", routers.Metrics)
+		routes.Get("/metrics", append(common, routers.Metrics)...)
 	}
+
+	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
+	common = append(common, context.Contexter())
+
+	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
+	common = append(common, middleware.GetHead)
 
 	if setting.API.EnableSwagger {
 		// Note: The route moved from apiroutes because it's in fact want to render a web page
-		r.Get("/api/swagger", misc.Swagger) // Render V1 by default
+		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
 	}
 
-	RegisterRoutes(r)
+	// TODO: These really seem like things that could be folded into Contexter or as helper functions
+	common = append(common, user.GetNotificationCount)
+	common = append(common, repo.GetActiveStopwatch)
 
-	return r
+	others := web.NewRoute()
+	for _, middle := range common {
+		others.Use(middle)
+	}
+
+	RegisterRoutes(others)
+	routes.Mount("", others)
+	return routes
 }
 
 func goGet(ctx *context.Context) {
