@@ -49,12 +49,14 @@ loop:
 				timer.Stop()
 				select {
 				case <-ctx.Done():
-					timer.Stop()
 					break loop
 				case <-m.connection:
 					// OK we're back so lets reset the timer and start again
 					// We won't change the "then" time because there could be concurrency issues
-					timer.Reset(setting.UI.Notification.EventSourceUpdateTime)
+					select {
+					  case <-timer.C:
+					  default:
+					}
 					continue
 				}
 			}
