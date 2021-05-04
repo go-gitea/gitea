@@ -34,6 +34,31 @@ loop:
 			timer.Stop()
 			break loop
 		case <-timer.C:
+			m.mutex.Lock()
+			connectionCount := len(m.messengers)
+			if connectionCount == 0 {
+				// empty the connection channel
+				select {
+				case <-m.connection:
+				default:
+				}
+			}
+			m.mutex.Unlock()
+			if connectionCount == 0 {
+				// No listeners so the source can be paused
+				timer.Stop()
+				select {
+				case <-ctx.Done():
+					timer.Stop()
+					break loop
+				case <-m.connection:
+					// OK we're back so lets reset the timer and start again
+					// We won't change the "then" time because there could be concurrency issues
+					timer.Reset(setting.UI.Notification.EventSourceUpdateTime)
+					continue
+				}
+			}
+
 			now := timeutil.TimeStampNow().Add(-2)
 
 			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
