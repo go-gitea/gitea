@@ -274,7 +274,7 @@ swagger-validate:
 
 .PHONY: build-constraints-check
 build-constraints-check:
-	@output=$$(grep '+build' $(GO_SOURCES_OWN) | grep -v all); \
+	@output=$$(grep '+build' $(GO_SOURCES_OWN) | grep -v ' all '); \
 	if [ $$? -ne 1 ]; then \
 		echo "Please include the 'all' tag in all +build constraints:"; \
 		echo "$${output}"; \
