@@ -198,17 +198,15 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 					wg.Done()
 				}(mq)
 			} else {
-				log.Debug("Queue: %s is non-empty but is not flushable - adding 100 millisecond wait", mq.Name)
-				go func() {
-					<-time.After(100 * time.Millisecond)
-					wg.Done()
-				}()
+				log.Debug("Queue: %s is non-empty but is not flushable", mq.Name)
+				wg.Done()
 			}
-
 		}
 		if allEmpty {
+			log.Debug("All queues are empty")
 			break
 		}
+		<-time.After(100 * time.Millisecond)
 		wg.Wait()
 	}
 	return nil
