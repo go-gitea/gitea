@@ -104,14 +104,14 @@ The external renderer is specified in the .ini in the format `[markup.XXXXX]` an
 
 And so you could write some CSS:
 ```css
-.markup html {
+.markup.XXXXX html {
   font-size: 100%;
   overflow-y: scroll;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
 }
 
-.markup body {
+.markup.XXXXX body {
   color: #444;
   font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
   font-size: 12px;
@@ -122,7 +122,7 @@ And so you could write some CSS:
   background: #fefefe;
 }
 
-.markup p {
+.markup.XXXXX p {
   color: orangered;
 }
 ```
