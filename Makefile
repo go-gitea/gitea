@@ -276,7 +276,7 @@ swagger-validate:
 build-constraints-check:
 	@output=$$(grep '+build' $(GO_SOURCES_OWN) | grep -v ' all '); \
 	if [ $$? -ne 1 ]; then \
-		echo "Please include the 'all' tag in all +build constraints:"; \
+		echo "Please include the 'all' tag in all +build constraints, e.g. '// +build all yourtag'"; \
 		echo "$${output}"; \
 		exit 1; \
 	fi
