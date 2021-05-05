@@ -94,6 +94,24 @@ func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+// BearerTokenErrorCode represents an error code specified in RFC 6750
+type BearerTokenErrorCode string
+
+const (
+	// BearerTokenErrorCodeInvalidRequest represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInvalidRequest BearerTokenErrorCode = "invalid_request"
+	// BearerTokenErrorCodeInvalidToken represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInvalidToken BearerTokenErrorCode = "invalid_token"
+	// BearerTokenErrorCodeInsufficientScope represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInsufficientScope BearerTokenErrorCode = "insufficient_scope"
+)
+
+// BearerTokenError represents an error response specified in RFC 6750
+type BearerTokenError struct {
+	ErrorCode        BearerTokenErrorCode
+	ErrorDescription string
+}
+
 // TokenType specifies the kind of token
 type TokenType string
 
@@ -211,6 +229,13 @@ func InfoOAuth(ctx *context.Context) {
 		return
 	}
 	uid := sso.CheckOAuthAccessToken(auths[1])
+	if uid == 0 {
+		handleBearerTokenError(ctx, BearerTokenError{
+			ErrorCode:        BearerTokenErrorCodeInvalidToken,
+			ErrorDescription: "Access token not assigned to any user",
+		})
+		return
+	}
 	if uid != 0 {
 		authUser, err := models.GetUserByID(uid)
 		if err != nil {
@@ -225,8 +250,6 @@ func InfoOAuth(ctx *context.Context) {
 			Picture:  authUser.AvatarLink(),
 		}
 		ctx.JSON(http.StatusOK, response)
-	} else {
-		ctx.ServerError("InfoOAuth:", fmt.Errorf("UserID not valid"))
 	}
 }
 
@@ -607,4 +630,17 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String(), 302)
+}
+
+func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
+	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
+	if beErr.ErrorCode == BearerTokenErrorCodeInvalidRequest {
+		ctx.Error(http.StatusBadRequest)
+	}
+	if beErr.ErrorCode == BearerTokenErrorCodeInvalidToken {
+		ctx.Error(http.StatusUnauthorized)
+	}
+	if beErr.ErrorCode == BearerTokenErrorCodeInsufficientScope {
+		ctx.Error(http.StatusForbidden)
+	}
 }
