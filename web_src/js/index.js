@@ -1157,11 +1157,9 @@ async function initRepository() {
     // Change status
     const $statusButton = $('#status-button');
     $('#comment-form textarea').on('keyup', function () {
-      if ($(this).val().length === 0) {
-        $statusButton.text($statusButton.data('status'));
-      } else {
-        $statusButton.text($statusButton.data('status-and-comment'));
-      }
+      const $simplemde = $(this).data('simplemde');
+      const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+      $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
     });
     $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
@@ -1670,6 +1668,8 @@ function setCommentSimpleMDE($editArea) {
     }
   });
   attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  $editArea.data('simplemde', simplemde);
+  $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
   return simplemde;
 }
 
