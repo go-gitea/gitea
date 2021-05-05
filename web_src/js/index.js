@@ -11,8 +11,8 @@ import initClipboard from './features/clipboard.js';
 import initHeatmap from './features/heatmap.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
-import initMarkdownAnchors from './markdown/anchors.js';
-import renderMarkdownContent from './markdown/content.js';
+import initMarkupAnchors from './markup/anchors.js';
+import renderMarkupContent from './markup/content.js';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
@@ -51,7 +51,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkdownContent();
+      renderMarkupContent();
     });
   });
 
@@ -81,7 +81,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkdownContent();
+        renderMarkupContent();
       });
     });
   }
@@ -1107,7 +1107,7 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkdownContent();
+            renderMarkupContent();
           });
         });
       } else {
@@ -1476,7 +1476,7 @@ function initWikiForm() {
             wiki: true
           }, (data) => {
             preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
-            renderMarkdownContent();
+            renderMarkupContent();
           });
         };
 
@@ -2772,7 +2772,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
-  initMarkdownAnchors();
+  initMarkupAnchors();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2830,7 +2830,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkdownContent(),
+    renderMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);
