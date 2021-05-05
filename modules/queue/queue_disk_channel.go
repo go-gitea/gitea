@@ -154,11 +154,13 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 		// Just run the level queue - we shut it down once it's flushed
 		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {
-			_ = q.internal.Flush(0)
+			for !q.IsEmpty() {
+				_ = q.internal.Flush(0)
+				<-time.After(100 * time.Millisecond)
+			}
 			log.Debug("LevelQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
 			q.internal.(*LevelQueue).Shutdown()
 			GetManager().Remove(q.internal.(*LevelQueue).qid)
-
 		}()
 	} else {
 		log.Debug("PersistableChannelQueue: %s Skipping running the empty level queue", q.delayedStarter.name)
@@ -233,6 +235,7 @@ func (q *PersistableChannelQueue) Shutdown() {
 		return
 	default:
 	}
+	q.channelQueue.Shutdown()
 	if q.internal != nil {
 		q.internal.(*LevelQueue).Shutdown()
 	}
@@ -264,6 +267,7 @@ func (q *PersistableChannelQueue) Terminate() {
 	q.Shutdown()
 	q.lock.Lock()
 	defer q.lock.Unlock()
+	q.channelQueue.Terminate()
 	if q.internal != nil {
 		q.internal.(*LevelQueue).Terminate()
 	}
