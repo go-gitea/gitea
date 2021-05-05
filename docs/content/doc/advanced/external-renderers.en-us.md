@@ -99,7 +99,7 @@ Once your configuration changes have been made, restart Gitea to have changes ta
 **Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
 there were significant problems with this method of configuration necessitating configuration through multiple sections.
 
-## Customising CSS
+## Customizing CSS
 The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML. 
 
 And so you could write some Less:
