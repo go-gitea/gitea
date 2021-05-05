@@ -172,8 +172,7 @@ func (p *StickyConnPool) Reset(ctx context.Context) error {
 
 func (p *StickyConnPool) badConnError() error {
 	if v := p._badConnError.Load(); v != nil {
-		err := v.(BadConnError)
-		if err.wrapped != nil {
+		if err := v.(BadConnError); err.wrapped != nil {
 			return err
 		}
 	}

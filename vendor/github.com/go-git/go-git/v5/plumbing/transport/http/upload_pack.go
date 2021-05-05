@@ -25,7 +25,11 @@ func newUploadPackSession(c *http.Client, ep *transport.Endpoint, auth transport
 }
 
 func (s *upSession) AdvertisedReferences() (*packp.AdvRefs, error) {
-	return advertisedReferences(s.session, transport.UploadPackServiceName)
+	return advertisedReferences(context.TODO(), s.session, transport.UploadPackServiceName)
+}
+
+func (s *upSession) AdvertisedReferencesContext(ctx context.Context) (*packp.AdvRefs, error) {
+	return advertisedReferences(ctx, s.session, transport.UploadPackServiceName)
 }
 
 func (s *upSession) UploadPack(

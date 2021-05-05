@@ -29,4 +29,5 @@ type Config struct {
 	ErrorCode             int              `toml:"errorCode"`
 	WarningCode           int              `toml:"warningCode"`
 	Directives            DirectivesConfig `toml:"directive"`
+	Exclude               []string         `toml:"exclude"`
 }
