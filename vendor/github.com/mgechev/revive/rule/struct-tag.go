@@ -168,7 +168,7 @@ func (w lintStructTagRule) checkJSONTag(name string, options []string) (string, 
 		case "":
 			// special case for JSON key "-"
 			if name != "-" {
-				return "option can not be empty in JSON tag", false	
+				return "option can not be empty in JSON tag", false
 			}
 		default:
 			return fmt.Sprintf("unknown option '%s' in JSON tag", opt), false

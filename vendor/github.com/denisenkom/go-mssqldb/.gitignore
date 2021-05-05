@@ -1,0 +1,8 @@
+/.idea
+/.connstr
+.vscode
+.terraform
+*.tfstate*
+*.log
+*.swp
+*~

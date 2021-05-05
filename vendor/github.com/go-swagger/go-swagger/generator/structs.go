@@ -146,6 +146,8 @@ func (g GenSchema) PrintTags() string {
 		if tag == "example" && len(g.Example) > 0 {
 			// only add example tag if it's contained in the struct tags
 			tags["example"] = g.Example // json representation of the example object
+		} else if tag == "description" && len(g.Description) > 0 {
+			tags["description"] = g.Description
 		} else {
 			tags[tag] = tags["json"]
 		}
@@ -645,33 +647,34 @@ func (g GenOperations) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 // from a swagger spec
 type GenApp struct {
 	GenCommon
-	APIPackage           string
-	ServerPackageAlias   string
-	APIPackageAlias      string
-	Package              string
-	ReceiverName         string
-	Name                 string
-	Principal            string
-	PrincipalIsNullable  bool
-	DefaultConsumes      string
-	DefaultProduces      string
-	Host                 string
-	BasePath             string
-	Info                 *spec.Info
-	ExternalDocs         *spec.ExternalDocumentation
-	Tags                 []spec.Tag
-	Imports              map[string]string
-	DefaultImports       map[string]string
-	Schemes              []string
-	ExtraSchemes         []string
-	Consumes             GenSerGroups
-	Produces             GenSerGroups
-	SecurityDefinitions  GenSecuritySchemes
-	SecurityRequirements []analysis.SecurityRequirement // original security requirements as per the spec (for doc)
-	Models               []GenDefinition
-	Operations           GenOperations
-	OperationGroups      GenOperationGroups
-	SwaggerJSON          string
+	APIPackage                 string
+	ServerPackageAlias         string
+	ImplementationPackageAlias string
+	APIPackageAlias            string
+	Package                    string
+	ReceiverName               string
+	Name                       string
+	Principal                  string
+	PrincipalIsNullable        bool
+	DefaultConsumes            string
+	DefaultProduces            string
+	Host                       string
+	BasePath                   string
+	Info                       *spec.Info
+	ExternalDocs               *spec.ExternalDocumentation
+	Tags                       []spec.Tag
+	Imports                    map[string]string
+	DefaultImports             map[string]string
+	Schemes                    []string
+	ExtraSchemes               []string
+	Consumes                   GenSerGroups
+	Produces                   GenSerGroups
+	SecurityDefinitions        GenSecuritySchemes
+	SecurityRequirements       []analysis.SecurityRequirement // original security requirements as per the spec (for doc)
+	Models                     []GenDefinition
+	Operations                 GenOperations
+	OperationGroups            GenOperationGroups
+	SwaggerJSON                string
 	// Embedded specs: this is important for when the generated server adds routes.
 	// NOTE: there is a distinct advantage to having this in runtime rather than generated code.
 	// We are not ever going to generate the router.
