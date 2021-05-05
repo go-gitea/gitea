@@ -37,7 +37,7 @@ loop:
 			m.mutex.Lock()
 			connectionCount := len(m.messengers)
 			if connectionCount == 0 {
-				log.Debug("No listeners")
+				log.Trace("Event source has no listeners")
 				// empty the connection channel
 				select {
 				case <-m.connection:
@@ -47,10 +47,12 @@ loop:
 			m.mutex.Unlock()
 			if connectionCount == 0 {
 				// No listeners so the source can be paused
+				log.Trace("Pausing the eventsource")
 				select {
 				case <-ctx.Done():
 					break loop
 				case <-m.connection:
+					log.Trace("Connection detected - restarting the eventsource")
 					// OK we're back so lets reset the timer and start again
 					// We won't change the "then" time because there could be concurrency issues
 					select {
