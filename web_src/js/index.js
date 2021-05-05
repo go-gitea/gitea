@@ -1185,16 +1185,8 @@ async function initRepository() {
     const $statusButton = $('#status-button');
     $('#comment-form textarea').on('keyup', function () {
       const $simplemde = $(this).data('simplemde');
-      if ($simplemde && $simplemde.value().length !== 0) {
-        $statusButton.text($statusButton.data('status-and-comment'));
-        return;
-      }
-
-      if ($(this).val().length === 0) {
-        $statusButton.text($statusButton.data('status'));
-      } else {
-        $statusButton.text($statusButton.data('status-and-comment'));
-      }
+      const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+      $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
     });
     $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
