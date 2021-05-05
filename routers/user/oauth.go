@@ -108,8 +108,8 @@ const (
 
 // BearerTokenError represents an error response specified in RFC 6750
 type BearerTokenError struct {
-	ErrorCode        BearerTokenErrorCode
-	ErrorDescription string
+	ErrorCode        BearerTokenErrorCode `json:"error" form:"error"`
+	ErrorDescription string               `json:"error_description"`
 }
 
 // TokenType specifies the kind of token
@@ -635,12 +635,12 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
 	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
 	if beErr.ErrorCode == BearerTokenErrorCodeInvalidRequest {
-		ctx.Error(http.StatusBadRequest)
+		ctx.JSON(http.StatusBadRequest, beErr)
 	}
 	if beErr.ErrorCode == BearerTokenErrorCodeInvalidToken {
-		ctx.Error(http.StatusUnauthorized)
+		ctx.JSON(http.StatusUnauthorized, beErr)
 	}
 	if beErr.ErrorCode == BearerTokenErrorCodeInsufficientScope {
-		ctx.Error(http.StatusForbidden)
+		ctx.JSON(http.StatusForbidden, beErr)
 	}
 }
