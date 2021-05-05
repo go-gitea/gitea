@@ -1184,6 +1184,12 @@ async function initRepository() {
     // Change status
     const $statusButton = $('#status-button');
     $('#comment-form textarea').on('keyup', function () {
+      const $simplemde = $(this).data('simplemde');
+      if ($simplemde && $simplemde.value().length !== 0) {
+        $statusButton.text($statusButton.data('status-and-comment'));
+        return;
+      }
+
       if ($(this).val().length === 0) {
         $statusButton.text($statusButton.data('status'));
       } else {
@@ -1698,6 +1704,8 @@ function setCommentSimpleMDE($editArea) {
     }
   });
   attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  $editArea.data('simplemde', simplemde);
+  $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
   return simplemde;
 }
 
