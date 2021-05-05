@@ -1475,7 +1475,7 @@ function initWikiForm() {
             text: plainText,
             wiki: true
           }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
+            preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
             renderMarkdownContent();
           });
         };
@@ -1555,7 +1555,7 @@ function initWikiForm() {
             const $form = $('.repository.wiki.new .ui.form');
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
-            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
+            $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
             initCommentPreviewTab($form);
           },
           className: 'fa fa-file',
