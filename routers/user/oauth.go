@@ -225,6 +225,8 @@ func InfoOAuth(ctx *context.Context) {
 			Picture:  authUser.AvatarLink(),
 		}
 		ctx.JSON(http.StatusOK, response)
+	} else {
+		ctx.ServerError("InfoOAuth:", fmt.Errorf("UserID not valid"))
 	}
 }
 
