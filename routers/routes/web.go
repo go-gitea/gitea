@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
@@ -38,6 +37,7 @@ import (
 	"code.gitea.io/gitea/routers/user"
 	userSetting "code.gitea.io/gitea/routers/user/setting"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
 
 	// to registers all internal adapters
@@ -89,6 +89,9 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
 		}
 	}
+	if setting.EnableAccessLog {
+		handlers = append(handlers, context.AccessLogger())
+	}
 
 	handlers = append(handlers, func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -128,9 +131,9 @@ func NormalRoutes() *web.Route {
 
 // WebRoutes returns all web routes
 func WebRoutes() *web.Route {
-	r := web.NewRoute()
+	routes := web.NewRoute()
 
-	r.Use(session.Sessioner(session.Options{
+	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
 		CookieName:     setting.SessionConfig.CookieName,
@@ -141,101 +144,99 @@ func WebRoutes() *web.Route {
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
-	r.Use(Recovery())
+	routes.Use(Recovery())
 
-	r.Use(public.Custom(
+	// TODO: we should consider if there is a way to mount these using r.Route as at present
+	// these two handlers mean that every request has to hit these "filesystems" twice
+	// before finally getting to the router. It allows them to override any matching router below.
+	routes.Use(public.Custom(
 		&public.Options{
 			SkipLogging: setting.DisableRouterLog,
 		},
 	))
-	r.Use(public.Static(
+	routes.Use(public.Static(
 		&public.Options{
 			Directory:   path.Join(setting.StaticRootPath, "public"),
 			SkipLogging: setting.DisableRouterLog,
+			Prefix:      "/assets",
 		},
 	))
 
-	r.Use(storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	r.Use(storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
+	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+
+	// for health check - doeesn't need to be passed through gzip handler
+	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
+	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+	})
 
 	gob.Register(&u2f.Challenge{})
+
+	common := []interface{}{}
 
 	if setting.EnableGzip {
 		h, err := gziphandler.GzipHandlerWithOpts(gziphandler.MinSize(GzipMinSize))
 		if err != nil {
 			log.Fatal("GzipHandlerWithOpts failed: %v", err)
 		}
-		r.Use(h)
-	}
-
-	if (setting.Protocol == setting.FCGI || setting.Protocol == setting.FCGIUnix) && setting.AppSubURL != "" {
-		r.Use(func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				req.URL.Path = strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
-				next.ServeHTTP(resp, req)
-			})
-		})
+		common = append(common, h)
 	}
 
 	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
-		r.Use(captcha.Captchaer(context.GetImageCaptcha()))
+		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
+		routes.Route("/captcha/*", "GET,HEAD", append(common, captcha.Captchaer(context.GetImageCaptcha()))...)
 	}
-	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
-	r.Use(context.Contexter())
-	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
-	r.Use(middleware.GetHead)
-
-	if setting.EnableAccessLog {
-		r.Use(context.AccessLogger())
-	}
-
-	r.Use(user.GetNotificationCount)
-	r.Use(repo.GetActiveStopwatch)
-	r.Use(func(ctx *context.Context) {
-		ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-		ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-		ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-		ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
-	})
-
-	// for health check
-	r.Head("/", func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 
 	if setting.HasRobotsTxt {
-		r.Get("/robots.txt", func(w http.ResponseWriter, req *http.Request) {
+		routes.Get("/robots.txt", append(common, func(w http.ResponseWriter, req *http.Request) {
 			filePath := path.Join(setting.CustomPath, "robots.txt")
 			fi, err := os.Stat(filePath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
 				return
 			}
 			http.ServeFile(w, req, filePath)
-		})
+		})...)
 	}
 
-	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
-	})
-
-	// prometheus metrics endpoint
+	// prometheus metrics endpoint - do not need to go through contexter
 	if setting.Metrics.Enabled {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
-		r.Get("/metrics", routers.Metrics)
+		routes.Get("/metrics", append(common, routers.Metrics)...)
 	}
+
+	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
+	common = append(common, context.Contexter())
+
+	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
+	common = append(common, middleware.GetHead)
 
 	if setting.API.EnableSwagger {
 		// Note: The route moved from apiroutes because it's in fact want to render a web page
-		r.Get("/api/swagger", misc.Swagger) // Render V1 by default
+		routes.Get("/api/swagger", append(common, misc.Swagger)...) // Render V1 by default
 	}
 
-	RegisterRoutes(r)
+	// TODO: These really seem like things that could be folded into Contexter or as helper functions
+	common = append(common, user.GetNotificationCount)
+	common = append(common, repo.GetActiveStopwatch)
 
-	return r
+	others := web.NewRoute()
+	for _, middle := range common {
+		others.Use(middle)
+	}
+
+	RegisterRoutes(others)
+	routes.Mount("", others)
+	return routes
 }
 
 func goGet(ctx *context.Context) {
@@ -345,6 +346,7 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", routers.Home)
+	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -479,7 +481,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
-		m.Any("/activate", user.Activate, reqSignIn)
+		m.Get("/activate", user.Activate, reqSignIn)
+		m.Post("/activate", user.ActivatePost, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.Avatar)
 		m.Get("/email2user", user.Email2User)
@@ -700,7 +703,7 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignIn)
 
 	// ***** Release Attachment Download without Signin
-	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment(), repo.MustBeNotEmpty, repo.RedirectDownload)
+	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
@@ -780,9 +783,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer
 		})
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoAdmin, context.RepoRef())
+	}, reqSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoAdmin, context.RepoRef())
 
-	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment(), context.UnitTypes(), repo.Action)
+	m.Post("/{username}/{reponame}/action/{action}", reqSignIn, context.RepoAssignment, context.UnitTypes(), repo.Action)
 
 	// Grouping for those endpoints not requiring authentication
 	m.Group("/{username}/{reponame}", func() {
@@ -792,7 +795,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
-	}, context.RepoAssignment(), context.UnitTypes())
+	}, context.RepoAssignment, context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
 	m.Group("/{username}/{reponame}", func() {
@@ -899,7 +902,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/restore", repo.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 
-	}, reqSignIn, context.RepoAssignment(), context.UnitTypes())
+	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
 	// Releases
 	m.Group("/{username}/{reponame}", func() {
@@ -937,11 +940,12 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-	}, ignSignIn, context.RepoAssignment(), context.UnitTypes(), reqRepoReleaseReader)
+		m.Get("/attachments/{uuid}", repo.GetAttachment)
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)
-	}, context.RepoAssignment(), context.RepoMustNotBeArchived(), reqRepoAdmin)
+	}, context.RepoAssignment, context.RepoMustNotBeArchived(), reqRepoAdmin)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
@@ -1089,17 +1093,17 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
 			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
-	}, ignSignIn, context.RepoAssignment(), context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)
 		m.Get("/search", reqRepoCodeReader, repo.Search)
-	}, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+	}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, goGet, ignSignIn, context.RepoAssignment(), context.RepoRef(), context.UnitTypes())
+		}, goGet, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {

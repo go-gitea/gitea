@@ -65,7 +65,7 @@ func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData,
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).
-		And("created_unix > ?", (timeutil.TimeStampNow() - 31536000)).
+		And("created_unix > ?", timeutil.TimeStampNow()-31536000).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)

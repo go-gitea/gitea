@@ -33,9 +33,9 @@
 		{{if not .ReadmeInList}}
 		<div class="file-header-right file-actions df ac">
 			{{if .HasSourceRenderedToggle}}
-				<div class="ui compact icon buttons">
-					<a href="{{$.Link}}?display=source" class="ui tiny basic button poping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</a>
-					<a href="{{$.Link}}" class="ui tiny basic button poping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</a>
+				<div class="ui compact icon buttons two-toggle-buttons">
+					<a href="{{$.Link}}?display=source" class="ui mini basic button poping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code" 15}}</a>
+					<a href="{{$.Link}}" class="ui mini basic button poping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
 			<div class="ui buttons mr-2">
@@ -50,7 +50,7 @@
 			</div>
 			{{if .Repository.CanEnableEditor}}
 				{{if .CanEditFile}}
-					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
+					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
 				{{else}}
 					<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span>
 				{{end}}
@@ -128,10 +128,10 @@
 
 <script>
 function submitDeleteForm() {
-    var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
-    if (message != null) {
-        $("#delete-message").val(message);
-        $("#delete-file-form").submit()
-    }
+	var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
+	if (message != null) {
+		$("#delete-message").val(message);
+		$("#delete-file-form").submit()
+	}
 }
 </script>

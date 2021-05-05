@@ -274,43 +274,42 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		// FIXME: what happens when README file is an image?
 		if isTextFile && setting.LFS.StartServer {
-			meta := lfs.IsPointerFile(&buf)
-			if meta != nil {
-				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+			pointer, _ := lfs.ReadPointerFromBuffer(buf)
+			if pointer.IsValid() {
+				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 					return
 				}
-			}
+				if meta != nil {
+					ctx.Data["IsLFSFile"] = true
+					isLFSFile = true
 
-			if meta != nil {
-				ctx.Data["IsLFSFile"] = true
-				isLFSFile = true
+					// OK read the lfs object
+					var err error
+					dataRc, err = lfs.ReadMetaObject(pointer)
+					if err != nil {
+						ctx.ServerError("ReadMetaObject", err)
+						return
+					}
+					defer dataRc.Close()
 
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(meta)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
+					buf = make([]byte, 1024)
+					n, err = dataRc.Read(buf)
+					if err != nil {
+						ctx.ServerError("Data", err)
+						return
+					}
+					buf = buf[:n]
+
+					isTextFile = base.IsTextFile(buf)
+					ctx.Data["IsTextFile"] = isTextFile
+
+					fileSize = meta.Size
+					ctx.Data["FileSize"] = meta.Size
+					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				if err != nil {
-					ctx.ServerError("Data", err)
-					return
-				}
-				buf = buf[:n]
-
-				isTextFile = base.IsTextFile(buf)
-				ctx.Data["IsTextFile"] = isTextFile
-
-				fileSize = meta.Size
-				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 			}
 		}
 
@@ -325,13 +324,26 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["IsTextFile"] = true
 				ctx.Data["FileSize"] = fileSize
 			} else {
-				d, _ := ioutil.ReadAll(dataRc)
-				buf = charset.ToUTF8WithFallback(append(buf, d...))
+				rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
+					var result strings.Builder
+					err := markup.Render(&markup.RenderContext{
+						Filename:  readmeFile.name,
+						URLPrefix: readmeTreelink,
+						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+					}, rd, &result)
+					if err != nil {
+						log.Error("Render failed: %v then fallback", err)
+						bs, _ := ioutil.ReadAll(rd)
+						ctx.Data["FileContent"] = strings.ReplaceAll(
+							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
+						)
+					} else {
+						ctx.Data["FileContent"] = result.String()
+					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.ReplaceAll(
@@ -400,39 +412,39 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	//Check for LFS meta file
 	if isTextFile && setting.LFS.StartServer {
-		meta := lfs.IsPointerFile(&buf)
-		if meta != nil {
-			meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+		pointer, _ := lfs.ReadPointerFromBuffer(buf)
+		if pointer.IsValid() {
+			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
-		}
-		if meta != nil {
-			isLFSFile = true
+			if meta != nil {
+				isLFSFile = true
 
-			// OK read the lfs object
-			var err error
-			dataRc, err = lfs.ReadMetaObject(meta)
-			if err != nil {
-				ctx.ServerError("ReadMetaObject", err)
-				return
+				// OK read the lfs object
+				var err error
+				dataRc, err = lfs.ReadMetaObject(pointer)
+				if err != nil {
+					ctx.ServerError("ReadMetaObject", err)
+					return
+				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, err = dataRc.Read(buf)
+				// Error EOF don't mean there is an error, it just means we read to
+				// the end
+				if err != nil && err != io.EOF {
+					ctx.ServerError("Data", err)
+					return
+				}
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				fileSize = meta.Size
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 			}
-			defer dataRc.Close()
-
-			buf = make([]byte, 1024)
-			n, err = dataRc.Read(buf)
-			// Error EOF don't mean there is an error, it just means we read to
-			// the end
-			if err != nil && err != io.EOF {
-				ctx.ServerError("Data", err)
-				return
-			}
-			buf = buf[:n]
-
-			isTextFile = base.IsTextFile(buf)
-			fileSize = meta.Size
-			ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 		}
 	}
 
@@ -482,21 +494,31 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			break
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
-		buf = charset.ToUTF8WithFallback(append(buf, d...))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, rd, &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
+			buf, _ := ioutil.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
-			buf = charset.ToUTF8WithFallback(buf)
+			buf, _ := ioutil.ReadAll(rd)
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
@@ -533,11 +555,20 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		if markupType := markup.Type(blob.Name()); markupType != "" {
-			d, _ := ioutil.ReadAll(dataRc)
-			buf = append(buf, d...)
+			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, rd, &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		}
 	}
 

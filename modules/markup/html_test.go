@@ -28,7 +28,12 @@ func TestRender_Commits(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(".md", input, setting.AppSubURL, localMetas)
+		buffer, err := RenderString(&RenderContext{
+			Filename:  ".md",
+			URLPrefix: setting.AppSubURL,
+			Metas:     localMetas,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -59,7 +64,12 @@ func TestRender_CrossReferences(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, localMetas)
+		buffer, err := RenderString(&RenderContext{
+			Filename:  "a.md",
+			URLPrefix: setting.AppSubURL,
+			Metas:     localMetas,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -91,7 +101,11 @@ func TestRender_links(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&RenderContext{
+			Filename:  "a.md",
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 	// Text that should be turned into URL
@@ -124,7 +138,7 @@ func TestRender_links(t *testing.T) {
 		`<p><a href="http://www.example.com/wpstyle/?p=364" rel="nofollow">http://www.example.com/wpstyle/?p=364</a></p>`)
 	test(
 		"https://www.example.com/foo/?bar=baz&inga=42&quux",
-		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux=" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
+		`<p><a href="https://www.example.com/foo/?bar=baz&inga=42&quux" rel="nofollow">https://www.example.com/foo/?bar=baz&amp;inga=42&amp;quux</a></p>`)
 	test(
 		"http://142.42.1.1/",
 		`<p><a href="http://142.42.1.1/" rel="nofollow">http://142.42.1.1/</a></p>`)
@@ -187,8 +201,12 @@ func TestRender_email(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		res, err := RenderString(&RenderContext{
+			Filename:  "a.md",
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
 	}
 	// Text that should be turned into email link
 
@@ -242,7 +260,11 @@ func TestRender_emoji(t *testing.T) {
 
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
-		buffer := RenderString("a.md", input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&RenderContext{
+			Filename:  "a.md",
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -291,9 +313,17 @@ func TestRender_ShortLinks(t *testing.T) {
 	tree := util.URLJoin(AppSubURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer := markdown.RenderString(input, tree, nil)
+		buffer, err := markdown.RenderString(&RenderContext{
+			URLPrefix: tree,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
+		buffer, err = markdown.RenderString(&RenderContext{
+			URLPrefix: setting.AppSubURL,
+			Metas:     localMetas,
+			IsWiki:    true,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
@@ -395,16 +425,22 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	data := "<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
-	val, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
-
+	var res strings.Builder
+	err := PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
 	assert.NoError(t, err)
-	assert.NotContains(t, string(val), "<html")
+	assert.NotContains(t, res.String(), "<html")
 
 	data = "<!DOCTYPE html>\n<A><maTH><tr><MN><bodY ÿ><temPlate></template><tH><tr></A><tH><d<bodY "
 
-	val, err = PostProcess([]byte(data), "https://example.com", localMetas, false)
+	res.Reset()
+	err = PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-
-	assert.NotContains(t, string(val), "<html")
+	assert.NotContains(t, res.String(), "<html")
 }

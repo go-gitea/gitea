@@ -143,6 +143,7 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
+	WatchedByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include public and private
@@ -239,6 +240,11 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 	// Restrict to starred repositories
 	if opts.StarredByID > 0 {
 		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
+	}
+
+	// Restrict to watched repositories
+	if opts.WatchedByID > 0 {
+		cond = cond.And(builder.In("id", builder.Select("repo_id").From("watch").Where(builder.Eq{"user_id": opts.WatchedByID})))
 	}
 
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate

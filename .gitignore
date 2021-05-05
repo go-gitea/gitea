@@ -32,6 +32,7 @@ _testmain.go
 
 *coverage.out
 coverage.all
+cpu.out
 
 /modules/options/bindata.go
 /modules/options/bindata.go.hash
@@ -81,7 +82,6 @@ coverage.all
 /public/fonts
 /public/img/webpack
 /web_src/fomantic/node_modules
-/web_src/fomantic/semantic.json
 /web_src/fomantic/build/*
 !/web_src/fomantic/build/semantic.js
 !/web_src/fomantic/build/semantic.css
@@ -95,7 +95,6 @@ coverage.all
 !/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
-/.npm-cache
 
 # Snapcraft
 snap/.snapcraft/

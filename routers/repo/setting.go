@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/repository"
@@ -170,35 +171,37 @@ func SettingsPost(ctx *context.Context) {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
 		}
 		if err != nil {
-			if models.IsErrInvalidCloneAddr(err) {
-				ctx.Data["Err_MirrorAddress"] = true
-				addrErr := err.(*models.ErrInvalidCloneAddr)
-				switch {
-				case addrErr.IsProtocolInvalid:
-					ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, &form)
-				case addrErr.IsURLError:
-					ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, &form)
-				case addrErr.IsPermissionDenied:
-					if addrErr.LocalPath {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, &form)
-					} else if len(addrErr.PrivateNet) == 0 {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, &form)
-					} else {
-						ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, &form)
-					}
-				case addrErr.IsInvalidPath:
-					ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, &form)
-				default:
-					ctx.ServerError("Unknown error", err)
-				}
-			}
 			ctx.Data["Err_MirrorAddress"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, &form)
+			handleSettingRemoteAddrError(ctx, err, form)
 			return
 		}
 
 		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
+			return
+		}
+
+		form.LFS = form.LFS && setting.LFS.StartServer
+
+		if len(form.LFSEndpoint) > 0 {
+			ep := lfs.DetermineEndpoint("", form.LFSEndpoint)
+			if ep == nil {
+				ctx.Data["Err_LFSEndpoint"] = true
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
+				return
+			}
+			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+			if err != nil {
+				ctx.Data["Err_LFSEndpoint"] = true
+				handleSettingRemoteAddrError(ctx, err, form)
+				return
+			}
+		}
+
+		ctx.Repo.Mirror.LFS = form.LFS
+		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
+		if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			ctx.ServerError("UpdateMirror", err)
 			return
 		}
 
@@ -497,7 +500,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
+		ctx.Redirect(ctx.Repo.Owner.HomeLink() + "/" + repo.Name + "/settings")
 
 	case "cancel_transfer":
 		if !ctx.Repo.IsOwner() {
@@ -509,7 +512,7 @@ func SettingsPost(ctx *context.Context) {
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
-				ctx.Redirect(setting.AppSubURL + "/" + ctx.User.Name + "/" + repo.Name + "/settings")
+				ctx.Redirect(ctx.User.HomeLink() + "/" + repo.Name + "/settings")
 			} else {
 				ctx.ServerError("GetPendingRepositoryTransfer", err)
 			}
@@ -529,7 +532,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
-		ctx.Redirect(setting.AppSubURL + "/" + ctx.Repo.Owner.Name + "/" + repo.Name + "/settings")
+		ctx.Redirect(ctx.Repo.Owner.HomeLink() + "/" + repo.Name + "/settings")
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
@@ -613,6 +616,31 @@ func SettingsPost(ctx *context.Context) {
 	default:
 		ctx.NotFound("", nil)
 	}
+}
+
+func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.RepoSettingForm) {
+	if models.IsErrInvalidCloneAddr(err) {
+		addrErr := err.(*models.ErrInvalidCloneAddr)
+		switch {
+		case addrErr.IsProtocolInvalid:
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
+		case addrErr.IsURLError:
+			ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, form)
+		case addrErr.IsPermissionDenied:
+			if addrErr.LocalPath {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
+			} else if len(addrErr.PrivateNet) == 0 {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tplSettingsOptions, form)
+			} else {
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tplSettingsOptions, form)
+			}
+		case addrErr.IsInvalidPath:
+			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tplSettingsOptions, form)
+		default:
+			ctx.ServerError("Unknown error", err)
+		}
+	}
+	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
 }
 
 // Collaboration render a repository's collaboration page

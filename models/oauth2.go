@@ -23,11 +23,11 @@ type OAuth2Provider struct {
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
-	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
-	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
+	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/assets/img/auth/bitbucket.png"},
+	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/assets/img/auth/dropbox.png"},
+	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/assets/img/auth/facebook.png"},
 	"github": {
-		Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png",
+		Name: "github", DisplayName: "GitHub", Image: "/assets/img/auth/github.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("github"),
 			AuthURL:    oauth2.GetDefaultAuthURL("github"),
@@ -36,19 +36,19 @@ var OAuth2Providers = map[string]OAuth2Provider{
 		},
 	},
 	"gitlab": {
-		Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png",
+		Name: "gitlab", DisplayName: "GitLab", Image: "/assets/img/auth/gitlab.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitlab"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitlab"),
 			ProfileURL: oauth2.GetDefaultProfileURL("gitlab"),
 		},
 	},
-	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/img/auth/google.png"},
-	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.svg"},
-	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
-	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
+	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/assets/img/auth/google.png"},
+	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/assets/img/auth/openid_connect.svg"},
+	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/assets/img/auth/twitter.png"},
+	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/assets/img/auth/discord.png"},
 	"gitea": {
-		Name: "gitea", DisplayName: "Gitea", Image: "/img/auth/gitea.png",
+		Name: "gitea", DisplayName: "Gitea", Image: "/assets/img/auth/gitea.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitea"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitea"),
@@ -56,16 +56,16 @@ var OAuth2Providers = map[string]OAuth2Provider{
 		},
 	},
 	"nextcloud": {
-		Name: "nextcloud", DisplayName: "Nextcloud", Image: "/img/auth/nextcloud.png",
+		Name: "nextcloud", DisplayName: "Nextcloud", Image: "/assets/img/auth/nextcloud.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("nextcloud"),
 			AuthURL:    oauth2.GetDefaultAuthURL("nextcloud"),
 			ProfileURL: oauth2.GetDefaultProfileURL("nextcloud"),
 		},
 	},
-	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/img/auth/yandex.png"},
+	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/assets/img/auth/yandex.png"},
 	"mastodon": {
-		Name: "mastodon", DisplayName: "Mastodon", Image: "/img/auth/mastodon.png",
+		Name: "mastodon", DisplayName: "Mastodon", Image: "/assets/img/auth/mastodon.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			AuthURL: oauth2.GetDefaultAuthURL("mastodon"),
 		},
