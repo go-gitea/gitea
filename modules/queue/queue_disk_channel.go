@@ -156,7 +156,12 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 		go func() {
 			for !q.IsEmpty() {
 				_ = q.internal.Flush(0)
-				<-time.After(100 * time.Millisecond)
+				select {
+				case <-time.After(100 * time.Millisecond):
+				case <-q.internal.(*LevelQueue).shutdownCtx.Done():
+					log.Warn("LevelQueue: %s shut down before completely flushed", q.internal.(*LevelQueue).Name())
+					return
+				}
 			}
 			log.Debug("LevelQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
 			q.internal.(*LevelQueue).Shutdown()
