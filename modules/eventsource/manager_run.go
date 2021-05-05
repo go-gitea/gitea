@@ -37,6 +37,7 @@ loop:
 			m.mutex.Lock()
 			connectionCount := len(m.messengers)
 			if connectionCount == 0 {
+				log.Debug("No listeners")
 				// empty the connection channel
 				select {
 				case <-m.connection:
@@ -46,7 +47,6 @@ loop:
 			m.mutex.Unlock()
 			if connectionCount == 0 {
 				// No listeners so the source can be paused
-				timer.Stop()
 				select {
 				case <-ctx.Done():
 					break loop
