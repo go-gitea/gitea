@@ -1,4 +1,4 @@
-// +build pam
+// +build all pam
 
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style

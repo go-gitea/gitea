@@ -6,7 +6,7 @@
 // gocovmerge takes the results from multiple `go test -coverprofile` runs and
 // merges them into one profile
 
-// +build ignore
+// +build all ignore
 
 package main
 

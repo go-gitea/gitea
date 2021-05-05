@@ -1,4 +1,4 @@
-// +build windows
+// +build all windows
 
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
