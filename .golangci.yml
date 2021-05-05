@@ -1,20 +1,20 @@
 linters:
   enable:
-    - gosimple
     - deadcode
-    - typecheck
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - structcheck
-    - varcheck
-    - golint
     - dupl
-    #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
-    - gofmt
-    - misspell
+    - errcheck
     - gocritic
+    # - gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
+    - gofmt
+    - golint
+    - gosimple
+    - govet
+    - misspell
+    # - staticcheck # Causes out-of-memory issues on CI
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
   enable-all: false
   disable-all: true
   fast: false
