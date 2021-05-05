@@ -102,67 +102,32 @@ there were significant problems with this method of configuration necessitating 
 ## Customizing CSS
 The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML. 
 
-And so you could write some Less:
-```less
-.markup.XXXXX {
-  
-  html {
-    font-size: 100%;
-    overflow-y: scroll;
-    -webkit-text-size-adjust: 100%;
-    -ms-text-size-adjust: 100%;
-  }
-  
-  body {
-    color: #444;
-    font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
-    font-size: 12px;
-    line-height: 1.7;
-    padding: 1em;
-    margin: auto;
-    max-width: 42em;
-    background: #fefefe;
-  }
-  
-  p {
-      color: orangered;
-  }
-}
-```
-which is equivalent to:
+And so you could write some CSS:
 ```css
-.markup.XXXXX html {
-	font-size: 100%;
-	overflow-y: scroll;
-	-webkit-text-size-adjust: 100%;
-	-ms-text-size-adjust: 100%;
+.markup html {
+  font-size: 100%;
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
-.markup.XXXXX body {
-	color: #444;
-	font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
-	font-size: 12px;
-	line-height: 1.7;
-	padding: 1em;
-	margin: auto;
-	max-width: 42em;
-	background: #fefefe;
+.markup body {
+  color: #444;
+  font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 1em;
+  margin: auto;
+  max-width: 42em;
+  background: #fefefe;
 }
 
-.markup.XXXXX p {
-	color: orangered;
+.markup p {
+  color: orangered;
 }
 ```
-Add your stylesheet to your custom directory e.g `custom/public/css/my-style-XXXXX.less` or `custom/public/css/my-style-XXXXX.css`
 
-Then to import it, add it to the custom header or footer. `custom/templates/custom/header.tmpl`
+Add your stylesheet to your custom directory e.g `custom/public/css/my-style-XXXXX.css` and import it using a custom header file `custom/templates/custom/header.tmpl`:
 ```html
-<link rel="stylesheet/less" type="text/css" href="{{AppSubUrl}}/css/my-style-XXXXX.less" />
-<script src="//cdn.jsdelivr.net/npm/less" ></script>
-```
-
-or if using pure CSS
-
-```html
-<link rel="stylesheet/less" type="text/css" href="{{AppSubUrl}}/css/my-style-XXXXX.css" />
+<link type="text/css" href="{{AppSubUrl}}/css/my-style-XXXXX.css" />
 ```
