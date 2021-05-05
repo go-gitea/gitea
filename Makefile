@@ -272,6 +272,15 @@ swagger-validate:
 	$(SWAGGER) validate './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 
+.PHONY: build-constraints-check
+build-constraints-check:
+	@output=$$(grep '+build' $(GO_SOURCES_OWN) | grep -v all); \
+	if [ $$? -ne 1 ]; then \
+		echo "Please include the 'all' tag in all +build constraints:"; \
+		echo "$${output}"; \
+		exit 1; \
+	fi
+
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
@@ -317,7 +326,7 @@ checks: checks-frontend checks-backend
 checks-frontend: svg-check
 
 .PHONY: checks-backend
-checks-backend: misspell-check test-vendor swagger-check swagger-validate
+checks-backend: misspell-check test-vendor swagger-check swagger-validate build-constraints-check
 
 .PHONY: lint
 lint: lint-frontend lint-backend
