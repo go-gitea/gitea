@@ -410,6 +410,7 @@ func RegisterRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
+	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	if setting.CORSConfig.Enabled {
 		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
 			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
