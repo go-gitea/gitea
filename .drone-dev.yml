@@ -91,6 +91,8 @@ steps:
       - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
     depends_on: [checks-backend]
 
+node:
+  oss:amd64
 ---
 kind: pipeline
 name: testing-amd64
@@ -209,6 +211,9 @@ steps:
     depends_on:
       - build
 
+node:
+  oss:amd64
+
 ---
 kind: pipeline
 name: release-latest
@@ -306,6 +311,9 @@ steps:
       event:
         - push
 
+node:
+  oss:amd64
+
 ---
 kind: pipeline
 name: release-version
@@ -385,6 +393,9 @@ steps:
       GITHUB_TOKEN:
         from_secret: github_token
 
+node:
+  oss:amd64
+
 ---
 kind: pipeline
 name: docker-linux-amd64-release
@@ -449,6 +460,9 @@ steps:
         exclude:
         - pull_request
 
+node:
+  oss:amd64
+
 ---
 kind: pipeline
 name: docker-manifest
@@ -491,3 +505,6 @@ trigger:
 
 depends_on:
   - docker-linux-amd64-release
+
+node:
+  oss:amd64
