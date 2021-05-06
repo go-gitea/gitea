@@ -93,7 +93,6 @@ platform:
 
 node:
   oss: amd64
-
 ---
 kind: pipeline
 name: testing-amd64
@@ -216,7 +215,7 @@ node:
   oss: amd64
 
 node:
-  oss:amd64
+  oss: amd64
 
 ---
 kind: pipeline
