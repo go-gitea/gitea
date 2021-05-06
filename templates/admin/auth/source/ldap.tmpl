@@ -4,7 +4,7 @@
 		<div class="ui selection security-protocol dropdown">
 			<input type="hidden" id="security_protocol" name="security_protocol" value="{{.security_protocol}}">
 			<div class="text">{{.CurrentSecurityProtocol}}</div>
-			<i class="dropdown icon"></i>
+			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				{{range .SecurityProtocols}}
 					<div class="item" data-value="{{.Type}}">{{.Name}}</div>
@@ -68,8 +68,8 @@
 		<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
 	</div>
 	<div class="field">
-	    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-	    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
+		<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+		<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">

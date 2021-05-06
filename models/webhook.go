@@ -6,8 +6,9 @@
 package models
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // HookContentType is the content type of a web hook
@@ -36,6 +38,26 @@ var hookContentTypes = map[string]HookContentType{
 // ToHookContentType returns HookContentType by given name.
 func ToHookContentType(name string) HookContentType {
 	return hookContentTypes[name]
+}
+
+// HookTaskCleanupType is the type of cleanup to perform on hook_task
+type HookTaskCleanupType int
+
+const (
+	// OlderThan hook_task rows will be cleaned up by the age of the row
+	OlderThan HookTaskCleanupType = iota
+	// PerWebhook hook_task rows will be cleaned up by leaving the most recent deliveries for each webhook
+	PerWebhook
+)
+
+var hookTaskCleanupTypes = map[string]HookTaskCleanupType{
+	"OlderThan":  OlderThan,
+	"PerWebhook": PerWebhook,
+}
+
+// ToHookTaskCleanupType returns HookTaskCleanupType by given name.
+func ToHookTaskCleanupType(name string) HookTaskCleanupType {
+	return hookTaskCleanupTypes[name]
 }
 
 // Name returns the name of a given web hook's content type
@@ -110,11 +132,11 @@ type Webhook struct {
 	Secret          string `xorm:"TEXT"`
 	Events          string `xorm:"TEXT"`
 	*HookEvent      `xorm:"-"`
-	IsSSL           bool `xorm:"is_ssl"`
-	IsActive        bool `xorm:"INDEX"`
-	HookTaskType    HookTaskType
-	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus // Last delivery status
+	IsSSL           bool         `xorm:"is_ssl"`
+	IsActive        bool         `xorm:"INDEX"`
+	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
+	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus   // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -123,6 +145,8 @@ type Webhook struct {
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
@@ -135,6 +159,7 @@ func (w *Webhook) History(page int) ([]*HookTask, error) {
 
 // UpdateEvent handles conversion from HookEvent to Events.
 func (w *Webhook) UpdateEvent() error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(w.HookEvent)
 	w.Events = string(data)
 	return err
@@ -310,6 +335,7 @@ func CreateWebhook(w *Webhook) error {
 }
 
 func createWebhook(e Engine, w *Webhook) error {
+	w.Type = strings.TrimSpace(w.Type)
 	_, err := e.Insert(w)
 	return err
 }
@@ -398,20 +424,6 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }
 
-// GetDefaultWebhook returns admin-default webhook by given ID.
-func GetDefaultWebhook(id int64) (*Webhook, error) {
-	webhook := &Webhook{ID: id}
-	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
-		Get(webhook)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrWebhookNotExist{id}
-	}
-	return webhook, nil
-}
-
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
 	return getDefaultWebhooks(x)
@@ -424,11 +436,11 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 		Find(&webhooks)
 }
 
-// GetSystemWebhook returns admin system webhook by given ID.
-func GetSystemWebhook(id int64) (*Webhook, error) {
+// GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
+func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
 	has, err := x.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+		Where("repo_id=? AND org_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
 		return nil, err
@@ -547,68 +559,20 @@ func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
 //        \/                    \/              \/     \/     \/
 
 // HookTaskType is the type of an hook task
-type HookTaskType int
+type HookTaskType = string
 
 // Types of hook tasks
 const (
-	GOGS HookTaskType = iota + 1
-	SLACK
-	GITEA
-	DISCORD
-	DINGTALK
-	TELEGRAM
-	MSTEAMS
-	FEISHU
-	MATRIX
+	GITEA    HookTaskType = "gitea"
+	GOGS     HookTaskType = "gogs"
+	SLACK    HookTaskType = "slack"
+	DISCORD  HookTaskType = "discord"
+	DINGTALK HookTaskType = "dingtalk"
+	TELEGRAM HookTaskType = "telegram"
+	MSTEAMS  HookTaskType = "msteams"
+	FEISHU   HookTaskType = "feishu"
+	MATRIX   HookTaskType = "matrix"
 )
-
-var hookTaskTypes = map[string]HookTaskType{
-	"gitea":    GITEA,
-	"gogs":     GOGS,
-	"slack":    SLACK,
-	"discord":  DISCORD,
-	"dingtalk": DINGTALK,
-	"telegram": TELEGRAM,
-	"msteams":  MSTEAMS,
-	"feishu":   FEISHU,
-	"matrix":   MATRIX,
-}
-
-// ToHookTaskType returns HookTaskType by given name.
-func ToHookTaskType(name string) HookTaskType {
-	return hookTaskTypes[name]
-}
-
-// Name returns the name of an hook task type
-func (t HookTaskType) Name() string {
-	switch t {
-	case GITEA:
-		return "gitea"
-	case GOGS:
-		return "gogs"
-	case SLACK:
-		return "slack"
-	case DISCORD:
-		return "discord"
-	case DINGTALK:
-		return "dingtalk"
-	case TELEGRAM:
-		return "telegram"
-	case MSTEAMS:
-		return "msteams"
-	case FEISHU:
-		return "feishu"
-	case MATRIX:
-		return "matrix"
-	}
-	return ""
-}
-
-// IsValidHookTaskType returns true if given name is a valid hook task type.
-func IsValidHookTaskType(name string) bool {
-	_, ok := hookTaskTypes[name]
-	return ok
-}
 
 // HookEventType is the type of an hook event
 type HookEventType string
@@ -687,9 +651,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Type            HookTaskType
-	URL             string `xorm:"TEXT"`
-	Signature       string `xorm:"TEXT"`
+	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
+	URL             string       `xorm:"TEXT"`
+	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
@@ -728,6 +692,7 @@ func (t *HookTask) AfterLoad() {
 	}
 
 	t.RequestInfo = &HookRequest{}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
 		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
 	}
@@ -741,6 +706,7 @@ func (t *HookTask) AfterLoad() {
 }
 
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)
@@ -797,4 +763,70 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 		return nil, err
 	}
 	return tasks, nil
+}
+
+// CleanupHookTaskTable deletes rows from hook_task as needed.
+func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, olderThan time.Duration, numberToKeep int) error {
+	log.Trace("Doing: CleanupHookTaskTable")
+
+	if cleanupType == OlderThan {
+		deleteOlderThan := time.Now().Add(-olderThan).UnixNano()
+		deletes, err := x.
+			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
+			Delete(new(HookTask))
+		if err != nil {
+			return err
+		}
+		log.Trace("Deleted %d rows from hook_task", deletes)
+	} else if cleanupType == PerWebhook {
+		hookIDs := make([]int64, 0, 10)
+		err := x.Table("webhook").
+			Where("id > 0").
+			Cols("id").
+			Find(&hookIDs)
+		if err != nil {
+			return err
+		}
+		for _, hookID := range hookIDs {
+			select {
+			case <-ctx.Done():
+				return ErrCancelledf("Before deleting hook_task records for hook id %d", hookID)
+			default:
+			}
+			if err = deleteDeliveredHookTasksByWebhook(hookID, numberToKeep); err != nil {
+				return err
+			}
+		}
+	}
+	log.Trace("Finished: CleanupHookTaskTable")
+	return nil
+}
+
+func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
+	log.Trace("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
+	deliveryDates := make([]int64, 0, 10)
+	err := x.Table("hook_task").
+		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ? AND hook_task.delivered is not null", hookID, true).
+		Cols("hook_task.delivered").
+		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
+		OrderBy("hook_task.delivered desc").
+		Limit(1, int(numberDeliveriesToKeep)).
+		Find(&deliveryDates)
+	if err != nil {
+		return err
+	}
+
+	if len(deliveryDates) > 0 {
+		deletes, err := x.
+			Where("hook_id = ? and is_delivered = ? and delivered <= ?", hookID, true, deliveryDates[0]).
+			Delete(new(HookTask))
+		if err != nil {
+			return err
+		}
+		log.Trace("Deleted %d hook_task rows for webhook %d", deletes, hookID)
+	} else {
+		log.Trace("No hook_task rows to delete for webhook %d", hookID)
+	}
+
+	return nil
 }

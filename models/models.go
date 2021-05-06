@@ -128,9 +128,12 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(UserRedirect),
 		new(Project),
 		new(ProjectBoard),
 		new(ProjectIssue),
+		new(Session),
+		new(RepoTransfer),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -139,13 +142,23 @@ func init() {
 	}
 }
 
-func getEngine() (*xorm.Engine, error) {
+// GetNewEngine returns a new xorm engine from the configuration
+func GetNewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	var engine *xorm.Engine
+
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// OK whilst we sort out our schema issues - create a schema aware postgres
+		registerPostgresSchemaDriver()
+		engine, err = xorm.NewEngine("postgresschema", connStr)
+	} else {
+		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -155,35 +168,25 @@ func getEngine() (*xorm.Engine, error) {
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
-	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
-		// Add the schema to the search path
-		if _, err := engine.Exec(`SELECT set_config(
-			'search_path',
-			? || ',' || current_setting('search_path'),
-			false)`,
-			setting.Database.Schema); err != nil {
-			return nil, err
-		}
-	}
 	return engine, nil
 }
 
 // NewTestEngine sets a new test xorm.Engine
 func NewTestEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.ProdMode))
-	x.ShowSQL(!setting.ProdMode)
+	x.SetLogger(NewXORMLogger(!setting.IsProd()))
+	x.ShowSQL(!setting.IsProd())
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -303,7 +306,7 @@ func Ping() error {
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath string, dbType string) error {
+func DumpDatabase(filePath, dbType string) error {
 	var tbs []*schemas.Table
 	for _, t := range tables {
 		t, err := x.TableInfo(t)

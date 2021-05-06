@@ -73,12 +73,12 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
 				QueueLength:  config.QueueLength,
 				BatchLength:  config.BatchLength,
-				BlockTimeout: 0,
-				BoostTimeout: 0,
-				BoostWorkers: 0,
-				MaxWorkers:   1,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 1,
+				MaxWorkers:   5,
 			},
-			Workers: 1,
+			Workers: 0,
 			Name:    config.Name + "-level",
 		},
 		DataDir: config.DataDir,
@@ -148,6 +148,11 @@ func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 	has, err := q.ChannelUniqueQueue.Has(data)
 	if err != nil || has {
 		return has, err
+	}
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return false, nil
 	}
 	return q.internal.(UniqueQueue).Has(data)
 }

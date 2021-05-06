@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 )
@@ -58,10 +59,18 @@ func (c Client) RemoveBucket(ctx context.Context, bucketName string) error {
 	return nil
 }
 
+// AdvancedRemoveOptions intended for internal use by replication
+type AdvancedRemoveOptions struct {
+	ReplicationDeleteMarker bool
+	ReplicationStatus       ReplicationStatus
+	ReplicationMTime        time.Time
+}
+
 // RemoveObjectOptions represents options specified by user for RemoveObject call
 type RemoveObjectOptions struct {
 	GovernanceBypass bool
 	VersionID        string
+	Internal         AdvancedRemoveOptions
 }
 
 // RemoveObject removes an object from a bucket.
@@ -73,6 +82,11 @@ func (c Client) RemoveObject(ctx context.Context, bucketName, objectName string,
 	if err := s3utils.CheckValidObjectName(objectName); err != nil {
 		return err
 	}
+
+	return c.removeObject(ctx, bucketName, objectName, opts)
+}
+
+func (c Client) removeObject(ctx context.Context, bucketName, objectName string, opts RemoveObjectOptions) error {
 
 	// Get resources properly escaped and lined up before
 	// using them in http request.
@@ -88,6 +102,15 @@ func (c Client) RemoveObject(ctx context.Context, bucketName, objectName string,
 	if opts.GovernanceBypass {
 		// Set the bypass goverenance retention header
 		headers.Set(amzBypassGovernance, "true")
+	}
+	if opts.Internal.ReplicationDeleteMarker {
+		headers.Set(minIOBucketReplicationDeleteMarker, "true")
+	}
+	if !opts.Internal.ReplicationMTime.IsZero() {
+		headers.Set(minIOBucketSourceMTime, opts.Internal.ReplicationMTime.Format(time.RFC3339Nano))
+	}
+	if !opts.Internal.ReplicationStatus.Empty() {
+		headers.Set(amzBucketReplicationStatus, string(opts.Internal.ReplicationStatus))
 	}
 	// Execute DELETE on objectName.
 	resp, err := c.executeMethod(ctx, http.MethodDelete, requestMetadata{
@@ -147,8 +170,14 @@ func processRemoveMultiObjectsResponse(body io.Reader, objects []ObjectInfo, err
 
 	// Fill deletion that returned an error.
 	for _, obj := range rmResult.UnDeletedObjects {
+		// Version does not exist is not an error ignore and continue.
+		switch obj.Code {
+		case "InvalidArgument", "NoSuchVersion":
+			continue
+		}
 		errorCh <- RemoveObjectError{
 			ObjectName: obj.Key,
+			VersionID:  obj.VersionID,
 			Err: ErrorResponse{
 				Code:    obj.Code,
 				Message: obj.Message,
@@ -189,6 +218,26 @@ func (c Client) RemoveObjects(ctx context.Context, bucketName string, objectsCh 
 	return errorCh
 }
 
+// Return true if the character is within the allowed characters in an XML 1.0 document
+// The list of allowed characters can be found here: https://www.w3.org/TR/xml/#charsets
+func validXMLChar(r rune) (ok bool) {
+	return r == 0x09 ||
+		r == 0x0A ||
+		r == 0x0D ||
+		r >= 0x20 && r <= 0xD7FF ||
+		r >= 0xE000 && r <= 0xFFFD ||
+		r >= 0x10000 && r <= 0x10FFFF
+}
+
+func hasInvalidXMLChar(str string) bool {
+	for _, s := range str {
+		if !validXMLChar(s) {
+			return true
+		}
+	}
+	return false
+}
+
 // Generate and call MultiDelete S3 requests based on entries received from objectsCh
 func (c Client) removeObjects(ctx context.Context, bucketName string, objectsCh <-chan ObjectInfo, errorCh chan<- RemoveObjectError, opts RemoveObjectsOptions) {
 	maxEntries := 1000
@@ -209,6 +258,27 @@ func (c Client) removeObjects(ctx context.Context, bucketName string, objectsCh 
 
 		// Try to gather 1000 entries
 		for object := range objectsCh {
+			if hasInvalidXMLChar(object.Key) {
+				// Use single DELETE so the object name will be in the request URL instead of the multi-delete XML document.
+				err := c.removeObject(ctx, bucketName, object.Key, RemoveObjectOptions{
+					VersionID:        object.VersionID,
+					GovernanceBypass: opts.GovernanceBypass,
+				})
+				if err != nil {
+					// Version does not exist is not an error ignore and continue.
+					switch ToErrorResponse(err).Code {
+					case "InvalidArgument", "NoSuchVersion":
+						continue
+					}
+					errorCh <- RemoveObjectError{
+						ObjectName: object.Key,
+						VersionID:  object.VersionID,
+						Err:        err,
+					}
+				}
+				continue
+			}
+
 			batch = append(batch, object)
 			if count++; count >= maxEntries {
 				break

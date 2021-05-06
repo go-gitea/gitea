@@ -104,7 +104,9 @@ func (rv RawValue) UnmarshalWithContext(dc *bsoncodec.DecodeContext, val interfa
 }
 
 func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }
-func convertToCoreValue(v RawValue) bsoncore.Value   { return bsoncore.Value{Type: v.Type, Data: v.Value} }
+func convertToCoreValue(v RawValue) bsoncore.Value {
+	return bsoncore.Value{Type: v.Type, Data: v.Value}
+}
 
 // Validate ensures the value is a valid BSON value.
 func (rv RawValue) Validate() error { return convertToCoreValue(rv).Validate() }
@@ -176,7 +178,9 @@ func (rv RawValue) ObjectID() primitive.ObjectID { return convertToCoreValue(rv)
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) { return convertToCoreValue(rv).ObjectIDOK() }
+func (rv RawValue) ObjectIDOK() (primitive.ObjectID, bool) {
+	return convertToCoreValue(rv).ObjectIDOK()
+}
 
 // Boolean returns the boolean value the Value represents. It panics if the
 // value is a BSON type other than boolean.
@@ -214,7 +218,9 @@ func (rv RawValue) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (rv RawValue) DBPointer() (string, primitive.ObjectID) { return convertToCoreValue(rv).DBPointer() }
+func (rv RawValue) DBPointer() (string, primitive.ObjectID) {
+	return convertToCoreValue(rv).DBPointer()
+}
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
@@ -260,6 +266,14 @@ func (rv RawValue) Int32() int32 { return convertToCoreValue(rv).Int32() }
 // panicking.
 func (rv RawValue) Int32OK() (int32, bool) { return convertToCoreValue(rv).Int32OK() }
 
+// AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
+// will panic.
+func (rv RawValue) AsInt32() int32 { return convertToCoreValue(rv).AsInt32() }
+
+// AsInt32OK is the same as AsInt32, except that it returns a boolean instead of
+// panicking.
+func (rv RawValue) AsInt32OK() (int32, bool) { return convertToCoreValue(rv).AsInt32OK() }
+
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a
 // BSON type other than timestamp.
 func (rv RawValue) Timestamp() (t, i uint32) { return convertToCoreValue(rv).Timestamp() }
@@ -275,6 +289,14 @@ func (rv RawValue) Int64() int64 { return convertToCoreValue(rv).Int64() }
 // Int64OK is the same as Int64, except that it returns a boolean instead of
 // panicking.
 func (rv RawValue) Int64OK() (int64, bool) { return convertToCoreValue(rv).Int64OK() }
+
+// AsInt64 returns a BSON number as an int64. If the BSON type is not a numeric one, this method
+// will panic.
+func (rv RawValue) AsInt64() int64 { return convertToCoreValue(rv).AsInt64() }
+
+// AsInt64OK is the same as AsInt64, except that it returns a boolean instead of
+// panicking.
+func (rv RawValue) AsInt64OK() (int64, bool) { return convertToCoreValue(rv).AsInt64OK() }
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.

@@ -72,7 +72,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
-	link, exists := htmlDoc.doc.Find("form").Attr("action")
+	link, exists := htmlDoc.doc.Find("form#new-issue").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
@@ -122,7 +122,7 @@ func TestGetAttachment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			//Write empty file to be available for response
 			if tc.createFile {
-				_, err := storage.Attachments.Save(models.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"))
+				_, err := storage.Attachments.Save(models.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"), -1)
 				assert.NoError(t, err)
 			}
 			//Actual test

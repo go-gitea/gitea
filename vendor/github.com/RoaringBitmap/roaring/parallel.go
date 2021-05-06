@@ -166,7 +166,6 @@ func appenderRoutine(bitmapChan chan<- *Bitmap, resultChan <-chan keyedContainer
 			make([]container, 0, expectedKeys),
 			make([]bool, 0, expectedKeys),
 			false,
-			nil,
 		},
 	}
 	for i := range keys {

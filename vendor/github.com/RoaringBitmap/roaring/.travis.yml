@@ -8,7 +8,6 @@ install:
 notifications:
   email: false
 go:
-- "1.12.x"
 - "1.13.x"
 - "1.14.x"
 - tip
@@ -18,7 +17,7 @@ branches:
   only:
     - master
 script:
-- goveralls -v -service travis-ci -ignore arraycontainer_gen.go,bitmapcontainer_gen.go,rle16_gen.go,rle_gen.go,roaringarray_gen.go,rle.go || go test
+- goveralls -v -service travis-ci -ignore rle16_gen.go,rle_gen.go,rle.go || go test
 - go test -race -run TestConcurrent*
 - go build -tags appengine
 - go test -tags appengine

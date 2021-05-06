@@ -42,6 +42,7 @@ type SearchSource struct {
 	collapse                 *CollapseBuilder // collapse
 	profile                  bool             // profile
 	// TODO extBuilders []SearchExtBuilder // ext
+	pointInTime *PointInTime // pit
 }
 
 // NewSearchSource initializes a new SearchSource.
@@ -367,6 +368,13 @@ func (s *SearchSource) Collapse(collapse *CollapseBuilder) *SearchSource {
 	return s
 }
 
+// PointInTime specifies an optional PointInTime to be used in the context
+// of this search.
+func (s *SearchSource) PointInTime(pointInTime *PointInTime) *SearchSource {
+	s.pointInTime = pointInTime
+	return s
+}
+
 // Source returns the serializable JSON for the source builder.
 func (s *SearchSource) Source() (interface{}, error) {
 	source := make(map[string]interface{})
@@ -595,6 +603,15 @@ func (s *SearchSource) Source() (interface{}, error) {
 			}
 		}
 		source["inner_hits"] = m
+	}
+
+	// Point in Time
+	if s.pointInTime != nil {
+		src, err := s.pointInTime.Source()
+		if err != nil {
+			return nil, err
+		}
+		source["pit"] = src
 	}
 
 	return source, nil

@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository new fork">
+<div class="page-content repository new fork">
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
@@ -13,22 +13,22 @@
 						<label>{{.i18n.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
-							<span class="text" title="{{.ContextUser.Name}}">
-								<img class="ui mini image" src="{{.ContextUser.RelAvatarLink}}">
-								{{.ContextUser.ShortName 20}}
+							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
+								{{avatar .ContextUser 28 "mini"}}
+								<span class="truncated-item-name">{{.ContextUser.ShortName 40}}</span>
 							</span>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{if .CanForkToUser}}
-									<div class="item" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-										<img class="ui mini image" src="{{.SignedUser.RelAvatarLink}}">
-										{{.SignedUser.ShortName 20}}
+									<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+										{{avatar .SignedUser 28 "mini"}}
+										<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 									</div>
 								{{end}}
 								{{range .Orgs}}
-									<div class="item" data-value="{{.ID}}" title="{{.Name}}">
-										<img class="ui mini image" src="{{.RelAvatarLink}}">
-										{{.ShortName 20}}
+									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
+										{{avatar . 28 "mini"}}
+										<span class="truncated-item-name">{{.ShortName 40}}</span>
 									</div>
 								{{end}}
 							</div>

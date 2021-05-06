@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"github.com/unknwon/com"
 )
 
 // ListUnadoptedRepositories lists the unadopted repositories that match the provided names
@@ -92,10 +92,17 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	if has, err := models.IsRepositoryExist(ctxUser, repoName); err != nil {
+	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	if err != nil {
 		ctx.InternalServerError(err)
 		return
-	} else if has || !com.IsDir(models.RepoPath(ctxUser.Name, repoName)) {
+	}
+	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if has || !isDir {
 		ctx.NotFound()
 		return
 	}
@@ -147,10 +154,17 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	if has, err := models.IsRepositoryExist(ctxUser, repoName); err != nil {
+	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	if err != nil {
 		ctx.InternalServerError(err)
 		return
-	} else if has || !com.IsDir(models.RepoPath(ctxUser.Name, repoName)) {
+	}
+	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if has || !isDir {
 		ctx.NotFound()
 		return
 	}

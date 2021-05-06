@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/references"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -24,11 +23,16 @@ type mailCommentContext struct {
 	Comment    *models.Comment
 }
 
+const (
+	// MailBatchSize set the batch size used in mailIssueCommentBatch
+	MailBatchSize = 100
+)
+
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
 // 1. Repository watchers and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
-func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) error {
+func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.User) error {
 
 	// Required by the mail composer; make sure to load these before calling the async function
 	if err := ctx.Issue.LoadRepo(); err != nil {
@@ -80,6 +84,12 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 
 	// Avoid mailing the doer
 	visited[ctx.Doer.ID] = true
+
+	// =========== Mentions ===========
+	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
+	}
+
 	// Avoid mailing explicit unwatched
 	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
 	if err != nil {
@@ -89,70 +99,69 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []int64) e
 		visited[i] = true
 	}
 
-	if err = mailIssueCommentBatch(ctx, unfiltered, visited, false); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
+	unfilteredUsers, err := models.GetMaileableUsersByIDs(unfiltered, false)
+	if err != nil {
+		return err
 	}
-
-	// =========== Mentions ===========
-	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
-		return fmt.Errorf("mailIssueCommentBatch() mentions: %v", err)
+	if err = mailIssueCommentBatch(ctx, unfilteredUsers, visited, false); err != nil {
+		return fmt.Errorf("mailIssueCommentBatch(): %v", err)
 	}
 
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, ids []int64, visited map[int64]bool, fromMention bool) error {
-	const batchSize = 100
-	for i := 0; i < len(ids); i += batchSize {
-		var last int
-		if i+batchSize < len(ids) {
-			last = i + batchSize
-		} else {
-			last = len(ids)
-		}
-		unique := make([]int64, 0, last-i)
-		for j := i; j < last; j++ {
-			id := ids[j]
-			if _, ok := visited[id]; !ok {
-				unique = append(unique, id)
-				visited[id] = true
-			}
-		}
-		recipients, err := models.GetMaileableUsersByIDs(unique, fromMention)
-		if err != nil {
-			return err
-		}
-		// TODO: Check issue visibility for each user
-		// TODO: Separate recipients by language for i18n mail templates
-		tos := make([]string, len(recipients))
-		for i := range recipients {
-			tos[i] = recipients[i].Email
-		}
-		SendAsyncs(composeIssueCommentMessages(ctx, tos, fromMention, "issue comments"))
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
+	checkUnit := models.UnitTypeIssues
+	if ctx.Issue.IsPull {
+		checkUnit = models.UnitTypePullRequests
 	}
+
+	langMap := make(map[string][]string)
+	for _, user := range users {
+		// At this point we exclude:
+		// user that don't have all mails enabled or users only get mail on mention and this is one ...
+		if !(user.EmailNotificationsPreference == models.EmailNotificationsEnabled ||
+			fromMention && user.EmailNotificationsPreference == models.EmailNotificationsOnMention) {
+			continue
+		}
+
+		// if we have already visited this user we exclude them
+		if _, ok := visited[user.ID]; ok {
+			continue
+		}
+
+		// now mark them as visited
+		visited[user.ID] = true
+
+		// test if this user is allowed to see the issue/pull
+		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+			continue
+		}
+
+		langMap[user.Language] = append(langMap[user.Language], user.Email)
+	}
+
+	for lang, receivers := range langMap {
+		// because we know that the len(receivers) > 0 and we don't care about the order particularly
+		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
+		// starting condition will need to be changed slightly
+		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
+			msgs, err := composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments")
+			if err != nil {
+				return err
+			}
+			SendAsyncs(msgs)
+			receivers = receivers[:i]
+		}
+	}
+
 	return nil
 }
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType) error {
-	return mailParticipants(models.DefaultDBContext(), issue, doer, opType)
-}
-
-func mailParticipants(ctx models.DBContext, issue *models.Issue, doer *models.User, opType models.ActionType) (err error) {
-	rawMentions := references.FindAllMentionsMarkdown(issue.Content)
-	userMentions, err := issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
-	if err != nil {
-		return fmt.Errorf("ResolveMentionsByVisibility [%d]: %v", issue.ID, err)
-	}
-	if err = models.UpdateIssueMentions(ctx, issue.ID, userMentions); err != nil {
-		return fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
-	}
-	mentions := make([]int64, len(userMentions))
-	for i, u := range userMentions {
-		mentions[i] = u.ID
-	}
-	if err = mailIssueCommentToParticipants(
+func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,

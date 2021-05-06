@@ -43,10 +43,12 @@ func ReplaceSanitizer() {
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	sanitizer.policy.AllowAttrs("checked", "disabled", "readonly").OnElements("input")
+	sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
 
 	// Custom URL-Schemes
-	sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+	if len(setting.Markdown.CustomURLSchemes) > 0 {
+		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+	}
 
 	// Allow keyword markup
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
@@ -66,8 +68,12 @@ func ReplaceSanitizer() {
 	// Allow classes for emojis
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
 
-	// Allow icons, checkboxes, emojis, and chroma syntax on span
-	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(ui checkbox)|(ui checked checkbox)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
+	// Allow icons, emojis, and chroma syntax on span
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
+
+	// Allow data tables
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`data-table`)).OnElements("table")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`line-num`)).OnElements("th", "td")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",

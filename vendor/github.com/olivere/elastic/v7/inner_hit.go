@@ -41,6 +41,11 @@ func (hit *InnerHit) Query(query Query) *InnerHit {
 	return hit
 }
 
+func (hit *InnerHit) Collapse(collapse *CollapseBuilder) *InnerHit {
+	hit.source.Collapse(collapse)
+	return hit
+}
+
 func (hit *InnerHit) From(from int) *InnerHit {
 	hit.source.From(from)
 	return hit

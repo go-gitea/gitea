@@ -39,7 +39,7 @@ import (
 
 	"golang.org/x/net/html"
 
-	cssparser "github.com/chris-ramon/douceur/parser"
+	"github.com/aymerick/douceur/parser"
 )
 
 var (
@@ -122,22 +122,85 @@ func escapeUrlComponent(val string) string {
 	return w.String()
 }
 
-func sanitizedUrl(val string) (string, error) {
+// Query represents a query
+type Query struct {
+	Key      string
+	Value    string
+	HasValue bool
+}
+
+func parseQuery(query string) (values []Query, err error) {
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		hasValue := false
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+			hasValue = true
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		values = append(values, Query{
+			Key:      key,
+			Value:    value,
+			HasValue: hasValue,
+		})
+	}
+	return values, err
+}
+
+func encodeQueries(queries []Query) string {
+	var buff bytes.Buffer
+	for i, query := range queries {
+		buff.WriteString(url.QueryEscape(query.Key))
+		if query.HasValue {
+			buff.WriteString("=")
+			buff.WriteString(url.QueryEscape(query.Value))
+		}
+		if i < len(queries)-1 {
+			buff.WriteString("&")
+		}
+	}
+	return buff.String()
+}
+
+func sanitizedURL(val string) (string, error) {
 	u, err := url.Parse(val)
 	if err != nil {
 		return "", err
 	}
-	// sanitize the url query params
-	sanitizedQueryValues := make(url.Values, 0)
-	queryValues := u.Query()
-	for k, vals := range queryValues {
-		sk := html.EscapeString(k)
-		for _, v := range vals {
-			sv := v
-			sanitizedQueryValues.Add(sk, sv)
-		}
+
+	// we use parseQuery but not u.Query to keep the order not change because
+	// url.Values is a map which has a random order.
+	queryValues, err := parseQuery(u.RawQuery)
+	if err != nil {
+		return "", err
 	}
-	u.RawQuery = sanitizedQueryValues.Encode()
+	// sanitize the url query params
+	for i, query := range queryValues {
+		queryValues[i].Key = html.EscapeString(query.Key)
+	}
+	u.RawQuery = encodeQueries(queryValues)
 	// u.String() will also sanitize host/scheme/user/pass
 	return u.String(), nil
 }
@@ -158,7 +221,7 @@ func (p *Policy) writeLinkableBuf(buff *bytes.Buffer, token *html.Token) {
 				tokenBuff.WriteString(html.EscapeString(attr.Val))
 				continue
 			}
-			u, err := sanitizedUrl(u)
+			u, err := sanitizedURL(u)
 			if err == nil {
 				tokenBuff.WriteString(u)
 			} else {
@@ -229,7 +292,7 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 
 		case html.StartTagToken:
 
-			mostRecentlyStartedToken = strings.ToLower(token.Data)
+			mostRecentlyStartedToken = normaliseElementName(token.Data)
 
 			aps, ok := p.elsAndAttrs[token.Data]
 			if !ok {
@@ -272,7 +335,7 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 
 		case html.EndTagToken:
 
-			if mostRecentlyStartedToken == strings.ToLower(token.Data) {
+			if mostRecentlyStartedToken == normaliseElementName(token.Data) {
 				mostRecentlyStartedToken = ""
 			}
 
@@ -350,11 +413,11 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 
 			if !skipElementContent {
 				switch mostRecentlyStartedToken {
-				case "script":
+				case `script`:
 					// not encouraged, but if a policy allows JavaScript we
 					// should not HTML escape it as that would break the output
 					buff.WriteString(token.Data)
-				case "style":
+				case `style`:
 					// not encouraged, but if a policy allows CSS styles we
 					// should not HTML escape it as that would break the output
 					buff.WriteString(token.Data)
@@ -664,6 +727,26 @@ func (p *Policy) sanitizeAttrs(
 		}
 	}
 
+	if p.requireCrossOriginAnonymous && len(cleanAttrs) > 0 {
+		switch elementName {
+		case "audio", "img", "link", "script", "video":
+			var crossOriginFound bool
+			for _, htmlAttr := range cleanAttrs {
+				if htmlAttr.Key == "crossorigin" {
+					crossOriginFound = true
+					htmlAttr.Val = "anonymous"
+				}
+			}
+
+			if !crossOriginFound {
+				crossOrigin := html.Attribute{}
+				crossOrigin.Key = "crossorigin"
+				crossOrigin.Val = "anonymous"
+				cleanAttrs = append(cleanAttrs, crossOrigin)
+			}
+		}
+	}
+
 	return cleanAttrs
 }
 
@@ -687,7 +770,7 @@ func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.At
 	if len(attr.Val) > 0 && attr.Val[len(attr.Val)-1] != ';' {
 		attr.Val = attr.Val + ";"
 	}
-	decs, err := cssparser.ParseDeclarations(attr.Val)
+	decs, err := parser.ParseDeclarations(attr.Val)
 	if err != nil {
 		attr.Val = ""
 		return attr
@@ -886,4 +969,23 @@ func (p *Policy) matchRegex(elementName string) (map[string]attrPolicy, bool) {
 		}
 	}
 	return aps, matched
+}
+
+// normaliseElementName takes a HTML element like <script> which is user input
+// and returns a lower case version of it that is immune to UTF-8 to ASCII
+// conversion tricks (like the use of upper case cyrillic i scrİpt which a
+// strings.ToLower would convert to script). Instead this func will preserve
+// all non-ASCII as their escaped equivalent, i.e. \u0130 which reveals the
+// characters when lower cased
+func normaliseElementName(str string) string {
+	// that useful QuoteToASCII put quote marks at the start and end
+	// so those are trimmed off
+	return strings.TrimSuffix(
+		strings.TrimPrefix(
+			strings.ToLower(
+				strconv.QuoteToASCII(str),
+			),
+			`"`),
+		`"`,
+	)
 }

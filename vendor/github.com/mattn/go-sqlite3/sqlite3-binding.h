@@ -124,9 +124,9 @@ extern "C" {
 ** [sqlite3_libversion_number()], [sqlite3_sourceid()],
 ** [sqlite_version()] and [sqlite_source_id()].
 */
-#define SQLITE_VERSION        "3.33.0"
-#define SQLITE_VERSION_NUMBER 3033000
-#define SQLITE_SOURCE_ID      "2020-08-14 13:23:32 fca8dc8b578f215a969cd899336378966156154710873e68b3d9ac5881b0ff3f"
+#define SQLITE_VERSION        "3.35.4"
+#define SQLITE_VERSION_NUMBER 3035004
+#define SQLITE_SOURCE_ID      "2021-04-02 15:20:15 5d4c65779dab868b285519b19e4cf9d451d50c6048f06f653aa701ec212df45e"
 
 /*
 ** CAPI3REF: Run-Time Library Version Numbers
@@ -505,6 +505,7 @@ SQLITE_API int sqlite3_exec(
 #define SQLITE_IOERR_COMMIT_ATOMIC     (SQLITE_IOERR | (30<<8))
 #define SQLITE_IOERR_ROLLBACK_ATOMIC   (SQLITE_IOERR | (31<<8))
 #define SQLITE_IOERR_DATA              (SQLITE_IOERR | (32<<8))
+#define SQLITE_IOERR_CORRUPTFS         (SQLITE_IOERR | (33<<8))
 #define SQLITE_LOCKED_SHAREDCACHE      (SQLITE_LOCKED |  (1<<8))
 #define SQLITE_LOCKED_VTAB             (SQLITE_LOCKED |  (2<<8))
 #define SQLITE_BUSY_RECOVERY           (SQLITE_BUSY   |  (1<<8))
@@ -2115,7 +2116,13 @@ struct sqlite3_mem_methods {
 ** The second parameter is a pointer to an integer into which
 ** is written 0 or 1 to indicate whether triggers are disabled or enabled
 ** following this call.  The second parameter may be a NULL pointer, in
-** which case the trigger setting is not reported back. </dd>
+** which case the trigger setting is not reported back.
+**
+** <p>Originally this option disabled all triggers.  ^(However, since
+** SQLite version 3.35.0, TEMP triggers are still allowed even if
+** this option is off.  So, in other words, this option now only disables
+** triggers in the main database schema or in the schemas of ATTACH-ed
+** databases.)^ </dd>
 **
 ** [[SQLITE_DBCONFIG_ENABLE_VIEW]]
 ** <dt>SQLITE_DBCONFIG_ENABLE_VIEW</dt>
@@ -2126,7 +2133,13 @@ struct sqlite3_mem_methods {
 ** The second parameter is a pointer to an integer into which
 ** is written 0 or 1 to indicate whether views are disabled or enabled
 ** following this call.  The second parameter may be a NULL pointer, in
-** which case the view setting is not reported back. </dd>
+** which case the view setting is not reported back.
+**
+** <p>Originally this option disabled all views.  ^(However, since
+** SQLite version 3.35.0, TEMP views are still allowed even if
+** this option is off.  So, in other words, this option now only disables
+** views in the main database schema or in the schemas of ATTACH-ed
+** databases.)^ </dd>
 **
 ** [[SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER]]
 ** <dt>SQLITE_DBCONFIG_ENABLE_FTS3_TOKENIZER</dt>
@@ -3499,6 +3512,7 @@ SQLITE_API void sqlite3_progress_handler(sqlite3*, int, int(*)(void*), void*);
 **          that uses dot-files in place of posix advisory locking.
 ** <tr><td> file:data.db?mode=readonly <td>
 **          An error. "readonly" is not a valid option for the "mode" parameter.
+**          Use "ro" instead:  "file:data.db?mode=ro".
 ** </table>
 **
 ** ^URI hexadecimal escape sequences (%HH) are supported within the path and
@@ -3697,7 +3711,7 @@ SQLITE_API sqlite3_file *sqlite3_database_file_object(const char*);
 ** If the Y parameter to sqlite3_free_filename(Y) is anything other
 ** than a NULL pointer or a pointer previously acquired from
 ** sqlite3_create_filename(), then bad things such as heap
-** corruption or segfaults may occur. The value Y should be
+** corruption or segfaults may occur. The value Y should not be
 ** used again after sqlite3_free_filename(Y) has been called.  This means
 ** that if the [sqlite3_vfs.xOpen()] method of a VFS has been called using Y,
 ** then the corresponding [sqlite3_module.xClose() method should also be
@@ -6188,6 +6202,57 @@ SQLITE_API const char *sqlite3_db_filename(sqlite3 *db, const char *zDbName);
 SQLITE_API int sqlite3_db_readonly(sqlite3 *db, const char *zDbName);
 
 /*
+** CAPI3REF: Determine the transaction state of a database
+** METHOD: sqlite3
+**
+** ^The sqlite3_txn_state(D,S) interface returns the current
+** [transaction state] of schema S in database connection D.  ^If S is NULL,
+** then the highest transaction state of any schema on database connection D
+** is returned.  Transaction states are (in order of lowest to highest):
+** <ol>
+** <li value="0"> SQLITE_TXN_NONE
+** <li value="1"> SQLITE_TXN_READ
+** <li value="2"> SQLITE_TXN_WRITE
+** </ol>
+** ^If the S argument to sqlite3_txn_state(D,S) is not the name of
+** a valid schema, then -1 is returned.
+*/
+SQLITE_API int sqlite3_txn_state(sqlite3*,const char *zSchema);
+
+/*
+** CAPI3REF: Allowed return values from [sqlite3_txn_state()]
+** KEYWORDS: {transaction state}
+**
+** These constants define the current transaction state of a database file.
+** ^The [sqlite3_txn_state(D,S)] interface returns one of these
+** constants in order to describe the transaction state of schema S
+** in [database connection] D.
+**
+** <dl>
+** [[SQLITE_TXN_NONE]] <dt>SQLITE_TXN_NONE</dt>
+** <dd>The SQLITE_TXN_NONE state means that no transaction is currently
+** pending.</dd>
+**
+** [[SQLITE_TXN_READ]] <dt>SQLITE_TXN_READ</dt>
+** <dd>The SQLITE_TXN_READ state means that the database is currently
+** in a read transaction.  Content has been read from the database file
+** but nothing in the database file has changed.  The transaction state
+** will advanced to SQLITE_TXN_WRITE if any changes occur and there are
+** no other conflicting concurrent write transactions.  The transaction
+** state will revert to SQLITE_TXN_NONE following a [ROLLBACK] or
+** [COMMIT].</dd>
+**
+** [[SQLITE_TXN_WRITE]] <dt>SQLITE_TXN_WRITE</dt>
+** <dd>The SQLITE_TXN_WRITE state means that the database is currently
+** in a write transaction.  Content has been written to the database file
+** but has not yet committed.  The transaction state will change to
+** to SQLITE_TXN_NONE at the next [ROLLBACK] or [COMMIT].</dd>
+*/
+#define SQLITE_TXN_NONE  0
+#define SQLITE_TXN_READ  1
+#define SQLITE_TXN_WRITE 2
+
+/*
 ** CAPI3REF: Find the next prepared statement
 ** METHOD: sqlite3
 **
@@ -7713,7 +7778,9 @@ SQLITE_API int sqlite3_test_control(int op, ...);
 #define SQLITE_TESTCTRL_RESULT_INTREAL          27
 #define SQLITE_TESTCTRL_PRNG_SEED               28
 #define SQLITE_TESTCTRL_EXTRA_SCHEMA_CHECKS     29
-#define SQLITE_TESTCTRL_LAST                    29  /* Largest TESTCTRL */
+#define SQLITE_TESTCTRL_SEEK_COUNT              30
+#define SQLITE_TESTCTRL_TRACEFLAGS              31
+#define SQLITE_TESTCTRL_LAST                    31  /* Largest TESTCTRL */
 
 /*
 ** CAPI3REF: SQL Keyword Checking
@@ -9193,10 +9260,11 @@ SQLITE_API int sqlite3_vtab_on_conflict(sqlite3 *);
 ** CAPI3REF: Determine If Virtual Table Column Access Is For UPDATE
 **
 ** If the sqlite3_vtab_nochange(X) routine is called within the [xColumn]
-** method of a [virtual table], then it returns true if and only if the
+** method of a [virtual table], then it might return true if the
 ** column is being fetched as part of an UPDATE operation during which the
-** column value will not change.  Applications might use this to substitute
-** a return value that is less expensive to compute and that the corresponding
+** column value will not change.  The virtual table implementation can use
+** this hint as permission to substitute a return value that is less
+** expensive to compute and that the corresponding
 ** [xUpdate] method understands as a "no-change" value.
 **
 ** If the [xColumn] method calls sqlite3_vtab_nochange() and finds that
@@ -9205,6 +9273,12 @@ SQLITE_API int sqlite3_vtab_on_conflict(sqlite3 *);
 ** any of the [sqlite3_result_int|sqlite3_result_xxxxx() interfaces].
 ** In that case, [sqlite3_value_nochange(X)] will return true for the
 ** same column in the [xUpdate] method.
+**
+** The sqlite3_vtab_nochange() routine is an optimization.  Virtual table
+** implementations should continue to give a correct answer even if the
+** sqlite3_vtab_nochange() interface were to always return false.  In the
+** current implementation, the sqlite3_vtab_nochange() interface does always
+** returns false for the enhanced [UPDATE FROM] statement.
 */
 SQLITE_API int sqlite3_vtab_nochange(sqlite3_context*);
 
@@ -9346,6 +9420,7 @@ SQLITE_API void sqlite3_stmt_scanstatus_reset(sqlite3_stmt*);
 
 /*
 ** CAPI3REF: Flush caches to disk mid-transaction
+** METHOD: sqlite3
 **
 ** ^If a write-transaction is open on [database connection] D when the
 ** [sqlite3_db_cacheflush(D)] interface invoked, any dirty
@@ -9378,6 +9453,7 @@ SQLITE_API int sqlite3_db_cacheflush(sqlite3*);
 
 /*
 ** CAPI3REF: The pre-update hook.
+** METHOD: sqlite3
 **
 ** ^These interfaces are only available if SQLite is compiled using the
 ** [SQLITE_ENABLE_PREUPDATE_HOOK] compile-time option.
@@ -9418,7 +9494,7 @@ SQLITE_API int sqlite3_db_cacheflush(sqlite3*);
 ** seventh parameter is the final rowid value of the row being inserted
 ** or updated. The value of the seventh parameter passed to the callback
 ** function is not defined for operations on WITHOUT ROWID tables, or for
-** INSERT operations on rowid tables.
+** DELETE operations on rowid tables.
 **
 ** The [sqlite3_preupdate_old()], [sqlite3_preupdate_new()],
 ** [sqlite3_preupdate_count()], and [sqlite3_preupdate_depth()] interfaces
@@ -9480,6 +9556,7 @@ SQLITE_API int sqlite3_preupdate_new(sqlite3 *, int, sqlite3_value **);
 
 /*
 ** CAPI3REF: Low-level system error code
+** METHOD: sqlite3
 **
 ** ^Attempt to return the underlying operating system error code or error
 ** number that caused the most recent I/O error or failure to open a file.
@@ -10377,6 +10454,14 @@ SQLITE_API int sqlite3session_patchset(
 SQLITE_API int sqlite3session_isempty(sqlite3_session *pSession);
 
 /*
+** CAPI3REF: Query for the amount of heap memory used by a session object.
+**
+** This API returns the total amount of heap memory in bytes currently
+** used by the session object passed as the only argument.
+*/
+SQLITE_API sqlite3_int64 sqlite3session_memory_used(sqlite3_session *pSession);
+
+/*
 ** CAPI3REF: Create An Iterator To Traverse A Changeset
 ** CONSTRUCTOR: sqlite3_changeset_iter
 **
@@ -10478,18 +10563,23 @@ SQLITE_API int sqlite3changeset_next(sqlite3_changeset_iter *pIter);
 ** call to [sqlite3changeset_next()] must have returned [SQLITE_ROW]. If this
 ** is not the case, this function returns [SQLITE_MISUSE].
 **
-** If argument pzTab is not NULL, then *pzTab is set to point to a
-** nul-terminated utf-8 encoded string containing the name of the table
-** affected by the current change. The buffer remains valid until either
-** sqlite3changeset_next() is called on the iterator or until the
-** conflict-handler function returns. If pnCol is not NULL, then *pnCol is
-** set to the number of columns in the table affected by the change. If
-** pbIndirect is not NULL, then *pbIndirect is set to true (1) if the change
+** Arguments pOp, pnCol and pzTab may not be NULL. Upon return, three
+** outputs are set through these pointers:
+**
+** *pOp is set to one of [SQLITE_INSERT], [SQLITE_DELETE] or [SQLITE_UPDATE],
+** depending on the type of change that the iterator currently points to;
+**
+** *pnCol is set to the number of columns in the table affected by the change; and
+**
+** *pzTab is set to point to a nul-terminated utf-8 encoded string containing
+** the name of the table affected by the current change. The buffer remains
+** valid until either sqlite3changeset_next() is called on the iterator
+** or until the conflict-handler function returns.
+**
+** If pbIndirect is not NULL, then *pbIndirect is set to true (1) if the change
 ** is an indirect change, or false (0) otherwise. See the documentation for
 ** [sqlite3session_indirect()] for a description of direct and indirect
-** changes. Finally, if pOp is not NULL, then *pOp is set to one of
-** [SQLITE_INSERT], [SQLITE_DELETE] or [SQLITE_UPDATE], depending on the
-** type of change that the iterator currently points to.
+** changes.
 **
 ** If no error occurs, SQLITE_OK is returned. If an error does occur, an
 ** SQLite error code is returned. The values of the output variables may not

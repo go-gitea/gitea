@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"errors"
+	"net/http"
 	"path"
 	"strings"
 
@@ -23,6 +25,7 @@ import (
 const (
 	tplCommits    base.TplName = "repo/commits"
 	tplGraph      base.TplName = "repo/graph"
+	tplGraphDiv   base.TplName = "repo/graph/div"
 	tplCommitPage base.TplName = "repo/commit_page"
 )
 
@@ -83,11 +86,12 @@ func Commits(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Graph render commit graph - show commits from all branches.
 func Graph(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.commit_graph")
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 	mode := strings.ToLower(ctx.QueryTrim("mode"))
@@ -95,6 +99,18 @@ func Graph(ctx *context.Context) {
 		mode = "color"
 	}
 	ctx.Data["Mode"] = mode
+	hidePRRefs := ctx.QueryBool("hide-pr-refs")
+	ctx.Data["HidePRRefs"] = hidePRRefs
+	branches := ctx.QueryStrings("branch")
+	realBranches := make([]string, len(branches))
+	copy(realBranches, branches)
+	for i, branch := range realBranches {
+		if strings.HasPrefix(branch, "--") {
+			realBranches[i] = "refs/heads/" + branch
+		}
+	}
+	ctx.Data["SelectedBranches"] = realBranches
+	files := ctx.QueryStrings("file")
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
@@ -102,29 +118,61 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	allCommitsCount, err := ctx.Repo.GitRepo.GetAllCommitsCount()
+	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
 	if err != nil {
-		ctx.ServerError("GetAllCommitsCount", err)
-		return
+		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
+		realBranches = []string{}
+		branches = []string{}
+		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
+		if err != nil {
+			ctx.ServerError("GetCommitGraphsCount", err)
+			return
+		}
 	}
 
 	page := ctx.QueryInt("page")
 
-	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0)
+	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
 	if err != nil {
 		ctx.ServerError("GetCommitGraph", err)
 		return
 	}
 
+	if err := graph.LoadAndProcessCommits(ctx.Repo.Repository, ctx.Repo.GitRepo); err != nil {
+		ctx.ServerError("LoadAndProcessCommits", err)
+		return
+	}
+
 	ctx.Data["Graph"] = graph
+
+	gitRefs, err := ctx.Repo.GitRepo.GetRefs()
+	if err != nil {
+		ctx.ServerError("GitRepo.GetRefs", err)
+		return
+	}
+
+	ctx.Data["AllRefs"] = gitRefs
+
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	paginator := context.NewPagination(int(allCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
+	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParam(ctx, "mode", "Mode")
+	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
+	for _, branch := range branches {
+		paginator.AddParamString("branch", branch)
+	}
+	for _, file := range files {
+		paginator.AddParamString("file", file)
+	}
 	ctx.Data["Page"] = paginator
-	ctx.HTML(200, tplGraph)
+	if ctx.QueryBool("div-only") {
+		ctx.HTML(http.StatusOK, tplGraphDiv)
+		return
+	}
+
+	ctx.HTML(http.StatusOK, tplGraph)
 }
 
 // SearchCommits render commits filtered by keyword
@@ -158,7 +206,7 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // FileHistory show a file's reversions
@@ -206,7 +254,7 @@ func FileHistory(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Diff show different from current commit to previous commit
@@ -250,18 +298,20 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository, commitID, 0)
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, models.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
 
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommit(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if err != nil {
-		ctx.NotFound("GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
 	}
 
@@ -288,9 +338,8 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	verification := models.ParseCommitWithSignature(commit)
@@ -324,7 +373,7 @@ func Diff(ctx *context.Context) {
 		ctx.ServerError("commit.GetTagName", err)
 		return
 	}
-	ctx.HTML(200, tplCommitPage)
+	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
@@ -341,6 +390,11 @@ func RawDiff(ctx *context.Context) {
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetRawDiff",
+				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+			return
+		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}

@@ -1,3 +1,19 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
 import (
@@ -41,12 +57,13 @@ type AccessLevelValue int
 //
 // GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
 const (
-	NoPermissions         AccessLevelValue = 0
-	GuestPermissions      AccessLevelValue = 10
-	ReporterPermissions   AccessLevelValue = 20
-	DeveloperPermissions  AccessLevelValue = 30
-	MaintainerPermissions AccessLevelValue = 40
-	OwnerPermissions      AccessLevelValue = 50
+	NoPermissions            AccessLevelValue = 0
+	MinimalAccessPermissions AccessLevelValue = 5
+	GuestPermissions         AccessLevelValue = 10
+	ReporterPermissions      AccessLevelValue = 20
+	DeveloperPermissions     AccessLevelValue = 30
+	MaintainerPermissions    AccessLevelValue = 40
+	OwnerPermissions         AccessLevelValue = 50
 
 	// These are deprecated and should be removed in a future version
 	MasterPermissions AccessLevelValue = 40
@@ -100,6 +117,28 @@ const (
 // DeploymentStatusValue to store v and returns a pointer to it.
 func DeploymentStatus(v DeploymentStatusValue) *DeploymentStatusValue {
 	p := new(DeploymentStatusValue)
+	*p = v
+	return p
+}
+
+// FileActionValue represents the available actions that can be performed on a file.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
+type FileActionValue string
+
+// The available file actions.
+const (
+	FileCreate FileActionValue = "create"
+	FileDelete FileActionValue = "delete"
+	FileMove   FileActionValue = "move"
+	FileUpdate FileActionValue = "update"
+	FileChmod  FileActionValue = "chmod"
+)
+
+// FileAction is a helper routine that allocates a new FileActionValue value
+// to store v and returns a pointer to it.
+func FileAction(v FileActionValue) *FileActionValue {
+	p := new(FileActionValue)
 	*p = v
 	return p
 }
@@ -304,6 +343,27 @@ const (
 // to store v and returns a pointer to it.
 func VariableType(v VariableTypeValue) *VariableTypeValue {
 	p := new(VariableTypeValue)
+	*p = v
+	return p
+}
+
+// WikiFormatValue represents the available wiki formats.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
+type WikiFormatValue string
+
+// The available wiki formats.
+const (
+	WikiFormatMarkdown WikiFormatValue = "markdown"
+	WikiFormatRDoc     WikiFormatValue = "rdoc"
+	WikiFormatASCIIDoc WikiFormatValue = "asciidoc"
+	WikiFormatOrg      WikiFormatValue = "org"
+)
+
+// WikiFormat is a helper routine that allocates a new WikiFormatValue
+// to store v and returns a pointer to it.
+func WikiFormat(v WikiFormatValue) *WikiFormatValue {
+	p := new(WikiFormatValue)
 	*p = v
 	return p
 }

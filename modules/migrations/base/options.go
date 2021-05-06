@@ -20,6 +20,8 @@ type MigrateOptions struct {
 	// required: true
 	RepoName        string `json:"repo_name" binding:"Required"`
 	Mirror          bool   `json:"mirror"`
+	LFS             bool   `json:"lfs"`
+	LFSEndpoint     string `json:"lfs_endpoint"`
 	Private         bool   `json:"private"`
 	Description     string `json:"description"`
 	OriginalURL     string
@@ -31,5 +33,7 @@ type MigrateOptions struct {
 	Releases        bool
 	Comments        bool
 	PullRequests    bool
+	ReleaseAssets   bool
 	MigrateToRepoID int64
+	MirrorInterval  string `json:"mirror_interval"`
 }

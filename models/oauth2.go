@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // OAuth2Provider describes the display values of a single OAuth2 provider
@@ -22,10 +23,11 @@ type OAuth2Provider struct {
 // key is used to map the OAuth2Provider with the goth provider type (also in LoginSource.OAuth2Config.Provider)
 // value is used to store display data
 var OAuth2Providers = map[string]OAuth2Provider{
-	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/img/auth/bitbucket.png"},
-	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/img/auth/dropbox.png"},
-	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/img/auth/facebook.png"},
-	"github": {Name: "github", DisplayName: "GitHub", Image: "/img/auth/github.png",
+	"bitbucket": {Name: "bitbucket", DisplayName: "Bitbucket", Image: "/assets/img/auth/bitbucket.png"},
+	"dropbox":   {Name: "dropbox", DisplayName: "Dropbox", Image: "/assets/img/auth/dropbox.png"},
+	"facebook":  {Name: "facebook", DisplayName: "Facebook", Image: "/assets/img/auth/facebook.png"},
+	"github": {
+		Name: "github", DisplayName: "GitHub", Image: "/assets/img/auth/github.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("github"),
 			AuthURL:    oauth2.GetDefaultAuthURL("github"),
@@ -33,32 +35,41 @@ var OAuth2Providers = map[string]OAuth2Provider{
 			EmailURL:   oauth2.GetDefaultEmailURL("github"),
 		},
 	},
-	"gitlab": {Name: "gitlab", DisplayName: "GitLab", Image: "/img/auth/gitlab.png",
+	"gitlab": {
+		Name: "gitlab", DisplayName: "GitLab", Image: "/assets/img/auth/gitlab.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitlab"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitlab"),
 			ProfileURL: oauth2.GetDefaultProfileURL("gitlab"),
 		},
 	},
-	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/img/auth/google.png"},
-	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/img/auth/openid_connect.svg"},
-	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/img/auth/twitter.png"},
-	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/img/auth/discord.png"},
-	"gitea": {Name: "gitea", DisplayName: "Gitea", Image: "/img/auth/gitea.png",
+	"gplus":         {Name: "gplus", DisplayName: "Google", Image: "/assets/img/auth/google.png"},
+	"openidConnect": {Name: "openidConnect", DisplayName: "OpenID Connect", Image: "/assets/img/auth/openid_connect.svg"},
+	"twitter":       {Name: "twitter", DisplayName: "Twitter", Image: "/assets/img/auth/twitter.png"},
+	"discord":       {Name: "discord", DisplayName: "Discord", Image: "/assets/img/auth/discord.png"},
+	"gitea": {
+		Name: "gitea", DisplayName: "Gitea", Image: "/assets/img/auth/gitea.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("gitea"),
 			AuthURL:    oauth2.GetDefaultAuthURL("gitea"),
 			ProfileURL: oauth2.GetDefaultProfileURL("gitea"),
 		},
 	},
-	"nextcloud": {Name: "nextcloud", DisplayName: "Nextcloud", Image: "/img/auth/nextcloud.png",
+	"nextcloud": {
+		Name: "nextcloud", DisplayName: "Nextcloud", Image: "/assets/img/auth/nextcloud.png",
 		CustomURLMapping: &oauth2.CustomURLMapping{
 			TokenURL:   oauth2.GetDefaultTokenURL("nextcloud"),
 			AuthURL:    oauth2.GetDefaultAuthURL("nextcloud"),
 			ProfileURL: oauth2.GetDefaultProfileURL("nextcloud"),
 		},
 	},
-	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/img/auth/yandex.png"},
+	"yandex": {Name: "yandex", DisplayName: "Yandex", Image: "/assets/img/auth/yandex.png"},
+	"mastodon": {
+		Name: "mastodon", DisplayName: "Mastodon", Image: "/assets/img/auth/mastodon.png",
+		CustomURLMapping: &oauth2.CustomURLMapping{
+			AuthURL: oauth2.GetDefaultAuthURL("mastodon"),
+		},
+	},
 }
 
 // OAuth2DefaultCustomURLMappings contains the map of default URL's for OAuth2 providers that are allowed to have custom urls
@@ -69,6 +80,7 @@ var OAuth2DefaultCustomURLMappings = map[string]*oauth2.CustomURLMapping{
 	"gitlab":    OAuth2Providers["gitlab"].CustomURLMapping,
 	"gitea":     OAuth2Providers["gitea"].CustomURLMapping,
 	"nextcloud": OAuth2Providers["nextcloud"].CustomURLMapping,
+	"mastodon":  OAuth2Providers["mastodon"].CustomURLMapping,
 }
 
 // GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
@@ -105,7 +117,11 @@ func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
 	var orderedKeys []string
 	providers := make(map[string]OAuth2Provider)
 	for _, source := range loginSources {
-		providers[source.Name] = OAuth2Providers[source.OAuth2().Provider]
+		prov := OAuth2Providers[source.OAuth2().Provider]
+		if source.OAuth2().IconURL != "" {
+			prov.Image = source.OAuth2().IconURL
+		}
+		providers[source.Name] = prov
 		orderedKeys = append(orderedKeys, source.Name)
 	}
 
@@ -119,13 +135,28 @@ func InitOAuth2() error {
 	if err := oauth2.Init(x); err != nil {
 		return err
 	}
-	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
+	return initOAuth2LoginSources()
+}
 
+// ResetOAuth2 clears existing OAuth2 providers and loads them from DB
+func ResetOAuth2() error {
+	oauth2.ClearProviders()
+	return initOAuth2LoginSources()
+}
+
+// initOAuth2LoginSources is used to load and register all active OAuth2 providers
+func initOAuth2LoginSources() error {
+	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
 		oAuth2Config := source.OAuth2()
 		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		if err != nil {
-			return err
+			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
+			source.IsActived = false
+			if err = UpdateSource(source); err != nil {
+				log.Critical("Unable to update source %s to disable it. Error: %v", err)
+				return err
+			}
 		}
 	}
 	return nil

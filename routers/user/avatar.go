@@ -6,13 +6,15 @@ package user
 
 import (
 	"errors"
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Avatar redirect browser to user avatar of requested size
@@ -46,23 +48,51 @@ func Avatar(ctx *context.Context) {
 
 // AvatarByEmailHash redirects the browser to the appropriate Avatar link
 func AvatarByEmailHash(ctx *context.Context) {
+	var err error
+
 	hash := ctx.Params(":hash")
 	if len(hash) == 0 {
 		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
 		return
 	}
-	email, err := models.GetEmailForHash(hash)
+
+	var email string
+	email, err = models.GetEmailForHash(hash)
 	if err != nil {
 		ctx.ServerError("invalid avatar hash", err)
 		return
 	}
 	if len(email) == 0 {
-		ctx.Redirect(base.DefaultAvatarLink())
+		ctx.Redirect(models.DefaultAvatarLink())
 		return
 	}
 	size := ctx.QueryInt("size")
 	if size == 0 {
-		size = base.DefaultAvatarSize
+		size = models.DefaultAvatarSize
 	}
-	ctx.Redirect(base.SizedAvatarLinkWithDomain(email, size))
+
+	var avatarURL *url.URL
+
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		avatarURL, err = models.LibravatarURL(email)
+		if err != nil {
+			avatarURL, err = url.Parse(models.DefaultAvatarLink())
+			if err != nil {
+				ctx.ServerError("invalid default avatar url", err)
+				return
+			}
+		}
+	} else if !setting.DisableGravatar {
+		copyOfGravatarSourceURL := *setting.GravatarSourceURL
+		avatarURL = &copyOfGravatarSourceURL
+		avatarURL.Path = path.Join(avatarURL.Path, hash)
+	} else {
+		avatarURL, err = url.Parse(models.DefaultAvatarLink())
+		if err != nil {
+			ctx.ServerError("invalid default avatar url", err)
+			return
+		}
+	}
+
+	ctx.Redirect(models.MakeFinalAvatarURL(avatarURL, size))
 }

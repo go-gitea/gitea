@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package gitlab
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
 // LabelsService handles communication with the label related methods of the
@@ -75,8 +76,9 @@ func (l Label) String() string {
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#list-labels
 type ListLabelsOptions struct {
 	ListOptions
-	WithCounts            *bool `url:"with_counts,omitempty" json:"with_counts,omitempty"`
-	IncludeAncestorGroups *bool `url:"include_ancestor_groups,omitempty" json:"include_ancestor_groups,omitempty"`
+	WithCounts            *bool   `url:"with_counts,omitempty" json:"with_counts,omitempty"`
+	IncludeAncestorGroups *bool   `url:"include_ancestor_groups,omitempty" json:"include_ancestor_groups,omitempty"`
+	Search                *string `url:"search,omitempty" json:"search,omitempty"`
 }
 
 // ListLabels gets all labels for given project.
@@ -89,7 +91,7 @@ func (s *LabelsService) ListLabels(pid interface{}, opt *ListLabelsOptions, opti
 	}
 	u := fmt.Sprintf("projects/%s/labels", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -117,7 +119,7 @@ func (s *LabelsService) GetLabel(pid interface{}, labelID interface{}, options .
 	}
 	u := fmt.Sprintf("projects/%s/labels/%s", pathEscape(project), label)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -151,7 +153,7 @@ func (s *LabelsService) CreateLabel(pid interface{}, opt *CreateLabelOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/labels", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -182,7 +184,7 @@ func (s *LabelsService) DeleteLabel(pid interface{}, opt *DeleteLabelOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/labels", pathEscape(project))
 
-	req, err := s.client.NewRequest("DELETE", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, opt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +213,7 @@ func (s *LabelsService) UpdateLabel(pid interface{}, opt *UpdateLabelOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/labels", pathEscape(project))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,7 +244,7 @@ func (s *LabelsService) SubscribeToLabel(pid interface{}, labelID interface{}, o
 	}
 	u := fmt.Sprintf("projects/%s/labels/%s/subscribe", pathEscape(project), label)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -273,7 +275,7 @@ func (s *LabelsService) UnsubscribeFromLabel(pid interface{}, labelID interface{
 	}
 	u := fmt.Sprintf("projects/%s/labels/%s/unsubscribe", pathEscape(project), label)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +298,7 @@ func (s *LabelsService) PromoteLabel(pid interface{}, labelID interface{}, optio
 	}
 	u := fmt.Sprintf("projects/%s/labels/%s/promote", pathEscape(project), label)
 
-	req, err := s.client.NewRequest("PUT", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

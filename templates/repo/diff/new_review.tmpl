@@ -1,28 +1,24 @@
 <div class="ui top right pointing dropdown custom" id="review-box">
 	<div class="ui tiny green button btn-review">
 		{{.i18n.Tr "repo.diff.review"}}
-		<i class="dropdown icon"></i>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</div>
 	<div class="menu review-box">
 		<div class="ui clearing segment">
 			<form class="ui form" action="{{.Link}}/reviews/submit" method="post">
 			{{.CsrfTokenHtml}}
-			    <input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
-				<i class="ui right floated link icon close"></i>
-				<div class="header">
-				{{$.i18n.Tr "repo.diff.review.header"}}
+				<input type="hidden" name="commit_id" value="{{.AfterCommitID}}"/>
+				<div class="header df ac pb-3">
+					<div class="f1">{{$.i18n.Tr "repo.diff.review.header"}}</div>
+					<a class="muted close px-3">{{svg "octicon-x" 16}}</a>
 				</div>
 				<div class="ui field">
-					<textarea name="content" tabindex="0" rows="2"
-							  placeholder="{{$.i18n.Tr "repo.diff.review.placeholder"}}"></textarea>
+					<textarea name="content" tabindex="0" rows="2" placeholder="{{$.i18n.Tr "repo.diff.review.placeholder"}}"></textarea>
 				</div>
 				<div class="ui divider"></div>
-				<button type="submit" name="type" value="approve" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
-						class="ui submit green tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.approve"}}</button>
-				<button type="submit" name="type" value="comment"
-					        class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</button>
-				<button type="submit" name="type" value="reject" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }}
-						class="ui submit red tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.reject"}}</button>
+				<button type="submit" name="type" value="approve" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }} class="ui submit green tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.approve"}}</button>
+				<button type="submit" name="type" value="comment" class="ui submit tiny basic button btn-submit">{{$.i18n.Tr "repo.diff.review.comment"}}</button>
+				<button type="submit" name="type" value="reject" {{ if and $.IsSigned ($.Issue.IsPoster $.SignedUser.ID) }} disabled {{ end }} class="ui submit red tiny button btn-submit">{{$.i18n.Tr "repo.diff.review.reject"}}</button>
 			</form>
 		</div>
 	</div>

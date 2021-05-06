@@ -6,6 +6,8 @@
 package markup
 
 import (
+	"html/template"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,7 +42,7 @@ func Test_Sanitizer(t *testing.T) {
 		`<kbd>Ctrl + C</kbd>`, `<kbd>Ctrl + C</kbd>`,
 		`<i class="dropdown icon">NAUGHTY</i>`, `<i>NAUGHTY</i>`,
 		`<i class="icon dropdown"></i>`, `<i class="icon dropdown"></i>`,
-		`<span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span>`, `<span class="ui checkbox"><input type="checkbox" readonly="readonly"/><label>unchecked</label></span>`,
+		`<input type="checkbox" disabled=""/>unchecked`, `<input type="checkbox" disabled=""/>unchecked`,
 		`<span class="emoji dropdown">NAUGHTY</span>`, `<span>NAUGHTY</span>`,
 		`<span class="emoji">contents</span>`, `<span class="emoji">contents</span>`,
 	}
@@ -49,4 +51,14 @@ func Test_Sanitizer(t *testing.T) {
 		assert.Equal(t, testCases[i+1], Sanitize(testCases[i]))
 		assert.Equal(t, testCases[i+1], string(SanitizeBytes([]byte(testCases[i]))))
 	}
+}
+
+func TestSanitizeNonEscape(t *testing.T) {
+	descStr := "<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>"
+
+	output := template.HTML(Sanitize(string(descStr)))
+	if strings.Contains(string(output), "<script>") {
+		t.Errorf("un-escaped <script> in output: %q", output)
+	}
+
 }

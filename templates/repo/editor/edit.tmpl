@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository file editor edit">
+<div class="page-content repository file editor edit">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -36,7 +36,7 @@
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
-					<textarea id="edit_area" name="content" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
+					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 						data-url="{{.Repository.APIURL}}/markdown"
 						data-context="{{.RepoLink}}"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
@@ -59,7 +59,7 @@
 	<div class="ui small basic modal" id="edit-empty-content-modal">
 		<div class="ui icon header">
 			<i class="file icon"></i>
-            {{.i18n.Tr "repo.editor.commit_empty_file_header"}}
+			{{.i18n.Tr "repo.editor.commit_empty_file_header"}}
 		</div>
 		<div class="center content">
 			<p>{{.i18n.Tr "repo.editor.commit_empty_file_text"}}</p>
@@ -67,11 +67,11 @@
 		<div class="actions">
 			<div class="ui red basic cancel inverted button">
 				<i class="remove icon"></i>
-                {{.i18n.Tr "repo.editor.cancel"}}
+				{{.i18n.Tr "repo.editor.cancel"}}
 			</div>
 			<div class="ui green basic ok inverted button">
 				<i class="save icon"></i>
-                {{.i18n.Tr "repo.editor.commit_changes"}}
+				{{.i18n.Tr "repo.editor.commit_changes"}}
 			</div>
 		</div>
 	</div>

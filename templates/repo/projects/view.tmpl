@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository">
+<div class="page-content repository">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui three column stackable grid">
@@ -34,29 +34,65 @@
 			</div>
 		</div>
 		<div class="ui divider"></div>
+		<div class="ui two column stackable grid">
+			<div class="column">
+				<h2 class="project-title">{{$.Project.Title}}</h2>
+				<div class="content project-description">{{$.Project.RenderedContent|Str2html}}</div>
+			</div>
+			{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
+				<div class="column right aligned">
+					<div class="ui compact right small menu">
+						<a class="item" href="{{$.RepoLink}}/projects/{{.Project.ID}}/edit" data-id={{$.Project.ID}} data-title={{$.Project.Title}}>
+							{{svg "octicon-pencil"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_edit"}}</span>
+						</a>
+						{{if .Project.IsClosed}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/open">
+								{{svg "octicon-check"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.open"}}</span>
+							</a>
+						{{else}}
+							<a class="item link-action" href data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/close">
+								{{svg "octicon-skip"}}
+								<span class="mx-3">{{$.i18n.Tr "repo.projects.close"}}</span>
+							</a>
+						{{end}}
+						<a class="item delete-button" href="#" data-url="{{$.RepoLink}}/projects/{{.Project.ID}}/delete" data-id="{{.Project.ID}}">
+							{{svg "octicon-trash"}}
+							<span class="mx-3">{{$.i18n.Tr "repo.issues.label_delete"}}</span>
+						</a>
+					</div>
+				</div>
+			{{end}}
+		</div>
+		<div class="ui divider"></div>
 	</div>
-
 	<div class="ui container fluid padded" id="project-board">
 
 		<div class="board">
 			{{ range $board := .Boards }}
 
-			<div class="ui segment board-column">
-				<div class="board-column-header">
-					<div class="ui large label board-label">{{.Title}}</div>
+			<div class="ui segment board-column" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
+				<div class="board-column-header df ac sb">
+					<div class="ui large label board-label py-2">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
-						<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
-							<span class="ui text">
-								<img class="ui tiny avatar image" width="24" height="24">
-								<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
-							</span>
+						<div class="ui dropdown jump item poping up" data-variation="tiny inverted">
+							<div class="not-mobile px-3" tabindex="-1">
+								{{svg "octicon-kebab-horizontal"}}
+							</div>
 							<div class="menu user-menu" tabindex="-1">
 								<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
 									{{$.i18n.Tr "repo.projects.board.edit"}}
 								</a>
+								{{if not .Default}}
+									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+										{{svg "octicon-pin"}}
+										{{$.i18n.Tr "repo.projects.board.set_default"}}
+									</a>
+								{{end}}
 								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
-									{{svg "octicon-trashcan"}}
+									{{svg "octicon-trash"}}
 									{{$.i18n.Tr "repo.projects.board.delete"}}
 								</a>
 
@@ -79,24 +115,34 @@
 									</div>
 								</div>
 
+								<div class="ui basic modal" id="set-default-project-board-modal-{{.ID}}">
+									<div class="ui icon header">
+										{{$.i18n.Tr "repo.projects.board.set_default"}}
+									</div>
+									<div class="content center">
+										<label>
+											{{$.i18n.Tr "repo.projects.board.set_default_desc"}}
+										</label>
+									</div>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.i18n.Tr "repo.projects.board.set_default"}}</button>
+									</div>
+								</div>
+
 								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
 									<div class="ui icon header">
 										{{$.i18n.Tr "repo.projects.board.delete"}}
 									</div>
 									<div class="content center">
-										<input type="hidden" name="action" value="delete">
-										<div class="field">
-											<label>
-												{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
-											</label>
-										</div>
+										<label>
+											{{$.i18n.Tr "repo.projects.board.deletion_desc"}}
+										</label>
 									</div>
-									<form class="ui form" method="post">
-										<div class="text right actions">
-											<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
-											<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
-										</div>
-									</form>
+									<div class="text right actions">
+										<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
+										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.i18n.Tr "repo.projects.board.delete"}}</button>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -110,29 +156,68 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
-						<div class="content">
+						<div class="content p-0">
 							<div class="header">
-								<span class="{{if .IsClosed}}red{{else}}green{{end}}">
-									{{if .IsPull}}{{svg "octicon-git-merge"}}
-									{{else if .IsClosed}}{{svg "octicon-issue-closed"}}
-									{{else}}{{svg "octicon-issue-opened"}}
+								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
+									{{if .IsPull}}
+										{{if .PullRequest.HasMerged}}
+											{{svg "octicon-git-merge" 16 "text purple"}}
+										{{else}}
+											{{if .IsClosed}}
+												{{svg "octicon-git-pull-request" 16 "text red"}}
+											{{else}}
+												{{svg "octicon-git-pull-request" 16 "text green"}}
+											{{end}}
+										{{end}}
+									{{else}}
+										{{if .IsClosed}}
+											{{svg "octicon-issue-closed" 16 "text red"}}
+										{{else}}
+											{{svg "octicon-issue-opened" 16 "text green"}}
+										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
-							</div>
-							<div class="meta">
-								{{ if .MilestoneID }}
-								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-									{{svg "octicon-milestone"}} {{ .Milestone.Name }}
+								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+									{{.Title}}
 								</a>
+							</div>
+							<div class="meta my-2">
+								<span class="text light grey">
+									#{{.Index}}
+									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+									{{if .OriginalAuthor }}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+									{{else if gt .Poster.ID 0}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+									{{else}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+									{{end}}
+								</span>
+							</div>
+							{{- if .MilestoneID }}
+							<div class="meta my-2">
+								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
+									{{svg "octicon-milestone" 16 "mr-2 vm"}}
+									<span class="vm">{{ .Milestone.Name }}</span>
+								</a>
+							</div>
+							{{- end }}
+							{{- range index $.LinkedPRs .ID }}
+							<div class="meta my-2">
+								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
+									<span class="m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
+									<span class="vm">{{ .Title}} <span class="text light grey">#{{.Index}}</span></span>
+								</a>
+							</div>
+							{{- end }}
+						</div>
+						{{if .Labels}}
+							<div class="extra content labels-list p-0 pt-2">
+								{{ range .Labels }}
+								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 								{{ end }}
 							</div>
-						</div>
-						<div class="extra content">
-							{{ range .Labels }}
-							<a class="ui label has-emoji" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description}}">{{.Name}}</a>
-							{{ end }}
-						</div>
+						{{end}}
 					</div>
 					<!-- stop issue card -->
 
@@ -145,5 +230,27 @@
 	</div>
 
 </div>
+
+{{if or .CanWriteIssues .CanWritePulls}}
+	<div class="ui small basic delete modal">
+		<div class="ui icon header">
+			{{svg "octicon-trash"}}
+			{{.i18n.Tr "repo.projects.deletion"}}
+		</div>
+		<div class="content">
+			<p>{{.i18n.Tr "repo.projects.deletion_desc"}}</p>
+		</div>
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				<i class="remove icon"></i>
+				{{.i18n.Tr "modal.no"}}
+			</div>
+			<div class="ui green basic inverted ok button">
+				<i class="checkmark icon"></i>
+				{{.i18n.Tr "modal.yes"}}
+			</div>
+		</div>
+	</div>
+{{end}}
 
 {{template "base/footer" .}}

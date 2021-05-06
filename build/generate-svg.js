@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-'use strict';
+import fastGlob from 'fast-glob';
+import {optimize, extendDefaultPlugins} from 'svgo';
+import {resolve, parse, dirname} from 'path';
+import fs from 'fs';
+import {fileURLToPath} from 'url';
 
-const fastGlob = require('fast-glob');
-const Svgo = require('svgo');
-const {resolve, parse} = require('path');
-const {readFile, writeFile, mkdir} = require('fs').promises;
-
+const {readFile, writeFile, mkdir} = fs.promises;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: resolve(__dirname), absolute: true});
 const outputDir = resolve(__dirname, '../public/img/svg');
 
@@ -14,37 +14,36 @@ function exit(err) {
   process.exit(err ? 1 : 0);
 }
 
-async function processFile(file, {prefix = ''} = {}) {
-  let name = parse(file).name;
-  if (prefix) name = `${prefix}-${name}`;
-  if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
+async function processFile(file, {prefix, fullName} = {}) {
+  let name;
 
-  const svgo = new Svgo({
-    plugins: [
-      {removeXMLNS: true},
-      {removeDimensions: true},
+  if (fullName) {
+    name = fullName;
+  } else {
+    name = parse(file).name;
+    if (prefix) name = `${prefix}-${name}`;
+    if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
+  }
+
+  const {data} = optimize(await readFile(file, 'utf8'), {
+    plugins: extendDefaultPlugins([
+      'removeXMLNS',
+      'removeDimensions',
       {
-        addClassesToSVGElement: {
-          classNames: [
-            'svg',
-            name,
-          ],
-        },
+        name: 'addClassesToSVGElement',
+        params: {classNames: ['svg', name]},
       },
       {
-        addAttributesToSVGElement: {
-          attributes: [
-            {'width': '16'},
-            {'height': '16'},
-            {'aria-hidden': 'true'},
-          ],
-        },
+        name: 'addAttributesToSVGElement',
+        params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]},
       },
-    ],
+    ]),
   });
-
-  const {data} = await svgo.optimize(await readFile(file, 'utf8'));
   await writeFile(resolve(outputDir, `${name}.svg`), data);
+}
+
+function processFiles(pattern, opts) {
+  return glob(pattern).map((file) => processFile(file, opts));
 }
 
 async function main() {
@@ -52,13 +51,11 @@ async function main() {
     await mkdir(outputDir);
   } catch {}
 
-  for (const file of glob('../node_modules/@primer/octicons/build/svg/*-16.svg')) {
-    await processFile(file, {prefix: 'octicon'});
-  }
-
-  for (const file of glob('../web_src/svg/*.svg')) {
-    await processFile(file);
-  }
+  await Promise.all([
+    ...processFiles('../node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
+    ...processFiles('../web_src/svg/*.svg'),
+    ...processFiles('../public/img/gitea.svg', {fullName: 'gitea-gitea'}),
+  ]);
 }
 
 main().then(exit).catch(exit);

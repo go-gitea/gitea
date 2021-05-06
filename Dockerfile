@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.15-alpine3.12 AS build-env
+FROM golang:1.16-alpine3.13 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -22,7 +22,10 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean-all build
 
-FROM alpine:3.12
+# Begin env-to-ini build
+RUN go build contrib/environment-to-ini/environment-to-ini.go
+
+FROM alpine:3.13
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000
@@ -50,7 +53,7 @@ RUN addgroup \
     -u 1000 \
     -G git \
     git && \
-  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
+  echo "git:*" | chpasswd -e
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea
@@ -62,4 +65,5 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 
 COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
+COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea

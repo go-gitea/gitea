@@ -6,8 +6,8 @@
 package admin
 
 import (
-	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/cron"
@@ -26,10 +25,12 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	jsoniter "github.com/json-iterator/go"
 
-	"gitea.com/macaron/macaron"
-	"gitea.com/macaron/session"
+	"gitea.com/go-chi/session"
 )
 
 const (
@@ -37,10 +38,6 @@ const (
 	tplConfig    base.TplName = "admin/config"
 	tplMonitor   base.TplName = "admin/monitor"
 	tplQueue     base.TplName = "admin/queue"
-)
-
-var (
-	startTime = time.Now()
 )
 
 var sysStatus struct {
@@ -85,7 +82,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(startTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -132,11 +129,12 @@ func Dashboard(ctx *context.Context) {
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 	ctx.Data["SSH"] = setting.SSH
-	ctx.HTML(200, tplDashboard)
+	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // DashboardPost run an admin operation
-func DashboardPost(ctx *context.Context, form auth.AdminDashboardForm) {
+func DashboardPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AdminDashboardForm)
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
@@ -243,7 +241,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(macaron.Env)
+	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}
@@ -277,6 +275,7 @@ func Config(ctx *context.Context) {
 	sessionCfg := setting.SessionConfig
 	if sessionCfg.Provider == "VirtualSession" {
 		var realSession session.Options
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
 			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}
@@ -311,14 +310,13 @@ func Config(ctx *context.Context) {
 
 	ctx.Data["EnvVars"] = envVars
 	ctx.Data["Loggers"] = setting.GetLogDescriptions()
-	ctx.Data["RedirectMacaronLog"] = setting.RedirectMacaronLog
 	ctx.Data["EnableAccessLog"] = setting.EnableAccessLog
 	ctx.Data["AccessLogTemplate"] = setting.AccessLogTemplate
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
 
-	ctx.HTML(200, tplConfig)
+	ctx.HTML(http.StatusOK, tplConfig)
 }
 
 // Monitor show admin monitor page
@@ -329,14 +327,14 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Processes"] = process.GetManager().Processes()
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
-	ctx.HTML(200, tplMonitor)
+	ctx.HTML(http.StatusOK, tplMonitor)
 }
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	process.GetManager().Cancel(pid)
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})
 }
@@ -353,7 +351,7 @@ func Queue(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
 	ctx.Data["Queue"] = mq
-	ctx.HTML(200, tplQueue)
+	ctx.HTML(http.StatusOK, tplQueue)
 }
 
 // WorkerCancel cancels a worker group
@@ -367,8 +365,8 @@ func WorkerCancel(ctx *context.Context) {
 	pid := ctx.ParamsInt64("pid")
 	mq.CancelWorkers(pid)
 	ctx.Flash.Info(ctx.Tr("admin.monitor.queue.pool.cancelling"))
-	ctx.JSON(200, map[string]interface{}{
-		"redirect": setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid),
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10),
 	})
 }
 
@@ -391,7 +389,7 @@ func Flush(ctx *context.Context) {
 			log.Error("Flushing failure for %s: Error %v", mq.Name, err)
 		}
 	}()
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // AddWorkers adds workers to a worker group
@@ -405,23 +403,23 @@ func AddWorkers(ctx *context.Context) {
 	number := ctx.QueryInt("number")
 	if number < 1 {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.mustnumbergreaterzero"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.Query("timeout"))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 	mq.AddWorkers(number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.pool.added"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
 // SetQueueSettings sets the maximum number of workers and other settings for this queue
@@ -434,7 +432,7 @@ func SetQueueSettings(ctx *context.Context) {
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.none"))
-		ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
 
@@ -449,7 +447,7 @@ func SetQueueSettings(ctx *context.Context) {
 		maxNumber, err = strconv.Atoi(maxNumberStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.maxnumberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 		if maxNumber < -1 {
@@ -463,7 +461,7 @@ func SetQueueSettings(ctx *context.Context) {
 		number, err = strconv.Atoi(numberStr)
 		if err != nil || number < 0 {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.numberworkers.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -474,7 +472,7 @@ func SetQueueSettings(ctx *context.Context) {
 		timeout, err = time.ParseDuration(timeoutStr)
 		if err != nil {
 			ctx.Flash.Error(ctx.Tr("admin.monitor.queue.settings.timeout.error"))
-			ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+			ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 			return
 		}
 	} else {
@@ -483,5 +481,5 @@ func SetQueueSettings(ctx *context.Context) {
 
 	mq.SetPoolSettings(maxNumber, number, timeout)
 	ctx.Flash.Success(ctx.Tr("admin.monitor.queue.settings.changed"))
-	ctx.Redirect(setting.AppSubURL + fmt.Sprintf("/admin/monitor/queue/%d", qid))
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }

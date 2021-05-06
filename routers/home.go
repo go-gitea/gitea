@@ -7,6 +7,7 @@ package routers
 
 import (
 	"bytes"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/user"
 )
 
@@ -38,15 +40,15 @@ func Home(ctx *context.Context) {
 	if ctx.IsSigned {
 		if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 			ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-			ctx.HTML(200, user.TplActivate)
+			ctx.HTML(http.StatusOK, user.TplActivate)
 		} else if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 			log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-			ctx.HTML(200, "user/auth/prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 		} else if ctx.User.MustChangePassword {
 			ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 			ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-			ctx.SetCookie("redirect_to", setting.AppSubURL+ctx.Req.URL.RequestURI(), 0, setting.AppSubURL)
+			middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 			ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 		} else {
 			user.Dashboard(ctx)
@@ -67,7 +69,7 @@ func Home(ctx *context.Context) {
 
 	ctx.Data["PageIsHome"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.HTML(200, tplHome)
+	ctx.HTML(http.StatusOK, tplHome)
 }
 
 // RepoSearchOptions when calling search repositories
@@ -165,11 +167,12 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, opts.TplName)
+	ctx.HTML(http.StatusOK, opts.TplName)
 }
 
 // ExploreRepos render explore repositories page
 func ExploreRepos(ctx *context.Context) {
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreRepositories"] = true
@@ -241,11 +244,15 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplName)
+	ctx.HTML(http.StatusOK, tplName)
 }
 
 // ExploreUsers render explore users page
 func ExploreUsers(ctx *context.Context) {
+	if setting.Service.Explore.DisableUsersPage {
+		ctx.Redirect(setting.AppSubURL + "/explore/repos")
+		return
+	}
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
@@ -262,6 +269,7 @@ func ExploreUsers(ctx *context.Context) {
 
 // ExploreOrganizations render explore organizations page
 func ExploreOrganizations(ctx *context.Context) {
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreOrganizations"] = true
@@ -287,6 +295,7 @@ func ExploreCode(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true
@@ -298,6 +307,9 @@ func ExploreCode(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
+
+	queryType := strings.TrimSpace(ctx.Query("t"))
+	isMatch := queryType == "match"
 
 	var (
 		repoIDs []int64
@@ -342,14 +354,14 @@ func ExploreCode(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = rightRepoMap
 
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 		// if non-login user or isAdmin, no need to check UnitTypeCode
 	} else if (ctx.User == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum)
+		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -380,6 +392,7 @@ func ExploreCode(ctx *context.Context) {
 
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 	ctx.Data["RequireHighlightJS"] = true
@@ -390,7 +403,7 @@ func ExploreCode(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplExploreCode)
+	ctx.HTML(http.StatusOK, tplExploreCode)
 }
 
 // NotFound render 404 page

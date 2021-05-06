@@ -6,11 +6,14 @@
 package setting
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -27,11 +30,12 @@ func Keys(ctx *context.Context) {
 
 	loadKeysData(ctx)
 
-	ctx.HTML(200, tplSettingsKeys)
+	ctx.HTML(http.StatusOK, tplSettingsKeys)
 }
 
 // KeysPost response for change user's SSH/GPG keys
-func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
+func KeysPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -41,7 +45,7 @@ func KeysPost(ctx *context.Context, form auth.AddKeyForm) {
 	if ctx.HasError() {
 		loadKeysData(ctx)
 
-		ctx.HTML(200, tplSettingsKeys)
+		ctx.HTML(http.StatusOK, tplSettingsKeys)
 		return
 	}
 	switch form.Type {
@@ -160,7 +164,18 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		keyID := ctx.QueryInt64("id")
+		external, err := models.PublicKeyIsExternallyManaged(keyID)
+		if err != nil {
+			ctx.ServerError("sshKeysExternalManaged", err)
+			return
+		}
+		if external {
+			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+			return
+		}
+		if err := models.DeletePublicKey(ctx.User, keyID); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
@@ -175,7 +190,7 @@ func DeleteKey(ctx *context.Context) {
 		ctx.Flash.Warning("Function not implemented")
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/keys",
 	})
 }
@@ -187,6 +202,13 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Keys"] = keys
+
+	externalKeys, err := models.PublicKeysAreExternallyManaged(keys)
+	if err != nil {
+		ctx.ServerError("ListPublicKeys", err)
+		return
+	}
+	ctx.Data["ExternalKeys"] = externalKeys
 
 	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
 	if err != nil {

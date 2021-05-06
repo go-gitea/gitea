@@ -83,6 +83,13 @@ steps:
     env
   displayName: Print Go version and environment
 
+- script: |
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.31.0
+    ./bin/golangci-lint run -E gofmt -E goimports -E misspell ./...
+  workingDirectory: '$(modulePath)'
+  condition: eq( variables['Agent.OS'], 'Linux' )
+  displayName: Run Lint
+
 - bash: |
     go mod tidy
     if [ ! -z "$(git status --porcelain go.mod)" ]; then
@@ -99,10 +106,6 @@ steps:
   displayName: Ensure that module definition and checksums are correct
 
 - script: |
-    go get -v -t d ./...
-    # ensure that the CORRECT golangci-list (as per go.mod) is run
-    go mod vendor
-    go run -mod=vendor github.com/golangci/golangci-lint/cmd/golangci-lint run -E gofmt -E goimports -E misspell
     go test -race ./...
   workingDirectory: '$(modulePath)'
   displayName: Run tests

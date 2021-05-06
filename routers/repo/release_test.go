@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 func TestNewReleasePost(t *testing.T) {
@@ -17,13 +18,13 @@ func TestNewReleasePost(t *testing.T) {
 		RepoID  int64
 		UserID  int64
 		TagName string
-		Form    auth.NewReleaseForm
+		Form    forms.NewReleaseForm
 	}{
 		{
 			RepoID:  1,
 			UserID:  2,
 			TagName: "v1.1", // pre-existing tag
-			Form: auth.NewReleaseForm{
+			Form: forms.NewReleaseForm{
 				TagName: "newtag",
 				Target:  "master",
 				Title:   "title",
@@ -34,7 +35,7 @@ func TestNewReleasePost(t *testing.T) {
 			RepoID:  1,
 			UserID:  2,
 			TagName: "newtag",
-			Form: auth.NewReleaseForm{
+			Form: forms.NewReleaseForm{
 				TagName: "newtag",
 				Target:  "master",
 				Title:   "title",
@@ -48,7 +49,8 @@ func TestNewReleasePost(t *testing.T) {
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		test.LoadGitRepo(t, ctx)
-		NewReleasePost(ctx, testCase.Form)
+		web.SetForm(ctx, &testCase.Form)
+		NewReleasePost(ctx)
 		models.AssertExistsAndLoadBean(t, &models.Release{
 			RepoID:      1,
 			PublisherID: 2,

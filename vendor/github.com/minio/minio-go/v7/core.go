@@ -56,8 +56,8 @@ func (c Core) ListObjectsV2(bucketName, objectPrefix, continuationToken string, 
 }
 
 // CopyObject - copies an object from source object to destination object on server side.
-func (c Core) CopyObject(ctx context.Context, sourceBucket, sourceObject, destBucket, destObject string, metadata map[string]string) (ObjectInfo, error) {
-	return c.copyObjectDo(ctx, sourceBucket, sourceObject, destBucket, destObject, metadata)
+func (c Core) CopyObject(ctx context.Context, sourceBucket, sourceObject, destBucket, destObject string, metadata map[string]string, srcOpts CopySrcOptions, dstOpts PutObjectOptions) (ObjectInfo, error) {
+	return c.copyObjectDo(ctx, sourceBucket, sourceObject, destBucket, destObject, metadata, srcOpts, dstOpts)
 }
 
 // CopyObjectPart - creates a part in a multipart upload by copying (a
@@ -71,7 +71,8 @@ func (c Core) CopyObjectPart(ctx context.Context, srcBucket, srcObject, destBuck
 
 // PutObject - Upload object. Uploads using single PUT call.
 func (c Core) PutObject(ctx context.Context, bucket, object string, data io.Reader, size int64, md5Base64, sha256Hex string, opts PutObjectOptions) (UploadInfo, error) {
-	return c.putObjectDo(ctx, bucket, object, data, md5Base64, sha256Hex, size, opts)
+	hookReader := newHook(data, opts.Progress)
+	return c.putObjectDo(ctx, bucket, object, hookReader, md5Base64, sha256Hex, size, opts)
 }
 
 // NewMultipartUpload - Initiates new multipart upload and returns the new uploadID.

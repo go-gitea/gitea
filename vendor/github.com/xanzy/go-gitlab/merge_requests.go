@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -48,6 +49,7 @@ type MergeRequest struct {
 	Author                    *BasicUser   `json:"author"`
 	Assignee                  *BasicUser   `json:"assignee"`
 	Assignees                 []*BasicUser `json:"assignees"`
+	Reviewers                 []*BasicUser `json:"reviewers"`
 	SourceProjectID           int          `json:"source_project_id"`
 	TargetProjectID           int          `json:"target_project_id"`
 	Labels                    Labels       `json:"labels"`
@@ -69,6 +71,7 @@ type MergeRequest struct {
 	ChangesCount              string       `json:"changes_count"`
 	ShouldRemoveSourceBranch  bool         `json:"should_remove_source_branch"`
 	ForceRemoveSourceBranch   bool         `json:"force_remove_source_branch"`
+	AllowCollaboration        bool         `json:"allow_collaboration"`
 	WebURL                    string       `json:"web_url"`
 	DiscussionLocked          bool         `json:"discussion_locked"`
 	Changes                   []struct {
@@ -81,6 +84,9 @@ type MergeRequest struct {
 		RenamedFile bool   `json:"renamed_file"`
 		DeletedFile bool   `json:"deleted_file"`
 	} `json:"changes"`
+	User struct {
+		CanMerge bool `json:"can_merge"`
+	} `json:"user"`
 	TimeStats    *TimeStats    `json:"time_stats"`
 	Squash       bool          `json:"squash"`
 	Pipeline     *PipelineInfo `json:"pipeline"`
@@ -98,7 +104,9 @@ type MergeRequest struct {
 		Count          int `json:"count"`
 		CompletedCount int `json:"completed_count"`
 	} `json:"task_completion_status"`
-	HasConflicts bool `json:"has_conflicts"`
+	HasConflicts                bool `json:"has_conflicts"`
+	BlockingDiscussionsResolved bool `json:"blocking_discussions_resolved"`
+	Overflow                    bool `json:"overflow"`
 }
 
 func (m MergeRequest) String() string {
@@ -149,6 +157,8 @@ type ListMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
@@ -165,7 +175,7 @@ type ListMergeRequestsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/merge_requests.html#list-merge-requests
 func (s *MergeRequestsService) ListMergeRequests(opt *ListMergeRequestsOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
-	req, err := s.client.NewRequest("GET", "merge_requests", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "merge_requests", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -191,7 +201,7 @@ type ListGroupMergeRequestsOptions struct {
 	Sort                   *string    `url:"sort,omitempty" json:"sort,omitempty"`
 	Milestone              *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
 	View                   *string    `url:"view,omitempty" json:"view,omitempty"`
-	Labels                 Labels     `url:"labels,omitempty" json:"labels,omitempty"`
+	Labels                 Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	NotLabels              Labels     `url:"not[labels],comma,omitempty" json:"not[labels],omitempty"`
 	WithLabelsDetails      *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
 	WithMergeStatusRecheck *bool      `url:"with_merge_status_recheck,omitempty" json:"with_merge_status_recheck,omitempty"`
@@ -202,10 +212,14 @@ type ListGroupMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
 	Search                 *string    `url:"search,omitempty" json:"search,omitempty"`
+	In                     *string    `url:"in,omitempty" json:"in,omitempty"`
+	WIP                    *string    `url:"wip,omitempty" json:"wip,omitempty"`
 }
 
 // ListGroupMergeRequests gets all merge requests for this group.
@@ -219,7 +233,7 @@ func (s *MergeRequestsService) ListGroupMergeRequests(gid interface{}, opt *List
 	}
 	u := fmt.Sprintf("groups/%s/merge_requests", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,6 +271,8 @@ type ListProjectMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
@@ -275,7 +291,7 @@ func (s *MergeRequestsService) ListProjectMergeRequests(pid interface{}, opt *Li
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -311,7 +327,7 @@ func (s *MergeRequestsService) GetMergeRequest(pid interface{}, mergeRequest int
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -336,7 +352,7 @@ func (s *MergeRequestsService) GetMergeRequestApprovals(pid interface{}, mergeRe
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/approvals", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -368,7 +384,7 @@ func (s *MergeRequestsService) GetMergeRequestCommits(pid interface{}, mergeRequ
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/commits", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -382,19 +398,28 @@ func (s *MergeRequestsService) GetMergeRequestCommits(pid interface{}, mergeRequ
 	return c, resp, err
 }
 
+// GetMergeRequestChangesOptions represents the available GetMergeRequestChanges()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-changes
+type GetMergeRequestChangesOptions struct {
+	AccessRawDiffs *bool `url:"access_raw_diffs,omitempty" json:"access_raw_diffs,omitempty"`
+}
+
 // GetMergeRequestChanges shows information about the merge request including
 // its files and changes.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-changes
-func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequest int, options ...RequestOptionFunc) (*MergeRequest, *Response, error) {
+func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequest int, opt *GetMergeRequestChangesOptions, options ...RequestOptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/changes", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -419,7 +444,7 @@ func (s *MergeRequestsService) GetMergeRequestParticipants(pid interface{}, merg
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/participants", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -444,7 +469,7 @@ func (s *MergeRequestsService) ListMergeRequestPipelines(pid interface{}, mergeR
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/pipelines", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -469,7 +494,7 @@ func (s *MergeRequestsService) CreateMergeRequestPipeline(pid interface{}, merge
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/pipelines", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -502,7 +527,7 @@ func (s *MergeRequestsService) GetIssuesClosedOnMerge(pid interface{}, mergeRequ
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/closes_issues", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -529,6 +554,7 @@ type CreateMergeRequestOptions struct {
 	Labels             Labels  `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	AssigneeID         *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeIDs        []int   `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
+	ReviewerIDs        []int   `url:"reviewer_ids,omitempty" json:"reviewer_ids,omitempty"`
 	TargetProjectID    *int    `url:"target_project_id,omitempty" json:"target_project_id,omitempty"`
 	MilestoneID        *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
 	RemoveSourceBranch *bool   `url:"remove_source_branch,omitempty" json:"remove_source_branch,omitempty"`
@@ -547,7 +573,7 @@ func (s *MergeRequestsService) CreateMergeRequest(pid interface{}, opt *CreateMe
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -572,7 +598,10 @@ type UpdateMergeRequestOptions struct {
 	TargetBranch       *string `url:"target_branch,omitempty" json:"target_branch,omitempty"`
 	AssigneeID         *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeIDs        []int   `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
+	ReviewerIDs        []int   `url:"reviewer_ids,omitempty" json:"reviewer_ids,omitempty"`
 	Labels             Labels  `url:"labels,comma,omitempty" json:"labels,omitempty"`
+	AddLabels          Labels  `url:"add_labels,comma,omitempty" json:"add_labels,omitempty"`
+	RemoveLabels       Labels  `url:"remove_labels,comma,omitempty" json:"remove_labels,omitempty"`
 	MilestoneID        *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
 	StateEvent         *string `url:"state_event,omitempty" json:"state_event,omitempty"`
 	RemoveSourceBranch *bool   `url:"remove_source_branch,omitempty" json:"remove_source_branch,omitempty"`
@@ -592,7 +621,7 @@ func (s *MergeRequestsService) UpdateMergeRequest(pid interface{}, mergeRequest 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -617,7 +646,7 @@ func (s *MergeRequestsService) DeleteMergeRequest(pid interface{}, mergeRequest 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -653,7 +682,7 @@ func (s *MergeRequestsService) AcceptMergeRequest(pid interface{}, mergeRequest 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/merge", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -682,7 +711,7 @@ func (s *MergeRequestsService) CancelMergeWhenPipelineSucceeds(pid interface{}, 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/cancel_merge_when_pipeline_succeeds", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("PUT", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -709,7 +738,7 @@ func (s *MergeRequestsService) RebaseMergeRequest(pid interface{}, mergeRequest 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/rebase", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("PUT", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -735,7 +764,7 @@ func (s *MergeRequestsService) GetMergeRequestDiffVersions(pid interface{}, merg
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/versions", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -760,7 +789,7 @@ func (s *MergeRequestsService) GetSingleMergeRequestDiffVersion(pid interface{},
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/versions/%d", pathEscape(project), mergeRequest, version)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -787,7 +816,7 @@ func (s *MergeRequestsService) SubscribeToMergeRequest(pid interface{}, mergeReq
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/subscribe", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -815,7 +844,7 @@ func (s *MergeRequestsService) UnsubscribeFromMergeRequest(pid interface{}, merg
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/unsubscribe", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -842,7 +871,7 @@ func (s *MergeRequestsService) CreateTodo(pid interface{}, mergeRequest int, opt
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/todo", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

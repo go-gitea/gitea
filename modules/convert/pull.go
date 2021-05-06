@@ -68,7 +68,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: pr.BaseRepo.APIFormat(models.AccessModeNone),
+			Repository: ToRepo(pr.BaseRepo, models.AccessModeNone),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -97,7 +97,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 
 	if pr.HeadRepo != nil {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = pr.HeadRepo.APIFormat(models.AccessModeNone)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
@@ -134,6 +134,24 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 	}
 
+	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
+		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+			return nil
+		}
+		defer baseGitRepo.Close()
+		refs, err := baseGitRepo.GetRefsFiltered(apiPullRequest.Head.Ref)
+		if err != nil {
+			log.Error("GetRefsFiltered[%s]: %v", apiPullRequest.Head.Ref, err)
+			return nil
+		} else if len(refs) == 0 {
+			log.Error("unable to resolve PR head ref")
+		} else {
+			apiPullRequest.Head.Sha = refs[0].Object.String()
+		}
+	}
+
 	if pr.Status != models.PullRequestStatusChecking {
 		mergeable := !(pr.Status == models.PullRequestStatusConflict || pr.Status == models.PullRequestStatusError) && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
@@ -141,7 +159,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = ToUser(pr.Merger, false, false)
+		apiPullRequest.MergedBy = ToUser(pr.Merger, nil)
 	}
 
 	return apiPullRequest

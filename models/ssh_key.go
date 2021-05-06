@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -223,11 +223,6 @@ func writeTmpKeyFile(content string) (string, error) {
 
 // SSHKeyGenParsePublicKey extracts key type and length using ssh-keygen.
 func SSHKeyGenParsePublicKey(key string) (string, int, error) {
-	// The ssh-keygen in Windows does not print key type, so no need go further.
-	if setting.IsWindows {
-		return "", 0, nil
-	}
-
 	tmpName, err := writeTmpKeyFile(key)
 	if err != nil {
 		return "", 0, fmt.Errorf("writeTmpKeyFile: %v", err)
@@ -252,7 +247,11 @@ func SSHKeyGenParsePublicKey(key string) (string, int, error) {
 	}
 
 	keyType := strings.Trim(fields[len(fields)-1], "()\r\n")
-	return strings.ToLower(keyType), com.StrTo(fields[0]).MustInt(), nil
+	length, err := strconv.ParseInt(fields[0], 10, 32)
+	if err != nil {
+		return "", 0, err
+	}
+	return strings.ToLower(keyType), int(length), nil
 }
 
 // SSHNativeParsePublicKey extracts the key type and length using the golang SSH library.
@@ -306,6 +305,10 @@ func SSHNativeParsePublicKey(keyLine string) (string, int, error) {
 		return "ecdsa", 521, nil
 	case ssh.KeyAlgoED25519:
 		return "ed25519", 256, nil
+	case ssh.KeyAlgoSKECDSA256:
+		return "ecdsa-sk", 256, nil
+	case ssh.KeyAlgoSKED25519:
+		return "ed25519-sk", 256, nil
 	}
 	return "", 0, fmt.Errorf("unsupported key length detection for type: %s", pkey.Type())
 }
@@ -362,7 +365,7 @@ func CheckPublicKeyString(content string) (_ string, err error) {
 // appendAuthorizedKeysToFile appends new SSH keys' content to authorized_keys file.
 func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	// Don't need to rewrite this file if builtin SSH server is enabled.
-	if setting.SSH.StartBuiltinServer {
+	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
 
@@ -374,7 +377,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 		// This of course doesn't guarantee that this is the right directory for authorized_keys
 		// but at least if it's supposed to be this directory and it doesn't exist and we're the
 		// right user it will at least be created properly.
-		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
 			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
 			return err
@@ -382,7 +385,7 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	f, err := os.OpenFile(fPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
@@ -396,9 +399,9 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 		}
 
 		// .ssh directory should have mode 700, and authorized_keys file should have mode 600.
-		if fi.Mode().Perm() > 0600 {
+		if fi.Mode().Perm() > 0o600 {
 			log.Error("authorized_keys file has unusual permission flags: %s - setting to -rw-------", fi.Mode().Perm().String())
-			if err = f.Chmod(0600); err != nil {
+			if err = f.Chmod(0o600); err != nil {
 				return err
 			}
 		}
@@ -462,7 +465,7 @@ func calcFingerprintNative(publicKeyContent string) (string, error) {
 }
 
 func calcFingerprint(publicKeyContent string) (string, error) {
-	//Call the method based on configuration
+	// Call the method based on configuration
 	var (
 		fnName, fp string
 		err        error
@@ -625,7 +628,7 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 }
 
 // ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid int64, loginSourceID int64) ([]*PublicKey, error) {
+func ListPublicLdapSSHKeys(uid, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
 		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
@@ -659,6 +662,82 @@ func deletePublicKeys(e Engine, keyIDs ...int64) error {
 
 	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
 	return err
+}
+
+// PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
+	sources := make([]*LoginSource, 0, 5)
+	externals := make([]bool, len(keys))
+keyloop:
+	for i, key := range keys {
+		if key.LoginSourceID == 0 {
+			externals[i] = false
+			continue keyloop
+		}
+
+		var source *LoginSource
+
+	sourceloop:
+		for _, s := range sources {
+			if s.ID == key.LoginSourceID {
+				source = s
+				break sourceloop
+			}
+		}
+
+		if source == nil {
+			var err error
+			source, err = GetLoginSourceByID(key.LoginSourceID)
+			if err != nil {
+				if IsErrLoginSourceNotExist(err) {
+					externals[i] = false
+					sources[i] = &LoginSource{
+						ID: key.LoginSourceID,
+					}
+					continue keyloop
+				}
+				return nil, err
+			}
+		}
+
+		ldapSource := source.LDAP()
+		if ldapSource != nil &&
+			source.IsSyncEnabled &&
+			(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+			len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+			// Disable setting SSH keys for this user
+			externals[i] = true
+		}
+	}
+
+	return externals, nil
+}
+
+// PublicKeyIsExternallyManaged returns whether the provided KeyID represents an externally managed Key
+func PublicKeyIsExternallyManaged(id int64) (bool, error) {
+	key, err := GetPublicKeyByID(id)
+	if err != nil {
+		return false, err
+	}
+	if key.LoginSourceID == 0 {
+		return false, nil
+	}
+	source, err := GetLoginSourceByID(key.LoginSourceID)
+	if err != nil {
+		if IsErrLoginSourceNotExist(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	ldapSource := source.LDAP()
+	if ldapSource != nil &&
+		source.IsSyncEnabled &&
+		(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
+		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+		// Disable setting SSH keys for this user
+		return true, nil
+	}
+	return false, nil
 }
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
@@ -703,7 +782,7 @@ func RewriteAllPublicKeys() error {
 }
 
 func rewriteAllPublicKeys(e Engine) error {
-	//Don't rewrite key if internal server
+	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
@@ -716,7 +795,7 @@ func rewriteAllPublicKeys(e Engine) error {
 		// This of course doesn't guarantee that this is the right directory for authorized_keys
 		// but at least if it's supposed to be this directory and it doesn't exist and we're the
 		// right user it will at least be created properly.
-		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
 			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
 			return err
@@ -725,7 +804,7 @@ func rewriteAllPublicKeys(e Engine) error {
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
 	tmpPath := fPath + ".tmp"
-	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -736,10 +815,17 @@ func rewriteAllPublicKeys(e Engine) error {
 		}
 	}()
 
-	if setting.SSH.AuthorizedKeysBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedKeysBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -765,7 +851,12 @@ func regeneratePublicKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, "authorized_keys")
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err
@@ -1056,7 +1147,7 @@ func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployK
 }
 
 // SearchDeployKeys returns a list of deploy keys matching the provided arguments.
-func SearchDeployKeys(repoID int64, keyID int64, fingerprint string) ([]*DeployKey, error) {
+func SearchDeployKeys(repoID, keyID int64, fingerprint string) ([]*DeployKey, error) {
 	keys := make([]*DeployKey, 0, 5)
 	cond := builder.NewCond()
 	if repoID != 0 {
@@ -1188,7 +1279,7 @@ func rewriteAllPrincipalKeys(e Engine) error {
 		// This of course doesn't guarantee that this is the right directory for authorized_keys
 		// but at least if it's supposed to be this directory and it doesn't exist and we're the
 		// right user it will at least be created properly.
-		err := os.MkdirAll(setting.SSH.RootPath, 0700)
+		err := os.MkdirAll(setting.SSH.RootPath, 0o700)
 		if err != nil {
 			log.Error("Unable to MkdirAll(%s): %v", setting.SSH.RootPath, err)
 			return err
@@ -1197,7 +1288,7 @@ func rewriteAllPrincipalKeys(e Engine) error {
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
 	tmpPath := fPath + ".tmp"
-	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	t, err := os.OpenFile(tmpPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -1206,10 +1297,17 @@ func rewriteAllPrincipalKeys(e Engine) error {
 		os.Remove(tmpPath)
 	}()
 
-	if setting.SSH.AuthorizedPrincipalsBackup && com.IsExist(fPath) {
-		bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
-		if err = com.Copy(fPath, bakPath); err != nil {
+	if setting.SSH.AuthorizedPrincipalsBackup {
+		isExist, err := util.IsExist(fPath)
+		if err != nil {
+			log.Error("Unable to check if %s exists. Error: %v", fPath, err)
 			return err
+		}
+		if isExist {
+			bakPath := fmt.Sprintf("%s_%d.gitea_bak", fPath, time.Now().Unix())
+			if err = util.CopyFile(fPath, bakPath); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1249,7 +1347,12 @@ func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
 	}
 
 	fPath := filepath.Join(setting.SSH.RootPath, authorizedPrincipalsFile)
-	if com.IsExist(fPath) {
+	isExist, err := util.IsExist(fPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", fPath, err)
+		return err
+	}
+	if isExist {
 		f, err := os.Open(fPath)
 		if err != nil {
 			return err

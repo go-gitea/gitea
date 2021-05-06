@@ -3,7 +3,7 @@ date: "2017-06-19T12:00:00+02:00"
 title: "Installation from binary"
 slug: "install-from-binary"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -16,9 +16,15 @@ menu:
 # Installation from binary
 
 All downloads come with SQLite, MySQL and PostgreSQL support, and are built with
-embedded assets. This can be different for older releases. Choose the file matching
-the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy
-the URL and replace the URL within the commands below:
+embedded assets. This can be different for older releases.
+
+**Table of Contents**
+
+{{< toc >}}
+
+## Download
+
+Choose the file matching the destination platform from the [downloads page](https://dl.gitea.io/gitea/), copy the URL and replace the URL within the commands below:
 
 ```sh
 wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
@@ -35,7 +41,7 @@ gpg --verify gitea-{{< version >}}-linux-amd64.asc gitea-{{< version >}}-linux-a
 
 ## Recommended server configuration
 
-**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/specific-variables.en-us.md" >}}) as well!
+**NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
@@ -73,7 +79,7 @@ chmod 770 /etc/gitea
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
 ```
-If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:root`, mode `0660`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
+If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:git`, mode `0640`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
 
 ### Configure Gitea's working directory
 

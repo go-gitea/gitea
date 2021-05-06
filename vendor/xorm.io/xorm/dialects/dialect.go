@@ -163,7 +163,7 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, false)
-	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, s)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", tableName, s)
 }
 
 func (b *Base) ForUpdateSQL(query string) string {

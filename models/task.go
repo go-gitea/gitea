@@ -5,12 +5,12 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 )
@@ -105,6 +105,7 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -134,7 +135,7 @@ func (err ErrTaskDoesNotExist) Error() string {
 
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(repoID int64) (*Task, error) {
-	var task = Task{
+	task := Task{
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
@@ -147,6 +148,28 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// GetMigratingTaskByID returns the migrating task by repo's id
+func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
+	task := Task{
+		ID:     id,
+		DoerID: doerID,
+		Type:   structs.TaskTypeMigrateRepo,
+	}
+	has, err := x.Get(&task)
+	if err != nil {
+		return nil, nil, err
+	} else if !has {
+		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
+	}
+
+	var opts migration.MigrateOptions
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
+		return nil, nil, err
+	}
+	return &task, &opts, nil
+}
+
 // FindTaskOptions find all tasks
 type FindTaskOptions struct {
 	Status int
@@ -154,7 +177,7 @@ type FindTaskOptions struct {
 
 // ToConds generates conditions for database operation.
 func (opts FindTaskOptions) ToConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.Status >= 0 {
 		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
@@ -163,7 +186,7 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 
 // FindTasks find all tasks
 func FindTasks(opts FindTaskOptions) ([]*Task, error) {
-	var tasks = make([]*Task, 0, 10)
+	tasks := make([]*Task, 0, 10)
 	err := x.Where(opts.ToConds()).Find(&tasks)
 	return tasks, err
 }
@@ -188,10 +211,6 @@ func FinishMigrateTask(task *Task) error {
 		return err
 	}
 	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
-		return err
-	}
-	task.Repo.Status = RepositoryReady
-	if _, err := sess.ID(task.RepoID).Cols("status").Update(task.Repo); err != nil {
 		return err
 	}
 

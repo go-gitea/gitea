@@ -102,8 +102,8 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		return nil, nil, err
 	}
 
-	var ids = make([]int64, len(ous))
-	var idsIsPublic = make(map[int64]bool, len(ous))
+	ids := make([]int64, len(ous))
+	idsIsPublic := make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
 		idsIsPublic[ou.UID] = ou.IsPublic
@@ -171,6 +171,10 @@ func CreateOrganization(org, owner *User) (err error) {
 		return err
 	}
 
+	if err = deleteUserRedirect(sess, org.Name); err != nil {
+		return err
+	}
+
 	if _, err = sess.Insert(org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
@@ -201,7 +205,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
 	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
@@ -387,6 +391,20 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		Exist(new(Team))
 }
 
+// GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
+func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
+	return getUsersWhoCanCreateOrgRepo(x, orgID)
+}
+
+func getUsersWhoCanCreateOrgRepo(e Engine, orgID int64) ([]*User, error) {
+	users := make([]*User, 0, 10)
+	return users, x.
+		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+}
+
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	if !showAll {
@@ -419,11 +437,11 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 }
 
 // HasOrgVisible tells if the given user can see the given org
-func HasOrgVisible(org *User, user *User) bool {
+func HasOrgVisible(org, user *User) bool {
 	return hasOrgVisible(x, org, user)
 }
 
-func hasOrgVisible(e Engine, org *User, user *User) bool {
+func hasOrgVisible(e Engine, org, user *User) bool {
 	// Not SignedUser
 	if user == nil {
 		return org.Visibility == structs.VisibleTypePublic
@@ -746,13 +764,14 @@ type AccessibleReposEnvironment interface {
 type accessibleReposEnv struct {
 	org     *User
 	user    *User
+	team    *Team
 	teamIDs []int64
 	e       Engine
 	keyword string
 	orderBy SearchOrderBy
 }
 
-// AccessibleReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// AccessibleReposEnv builds an AccessibleReposEnvironment for the repositories in `org`
 // that are accessible to the specified user.
 func (org *User) AccessibleReposEnv(userID int64) (AccessibleReposEnvironment, error) {
 	return org.accessibleReposEnv(x, userID)
@@ -782,16 +801,31 @@ func (org *User) accessibleReposEnv(e Engine, userID int64) (AccessibleReposEnvi
 	}, nil
 }
 
-func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond = builder.NewCond()
-	if env.user == nil || !env.user.IsRestricted {
-		cond = cond.Or(builder.Eq{
-			"`repository`.owner_id":   env.org.ID,
-			"`repository`.is_private": false,
-		})
+// AccessibleTeamReposEnv an AccessibleReposEnvironment for the repositories in `org`
+// that are accessible to the specified team.
+func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
+	return &accessibleReposEnv{
+		org:     org,
+		team:    team,
+		e:       x,
+		orderBy: SearchOrderByRecentUpdated,
 	}
-	if len(env.teamIDs) > 0 {
-		cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+}
+
+func (env *accessibleReposEnv) cond() builder.Cond {
+	cond := builder.NewCond()
+	if env.team != nil {
+		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
+	} else {
+		if env.user == nil || !env.user.IsRestricted {
+			cond = cond.Or(builder.Eq{
+				"`repository`.owner_id":   env.org.ID,
+				"`repository`.is_private": false,
+			})
+		}
+		if len(env.teamIDs) > 0 {
+			cond = cond.Or(builder.In("team_repo.team_id", env.teamIDs))
+		}
 	}
 	if env.keyword != "" {
 		cond = cond.And(builder.Like{"`repository`.lower_name", strings.ToLower(env.keyword)})

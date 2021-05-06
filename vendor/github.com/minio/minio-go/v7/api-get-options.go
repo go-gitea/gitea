@@ -25,12 +25,20 @@ import (
 	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
+//AdvancedGetOptions for internal use by MinIO server - not intended for client use.
+type AdvancedGetOptions struct {
+	ReplicationDeleteMarker bool
+	ReplicationProxyRequest string
+}
+
 // GetObjectOptions are used to specify additional headers or options
 // during GET requests.
 type GetObjectOptions struct {
 	headers              map[string]string
 	ServerSideEncryption encrypt.ServerSide
 	VersionID            string
+	// To be not used by external applications
+	Internal AdvancedGetOptions
 }
 
 // StatObjectOptions are used to specify additional headers or options
@@ -45,6 +53,11 @@ func (o GetObjectOptions) Header() http.Header {
 	}
 	if o.ServerSideEncryption != nil && o.ServerSideEncryption.Type() == encrypt.SSEC {
 		o.ServerSideEncryption.Marshal(headers)
+	}
+	// this header is set for active-active replication scenario where GET/HEAD
+	// to site A is proxy'd to site B if object/version missing on site A.
+	if o.Internal.ReplicationProxyRequest != "" {
+		headers.Set(minIOBucketReplicationProxyRequest, o.Internal.ReplicationProxyRequest)
 	}
 	return headers
 }

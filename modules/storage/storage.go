@@ -19,8 +19,6 @@ import (
 var (
 	// ErrURLNotSupported represents url is not supported
 	ErrURLNotSupported = errors.New("url method not supported")
-	// ErrIterateObjectsNotSupported represents IterateObjects not supported
-	ErrIterateObjectsNotSupported = errors.New("iterateObjects method not supported")
 )
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
@@ -65,7 +63,8 @@ type Object interface {
 // ObjectStorage represents an object storage to handle a bucket and files
 type ObjectStorage interface {
 	Open(path string) (Object, error)
-	Save(path string, r io.Reader) (int64, error)
+	// Save store a object, if size is unknown set -1
+	Save(path string, r io.Reader, size int64) (int64, error)
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
 	URL(path, name string) (*url.URL, error)
@@ -80,7 +79,13 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 	}
 	defer f.Close()
 
-	return dstStorage.Save(dstPath, f)
+	size := int64(-1)
+	fsinfo, err := f.Stat()
+	if err == nil {
+		size = fsinfo.Size()
+	}
+
+	return dstStorage.Save(dstPath, f, size)
 }
 
 // SaveFrom saves data to the ObjectStorage with path p from the callback
@@ -94,7 +99,7 @@ func SaveFrom(objStorage ObjectStorage, p string, callback func(w io.Writer) err
 		}
 	}()
 
-	_, err := objStorage.Save(p, pr)
+	_, err := objStorage.Save(p, pr, -1)
 	return err
 }
 
@@ -143,24 +148,24 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 
 func initAvatars() (err error) {
 	log.Info("Initialising Avatar storage with type: %s", setting.Avatar.Storage.Type)
-	Avatars, err = NewStorage(setting.Avatar.Storage.Type, setting.Avatar.Storage)
+	Avatars, err = NewStorage(setting.Avatar.Storage.Type, &setting.Avatar.Storage)
 	return
 }
 
 func initAttachments() (err error) {
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
-	Attachments, err = NewStorage(setting.Attachment.Storage.Type, setting.Attachment.Storage)
+	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
 	return
 }
 
 func initLFS() (err error) {
 	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
-	LFS, err = NewStorage(setting.LFS.Storage.Type, setting.LFS.Storage)
+	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
 	return
 }
 
 func initRepoAvatars() (err error) {
 	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
-	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, setting.RepoAvatar.Storage)
+	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, &setting.RepoAvatar.Storage)
 	return
 }

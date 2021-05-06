@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository commits">
+<div class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<h2 class="ui header">{{.DateFrom}} - {{.DateUntil}}
@@ -9,7 +9,7 @@
 					<div class="ui basic compact button">
 						<span class="text">
 							{{.i18n.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 					</div>
 					<div class="menu">
@@ -93,7 +93,7 @@
 			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui attached segment horizontal segments">
 					<div class="ui attached segment text">
-					    {{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
+						{{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n") .Activity.Code.AuthorCount }}</strong>
 						{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n") }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCount }}</strong>
@@ -172,7 +172,7 @@
 		{{if gt .Activity.ClosedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="closed-issues">
 				<span class="text">{{svg "octicon-issue-closed"}}</span>
-				{{.i18n.Tr "repo.activity.title.issues_closed_by" (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n") .Activity.ClosedIssueCount) (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.ClosedIssueAuthorCount) }}
+				{{.i18n.Tr "repo.activity.title.issues_closed_from" (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n") .Activity.ClosedIssueCount) (.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n") .Activity.ClosedIssueAuthorCount) }}
 			</h4>
 			<div class="list">
 				{{range .Activity.ClosedIssues}}

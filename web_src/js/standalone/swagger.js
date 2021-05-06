@@ -1,5 +1,5 @@
-import SwaggerUI from 'swagger-ui';
-import 'swagger-ui/dist/swagger-ui.css';
+import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
+import 'swagger-ui-dist/swagger-ui.css';
 
 window.addEventListener('load', async () => {
   const url = document.getElementById('swagger-ui').dataset.source;
@@ -19,6 +19,7 @@ window.addEventListener('load', async () => {
     dom_id: '#swagger-ui',
     deepLinking: true,
     docExpansion: 'none',
+    defaultModelRendering: 'model', // don't show examples by default, because they may be incomplete
     presets: [
       SwaggerUI.presets.apis
     ],

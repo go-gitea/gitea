@@ -6,12 +6,12 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // ByteFIFOQueueConfiguration is the configuration for a ByteFIFOQueue
@@ -21,7 +21,7 @@ type ByteFIFOQueueConfiguration struct {
 	Name    string
 }
 
-var _ (Queue) = &ByteFIFOQueue{}
+var _ Queue = &ByteFIFOQueue{}
 
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
@@ -71,6 +71,7 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
 		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -163,6 +164,11 @@ func (q *ByteFIFOQueue) Shutdown() {
 	log.Debug("%s: %s Shutdown", q.typ, q.name)
 }
 
+// IsShutdown returns a channel which is closed when this Queue is shutdown
+func (q *ByteFIFOQueue) IsShutdown() <-chan struct{} {
+	return q.closed
+}
+
 // Terminate this queue and close the queue
 func (q *ByteFIFOQueue) Terminate() {
 	log.Trace("%s: %s Terminating", q.typ, q.name)
@@ -185,7 +191,12 @@ func (q *ByteFIFOQueue) Terminate() {
 	log.Debug("%s: %s Terminated", q.typ, q.name)
 }
 
-var _ (UniqueQueue) = &ByteFIFOUniqueQueue{}
+// IsTerminated returns a channel which is closed when this Queue is terminated
+func (q *ByteFIFOQueue) IsTerminated() <-chan struct{} {
+	return q.terminated
+}
+
+var _ UniqueQueue = &ByteFIFOUniqueQueue{}
 
 // ByteFIFOUniqueQueue represents a UniqueQueue formed from a UniqueByteFifo
 type ByteFIFOUniqueQueue struct {
@@ -219,6 +230,7 @@ func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if !assignableTo(data, q.exemplar) {
 		return false, fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return false, err

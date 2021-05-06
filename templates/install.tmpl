@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="install">
+<div class="page-content install">
 	<div class="ui middle very relaxed page grid">
 		<div class="sixteen wide center aligned centered column">
 			<h3 class="ui top attached header">
@@ -19,7 +19,7 @@
 						<div class="ui selection database type dropdown">
 							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbOption}}">
 							<div class="text">{{.CurDbOption}}</div>
-							<i class="dropdown icon"></i>
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .DbOptions}}
 									<div class="item" data-value="{{.}}">{{.}}</div>
@@ -54,7 +54,7 @@
 							<div class="ui selection database type dropdown">
 								<input type="hidden" name="ssl_mode" value="{{if .ssl_mode}}{{.ssl_mode}}{{else}}disable{{end}}">
 								<div class="default text">disable</div>
-								<i class="dropdown icon"></i>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="item" data-value="disable">Disable</div>
 									<div class="item" data-value="require">Require</div>
@@ -75,7 +75,7 @@
 							<div class="ui selection database type dropdown">
 								<input type="hidden" name="charset" value="{{if .charset}}{{.charset}}{{else}}utf8mb4{{end}}">
 								<div class="default text">utf8mb4</div>
-								<i class="dropdown icon"></i>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 								<div class="menu">
 									<div class="item" data-value="utf8mb4">utf8mb4</div>
 									<div class="item" data-value="utf8">utf8</div>
@@ -266,6 +266,20 @@
 								<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
 								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 								<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>
+							</div>
+							<div class="inline field">
+								<label for="password_algorithm">{{.i18n.Tr "install.password_algorithm"}}</label>
+								<div class="ui selection dropdown">
+									<input id="password_algorithm" type="hidden" name="password_algorithm" value="{{.password_algorithm}}">
+									<div class="text">{{.password_algorithm}}</div>
+									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+									<div class="menu">
+										{{range .PasswordHashAlgorithms}}
+											<div class="item" data-value="{{.}}">{{.}}</div>
+										{{end}}
+									</div>
+								</div>
+								<span class="help">{{.i18n.Tr "install.password_algorithm_helper"}}</span>
 							</div>
 						</div>
 					</div>

@@ -5,6 +5,9 @@
 package admin
 
 import (
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -13,9 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"github.com/unknwon/com"
 )
 
 const (
@@ -51,7 +54,7 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Query("page") + "&sort=" + ctx.Query("sort"),
 	})
 }
@@ -71,6 +74,8 @@ func UnadoptedRepos(ctx *context.Context) {
 		opts.Page = 1
 	}
 
+	ctx.Data["CurrentPage"] = opts.Page
+
 	doSearch := ctx.QueryBool("search")
 
 	ctx.Data["search"] = doSearch
@@ -79,8 +84,9 @@ func UnadoptedRepos(ctx *context.Context) {
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
 		pager.SetDefaultParams(ctx)
+		pager.AddParam(ctx, "search", "search")
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplUnadoptedRepos)
+		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
 	}
 
@@ -92,14 +98,18 @@ func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplUnadoptedRepos)
+	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
 
 // AdoptOrDeleteRepository adopts or deletes a repository
 func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.Query("id")
 	action := ctx.Query("action")
+	page := ctx.QueryInt("page")
+	q := ctx.Query("q")
+
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {
 		ctx.Redirect(setting.AppSubURL + "/admin/repos")
@@ -120,10 +130,17 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	if has, err := models.IsRepositoryExist(ctxUser, repoName); err != nil {
+	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
-	} else if has || !com.IsDir(models.RepoPath(ctxUser.Name, repoName)) {
+	}
+	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	if err != nil {
+		ctx.ServerError("IsDir", err)
+		return
+	}
+	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
 		if _, err := repository.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
@@ -141,5 +158,5 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted")
+	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + strconv.Itoa(page))
 }

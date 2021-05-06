@@ -5,16 +5,20 @@
 package integrations
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
+	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -59,6 +63,23 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 			return
 		}
 		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+
+		var repository api.Repository
+		DecodeJSON(t, resp, &repository)
+		if len(callback) > 0 {
+			callback[0](t, repository)
+		}
+	}
+}
+
+func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
@@ -209,6 +230,28 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 			expected = ctx.ExpectedCode
 		}
 		resp := ctx.Session.MakeRequest(t, req, expected)
+
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
+		decoder := json.NewDecoder(resp.Body)
+		pr := api.PullRequest{}
+		err := decoder.Decode(&pr)
+		return pr, err
+	}
+}
+
+func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
+	return func(t *testing.T) (api.PullRequest, error) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequest(t, http.MethodGet, urlStr)
+
+		expected := 200
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.Session.MakeRequest(t, req, expected)
+
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -220,9 +263,44 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doAPIMergePullRequest Merge",
 			Do:                string(models.MergeStyleMerge),
+		})
+
+		resp := ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+
+		if resp.Code == http.StatusMethodNotAllowed {
+			err := api.APIError{}
+			DecodeJSON(t, resp, &err)
+			assert.EqualValues(t, "Please try again later", err.Message)
+			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+				MergeMessageField: "doAPIMergePullRequest Merge",
+				Do:                string(models.MergeStyleMerge),
+			})
+			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+		}
+
+		expected := ctx.ExpectedCode
+		if expected == 0 {
+			expected = 200
+		}
+
+		if !assert.EqualValues(t, expected, resp.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, resp)
+		}
+	}
+}
+
+func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+			Do:            string(models.MergeStyleManuallyMerged),
+			MergeCommitID: commitID,
 		})
 
 		if ctx.ExpectedCode != 0 {

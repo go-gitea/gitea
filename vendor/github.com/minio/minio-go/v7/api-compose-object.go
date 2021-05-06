@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7/pkg/encrypt"
 	"github.com/minio/minio-go/v7/pkg/s3utils"
 )
@@ -201,7 +202,7 @@ func (opts CopySrcOptions) validate() (err error) {
 
 // Low level implementation of CopyObject API, supports only upto 5GiB worth of copy.
 func (c Client) copyObjectDo(ctx context.Context, srcBucket, srcObject, destBucket, destObject string,
-	metadata map[string]string) (ObjectInfo, error) {
+	metadata map[string]string, srcOpts CopySrcOptions, dstOpts PutObjectOptions) (ObjectInfo, error) {
 
 	// Build headers.
 	headers := make(http.Header)
@@ -210,16 +211,40 @@ func (c Client) copyObjectDo(ctx context.Context, srcBucket, srcObject, destBuck
 	for k, v := range metadata {
 		headers.Set(k, v)
 	}
+	if !dstOpts.Internal.ReplicationStatus.Empty() {
+		headers.Set(amzBucketReplicationStatus, string(dstOpts.Internal.ReplicationStatus))
+	}
+	if !dstOpts.Internal.SourceMTime.IsZero() {
+		headers.Set(minIOBucketSourceMTime, dstOpts.Internal.SourceMTime.Format(time.RFC3339Nano))
+	}
+	if dstOpts.Internal.SourceETag != "" {
+		headers.Set(minIOBucketSourceETag, dstOpts.Internal.SourceETag)
+	}
+	if len(dstOpts.UserTags) != 0 {
+		headers.Set(amzTaggingHeader, s3utils.TagEncode(dstOpts.UserTags))
+	}
 
-	// Set the source header
-	headers.Set("x-amz-copy-source", s3utils.EncodePath(srcBucket+"/"+srcObject))
-
-	// Send upload-part-copy request
-	resp, err := c.executeMethod(ctx, http.MethodPut, requestMetadata{
+	reqMetadata := requestMetadata{
 		bucketName:   destBucket,
 		objectName:   destObject,
 		customHeader: headers,
-	})
+	}
+	if dstOpts.Internal.SourceVersionID != "" {
+		if _, err := uuid.Parse(dstOpts.Internal.SourceVersionID); err != nil {
+			return ObjectInfo{}, errInvalidArgument(err.Error())
+		}
+		urlValues := make(url.Values)
+		urlValues.Set("versionId", dstOpts.Internal.SourceVersionID)
+		reqMetadata.queryValues = urlValues
+	}
+
+	// Set the source header
+	headers.Set("x-amz-copy-source", s3utils.EncodePath(srcBucket+"/"+srcObject))
+	if srcOpts.VersionID != "" {
+		headers.Set("x-amz-copy-source", s3utils.EncodePath(srcBucket+"/"+srcObject)+"?versionId="+srcOpts.VersionID)
+	}
+	// Send upload-part-copy request
+	resp, err := c.executeMethod(ctx, http.MethodPut, reqMetadata)
 	defer closeResponse(resp)
 	if err != nil {
 		return ObjectInfo{}, err

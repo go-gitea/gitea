@@ -324,11 +324,12 @@ func checkRequiredFlags(flags []Flag, context *Context) requiredFlagsErr {
 			var flagPresent bool
 			var flagName string
 			for _, key := range strings.Split(f.GetName(), ",") {
+				key = strings.TrimSpace(key)
 				if len(key) > 1 {
 					flagName = key
 				}
 
-				if context.IsSet(strings.TrimSpace(key)) {
+				if context.IsSet(key) {
 					flagPresent = true
 				}
 			}

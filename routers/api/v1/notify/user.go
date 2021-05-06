@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -63,7 +64,7 @@ func ListNotifications(ctx *context.APIContext) {
 
 	before, since, err := utils.GetQueryBeforeSince(ctx)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
 	opts := models.FindNotificationOptions{
@@ -87,7 +88,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, nl.APIFormat())
+	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
 // ReadNotifications mark notification threads as read, unread, or pinned

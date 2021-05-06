@@ -13,7 +13,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/rs/xid v1.2.1
-	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a // indirect
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
