@@ -6,6 +6,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -393,7 +394,7 @@ func RepoIDAssignment() func(ctx *Context) {
 }
 
 // RepoAssignment returns a middleware to handle repository assignment
-func RepoAssignment(ctx *Context) {
+func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	var (
 		owner *models.User
 		err   error
@@ -529,12 +530,12 @@ func RepoAssignment(ctx *Context) {
 	ctx.Repo.GitRepo = gitRepo
 
 	// We opened it, we should close it
-	defer func() {
+	cancel = func() {
 		// If it's been set to nil then assume someone else has closed it.
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
 		}
-	}()
+	}
 
 	// Stop at this point when the repo is empty.
 	if ctx.Repo.Repository.IsEmpty {
@@ -619,6 +620,7 @@ func RepoAssignment(ctx *Context) {
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 	}
+	return
 }
 
 // RepoRefType type of repo reference
@@ -643,7 +645,7 @@ const (
 
 // RepoRef handles repository reference names when the ref name is not
 // explicitly given
-func RepoRef() func(*Context) {
+func RepoRef() func(*Context) context.CancelFunc {
 	// since no ref name is explicitly specified, ok to just use branch
 	return RepoRefByType(RepoRefBranch)
 }
@@ -722,8 +724,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) {
-	return func(ctx *Context) {
+func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) context.CancelFunc {
+	return func(ctx *Context) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			return
@@ -742,12 +744,12 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				return
 			}
 			// We opened it, we should close it
-			defer func() {
+			cancel = func() {
 				// If it's been set to nil then assume someone else has closed it.
 				if ctx.Repo.GitRepo != nil {
 					ctx.Repo.GitRepo.Close()
 				}
-			}()
+			}
 		}
 
 		// Get default branch.
@@ -844,6 +846,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+		return
 	}
 }
 
