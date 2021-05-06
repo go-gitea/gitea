@@ -236,21 +236,19 @@ func InfoOAuth(ctx *context.Context) {
 		})
 		return
 	}
-	if uid != 0 {
-		authUser, err := models.GetUserByID(uid)
-		if err != nil {
-			ctx.ServerError("GetUserByID", err)
-			return
-		}
-		response := &userInfoResponse{
-			Sub:      fmt.Sprint(authUser.ID),
-			Name:     authUser.FullName,
-			Username: authUser.Name,
-			Email:    authUser.Email,
-			Picture:  authUser.AvatarLink(),
-		}
-		ctx.JSON(http.StatusOK, response)
+	authUser, err := models.GetUserByID(uid)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
 	}
+	response := &userInfoResponse{
+		Sub:      fmt.Sprint(authUser.ID),
+		Name:     authUser.FullName,
+		Username: authUser.Name,
+		Email:    authUser.Email,
+		Picture:  authUser.AvatarLink(),
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 // AuthorizeOAuth manages authorize requests
@@ -634,13 +632,15 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 
 func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
 	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
-	if beErr.ErrorCode == BearerTokenErrorCodeInvalidRequest {
+	switch beErr.ErrorCode {
+	case BearerTokenErrorCodeInvalidRequest:
 		ctx.JSON(http.StatusBadRequest, beErr)
-	}
-	if beErr.ErrorCode == BearerTokenErrorCodeInvalidToken {
+	case BearerTokenErrorCodeInvalidToken:
 		ctx.JSON(http.StatusUnauthorized, beErr)
-	}
-	if beErr.ErrorCode == BearerTokenErrorCodeInsufficientScope {
+	case BearerTokenErrorCodeInsufficientScope:
 		ctx.JSON(http.StatusForbidden, beErr)
+	default:
+		log.Error("Invalid BearerTokenErrorCode: %v", beErr.ErrorCode)
+		ctx.ServerError("Unhandled BearerTokenError", fmt.Errorf("BearerTokenError: error=\"%v\", error_description=\"%v\"", beErr.ErrorCode, beErr.ErrorDescription))
 	}
 }
