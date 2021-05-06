@@ -92,7 +92,7 @@ steps:
     depends_on: [checks-backend]
 
 node:
-  oss:amd64
+  oss: amd64
 ---
 kind: pipeline
 name: testing-amd64
@@ -212,7 +212,7 @@ steps:
       - build
 
 node:
-  oss:amd64
+  oss: amd64
 
 ---
 kind: pipeline
@@ -312,7 +312,7 @@ steps:
         - push
 
 node:
-  oss:amd64
+  oss: amd64
 
 ---
 kind: pipeline
@@ -394,7 +394,7 @@ steps:
         from_secret: github_token
 
 node:
-  oss:amd64
+  oss: amd64
 
 ---
 kind: pipeline
@@ -461,7 +461,7 @@ steps:
         - pull_request
 
 node:
-  oss:amd64
+  oss: amd64
 
 ---
 kind: pipeline
@@ -507,4 +507,4 @@ depends_on:
   - docker-linux-amd64-release
 
 node:
-  oss:amd64
+  oss: amd64
