@@ -69,7 +69,7 @@ To build a custom logo clone the source repository, replace `assets/logo.svg` an
 - `public/img/avatar_default.png` - Used as the default avatar image
 - `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
 
-In case the source image is not in vector format, one can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
+In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
 ## Customizing Gitea pages and resources
 
