@@ -74,6 +74,8 @@ func (g *Manager) start() {
 
 	// Make SVC process
 	run := svc.Run
+
+	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
 	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
