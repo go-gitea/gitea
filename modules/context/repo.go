@@ -722,7 +722,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(refType RepoRefType) func(*Context) {
+func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) {
 	return func(ctx *Context) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
@@ -811,6 +811,9 @@ func RepoRefByType(refType RepoRefType) func(*Context) {
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
+				if len(ignoreNotExistErr) > 0 && ignoreNotExistErr[0] {
+					return
+				}
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
 				return
 			}
