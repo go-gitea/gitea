@@ -236,21 +236,19 @@ func InfoOAuth(ctx *context.Context) {
 		})
 		return
 	}
-	if uid != 0 {
-		authUser, err := models.GetUserByID(uid)
-		if err != nil {
-			ctx.ServerError("GetUserByID", err)
-			return
-		}
-		response := &userInfoResponse{
-			Sub:      fmt.Sprint(authUser.ID),
-			Name:     authUser.FullName,
-			Username: authUser.Name,
-			Email:    authUser.Email,
-			Picture:  authUser.AvatarLink(),
-		}
-		ctx.JSON(http.StatusOK, response)
+	authUser, err := models.GetUserByID(uid)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
 	}
+	response := &userInfoResponse{
+		Sub:      fmt.Sprint(authUser.ID),
+		Name:     authUser.FullName,
+		Username: authUser.Name,
+		Email:    authUser.Email,
+		Picture:  authUser.AvatarLink(),
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 // AuthorizeOAuth manages authorize requests
