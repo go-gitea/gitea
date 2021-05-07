@@ -110,3 +110,7 @@ issues:
     - text: "exitAfterDefer:"
       linters:
         - gocritic
+    - path: modules/graceful/manager_windows.go
+      linters:
+        - staticcheck
+      text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
