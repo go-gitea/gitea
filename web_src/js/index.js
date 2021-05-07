@@ -4,26 +4,26 @@ import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 
-import initMigration from './features/migration.js';
-import initContextPopups from './features/contextpopup.js';
-import initGitGraph from './features/gitgraph.js';
-import initClipboard from './features/clipboard.js';
-import initHeatmap from './features/heatmap.js';
-import initProject from './features/projects.js';
-import initServiceWorker from './features/serviceworker.js';
-import initMarkdownAnchors from './markdown/anchors.js';
-import renderMarkdownContent from './markdown/content.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
-import initTableSort from './features/tablesort.js';
+import initClipboard from './features/clipboard.js';
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initHeatmap from './features/heatmap.js';
 import initImageDiff from './features/imagediff.js';
-import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import initMigration from './features/migration.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initTableSort from './features/tablesort.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {createCodeEditor, createMonaco} from './features/codeeditor.js';
-import {svg, svgs} from './svg.js';
+import {renderMarkupContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
@@ -51,7 +51,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkdownContent();
+      renderMarkupContent();
     });
   });
 
@@ -81,7 +81,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkdownContent();
+        renderMarkupContent();
       });
     });
   }
@@ -1107,7 +1107,7 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkdownContent();
+            renderMarkupContent();
           });
         });
       } else {
@@ -1473,8 +1473,8 @@ function initWikiForm() {
             text: plainText,
             wiki: true
           }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            renderMarkdownContent();
+            preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
+            renderMarkupContent();
           });
         };
 
@@ -1553,7 +1553,7 @@ function initWikiForm() {
             const $form = $('.repository.wiki.new .ui.form');
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
-            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
+            $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
             initCommentPreviewTab($form);
           },
           className: 'fa fa-file',
@@ -2772,7 +2772,7 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
-  initMarkdownAnchors();
+  initMarkupAnchors();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2830,7 +2830,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkdownContent(),
+    renderMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);
