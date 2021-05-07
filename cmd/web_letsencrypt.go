@@ -30,6 +30,8 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
+		ListenHost:              listenAddr,
+		AltHTTPPort:             setting.PortToRedirect,
 	})
 
 	magic.Issuers = []certmagic.Issuer{myACME}
