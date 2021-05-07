@@ -34,9 +34,9 @@ type User struct {
 	// Is user restricted
 	Restricted bool `json:"restricted"`
 	// Is user active
-	IsActive *bool `json:"active,omitempty"`
+	IsActive bool `json:"active"`
 	// Is user login prohibited
-	ProhibitLogin *bool `json:"prohibit_login,omitempty"`
+	ProhibitLogin bool `json:"prohibit_login"`
 	// the user's location
 	Location string `json:"location"`
 	// the user's website
