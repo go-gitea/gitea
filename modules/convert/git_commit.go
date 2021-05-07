@@ -86,13 +86,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiAuthor = ToUser(cacheAuthor, false, false)
+		apiAuthor = ToUser(cacheAuthor, nil)
 	} else {
 		author, err := models.GetUserByEmail(commit.Author.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(author, false, false)
+			apiAuthor = ToUser(author, nil)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -108,13 +108,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiCommitter = ToUser(cacheCommitter, false, false)
+		apiCommitter = ToUser(cacheCommitter, nil)
 	} else {
 		committer, err := models.GetUserByEmail(commit.Committer.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(committer, false, false)
+			apiCommitter = ToUser(committer, nil)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}
@@ -128,6 +128,20 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 		apiParents[i] = &api.CommitMeta{
 			URL: repo.APIURL() + "/git/commits/" + sha.String(),
 			SHA: sha.String(),
+		}
+	}
+
+	// Retrieve files affected by the commit
+	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+	if err != nil {
+		return nil, err
+	}
+	affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
+	for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+		for _, filename := range files {
+			affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
+				Filename: filename,
+			})
 		}
 	}
 
@@ -162,5 +176,6 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
+		Files:     affectedFileList,
 	}, nil
 }

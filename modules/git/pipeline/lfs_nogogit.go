@@ -64,27 +64,8 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	defer func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := git.NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
-		if err != nil {
-			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = revListWriter.Close()
-		}
-	}()
-
-	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchStdinWriter, batchReader, cancel := git.CatFileBatch(repo.Path)
+	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
@@ -146,11 +127,12 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, sha, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, sha20byte, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
+					sha := git.To40ByteSHA(sha20byte)
 					if bytes.Equal(sha, []byte(hashStr)) {
 						result := LFSResult{
 							Name:         curPath + string(fname),

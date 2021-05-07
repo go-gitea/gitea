@@ -120,13 +120,14 @@ For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api
 
 There are multiple things you can combine to prevent spammers.
 
-1. By only whitelisting certain domains with OpenID (see below)
-2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
+1. By whitelisting or blocklisting certain email domains
+2. By only whitelisting certain domains with OpenID (see below)
+3. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
+4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
 
-### Only allow certain email domains
+### Only allow/block certain email domains
 
-You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
+You can configure `EMAIL_DOMAIN_WHITELIST` or `EMAIL_DOMAIN_BLOCKLIST` in your app.ini under `[service]`
 
 ### Only allow/block certain OpenID providers
 
@@ -323,7 +324,13 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
-you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.  
+If you are using MySQL 5, another possible fix is
+```mysql
+SET GLOBAL innodb_file_format=Barracuda;
+SET GLOBAL innodb_file_per_table=1;
+SET GLOBAL innodb_large_prefix=1;
+```
 
 ## Why Are Emoji Broken On MySQL
 

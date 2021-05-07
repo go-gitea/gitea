@@ -10,7 +10,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	gotemplate "html/template"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"path"
 	"strconv"
@@ -139,7 +141,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	var c *git.LastCommitCache
 	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, int64(setting.CacheService.LastCommit.TTL.Seconds()), cache.GetCache())
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
 	}
 
 	var latestCommit *git.Commit
@@ -272,43 +274,42 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		// FIXME: what happens when README file is an image?
 		if isTextFile && setting.LFS.StartServer {
-			meta := lfs.IsPointerFile(&buf)
-			if meta != nil {
-				meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
+			pointer, _ := lfs.ReadPointerFromBuffer(buf)
+			if pointer.IsValid() {
+				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 					return
 				}
-			}
+				if meta != nil {
+					ctx.Data["IsLFSFile"] = true
+					isLFSFile = true
 
-			if meta != nil {
-				ctx.Data["IsLFSFile"] = true
-				isLFSFile = true
+					// OK read the lfs object
+					var err error
+					dataRc, err = lfs.ReadMetaObject(pointer)
+					if err != nil {
+						ctx.ServerError("ReadMetaObject", err)
+						return
+					}
+					defer dataRc.Close()
 
-				// OK read the lfs object
-				var err error
-				dataRc, err = lfs.ReadMetaObject(meta)
-				if err != nil {
-					ctx.ServerError("ReadMetaObject", err)
-					return
+					buf = make([]byte, 1024)
+					n, err = dataRc.Read(buf)
+					if err != nil {
+						ctx.ServerError("Data", err)
+						return
+					}
+					buf = buf[:n]
+
+					isTextFile = base.IsTextFile(buf)
+					ctx.Data["IsTextFile"] = isTextFile
+
+					fileSize = meta.Size
+					ctx.Data["FileSize"] = meta.Size
+					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 				}
-				defer dataRc.Close()
-
-				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				if err != nil {
-					ctx.ServerError("Data", err)
-					return
-				}
-				buf = buf[:n]
-
-				isTextFile = base.IsTextFile(buf)
-				ctx.Data["IsTextFile"] = isTextFile
-
-				fileSize = meta.Size
-				ctx.Data["FileSize"] = meta.Size
-				filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
 			}
 		}
 
@@ -323,13 +324,26 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				ctx.Data["IsTextFile"] = true
 				ctx.Data["FileSize"] = fileSize
 			} else {
-				d, _ := ioutil.ReadAll(dataRc)
-				buf = charset.ToUTF8WithFallback(append(buf, d...))
+				rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 				if markupType := markup.Type(readmeFile.name); markupType != "" {
 					ctx.Data["IsMarkup"] = true
 					ctx.Data["MarkupType"] = string(markupType)
-					ctx.Data["FileContent"] = string(markup.Render(readmeFile.name, buf, readmeTreelink, ctx.Repo.Repository.ComposeDocumentMetas()))
+					var result strings.Builder
+					err := markup.Render(&markup.RenderContext{
+						Filename:  readmeFile.name,
+						URLPrefix: readmeTreelink,
+						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+					}, rd, &result)
+					if err != nil {
+						log.Error("Render failed: %v then fallback", err)
+						bs, _ := ioutil.ReadAll(rd)
+						ctx.Data["FileContent"] = strings.ReplaceAll(
+							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
+						)
+					} else {
+						ctx.Data["FileContent"] = result.String()
+					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
 					ctx.Data["FileContent"] = strings.ReplaceAll(
@@ -384,7 +398,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
-	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
@@ -394,62 +407,61 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	isTextFile := base.IsTextFile(buf)
 	isLFSFile := false
-	ctx.Data["IsTextFile"] = isTextFile
-
 	isDisplayingSource := ctx.Query("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
+
+	//Check for LFS meta file
+	if isTextFile && setting.LFS.StartServer {
+		pointer, _ := lfs.ReadPointerFromBuffer(buf)
+		if pointer.IsValid() {
+			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+			if err != nil && err != models.ErrLFSObjectNotExist {
+				ctx.ServerError("GetLFSMetaObject", err)
+				return
+			}
+			if meta != nil {
+				isLFSFile = true
+
+				// OK read the lfs object
+				var err error
+				dataRc, err = lfs.ReadMetaObject(pointer)
+				if err != nil {
+					ctx.ServerError("ReadMetaObject", err)
+					return
+				}
+				defer dataRc.Close()
+
+				buf = make([]byte, 1024)
+				n, err = dataRc.Read(buf)
+				// Error EOF don't mean there is an error, it just means we read to
+				// the end
+				if err != nil && err != io.EOF {
+					ctx.ServerError("Data", err)
+					return
+				}
+				buf = buf[:n]
+
+				isTextFile = base.IsTextFile(buf)
+				fileSize = meta.Size
+				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
+			}
+		}
+	}
+
 	isRepresentableAsText := base.IsRepresentableAsText(buf)
-	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	if !isRepresentableAsText {
 		// If we can't show plain text, always try to render.
 		isDisplayingSource = false
 		isDisplayingRendered = true
 	}
+	ctx.Data["IsLFSFile"] = isLFSFile
+	ctx.Data["FileSize"] = fileSize
+	ctx.Data["IsTextFile"] = isTextFile
+	ctx.Data["IsRepresentableAsText"] = isRepresentableAsText
 	ctx.Data["IsDisplayingSource"] = isDisplayingSource
 	ctx.Data["IsDisplayingRendered"] = isDisplayingRendered
-
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
-	//Check for LFS meta file
-	if isTextFile && setting.LFS.StartServer {
-		meta := lfs.IsPointerFile(&buf)
-		if meta != nil {
-			meta, err = ctx.Repo.Repository.GetLFSMetaObjectByOid(meta.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
-				ctx.ServerError("GetLFSMetaObject", err)
-				return
-			}
-		}
-		if meta != nil {
-			ctx.Data["IsLFSFile"] = true
-			isLFSFile = true
-
-			// OK read the lfs object
-			var err error
-			dataRc, err = lfs.ReadMetaObject(meta)
-			if err != nil {
-				ctx.ServerError("ReadMetaObject", err)
-				return
-			}
-			defer dataRc.Close()
-
-			buf = make([]byte, 1024)
-			n, err = dataRc.Read(buf)
-			if err != nil {
-				ctx.ServerError("Data", err)
-				return
-			}
-			buf = buf[:n]
-
-			isTextFile = base.IsTextFile(buf)
-			ctx.Data["IsTextFile"] = isTextFile
-
-			fileSize = meta.Size
-			ctx.Data["FileSize"] = meta.Size
-			filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(blob.Name()))
-			ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
-		}
-	}
 	// Check LFS Lock
 	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
@@ -482,21 +494,31 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			break
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
-		buf = charset.ToUTF8WithFallback(append(buf, d...))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 		readmeExist := markup.IsReadmeFile(blob.Name())
 		ctx.Data["ReadmeExist"] = readmeExist
 		if markupType := markup.Type(blob.Name()); markupType != "" {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, rd, &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
+			buf, _ := ioutil.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
-			buf = charset.ToUTF8WithFallback(buf)
+			buf, _ := ioutil.ReadAll(rd)
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
@@ -533,13 +555,21 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 
 		if markupType := markup.Type(blob.Name()); markupType != "" {
-			d, _ := ioutil.ReadAll(dataRc)
-			buf = append(buf, d...)
+			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			ctx.Data["FileContent"] = string(markup.Render(blob.Name(), buf, path.Dir(treeLink), ctx.Repo.Repository.ComposeDocumentMetas()))
+			var result strings.Builder
+			err := markup.Render(&markup.RenderContext{
+				Filename:  blob.Name(),
+				URLPrefix: path.Dir(treeLink),
+				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+			}, rd, &result)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return
+			}
+			ctx.Data["FileContent"] = result.String()
 		}
-
 	}
 
 	if ctx.Repo.CanEnableEditor() {
@@ -584,8 +614,16 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
-			ctx.HTML(200, tplMigrating)
+			ctx.HTML(http.StatusOK, tplMigrating)
 			return
+		}
+
+		if ctx.IsSigned {
+			// Set repo notification-status read if unread
+			if err := ctx.Repo.Repository.ReadBy(ctx.User.ID); err != nil {
+				ctx.ServerError("ReadBy", err)
+				return
+			}
 		}
 
 		var firstUnit *models.Unit
@@ -635,7 +673,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		ctx.HTML(200, tplRepoEMPTY)
+		ctx.HTML(http.StatusOK, tplRepoEMPTY)
 		return
 	}
 
@@ -698,7 +736,7 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["TreeLink"] = treeLink
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
-	ctx.HTML(200, tplRepoHome)
+	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
 // RenderUserCards render a page show users according the input templaet
@@ -710,14 +748,17 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{Page: pager.Paginater.Current()})
+	items, err := getter(models.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: models.ItemsPerPage,
+	})
 	if err != nil {
 		ctx.ServerError("getter", err)
 		return
 	}
 	ctx.Data["Cards"] = items
 
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // Watchers render repository's watch users
@@ -741,6 +782,7 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
+	// TODO: need pagination
 	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
@@ -755,5 +797,5 @@ func Forks(ctx *context.Context) {
 	}
 	ctx.Data["Forks"] = forks
 
-	ctx.HTML(200, tplForks)
+	ctx.HTML(http.StatusOK, tplForks)
 }

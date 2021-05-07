@@ -7,13 +7,15 @@ package org
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -29,11 +31,12 @@ func Create(ctx *context.Context) {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
-	ctx.HTML(200, tplCreateOrg)
+	ctx.HTML(http.StatusOK, tplCreateOrg)
 }
 
 // CreatePost response for create organization
-func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
+func CreatePost(ctx *context.Context) {
+	form := *web.GetForm(ctx).(*forms.CreateOrgForm)
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
 	if !ctx.User.CanCreateOrganization() {
@@ -42,7 +45,7 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplCreateOrg)
+		ctx.HTML(http.StatusOK, tplCreateOrg)
 		return
 	}
 
@@ -72,5 +75,5 @@ func CreatePost(ctx *context.Context, form auth.CreateOrgForm) {
 	}
 	log.Trace("Organization created: %s", org.Name)
 
-	ctx.Redirect(setting.AppSubURL + "/org/" + form.OrgName + "/dashboard")
+	ctx.Redirect(org.DashboardLink())
 }

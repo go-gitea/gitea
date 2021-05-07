@@ -10,8 +10,8 @@ import (
 
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/internal"
-	"golang.org/x/text/transform"
 	"golang.org/x/text/encoding/internal/identifier"
+	"golang.org/x/text/transform"
 )
 
 type asciiDecoder struct {
@@ -22,7 +22,7 @@ func (d asciiDecoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, er
 	for _, c := range src {
 		if c > unicode.MaxASCII {
 			r := unicode.ReplacementChar
-			if nDst + utf8.RuneLen(r) > len(dst) {
+			if nDst+utf8.RuneLen(r) > len(dst) {
 				err = transform.ErrShortDst
 				break
 			}

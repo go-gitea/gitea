@@ -6,12 +6,14 @@ package repo
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -40,11 +42,12 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplNewComment)
+	ctx.HTML(http.StatusOK, tplNewComment)
 }
 
 // CreateCodeComment will create a code comment including an pending review if required
-func CreateCodeComment(ctx *context.Context, form auth.CodeCommentForm) {
+func CreateCodeComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
 	issue := GetActionIssue(ctx)
 	if !issue.IsPull {
 		return
@@ -118,12 +121,12 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 	if !permResult {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 
 	if !comment.Issue.IsPull {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -134,7 +137,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 			return
 		}
 	} else {
-		ctx.Error(400)
+		ctx.Error(http.StatusBadRequest)
 		return
 	}
 
@@ -142,7 +145,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 		renderConversation(ctx, comment)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
 	})
 }
@@ -167,11 +170,12 @@ func renderConversation(ctx *context.Context, comment *models.Comment) {
 		return
 	}
 	ctx.Data["AfterCommitID"] = pullHeadCommitID
-	ctx.HTML(200, tplConversation)
+	ctx.HTML(http.StatusOK, tplConversation)
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
+func SubmitReview(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.SubmitReviewForm)
 	issue := GetActionIssue(ctx)
 	if !issue.IsPull {
 		return
@@ -219,4 +223,16 @@ func SubmitReview(ctx *context.Context, form auth.SubmitReviewForm) {
 	}
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, issue.Index, comm.HashTag()))
+}
+
+// DismissReview dismissing stale review by repo admin
+func DismissReview(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.DismissReviewForm)
+	comm, err := pull_service.DismissReview(form.ReviewID, form.Message, ctx.User, true)
+	if err != nil {
+		ctx.ServerError("pull_service.DismissReview", err)
+		return
+	}
+
+	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
 }

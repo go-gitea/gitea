@@ -7,18 +7,20 @@ package admin
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	router_user_setting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -59,11 +61,12 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
-	ctx.HTML(200, tplUserNew)
+	ctx.HTML(http.StatusOK, tplUserNew)
 }
 
 // NewUserPost response for adding a new user
-func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
+func NewUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AdminCreateUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
@@ -78,7 +81,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 	ctx.Data["CanSendEmail"] = setting.MailService != nil
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplUserNew)
+		ctx.HTML(http.StatusOK, tplUserNew)
 		return
 	}
 
@@ -152,7 +155,7 @@ func NewUserPost(ctx *context.Context, form auth.AdminCreateUserForm) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
@@ -210,11 +213,12 @@ func EditUser(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplUserEdit)
+	ctx.HTML(http.StatusOK, tplUserEdit)
 }
 
 // EditUserPost response for editting user
-func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
+func EditUserPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
@@ -226,7 +230,7 @@ func EditUserPost(ctx *context.Context, form auth.AdminEditUserForm) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplUserEdit)
+		ctx.HTML(http.StatusOK, tplUserEdit)
 		return
 	}
 
@@ -345,12 +349,12 @@ func DeleteUser(ctx *context.Context) {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.JSON(200, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
 			})
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.JSON(200, map[string]interface{}{
+			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
 			})
 		default:
@@ -361,7 +365,7 @@ func DeleteUser(ctx *context.Context) {
 	log.Trace("Account deleted by admin (%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
 }

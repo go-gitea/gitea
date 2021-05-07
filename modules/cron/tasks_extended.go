@@ -118,6 +118,20 @@ func registerRemoveRandomAvatars() {
 	})
 }
 
+func registerDeleteOldActions() {
+	RegisterTaskFatal("delete_old_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		OlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		return models.DeleteOldActions(olderThanConfig.OlderThan)
+	})
+}
+
 func registerImapFetchUnReadMails() {
 	RegisterTaskFatal("imap_fetch_mails", &BaseConfig{
 		Enabled:    setting.MailReciveService != nil,
@@ -125,7 +139,7 @@ func registerImapFetchUnReadMails() {
 		Schedule:   "@every 5m",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return imap.FetchAllUnReadMails()
-	})
+	}
 }
 
 func initExtendedTasks() {
@@ -138,5 +152,6 @@ func initExtendedTasks() {
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
+	registerDeleteOldActions()
 	registerImapFetchUnReadMails()
 }

@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="{{.Language}}" class="theme-{{.SignedUser.Theme}}">
+<html lang="{{.Lang}}" class="theme-{{.SignedUser.Theme}}">
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="data:{{.ManifestData}}"/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
@@ -36,13 +35,13 @@
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
-			U2F: {{if .RequireU2F}}true{{else}}false{{end}},
 			NotificationSettings: {
 				MinTimeout: {{NotificationSettings.MinTimeout}},
 				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
 				MaxTimeout: {{NotificationSettings.MaxTimeout}},
 				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
 			},
+			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
 			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
@@ -55,7 +54,7 @@
 				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
 				{{ end }}
 				{{ range .MentionableTeams }}
-					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}', 
+					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
 					name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
 				{{ end }}
 			]).values()),

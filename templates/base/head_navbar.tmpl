@@ -67,6 +67,44 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
+			{{$issueURL := Printf "%s/%s/issues/%d" AppSubUrl .ActiveStopwatch.RepoSlug .ActiveStopwatch.IssueIndex}}
+			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{$issueURL}}">
+				<span class="text">
+					<span class="fitted item">
+						{{svg "octicon-stopwatch"}}
+						<span class="red" style="position:absolute; right:-0.6em; top:-0.6em;">{{svg "octicon-dot-fill"}}</span>
+					</span>
+					<span class="sr-mobile-only">{{.i18n.Tr "active_stopwatch"}}</span>
+				</span>
+			</a>
+			<div class="ui popup very wide">
+				<div class="df ac">
+					<a class="stopwatch-link df ac" href="{{$issueURL}}">
+						{{svg "octicon-issue-opened"}}
+						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
+						<span class="ui label blue stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
+							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
+						</span>
+					</a>
+					<form class="stopwatch-commit" method="POST" action="{{$issueURL}}/times/stopwatch/toggle">
+						{{.CsrfTokenHtml}}
+						<button
+							class="ui button mini compact basic icon fitted poping up"
+							data-content="{{.i18n.Tr "repo.issues.stop_tracking"}}"
+							data-position="top right" data-variation="small inverted"
+						>{{svg "octicon-square-fill"}}</button>
+					</form>
+					<form class="stopwatch-cancel" method="POST" action="{{$issueURL}}/times/stopwatch/cancel">
+						{{.CsrfTokenHtml}}
+						<button
+							class="ui button mini compact basic icon fitted poping up"
+							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
+							data-position="top right" data-variation="small inverted"
+						>{{svg "octicon-trash"}}</button>
+					</form>
+				</div>
+			</div>
+
 			<a href="{{AppSubUrl}}/notifications" class="item poping up" data-content='{{.i18n.Tr "notifications"}}' data-variation="tiny inverted">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
@@ -119,10 +157,12 @@
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{svg "octicon-star"}}
-						{{.i18n.Tr "your_starred"}}
-					</a>
+					{{if not .DisableStars}}
+						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+							{{svg "octicon-star"}}
+							{{.i18n.Tr "your_starred"}}
+						</a>
+					{{end}}
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
@@ -135,7 +175,7 @@
 						<div class="divider"></div>
 
 						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
-							<i class="icon settings"></i>
+							{{svg "octicon-server"}}
 							{{.i18n.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>
 					{{end}}

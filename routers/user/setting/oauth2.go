@@ -6,13 +6,15 @@ package setting
 
 import (
 	"fmt"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -20,14 +22,15 @@ const (
 )
 
 // OAuthApplicationsPost response for adding a oauth2 application
-func OAuthApplicationsPost(ctx *context.Context, form auth.EditOAuth2ApplicationForm) {
+func OAuthApplicationsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
 
-		ctx.HTML(200, tplSettingsApplications)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
 		return
 	}
 	// TODO validate redirect URI
@@ -47,18 +50,19 @@ func OAuthApplicationsPost(ctx *context.Context, form auth.EditOAuth2Application
 		ctx.ServerError("GenerateClientSecret", err)
 		return
 	}
-	ctx.HTML(200, tplSettingsOAuthApplications)
+	ctx.HTML(http.StatusOK, tplSettingsOAuthApplications)
 }
 
 // OAuthApplicationsEdit response for editing oauth2 application
-func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2ApplicationForm) {
+func OAuthApplicationsEdit(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.EditOAuth2ApplicationForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
 		loadApplicationsData(ctx)
 
-		ctx.HTML(200, tplSettingsApplications)
+		ctx.HTML(http.StatusOK, tplSettingsApplications)
 		return
 	}
 	// TODO validate redirect URI
@@ -73,7 +77,7 @@ func OAuthApplicationsEdit(ctx *context.Context, form auth.EditOAuth2Application
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
-	ctx.HTML(200, tplSettingsOAuthApplications)
+	ctx.HTML(http.StatusOK, tplSettingsOAuthApplications)
 }
 
 // OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
@@ -101,7 +105,7 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 		return
 	}
 	ctx.Flash.Success(ctx.Tr("settings.update_oauth2_application_success"))
-	ctx.HTML(200, tplSettingsOAuthApplications)
+	ctx.HTML(http.StatusOK, tplSettingsOAuthApplications)
 }
 
 // OAuth2ApplicationShow displays the given application
@@ -120,7 +124,7 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 		return
 	}
 	ctx.Data["App"] = app
-	ctx.HTML(200, tplSettingsOAuthApplications)
+	ctx.HTML(http.StatusOK, tplSettingsOAuthApplications)
 }
 
 // DeleteOAuth2Application deletes the given oauth2 application
@@ -132,7 +136,7 @@ func DeleteOAuth2Application(ctx *context.Context) {
 	log.Trace("OAuth2 Application deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.remove_oauth2_application_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }
@@ -149,7 +153,7 @@ func RevokeOAuth2Grant(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("settings.revoke_oauth2_grant_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/applications",
 	})
 }

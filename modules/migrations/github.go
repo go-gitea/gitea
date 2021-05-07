@@ -6,11 +6,9 @@
 package migrations
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -65,6 +63,7 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 // GithubDownloaderV3 implements a Downloader interface to get repository informations
 // from github via APIv3
 type GithubDownloaderV3 struct {
+	base.NullDownloader
 	ctx        context.Context
 	client     *github.Client
 	repoOwner  string
@@ -133,6 +132,11 @@ func (g *GithubDownloaderV3) sleep() {
 func (g *GithubDownloaderV3) RefreshRate() error {
 	rates, _, err := g.client.RateLimits(g.ctx)
 	if err != nil {
+		// if rate limit is not enabled, ignore it
+		if strings.Contains(err.Error(), "404") {
+			g.rate = nil
+			return nil
+		}
 		return err
 	}
 
@@ -291,6 +295,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	}
 
 	for _, asset := range rel.Assets {
+		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            *asset.ID,
 			Name:          *asset.Name,
@@ -300,12 +305,33 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			Created:       asset.CreatedAt.Time,
 			Updated:       asset.UpdatedAt.Time,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, *asset.ID, http.DefaultClient)
+				g.sleep()
+				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
 				if err != nil {
 					return nil, err
 				}
+				err = g.RefreshRate()
+				if err != nil {
+					log.Error("g.client.RateLimits: %s", err)
+				}
 				if asset == nil {
-					return ioutil.NopCloser(bytes.NewBufferString(redir)), nil
+					if redir != "" {
+						g.sleep()
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+						if err != nil {
+							return nil, err
+						}
+						resp, err := http.DefaultClient.Do(req)
+						err1 := g.RefreshRate()
+						if err1 != nil {
+							log.Error("g.client.RateLimits: %s", err1)
+						}
+						if err != nil {
+							return nil, err
+						}
+						return resp.Body, nil
+					}
+					return nil, fmt.Errorf("No release asset found for %d", assetID)
 				}
 				return asset, nil
 			},

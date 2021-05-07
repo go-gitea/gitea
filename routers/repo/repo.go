@@ -6,17 +6,20 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
 	archiver_service "code.gitea.io/gitea/services/archiver"
+	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -83,7 +86,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 
 	// Check ownership of organization.
 	if !org.IsOrganization() {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return nil
 	}
 	if !ctx.User.IsAdmin {
@@ -92,7 +95,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
 		} else if !canCreate {
-			ctx.Error(403)
+			ctx.Error(http.StatusForbidden)
 			return nil
 		}
 	} else {
@@ -144,11 +147,10 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	if !ctx.User.CanCreateRepo() {
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", ctx.User.MaxCreationLimit()), tplCreate, nil)
-	} else {
-		ctx.HTML(200, tplCreate)
-	}
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+
+	ctx.HTML(http.StatusOK, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
@@ -182,13 +184,17 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 }
 
 // CreatePost response for creating repository
-func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
+func CreatePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	ctx.Data["Gitignores"] = models.Gitignores
 	ctx.Data["LabelTemplates"] = models.LabelTemplates
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
+
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -197,7 +203,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 	ctx.Data["ContextUser"] = ctxUser
 
 	if ctx.HasError() {
-		ctx.HTML(200, tplCreate)
+		ctx.HTML(http.StatusOK, tplCreate)
 		return
 	}
 
@@ -234,7 +240,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	} else {
@@ -253,7 +259,7 @@ func CreatePost(ctx *context.Context, form auth.CreateRepoForm) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	}
@@ -273,9 +279,13 @@ func Action(ctx *context.Context) {
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
 		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	case "accept_transfer":
+		err = acceptOrRejectRepoTransfer(ctx, true)
+	case "reject_transfer":
+		err = acceptOrRejectRepoTransfer(ctx, false)
 	case "desc": // FIXME: this is not used
 		if !ctx.Repo.IsOwner() {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 
@@ -292,6 +302,36 @@ func Action(ctx *context.Context) {
 	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
 }
 
+func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
+	repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
+	if err != nil {
+		return err
+	}
+
+	if err := repoTransfer.LoadAttributes(); err != nil {
+		return err
+	}
+
+	if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+		return errors.New("user does not have enough permissions")
+	}
+
+	if accept {
+		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
+			return err
+		}
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.success"))
+	} else {
+		if err := models.CancelRepositoryTransfer(ctx.Repo.Repository); err != nil {
+			return err
+		}
+		ctx.Flash.Success(ctx.Tr("repo.settings.transfer.rejected"))
+	}
+
+	ctx.Redirect(ctx.Repo.Repository.HTMLURL())
+	return nil
+}
+
 // RedirectDownload return a file based on the following infos:
 func RedirectDownload(ctx *context.Context) {
 	var (
@@ -303,7 +343,7 @@ func RedirectDownload(ctx *context.Context) {
 	releases, err := models.GetReleasesByRepoIDAndNames(models.DefaultDBContext(), curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		ctx.ServerError("RedirectDownload", err)
@@ -313,7 +353,7 @@ func RedirectDownload(ctx *context.Context) {
 		release := releases[0]
 		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		if att != nil {
@@ -321,7 +361,7 @@ func RedirectDownload(ctx *context.Context) {
 			return
 		}
 	}
-	ctx.Error(404)
+	ctx.Error(http.StatusNotFound)
 }
 
 // Download an archive of a repository
@@ -330,7 +370,7 @@ func Download(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	if aReq == nil {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
@@ -344,7 +384,7 @@ func Download(ctx *context.Context) {
 	if complete {
 		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
 	} else {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 	}
 }
 
@@ -356,7 +396,7 @@ func InitiateDownload(ctx *context.Context) {
 	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
 
 	if aReq == nil {
-		ctx.Error(404)
+		ctx.Error(http.StatusNotFound)
 		return
 	}
 
@@ -366,7 +406,7 @@ func InitiateDownload(ctx *context.Context) {
 		complete, _ = aReq.TimedWaitForCompletion(ctx, 2*time.Second)
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"complete": complete,
 	})
 }

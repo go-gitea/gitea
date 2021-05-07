@@ -118,11 +118,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=mysql
-+     - DB_HOST=db:3306
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=mysql
++     - GITEA__database__HOST=db:3306
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -169,11 +169,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=postgres
-+     - DB_HOST=db:5432
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=postgres
++     - GITEA__database__HOST=db:5432
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -256,31 +256,9 @@ favorite browser to finalize the installation. Visit http://server-ip:3000 and f
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
-## Environment variables
+## Configure the user inside Gitea using environment variables 
 
-You can configure some of Gitea's settings via environment variables:
-
-(Default values are provided in **bold**)
-
-- `APP_NAME`: **"Gitea: Git with a cup of tea"**: Application name, used in the page title.
-- `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
-- `DOMAIN`: **localhost**: Domain name of this server, used for the displayed http clone URL in Gitea's UI.
-- `SSH_DOMAIN`: **localhost**: Domain name of this server, used for the displayed ssh clone URL in Gitea's UI. If the install page is enabled, SSH Domain Server takes DOMAIN value in the form (which overwrite this setting on save).
-- `SSH_PORT`: **22**: SSH port displayed in clone URL.
-- `SSH_LISTEN_PORT`: **%(SSH_PORT)s**: Port for the built-in SSH server.
-- `DISABLE_SSH`: **false**: Disable SSH feature when it's not available. If you want to disable SSH feature, you should set SSH port to `0` when installing Gitea.
-- `HTTP_PORT`: **3000**: HTTP listen port.
-- `ROOT_URL`: **""**: Overwrite the automatically generated public URL. This is useful if the internal and the external URL don't match (e.g. in Docker).
-- `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `DB_TYPE`: **sqlite3**: The database type in use \[mysql, postgres, mssql, sqlite3\].
-- `DB_HOST`: **localhost:3306**: Database host address and port.
-- `DB_NAME`: **gitea**: Database name.
-- `DB_USER`: **root**: Database username.
-- `DB_PASSWD`: **"\<empty>"**: Database user password. Use \`your password\` for quoting if you use special characters in the password.
-- `INSTALL_LOCK`: **false**: Disallow access to the install page.
-- `SECRET_KEY`: **""**: Global secret key. This should be changed. If this has a value and `INSTALL_LOCK` is empty, `INSTALL_LOCK` will automatically set to `true`.
-- `DISABLE_REGISTRATION`: **false**: Disable registration, after which only admin can create accounts for users.
-- `REQUIRE_SIGNIN_VIEW`: **false**: Enable this to force users to log in to view any page.
+- `USER`: **git**: The username of the user that runs Gitea within the container.
 - `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 - `USER_GID`: **1000**: The GID (Unix group ID) of the user that runs Gitea within the container. Match this to the GID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
 
@@ -305,6 +283,28 @@ docker-compose pull
 # Start a new container, automatically removes old one
 docker-compose up -d
 ```
+
+## Managing Deployments With Environment Variables
+
+In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+
+These environment variables can be passed to the docker container in `docker-compose.yml`. The following example will enable an smtp mail server if the required env variables `GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host or in a `.env` file in the same directory as `docker-compose.yml`:
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
 ## SSH Container Passthrough
 
@@ -345,19 +345,23 @@ ports:
   - "127.0.0.1:2222:22"
 ```
 
-In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add
+In addition, `/home/git/.ssh/authorized_keys` on the host needs to be modified. It needs to act in the same way as `authorized_keys` within the Gitea container. Therefore add the public key of the key you created above ("Gitea Host Key") to `~/git/.ssh/authorized_keys`.
+This can be done via `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
+Important: The pubkey from the `git` user needs to be added "as is" while all other pubkeys added via the Gitea web interface will be prefixed with `command="/app [...]`.
+
+The file should then look somewhat like
 
 ```bash
-command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-rsa <YOUR_SSH_PUBKEY>
+# SSH pubkey from git user
+ssh-rsa <Gitea Host Key>
+
+# other keys from users
+command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
 ```
-
-and replace `<YOUR_SSH_PUBKEY>` with a valid SSH public key of yours.
-
-In addition the public key of the `git` user on the host needs to be added to `/home/git/.ssh/authorized_keys` so authentication against the container can succeed: `echo "$(cat /home/git/.ssh/id_rsa.pub)" >> /home/git/.ssh/authorized_keys`.
 
 Here is a detailed explanation what is happening when a SSH request is made:
 
-1. A SSH request is made against the host using the `git` user, e.g. `git clone git@domain:user/repo.git`.
+1. A SSH request is made against the host (usually port 22) using the `git` user, e.g. `git clone git@domain:user/repo.git`.
 2. In `/home/git/.ssh/authorized_keys` , the command executes the `/app/gitea/gitea` script.
 3. `/app/gitea/gitea` forwards the SSH request to port 2222 which is mapped to the SSH port (22) of the container.
 4. Due to the existence of the public key of the `git` user in `/home/git/.ssh/authorized_keys` the authentication host → container succeeds and the SSH request get forwarded to Gitea running in the docker container.

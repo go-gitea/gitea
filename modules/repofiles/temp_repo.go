@@ -185,12 +185,12 @@ func (t *TemporaryUploadRepository) GetLastCommitByRef(ref string) (string, erro
 }
 
 // CommitTree creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string) (string, error) {
-	return t.CommitTreeWithDate(author, committer, treeHash, message, time.Now(), time.Now())
+func (t *TemporaryUploadRepository) CommitTree(author, committer *models.User, treeHash string, message string, signoff bool) (string, error) {
+	return t.CommitTreeWithDate(author, committer, treeHash, message, signoff, time.Now(), time.Now())
 }
 
 // CommitTreeWithDate creates a commit from a given tree for the user with provided message
-func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, authorDate, committerDate time.Time) (string, error) {
+func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models.User, treeHash string, message string, signoff bool, authorDate, committerDate time.Time) (string, error) {
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
@@ -234,6 +234,13 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *models
 		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
 			args = append(args, "--no-gpg-sign")
 		}
+	}
+
+	if signoff {
+		// Signed-off-by
+		_, _ = messageBytes.WriteString("\n")
+		_, _ = messageBytes.WriteString("Signed-off-by: ")
+		_, _ = messageBytes.WriteString(committerSig.String())
 	}
 
 	env = append(env,
@@ -319,61 +326,6 @@ func (t *TemporaryUploadRepository) DiffIndex() (*gitdiff.Diff, error) {
 	}
 
 	return diff, nil
-}
-
-// CheckAttribute checks the given attribute of the provided files
-func (t *TemporaryUploadRepository) CheckAttribute(attribute string, args ...string) (map[string]map[string]string, error) {
-	err := git.LoadGitVersion()
-	if err != nil {
-		log.Error("Error retrieving git version: %v", err)
-		return nil, err
-	}
-
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-
-	cmdArgs := []string{"check-attr", "-z", attribute}
-
-	// git check-attr --cached first appears in git 1.7.8
-	if git.CheckGitVersionAtLeast("1.7.8") == nil {
-		cmdArgs = append(cmdArgs, "--cached")
-	}
-	cmdArgs = append(cmdArgs, "--")
-
-	for _, arg := range args {
-		if arg != "" {
-			cmdArgs = append(cmdArgs, arg)
-		}
-	}
-
-	if err := git.NewCommand(cmdArgs...).RunInDirPipeline(t.basePath, stdout, stderr); err != nil {
-		log.Error("Unable to check-attr in temporary repo: %s (%s) Error: %v\nStdout: %s\nStderr: %s",
-			t.repo.FullName(), t.basePath, err, stdout, stderr)
-		return nil, fmt.Errorf("Unable to check-attr in temporary repo: %s Error: %v\nStdout: %s\nStderr: %s",
-			t.repo.FullName(), err, stdout, stderr)
-	}
-
-	fields := bytes.Split(stdout.Bytes(), []byte{'\000'})
-
-	if len(fields)%3 != 1 {
-		return nil, fmt.Errorf("Wrong number of fields in return from check-attr")
-	}
-
-	var name2attribute2info = make(map[string]map[string]string)
-
-	for i := 0; i < (len(fields) / 3); i++ {
-		filename := string(fields[3*i])
-		attribute := string(fields[3*i+1])
-		info := string(fields[3*i+2])
-		attribute2info := name2attribute2info[filename]
-		if attribute2info == nil {
-			attribute2info = make(map[string]string)
-		}
-		attribute2info[attribute] = info
-		name2attribute2info[filename] = attribute2info
-	}
-
-	return name2attribute2info, err
 }
 
 // GetBranchCommit Gets the commit object of the given branch

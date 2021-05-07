@@ -6,6 +6,8 @@
 package repo
 
 import (
+	"errors"
+	"net/http"
 	"path"
 	"strings"
 
@@ -84,7 +86,7 @@ func Commits(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Graph render commit graph - show commits from all branches.
@@ -166,11 +168,11 @@ func Graph(ctx *context.Context) {
 	}
 	ctx.Data["Page"] = paginator
 	if ctx.QueryBool("div-only") {
-		ctx.HTML(200, tplGraphDiv)
+		ctx.HTML(http.StatusOK, tplGraphDiv)
 		return
 	}
 
-	ctx.HTML(200, tplGraph)
+	ctx.HTML(http.StatusOK, tplGraph)
 }
 
 // SearchCommits render commits filtered by keyword
@@ -204,7 +206,7 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commits.Len()
 	ctx.Data["Branch"] = ctx.Repo.BranchName
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // FileHistory show a file's reversions
@@ -252,7 +254,7 @@ func FileHistory(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplCommits)
+	ctx.HTML(http.StatusOK, tplCommits)
 }
 
 // Diff show different from current commit to previous commit
@@ -304,11 +306,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommit(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
 		commitID, setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles)
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if err != nil {
-		ctx.NotFound("GetDiffCommit", err)
+		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
 	}
 
@@ -335,9 +338,8 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	setImageCompareContext(ctx, parentCommit, commit)
 	headTarget := path.Join(userName, repoName)
-	setPathsCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	verification := models.ParseCommitWithSignature(commit)
@@ -371,7 +373,7 @@ func Diff(ctx *context.Context) {
 		ctx.ServerError("commit.GetTagName", err)
 		return
 	}
-	ctx.HTML(200, tplCommitPage)
+	ctx.HTML(http.StatusOK, tplCommitPage)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
@@ -388,6 +390,11 @@ func RawDiff(ctx *context.Context) {
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,
 	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetRawDiff",
+				errors.New("commit "+ctx.Params(":sha")+" does not exist."))
+			return
+		}
 		ctx.ServerError("GetRawDiff", err)
 		return
 	}

@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//NoticeType describes the notice type
+// NoticeType describes the notice type
 type NoticeType int
 
 const (
-	//NoticeRepository type
+	// NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
 	// NoticeTask type
 	NoticeTask
@@ -75,7 +75,7 @@ func removeStorageWithNotice(e Engine, bucket storage.ObjectStorage, title, path
 	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = createNotice(x, NoticeRepository, desc); err != nil {
+		if err = createNotice(e, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}

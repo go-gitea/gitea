@@ -8,8 +8,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -31,15 +32,16 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
-var c chi.Router
+var c *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -58,6 +60,26 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 	}
 }
 
+type NilResponseHashSumRecorder struct {
+	httptest.ResponseRecorder
+	Hash   hash.Hash
+	Length int
+}
+
+func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
+	_, _ = n.Hash.Write(b)
+	n.Length += len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
+	return &NilResponseHashSumRecorder{
+		Hash:             fnv.New32(),
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	defer log.Close()
 
@@ -66,9 +88,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c = routes.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -286,6 +306,23 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	return resp
 }
 
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
 const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
@@ -378,6 +415,8 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -387,6 +426,9 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	t.Helper()
+	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
+		urlStr = "/" + urlStr
+	}
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
@@ -426,6 +468,19 @@ func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedSta
 	return recorder
 }
 
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	recorder := NewNilResponseHashSumRecorder()
+	c.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+		}
+	}
+	return recorder
+}
+
 // logUnexpectedResponse logs the contents of an unexpected response.
 func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 	t.Helper()
@@ -452,6 +507,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }

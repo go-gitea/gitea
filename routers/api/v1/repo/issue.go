@@ -16,12 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -112,11 +112,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	// find repos user can access (for issue search)
-	repoIDs := make([]int64, 0)
 	opts := &models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
-			PageSize: 15,
-		},
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -131,21 +127,10 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 
-	for page := 1; ; page++ {
-		opts.Page = page
-		repos, count, err := models.SearchRepositoryByName(opts)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
-			return
-		}
-
-		if len(repos) == 0 {
-			break
-		}
-		log.Trace("Processing next %d repos of %d", len(repos), count)
-		for _, repo := range repos {
-			repoIDs = append(repoIDs, repo.ID)
-		}
+	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
+		return
 	}
 
 	var issues []*models.Issue
@@ -156,7 +141,6 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 	var issueIDs []int64
-	var labelIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
 		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
@@ -191,7 +175,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
@@ -448,7 +432,7 @@ func GetIssue(ctx *context.APIContext) {
 }
 
 // CreateIssue create an issue of a repository
-func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
+func CreateIssue(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues issue issueCreateIssue
 	// ---
 	// summary: Create an issue. If using deadline only the date will be taken into account, and time of day ignored.
@@ -480,7 +464,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
 	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
@@ -564,7 +548,7 @@ func CreateIssue(ctx *context.APIContext, form api.CreateIssueOption) {
 }
 
 // EditIssue modify an issue of a repository
-func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
+func EditIssue(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index} issue issueEditIssue
 	// ---
 	// summary: Edit an issue. If using deadline only the date will be taken into account, and time of day ignored.
@@ -603,6 +587,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 	//   "412":
 	//     "$ref": "#/responses/error"
 
+	form := web.GetForm(ctx).(*api.EditIssueOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
@@ -689,7 +674,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 		}
 	}
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {
@@ -723,7 +708,7 @@ func EditIssue(ctx *context.APIContext, form api.EditIssueOption) {
 }
 
 // UpdateIssueDeadline updates an issue deadline
-func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
+func UpdateIssueDeadline(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/deadline issue issueEditIssueDeadline
 	// ---
 	// summary: Set an issue deadline. If set to null, the deadline is deleted. If using deadline only the date will be taken into account, and time of day ignored.
@@ -759,7 +744,7 @@ func UpdateIssueDeadline(ctx *context.APIContext, form api.EditDeadlineOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	form := web.GetForm(ctx).(*api.EditDeadlineOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {

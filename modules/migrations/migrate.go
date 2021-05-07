@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // MigrateOptions is equal to base.MigrateOptions
@@ -34,32 +36,61 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 	factories = append(factories, factory)
 }
 
-func isMigrateURLAllowed(remoteURL string) error {
-	u, err := url.Parse(strings.ToLower(remoteURL))
+// IsMigrateURLAllowed checks if an URL is allowed to be migrated from
+func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
+	// Remote address can be HTTP/HTTPS/Git URL or local path.
+	u, err := url.Parse(remoteURL)
 	if err != nil {
-		return err
+		return &models.ErrInvalidCloneAddr{IsURLError: true}
 	}
 
-	if strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https") {
-		if len(setting.Migrations.AllowedDomains) > 0 {
-			if !allowList.Match(u.Host) {
-				return &models.ErrMigrationNotAllowed{Host: u.Host}
-			}
-		} else {
-			if blockList.Match(u.Host) {
-				return &models.ErrMigrationNotAllowed{Host: u.Host}
-			}
+	if u.Scheme == "file" || u.Scheme == "" {
+		if !doer.CanImportLocal() {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsPermissionDenied: true, LocalPath: true}
+		}
+		isAbs := filepath.IsAbs(u.Host + u.Path)
+		if !isAbs {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+		}
+		isDir, err := util.IsDir(u.Host + u.Path)
+		if err != nil {
+			log.Error("Unable to check if %s is a directory: %v", u.Host+u.Path, err)
+			return err
+		}
+		if !isDir {
+			return &models.ErrInvalidCloneAddr{Host: "<LOCAL_FILESYSTEM>", IsInvalidPath: true, LocalPath: true}
+		}
+
+		return nil
+	}
+
+	if u.Scheme == "git" && u.Port() != "" && (strings.Contains(remoteURL, "%0d") || strings.Contains(remoteURL, "%0a")) {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
+	}
+
+	if u.Opaque != "" || u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "git" {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
+	}
+
+	host := strings.ToLower(u.Host)
+	if len(setting.Migrations.AllowedDomains) > 0 {
+		if !allowList.Match(host) {
+			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+		}
+	} else {
+		if blockList.Match(host) {
+			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	}
 
 	if !setting.Migrations.AllowLocalNetworks {
 		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
 		if err != nil {
-			return &models.ErrMigrationNotAllowed{Host: u.Host, NotResolvedIP: true}
+			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
 			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return &models.ErrMigrationNotAllowed{Host: u.Host, PrivateNet: addr.String()}
+				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
 			}
 		}
 	}
@@ -69,9 +100,15 @@ func isMigrateURLAllowed(remoteURL string) error {
 
 // MigrateRepository migrate repository according MigrateOptions
 func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions) (*models.Repository, error) {
-	err := isMigrateURLAllowed(opts.CloneAddr)
+	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
 	if err != nil {
 		return nil, err
+	}
+	if opts.LFS && len(opts.LFSEndpoint) > 0 {
+		err := IsMigrateURLAllowed(opts.LFSEndpoint, doer)
+		if err != nil {
+			return nil, err
+		}
 	}
 	downloader, err := newDownloader(ctx, ownerName, opts)
 	if err != nil {
@@ -133,15 +170,22 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions) error {
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
-		return err
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Info("migrating repo infos is not supported, ignored")
 	}
 	repo.IsPrivate = opts.Private
 	repo.IsMirror = opts.Mirror
 	if opts.Description != "" {
 		repo.Description = opts.Description
 	}
+	if repo.CloneURL, err = downloader.FormatCloneURL(opts, repo.CloneURL); err != nil {
+		return err
+	}
+
 	log.Trace("migrating git data")
-	if err := uploader.CreateRepo(repo, opts); err != nil {
+	if err = uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}
 	defer uploader.Close()
@@ -149,10 +193,13 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	log.Trace("migrating topics")
 	topics, err := downloader.GetTopics()
 	if err != nil {
-		return err
+		if !base.IsErrNotSupported(err) {
+			return err
+		}
+		log.Warn("migrating topics is not supported, ignored")
 	}
-	if len(topics) > 0 {
-		if err := uploader.CreateTopics(topics...); err != nil {
+	if len(topics) != 0 {
+		if err = uploader.CreateTopics(topics...); err != nil {
 			return err
 		}
 	}
@@ -161,7 +208,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating milestones")
 		milestones, err := downloader.GetMilestones()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating milestones is not supported, ignored")
 		}
 
 		msBatchSize := uploader.MaxBatchInsertSize("milestone")
@@ -181,7 +231,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating labels")
 		labels, err := downloader.GetLabels()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating labels is not supported, ignored")
 		}
 
 		lbBatchSize := uploader.MaxBatchInsertSize("label")
@@ -201,7 +254,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		log.Trace("migrating releases")
 		releases, err := downloader.GetReleases()
 		if err != nil {
-			return err
+			if !base.IsErrNotSupported(err) {
+				return err
+			}
+			log.Warn("migrating releases is not supported, ignored")
 		}
 
 		relBatchSize := uploader.MaxBatchInsertSize("release")
@@ -210,14 +266,14 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				relBatchSize = len(releases)
 			}
 
-			if err := uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
+			if err = uploader.CreateReleases(releases[:relBatchSize]...); err != nil {
 				return err
 			}
 			releases = releases[relBatchSize:]
 		}
 
 		// Once all releases (if any) are inserted, sync any remaining non-release tags
-		if err := uploader.SyncTags(); err != nil {
+		if err = uploader.SyncTags(); err != nil {
 			return err
 		}
 	}
@@ -234,7 +290,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
 			if err != nil {
-				return err
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating issues is not supported, ignored")
+				break
 			}
 
 			if err := uploader.CreateIssues(issues...); err != nil {
@@ -247,13 +307,16 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating issue %d's comments", issue.Number)
 					comments, err := downloader.GetComments(issue.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 
@@ -262,7 +325,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -280,7 +343,11 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
-				return err
+				if !base.IsErrNotSupported(err) {
+					return err
+				}
+				log.Warn("migrating pull requests is not supported, ignored")
+				break
 			}
 
 			if err := uploader.CreatePullRequests(prs...); err != nil {
@@ -294,20 +361,23 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					log.Trace("migrating pull request %d's comments", pr.Number)
 					comments, err := downloader.GetComments(pr.Number)
 					if err != nil {
-						return err
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating comments is not supported, ignored")
 					}
 
 					allComments = append(allComments, comments...)
 
 					if len(allComments) >= commentBatchSize {
-						if err := uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
 							return err
 						}
 						allComments = allComments[commentBatchSize:]
 					}
 				}
 				if len(allComments) > 0 {
-					if err := uploader.CreateComments(allComments...); err != nil {
+					if err = uploader.CreateComments(allComments...); err != nil {
 						return err
 					}
 				}
@@ -323,26 +393,30 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					}
 
 					reviews, err := downloader.GetReviews(number)
+					if err != nil {
+						if !base.IsErrNotSupported(err) {
+							return err
+						}
+						log.Warn("migrating reviews is not supported, ignored")
+						break
+					}
 					if pr.OriginalNumber > 0 {
 						for i := range reviews {
 							reviews[i].IssueIndex = pr.Number
 						}
 					}
-					if err != nil {
-						return err
-					}
 
 					allReviews = append(allReviews, reviews...)
 
 					if len(allReviews) >= reviewBatchSize {
-						if err := uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
+						if err = uploader.CreateReviews(allReviews[:reviewBatchSize]...); err != nil {
 							return err
 						}
 						allReviews = allReviews[reviewBatchSize:]
 					}
 				}
 				if len(allReviews) > 0 {
-					if err := uploader.CreateReviews(allReviews...); err != nil {
+					if err = uploader.CreateReviews(allReviews...); err != nil {
 						return err
 					}
 				}

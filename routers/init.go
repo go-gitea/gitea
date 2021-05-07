@@ -38,22 +38,16 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
-
-	"gitea.com/macaron/macaron"
 )
 
 func checkRunMode() {
 	switch setting.RunMode {
-	case "dev":
-		git.Debug = true
-	case "test":
+	case "dev", "test":
 		git.Debug = true
 	default:
-		macaron.Env = macaron.PROD
-		macaron.ColorLog = false
 		git.Debug = false
 	}
-	log.Info("Run Mode: %s", strings.Title(macaron.Env))
+	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 }
 
 // NewServices init new services
@@ -134,6 +128,7 @@ func GlobalInit(ctx context.Context) {
 	if !setting.InstallLock {
 		log.Fatal("Gitea is not installed")
 	}
+
 	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
@@ -142,6 +137,7 @@ func GlobalInit(ctx context.Context) {
 	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
 	log.Trace("Custom path: %s", setting.CustomPath)
 	log.Trace("Log path: %s", setting.LogRootPath)
+	checkRunMode()
 
 	// Setup i18n
 	translation.InitLocales()
@@ -149,8 +145,14 @@ func GlobalInit(ctx context.Context) {
 	NewServices()
 
 	highlight.NewContext()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
+
+	if setting.EnableSQLite3 {
+		log.Info("SQLite3 Supported")
+	} else if setting.Database.UseSQLite3 {
+		log.Fatal("SQLite3 is set in settings but NOT Supported")
+	}
 	if err := initDBEngine(ctx); err == nil {
 		log.Info("ORM engine initialization successful!")
 	} else {
@@ -182,11 +184,6 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("Failed to initialize repository migrations: %v", err)
 	}
 	eventsource.GetManager().Init()
-
-	if setting.EnableSQLite3 {
-		log.Info("SQLite3 Supported")
-	}
-	checkRunMode()
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)

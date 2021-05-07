@@ -31,6 +31,9 @@ type ListPublicKeysOptions struct {
 
 // ListPublicKeys list all the public keys of the user
 func (c *Client) ListPublicKeys(user string, opt ListPublicKeysOptions) ([]*PublicKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	keys := make([]*PublicKey, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/keys?%s", user, opt.getURLQuery().Encode()), nil, nil, &keys)

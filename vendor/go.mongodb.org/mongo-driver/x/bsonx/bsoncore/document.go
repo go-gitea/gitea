@@ -17,17 +17,20 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// DocumentValidationError is an error type returned when attempting to validate a document.
-type DocumentValidationError string
+// ValidationError is an error type returned when attempting to validate a document or array.
+type ValidationError string
 
-func (dve DocumentValidationError) Error() string { return string(dve) }
+func (ve ValidationError) Error() string { return string(ve) }
 
 // NewDocumentLengthError creates and returns an error for when the length of a document exceeds the
 // bytes available.
 func NewDocumentLengthError(length, rem int) error {
-	return DocumentValidationError(
-		fmt.Sprintf("document length exceeds available bytes. length=%d remainingBytes=%d", length, rem),
-	)
+	return lengthError("document", length, rem)
+}
+
+func lengthError(bufferType string, length, rem int) error {
+	return ValidationError(fmt.Sprintf("%v length exceeds available bytes. length=%d remainingBytes=%d",
+		bufferType, length, rem))
 }
 
 // InsufficientBytesError indicates that there were not enough bytes to read the next component.
@@ -94,14 +97,15 @@ func (idte InvalidDepthTraversalError) Error() string {
 	)
 }
 
-// ErrMissingNull is returned when a document's last byte is not null.
-const ErrMissingNull DocumentValidationError = "document end is missing null byte"
+// ErrMissingNull is returned when a document or array's last byte is not null.
+const ErrMissingNull ValidationError = "document or array end is missing null byte"
+
+// ErrInvalidLength indicates that a length in a binary representation of a BSON document or array
+// is invalid.
+const ErrInvalidLength ValidationError = "document or array length is invalid"
 
 // ErrNilReader indicates that an operation was attempted on a nil io.Reader.
 var ErrNilReader = errors.New("nil reader")
-
-// ErrInvalidLength indicates that a length in a binary representation of a BSON document is invalid.
-var ErrInvalidLength = errors.New("document length is invalid")
 
 // ErrEmptyKey indicates that no key was provided to a Lookup method.
 var ErrEmptyKey = errors.New("empty key provided")
@@ -115,12 +119,13 @@ var ErrOutOfBounds = errors.New("out of bounds")
 // Document is a raw bytes representation of a BSON document.
 type Document []byte
 
-// Array is a raw bytes representation of a BSON array.
-type Array = Document
-
 // NewDocumentFromReader reads a document from r. This function will only validate the length is
 // correct and that the document ends with a null byte.
 func NewDocumentFromReader(r io.Reader) (Document, error) {
+	return newBufferFromReader(r)
+}
+
+func newBufferFromReader(r io.Reader) ([]byte, error) {
 	if r == nil {
 		return nil, ErrNilReader
 	}
@@ -137,20 +142,20 @@ func NewDocumentFromReader(r io.Reader) (Document, error) {
 	if length < 0 {
 		return nil, ErrInvalidLength
 	}
-	document := make([]byte, length)
+	buffer := make([]byte, length)
 
-	copy(document, lengthBytes[:])
+	copy(buffer, lengthBytes[:])
 
-	_, err = io.ReadFull(r, document[4:])
+	_, err = io.ReadFull(r, buffer[4:])
 	if err != nil {
 		return nil, err
 	}
 
-	if document[length-1] != 0x00 {
+	if buffer[length-1] != 0x00 {
 		return nil, ErrMissingNull
 	}
 
-	return document, nil
+	return buffer, nil
 }
 
 // Lookup searches the document, potentially recursively, for the given key. If there are multiple
@@ -181,7 +186,8 @@ func (d Document) LookupErr(key ...string) (Value, error) {
 		if !ok {
 			return Value{}, NewInsufficientBytesError(d, rem)
 		}
-		if elem.Key() != key[0] {
+		// We use `KeyBytes` rather than `Key` to avoid a needless string alloc.
+		if string(elem.KeyBytes()) != key[0] {
 			continue
 		}
 		if len(key) > 1 {
@@ -220,9 +226,13 @@ func (d Document) Index(index uint) Element {
 
 // IndexErr searches for and retrieves the element at the given index.
 func (d Document) IndexErr(index uint) (Element, error) {
-	length, rem, ok := ReadLength(d)
+	return indexErr(d, index)
+}
+
+func indexErr(b []byte, index uint) (Element, error) {
+	length, rem, ok := ReadLength(b)
 	if !ok {
-		return nil, NewInsufficientBytesError(d, rem)
+		return nil, NewInsufficientBytesError(b, rem)
 	}
 
 	length -= 4
@@ -233,7 +243,7 @@ func (d Document) IndexErr(index uint) (Element, error) {
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok {
-			return nil, NewInsufficientBytesError(d, rem)
+			return nil, NewInsufficientBytesError(b, rem)
 		}
 		if current != index {
 			current++
@@ -337,9 +347,13 @@ func (d Document) Elements() ([]Element, error) {
 // If the document is not valid, the values up to the invalid point will be returned along with an
 // error.
 func (d Document) Values() ([]Value, error) {
-	length, rem, ok := ReadLength(d)
+	return values(d)
+}
+
+func values(b []byte) ([]Value, error) {
+	length, rem, ok := ReadLength(b)
 	if !ok {
-		return nil, NewInsufficientBytesError(d, rem)
+		return nil, NewInsufficientBytesError(b, rem)
 	}
 
 	length -= 4
@@ -350,7 +364,7 @@ func (d Document) Values() ([]Value, error) {
 		elem, rem, ok = ReadElement(rem)
 		length -= int32(len(elem))
 		if !ok {
-			return vals, NewInsufficientBytesError(d, rem)
+			return vals, NewInsufficientBytesError(b, rem)
 		}
 		if err := elem.Value().Validate(); err != nil {
 			return vals, err
@@ -367,7 +381,7 @@ func (d Document) Validate() error {
 		return NewInsufficientBytesError(d, rem)
 	}
 	if int(length) > len(d) {
-		return d.lengtherror(int(length), len(d))
+		return NewDocumentLengthError(int(length), len(d))
 	}
 	if d[length-1] != 0x00 {
 		return ErrMissingNull
@@ -392,8 +406,4 @@ func (d Document) Validate() error {
 		return ErrMissingNull
 	}
 	return nil
-}
-
-func (Document) lengtherror(length, rem int) error {
-	return DocumentValidationError(fmt.Sprintf("document length exceeds available bytes. length=%d remainingBytes=%d", length, rem))
 }

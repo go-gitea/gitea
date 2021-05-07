@@ -114,11 +114,9 @@ func runPR() {
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
-	c := routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c := routes.NormalRoutes()
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

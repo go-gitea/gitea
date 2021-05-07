@@ -7,16 +7,18 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -32,18 +34,19 @@ func Account(ctx *context.Context) {
 
 	loadAccountData(ctx)
 
-	ctx.HTML(200, tplSettingsAccount)
+	ctx.HTML(http.StatusOK, tplSettingsAccount)
 }
 
 // AccountPost response for change user's password
-func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
+func AccountPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -80,7 +83,8 @@ func AccountPost(ctx *context.Context, form auth.ChangePasswordForm) {
 }
 
 // EmailPost response for change user's email
-func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
+func EmailPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddEmailForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -129,7 +133,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
-			mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+			mailer.SendActivateEmailMail(ctx.User, email)
 			address = email.Email
 		}
 
@@ -164,7 +168,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 	if ctx.HasError() {
 		loadAccountData(ctx)
 
-		ctx.HTML(200, tplSettingsAccount)
+		ctx.HTML(http.StatusOK, tplSettingsAccount)
 		return
 	}
 
@@ -191,7 +195,7 @@ func EmailPost(ctx *context.Context, form auth.AddEmailForm) {
 
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
-		mailer.SendActivateEmailMail(ctx.Locale, ctx.User, email)
+		mailer.SendActivateEmailMail(ctx.User, email)
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
 		}
@@ -213,7 +217,7 @@ func DeleteEmail(ctx *context.Context) {
 	log.Trace("Email address deleted: %s", ctx.User.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.email_deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/account",
 	})
 }
@@ -252,8 +256,8 @@ func DeleteAccount(ctx *context.Context) {
 }
 
 // UpdateUIThemePost is used to update users' specific theme
-func UpdateUIThemePost(ctx *context.Context, form auth.UpdateThemeForm) {
-
+func UpdateUIThemePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
@@ -302,8 +306,8 @@ func loadAccountData(ctx *context.Context) {
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 
-	if setting.Service.UserDeleteWithCommentsMaxDays != 0 {
-		ctx.Data["UserDeleteWithCommentsMaxDays"] = setting.Service.UserDeleteWithCommentsMaxDays
-		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays) * 24 * time.Hour).After(time.Now())
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 {
+		ctx.Data["UserDeleteWithCommentsMaxTime"] = setting.Service.UserDeleteWithCommentsMaxTime.String()
+		ctx.Data["UserDeleteWithComments"] = ctx.User.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())
 	}
 }

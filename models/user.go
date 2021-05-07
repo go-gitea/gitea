@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -38,7 +37,6 @@ import (
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -57,7 +55,17 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+)
 
+// AvailableHashAlgorithms represents the available password hashing algorithms
+var AvailableHashAlgorithms = []string{
+	algoPbkdf2,
+	algoArgon2,
+	algoScrypt,
+	algoBcrypt,
+}
+
+const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
@@ -67,9 +75,6 @@ const (
 )
 
 var (
-	// ErrUserNotKeyOwner user does not own this key error
-	ErrUserNotKeyOwner = errors.New("User does not own this public key")
-
 	// ErrEmailNotExist e-mail does not exist error
 	ErrEmailNotExist = errors.New("E-mail does not exist")
 
@@ -230,10 +235,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users found in DB.
+// GetAllUsers returns a slice of all individual users found in DB.
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Find(&users)
+	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -287,7 +292,7 @@ func (u *User) CanEditGitHook() bool {
 
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
-	if !setting.ImportLocalPaths {
+	if !setting.ImportLocalPaths || u == nil {
 		return false
 	}
 	return u.IsAdmin || u.AllowImportLocal
@@ -296,7 +301,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return setting.AppSubURL + "/org/" + u.Name + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard/"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -311,6 +316,11 @@ func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
 }
 
+// OrganisationLink returns the organization sub page link.
+func (u *User) OrganisationLink() string {
+	return setting.AppSubURL + "/org/" + u.Name
+}
+
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
@@ -320,11 +330,6 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
 	return code
-}
-
-// GenerateActivateCode generates an activate code based on user information.
-func (u *User) GenerateActivateCode() string {
-	return u.GenerateEmailActivateCode(u.Email)
 }
 
 // GetFollowers returns range of user's followers.
@@ -771,7 +776,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = append([]string{
+	reservedUsernames = []string{
 		".",
 		"..",
 		".well-known",
@@ -780,6 +785,7 @@ var (
 		"assets",
 		"attachments",
 		"avatars",
+		"captcha",
 		"commits",
 		"debug",
 		"error",
@@ -805,7 +811,8 @@ var (
 		"stars",
 		"template",
 		"user",
-	}, public.KnownPublicEntries...)
+		"favicon.ico",
+	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -862,6 +869,10 @@ func CreateUser(u *User) (err error) {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{u.Name}
+	}
+
+	if err = deleteUserRedirect(sess, u.Name); err != nil {
+		return err
 	}
 
 	u.Email = strings.ToLower(u.Email)
@@ -974,6 +985,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
+	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
 	}
@@ -991,16 +1003,28 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
 	// Do not fail if directory does not exist
-	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = os.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return sess.Commit()
+	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		if err2 := os.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user
@@ -1071,8 +1095,7 @@ func deleteBeans(e Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-// FIXME: need some kind of mechanism to record failure. HINT: system notice
-func deleteUser(e *xorm.Session, u *User) error {
+func deleteUser(e Engine, u *User) error {
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
 
@@ -1151,12 +1174,30 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxDays != 0 &&
-		u.CreatedUnix.AsTime().Add(time.Duration(setting.Service.UserDeleteWithCommentsMaxDays)*24*time.Hour).After(time.Now()) {
-		if err = deleteBeans(e,
-			&Comment{PosterID: u.ID},
-		); err != nil {
-			return fmt.Errorf("deleteBeans: %v", err)
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+
+		// Delete Comments
+		const batchSize = 50
+		for start := 0; ; start += batchSize {
+			comments := make([]*Comment, 0, batchSize)
+			if err = e.Where("type=? AND poster_id=?", CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+				return err
+			}
+			if len(comments) == 0 {
+				break
+			}
+
+			for _, comment := range comments {
+				if err = deleteComment(e, comment); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Delete Reactions
+		if err = deleteReaction(e, &ReactionOptions{Doer: u}); err != nil {
+			return err
 		}
 	}
 
@@ -1175,6 +1216,16 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
+	keys, err := listGPGKeys(e, u.ID, ListOptions{})
+	if err != nil {
+		return fmt.Errorf("ListGPGKeys: %v", err)
+	}
+	// Delete GPGKeyImport(s).
+	for _, key := range keys {
+		if _, err = e.Delete(&GPGKeyImport{KeyID: key.KeyID}); err != nil {
+			return fmt.Errorf("deleteGPGKeyImports: %v", err)
+		}
+	}
 	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
@@ -1195,18 +1246,21 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
-		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+	if err = util.RemoveAll(path); err != nil {
+		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		return err
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
+			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			return err
 		}
 	}
 
@@ -1250,7 +1304,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 			Find(&users); err != nil {
 			return fmt.Errorf("get all inactive users: %v", err)
 		}
-
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range users {
@@ -1515,7 +1568,6 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
-
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1544,7 +1596,8 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		var accessCond = builder.NewCond()
+
+		var accessCond builder.Cond
 		if !opts.Actor.IsRestricted {
 			accessCond = builder.Or(
 				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
@@ -1790,7 +1843,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 			log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
 
 			var existingUsers []int64
-			var isAttributeSSHPublicKeySet = len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
+			isAttributeSSHPublicKeySet := len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
@@ -1964,9 +2017,9 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 // IterateUser iterate users
 func IterateUser(f func(user *User) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var users = make([]*User, 0, batchSize)
+		users := make([]*User, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&users); err != nil {
 			return err
 		}

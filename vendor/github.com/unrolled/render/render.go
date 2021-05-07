@@ -103,6 +103,10 @@ type Options struct {
 	// Enables using partials without the current filename suffix which allows use of the same template in multiple files. e.g {{ partial "carosuel" }} inside the home template will match carosel-home or carosel.
 	// ***NOTE*** - This option should be named RenderPartialsWithoutSuffix as that is what it does. "Prefix" is a typo. Maintaining the existing name for backwards compatibility.
 	RenderPartialsWithoutPrefix bool
+
+	// BufferPool to use when rendering HTML templates. If none is supplied
+	// defaults to SizedBufferPool of size 32 with 512KiB buffers.
+	BufferPool GenericBufferPool
 }
 
 // HTMLOptions is a struct for overriding some rendering Options for specific HTML call.
@@ -175,6 +179,10 @@ func (r *Render) prepareOptions() {
 	}
 	if len(r.opt.XMLContentType) == 0 {
 		r.opt.XMLContentType = ContentXML
+	}
+	if r.opt.BufferPool == nil {
+		// 32 buffers of size 512KiB each
+		r.opt.BufferPool = NewSizedBufferPool(32, 1<<19)
 	}
 }
 
@@ -410,6 +418,7 @@ func (r *Render) HTML(w io.Writer, status int, name string, binding interface{},
 		Head:      head,
 		Name:      name,
 		Templates: r.templates,
+		bp:        r.opt.BufferPool,
 	}
 
 	return r.Render(w, h, binding)

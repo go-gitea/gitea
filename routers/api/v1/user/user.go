@@ -75,7 +75,7 @@ func Search(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.User)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -107,17 +107,12 @@ func GetInfo(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	u, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
+	u := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -131,7 +126,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/User"
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.User))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap
@@ -153,14 +148,8 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	// Get the user to throw an error if it does not exist
-	user, err := models.GetUserByName(ctx.Params(":username"))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.Status(http.StatusNotFound)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
+	user := GetUserByParams(ctx)
+	if ctx.Written() {
 		return
 	}
 

@@ -35,11 +35,15 @@
   &:not(.top) {
     margin-bottom: .5em;
   }
+}
 
-  .show-outdated,
-  .hide-outdated {
-    display: block;
-    margin-left: auto;
+.show-outdated,
+.hide-outdated {
+  display: block !important;
+  user-select: none !important;
+
+  &:hover {
+    text-decoration: underline;
   }
 }
 
@@ -95,7 +99,7 @@
       display: inline-block;
       margin: 5px 0;
       font-size: 12px;
-      color: rgba(0, 0, 0, .6);
+      color: var(--color-text-light);
     }
 
     .ui.right.floated {

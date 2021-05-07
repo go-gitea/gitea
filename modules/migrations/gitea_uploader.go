@@ -6,11 +6,9 @@
 package migrations
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,22 +84,6 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	return 10
 }
 
-func fullURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
-	var fullRemoteAddr = remoteAddr
-	if len(opts.AuthToken) > 0 || len(opts.AuthUsername) > 0 {
-		u, err := url.Parse(remoteAddr)
-		if err != nil {
-			return "", err
-		}
-		u.User = url.UserPassword(opts.AuthUsername, opts.AuthPassword)
-		if len(opts.AuthToken) > 0 {
-			u.User = url.UserPassword("oauth2", opts.AuthToken)
-		}
-		fullRemoteAddr = u.String()
-	}
-	return fullRemoteAddr, nil
-}
-
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
 	owner, err := models.GetUserByName(g.repoOwner)
@@ -109,10 +91,6 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	remoteAddr, err := fullURL(opts, repo.CloneURL)
-	if err != nil {
-		return err
-	}
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
@@ -138,7 +116,9 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
-		CloneAddr:      remoteAddr,
+		LFS:            opts.LFS,
+		LFSEndpoint:    opts.LFSEndpoint,
+		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
@@ -305,7 +285,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					}
 				}
 				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				return err
 			}()
 			if err != nil {
@@ -823,13 +803,20 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			var patch string
-			patchBuf := new(bytes.Buffer)
-			if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, patchBuf); err != nil {
-				// We should ignore the error since the commit maybe removed when force push to the pull request
-				log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
-			} else {
-				patch = git.CutDiffAroundLine(patchBuf, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
-			}
+			reader, writer := io.Pipe()
+			defer func() {
+				_ = reader.Close()
+				_ = writer.Close()
+			}()
+			go func() {
+				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
+					// We should ignore the error since the commit maybe removed when force push to the pull request
+					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
+				}
+				_ = writer.Close()
+			}()
+
+			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,

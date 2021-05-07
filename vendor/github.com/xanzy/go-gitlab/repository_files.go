@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package gitlab
 import (
 	"bytes"
 	"fmt"
-	"net/url"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -73,10 +73,10 @@ func (s *RepositoryFilesService) GetFile(pid interface{}, fileName string, opt *
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -111,10 +111,10 @@ func (s *RepositoryFilesService) GetFileMetaData(pid interface{}, fileName strin
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("HEAD", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodHead, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -188,10 +188,10 @@ func (s *RepositoryFilesService) GetFileBlame(pid interface{}, file string, opt 
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s/blame",
 		pathEscape(project),
-		url.PathEscape(file),
+		pathEscape(file),
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,10 +225,10 @@ func (s *RepositoryFilesService) GetRawFile(pid interface{}, fileName string, op
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s/raw",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -260,6 +260,7 @@ func (r FileInfo) String() string {
 // https://docs.gitlab.com/ce/api/repository_files.html#create-new-file-in-repository
 type CreateFileOptions struct {
 	Branch        *string `url:"branch,omitempty" json:"branch,omitempty"`
+	StartBranch   *string `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	Encoding      *string `url:"encoding,omitempty" json:"encoding,omitempty"`
 	AuthorEmail   *string `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string `url:"author_name,omitempty" json:"author_name,omitempty"`
@@ -279,10 +280,10 @@ func (s *RepositoryFilesService) CreateFile(pid interface{}, fileName string, op
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -302,6 +303,7 @@ func (s *RepositoryFilesService) CreateFile(pid interface{}, fileName string, op
 // https://docs.gitlab.com/ce/api/repository_files.html#update-existing-file-in-repository
 type UpdateFileOptions struct {
 	Branch        *string `url:"branch,omitempty" json:"branch,omitempty"`
+	StartBranch   *string `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	Encoding      *string `url:"encoding,omitempty" json:"encoding,omitempty"`
 	AuthorEmail   *string `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string `url:"author_name,omitempty" json:"author_name,omitempty"`
@@ -322,10 +324,10 @@ func (s *RepositoryFilesService) UpdateFile(pid interface{}, fileName string, op
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -364,10 +366,10 @@ func (s *RepositoryFilesService) DeleteFile(pid interface{}, fileName string, op
 	u := fmt.Sprintf(
 		"projects/%s/repository/files/%s",
 		pathEscape(project),
-		url.PathEscape(fileName),
+		pathEscape(fileName),
 	)
 
-	req, err := s.client.NewRequest("DELETE", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, opt, options)
 	if err != nil {
 		return nil, err
 	}
