@@ -12,7 +12,15 @@ trigger:
     - tag
     - pull_request
 
+clone:
+  disable: true
+
 steps:
+  - name: fetch
+    image: alpine/git
+    commands:
+    - git fetch --tags
+
   - name: deps-frontend
     pull: always
     image: node:14
