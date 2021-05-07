@@ -2180,6 +2180,10 @@ function searchRepositories() {
 }
 
 function showCodeViewMenu() {
+  if ($('.code-view-menu-list').length === 0) {
+    return;
+  }
+
   // Get clicked tr
   const $code_tr = $('.code-view td.lines-code.active').parent();
 
@@ -2834,6 +2838,11 @@ function selectRange($list, $select, $from) {
 
       // add hashchange to permalink
       const $issue = $('a.ref-in-new-issue');
+
+      if ($issue.length === 0) {
+        return;
+      }
+
       const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
       if (matched) {
         $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
@@ -2849,6 +2858,11 @@ function selectRange($list, $select, $from) {
 
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
+
+  if ($issue.length === 0) {
+    return;
+  }
+
   const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
   if (matched) {
     $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
