@@ -1455,24 +1455,26 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Watch{RepoID: repoID},
-		&Star{RepoID: repoID},
-		&Mirror{RepoID: repoID},
-		&Milestone{RepoID: repoID},
-		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
-		&RepoUnit{RepoID: repoID},
-		&RepoRedirect{RedirectRepoID: repoID},
-		&Webhook{RepoID: repoID},
-		&HookTask{RepoID: repoID},
-		&Notification{RepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&RepoIndexerStatus{RepoID: repoID},
-		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
-		&Task{RepoID: repoID},
+		&CommitStatus{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&HookTask{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
+		&Milestone{RepoID: repoID},
+		&Mirror{RepoID: repoID},
+		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
+		&PullRequest{BaseRepoID: repoID},
+		&Release{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
+		&Star{RepoID: repoID},
+		&Task{RepoID: repoID},
+		&Watch{RepoID: repoID},
+		&Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1485,10 +1487,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
-		return err
-	}
-
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
