@@ -15,7 +15,7 @@ function scrollToAnchor() {
   }
 }
 
-export default function initMarkdownAnchors() {
+export function initMarkupAnchors() {
   if (!document.querySelector('.markup')) return;
 
   for (const heading of document.querySelectorAll(headingSelector)) {

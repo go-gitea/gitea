@@ -11,19 +11,19 @@ import initClipboard from './features/clipboard.js';
 import initHeatmap from './features/heatmap.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
-import initMarkupAnchors from './markup/anchors.js';
-import renderMarkupContent from './markup/content.js';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
 import initTableSort from './features/tablesort.js';
 import initImageDiff from './features/imagediff.js';
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {createCodeEditor, createMonaco} from './features/codeeditor.js';
-import {svg, svgs} from './svg.js';
+import {renderMarkupContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
 
