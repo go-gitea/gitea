@@ -18,7 +18,7 @@ func TestCompareTag(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	selection := htmlDoc.doc.Find(".ui.choose.branch .filter.dropdown")
+	selection := htmlDoc.doc.Find(".choose.branch .filter.dropdown")
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 }

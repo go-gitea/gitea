@@ -1243,7 +1243,7 @@ async function initRepository() {
 
   // Compare or pull request
   const $repoDiff = $('.repository.diff');
-  if ($repoDiff.length > 0) {
+  if ($repoDiff.length) {
     initBranchOrTagDropdown('.choose.branch .dropdown');
     initFilterSearchDropdown('.choose.branch .dropdown');
   }
@@ -3443,8 +3443,8 @@ function initBranchOrTagDropdown(selector) {
   $(selector).each(function() {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
-      $dropdown.find('.scrolling.reference-list-menu').css('display', 'none');
-      $($(this).data('target')).css('display', 'block');
+      $dropdown.find('.scrolling.reference-list-menu').hide();
+      $($(this).data('target')).show();
       return false;
     });
   });
