@@ -139,7 +139,7 @@ func registerImapFetchUnReadMails() {
 		Schedule:   "@every 5m",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return imap.FetchAllUnReadMails()
-	}
+	})
 }
 
 func initExtendedTasks() {

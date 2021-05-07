@@ -59,7 +59,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCommentIssue,
-		Content: "test body", Comment: comment}, "en-US", tos, false, "issue comment")
+		Content: "test body", Comment: comment}, "en-US", tos, nil, false, "issue comment")
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 	gomailMsg := msgs[0].ToMessage()
@@ -94,7 +94,7 @@ func TestComposeIssueMessage(t *testing.T) {
 
 	tos := []string{"test@gitea.com", "test2@gitea.com"}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{Issue: issue, Doer: doer, ActionType: models.ActionCreateIssue,
-		Content: "test body"}, "en-US", tos, false, "issue create")
+		Content: "test body"}, "en-US", tos, nil, false, "issue create")
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 2)
 
@@ -221,7 +221,7 @@ func TestTemplateServices(t *testing.T) {
 }
 
 func testComposeIssueCommentMessage(t *testing.T, ctx *mailCommentContext, tos []string, fromMention bool, info string) *Message {
-	msgs, err := composeIssueCommentMessages(ctx, "en-US", tos, fromMention, info)
+	msgs, err := composeIssueCommentMessages(ctx, "en-US", tos, nil, fromMention, info)
 	assert.NoError(t, err)
 	assert.Len(t, msgs, 1)
 	return msgs[0]
