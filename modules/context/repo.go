@@ -724,7 +724,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) {
+func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) context.CancelFunc {
 	return func(ctx *Context) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
