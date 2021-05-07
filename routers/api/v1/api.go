@@ -712,7 +712,7 @@ func Routes() *web.Route {
 			m.Group("/{username}/{reponame}", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), context.RepoRefForAPI, bind(api.EditRepoOption{}), repo.Edit)
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
