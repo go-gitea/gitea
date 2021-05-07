@@ -206,7 +206,12 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			log.Debug("All queues are empty")
 			break
 		}
-		<-time.After(100 * time.Millisecond)
+		// Ensure there are always at least 100ms between loops but not more if we've actually been doing some flushign
+		// but don't delay cancellation here.
+		select {
+		case <-ctx.Done():
+		case <-time.After(100 * time.Millisecond):
+		}
 		wg.Wait()
 	}
 	return nil
