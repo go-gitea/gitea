@@ -163,8 +163,8 @@ func WebRoutes() *web.Route {
 	))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
-	routes.Route("/avatars", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
-	routes.Route("/repo-avatars", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
+	routes.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
 
 	// for health check - doeesn't need to be passed through gzip handler
 	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
@@ -410,6 +410,7 @@ func RegisterRoutes(m *web.Route) {
 		// TODO manage redirection
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
+	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	if setting.CORSConfig.Enabled {
 		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
 			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
@@ -912,8 +913,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/", repo.Releases)
 			m.Get("/tag/*", repo.SingleRelease)
 			m.Get("/latest", repo.LatestRelease)
-			m.Get("/attachments/{uuid}", repo.GetAttachment)
-		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag))
+		}, repo.MustBeNotEmpty, reqRepoReleaseReader, context.RepoRefByType(context.RepoRefTag, true))
+		m.Get("/releases/attachments/{uuid}", repo.GetAttachment, repo.MustBeNotEmpty, reqRepoReleaseReader)
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", bindIgnErr(forms.NewReleaseForm{}), repo.NewReleasePost)

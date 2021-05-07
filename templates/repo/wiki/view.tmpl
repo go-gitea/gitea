@@ -61,7 +61,7 @@
 			</div>
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markdown">
+			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markup">
 				{{.content | Str2html}}
 			</div>
 			{{if .sidebarPresent}}
