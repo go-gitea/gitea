@@ -40,7 +40,7 @@ func TestLevelQueue(t *testing.T) {
 				BatchLength:  2,
 				BlockTimeout: 1 * time.Second,
 				BoostTimeout: 5 * time.Minute,
-				BoostWorkers: 5,
+				BoostWorkers: 0,
 				MaxWorkers:   10,
 			},
 			Workers: 1,
@@ -71,10 +71,6 @@ func TestLevelQueue(t *testing.T) {
 
 	result1 := <-handleChan
 	result2 := <-handleChan
-
-	if result1.TestString != test1.TestString {
-		result1, result2 = result2, result1
-	}
 
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
@@ -118,7 +114,7 @@ func TestLevelQueue(t *testing.T) {
 						BatchLength:  2,
 						BlockTimeout: 1 * time.Second,
 						BoostTimeout: 5 * time.Minute,
-						BoostWorkers: 5,
+						BoostWorkers: 0,
 						MaxWorkers:   10,
 					},
 					Workers: 1,
@@ -139,10 +135,11 @@ func TestLevelQueue(t *testing.T) {
 	})
 
 	result3 := <-handleChan
+	result4 := <-handleChan
+
 	assert.Equal(t, test1.TestString, result3.TestString)
 	assert.Equal(t, test1.TestInt, result3.TestInt)
 
-	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
 
