@@ -136,18 +136,18 @@ func RandomInt(limit int64) (int64, error) {
 	return int.Int64(), nil
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 // RandomString generates a random alphanumerical string
 func RandomString(length int64) (string, error) {
-	runes := make([]rune, length)
+	bytes := make([]byte, length)
 	limit := int64(len(letters))
-	for i := range runes {
+	for i := range bytes {
 		num, err := RandomInt(limit)
 		if err != nil {
 			return "", err
 		}
-		runes[i] = letters[num]
+		bytes[i] = letters[num]
 	}
-	return string(runes), nil
+	return string(bytes), nil
 }
