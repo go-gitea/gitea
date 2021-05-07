@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
-	"image/png"
 	"net/http"
 	"net/url"
 	"os"
