@@ -219,8 +219,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES)
-	rm -rf node_modules
+	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean:
