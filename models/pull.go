@@ -254,7 +254,6 @@ func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
 
 // GetApprovers returns the approvers of the pull request
 func (pr *PullRequest) GetApprovers() string {
-
 	stringBuilder := strings.Builder{}
 	if err := pr.getReviewedByLines(&stringBuilder); err != nil {
 		log.Error("Unable to getReviewedByLines: Error: %v", err)
@@ -420,7 +419,8 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
@@ -517,7 +517,7 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 }
 
 // GetPullRequestByIndex returns a pull request by the given index
-func GetPullRequestByIndex(repoID int64, index int64) (*PullRequest, error) {
+func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,

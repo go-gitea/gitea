@@ -14,7 +14,10 @@
 
 package propagation // import "go.opentelemetry.io/otel/propagation"
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
 // TextMapCarrier is the storage medium used by a TextMapPropagator.
 type TextMapCarrier interface {
@@ -22,6 +25,30 @@ type TextMapCarrier interface {
 	Get(key string) string
 	// Set stores the key-value pair.
 	Set(key string, value string)
+	// Keys lists the keys stored in this carrier.
+	Keys() []string
+}
+
+// HeaderCarrier adapts http.Header to satisfy the TextMapCarrier interface.
+type HeaderCarrier http.Header
+
+// Get returns the value associated with the passed key.
+func (hc HeaderCarrier) Get(key string) string {
+	return http.Header(hc).Get(key)
+}
+
+// Set stores the key-value pair.
+func (hc HeaderCarrier) Set(key string, value string) {
+	http.Header(hc).Set(key, value)
+}
+
+// Keys lists the keys stored in this carrier.
+func (hc HeaderCarrier) Keys() []string {
+	keys := make([]string, 0, len(hc))
+	for k := range hc {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // TextMapPropagator propagates cross-cutting concerns as key-value text

@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "repo/sub_menu" .}}
 		<div class="ui secondary stackable menu mobile--margin-between-items">
-		{{template "repo/branch_dropdown" .}}
+		{{template "repo/branch_dropdown" dict "root" .}}
 			<div class="fitted item">
 				<a href="{{.RepoLink}}/graph" class="ui basic small compact button">
 					<span class="text">

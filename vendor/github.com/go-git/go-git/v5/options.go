@@ -60,6 +60,10 @@ type CloneOptions struct {
 	// Tags describe how the tags will be fetched from the remote repository,
 	// by default is AllTags.
 	Tags TagMode
+	// InsecureSkipTLS skips ssl verify if protocol is https
+	InsecureSkipTLS bool
+	// CABundle specify additional ca bundle with system cert pool
+	CABundle []byte
 }
 
 // Validate validates the fields and sets the default values.
@@ -105,6 +109,10 @@ type PullOptions struct {
 	// Force allows the pull to update a local branch even when the remote
 	// branch does not descend from it.
 	Force bool
+	// InsecureSkipTLS skips ssl verify if protocol is https
+	InsecureSkipTLS bool
+	// CABundle specify additional ca bundle with system cert pool
+	CABundle []byte
 }
 
 // Validate validates the fields and sets the default values.
@@ -155,6 +163,10 @@ type FetchOptions struct {
 	// Force allows the fetch to update a local branch even when the remote
 	// branch does not descend from it.
 	Force bool
+	// InsecureSkipTLS skips ssl verify if protocol is https
+	InsecureSkipTLS bool
+	// CABundle specify additional ca bundle with system cert pool
+	CABundle []byte
 }
 
 // Validate validates the fields and sets the default values.
@@ -194,6 +206,13 @@ type PushOptions struct {
 	// Force allows the push to update a remote branch even when the local
 	// branch does not descend from it.
 	Force bool
+	// InsecureSkipTLS skips ssl verify if protocal is https
+	InsecureSkipTLS bool
+	// CABundle specify additional ca bundle with system cert pool
+	CABundle []byte
+	// RequireRemoteRefs only allows a remote ref to be updated if its current
+	// value is the one specified here.
+	RequireRemoteRefs []config.RefSpec
 }
 
 // Validate validates the fields and sets the default values.
@@ -552,6 +571,10 @@ func (o *CreateTagOptions) loadConfigTagger(r *Repository) error {
 type ListOptions struct {
 	// Auth credentials, if required, to use with the remote repository.
 	Auth transport.AuthMethod
+	// InsecureSkipTLS skips ssl verify if protocal is https
+	InsecureSkipTLS bool
+	// CABundle specify additional ca bundle with system cert pool
+	CABundle []byte
 }
 
 // CleanOptions describes how a clean should be performed.

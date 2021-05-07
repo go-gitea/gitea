@@ -1,13 +1,13 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
   <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/master">
+    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
@@ -16,7 +16,7 @@
     <img src="https://images.microbadger.com/badges/image/gitea/gitea.svg">
   </a>
   <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
-    <img src="https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg">
+    <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
   <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
@@ -77,13 +77,11 @@ or if sqlite support is required:
 The `build` target is split into two sub-targets:
 
 - `make backend` which requires [Go 1.13](https://golang.org/dl/) or greater.
-- `make frontend` which requires [Node.js 10.13](https://nodejs.org/en/download/) or greater.
+- `make frontend` which requires [Node.js 12.17](https://nodejs.org/en/download/) or greater and Internet connectivity to download npm dependencies.
 
-If pre-built frontend files are present it is possible to only build the backend:
+When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
 
-    TAGS="bindata" make backend
-
-Parallelism is not supported for these targets, so please don't include `-j <num>`.
+Parallelism (`make -j <num>`) is not supported.
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 
@@ -152,7 +150,7 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 ## License
 
 This project is licensed under the MIT License.
-See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file
+See the [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) file
 for the full license text.
 
 ## Screenshots

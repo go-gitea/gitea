@@ -6,7 +6,6 @@
 package models
 
 import (
-	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
@@ -16,11 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-)
-
-var (
-	// ErrEmailAddressNotExist email address not exist
-	ErrEmailAddressNotExist = errors.New("Email address does not exist")
 )
 
 // EmailAddress is the list of all email addresses of a user. Can contain the
@@ -231,7 +225,7 @@ func (email *EmailAddress) updateActivation(e Engine, activate bool) error {
 func DeleteEmailAddress(email *EmailAddress) (err error) {
 	var deleted int64
 	// ask to check UID
-	var address = EmailAddress{
+	address := EmailAddress{
 		UID: email.UID,
 	}
 	if email.ID > 0 {
@@ -245,7 +239,7 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 	if err != nil {
 		return err
 	} else if deleted != 1 {
-		return ErrEmailAddressNotExist
+		return ErrEmailAddressNotExist{Email: email.Email}
 	}
 	return nil
 }

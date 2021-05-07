@@ -12,6 +12,9 @@ import (
 
 // AdminCreateRepo create a repo
 func (c *Client) AdminCreateRepo(user string, opt CreateRepoOption) (*Repository, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err

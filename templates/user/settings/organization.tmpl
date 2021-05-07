@@ -17,7 +17,7 @@
 					{{range .Orgs}}
 					<div class="item">
 						<div class="right floated content">
-							<form method="post" action="{{AppSubUrl}}/org/{{.Name}}/members/action/leave">
+							<form method="post" action="{{.OrganisationLink}}/members/action/leave">
 								{{$.CsrfTokenHtml}}
 								<button type="submit" class="ui blue small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
 							</form>

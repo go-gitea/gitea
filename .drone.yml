@@ -70,11 +70,17 @@ steps:
       - make checks-backend
     depends_on: [lint-backend]
 
+  - name: test-frontend
+    image: node:14
+    commands:
+      - make test-frontend
+    depends_on: [lint-frontend]
+
   - name: build-frontend
     image: node:14
     commands:
       - make frontend
-    depends_on: [lint-frontend]
+    depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
     pull: always
@@ -168,7 +174,7 @@ services:
     image: elasticsearch:7.5.0
 
   - name: minio
-    image: minio/minio:RELEASE.2021-01-16T02-19-44Z
+    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
     commands:
     - minio server /data
     environment:
@@ -271,7 +277,7 @@ steps:
       - test-mysql
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -288,7 +294,7 @@ steps:
       - generate-coverage
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -377,7 +383,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -437,7 +443,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -476,7 +482,7 @@ workspace:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
@@ -495,7 +501,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -539,7 +545,7 @@ steps:
       event:
         - push
 
-  - name: release-master
+  - name: release-main
     image: plugins/s3:1
     settings:
       acl: public-read
@@ -548,7 +554,7 @@ steps:
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
-      target: /gitea/master
+      target: /gitea/main
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: aws_access_key_id
@@ -556,7 +562,7 @@ steps:
         from_secret: aws_secret_access_key
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -591,7 +597,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -677,7 +683,7 @@ steps:
         from_secret: netlify_token
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -695,7 +701,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -792,7 +798,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -880,7 +886,7 @@ steps:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -903,7 +909,7 @@ clone:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push

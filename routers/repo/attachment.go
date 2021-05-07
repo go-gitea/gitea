@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -29,13 +30,13 @@ func UploadReleaseAttachment(ctx *context.Context) {
 // UploadAttachment response for uploading attachments
 func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	if !setting.Attachment.Enabled {
-		ctx.Error(404, "attachment is not enabled")
+		ctx.Error(http.StatusNotFound, "attachment is not enabled")
 		return
 	}
 
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.Error(500, fmt.Sprintf("FormFile: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
 		return
 	}
 	defer file.Close()
@@ -48,7 +49,7 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 
 	err = upload.Verify(buf, header.Filename, allowedTypes)
 	if err != nil {
-		ctx.Error(400, err.Error())
+		ctx.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -57,12 +58,12 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 		Name:       header.Filename,
 	}, buf, file)
 	if err != nil {
-		ctx.Error(500, fmt.Sprintf("NewAttachment: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
 		return
 	}
 
 	log.Trace("New attachment uploaded: %s", attach.UUID)
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": attach.UUID,
 	})
 }
@@ -72,19 +73,19 @@ func DeleteAttachment(ctx *context.Context) {
 	file := ctx.Query("file")
 	attach, err := models.GetAttachmentByUUID(file)
 	if err != nil {
-		ctx.Error(400, err.Error())
+		ctx.Error(http.StatusBadRequest, err.Error())
 		return
 	}
 	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
-		ctx.Error(403)
+		ctx.Error(http.StatusForbidden)
 		return
 	}
 	err = models.DeleteAttachment(attach, true)
 	if err != nil {
-		ctx.Error(500, fmt.Sprintf("DeleteAttachment: %v", err))
+		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
 		return
 	}
-	ctx.JSON(200, map[string]string{
+	ctx.JSON(http.StatusOK, map[string]string{
 		"uuid": attach.UUID,
 	})
 }
@@ -94,7 +95,7 @@ func GetAttachment(ctx *context.Context) {
 	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
 		}
@@ -124,19 +125,23 @@ func GetAttachment(ctx *context.Context) {
 		}
 	}
 
+	if err := attach.IncreaseDownloadCount(); err != nil {
+		ctx.ServerError("IncreaseDownloadCount", err)
+		return
+	}
+
 	if setting.Attachment.ServeDirect {
 		//If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
 		if u != nil && err == nil {
-			if err := attach.IncreaseDownloadCount(); err != nil {
-				ctx.ServerError("Update", err)
-				return
-			}
-
 			ctx.Redirect(u.String())
 			return
 		}
+	}
+
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+attach.UUID+`"`) {
+		return
 	}
 
 	//If we have matched and access to release or issue
@@ -146,11 +151,6 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 	defer fr.Close()
-
-	if err := attach.IncreaseDownloadCount(); err != nil {
-		ctx.ServerError("Update", err)
-		return
-	}
 
 	if err = ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
 		ctx.ServerError("ServeData", err)

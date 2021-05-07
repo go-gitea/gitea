@@ -6,7 +6,6 @@ package integrations
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,9 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
@@ -245,7 +244,14 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s",
 			owner, repo, index, ctx.Token)
 		req := NewRequest(t, http.MethodGet, urlStr)
-		resp := ctx.Session.MakeRequest(t, req, 200)
+
+		expected := 200
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.Session.MakeRequest(t, req, expected)
+
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -257,7 +263,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			MergeMessageField: "doAPIMergePullRequest Merge",
 			Do:                string(models.MergeStyleMerge),
 		})
@@ -269,7 +275,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 			DecodeJSON(t, resp, &err)
 			assert.EqualValues(t, "Please try again later", err.Message)
 			queue.GetManager().FlushAll(context.Background(), 5*time.Second)
-			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+			req = NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 				MergeMessageField: "doAPIMergePullRequest Merge",
 				Do:                string(models.MergeStyleMerge),
 			})
@@ -292,7 +298,7 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &auth.MergePullRequestForm{
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			Do:            string(models.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
 		})

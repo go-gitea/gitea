@@ -213,7 +213,7 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
@@ -226,6 +226,23 @@ func (ctx *Context) notFoundInternal(title string, err error) {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
 		if !setting.IsProd() {
 			ctx.Data["ErrorMsg"] = err
+		}
+	}
+
+	// response simple meesage if Accept isn't text/html
+	reqTypes, has := ctx.Req.Header["Accept"]
+	if has && len(reqTypes) > 0 {
+		notHTML := true
+		for _, part := range reqTypes {
+			if strings.Contains(part, "text/html") {
+				notHTML = false
+				break
+			}
+		}
+
+		if notHTML {
+			ctx.PlainText(404, []byte("Not found.\n"))
+			return
 		}
 	}
 
@@ -675,6 +692,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
@@ -687,8 +705,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 
 			ctx.Data["ManifestData"] = setting.ManifestData
+
+			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr
