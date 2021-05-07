@@ -69,7 +69,7 @@ function initEditPreviewTab($form) {
       let context = `${$this.data('context')}/`;
       const mode = $this.data('markdown-mode') || 'comment';
       const treePathEl = $form.find('input#tree_path');
-      if (treePathEl.length > 0) {
+      if (treePathEl.length) {
         context += treePathEl.val();
       }
       context = context.substring(0, context.lastIndexOf('/'));
@@ -266,13 +266,13 @@ function initReactionSelector(parent) {
       if (resp && (resp.html || resp.empty)) {
         const content = $(this).closest('.content');
         let react = content.find('.segment.reactions');
-        if ((!resp.empty || resp.html === '') && react.length > 0) {
+        if ((!resp.empty || resp.html === '') && react.length) {
           react.remove();
         }
         if (!resp.empty) {
           react = $('<div class="ui attached segment reactions"></div>');
           const attachments = content.find('.segment.bottom:first');
-          if (attachments.length > 0) {
+          if (attachments.length) {
             react.insertBefore(attachments);
           } else {
             react.appendTo(content);
@@ -776,23 +776,23 @@ async function initRepository() {
     $(this)
       .popup({
         on: 'click',
-        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+        position: ($('.repository.file.list').length ? 'right center' : 'left center'),
       });
   });
 
   // File list and commits
-  if ($('.repository.file.list').length > 0 ||
-    $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
+  if ($('.repository.file.list').length ||
+    $('.repository.commits').length || $('.repository.release').length) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
   }
 
   // Wiki
-  if ($('.repository.wiki.view').length > 0) {
+  if ($('.repository.wiki.view').length) {
     initFilterSearchDropdown('.choose.page .dropdown');
   }
 
   // Options
-  if ($('.repository.settings.options').length > 0) {
+  if ($('.repository.settings.options').length) {
     // Enable or select internal/external wiki system and issue tracker.
     $('.enable-system').on('change', function () {
       if (this.checked) {
@@ -815,12 +815,12 @@ async function initRepository() {
   }
 
   // Labels
-  if ($('.repository.labels').length > 0) {
+  if ($('.repository.labels').length) {
     initLabelEdit();
   }
 
   // Milestones
-  if ($('.repository.new.milestone').length > 0) {
+  if ($('.repository.new.milestone').length) {
     $('#clear-date').on('click', () => {
       $('#deadline').val('');
       return false;
@@ -828,7 +828,7 @@ async function initRepository() {
   }
 
   // Repo Creation
-  if ($('.repository.new.repo').length > 0) {
+  if ($('.repository.new.repo').length) {
     $('input[name="gitignores"], input[name="license"]').on('change', () => {
       const gitignores = $('input[name="gitignores"]').val();
       const license = $('input[name="license"]').val();
@@ -839,7 +839,7 @@ async function initRepository() {
   }
 
   // Issues
-  if ($('.repository.view.issue').length > 0) {
+  if ($('.repository.view.issue').length) {
     // Edit issue title
     const $issueTitle = $('#issue-title');
     const $editInput = $('#edit-title-input input');
@@ -982,7 +982,7 @@ async function initRepository() {
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
         const $files = $editContentZone.find('.comment-files');
-        if ($dropzone.length > 0) {
+        if ($dropzone.length) {
           $dropzone.data('saved', false);
 
           const filenameDict = {};
@@ -1173,7 +1173,7 @@ async function initRepository() {
     // Cancel inline code comment
     $(document).on('click', '.cancel-code-comment', (e) => {
       const form = $(e.currentTarget).closest('form');
-      if (form.length > 0 && form.hasClass('comment-form')) {
+      if (form.length && form.hasClass('comment-form')) {
         form.addClass('hide');
         form.parent().find('button.comment-form-reply').show();
       } else {
@@ -1232,7 +1232,7 @@ async function initRepository() {
     $('.clone-url').text($(this).data('link'));
     $('#repo-clone-url').val($(this).data('link'));
     $(this).addClass('primary');
-    if ($('#repo-clone-ssh').length > 0) {
+    if ($('#repo-clone-ssh').length) {
       $('#repo-clone-ssh').removeClass('primary');
       localStorage.setItem('repo-clone-protocol', 'https');
     }
@@ -1250,7 +1250,7 @@ async function initRepository() {
 
   // Pull request
   const $repoComparePull = $('.repository.compare.pull');
-  if ($repoComparePull.length > 0) {
+  if ($repoComparePull.length) {
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
@@ -1261,7 +1261,7 @@ async function initRepository() {
   }
 
   // Branches
-  if ($('.repository.settings.branches').length > 0) {
+  if ($('.repository.settings.branches').length) {
     initFilterSearchDropdown('.protected-branches .dropdown');
     $('.enable-protection, .enable-whitelist, .enable-statuscheck').on('change', function () {
       if (this.checked) {
@@ -1278,7 +1278,7 @@ async function initRepository() {
   }
 
   // Language stats
-  if ($('.language-stats').length > 0) {
+  if ($('.language-stats').length) {
     $('.language-stats').on('click', (e) => {
       e.preventDefault();
       $('.language-stats-details, .repository-menu').slideToggle();
@@ -1459,7 +1459,7 @@ function initWikiForm() {
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
   let hasSimpleMDE = true;
-  if ($editArea.length > 0) {
+  if ($editArea.length) {
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
       element: $editArea[0],
@@ -1726,7 +1726,7 @@ async function initEditor() {
     let value;
     let parts;
 
-    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length > 0) {
+    if (e.keyCode === 8 && $(this).getCursorPosition() === 0 && $section.length) {
       value = $section.last().find('a').text();
       $(this).val(value + $(this).val());
       $(this)[0].setSelectionRange(value.length, value.length);
@@ -1821,7 +1821,7 @@ function initOrganization() {
   }
 
   // Options
-  if ($('.organization.settings.options').length > 0) {
+  if ($('.organization.settings.options').length) {
     $('#org_name').on('keyup', function () {
       const $prompt = $('#org-name-change-prompt');
       const $prompt_redirect = $('#org-name-change-redirect-prompt');
@@ -1836,14 +1836,14 @@ function initOrganization() {
   }
 
   // Labels
-  if ($('.organization.settings.labels').length > 0) {
+  if ($('.organization.settings.labels').length) {
     initLabelEdit();
   }
 }
 
 function initUserSettings() {
   // Options
-  if ($('.user.settings.profile').length > 0) {
+  if ($('.user.settings.profile').length) {
     $('#username').on('keyup', function () {
       const $prompt = $('#name-change-prompt');
       const $prompt_redirect = $('#name-change-redirect-prompt');
@@ -1909,7 +1909,7 @@ function initAdmin() {
   }
 
   // New user
-  if ($('.admin.new.user').length > 0 || $('.admin.edit.user').length > 0) {
+  if ($('.admin.new.user').length || $('.admin.edit.user').length) {
     $('#login_type').on('change', function () {
       if ($(this).val().substring(0, 1) === '0') {
         $('#user_name').removeAttr('disabled');
@@ -1934,7 +1934,7 @@ function initAdmin() {
   }
 
   function onSecurityProtocolChange() {
-    if ($('#security_protocol').val() > 0) {
+    if ($('#security_protocol').val()) {
       $('.has-tls').show();
     } else {
       $('.has-tls').hide();
@@ -2016,7 +2016,7 @@ function initAdmin() {
   }
 
   // New authentication
-  if ($('.admin.new.authentication').length > 0) {
+  if ($('.admin.new.authentication').length) {
     $('#auth_type').on('change', function () {
       $('.ldap, .dldap, .smtp, .pam, .oauth2, .has-tls, .search-page-size, .sspi').hide();
 
@@ -2069,7 +2069,7 @@ function initAdmin() {
     $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
-  if ($('.admin.edit.authentication').length > 0) {
+  if ($('.admin.edit.authentication').length) {
     const authType = $('#auth_type').val();
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
@@ -2149,7 +2149,7 @@ function searchUsers() {
         const items = [];
         $.each(response.data, (_i, item) => {
           let title = item.login;
-          if (item.full_name && item.full_name.length > 0) {
+          if (item.full_name && item.full_name.length) {
             title += ` (${htmlEscape(item.full_name)})`;
           }
           items.push({
@@ -2257,7 +2257,7 @@ function showCodeViewMenu() {
 }
 
 function initCodeView() {
-  if ($('.code-view .lines-num').length > 0) {
+  if ($('.code-view .lines-num').length) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
       let $list;
@@ -2648,7 +2648,7 @@ $(document).ready(async () => {
 
   // Dropzone
   const $dropzone = $('#dropzone');
-  if ($dropzone.length > 0) {
+  if ($dropzone.length) {
     const filenameDict = {};
 
     await createDropzone('#dropzone', {
@@ -2721,8 +2721,7 @@ $(document).ready(async () => {
   });
 
   $('.issue-checkbox').on('click', () => {
-    const numChecked = $('.issue-checkbox').children('input:checked').length;
-    if (numChecked > 0) {
+    if ($('.issue-checkbox').children('input:checked').length) {
       $('#issue-filters').addClass('hide');
       $('#issue-actions').removeClass('hide');
     } else {
@@ -2824,7 +2823,7 @@ $(document).ready(async () => {
   };
 
   for (const [selector, fn] of Object.entries(routes)) {
-    if ($(selector).length > 0) {
+    if ($(selector).length) {
       fn();
       break;
     }
@@ -3162,7 +3161,7 @@ function initVueComponents() {
 
     computed: {
       showMoreReposLink() {
-        return this.repos.length > 0 && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
+        return this.repos.length && this.repos.length < this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`];
       },
       searchURL() {
         return `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=${this.searchQuery
@@ -3692,7 +3691,7 @@ function initTopicbar() {
       }
     }).fail((xhr) => {
       if (xhr.status === 422) {
-        if (xhr.responseJSON.invalidTopics.length > 0) {
+        if (xhr.responseJSON.invalidTopics.length) {
           topicPrompts.formatPrompt = xhr.responseJSON.message;
 
           const {invalidTopics} = xhr.responseJSON;
@@ -3761,10 +3760,10 @@ function initTopicbar() {
           formattedResponse.success = found;
         }
 
-        if (query.length > 0 && !found_query) {
+        if (query && !found_query) {
           formattedResponse.success = true;
           formattedResponse.results.unshift({description: query, 'data-value': query});
-        } else if (query.length > 0 && found_query) {
+        } else if (query && found_query) {
           formattedResponse.results.sort((a, b) => {
             if (a.description.toLowerCase() === query.toLowerCase()) return -1;
             if (b.description.toLowerCase() === query.toLowerCase()) return 1;
@@ -3927,7 +3926,7 @@ function initIssueList() {
   $('.menu .ui.dropdown.label-filter').on('keydown', (e) => {
     if (e.altKey && e.keyCode === 13) {
       const selectedItems = $('.menu .ui.dropdown.label-filter .menu .item.selected');
-      if (selectedItems.length > 0) {
+      if (selectedItems.length) {
         excludeLabel($(selectedItems[0]));
       }
     }

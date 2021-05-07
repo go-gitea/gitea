@@ -44,7 +44,7 @@ export default async function initImageDiff() {
     }];
 
     for (const info of imageInfos) {
-      if (info.$image.length > 0) {
+      if (info.$image.length) {
         info.$image.on('load', () => {
           info.loaded = true;
           setReadyIfLoaded();
@@ -66,7 +66,7 @@ export default async function initImageDiff() {
 
     function initViews($imageAfter, $imageBefore) {
       initSideBySide(createContext($imageAfter[0], $imageBefore[0]));
-      if ($imageAfter.length > 0 && $imageBefore.length > 0) {
+      if ($imageAfter.length && $imageBefore.length) {
         initSwipe(createContext($imageAfter[1], $imageBefore[1]));
         initOverlay(createContext($imageAfter[2], $imageBefore[2]));
       }

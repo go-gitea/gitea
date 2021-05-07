@@ -34,7 +34,7 @@ function issuePopup(owner, repo, index, $element) {
       }
       labels += `<div class="ui label" style="color: ${color}; background-color:#${label.color};">${htmlEscape(label.name)}</div>`;
     }
-    if (labels.length > 0) {
+    if (labels.length) {
       labels = `<p>${labels}</p>`;
     }
 

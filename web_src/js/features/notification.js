@@ -133,7 +133,7 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 
 async function updateNotificationTable() {
   const notificationDiv = $('#notification_div');
-  if (notificationDiv.length > 0) {
+  if (notificationDiv.length) {
     const data = await $.ajax({
       type: 'GET',
       url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,

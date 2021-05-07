@@ -22,7 +22,7 @@ export default function initMigration() {
   const $cloneAddr = $('#clone_addr');
   $cloneAddr.on('change', () => {
     const $repoName = $('#repo_name');
-    if ($cloneAddr.val().length > 0 && $repoName.val().length === 0) { // Only modify if repo_name input is blank
+    if ($cloneAddr.val() && !$repoName.val()) { // Only modify if repo_name input is blank
       $repoName.val($cloneAddr.val().match(/^(.*\/)?((.+?)(\.git)?)$/)[3]);
     }
   });
