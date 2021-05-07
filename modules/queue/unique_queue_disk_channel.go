@@ -181,6 +181,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 	}
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
+	_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 
 	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len(luq.shutdownCtx) != 0 {
 		// Just run the level queue - we shut it down once it's flushed
@@ -197,9 +198,6 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 		GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
 	}
 
-	go func() {
-		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
-	}()
 }
 
 // Flush flushes the queue

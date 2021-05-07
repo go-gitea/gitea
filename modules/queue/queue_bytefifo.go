@@ -115,9 +115,7 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
 	atTerminate(q.Terminate)
 	log.Debug("%s: %s Starting", q.typ, q.name)
 
-	go func() {
-		_ = q.AddWorkers(q.workers, 0)
-	}()
+	_ = q.AddWorkers(q.workers, 0)
 
 	log.Trace("%s: %s Now running", q.typ, q.name)
 	q.readToChan()

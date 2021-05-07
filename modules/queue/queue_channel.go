@@ -69,9 +69,7 @@ func (q *ChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("ChannelQueue: %s Starting", q.name)
-	go func() {
-		_ = q.AddWorkers(q.workers, 0)
-	}()
+	_ = q.AddWorkers(q.workers, 0)
 }
 
 // Push will push data into the queue

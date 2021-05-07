@@ -135,6 +135,7 @@ func (q *PersistableChannelQueue) Push(data Data) error {
 // Run starts to run the queue
 func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 	log.Debug("PersistableChannelQueue: %s Starting", q.delayedStarter.name)
+	_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 
 	q.lock.Lock()
 	if q.internal == nil {
@@ -173,9 +174,6 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 		GetManager().Remove(q.internal.(*LevelQueue).qid)
 	}
 
-	go func() {
-		_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
-	}()
 }
 
 // Flush flushes the queue and blocks till the queue is empty
