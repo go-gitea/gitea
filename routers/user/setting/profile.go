@@ -89,11 +89,6 @@ func ProfilePost(ctx *context.Context) {
 		return
 	}
 
-	handleUsernameChange(ctx, form.Name)
-	if ctx.Written() {
-		return
-	}
-
 	ctx.User.FullName = form.FullName
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
