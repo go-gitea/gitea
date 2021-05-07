@@ -70,10 +70,15 @@ func TestLevelQueue(t *testing.T) {
 	}()
 
 	result1 := <-handleChan
+	result2 := <-handleChan
+
+	if result1.TestString != test1.TestString {
+		result1, result2 = result2, result1
+	}
+
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
 
-	result2 := <-handleChan
 	assert.Equal(t, test2.TestString, result2.TestString)
 	assert.Equal(t, test2.TestInt, result2.TestInt)
 
