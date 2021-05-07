@@ -1,6 +1,6 @@
 import {svg} from '../svg.js';
 
-const headingSelector = '.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6';
+const headingSelector = '.markup h1, .markup h2, .markup h3, .markup h4, .markup h5, .markup h6';
 
 function scrollToAnchor() {
   if (document.querySelector(':target')) return;
@@ -15,8 +15,8 @@ function scrollToAnchor() {
   }
 }
 
-export default function initMarkdownAnchors() {
-  if (!document.querySelector('.markdown')) return;
+export function initMarkupAnchors() {
+  if (!document.querySelector('.markup')) return;
 
   for (const heading of document.querySelectorAll(headingSelector)) {
     const originalId = heading.id.replace(/^user-content-/, '');
