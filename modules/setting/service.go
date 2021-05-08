@@ -77,7 +77,7 @@ func newService() {
 	Service.AllowOnlyInternalRegistration = sec.Key("ALLOW_ONLY_INTERNAL_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
 	if Service.AllowOnlyExternalRegistration && Service.AllowOnlyInternalRegistration {
-		log.Warn("ALLOW_ONLY_INTERNAL_REGISTRATION and ALLOW_ONLY_EXTERNAL_REGISTRATION are ture, disable registration")
+		log.Warn("ALLOW_ONLY_INTERNAL_REGISTRATION and ALLOW_ONLY_EXTERNAL_REGISTRATION are true - disabling registration")
 		Service.DisableRegistration = true
 	}
 	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
