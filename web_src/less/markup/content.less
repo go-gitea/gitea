@@ -1,4 +1,4 @@
-.markdown:not(code) {
+.markup {
   overflow: hidden;
   font-size: 16px;
   line-height: 1.5 !important;
@@ -290,7 +290,7 @@
   }
 
   table tr:nth-child(2n) {
-    background-color: var(--color-markdown-table-row);
+    background-color: var(--color-markup-table-row);
   }
 
   img {
@@ -404,7 +404,7 @@
     padding: .2em .4em;
     margin: 0;
     font-size: 85%;
-    background-color: var(--color-markdown-code-block);
+    background-color: var(--color-markup-code-block);
     border-radius: 4px;
   }
 
@@ -437,7 +437,7 @@
     padding: 16px;
     font-size: 85%;
     line-height: 1.45;
-    background-color: var(--color-markdown-code-block);
+    background-color: var(--color-markup-code-block);
     border-radius: 4px;
   }
 
@@ -477,7 +477,7 @@
     line-height: 10px;
     color: var(--color-text-light);
     vertical-align: middle;
-    background-color: var(--color-markdown-code-block);
+    background-color: var(--color-markup-code-block);
     border: 1px solid var(--color-secondary);
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 var(--color-secondary);
@@ -523,7 +523,7 @@
   }
 }
 
-.markdown-block-error {
+.markup-block-error {
   margin-bottom: 0 !important;
   border-bottom-left-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
@@ -534,7 +534,7 @@
   text-align: left !important;
 }
 
-.markdown-block-error + pre {
+.markup-block-error + pre {
   border-top: none !important;
   margin-top: 0 !important;
   border-top-left-radius: 0 !important;
