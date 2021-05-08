@@ -27,13 +27,13 @@ type ChannelQueueConfiguration struct {
 // It is basically a very thin wrapper around a WorkerPool
 type ChannelQueue struct {
 	*WorkerPool
-	shutdownCtx     context.Context
-	shutdownCancel  context.CancelFunc
-	terminateCtx    context.Context
-	terminateCancel context.CancelFunc
-	exemplar        interface{}
-	workers         int
-	name            string
+	shutdownCtx        context.Context
+	shutdownCtxCancel  context.CancelFunc
+	terminateCtx       context.Context
+	terminateCtxCancel context.CancelFunc
+	exemplar           interface{}
+	workers            int
+	name               string
 }
 
 // NewChannelQueue creates a memory channel queue
@@ -47,18 +47,18 @@ func NewChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, erro
 		config.BatchLength = 1
 	}
 
-	terminateCtx, terminateCancel := context.WithCancel(context.Background())
-	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
+	terminateCtx, terminateCtxCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	queue := &ChannelQueue{
-		WorkerPool:      NewWorkerPool(handle, config.WorkerPoolConfiguration),
-		shutdownCtx:     shutdownCtx,
-		shutdownCancel:  shutdownCancel,
-		terminateCtx:    terminateCtx,
-		terminateCancel: terminateCancel,
-		exemplar:        exemplar,
-		workers:         config.Workers,
-		name:            config.Name,
+		WorkerPool:         NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		shutdownCtx:        shutdownCtx,
+		shutdownCtxCancel:  shutdownCtxCancel,
+		terminateCtx:       terminateCtx,
+		terminateCtxCancel: terminateCtxCancel,
+		exemplar:           exemplar,
+		workers:            config.Workers,
+		name:               config.Name,
 	}
 	queue.qid = GetManager().Add(queue, ChannelQueueType, config, exemplar)
 	return queue, nil
@@ -100,7 +100,7 @@ func (q *ChannelQueue) Shutdown() {
 		}
 		log.Debug("ChannelQueue: %s Flushed", q.name)
 	}()
-	q.shutdownCancel()
+	q.shutdownCtxCancel()
 	log.Debug("ChannelQueue: %s Shutdown", q.name)
 }
 
@@ -113,7 +113,7 @@ func (q *ChannelQueue) Terminate() {
 		return
 	default:
 	}
-	q.terminateCancel()
+	q.terminateCtxCancel()
 	log.Debug("ChannelQueue: %s Terminated", q.name)
 }
 

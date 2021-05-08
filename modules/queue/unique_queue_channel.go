@@ -28,15 +28,15 @@ type ChannelUniqueQueueConfiguration ChannelQueueConfiguration
 // only guaranteed whilst the task is waiting in the queue.
 type ChannelUniqueQueue struct {
 	*WorkerPool
-	lock            sync.Mutex
-	table           map[Data]bool
-	shutdownCtx     context.Context
-	shutdownCancel  context.CancelFunc
-	terminateCtx    context.Context
-	terminateCancel context.CancelFunc
-	exemplar        interface{}
-	workers         int
-	name            string
+	lock               sync.Mutex
+	table              map[Data]bool
+	shutdownCtx        context.Context
+	shutdownCtxCancel  context.CancelFunc
+	terminateCtx       context.Context
+	terminateCtxCancel context.CancelFunc
+	exemplar           interface{}
+	workers            int
+	name               string
 }
 
 // NewChannelUniqueQueue create a memory channel queue
@@ -50,18 +50,18 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 		config.BatchLength = 1
 	}
 
-	terminateCtx, terminateCancel := context.WithCancel(context.Background())
-	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
+	terminateCtx, terminateCtxCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	queue := &ChannelUniqueQueue{
-		table:           map[Data]bool{},
-		shutdownCtx:     shutdownCtx,
-		shutdownCancel:  shutdownCancel,
-		terminateCtx:    terminateCtx,
-		terminateCancel: terminateCancel,
-		exemplar:        exemplar,
-		workers:         config.Workers,
-		name:            config.Name,
+		table:              map[Data]bool{},
+		shutdownCtx:        shutdownCtx,
+		shutdownCtxCancel:  shutdownCtxCancel,
+		terminateCtx:       terminateCtx,
+		terminateCtxCancel: terminateCtxCancel,
+		exemplar:           exemplar,
+		workers:            config.Workers,
+		name:               config.Name,
 	}
 	queue.WorkerPool = NewWorkerPool(func(data ...Data) {
 		for _, datum := range data {
@@ -144,7 +144,7 @@ func (q *ChannelUniqueQueue) Shutdown() {
 		}
 		log.Debug("ChannelUniqueQueue: %s Flushed", q.name)
 	}()
-	q.shutdownCancel()
+	q.shutdownCtxCancel()
 	log.Debug("ChannelUniqueQueue: %s Shutdown", q.name)
 }
 
@@ -157,7 +157,7 @@ func (q *ChannelUniqueQueue) Terminate() {
 		return
 	default:
 	}
-	q.terminateCancel()
+	q.terminateCtxCancel()
 	log.Debug("ChannelUniqueQueue: %s Terminated", q.name)
 }
 

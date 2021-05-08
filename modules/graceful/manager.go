@@ -195,7 +195,7 @@ func (g *Manager) doShutdown() {
 		return
 	}
 	g.lock.Lock()
-	g.shutdownCancel()
+	g.shutdownCtxCancel()
 	for _, fn := range g.toRunAtShutdown {
 		go fn()
 	}
@@ -212,7 +212,7 @@ func (g *Manager) doShutdown() {
 		g.doTerminate()
 		g.WaitForTerminate()
 		g.lock.Lock()
-		g.doneCancel()
+		g.doneCtxCancel()
 		g.lock.Unlock()
 	}()
 }
@@ -221,10 +221,10 @@ func (g *Manager) doHammerTime(d time.Duration) {
 	time.Sleep(d)
 	g.lock.Lock()
 	select {
-	case <-g.hammer.Done():
+	case <-g.hammerCtx.Done():
 	default:
 		log.Warn("Setting Hammer condition")
-		g.hammerCancel()
+		g.hammerCtxCancel()
 		for _, fn := range g.toRunAtHammer {
 			go fn()
 		}
@@ -238,10 +238,10 @@ func (g *Manager) doTerminate() {
 	}
 	g.lock.Lock()
 	select {
-	case <-g.terminate.Done():
+	case <-g.terminateCtx.Done():
 	default:
 		log.Warn("Terminating")
-		g.terminateCancel()
+		g.terminateCtxCancel()
 		for _, fn := range g.toRunAtTerminate {
 			go fn()
 		}
@@ -257,7 +257,7 @@ func (g *Manager) IsChild() bool {
 // IsShutdown returns a channel which will be closed at shutdown.
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 func (g *Manager) IsShutdown() <-chan struct{} {
-	return g.shutdown.Done()
+	return g.shutdownCtx.Done()
 }
 
 // IsHammer returns a channel which will be closed at hammer
@@ -265,14 +265,14 @@ func (g *Manager) IsShutdown() <-chan struct{} {
 // Servers running within the running server wait group should respond to IsHammer
 // if not shutdown already
 func (g *Manager) IsHammer() <-chan struct{} {
-	return g.hammer.Done()
+	return g.hammerCtx.Done()
 }
 
 // IsTerminate returns a channel which will be closed at terminate
 // The order of closure is IsShutdown, IsHammer (potentially), IsTerminate
 // IsTerminate will only close once all running servers have stopped
 func (g *Manager) IsTerminate() <-chan struct{} {
-	return g.terminate.Done()
+	return g.terminateCtx.Done()
 }
 
 // ServerDone declares a running server done and subtracts one from the
@@ -329,20 +329,20 @@ func (g *Manager) InformCleanup() {
 
 // Done allows the manager to be viewed as a context.Context, it returns a channel that is closed when the server is finished terminating
 func (g *Manager) Done() <-chan struct{} {
-	return g.done.Done()
+	return g.doneCtx.Done()
 }
 
 // Err allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Err() error {
-	return g.done.Err()
+	return g.doneCtx.Err()
 }
 
 // Value allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Value(key interface{}) interface{} {
-	return g.done.Value(key)
+	return g.doneCtx.Value(key)
 }
 
 // Deadline returns nil as there is no fixed Deadline for the manager, it allows the manager to be viewed as a context.Context
 func (g *Manager) Deadline() (deadline time.Time, ok bool) {
-	return g.done.Deadline()
+	return g.doneCtx.Deadline()
 }

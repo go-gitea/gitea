@@ -67,10 +67,10 @@ func newGracefulManager(ctx context.Context) *Manager {
 
 func (g *Manager) start() {
 	// Make contexts
-	g.terminate, g.terminateCancel = context.WithCancel(g.ctx)
-	g.shutdown, g.shutdownCancel = context.WithCancel(g.ctx)
-	g.hammer, g.hammerCancel = context.WithCancel(g.ctx)
-	g.done, g.doneCancel = context.WithCancel(g.ctx)
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
+	g.doneCtx, g.doneCtxCancel = context.WithCancel(g.ctx)
 
 	// Make channels
 	g.shutdownRequested = make(chan struct{})
@@ -181,7 +181,7 @@ hammerLoop:
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
 			}
-		case <-g.hammer.Done():
+		case <-g.hammerCtx.Done():
 			break hammerLoop
 		}
 	}

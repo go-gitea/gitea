@@ -21,7 +21,7 @@ import (
 type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
-	cancel             context.CancelFunc
+	baseCtxCancel      context.CancelFunc
 	cond               *sync.Cond
 	qid                int64
 	maxNumberOfWorkers int
@@ -52,7 +52,7 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
-		cancel:             cancel,
+		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		handle:             handle,
@@ -128,7 +128,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				return
 			}
 			p.blockTimeout *= 2
-			ctx, cancel := context.WithCancel(p.baseCtx)
+			boostCtx, boostCtxCancel := context.WithCancel(p.baseCtx)
 			mq := GetManager().GetManagedQueue(p.qid)
 			boost := p.boostWorkers
 			if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
@@ -138,24 +138,24 @@ func (p *WorkerPool) pushBoost(data Data) {
 				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
+				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), boostCtxCancel, false)
 				go func() {
-					<-ctx.Done()
+					<-boostCtx.Done()
 					mq.RemoveWorkers(pid)
-					cancel()
+					boostCtxCancel()
 				}()
 			} else {
 				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)
-				cancel()
+				boostCtxCancel()
 				p.lock.Lock()
 				p.blockTimeout /= 2
 				p.lock.Unlock()
 			}()
 			p.lock.Unlock()
-			p.addWorkers(ctx, cancel, boost)
+			p.addWorkers(boostCtx, boostCtxCancel, boost)
 			p.dataChan <- data
 		}
 	}

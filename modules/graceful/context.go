@@ -55,19 +55,19 @@ func (ctx *ChannelContext) Value(key interface{}) interface{} {
 // Callers using this context should ensure that they are registered as a running server
 // in order that they are waited for.
 func (g *Manager) ShutdownContext() context.Context {
-	return g.shutdown
+	return g.shutdownCtx
 }
 
 // HammerContext returns a context.Context that is Done at hammer
 // Callers using this context should ensure that they are registered as a running server
 // in order that they are waited for.
 func (g *Manager) HammerContext() context.Context {
-	return g.hammer
+	return g.hammerCtx
 }
 
 // TerminateContext returns a context.Context that is Done at terminate
 // Callers using this context should ensure that they are registered as a terminating server
 // in order that they are waited for.
 func (g *Manager) TerminateContext() context.Context {
-	return g.terminate
+	return g.terminateCtx
 }

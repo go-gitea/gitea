@@ -27,18 +27,18 @@ var _ Queue = &ByteFIFOQueue{}
 // ByteFIFOQueue is a Queue formed from a ByteFIFO and WorkerPool
 type ByteFIFOQueue struct {
 	*WorkerPool
-	byteFIFO        ByteFIFO
-	typ             Type
-	shutdownCtx     context.Context
-	shutdownCancel  context.CancelFunc
-	terminateCtx    context.Context
-	terminateCancel context.CancelFunc
-	exemplar        interface{}
-	workers         int
-	name            string
-	lock            sync.Mutex
-	waitOnEmpty     bool
-	pushed          chan struct{}
+	byteFIFO           ByteFIFO
+	typ                Type
+	shutdownCtx        context.Context
+	shutdownCtxCancel  context.CancelFunc
+	terminateCtx       context.Context
+	terminateCtxCancel context.CancelFunc
+	exemplar           interface{}
+	workers            int
+	name               string
+	lock               sync.Mutex
+	waitOnEmpty        bool
+	pushed             chan struct{}
 }
 
 // NewByteFIFOQueue creates a new ByteFIFOQueue
@@ -49,22 +49,22 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 	}
 	config := configInterface.(ByteFIFOQueueConfiguration)
 
-	terminateCtx, terminateCancel := context.WithCancel(context.Background())
-	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
+	terminateCtx, terminateCtxCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	return &ByteFIFOQueue{
-		WorkerPool:      NewWorkerPool(handle, config.WorkerPoolConfiguration),
-		byteFIFO:        byteFIFO,
-		typ:             typ,
-		shutdownCtx:     shutdownCtx,
-		shutdownCancel:  shutdownCancel,
-		terminateCtx:    terminateCtx,
-		terminateCancel: terminateCancel,
-		exemplar:        exemplar,
-		workers:         config.Workers,
-		name:            config.Name,
-		waitOnEmpty:     config.WaitOnEmpty,
-		pushed:          make(chan struct{}, 1),
+		WorkerPool:         NewWorkerPool(handle, config.WorkerPoolConfiguration),
+		byteFIFO:           byteFIFO,
+		typ:                typ,
+		shutdownCtx:        shutdownCtx,
+		shutdownCtxCancel:  shutdownCtxCancel,
+		terminateCtx:       terminateCtx,
+		terminateCtxCancel: terminateCtxCancel,
+		exemplar:           exemplar,
+		workers:            config.Workers,
+		name:               config.Name,
+		waitOnEmpty:        config.WaitOnEmpty,
+		pushed:             make(chan struct{}, 1),
 	}, nil
 }
 
@@ -126,7 +126,7 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
 
 	log.Trace("%s: %s Waiting til cleaned", q.typ, q.name)
 	q.CleanUp(q.terminateCtx)
-	q.terminateCancel()
+	q.terminateCtxCancel()
 }
 
 func (q *ByteFIFOQueue) readToChan() {
@@ -189,7 +189,7 @@ func (q *ByteFIFOQueue) Shutdown() {
 		return
 	default:
 	}
-	q.shutdownCancel()
+	q.shutdownCtxCancel()
 	log.Debug("%s: %s Shutdown", q.typ, q.name)
 }
 
@@ -210,7 +210,7 @@ func (q *ByteFIFOQueue) Terminate() {
 	if log.IsDebug() {
 		log.Debug("%s: %s Closing with %d tasks left in queue", q.typ, q.name, q.byteFIFO.Len(q.terminateCtx))
 	}
-	q.terminateCancel()
+	q.terminateCtxCancel()
 	if err := q.byteFIFO.Close(); err != nil {
 		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
 	}
@@ -236,21 +236,21 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 		return nil, err
 	}
 	config := configInterface.(ByteFIFOQueueConfiguration)
-	terminateCtx, terminateCancel := context.WithCancel(context.Background())
-	shutdownCtx, shutdownCancel := context.WithCancel(terminateCtx)
+	terminateCtx, terminateCtxCancel := context.WithCancel(context.Background())
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(terminateCtx)
 
 	return &ByteFIFOUniqueQueue{
 		ByteFIFOQueue: ByteFIFOQueue{
-			WorkerPool:      NewWorkerPool(handle, config.WorkerPoolConfiguration),
-			byteFIFO:        byteFIFO,
-			typ:             typ,
-			shutdownCtx:     shutdownCtx,
-			shutdownCancel:  shutdownCancel,
-			terminateCtx:    terminateCtx,
-			terminateCancel: terminateCancel,
-			exemplar:        exemplar,
-			workers:         config.Workers,
-			name:            config.Name,
+			WorkerPool:         NewWorkerPool(handle, config.WorkerPoolConfiguration),
+			byteFIFO:           byteFIFO,
+			typ:                typ,
+			shutdownCtx:        shutdownCtx,
+			shutdownCtxCancel:  shutdownCtxCancel,
+			terminateCtx:       terminateCtx,
+			terminateCtxCancel: terminateCtxCancel,
+			exemplar:           exemplar,
+			workers:            config.Workers,
+			name:               config.Name,
 		},
 	}, nil
 }
