@@ -97,8 +97,8 @@
   --color-active: #ffffff16;
   --color-menu: #2e323e;
   --color-card: #2e323e;
-  --color-markdown-table-row: #ffffff06;
-  --color-markdown-code-block: #2a2e3a;
+  --color-markup-table-row: #ffffff06;
+  --color-markup-code-block: #2a2e3a;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
   --color-shadow: #00000060;
@@ -108,6 +108,7 @@
   --color-placeholder-text: #6a737d;
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
+  --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
 }
 
 ::-webkit-calendar-picker-indicator {
@@ -300,7 +301,7 @@ a.ui.basic.green.label:hover {
   & + .editor-preview-side {
     background: #353945;
 
-    .markdown:not(code).ui.segment {
+    .markup.ui.segment {
       border-width: 0;
     }
   }
@@ -753,7 +754,7 @@ img[src$="/img/matrix.svg"] {
   border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
 }
 
-.markdown-block-error {
+.markup-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
 }

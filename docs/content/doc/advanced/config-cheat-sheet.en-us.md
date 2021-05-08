@@ -440,7 +440,7 @@ relation to port exhaustion.
     - nickname - use the nickname attribute
     - email - use the username part of the email attribute
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
-- `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists:
+- `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
     - disabled - show an error
     - login - show an account linking login
     - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
