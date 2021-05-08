@@ -25,7 +25,7 @@ import {renderMarkupContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
-const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -3138,7 +3138,7 @@ function initVueComponents() {
         finalPage: 1,
         searchQuery,
         isLoading: false,
-        staticPrefix: StaticUrlPrefix,
+        staticPrefix: AssetUrlPrefix,
         counts: {},
         repoTypes: {
           all: {
