@@ -337,7 +337,7 @@ func (g *Manager) Err() error {
 	return g.done.Err()
 }
 
-// Value allows the manager to be viewed as a context.Context done at Terminate, it has no values
+// Value allows the manager to be viewed as a context.Context done at Terminate
 func (g *Manager) Value(key interface{}) interface{} {
 	return g.done.Value(key)
 }
