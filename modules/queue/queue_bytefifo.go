@@ -120,7 +120,6 @@ func (q *ByteFIFOQueue) readToChan() {
 		backOffTime += backOffTime / 2
 		if backOffTime > maxBackOffTime {
 			backOffTime = maxBackOffTime
-			return maxBackOffTime
 		}
 		return backOffTime
 	}
