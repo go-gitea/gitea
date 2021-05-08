@@ -580,7 +580,7 @@
           border-right-color: var(--color-box-body);
         }
 
-        .markdown {
+        .markup {
           font-size: 14px;
         }
       }
@@ -1020,7 +1020,7 @@
             }
           }
 
-          .markdown {
+          .markup {
             font-size: 14px;
           }
 
@@ -1040,7 +1040,7 @@
               overflow: hidden;
             }
 
-            .tab.markdown {
+            .tab.markup {
               min-height: 5rem;
             }
           }
@@ -1058,7 +1058,7 @@
 
       .code-comment {
         border: 1px solid transparent;
-        padding: .5rem 0;
+        padding: .25rem .5rem;
         margin: 0;
 
         .content {
@@ -1074,6 +1074,10 @@
           &::before {
             display: none;
           }
+        }
+
+        .comment-content {
+          margin-left: 36px;
         }
 
         .avatar.image {
@@ -1094,7 +1098,7 @@
         }
 
         button.comment-form-reply {
-          margin-left: 0;
+          margin: 0;
         }
       }
 
@@ -1244,7 +1248,7 @@
       margin-bottom: 1.5rem;
     }
 
-    .markdown {
+    .markup {
       font-size: 14px;
     }
   }
@@ -1996,7 +2000,7 @@
         margin-top: -5px;
       }
 
-      > .markdown {
+      > .markup {
         padding: 15px 30px;
 
         h1,
@@ -2991,7 +2995,7 @@ td.blob-excerpt {
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
-  background-color: var(--color-markdown-code-block);
+  background-color: var(--color-markup-code-block);
   border: 1px solid var(--color-secondary);
   border-radius: 3px;
   font-size: 13px;
