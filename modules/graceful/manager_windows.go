@@ -36,14 +36,14 @@ type Manager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               context.Context
-	hammer                 context.Context
-	terminate              context.Context
-	done                   context.Context
-	shutdownCancel         context.CancelFunc
-	hammerCancel           context.CancelFunc
-	terminateCancel        context.CancelFunc
-	doneCancel             context.CancelFunc
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	doneCtx                context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	doneCtxCancel          context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
