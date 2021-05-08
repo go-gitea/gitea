@@ -60,7 +60,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
-		"StaticUrlPrefix": func() string {
+		"AssetUrlPrefix": func() string {
 			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
