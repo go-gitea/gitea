@@ -102,8 +102,8 @@
   --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
-  --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000010;
+  --color-markup-table-row: #00000008;
+  --color-markup-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
   --color-shadow: #00000030;
@@ -112,6 +112,7 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
+  --color-caret: var(--color-text-dark);
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -161,14 +162,11 @@ table {
   border-collapse: collapse;
 }
 
-/* firefox scroll bars */
-
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
+  caret-color: var(--color-caret);
 }
-
-/* webkit scrollbars */
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -186,6 +184,10 @@ table {
 }
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+.CodeMirror-cursor {
+  border-color: var(--color-caret) !important;
 }
 
 ::selection,
@@ -465,6 +467,10 @@ a.ui.card:hover,
 .ui.card > .extra {
   color: var(--color-text);
   border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.comments .comment .text {
+  margin: 0;
 }
 
 .ui.comments .comment .text,
@@ -1629,6 +1635,11 @@ a.ui.label:hover {
 
 .ui.labeled.button > .label {
   border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
 }
 
 .ui.blue.button,
