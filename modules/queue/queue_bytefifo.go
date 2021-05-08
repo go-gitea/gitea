@@ -129,56 +129,105 @@ func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
 	q.terminateCtxCancel()
 }
 
+const maxBackOffTime = time.Second * 3
+
 func (q *ByteFIFOQueue) readToChan() {
+	// handle quick cancels
+	select {
+	case <-q.shutdownCtx.Done():
+		// tell the pool to shutdown.
+		q.baseCtxCancel()
+		return
+	default:
+	}
+
+	// Default backoff values
+	backOffTime := time.Millisecond * 100
+
+loop:
 	for {
+		err := q.doPop()
+		if err == errQueueEmpty {
+			log.Trace("%s: %s Waiting on Empty", q.typ, q.name)
+			select {
+			case <-q.pushed:
+				// reset backOffTime
+				backOffTime = 100 * time.Millisecond
+				continue loop
+			case <-q.shutdownCtx.Done():
+				// Oops we've been shutdown whilst waiting
+				// Make sure the worker pool is shutdown too
+				q.baseCtxCancel()
+				return
+			}
+		}
+
+		// Reset the backOffTime if there is no error or an unmarshalError
+		if err == nil || err == errUnmarshal {
+			backOffTime = 100 * time.Millisecond
+		}
+
+		if err != nil {
+			// Need to Backoff
+			select {
+			case <-q.shutdownCtx.Done():
+				// Oops we've been shutdown whilst backing off
+				// Make sure the worker pool is shutdown too
+				q.baseCtxCancel()
+				return
+			case <-time.After(backOffTime):
+				// OK we've waited - so backoff a bit
+				backOffTime += backOffTime / 2
+				if backOffTime > maxBackOffTime {
+					backOffTime = maxBackOffTime
+				}
+				continue loop
+			}
+		}
 		select {
 		case <-q.shutdownCtx.Done():
-			// tell the pool to shutdown.
+			// Oops we've been shutdown
+			// Make sure the worker pool is shutdown too
 			q.baseCtxCancel()
 			return
 		default:
-			q.lock.Lock()
-			bs, err := q.byteFIFO.Pop(q.shutdownCtx)
-			if err != nil {
-				q.lock.Unlock()
-				if err == context.Canceled {
-					q.baseCtxCancel()
-					return
-				}
-				log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			if len(bs) == 0 {
-				if q.waitOnEmpty && q.byteFIFO.Len(q.shutdownCtx) == 0 {
-					q.lock.Unlock()
-					log.Trace("%s: %s Waiting on Empty", q.typ, q.name)
-					select {
-					case <-q.pushed:
-						continue
-					case <-q.shutdownCtx.Done():
-						continue
-					}
-				}
-				q.lock.Unlock()
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			data, err := unmarshalAs(bs, q.exemplar)
-			if err != nil {
-				log.Error("%s: %s Failed to unmarshal with error: %v", q.typ, q.name, err)
-				q.lock.Unlock()
-				time.Sleep(time.Millisecond * 100)
-				continue
-			}
-
-			log.Trace("%s %s: Task found: %#v", q.typ, q.name, data)
-			q.WorkerPool.Push(data)
-			q.lock.Unlock()
+			continue loop
 		}
 	}
+}
+
+var errQueueEmpty = fmt.Errorf("empty queue")
+var errEmptyBytes = fmt.Errorf("empty bytes")
+var errUnmarshal = fmt.Errorf("failed to unmarshal")
+
+func (q *ByteFIFOQueue) doPop() error {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	bs, err := q.byteFIFO.Pop(q.shutdownCtx)
+	if err != nil {
+		if err == context.Canceled {
+			q.baseCtxCancel()
+			return err
+		}
+		log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
+		return err
+	}
+	if len(bs) == 0 {
+		if q.waitOnEmpty && q.byteFIFO.Len(q.shutdownCtx) == 0 {
+			return errQueueEmpty
+		}
+		return errEmptyBytes
+	}
+
+	data, err := unmarshalAs(bs, q.exemplar)
+	if err != nil {
+		log.Error("%s: %s Failed to unmarshal with error: %v", q.typ, q.name, err)
+		return errUnmarshal
+	}
+
+	log.Trace("%s %s: Task found: %#v", q.typ, q.name, data)
+	q.WorkerPool.Push(data)
+	return nil
 }
 
 // Shutdown processing from this queue
