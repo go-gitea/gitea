@@ -83,12 +83,15 @@ func (q *ChannelQueue) Push(data Data) error {
 
 // Shutdown processing from this queue
 func (q *ChannelQueue) Shutdown() {
-	log.Trace("ChannelQueue: %s Shutting down", q.name)
+	q.lock.Lock()
+	defer q.lock.Unlock()
 	select {
 	case <-q.shutdownCtx.Done():
+		log.Trace("ChannelQueue: %s Already Shutting down", q.name)
 		return
 	default:
 	}
+	log.Trace("ChannelQueue: %s Shutting down", q.name)
 	go func() {
 		log.Trace("ChannelQueue: %s Flushing", q.name)
 		if err := q.FlushWithContext(q.terminateCtx); err != nil {
