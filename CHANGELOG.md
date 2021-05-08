@@ -26,7 +26,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fixed several activation bugs (#15473) (#15685)
   * Delete references if repository gets deleted (#15681) (#15684)
   * Fix orphaned objects deletion bug (#15657) (#15683)
-  * Backport Delete protected branch if repository gets removed (#15658) (#15676)
+  * Delete protected branch if repository gets removed (#15658) (#15676)
   * Remove spurious set name from eventsource.sharedworker.js (#15643) (#15652)
   * Not update updated uinx for `git gc` (#15637) (#15641)
   * Fix commit graph author link (#15627) (#15630)
@@ -50,7 +50,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix webkit calendar icon color on arc-green (#15713) (#15728)
   * Performance improvement for last commit cache and show-ref (#15455) (#15701)
   * Bump unrolled/render to v1.1.0 (#15581) (#15608)
-  * Backport Add ETag header (#15370) (#15552)
+  * Add ETag header (#15370) (#15552)
 
 ## [1.14.1](https://github.com/go-gitea/gitea/releases/tag/v1.14.1) - 2021-04-15
 
