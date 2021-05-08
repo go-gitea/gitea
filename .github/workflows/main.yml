@@ -22,7 +22,7 @@ jobs:
       - name: Make Release
         run: |
           export PATH=${PATH}:`go env GOPATH`/bin
-          go install src.techknowlogick.com/xgo
+          go install src.techknowlogick.com/xgo@v1.4.0+1.16.2
           make release
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
