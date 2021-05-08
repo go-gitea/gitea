@@ -156,7 +156,7 @@ func SetDefaultBranch(ownerName, repoName, branch string) error {
 
 // SSHLog send ssh error log to
 func SSHLog(isErr bool, msg string) error {
-	reqURL := setting.LocalURL + "ssh_log"
+	reqURL := setting.LocalURL + "api/internal/ssh/log"
 	req := newInternalRequest(reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 
