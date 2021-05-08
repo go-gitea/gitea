@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set DRONE_TAG env
-        run: echo ::set-env name=DRONE_TAG::$(echo ${GITHUB_REF:10})
+        run: echo "DRONE_TAG=$(echo ${GITHUB_REF:10})" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
