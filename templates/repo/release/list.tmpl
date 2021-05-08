@@ -75,11 +75,13 @@
 								<span class="ui green label">{{$.i18n.Tr "repo.release.stable"}}</span>
 							{{end}}
 							<span class="tag text blue">
-								<a class="df ac je" href="{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
+								<a class="df ac je" href="{{if .IsDraft}}#{{else}}{{$.RepoLink}}/src/tag/{{.TagName | EscapePound}}{{end}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</span>
-							<span class="commit">
-								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
-							</span>
+							{{if not .IsDraft}}
+								<span class="commit">
+									<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
+								</span>
+							{{end}}
 							{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 						{{end}}
 					</div>
@@ -128,11 +130,13 @@
 									{{$.i18n.Tr "repo.released_this"}}
 								</span>
 								{{if .CreatedUnix}}
-									<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span> |
+									<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>
 								{{end}}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}...{{.Target}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" .Target}}</span>
+								{{if not .IsDraft}}
+									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | EscapePound}}...{{.Target}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" .Target}}</span>
+								{{end}}
 							</p>
-							<div class="markdown desc">
+							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
 							<div class="ui accordion download">
@@ -142,7 +146,7 @@
 								</h2>
 								<div class="content {{if eq $idx 0}}active{{end}}">
 									<ul class="list">
-										{{if $.Permission.CanRead $.UnitTypeCode}}
+										{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
 											<li>
 												<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 											</li>
