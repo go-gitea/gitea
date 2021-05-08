@@ -1175,7 +1175,7 @@ async function initRepository() {
       const form = $(e.currentTarget).closest('form');
       if (form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
-        form.parent().find('button.comment-form-reply').show();
+        form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
       } else {
         form.closest('.comment-code-cloud').remove();
       }
@@ -1339,7 +1339,7 @@ function initPullRequestReview() {
   $(document).on('click', 'button.comment-form-reply', function (e) {
     e.preventDefault();
     $(this).hide();
-    const form = $(this).parent().find('.comment-form');
+    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
     let $simplemde;
