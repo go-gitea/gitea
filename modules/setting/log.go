@@ -287,6 +287,7 @@ func newLogService() {
 
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
 
 	description := LogDescription{
 		Name: log.DEFAULT,

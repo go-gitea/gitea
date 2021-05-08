@@ -81,6 +81,10 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		}
 	}
 
+	if len(logMessage) > 0 {
+		_ = private.SSHLog(true, fmt.Sprintf(logMessage+": ", args...))
+	}
+
 	os.Exit(1)
 }
 
