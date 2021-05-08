@@ -232,8 +232,8 @@ func (q *PersistableChannelUniqueQueue) Shutdown() {
 	}
 
 	log.Trace("PersistableChannelUniqueQueue: %s Cancelling pools", q.delayedStarter.name)
-	q.internal.(*LevelUniqueQueue).cancel()
-	q.channelQueue.cancel()
+	q.internal.(*LevelUniqueQueue).baseCtxCancel()
+	q.channelQueue.baseCtxCancel()
 	log.Trace("PersistableChannelUniqueQueue: %s Waiting til done", q.delayedStarter.name)
 	q.channelQueue.Wait()
 	q.internal.(*LevelUniqueQueue).Wait()

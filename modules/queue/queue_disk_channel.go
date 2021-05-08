@@ -246,8 +246,8 @@ func (q *PersistableChannelQueue) Shutdown() {
 	q.lock.Unlock()
 
 	log.Trace("PersistableChannelQueue: %s Cancelling pools", q.delayedStarter.name)
-	q.channelQueue.cancel()
-	q.internal.(*LevelQueue).cancel()
+	q.channelQueue.baseCtxCancel()
+	q.internal.(*LevelQueue).baseCtxCancel()
 	log.Trace("PersistableChannelQueue: %s Waiting til done", q.delayedStarter.name)
 	q.channelQueue.Wait()
 	q.internal.(*LevelQueue).Wait()

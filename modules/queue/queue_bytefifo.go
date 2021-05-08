@@ -134,7 +134,7 @@ func (q *ByteFIFOQueue) readToChan() {
 		select {
 		case <-q.shutdownCtx.Done():
 			// tell the pool to shutdown.
-			q.cancel()
+			q.baseCtxCancel()
 			return
 		default:
 			q.lock.Lock()
@@ -142,7 +142,7 @@ func (q *ByteFIFOQueue) readToChan() {
 			if err != nil {
 				q.lock.Unlock()
 				if err == context.Canceled {
-					q.cancel()
+					q.baseCtxCancel()
 					return
 				}
 				log.Error("%s: %s Error on Pop: %v", q.typ, q.name, err)
