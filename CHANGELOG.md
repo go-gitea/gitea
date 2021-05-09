@@ -10,6 +10,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make change repo settings work on empty repos (#15778) (#15789)
   * Add pull "merged" notification subject status to API (#15344) (#15654)
 * BUGFIXES
+  * Ensure that ctx.Written is checked after issues(...) calls (#15797) (#15798)
   * Use pulls in commit graph unless pulls are disabled (#15734 & #15740 & #15774) (#15775)
   * Set GIT_DIR correctly if it is not set (#15751) (#15769)
   * Fix bug where repositories appear unadopted (#15757) (#15767)
@@ -40,6 +41,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Send size to /avatars if requested (#15459) (#15528)
   * Prevent migration 156 failure if tag commit missing (#15519) (#15527)
 * ENHANCEMENTS
+  * Display conflict-free merge messages for pull requests (#15773) (#15796)
   * Exponential Backoff for ByteFIFO (#15724) (#15793)
   * Issue list alignment tweaks (#15483) (#15766)
   * Implement delete release attachments and update release attachments' name (#14130) (#15666)
