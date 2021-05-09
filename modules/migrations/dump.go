@@ -616,14 +616,6 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	tp, _ := strconv.Atoi(opts["service_type"])
 
 	var migrateOpts = base.MigrateOptions{
-		Wiki:           true,
-		Issues:         true,
-		Milestones:     true,
-		Labels:         true,
-		Releases:       true,
-		Comments:       true,
-		PullRequests:   true,
-		ReleaseAssets:  true,
 		GitServiceType: structs.GitServiceType(tp),
 	}
 	updateOptionsUnits(&migrateOpts, units)

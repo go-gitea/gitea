@@ -5,10 +5,10 @@
 package private
 
 import (
-	"context"
 	"io/ioutil"
 
 	myCtx "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/migrations"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -37,7 +37,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 	}
 
 	if err := migrations.RestoreRepository(
-		context.Background(),
+		graceful.GetManager().HammerContext(),
 		params.RepoDir,
 		params.OwnerName,
 		params.RepoName,
