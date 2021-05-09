@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/web/org"
 )
 
 // GetUserByName get user by name

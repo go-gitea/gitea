@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/web/explore"
 )
 
 const (
@@ -24,7 +24,7 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminOrganizations"] = true
 
-	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
+	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type: models.UserTypeOrganization,
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,

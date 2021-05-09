@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package routes
+package web
 
 import (
 	"encoding/gob"
@@ -23,17 +23,18 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/admin"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/api/v1/misc"
-	"code.gitea.io/gitea/routers/dev"
-	"code.gitea.io/gitea/routers/events"
-	"code.gitea.io/gitea/routers/org"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
-	"code.gitea.io/gitea/routers/repo"
-	"code.gitea.io/gitea/routers/user"
-	userSetting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/routers/web/admin"
+	"code.gitea.io/gitea/routers/web/dev"
+	"code.gitea.io/gitea/routers/web/events"
+	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/routers/web/org"
+	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/routers/web/user"
+	userSetting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
@@ -118,7 +119,7 @@ var corsHandler func(http.Handler) http.Handler
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Route {
 	r := web.NewRoute()
-	for _, middle := range commonMiddlewares() {
+	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
@@ -216,7 +217,7 @@ func WebRoutes() *web.Route {
 		c := metrics.NewCollector()
 		prometheus.MustRegister(c)
 
-		routes.Get("/metrics", append(common, routers.Metrics)...)
+		routes.Get("/metrics", append(common, Metrics)...)
 	}
 
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
@@ -297,16 +298,16 @@ func RegisterRoutes(m *web.Route) {
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
 	// for health check
-	m.Get("/", routers.Home)
+	m.Get("/", Home)
 	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
-		m.Get("/repos", routers.ExploreRepos)
-		m.Get("/users", routers.ExploreUsers)
-		m.Get("/organizations", routers.ExploreOrganizations)
-		m.Get("/code", routers.ExploreCode)
+		m.Get("/repos", explore.ExploreRepos)
+		m.Get("/users", explore.ExploreUsers)
+		m.Get("/organizations", explore.ExploreOrganizations)
+		m.Get("/code", explore.ExploreCode)
 	}, ignExploreSignIn)
 	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)
@@ -1091,9 +1092,9 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {
-		m.Get("/swagger.v1.json", routers.SwaggerV1Json)
+		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
 
 	// Not found handler.
-	m.NotFound(web.Wrap(routers.NotFound))
+	m.NotFound(web.Wrap(NotFound))
 }

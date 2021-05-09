@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/web/explore"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -32,7 +32,7 @@ func Repos(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	routers.RenderRepoSearch(ctx, &routers.RepoSearchOptions{
+	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:  true,
 		PageSize: setting.UI.Admin.RepoPagingNum,
 		TplName:  tplRepos,

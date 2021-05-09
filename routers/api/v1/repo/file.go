@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/web/repo"
 )
 
 // GetRawFile get a file by path on a repository

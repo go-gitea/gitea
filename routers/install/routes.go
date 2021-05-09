@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package routes
+package install
 
 import (
 	"fmt"
@@ -15,11 +15,19 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
 )
+
+type dataStore struct {
+	Data map[string]interface{}
+}
+
+func (d *dataStore) GetData() map[string]interface{} {
+	return d.Data
+}
 
 func installRecovery() func(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -77,7 +85,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 // InstallRoutes registers the install routes
 func InstallRoutes() *web.Route {
 	r := web.NewRoute()
-	for _, middle := range commonMiddlewares() {
+	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
@@ -99,9 +107,23 @@ func InstallRoutes() *web.Route {
 	}))
 
 	r.Use(installRecovery())
-	r.Use(routers.InstallInit)
-	r.Get("/", routers.Install)
-	r.Post("/", web.Bind(forms.InstallForm{}), routers.InstallPost)
+
+	r.Use(public.Custom(
+		&public.Options{
+			SkipLogging: setting.DisableRouterLog,
+		},
+	))
+	r.Use(public.Static(
+		&public.Options{
+			Directory:   path.Join(setting.StaticRootPath, "public"),
+			SkipLogging: setting.DisableRouterLog,
+			Prefix:      "/assets",
+		},
+	))
+
+	r.Use(InstallInit)
+	r.Get("/", Install)
+	r.Post("/", web.Bind(forms.InstallForm{}), InstallPost)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, setting.AppURL, http.StatusFound)
 	})

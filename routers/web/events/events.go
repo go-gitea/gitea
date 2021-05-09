@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/user"
+	"code.gitea.io/gitea/routers/web/user"
 	jsoniter "github.com/json-iterator/go"
 )
 

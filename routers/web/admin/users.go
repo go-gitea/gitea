@@ -18,8 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers"
-	router_user_setting "code.gitea.io/gitea/routers/user/setting"
+	"code.gitea.io/gitea/routers/web/explore"
+	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
@@ -36,7 +36,7 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
-	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
+	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Type: models.UserTypeIndividual,
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
