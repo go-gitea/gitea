@@ -88,6 +88,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		return nil
 	}
 
+	log.Trace("SSPI Authorization: Attempting to authenticate")
 	userInfo, outToken, err := sspiAuth.Authenticate(req, w)
 	if err != nil {
 		log.Warn("Authentication failed with error: %v\n", err)
@@ -141,6 +142,7 @@ func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store Da
 		handleSignIn(w, req, sess, user)
 	}
 
+	log.Trace("SSPI Authorization: Logged in user %-v", user)
 	return user
 }
 

@@ -11,7 +11,7 @@ import (
 )
 
 func updateMatrixWebhookHTTPMethod(x *xorm.Engine) error {
-	var matrixHookTaskType = 9 // value comes from the models package
+	matrixHookTaskType := 9 // value comes from the models package
 	type Webhook struct {
 		HTTPMethod string
 	}

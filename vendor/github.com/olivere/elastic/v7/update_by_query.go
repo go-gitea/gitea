@@ -46,6 +46,7 @@ type UpdateByQueryService struct {
 	ignoreUnavailable      *bool
 	lenient                *bool
 	lowercaseExpandedTerms *bool
+	maxDocs                *int
 	pipeline               string
 	preference             string
 	q                      string
@@ -272,6 +273,12 @@ func (s *UpdateByQueryService) Lenient(lenient bool) *UpdateByQueryService {
 // LowercaseExpandedTerms specifies whether query terms should be lowercased.
 func (s *UpdateByQueryService) LowercaseExpandedTerms(lowercaseExpandedTerms bool) *UpdateByQueryService {
 	s.lowercaseExpandedTerms = &lowercaseExpandedTerms
+	return s
+}
+
+// MaxDocs specifies maximum number of documents to process
+func (s *UpdateByQueryService) MaxDocs(maxDocs int) *UpdateByQueryService {
+	s.maxDocs = &maxDocs
 	return s
 }
 
@@ -566,6 +573,9 @@ func (s *UpdateByQueryService) buildURL() (string, url.Values, error) {
 	}
 	if v := s.lowercaseExpandedTerms; v != nil {
 		params.Set("lowercase_expanded_terms", fmt.Sprint(*v))
+	}
+	if s.maxDocs != nil {
+		params.Set("max_docs", fmt.Sprintf("%d", *s.maxDocs))
 	}
 	if s.pipeline != "" {
 		params.Set("pipeline", s.pipeline)

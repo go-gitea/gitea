@@ -804,7 +804,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 
 func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
 	log.Trace("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
-	var deliveryDates = make([]int64, 0, 10)
+	deliveryDates := make([]int64, 0, 10)
 	err := x.Table("hook_task").
 		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ? AND hook_task.delivered is not null", hookID, true).
 		Cols("hook_task.delivered").

@@ -135,6 +135,11 @@ menu:
 - `ENABLE_REVERSE_PROXY_AUTO_REGISTRATION`: 允许通过反向认证做自动注册。
 - `ENABLE_CAPTCHA`: 注册时使用图片验证码。
 
+### Service - Expore (`service.explore`)
+
+- `REQUIRE_SIGNIN_VIEW`: **false**: 仅允许已登录的用户查看探索页面。
+- `DISABLE_USERS_PAGE`: **false**: 不显示用户探索页面。
+
 ## Webhook (`webhook`)
 
 - `QUEUE_LENGTH`: 说明: Hook 任务队列长度。
@@ -292,12 +297,14 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ```ini
 [markup.asciidoc]
 ENABLED = false
+NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
 - ENABLED: 是否启用，默认为false。
+- NEED\_POSTPROCESS: **true** 设置为 true 则会替换渲染文件中的内部链接和Commit ID 等。
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。

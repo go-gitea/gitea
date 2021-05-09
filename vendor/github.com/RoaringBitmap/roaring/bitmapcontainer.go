@@ -5,8 +5,6 @@ import (
 	"unsafe"
 )
 
-//go:generate msgp -unexported
-
 type bitmapContainer struct {
 	cardinality int
 	bitmap      []uint64
@@ -115,7 +113,7 @@ type bitmapContainerShortIterator struct {
 
 func (bcsi *bitmapContainerShortIterator) next() uint16 {
 	j := bcsi.i
-	bcsi.i = bcsi.ptr.NextSetBit(bcsi.i + 1)
+	bcsi.i = bcsi.ptr.NextSetBit(uint(bcsi.i) + 1)
 	return uint16(j)
 }
 func (bcsi *bitmapContainerShortIterator) hasNext() bool {
@@ -128,7 +126,7 @@ func (bcsi *bitmapContainerShortIterator) peekNext() uint16 {
 
 func (bcsi *bitmapContainerShortIterator) advanceIfNeeded(minval uint16) {
 	if bcsi.hasNext() && bcsi.peekNext() < minval {
-		bcsi.i = bcsi.ptr.NextSetBit(int(minval))
+		bcsi.i = bcsi.ptr.NextSetBit(uint(minval))
 	}
 }
 
@@ -1009,20 +1007,23 @@ func (bc *bitmapContainer) fillArray(container []uint16) {
 	}
 }
 
-func (bc *bitmapContainer) NextSetBit(i int) int {
-	x := i / 64
-	if x >= len(bc.bitmap) {
+func (bc *bitmapContainer) NextSetBit(i uint) int {
+	var (
+		x      = i / 64
+		length = uint(len(bc.bitmap))
+	)
+	if x >= length {
 		return -1
 	}
 	w := bc.bitmap[x]
 	w = w >> uint(i%64)
 	if w != 0 {
-		return i + countTrailingZeros(w)
+		return int(i) + countTrailingZeros(w)
 	}
 	x++
-	for ; x < len(bc.bitmap); x++ {
+	for ; x < length; x++ {
 		if bc.bitmap[x] != 0 {
-			return (x * 64) + countTrailingZeros(bc.bitmap[x])
+			return int(x*64) + countTrailingZeros(bc.bitmap[x])
 		}
 	}
 	return -1

@@ -31,11 +31,11 @@ export default async function initServiceWorker() {
 
   if (UseServiceWorker) {
     try {
-      // normally we'd serve the service worker as a static asset from StaticUrlPrefix but
+      // normally we'd serve the service worker as a static asset from AssetUrlPrefix but
       // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
       await Promise.all([
         checkCacheValidity(),
-        navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`),
+        navigator.serviceWorker.register(`${AppSubUrl}/assets/serviceworker.js`),
       ]);
     } catch (err) {
       console.error(err);

@@ -17,6 +17,9 @@ type ListForksOptions struct {
 
 // ListForks list a repository's forks
 func (c *Client) ListForks(user string, repo string, opt ListForksOptions) ([]*Repository, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	forks := make([]*Repository, opt.PageSize)
 	resp, err := c.getParsedResponse("GET",
@@ -33,6 +36,9 @@ type CreateForkOption struct {
 
 // CreateFork create a fork of a repository
 func (c *Client) CreateFork(user, repo string, form CreateForkOption) (*Repository, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(form)
 	if err != nil {
 		return nil, nil, err

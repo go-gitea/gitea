@@ -16,7 +16,7 @@
 					<button class="ui red tiny button delete-button" id="remove-gitea-oauth2-application"
 							data-url="{{AppSubUrl}}/user/settings/applications/oauth2/delete"
 							data-id="{{$app.ID}}">
-						{{svg "octicon-trashcan" 16 "mr-2"}}
+						{{svg "octicon-trash" 16 "mr-2"}}
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 				</div>
@@ -49,7 +49,7 @@
 
 <div class="ui small basic delete modal" id="remove-gitea-oauth2-application">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.remove_oauth2_application"}}
 	</div>
 	<div class="content">

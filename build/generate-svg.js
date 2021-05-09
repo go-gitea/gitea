@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-'use strict';
+import fastGlob from 'fast-glob';
+import {optimize, extendDefaultPlugins} from 'svgo';
+import {resolve, parse, dirname} from 'path';
+import fs from 'fs';
+import {fileURLToPath} from 'url';
 
-const fastGlob = require('fast-glob');
-const Svgo = require('svgo');
-const {resolve, parse} = require('path');
-const {readFile, writeFile, mkdir} = require('fs').promises;
-
+const {readFile, writeFile, mkdir} = fs.promises;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const glob = (pattern) => fastGlob.sync(pattern, {cwd: resolve(__dirname), absolute: true});
 const outputDir = resolve(__dirname, '../public/img/svg');
 
@@ -25,31 +25,20 @@ async function processFile(file, {prefix, fullName} = {}) {
     if (prefix === 'octicon') name = name.replace(/-[0-9]+$/, ''); // chop of '-16' on octicons
   }
 
-  const svgo = new Svgo({
-    plugins: [
-      {removeXMLNS: true},
-      {removeDimensions: true},
+  const {data} = optimize(await readFile(file, 'utf8'), {
+    plugins: extendDefaultPlugins([
+      'removeXMLNS',
+      'removeDimensions',
       {
-        addClassesToSVGElement: {
-          classNames: [
-            'svg',
-            name,
-          ],
-        },
+        name: 'addClassesToSVGElement',
+        params: {classNames: ['svg', name]},
       },
       {
-        addAttributesToSVGElement: {
-          attributes: [
-            {'width': '16'},
-            {'height': '16'},
-            {'aria-hidden': 'true'},
-          ],
-        },
+        name: 'addAttributesToSVGElement',
+        params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]},
       },
-    ],
+    ]),
   });
-
-  const {data} = await svgo.optimize(await readFile(file, 'utf8'));
   await writeFile(resolve(outputDir, `${name}.svg`), data);
 }
 

@@ -102,10 +102,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 }
 
 func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+	wr, rd, cancel := CatFileBatch(cache.repo.Path)
+	defer cancel()
+
 	var unHitEntryPaths []string
 	var results = make(map[string]*Commit)
 	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
+		lastCommit, err := cache.Get(commitID, path.Join(treePath, p), wr, rd)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -300,7 +303,7 @@ revListLoop:
 					commits[0] = string(commitID)
 				}
 			}
-			treeID = to40ByteSHA(treeID)
+			treeID = To40ByteSHA(treeID)
 			_, err = batchStdinWriter.Write(treeID)
 			if err != nil {
 				return nil, err

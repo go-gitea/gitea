@@ -186,7 +186,7 @@ func (a *Action) GetRepoLink() string {
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
+func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 	var err error
 	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
@@ -218,7 +218,7 @@ func (a *Action) getCommentLink(e Engine) string {
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
 	}
-	//Return link to issue
+	// Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 	if err != nil {
@@ -322,7 +322,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user *User, doer *User) bool {
+func activityReadable(user, doer *User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
@@ -382,7 +382,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.Date != "" {
-		dateLow, err := time.Parse("2006-01-02", opts.Date)
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
 		if err != nil {
 			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
 		} else {
@@ -394,4 +394,14 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	return cond, nil
+}
+
+// DeleteOldActions deletes all old actions from database.
+func DeleteOldActions(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	return
 }

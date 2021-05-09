@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//NoticeType describes the notice type
+// NoticeType describes the notice type
 type NoticeType int
 
 const (
-	//NoticeRepository type
+	// NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
 	// NoticeTask type
 	NoticeTask

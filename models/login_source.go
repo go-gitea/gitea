@@ -478,7 +478,7 @@ func LoginViaLDAP(ctx context.Context, user *User, login, password string, sourc
 		return nil, ErrUserNotExist{0, login, 0}
 	}
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
 	if isExist, err := IsUserExist(0, sr.Username); err != nil {

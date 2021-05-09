@@ -1,6 +1,6 @@
 import emojis from '../../../assets/emoji.json';
 
-const {StaticUrlPrefix} = window.config;
+const {AssetUrlPrefix} = window.config;
 
 const tempMap = {gitea: ':gitea:'};
 for (const {emoji, aliases} of emojis) {
@@ -24,7 +24,7 @@ for (const key of emojiKeys) {
 export function emojiHTML(name) {
   let inner;
   if (name === 'gitea') {
-    inner = `<img alt=":${name}:" src="${StaticUrlPrefix}/img/emoji/gitea.png">`;
+    inner = `<img alt=":${name}:" src="${AssetUrlPrefix}/img/emoji/gitea.png">`;
   } else {
     inner = emojiString(name);
   }
