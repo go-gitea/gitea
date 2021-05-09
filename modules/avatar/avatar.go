@@ -30,7 +30,7 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 	randExtent := len(palette.WebSafe) - 32
 	integer, err := util.RandomInt(int64(randExtent))
 	if err != nil {
-		return nil, fmt.Errorf("identicon.New: %v", err)
+		return nil, fmt.Errorf("util.RandomInt: %v", err)
 	}
 	colorIndex := int(integer)
 	backColorIndex := colorIndex - 1
