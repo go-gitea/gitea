@@ -66,6 +66,7 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 	if len(username) == 0 {
 		return nil
 	}
+	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
 	user, err := models.GetUserByName(username)
 	if err != nil {
@@ -82,9 +83,9 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 			handleSignIn(w, req, sess, user)
 		}
 	}
-	log.Info("Setting IsReverseProxy")
 	store.GetData()["IsReverseProxy"] = true
 
+	log.Trace("ReverseProxy Authorization: Logged in user %-v", user)
 	return user
 }
 

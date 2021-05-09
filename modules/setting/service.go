@@ -23,6 +23,7 @@ var Service struct {
 	EmailDomainWhitelist                    []string
 	EmailDomainBlocklist                    []string
 	DisableRegistration                     bool
+	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
 	ShowMilestonesDashboardPage             bool
@@ -73,7 +74,12 @@ func newService() {
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
+	Service.AllowOnlyInternalRegistration = sec.Key("ALLOW_ONLY_INTERNAL_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	if Service.AllowOnlyExternalRegistration && Service.AllowOnlyInternalRegistration {
+		log.Warn("ALLOW_ONLY_INTERNAL_REGISTRATION and ALLOW_ONLY_EXTERNAL_REGISTRATION are true - disabling registration")
+		Service.DisableRegistration = true
+	}
 	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		Service.RegisterManualConfirm = sec.Key("REGISTER_MANUAL_CONFIRM").MustBool(false)
 	} else {
