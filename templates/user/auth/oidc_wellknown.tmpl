@@ -1,0 +1,10 @@
+{
+    "issuer": "{{AppUrl | JSEscape | Safe}}",
+    "authorization_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/authorize",
+    "token_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/access_token",
+    "userinfo_endpoint": "{{AppUrl | JSEscape | Safe}}login/oauth/userinfo",
+    "response_types_supported": [
+        "code",
+        "id_token"
+    ]
+}

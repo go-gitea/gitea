@@ -18,11 +18,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/forms"
-	"code.gitea.io/gitea/services/mailer"
 )
 
 const (
@@ -251,7 +249,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
 	}
 
-	if u != nil || !setting.Service.EnableOpenIDSignUp {
+	if u != nil || !setting.Service.EnableOpenIDSignUp || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -269,6 +267,7 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -330,6 +329,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
@@ -368,6 +368,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["OpenID"] = oid
+
+	if setting.Service.AllowOnlyInternalRegistration {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
@@ -412,37 +417,16 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	// TODO: abstract a finalizeSignUp function ?
 	u := &models.User{
 		Name:     form.UserName,
 		Email:    form.Email,
 		Passwd:   password,
 		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 	}
-	//nolint: dupl
-	if err := models.CreateUser(u); err != nil {
-		switch {
-		case models.IsErrUserAlreadyExist(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSignUpOID, &form)
-		case models.IsErrEmailAlreadyUsed(err):
-			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignUpOID, &form)
-		case models.IsErrNameReserved(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplSignUpOID, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSignUpOID, &form)
-		case models.IsErrNameCharsNotAllowed(err):
-			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplSignUpOID, &form)
-		default:
-			ctx.ServerError("CreateUser", err)
-		}
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, false) {
+		// error already handled
 		return
 	}
-	log.Trace("Account created: %s", u.Name)
 
 	// add OpenID for the user
 	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
@@ -455,29 +439,8 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		return
 	}
 
-	// Auto-set admin for the only user.
-	if models.CountUsers() == 1 {
-		u.IsAdmin = true
-		u.IsActive = true
-		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-	}
-
-	// Send confirmation email, no need for social account.
-	if setting.Service.RegisterEmailConfirm && u.ID > 1 {
-		mailer.SendActivateAccountMail(ctx.Locale, u)
-
-		ctx.Data["IsSendRegisterMail"] = true
-		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
-		ctx.HTML(http.StatusOK, TplActivate)
-
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
-		}
+	if !handleUserCreated(ctx, u, nil) {
+		// error already handled
 		return
 	}
 

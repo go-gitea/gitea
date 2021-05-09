@@ -70,7 +70,7 @@
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
 					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
-					<dd>{{if not .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+					<dd>{{if .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
 					<dd>{{.SSH.Domain}}</dd>
 					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
@@ -149,6 +149,8 @@
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
 				<dd>{{if .Service.DisableRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.allow_only_internal_registration"}}</dt>
+				<dd>{{if .Service.AllowOnlyInternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.allow_only_external_registration"}}</dt>
 				<dd>{{if .Service.AllowOnlyExternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>

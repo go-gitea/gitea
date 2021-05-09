@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"html"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -117,14 +116,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			}
 			defer reader.Close()
 
-			b, err := ioutil.ReadAll(reader)
-			if err != nil {
-				return nil, err
-			}
-
-			b = charset.ToUTF8WithFallback(b)
-
-			return csv_module.CreateReaderAndGuessDelimiter(b), nil
+			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
 		}
 
 		baseReader, err := csvReaderFromCommit(baseCommit)
@@ -399,7 +391,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if rootRepo != nil &&
 		rootRepo.ID != headRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		perm, branches, err := getBranchesForRepo(ctx.User, rootRepo)
+		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
@@ -407,19 +399,20 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		if perm {
 			ctx.Data["RootRepo"] = rootRepo
 			ctx.Data["RootRepoBranches"] = branches
+			ctx.Data["RootRepoTags"] = tags
 		}
 	}
 
 	// If we have a ownForkRepo and it's different from:
 	// 1. The computed base
-	// 2. The computed hea
+	// 2. The computed head
 	// 3. The rootRepo (if we have one)
 	// then get the branches from it.
 	if ownForkRepo != nil &&
 		ownForkRepo.ID != headRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		perm, branches, err := getBranchesForRepo(ctx.User, ownForkRepo)
+		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
@@ -427,6 +420,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		if perm {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			ctx.Data["OwnForkRepoBranches"] = branches
+			ctx.Data["OwnForkRepoTags"] = tags
 		}
 	}
 
@@ -580,25 +574,29 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []string, error) {
+func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool, []string, []string, error) {
 	perm, err := models.GetUserRepoPermission(repo, user)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 	if !perm.CanRead(models.UnitTypeCode) {
-		return false, nil, nil
+		return false, nil, nil, nil
 	}
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 	defer gitRepo.Close()
 
 	branches, _, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
-	return true, branches, nil
+	tags, err := gitRepo.GetTags()
+	if err != nil {
+		return false, nil, nil, err
+	}
+	return true, branches, tags, nil
 }
 
 // CompareDiff show different from one commit to another commit
@@ -616,14 +614,29 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Data["PageIsComparePull"] == true {
-		headBranches, _, err := headGitRepo.GetBranches(0, 0)
-		if err != nil {
-			ctx.ServerError("GetBranches", err)
-			return
-		}
-		ctx.Data["HeadBranches"] = headBranches
+	baseGitRepo := ctx.Repo.GitRepo
+	baseTags, err := baseGitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["Tags"] = baseTags
 
+	headBranches, _, err := headGitRepo.GetBranches(0, 0)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["HeadBranches"] = headBranches
+
+	headTags, err := headGitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["HeadTags"] = headTags
+
+	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {

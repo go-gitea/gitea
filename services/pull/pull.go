@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -643,33 +642,75 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	return stringBuilder.String()
 }
 
-// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
-func GetLastCommitStatus(pr *models.PullRequest) (status []*models.CommitStatus, err error) {
-	if err = pr.LoadBaseRepo(); err != nil {
+// GetIssuesLastCommitStatus returns a map
+func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.CommitStatus, error) {
+	if err := issues.LoadPullRequests(); err != nil {
+		return nil, err
+	}
+	if _, err := issues.LoadRepositories(); err != nil {
 		return nil, err
 	}
 
+	var (
+		gitRepos = make(map[int64]*git.Repository)
+		res      = make(map[int64]*models.CommitStatus)
+		err      error
+	)
+	defer func() {
+		for _, gitRepo := range gitRepos {
+			gitRepo.Close()
+		}
+	}()
+
+	for _, issue := range issues {
+		if !issue.IsPull {
+			continue
+		}
+		gitRepo, ok := gitRepos[issue.RepoID]
+		if !ok {
+			gitRepo, err = git.OpenRepository(issue.Repo.RepoPath())
+			if err != nil {
+				return nil, err
+			}
+			gitRepos[issue.RepoID] = gitRepo
+		}
+
+		status, err := getLastCommitStatus(gitRepo, issue.PullRequest)
+		if err != nil {
+			log.Error("getLastCommitStatus: cant get last commit of pull [%d]: %v", issue.PullRequest.ID, err)
+			continue
+		}
+		res[issue.PullRequest.ID] = status
+	}
+	return res, nil
+}
+
+// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
+func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
+	if err = pr.LoadBaseRepo(); err != nil {
+		return nil, err
+	}
 	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
 	defer gitRepo.Close()
 
-	compareInfo, err := gitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
+	return getLastCommitStatus(gitRepo, pr)
+}
+
+// getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
+func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status *models.CommitStatus, err error) {
+	sha, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
 		return nil, err
 	}
 
-	if compareInfo.Commits.Len() == 0 {
-		return nil, errors.New("pull request has no commits")
-	}
-
-	sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
 	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return statusList, nil
+	return models.CalcCommitStatus(statusList), nil
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head

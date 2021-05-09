@@ -262,7 +262,7 @@ func GoLangOpts() *LanguageOpts {
 		if err != nil {
 			return "", err
 		}
-		return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(b), "}", ",}"), "[", "{"), "]", ",}"), nil
+		return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(b), "}", ",}"), "[", "{"), "]", ",}"), "{,}", "{}"), nil
 	}
 
 	opts.BaseImportFunc = func(tgt string) string {

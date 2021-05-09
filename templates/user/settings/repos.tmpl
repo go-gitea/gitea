@@ -35,7 +35,7 @@
 									{{else}}
 										<span class="icon">{{svg "octicon-file-directory"}}</span>
 										<span class="name">{{$.Owner.Name}}/{{$dir}}</span>
-        		                        <div class="right floated content">
+										<div class="right floated content">
 											{{if $.allowAdopt}}
 												<button class="ui button submit tiny green adopt show-modal" data-modal="#adopt-unadopted-modal-{{$dirI}}"><span class="icon">{{svg "octicon-plus"}}</span><span class="label">{{$.i18n.Tr "repo.adopt_preexisting_label"}}</span></button>
 												<div class="ui basic modal" id="adopt-unadopted-modal-{{$dirI}}">
