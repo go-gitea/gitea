@@ -8,7 +8,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -51,7 +49,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	"github.com/unknwon/com"
 )
 
 const (
@@ -228,6 +225,7 @@ func WebRoutes() *web.Route {
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
 	common = append(common, user.GetNotificationCount)
 	common = append(common, repo.GetActiveStopwatch)
+	common = append(common, goGet)
 
 	others := web.NewRoute()
 	for _, middle := range common {
@@ -237,67 +235,6 @@ func WebRoutes() *web.Route {
 	RegisterRoutes(others)
 	routes.Mount("", others)
 	return routes
-}
-
-func goGet(ctx *context.Context) {
-	if ctx.Query("go-get") != "1" {
-		return
-	}
-
-	// Quick responses appropriate go-get meta with status 200
-	// regardless of if user have access to the repository,
-	// or the repository does not exist at all.
-	// This is particular a workaround for "go get" command which does not respect
-	// .netrc file.
-
-	ownerName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
-	trimmedRepoName := strings.TrimSuffix(repoName, ".git")
-
-	if ownerName == "" || trimmedRepoName == "" {
-		_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-		ctx.Status(400)
-		return
-	}
-	branchName := setting.Repository.DefaultBranch
-
-	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
-	if err == nil && len(repo.DefaultBranch) > 0 {
-		branchName = repo.DefaultBranch
-	}
-	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
-
-	appURL, _ := url.Parse(setting.AppURL)
-
-	insecure := ""
-	if appURL.Scheme == string(setting.HTTP) {
-		insecure = "--insecure "
-	}
-	ctx.Header().Set("Content-Type", "text/html")
-	ctx.Status(http.StatusOK)
-	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
-<html>
-	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
-	</head>
-	<body>
-		go get {Insecure}{GoGetImport}
-	</body>
-</html>
-`, map[string]string{
-		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
-		"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
-		"GoDocDirectory": prefix + "{/dir}",
-		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-		"Insecure":       insecure,
-	})))
 }
 
 // RegisterRoutes register routes
@@ -1104,7 +1041,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, goGet, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
+		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {
