@@ -173,7 +173,7 @@ func WebRoutes() *web.Route {
 
 	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
 
 	gob.Register(&u2f.Challenge{})
