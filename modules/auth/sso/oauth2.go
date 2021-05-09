@@ -130,6 +130,7 @@ func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store 
 	if id <= 0 {
 		return nil
 	}
+	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
 
 	user, err := models.GetUserByID(id)
 	if err != nil {
@@ -139,5 +140,6 @@ func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store 
 		return nil
 	}
 
+	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user
 }

@@ -31,7 +31,7 @@ export default async function initServiceWorker() {
 
   if (UseServiceWorker) {
     try {
-      // normally we'd serve the service worker as a static asset from StaticUrlPrefix but
+      // normally we'd serve the service worker as a static asset from AssetUrlPrefix but
       // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
       await Promise.all([
         checkCacheValidity(),
