@@ -1,7 +1,6 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
@@ -85,20 +84,8 @@ export default {
     minimizer: [
       new ESBuildMinifyPlugin({
         target: 'es2015',
-        minify: true
-      }),
-      new CssMinimizerPlugin({
-        minimizerOptions: {
-          preset: [
-            'default',
-            {
-              discardComments: {
-                removeAll: true,
-              },
-              colormin: false,
-            },
-          ],
-        },
+        minify: true,
+        css: true,
       }),
     ],
     splitChunks: {

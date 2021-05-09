@@ -228,7 +228,7 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 					found := false
 				repoLoop:
 					for i, repo := range repos {
-						if repo.Name == name {
+						if repo.LowerName == name {
 							found = true
 							repos = append(repos[:i], repos[i+1:]...)
 							break repoLoop

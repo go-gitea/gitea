@@ -277,7 +277,7 @@ steps:
       - test-mysql
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -294,7 +294,7 @@ steps:
       - generate-coverage
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -383,7 +383,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -443,7 +443,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -482,7 +482,7 @@ workspace:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
@@ -545,7 +545,7 @@ steps:
       event:
         - push
 
-  - name: release-master
+  - name: release-main
     image: plugins/s3:1
     settings:
       acl: public-read
@@ -554,7 +554,7 @@ steps:
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
-      target: /gitea/master
+      target: /gitea/main
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: aws_access_key_id
@@ -562,7 +562,7 @@ steps:
         from_secret: aws_secret_access_key
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -683,7 +683,7 @@ steps:
         from_secret: netlify_token
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -701,7 +701,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -798,7 +798,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -886,7 +886,7 @@ steps:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -909,7 +909,7 @@ clone:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
