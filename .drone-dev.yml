@@ -202,7 +202,7 @@ steps:
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 80m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
       TAGS: bindata
