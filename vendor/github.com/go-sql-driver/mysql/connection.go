@@ -12,6 +12,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"io"
 	"net"
 	"strconv"
@@ -46,9 +47,10 @@ type mysqlConn struct {
 
 // Handles parameters set in DSN after the connection is established
 func (mc *mysqlConn) handleParams() (err error) {
+	var cmdSet strings.Builder
 	for param, val := range mc.cfg.Params {
 		switch param {
-		// Charset
+		// Charset: character_set_connection, character_set_client, character_set_results
 		case "charset":
 			charsets := strings.Split(val, ",")
 			for i := range charsets {
@@ -62,12 +64,25 @@ func (mc *mysqlConn) handleParams() (err error) {
 				return
 			}
 
-		// System Vars
+		// Other system vars accumulated in a single SET command
 		default:
-			err = mc.exec("SET " + param + "=" + val + "")
-			if err != nil {
-				return
+			if cmdSet.Len() == 0 {
+				// Heuristic: 29 chars for each other key=value to reduce reallocations
+				cmdSet.Grow(4 + len(param) + 1 + len(val) + 30*(len(mc.cfg.Params)-1))
+				cmdSet.WriteString("SET ")
+			} else {
+				cmdSet.WriteByte(',')
 			}
+			cmdSet.WriteString(param)
+			cmdSet.WriteByte('=')
+			cmdSet.WriteString(val)
+		}
+	}
+
+	if cmdSet.Len() > 0 {
+		err = mc.exec(cmdSet.String())
+		if err != nil {
+			return
 		}
 	}
 
@@ -230,47 +245,21 @@ func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (strin
 			if v.IsZero() {
 				buf = append(buf, "'0000-00-00'"...)
 			} else {
-				v := v.In(mc.cfg.Loc)
-				v = v.Add(time.Nanosecond * 500) // To round under microsecond
-				year := v.Year()
-				year100 := year / 100
-				year1 := year % 100
-				month := v.Month()
-				day := v.Day()
-				hour := v.Hour()
-				minute := v.Minute()
-				second := v.Second()
-				micro := v.Nanosecond() / 1000
-
-				buf = append(buf, []byte{
-					'\'',
-					digits10[year100], digits01[year100],
-					digits10[year1], digits01[year1],
-					'-',
-					digits10[month], digits01[month],
-					'-',
-					digits10[day], digits01[day],
-					' ',
-					digits10[hour], digits01[hour],
-					':',
-					digits10[minute], digits01[minute],
-					':',
-					digits10[second], digits01[second],
-				}...)
-
-				if micro != 0 {
-					micro10000 := micro / 10000
-					micro100 := micro / 100 % 100
-					micro1 := micro % 100
-					buf = append(buf, []byte{
-						'.',
-						digits10[micro10000], digits01[micro10000],
-						digits10[micro100], digits01[micro100],
-						digits10[micro1], digits01[micro1],
-					}...)
+				buf = append(buf, '\'')
+				buf, err = appendDateTime(buf, v.In(mc.cfg.Loc))
+				if err != nil {
+					return "", err
 				}
 				buf = append(buf, '\'')
 			}
+		case json.RawMessage:
+			buf = append(buf, '\'')
+			if mc.status&statusNoBackslashEscapes == 0 {
+				buf = escapeBytesBackslash(buf, v)
+			} else {
+				buf = escapeBytesQuotes(buf, v)
+			}
+			buf = append(buf, '\'')
 		case []byte:
 			if v == nil {
 				buf = append(buf, "NULL"...)
@@ -480,6 +469,10 @@ func (mc *mysqlConn) Ping(ctx context.Context) (err error) {
 
 // BeginTx implements driver.ConnBeginTx interface
 func (mc *mysqlConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
+	if mc.closed.IsSet() {
+		return nil, driver.ErrBadConn
+	}
+
 	if err := mc.watchCancel(ctx); err != nil {
 		return nil, err
 	}
@@ -648,4 +641,10 @@ func (mc *mysqlConn) ResetSession(ctx context.Context) error {
 	}
 	mc.reset = true
 	return nil
+}
+
+// IsValid implements driver.Validator interface
+// (From Go 1.15)
+func (mc *mysqlConn) IsValid() bool {
+	return !mc.closed.IsSet()
 }

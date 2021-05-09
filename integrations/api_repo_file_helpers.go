@@ -10,11 +10,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func createFileInBranch(user *models.User, repo *models.Repository, treePath, branchName string) (*api.FileResponse, error) {
+func createFileInBranch(user *models.User, repo *models.Repository, treePath, branchName, content string) (*api.FileResponse, error) {
 	opts := &repofiles.UpdateRepoFileOptions{
 		OldBranch: branchName,
 		TreePath:  treePath,
-		Content:   "This is a NEW file",
+		Content:   content,
 		IsNewFile: true,
 		Author:    nil,
 		Committer: nil,
@@ -23,5 +23,5 @@ func createFileInBranch(user *models.User, repo *models.Repository, treePath, br
 }
 
 func createFile(user *models.User, repo *models.Repository, treePath string) (*api.FileResponse, error) {
-	return createFileInBranch(user, repo, treePath, repo.DefaultBranch)
+	return createFileInBranch(user, repo, treePath, repo.DefaultBranch, "This is a NEW file")
 }

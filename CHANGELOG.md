@@ -4,6 +4,86 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.14.2](https://github.com/go-gitea/gitea/releases/tag/v1.14.2) - 2021-05-09
+
+* API
+  * Make change repo settings work on empty repos (#15778) (#15789)
+  * Add pull "merged" notification subject status to API (#15344) (#15654)
+* BUGFIXES
+  * Ensure that ctx.Written is checked after issues(...) calls (#15797) (#15798)
+  * Use pulls in commit graph unless pulls are disabled (#15734 & #15740 & #15774) (#15775)
+  * Set GIT_DIR correctly if it is not set (#15751) (#15769)
+  * Fix bug where repositories appear unadopted (#15757) (#15767)
+  * Not show `ref-in-new-issue` pop when issue was disabled (#15761) (#15765)
+  * Drop back to use IsAnInteractiveSession for SVC (#15749) (#15762)
+  * Fix setting version table in dump (#15753) (#15759)
+  * Fix close button change on delete in simplemde area (#15737) (#15747)
+  * Defer closing the gitrepo until the end of the wrapped context functions (#15653) (#15746)
+  * Fix some ui bug about draft release (#15137) (#15745)
+  * Only log Error on getLastCommitStatus error to let pull list still be visible (#15716) (#15715)
+  * Move tooltip down to allow selection of Remove File on error (#15672) (#15714)
+  * Fix setting redis db path (#15698) (#15708)
+  * Fix DB session cleanup (#15697) (#15700)
+  * Fixed several activation bugs (#15473) (#15685)
+  * Delete references if repository gets deleted (#15681) (#15684)
+  * Fix orphaned objects deletion bug (#15657) (#15683)
+  * Delete protected branch if repository gets removed (#15658) (#15676)
+  * Remove spurious set name from eventsource.sharedworker.js (#15643) (#15652)
+  * Not update updated uinx for `git gc` (#15637) (#15641)
+  * Fix commit graph author link (#15627) (#15630)
+  * Fix webhook timeout bug (#15613) (#15621)
+  * Resolve panic on failed interface conversion in migration v156 (#15604) (#15610)
+  * Fix missing storage init (#15589) (#15598)
+  * If the default branch is not present do not report error on stats indexing (#15546 & #15583) (#15594)
+  * Fix lfs management find (#15537) (#15578)
+  * Fix NPE on view commit with notes (#15561) (#15573)
+  * Fix bug on commit graph (#15517) (#15530)
+  * Send size to /avatars if requested (#15459) (#15528)
+  * Prevent migration 156 failure if tag commit missing (#15519) (#15527)
+* ENHANCEMENTS
+  * Display conflict-free merge messages for pull requests (#15773) (#15796)
+  * Exponential Backoff for ByteFIFO (#15724) (#15793)
+  * Issue list alignment tweaks (#15483) (#15766)
+  * Implement delete release attachments and update release attachments' name (#14130) (#15666)
+  * Add placeholder text to deploy key textarea (#15575) (#15576)
+  * Project board improvements (#15429) (#15560)
+  * Repo branch page: label size, PR ref, new PR button alignment (#15363) (#15365)
+* MISC
+  * Fix webkit calendar icon color on arc-green (#15713) (#15728)
+  * Performance improvement for last commit cache and show-ref (#15455) (#15701)
+  * Bump unrolled/render to v1.1.0 (#15581) (#15608)
+  * Add ETag header (#15370) (#15552)
+
+## [1.14.1](https://github.com/go-gitea/gitea/releases/tag/v1.14.1) - 2021-04-15
+
+* BUGFIXES
+  * Fix bug clone wiki (#15499) (#15502)
+  * Github Migration ignore rate limit, if not enabled (#15490) (#15495)
+  * Use subdir for URL (#15446) (#15493)
+  * Query the DB for the hash before inserting in to email_hash (#15457) (#15491)
+  * Ensure review dismissal only dismisses the correct review (#15477) (#15489)
+  * Use index of the supported tags to choose user lang (#15452) (#15488)
+  * Fix wrong file link in code search page (#15466) (#15486)
+  * Quick template fix for built-in SSH server in admin config (#15464) (#15481)
+  * Prevent superfluous response.WriteHeader (#15456) (#15476)
+  * Fix ambiguous argument error on tags (#15432) (#15474)
+  * Add created_unix instead of expiry to migration (#15458) (#15463)
+  * Fix repository search (#15428) (#15442)
+  * Prevent NPE on avatar direct rendering if federated avatars disabled (#15434) (#15439)
+  * Fix wiki clone urls (#15430) (#15431)
+  * Fix dingtalk icon url at webhook (#15417) (#15426)
+  * Standardise icon on projects PR page (#15387) (#15408)
+* ENHANCEMENTS
+  * Add option to skip LFS/attachment files for `dump` (#15407) (#15492)
+  * Clone panel fixes (#15436)
+  * Use semantic dropdown for code search query type (#15276) (#15364)
+* BUILD
+  * Build go-git variants for windows (#15482) (#15487)
+  * Lock down build-images dependencies (Partial #15479) (#15480)
+* MISC
+  * Performance improvement for list pull requests (#15447) (#15500)
+  * Fix potential copy lfs records failure when fork a repository (#15441) (#15485)
+
 ## [1.14.0](https://github.com/go-gitea/gitea/releases/tag/v1.14.0) - 2021-04-11
 
 * SECURITY

@@ -3,105 +3,175 @@
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 
-	{{if .PageIsComparePull}}
-		<h2 class="ui header">
-			{{if and $.IsSigned (not .Repository.IsArchived)}}
-				{{.i18n.Tr "repo.pulls.compare_changes"}}
-				<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
-			{{ else }}
-				{{.i18n.Tr "action.compare_commits_general"}}
-			{{ end }}
-		</h2>
-		{{ $BaseCompareName := $.BaseName -}}
-		{{- $HeadCompareName := $.HeadRepo.OwnerName -}}
-		{{- if and (eq $.BaseName $.HeadRepo.OwnerName) (ne $.Repository.Name $.HeadRepo.Name) -}}
+	<h2 class="ui header">
+		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
+			{{.i18n.Tr "repo.pulls.compare_changes"}}
+			<div class="sub header">{{.i18n.Tr "repo.pulls.compare_changes_desc"}}</div>
+		{{ else }}
+			{{.i18n.Tr "action.compare_commits_general"}}
+		{{ end }}
+	</h2>
+	{{ $BaseCompareName := $.BaseName -}}
+	{{- $HeadCompareName := $.HeadRepo.OwnerName -}}
+	{{- if and (eq $.BaseName $.HeadRepo.OwnerName) (ne $.Repository.Name $.HeadRepo.Name) -}}
+		{{- $HeadCompareName = printf "%s/%s" $.HeadRepo.OwnerName $.HeadRepo.Name -}}
+	{{- end -}}
+	{{- $OwnForkCompareName := "" -}}
+	{{- if .OwnForkRepo -}}
+		{{- $OwnForkCompareName = .OwnForkRepo.OwnerName -}}
+	{{- end -}}
+	{{- $RootRepoCompareName := "" -}}
+	{{- if .RootRepo -}}
+		{{- $RootRepoCompareName = .RootRepo.OwnerName -}}
+		{{- if eq $.HeadRepo.OwnerName .RootRepo.OwnerName -}}
 			{{- $HeadCompareName = printf "%s/%s" $.HeadRepo.OwnerName $.HeadRepo.Name -}}
 		{{- end -}}
-		{{- $OwnForkCompareName := "" -}}
 		{{- if .OwnForkRepo -}}
-			{{- $OwnForkCompareName = .OwnForkRepo.OwnerName -}}
-		{{- end -}}
-		{{- $RootRepoCompareName := "" -}}
-		{{- if .RootRepo -}}
-			{{- $RootRepoCompareName = .RootRepo.OwnerName -}}
-			{{- if eq $.HeadRepo.OwnerName .RootRepo.OwnerName -}}
-				{{- $HeadCompareName = printf "%s/%s" $.HeadRepo.OwnerName $.HeadRepo.Name -}}
-			{{- end -}}
-			{{- if .OwnForkRepo -}}
-				{{- if eq $.OwnForkRepo.OwnerName .RootRepo.OwnerName -}}
-					{{- $OwnForkRepoCompareName = printf "%s/%s" $.OwnForkRepo.OwnerName $.OwnForkRepo.Name -}}
-				{{- end -}}
+			{{- if eq $.OwnForkRepo.OwnerName .RootRepo.OwnerName -}}
+				{{- $OwnForkRepoCompareName = printf "%s/%s" $.OwnForkRepo.OwnerName $.OwnForkRepo.Name -}}
 			{{- end -}}
 		{{- end -}}
-		<div class="ui segment choose branch">
-			{{svg "octicon-git-compare"}}
-			<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
-				<div class="ui basic small button">
-					<span class="text">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$BaseCompareName}}:{{$.BaseBranch}}</span>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-				</div>
-				<div class="menu">
-					<div class="ui icon search input">
-						<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-						<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
-					</div>
-					<div class="scrolling menu">
-						{{range .Branches}}
-							<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
-						{{end}}
-						{{if not .PullRequestCtx.SameRepo}}
-							{{range .HeadBranches}}
-								<div class="item" data-url="{{$.HeadRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$HeadCompareName}}:{{.}}</div>
-							{{end}}
-						{{end}}
-						{{if .OwnForkRepo}}
-							{{range .OwnForkRepoBranches}}
-								<div class="item" data-url="{{$.OwnForkRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$OwnForkCompareName}}:{{.}}</div>
-							{{end}}
-						{{end}}
-						{{if .RootRepo}}
-							{{range .RootRepoBranches}}
-								<div class="item" data-url="{{$.RootRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$RootRepoCompareName}}:{{.}}</div>
-							{{end}}
-						{{end}}
-					</div>
-				</div>
+	{{- end -}}
+	<div class="ui segment choose branch">
+		{{svg "octicon-git-compare"}}
+		<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+			<div class="ui basic small button">
+				<span class="text">{{if $.PageIsComparePull}}{{.i18n.Tr "repo.pulls.compare_base"}}{{else}}{{.i18n.Tr "repo.compare.compare_base"}}{{end}}: {{$BaseCompareName}}:{{$.BaseBranch}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			</div>
-			...
-			<div class="ui floating filter dropdown">
-				<div class="ui basic small button">
-					<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$HeadCompareName}}:{{$.HeadBranch}}</span>
-					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="menu">
+				<div class="ui icon search input">
+					<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
+					<input name="search" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
 				</div>
-				<div class="menu">
-					<div class="ui icon search input">
-						<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-						<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
+				<div class="header">
+					<div class="ui grid">
+						<div class="two column row">
+							<a class="reference column" href="#" data-target=".base-branch-list">
+								<span class="text black">
+									{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
+								</span>
+							</a>
+							<a class="reference column" href="#" data-target=".base-tag-list">
+								<span class="text black">
+									{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
+								</span>
+							</a>
+						</div>
 					</div>
-					<div class="scrolling menu">
+				</div>
+				<div class="scrolling menu reference-list-menu base-branch-list">
+					{{range .Branches}}
+						<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+					{{end}}
+					{{if not .PullRequestCtx.SameRepo}}
 						{{range .HeadBranches}}
-							<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound .}}">{{$HeadCompareName}}:{{.}}</div>
+							<div class="item" data-url="{{$.HeadRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$HeadCompareName}}:{{.}}</div>
 						{{end}}
-						{{if not .PullRequestCtx.SameRepo}}
-							{{range .Branches}}
-								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.BaseName}}/{{$.Repository.Name}}:{{EscapePound .}}">{{$BaseCompareName}}:{{.}}</div>
-							{{end}}
+					{{end}}
+					{{if .OwnForkRepo}}
+						{{range .OwnForkRepoBranches}}
+							<div class="item" data-url="{{$.OwnForkRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$OwnForkCompareName}}:{{.}}</div>
 						{{end}}
-						{{if .OwnForkRepo}}
-							{{range .OwnForkRepoBranches}}
-								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.OwnForkRepo.OwnerName}}/{{$.OwnForkRepo.Name}}:{{EscapePound .}}">{{$OwnForkCompareName}}:{{.}}</div>
-							{{end}}
+					{{end}}
+					{{if .RootRepo}}
+						{{range .RootRepoBranches}}
+							<div class="item" data-url="{{$.RootRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$RootRepoCompareName}}:{{.}}</div>
 						{{end}}
-						{{if .RootRepo}}
-							{{range .RootRepoBranches}}
-								<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.RootRepo.OwnerName}}/{{$.RootRepo.Name}}:{{EscapePound .}}">{{$RootRepoCompareName}}:{{.}}</div>
-							{{end}}
+					{{end}}
+				</div>
+				<div class="scrolling menu reference-list-menu base-tag-list" style="display: none">
+					{{range .Tags}}
+						<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-url="{{$.RepoLink}}/compare/{{EscapePound .}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound $.HeadBranch}}">{{$BaseCompareName}}:{{.}}</div>
+					{{end}}
+					{{if not .PullRequestCtx.SameRepo}}
+						{{range .HeadTags}}
+							<div class="item" data-url="{{$.HeadRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$HeadCompareName}}:{{.}}</div>
 						{{end}}
-					</div>
+					{{end}}
+					{{if .OwnForkRepo}}
+						{{range .OwnForkRepoTags}}
+							<div class="item" data-url="{{$.OwnForkRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$OwnForkCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+					{{if .RootRepo}}
+						{{range .RootRepoTags}}
+							<div class="item" data-url="{{$.RootRepo.Link}}/compare/{{EscapePound .}}...{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{EscapePound $.HeadBranch}}">{{$RootRepoCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
 				</div>
 			</div>
 		</div>
-	{{end}}
+		...
+		<div class="ui floating filter dropdown">
+			<div class="ui basic small button">
+				<span class="text">{{if $.PageIsComparePull}}{{.i18n.Tr "repo.pulls.compare_compare"}}{{else}}{{.i18n.Tr "repo.compare.compare_head"}}{{end}}: {{$HeadCompareName}}:{{$.HeadBranch}}</span>
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			</div>
+			<div class="menu">
+				<div class="ui icon search input">
+					<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
+					<input name="search" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
+				</div>
+				<div class="header">
+					<div class="ui grid">
+						<div class="two column row">
+							<a class="reference column" href="#" data-target=".head-branch-list">
+								<span class="text black">
+									{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
+								</span>
+							</a>
+							<a class="reference column" href="#" data-target=".head-tag-list">
+								<span class="text black">
+									{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
+								</span>
+							</a>
+						</div>
+					</div>
+				</div>
+				<div class="scrolling menu reference-list-menu head-branch-list">
+					{{range .HeadBranches}}
+						<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound .}}">{{$HeadCompareName}}:{{.}}</div>
+					{{end}}
+					{{if not .PullRequestCtx.SameRepo}}
+						{{range .Branches}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.BaseName}}/{{$.Repository.Name}}:{{EscapePound .}}">{{$BaseCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+					{{if .OwnForkRepo}}
+						{{range .OwnForkRepoBranches}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.OwnForkRepo.OwnerName}}/{{$.OwnForkRepo.Name}}:{{EscapePound .}}">{{$OwnForkCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+					{{if .RootRepo}}
+						{{range .RootRepoBranches}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.RootRepo.OwnerName}}/{{$.RootRepo.Name}}:{{EscapePound .}}">{{$RootRepoCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+				</div>
+				<div class="scrolling menu reference-list-menu head-tag-list" style="display: none">
+					{{range .HeadTags}}
+						<div class="{{if eq $.HeadBranch .}}selected{{end}} item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{if not $.PullRequestCtx.SameRepo}}{{$.HeadUser.Name}}/{{$.HeadRepo.Name}}:{{end}}{{EscapePound .}}">{{$HeadCompareName}}:{{.}}</div>
+					{{end}}
+					{{if not .PullRequestCtx.SameRepo}}
+						{{range .Tags}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.BaseName}}/{{$.Repository.Name}}:{{EscapePound .}}">{{$BaseCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+					{{if .OwnForkRepo}}
+						{{range .OwnForkRepoTags}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.OwnForkRepo.OwnerName}}/{{$.OwnForkRepo.Name}}:{{EscapePound .}}">{{$OwnForkCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+					{{if .RootRepo}}
+						{{range .RootRepoTags}}
+							<div class="item" data-url="{{$.RepoLink}}/compare/{{EscapePound $.BaseBranch}}...{{$.RootRepo.OwnerName}}/{{$.RootRepo.Name}}:{{EscapePound .}}">{{$RootRepoCompareName}}:{{.}}</div>
+						{{end}}
+					{{end}}
+				</div>
+			</div>
+		</div>
+	</div>
 
 	{{if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) }}

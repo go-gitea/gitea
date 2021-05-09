@@ -1,5 +1,12 @@
 # Changelog
 
+## v3.6.0 - 2021-04-17
+
+- Add support for dumping a database using the CLI (use the `--dump` flag)
+  ([#88](https://github.com/go-testfixtures/testfixtures/pull/88), [#63](https://github.com/go-testfixtures/testfixtures/issues/63)).
+- Support SkipResetSequences and ResetSequencesTo for MySQL and MariaDB
+  ([#91](https://github.com/go-testfixtures/testfixtures/pull/91)).
+
 ## v3.5.0 - 2021-01-11
 
 - Fix insert of JSON values on PostgreSQL when using `binary_parameters=yes` in

@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf16"
 
+	//lint:ignore SA1019 MD4 is used by legacy NTLM
 	"golang.org/x/crypto/md4"
 )
 
@@ -124,18 +125,6 @@ func createDesKey(bytes, material []byte) {
 	material[5] = (byte)(bytes[4]<<3 | (bytes[5]&0xff)>>5)
 	material[6] = (byte)(bytes[5]<<2 | (bytes[6]&0xff)>>6)
 	material[7] = (byte)(bytes[6] << 1)
-}
-
-func oddParity(bytes []byte) {
-	for i := 0; i < len(bytes); i++ {
-		b := bytes[i]
-		needsParity := (((b >> 7) ^ (b >> 6) ^ (b >> 5) ^ (b >> 4) ^ (b >> 3) ^ (b >> 2) ^ (b >> 1)) & 0x01) == 0
-		if needsParity {
-			bytes[i] = bytes[i] | byte(0x01)
-		} else {
-			bytes[i] = bytes[i] & byte(0xfe)
-		}
-	}
 }
 
 func encryptDes(key []byte, cleartext []byte, ciphertext []byte) {
