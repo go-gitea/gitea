@@ -33,6 +33,12 @@ type User struct {
 	Created time.Time `json:"created,omitempty"`
 	// Is user restricted
 	Restricted bool `json:"restricted"`
+	// the user's location
+	Location string `json:"location"`
+	// the user's website
+	Website string `json:"website"`
+	// the user's description
+	Description string `json:"description"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

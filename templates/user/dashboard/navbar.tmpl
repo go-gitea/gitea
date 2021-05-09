@@ -23,7 +23,7 @@
 							<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
 						</a>
 						{{range .Orgs}}
-							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item truncated-item-container" title="{{.Name}}" href="{{AppSubUrl}}/org/{{.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+							<a class="{{if eq $.ContextUser.ID .ID}}active selected{{end}} item truncated-item-container" title="{{.Name}}" href="{{.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
 								{{avatar .}}
 								<span class="truncated-item-name">{{.ShortName 40}}</span>
 								<span class="org-visibility">
@@ -58,12 +58,12 @@
 							{{.i18n.Tr "home.filter_by_team_repositories"}}
 						</div>
 						<div class="scrolling menu items">
-							<a class="{{if not $.Team}}active selected{{end}} item" title="{{.i18n.Tr "all"}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
+							<a class="{{if not $.Team}}active selected{{end}} item" title="{{.i18n.Tr "all"}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}">
 								{{.i18n.Tr "all"}}
 							</a>
 							{{range .Org.Teams}}
 								{{if not .IncludesAllRepositories}}
-									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{AppSubUrl}}/org/{{$.Org.Name}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
+									<a class="{{if $.Team}}{{if eq $.Team.ID .ID}}active selected{{end}}{{end}} item" title="{{.Name}}" href="{{$.Org.OrganisationLink}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{end}}/{{.Name}}">
 										{{.Name}}
 									</a>
 								{{end}}
@@ -76,21 +76,21 @@
 
 	{{if .ContextUser.IsOrganization}}
 		<div class="right stackable menu">
-			<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/dashboard{{if .Team}}/{{.Team.Name}}{{end}}">
+			<a class="{{if .PageIsNews}}active{{end}} item" style="margin-left: auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{.Team.Name}}{{end}}">
 				{{svg "octicon-rss"}}&nbsp;{{.i18n.Tr "activities"}}
 			</a>
 			{{if not .UnitIssuesGlobalDisabled}}
-			<a class="{{if .PageIsIssues}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/issues{{if .Team}}/{{.Team.Name}}{{end}}">
+			<a class="{{if .PageIsIssues}}active{{end}} item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{.Team.Name}}{{end}}">
 				{{svg "octicon-issue-opened"}}&nbsp;{{.i18n.Tr "issues"}}
 			</a>
 			{{end}}
 			{{if not .UnitPullsGlobalDisabled}}
-			<a class="{{if .PageIsPulls}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/pulls{{if .Team}}/{{.Team.Name}}{{end}}">
+			<a class="{{if .PageIsPulls}}active{{end}} item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{.Team.Name}}{{end}}">
 				{{svg "octicon-git-pull-request"}}&nbsp;{{.i18n.Tr "pull_requests"}}
 			</a>
 			{{end}}
 			{{if and .ShowMilestonesDashboardPage (not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled))}}
-			<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{AppSubUrl}}/org/{{.ContextUser.Name}}/milestones{{if .Team}}/{{.Team.Name}}{{end}}">
+			<a class="{{if .PageIsMilestonesDashboard}}active{{end}} item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{.Team.Name}}{{end}}">
 				{{svg "octicon-milestone"}}&nbsp;{{.i18n.Tr "milestones"}}
 			</a>
 			{{end}}
