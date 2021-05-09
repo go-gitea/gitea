@@ -19,6 +19,7 @@ import initServiceWorker from './features/serviceworker.js';
 import initTableSort from './features/tablesort.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
+import initMarkupTasklist from './markup/tasklist.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {renderMarkupContent} from './markup/content.js';
@@ -2733,6 +2734,7 @@ $(document).ready(async () => {
   searchRepositories();
 
   initMarkupAnchors();
+  initMarkupTasklist();
   initCommentForm();
   initInstall();
   initArchiveLinks();

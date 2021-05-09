@@ -64,7 +64,7 @@
 					</div>
 				</div>
 				<div class="ui attached segment comment-body">
-					<div class="render-content markup">
+					<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 						{{if .RenderedContent}}
 							{{.RenderedContent|Str2html}}
 						{{else}}
@@ -552,7 +552,7 @@
 														</div>
 													</div>
 													<div class="text comment-content">
-														<div class="render-content markup">
+														<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 														{{if .RenderedContent}}
 															{{.RenderedContent|Str2html}}
 														{{else}}
