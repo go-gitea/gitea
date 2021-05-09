@@ -617,7 +617,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if setting.OAuth2Client.EnableAutoRegistration {
+		if !(setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration) && setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var missingFields []string
 			if gothUser.UserID == "" {
@@ -828,6 +828,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
@@ -993,7 +994,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	if setting.Service.DisableRegistration {
+	if setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
