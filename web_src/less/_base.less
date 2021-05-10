@@ -102,8 +102,8 @@
   --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
-  --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000010;
+  --color-markup-table-row: #00000008;
+  --color-markup-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
   --color-shadow: #00000030;
@@ -467,6 +467,10 @@ a.ui.card:hover,
 .ui.card > .extra {
   color: var(--color-text);
   border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.comments .comment .text {
+  margin: 0;
 }
 
 .ui.comments .comment .text,
@@ -1631,6 +1635,11 @@ a.ui.label:hover {
 
 .ui.labeled.button > .label {
   border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
 }
 
 .ui.blue.button,

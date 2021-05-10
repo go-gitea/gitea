@@ -58,22 +58,18 @@ To make Gitea serve custom public files (like pages and images), use the folder
 For example, a file `image.png` stored in `$GITEA_CUSTOM/public/`, can be accessed with
 the url `http://gitea.domain.tld/image.png`.
 
-## Changing the default logo
+## Changing the logo
 
-To build a custom logo replace `assets/logo.svg` and run `make generate-images`. This will update
-these customizable logo files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
+`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg`
-- `public/img/logo.png`
-- `public/img/favicon.png`
-- `public/img/avatar_default.png`
-- `public/img/apple-touch-icon.png`
+- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.png` - Used for Open Graph
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
+- `public/img/avatar_default.png` - Used as the default avatar image
+- `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
 
-## Changing the default avatar
-
-Either generate it via above method or place the png image at the following path:
-
-- `$GITEA_CUSTOM/public/img/avatar_default.png`
+In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
 ## Customizing Gitea pages and resources
 

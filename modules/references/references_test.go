@@ -198,6 +198,13 @@ func TestFindAllIssueReferences(t *testing.T) {
 			},
 		},
 		{
+			"Merge pull request '#12345 My fix for a bug' (!1337) from feature-branch into main",
+			[]testResult{
+				{12345, "", "", "12345", false, XRefActionNone, &RefSpan{Start: 20, End: 26}, nil, ""},
+				{1337, "", "", "1337", true, XRefActionNone, &RefSpan{Start: 46, End: 51}, nil, ""},
+			},
+		},
+		{
 			"Which abc. #9434 same as above",
 			[]testResult{
 				{9434, "", "", "9434", false, XRefActionNone, &RefSpan{Start: 11, End: 16}, nil, ""},

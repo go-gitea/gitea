@@ -249,7 +249,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
 	}
 
-	if u != nil || !setting.Service.EnableOpenIDSignUp {
+	if u != nil || !setting.Service.EnableOpenIDSignUp || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -267,6 +267,7 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -328,6 +329,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
@@ -366,6 +368,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["OpenID"] = oid
+
+	if setting.Service.AllowOnlyInternalRegistration {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
 
 	if setting.Service.EnableCaptcha {
 		var valid bool
