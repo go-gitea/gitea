@@ -4,26 +4,26 @@
  * On success it updates the raw-content on error it resets the checkbox to its original value.
  */
 export default function initMarkupTasklist() {
-  $(`.render-content.markup[data-can-edit='true']`).parent().each((_, container) => {
-    const $container = $(container);
-    const $checkboxes = $container.find(`.task-list-item input:checkbox`);
+  document.querySelectorAll(`.render-content.markup[data-can-edit='true']`).forEach((el) => {
+    const container = el.parentNode;
+    const checkboxes = container.querySelectorAll(`.task-list-item input[type=checkbox]`);
 
-    $checkboxes.on('change', async (ev) => {
-      const $checkbox = $(ev.target);
-      const checkboxCharacter = $checkbox.is(':checked') ? 'x' : ' ';
-      const position = parseInt($checkbox.data('source-position')) + 1;
+    checkboxes.forEach((cb) => cb.addEventListener('change', async (ev) => {
+      const checkbox = ev.target;
+      const checkboxCharacter = checkbox.checked ? 'x' : ' ';
+      const position = parseInt(checkbox.dataset.sourcePosition) + 1;
 
-      const $rawContent = $container.find('.raw-content');
-      const oldContent = $rawContent.text();
+      const rawContent = container.querySelector('.raw-content');
+      const oldContent = rawContent.textContent;
       const newContent = oldContent.substring(0, position) + checkboxCharacter + oldContent.substring(position + 1);
 
       if (newContent !== oldContent) {
-        $checkboxes.prop('disabled', true);
+        checkboxes.forEach((cb) => cb.disabled = true);
 
         try {
-          const $contentZone = $container.find('.edit-content-zone');
-          const url = $contentZone.data('update-url');
-          const context = $contentZone.data('context');
+          const contentZone = container.querySelector('.edit-content-zone');
+          const url = contentZone.dataset.updateUrl;
+          const context = contentZone.dataset.context;
 
           await $.post(url, {
             _csrf: window.config.csrf,
@@ -31,17 +31,17 @@ export default function initMarkupTasklist() {
             context,
           });
 
-          $rawContent.text(newContent);
+          rawContent.textContent = newContent;
         } catch (e) {
-          $checkbox.prop('checked', !$checkbox.is(':checked'));
+          checkbox.checked = !checkbox.checked;
 
           console.error(e);
         } finally {
-          $checkboxes.prop('disabled', false);
+          checkboxes.forEach((cb) => cb.disabled = false);
         }
       }
-    });
+    }));
 
-    $checkboxes.prop('disabled', false);
+    checkboxes.forEach((cb) => cb.disabled = false);
   });
 }
