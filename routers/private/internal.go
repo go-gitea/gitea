@@ -69,6 +69,7 @@ func Routes() *web.Route {
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
 	r.Post("/mail/send", SendEmail)
+	r.Post("/restore_repo", RestoreRepo)
 
 	return r
 }
