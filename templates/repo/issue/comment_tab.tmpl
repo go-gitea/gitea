@@ -8,7 +8,7 @@
 			{{- if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end -}}
 		</textarea>
 	</div>
-	<div class="ui bottom tab markdown" data-tab="preview">
+	<div class="ui bottom tab markup" data-tab="preview">
 		{{.i18n.Tr "loading"}}
 	</div>
 </div>
