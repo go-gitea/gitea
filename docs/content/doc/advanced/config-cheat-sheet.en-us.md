@@ -143,6 +143,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
 
+## Repository -  MIME type mapping (`repository.mimetype_mapping`)
+
+Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
+
+The following configuration set `Content-Type: application/vnd.android.package-archive` header when downloading files with `.apk` file extension.
+```ini
+.apk=application/vnd.android.package-archive
+```
+
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
