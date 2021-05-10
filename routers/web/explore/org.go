@@ -17,8 +17,8 @@ const (
 	tplExploreOrganizations base.TplName = "explore/organizations"
 )
 
-// ExploreOrganizations render explore organizations page
-func ExploreOrganizations(ctx *context.Context) {
+// Organizations render explore organizations page
+func Organizations(ctx *context.Context) {
 	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true

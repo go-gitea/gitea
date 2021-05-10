@@ -20,8 +20,8 @@ const (
 	tplExploreCode base.TplName = "explore/code"
 )
 
-// ExploreCode render explore code page
-func ExploreCode(ctx *context.Context) {
+// Codes render explore code page
+func Codes(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(setting.AppSubURL+"/explore", 302)
 		return

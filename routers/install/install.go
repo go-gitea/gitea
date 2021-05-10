@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -40,8 +41,8 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
-// InstallInit prepare for rendering installation page
-func InstallInit(next http.Handler) http.Handler {
+// Init prepare for rendering installation page
+func Init(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
 
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -83,6 +84,40 @@ func InstallInit(next http.Handler) http.Handler {
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
+}
+
+// PreInit preloads the configuration to check if we need to run install
+func PreInit(ctx std_context.Context) bool {
+	setting.NewContext()
+	if !setting.InstallLock {
+		log.Trace("AppPath: %s", setting.AppPath)
+		log.Trace("AppWorkPath: %s", setting.AppWorkPath)
+		log.Trace("Custom path: %s", setting.CustomPath)
+		log.Trace("Log path: %s", setting.LogRootPath)
+		log.Trace("Preparing to run install page")
+		translation.InitLocales()
+		if setting.EnableSQLite3 {
+			log.Info("SQLite3 Supported")
+		}
+		setting.InitDBConfig()
+		svg.Init()
+	}
+
+	return !setting.InstallLock
+}
+
+// PostInit rereads the settings and starts up the database
+func PostInit(ctx std_context.Context) {
+	setting.NewContext()
+	setting.InitDBConfig()
+	if setting.InstallLock {
+		if err := common.InitDBEngine(ctx); err == nil {
+			log.Info("ORM engine initialization successful!")
+		} else {
+			log.Fatal("ORM engine initialization failed: %v", err)
+		}
+		svg.Init()
+	}
 }
 
 // Install render installation page
@@ -160,42 +195,8 @@ func Install(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplInstall)
 }
 
-// PreInstallInit preloads the configuration to check if we need to run install
-func PreInstallInit(ctx std_context.Context) bool {
-	setting.NewContext()
-	if !setting.InstallLock {
-		log.Trace("AppPath: %s", setting.AppPath)
-		log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-		log.Trace("Custom path: %s", setting.CustomPath)
-		log.Trace("Log path: %s", setting.LogRootPath)
-		log.Trace("Preparing to run install page")
-		translation.InitLocales()
-		if setting.EnableSQLite3 {
-			log.Info("SQLite3 Supported")
-		}
-		setting.InitDBConfig()
-		svg.Init()
-	}
-
-	return !setting.InstallLock
-}
-
-// PostInstallInit rereads the settings and starts up the database
-func PostInstallInit(ctx std_context.Context) {
-	setting.NewContext()
-	setting.InitDBConfig()
-	if setting.InstallLock {
-		if err := models.InitDBEngine(ctx); err == nil {
-			log.Info("ORM engine initialization successful!")
-		} else {
-			log.Fatal("ORM engine initialization failed: %v", err)
-		}
-		svg.Init()
-	}
-}
-
-// InstallPost response for submit install items
-func InstallPost(ctx *context.Context) {
+// SubmitInstall response for submit install items
+func SubmitInstall(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.InstallForm)
 	var err error
 	ctx.Data["CurDbOption"] = form.DbType

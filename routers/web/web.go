@@ -137,15 +137,14 @@ func NormalRoutes() *web.Route {
 			return next
 		}
 	}
-
-	r.Mount("/", WebRoutes())
+	r.Mount("/", Routes())
 	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
 	return r
 }
 
-// WebRoutes returns all web routes
-func WebRoutes() *web.Route {
+// Routes returns all web routes
+func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(public.AssetsHandler(&public.Options{
@@ -304,10 +303,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
-		m.Get("/repos", explore.ExploreRepos)
-		m.Get("/users", explore.ExploreUsers)
-		m.Get("/organizations", explore.ExploreOrganizations)
-		m.Get("/code", explore.ExploreCode)
+		m.Get("/repos", explore.Repos)
+		m.Get("/users", explore.Users)
+		m.Get("/organizations", explore.Organizations)
+		m.Get("/code", explore.Codes)
 	}, ignExploreSignIn)
 	m.Get("/issues", reqSignIn, user.Issues)
 	m.Get("/pulls", reqSignIn, user.Pulls)

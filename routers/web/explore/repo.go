@@ -109,8 +109,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	ctx.HTML(http.StatusOK, opts.TplName)
 }
 
-// ExploreRepos render explore repositories page
-func ExploreRepos(ctx *context.Context) {
+// Repos render explore repositories page
+func Repos(ctx *context.Context) {
 	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["Title"] = ctx.Tr("explore")
 	ctx.Data["PageIsExplore"] = true

@@ -86,8 +86,8 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.HTML(http.StatusOK, tplName)
 }
 
-// ExploreUsers render explore users page
-func ExploreUsers(ctx *context.Context) {
+// Users render explore users page
+func Users(ctx *context.Context) {
 	if setting.Service.Explore.DisableUsersPage {
 		ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		return

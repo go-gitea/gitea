@@ -82,8 +82,8 @@ func installRecovery() func(next http.Handler) http.Handler {
 	}
 }
 
-// InstallRoutes registers the install routes
-func InstallRoutes() *web.Route {
+// Routes registers the install routes
+func Routes() *web.Route {
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
@@ -121,9 +121,9 @@ func InstallRoutes() *web.Route {
 		},
 	))
 
-	r.Use(InstallInit)
+	r.Use(Init)
 	r.Get("/", Install)
-	r.Post("/", web.Bind(forms.InstallForm{}), InstallPost)
+	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, setting.AppURL, http.StatusFound)
 	})

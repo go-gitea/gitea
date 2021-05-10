@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
-	"code.gitea.io/gitea/routers/web"
 
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
@@ -89,7 +88,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := install.PreInstallInit(graceful.GetManager().HammerContext())
+	needsInstall := install.PreInit(graceful.GetManager().HammerContext())
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {
@@ -102,7 +101,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := install.InstallRoutes()
+		c := install.Routes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -135,7 +134,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := web.NormalRoutes()
+	c := routers.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())

@@ -29,6 +29,11 @@ import (
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/web"
+	apiv1 "code.gitea.io/gitea/routers/api/v1"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/private"
+	web_routers "code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -91,7 +96,7 @@ func GlobalInit(ctx context.Context) {
 	} else if setting.Database.UseSQLite3 {
 		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
-	if err := models.InitDBEngine(ctx); err == nil {
+	if err := common.InitDBEngine(ctx); err == nil {
 		log.Info("ORM engine initialization successful!")
 	} else {
 		log.Fatal("ORM engine initialization failed: %v", err)
@@ -132,4 +137,17 @@ func GlobalInit(ctx context.Context) {
 	sso.Init()
 
 	svg.Init()
+}
+
+// NormalRoutes represents non install routes
+func NormalRoutes() *web.Route {
+	r := web.NewRoute()
+	for _, middle := range common.Middlewares() {
+		r.Use(middle)
+	}
+
+	r.Mount("/", web_routers.Routes())
+	r.Mount("/api/v1", apiv1.Routes())
+	r.Mount("/api/internal", private.Routes())
+	return r
 }
