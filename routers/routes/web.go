@@ -162,6 +162,9 @@ func WebRoutes() *web.Route {
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Route("/repo-avatars/*", "GET, HEAD", storageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
+	routes.Route("/serviceworker.js", "GET, HEAD", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		http.Redirect(resp, req, setting.AppURL+"assets/serviceworker.js", http.StatusFound)
+	}))
 
 	// for health check - doeesn't need to be passed through gzip handler
 	routes.Head("/", func(w http.ResponseWriter, req *http.Request) {
