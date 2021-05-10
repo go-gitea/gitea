@@ -15,6 +15,7 @@ import (
 func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
+			ptree:     t,
 			ID:        t.ID,
 			name:      "",
 			fullName:  "",
