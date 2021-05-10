@@ -18,7 +18,7 @@ var (
 )
 
 func newMimeTypeMap() {
-	sec := Cfg.Section("download.mimetype.mapping")
+	sec := Cfg.Section("repository.mimetype_mapping")
 	keys := sec.Keys()
 	m := make(map[string]string, len(keys))
 	for _, key := range keys {
