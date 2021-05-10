@@ -704,6 +704,11 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 
+- `SCHEDULE` accept formats
+   - Full crontab specs, e.g. `* * * * * ?`
+   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
+   - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+
 ### Basic cron tasks - enabled by default
 
 #### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
