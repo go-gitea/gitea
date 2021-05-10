@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	jsoniter "github.com/json-iterator/go"
@@ -26,6 +27,7 @@ func RestoreRepo(repoDir, ownerName, repoName string, units []string) (int, stri
 	reqURL := setting.LocalURL + "api/internal/restore_repo"
 
 	req := newInternalRequest(reqURL, "POST")
+	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
 	req = req.Header("Content-Type", "application/json")
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(RestoreParams{
