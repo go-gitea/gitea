@@ -13,12 +13,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_RandomImage(t *testing.T) {
-	_, err := RandomImage([]byte("gogs@local"))
-	assert.NoError(t, err)
-
-	_, err = RandomImageSize(0, []byte("gogs@local"))
+func Test_RandomImageSize(t *testing.T) {
+	_, err := RandomImageSize(0, []byte("gitea@local"))
 	assert.Error(t, err)
+
+	_, err = RandomImageSize(64, []byte("gitea@local"))
+	assert.NoError(t, err)
+}
+
+func Test_RandomImage(t *testing.T) {
+	_, err := RandomImage([]byte("gitea@local"))
+	assert.NoError(t, err)
 }
 
 func Test_PrepareWithPNG(t *testing.T) {
