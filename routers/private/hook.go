@@ -754,7 +754,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		old, err := git.GetRefCommitID(pr.BaseRepo.RepoPath(), pr.GetGitRefName())
+		old, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			log.Error("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

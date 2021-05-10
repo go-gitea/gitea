@@ -605,6 +605,12 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			return
 		}
 
+		gitRepo, err := git.OpenRepository(dstPath)
+		if !assert.NoError(t, err) {
+			return
+		}
+		defer gitRepo.Close()
+
 		var (
 			pr1, pr2 *models.PullRequest
 			commit   string
@@ -639,7 +645,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 				Message: "Testing commit 1",
 			})
 			assert.NoError(t, err)
-			commit, err = git.GetRefCommitID(dstPath, "HEAD")
+			commit, err = gitRepo.GetRefCommitID("HEAD")
 			assert.NoError(t, err)
 		})
 
@@ -711,7 +717,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 				Message: "Testing commit 2",
 			})
 			assert.NoError(t, err)
-			commit, err = git.GetRefCommitID(dstPath, "HEAD")
+			commit, err = gitRepo.GetRefCommitID("HEAD")
 			assert.NoError(t, err)
 		})
 

@@ -40,19 +40,6 @@ type Branch struct {
 	gitRepo *Repository
 }
 
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func GetRefCommitID(repoPath, name string) (string, error) {
-	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repoPath)
-	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-
-	return strings.TrimSpace(stdout), nil
-}
-
 // GetHEADBranch returns corresponding branch of HEAD.
 func (repo *Repository) GetHEADBranch() (*Branch, error) {
 	if repo == nil {

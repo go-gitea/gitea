@@ -528,7 +528,7 @@ Gitea or set your environment appropriately.`, "")
 			hasPushOptions = true
 		}
 	}
-	response = append(response, []byte("\n")...)
+	response = append(response, '\n')
 
 	readPktLine(reader, pktLineTypeFlush)
 

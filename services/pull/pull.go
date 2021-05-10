@@ -573,7 +573,7 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	if pr.Style == models.PullRequestStyleGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		pr.HeadCommitID, err = git.GetRefCommitID(gitRepo.Path, pr.GetGitRefName())
+		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitRefName(), err)
 			return ""
@@ -781,7 +781,7 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = git.GetRefCommitID(baseGitRepo.Path, pr.GetGitRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			return false, err
 		}
