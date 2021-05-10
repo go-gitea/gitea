@@ -22,17 +22,13 @@ func TestAction_GetRepoPath(t *testing.T) {
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
-	old := setting.AppSubURL
-	setting.AppSubURL = "/suburl"
-
 	assert.NoError(t, PrepareTestDatabase())
 	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
 	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	action := &Action{RepoID: repo.ID}
+	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
-
-	setting.AppSubURL = old
 }
 
 func TestGetFeeds(t *testing.T) {
