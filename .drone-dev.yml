@@ -226,9 +226,9 @@ depends_on:
   - testing-amd64
 
 trigger:
-  ref:
-  - refs/heads/master
-  - "refs/tags/**"
+  # ref:
+  # - refs/heads/master
+  # - "refs/tags/**"
   event:
     exclude:
     - cron
@@ -245,13 +245,15 @@ steps:
     settings:
       auto_tag: true
       auto_tag_suffix: linux-amd64
-      repo: gitea/gitea
+      repo: nexus.corp.sarov-site.online:8099/integra/drone
+      registry: nexus.corp.sarov-site.online:8099
       build_args:
         - GOPROXY=off
       password:
-        from_secret: docker_password
+        from_secret: NEXUS_PUBLISHER_PASSWORD
       username:
-        from_secret: docker_username
+        from_secret: NEXUS_PUBLISHER_USERNAME
+      insecure: true
     when:
       event:
         exclude:
@@ -263,16 +265,15 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
-      repo: gitea/gitea
+      repo: nexus.corp.sarov-site.online:8099/integra/drone
+      registry: nexus.corp.sarov-site.online:8099
       build_args:
         - GOPROXY=off
       password:
-        from_secret: docker_password
+        from_secret: NEXUS_PUBLISHER_PASSWORD
       username:
-        from_secret: docker_username
-    environment:
-      PLUGIN_MIRROR:
-        from_secret: plugin_mirror
+        from_secret: NEXUS_PUBLISHER_USERNAME
+      insecure: true
     when:
       event:
         exclude:
