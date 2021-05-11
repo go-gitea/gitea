@@ -28,6 +28,9 @@ var (
 	DefaultMaxHeaderBytes int
 )
 
+// PerWriteWriteTimeout timeout for writes
+const PerWriteWriteTimeout = 5 * time.Second
+
 func init() {
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
@@ -248,6 +251,13 @@ type wrappedConn struct {
 	net.Conn
 	server *Server
 	closed *int32
+}
+
+func (w wrappedConn) Write(p []byte) (n int, err error) {
+	if PerWriteWriteTimeout > 0 {
+		_ = w.Conn.SetWriteDeadline(time.Now().Add(PerWriteWriteTimeout))
+	}
+	return w.Conn.Write(p)
 }
 
 func (w wrappedConn) Close() error {
