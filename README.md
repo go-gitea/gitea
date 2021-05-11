@@ -104,6 +104,7 @@ NOTES:
 ## Translating
 
 Translations are done through Crowdin. If you want to translate to a new language ask to add a new language there.
+
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 
 ## Further information
