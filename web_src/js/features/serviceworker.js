@@ -6,7 +6,7 @@ const workerAssetPath = joinPaths(AssetUrlPrefix, 'serviceworker.js');
 
 async function unregisterAll() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
-    if (registration?.active) await registration.unregister();
+    if (registration.active) await registration.unregister();
   }
 }
 
