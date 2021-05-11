@@ -12,9 +12,9 @@ import (
 
 func createProtectedTagTable(x *xorm.Engine) error {
 	type ProtectedTag struct {
-		ID               int64   `xorm:"pk autoincr"`
-		RepoID           int64   `xorm:"UNIQUE(s)"`
-		NamePattern      string  `xorm:"UNIQUE(s)"`
+		ID               int64 `xorm:"pk autoincr"`
+		RepoID           int64
+		NamePattern      string
 		WhitelistUserIDs []int64 `xorm:"JSON TEXT"`
 		WhitelistTeamIDs []int64 `xorm:"JSON TEXT"`
 
