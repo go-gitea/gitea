@@ -39,7 +39,6 @@ test('joinPaths', () => {
   expect(joinPaths('/a', '', '/c')).toEqual('/a/c');
   expect(joinPaths('/a', '/b', '')).toEqual('/a/b');
 
-  expect(joinPaths('', '')).toEqual('');
   expect(joinPaths('', '/')).toEqual('/');
   expect(joinPaths('a', '/')).toEqual('a/');
   expect(joinPaths('', '/', '/')).toEqual('/');
