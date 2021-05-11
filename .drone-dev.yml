@@ -245,7 +245,7 @@ steps:
     settings:
       auto_tag: true
       auto_tag_suffix: linux-amd64
-      repo: nexus.corp.sarov-site.online:8099/integra/drone
+      repo: nexus.corp.sarov-site.online:8099/integra/gitea
       registry: nexus.corp.sarov-site.online:8099
       build_args:
         - GOPROXY=off
@@ -265,7 +265,7 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: true
       auto_tag_suffix: linux-amd64-rootless
-      repo: nexus.corp.sarov-site.online:8099/integra/drone
+      repo: nexus.corp.sarov-site.online:8099/integra/gitea
       registry: nexus.corp.sarov-site.online:8099
       build_args:
         - GOPROXY=off
