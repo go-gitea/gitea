@@ -50,10 +50,8 @@ func (pt *ProtectedTag) EnsureCompiledPattern() error {
 		return nil
 	}
 
-	expr := strings.TrimSpace(pt.NamePattern)
-
 	var err error
-	pt.NameGlob, err = glob.Compile(expr)
+	pt.NameGlob, err = glob.Compile(strings.TrimSpace(pt.NamePattern))
 	return err
 }
 
