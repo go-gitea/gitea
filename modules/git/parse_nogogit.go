@@ -7,8 +7,10 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -84,5 +86,51 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		pos = end + 1
 		entries = append(entries, entry)
 	}
+	return entries, nil
+}
+
+func catBatchParseTreeEntries(ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
+	fnameBuf := make([]byte, 4096)
+	modeBuf := make([]byte, 40)
+	shaBuf := make([]byte, 40)
+	entries := make([]*TreeEntry, 0, 10)
+
+loop:
+	for sz > 0 {
+		mode, fname, sha, count, err := ParseTreeLine(rd, modeBuf, fnameBuf, shaBuf)
+		if err != nil {
+			if err == io.EOF {
+				break loop
+			}
+			return nil, err
+		}
+		sz -= int64(count)
+		entry := new(TreeEntry)
+		entry.ptree = ptree
+
+		switch string(mode) {
+		case "100644":
+			entry.entryMode = EntryModeBlob
+		case "100755":
+			entry.entryMode = EntryModeExec
+		case "120000":
+			entry.entryMode = EntryModeSymlink
+		case "160000":
+			entry.entryMode = EntryModeCommit
+		case "40000":
+			entry.entryMode = EntryModeTree
+		default:
+			log("Unknown mode: %v", string(mode))
+			return nil, fmt.Errorf("unknown mode: %v", string(mode))
+		}
+
+		entry.ID = MustID(sha)
+		entry.name = string(fname)
+		entries = append(entries, entry)
+	}
+	if _, err := rd.Discard(1); err != nil {
+		return entries, err
+	}
+
 	return entries, nil
 }

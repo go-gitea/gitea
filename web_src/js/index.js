@@ -25,7 +25,7 @@ import {renderMarkupContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
-const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -1175,7 +1175,7 @@ async function initRepository() {
       const form = $(e.currentTarget).closest('form');
       if (form.length > 0 && form.hasClass('comment-form')) {
         form.addClass('hide');
-        form.parent().find('button.comment-form-reply').show();
+        form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
       } else {
         form.closest('.comment-code-cloud').remove();
       }
@@ -1241,10 +1241,16 @@ async function initRepository() {
     $(this).select();
   });
 
+  // Compare or pull request
+  const $repoDiff = $('.repository.diff');
+  if ($repoDiff.length) {
+    initBranchOrTagDropdown('.choose.branch .dropdown');
+    initFilterSearchDropdown('.choose.branch .dropdown');
+  }
+
   // Pull request
   const $repoComparePull = $('.repository.compare.pull');
   if ($repoComparePull.length > 0) {
-    initFilterSearchDropdown('.choose.branch .dropdown');
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
@@ -1333,7 +1339,7 @@ function initPullRequestReview() {
   $(document).on('click', 'button.comment-form-reply', function (e) {
     e.preventDefault();
     $(this).hide();
-    const form = $(this).parent().find('.comment-form');
+    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
     let $simplemde;
@@ -3132,7 +3138,7 @@ function initVueComponents() {
         finalPage: 1,
         searchQuery,
         isLoading: false,
-        staticPrefix: StaticUrlPrefix,
+        staticPrefix: AssetUrlPrefix,
         counts: {},
         repoTypes: {
           all: {
@@ -3444,6 +3450,17 @@ function initIssueTimetracking() {
         $(`${sel} form`).trigger('submit');
       }
     }).modal('show');
+  });
+}
+
+function initBranchOrTagDropdown(selector) {
+  $(selector).each(function() {
+    const $dropdown = $(this);
+    $dropdown.find('.reference.column').on('click', function () {
+      $dropdown.find('.scrolling.reference-list-menu').hide();
+      $($(this).data('target')).show();
+      return false;
+    });
   });
 }
 

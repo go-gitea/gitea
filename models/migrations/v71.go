@@ -8,8 +8,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/crypto/pbkdf2"
 	"xorm.io/xorm"
@@ -53,7 +53,7 @@ func addScratchHash(x *xorm.Engine) error {
 
 		for _, tfa := range tfas {
 			// generate salt
-			salt, err := generate.GetRandomString(10)
+			salt, err := util.RandomString(10)
 			if err != nil {
 				return err
 			}
