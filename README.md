@@ -101,6 +101,11 @@ NOTES:
 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
+## Translating
+
+Translations are done through Crowdin. If you want to translate to a new language ask to add a new language there.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+
 ## Further information
 
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.io/en-us/).
