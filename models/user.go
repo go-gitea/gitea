@@ -811,6 +811,7 @@ var (
 		"template",
 		"user",
 		"favicon.ico",
+		"serviceworker.js",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
