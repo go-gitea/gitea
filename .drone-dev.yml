@@ -225,14 +225,6 @@ platform:
 depends_on:
   - testing-amd64
 
-trigger:
-  # ref:
-  # - refs/heads/master
-  # - "refs/tags/**"
-  event:
-    exclude:
-    - cron
-
 steps:
   - name: fetch-tags
     image: docker:git
@@ -313,14 +305,6 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-
-trigger:
-  ref:
-  - refs/heads/master
-  - "refs/tags/**"
-  event:
-    exclude:
-    - cron
 
 depends_on:
   - docker-linux-amd64-release
