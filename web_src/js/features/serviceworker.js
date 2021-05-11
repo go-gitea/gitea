@@ -14,7 +14,7 @@ async function unregister() {
 async function unregisterOtherWorkers() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
     const scriptURL = registration?.active?.scriptURL || '';
-    if (!scriptURL.endsWith(workerAssetPath)) registration.unregister();
+    if (!scriptURL.endsWith(workerAssetPath)) await registration.unregister();
   }
 }
 
