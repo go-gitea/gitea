@@ -705,9 +705,9 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 	}
 	if ValidateEmail(email) != nil {
 		if cfg.EmailDomain != "" {
-			email = fmt.Sprintf("%s@%s", pamLogin, cfg.EmailDomain)
+			email = fmt.Sprintf("%s@%s", username, cfg.EmailDomain)
 		} else {
-			email = fmt.Sprintf("%s@%s", pamLogin, setting.Service.NoReplyAddress)
+			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
 		}
 		if ValidateEmail(email) != nil {
 			email = gouuid.New().String() + "@localhost"
