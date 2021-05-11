@@ -103,7 +103,10 @@ NOTES:
 
 ## Translating
 
-Translations are done through Crowdin. If you want to translate to a new language ask to add a new language there.
+Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there. 
+
+You can also just create an issue for adding a language or ask on discord on the #translation channel
+
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 
