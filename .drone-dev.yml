@@ -209,7 +209,7 @@ steps:
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
-      - test-mysql
+      - build
 
 node:
   oss: amd64
