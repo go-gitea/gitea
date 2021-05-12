@@ -246,10 +246,6 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
-    when:
-      event:
-        exclude:
-        - pull_request
 
   - name: publish-rootless
     image: plugins/docker:linux-amd64
@@ -266,10 +262,7 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
-    when:
-      event:
-        exclude:
-        - pull_request
+
 
 node:
   oss: amd64
