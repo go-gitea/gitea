@@ -7,23 +7,18 @@ package git
 import (
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetLatestCommitTime(t *testing.T) {
-	lct, err := GetLatestCommitTime(".")
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	lct, err := GetLatestCommitTime(bareRepo1Path)
 	assert.NoError(t, err)
-	// Time is in the past
-	now := time.Now()
-	assert.True(t, lct.Unix() < now.Unix(), "%d not smaller than %d", lct, now)
-	// Time is after Mon Oct 23 03:52:09 2017 +0300
+	// Time is Sun Jul 21 22:43:13 2019 +0200
 	// which is the time of commit
-	// d47b98c44c9a6472e44ab80efe65235e11c6da2a
-	refTime, err := time.Parse("Mon Jan 02 15:04:05 2006 -0700", "Mon Oct 23 03:52:09 2017 +0300")
-	assert.NoError(t, err)
-	assert.True(t, lct.Unix() > refTime.Unix(), "%d not greater than %d", lct, refTime)
+	// feaf4ba6bc635fec442f46ddd4512416ec43c2c2 (refs/heads/master)
+	assert.EqualValues(t, 1563741793, lct.Unix())
 }
 
 func TestRepoIsEmpty(t *testing.T) {
