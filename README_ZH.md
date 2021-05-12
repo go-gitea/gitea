@@ -71,6 +71,11 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 
 Fork -> Patch -> Push -> Pull Request
 
+## 翻译
+
+多语言翻译是基于Crowdin进行的.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+
 ## 作者
 
 * [Maintainers](https://github.com/orgs/go-gitea/people)
