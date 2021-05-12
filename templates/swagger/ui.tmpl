@@ -3,11 +3,11 @@
 	<head>
 		<meta charset="UTF-8">
 		<title>Gitea API</title>
-		<link href="{{StaticUrlPrefix}}/css/swagger.css?v={{MD5 AppVer}}" rel="stylesheet">
+		<link href="{{AssetUrlPrefix}}/css/swagger.css?v={{MD5 AppVer}}" rel="stylesheet">
 	</head>
 	<body>
 		<a class="swagger-back-link" href="{{AppUrl}}">{{svg "octicon-reply"}}{{.i18n.Tr "return_to_gitea"}}</a>
 		<div id="swagger-ui" data-source="{{AppUrl}}swagger.{{.APIJSONVersion}}.json"></div>
-		<script src="{{StaticUrlPrefix}}/js/swagger.js?v={{MD5 AppVer}}"></script>
+		<script src="{{AssetUrlPrefix}}/js/swagger.js?v={{MD5 AppVer}}"></script>
 	</body>
 </html>

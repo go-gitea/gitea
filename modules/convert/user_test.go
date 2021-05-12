@@ -8,10 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUser_ToUser(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
 
 	user1 := models.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
 

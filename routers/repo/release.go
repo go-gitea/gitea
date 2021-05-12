@@ -70,6 +70,11 @@ func TagsList(ctx *context.Context) {
 func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
+	ctx.Data["IsViewBranch"] = false
+	ctx.Data["IsViewTag"] = true
+	// Disable the showCreateNewBranch form in the dropdown on this page.
+	ctx.Data["CanCreateBranch"] = false
+	ctx.Data["HideBranchesInDropdown"] = true
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
@@ -79,6 +84,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["PageIsTagList"] = false
 	}
 
+	tags, err := ctx.Repo.GitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["Tags"] = tags
+
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
@@ -87,7 +99,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			Page:     ctx.QueryInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		},
-		IncludeDrafts: writeAccess,
+		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
 	}
 
@@ -129,16 +141,22 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
-		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
-			ctx.ServerError("calReleaseNumCommitsBehind", err)
-			return
-		}
+
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
+			return
+		}
+
+		if r.IsDraft {
+			continue
+		}
+
+		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
 			return
 		}
 	}
@@ -186,9 +204,11 @@ func SingleRelease(ctx *context.Context) {
 			return
 		}
 	}
-	if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
-		ctx.ServerError("calReleaseNumCommitsBehind", err)
-		return
+	if !release.IsDraft {
+		if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
+			return
+		}
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,

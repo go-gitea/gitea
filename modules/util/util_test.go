@@ -5,6 +5,7 @@
 package util
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 
@@ -117,4 +118,41 @@ func Test_NormalizeEOL(t *testing.T) {
 	assert.Equal(t, []byte{}, NormalizeEOL([]byte{}))
 
 	assert.Equal(t, []byte("mix\nand\nmatch\n."), NormalizeEOL([]byte("mix\r\nand\rmatch\n.")))
+}
+
+func Test_RandomInt(t *testing.T) {
+	int, err := RandomInt(255)
+	assert.True(t, int >= 0)
+	assert.True(t, int <= 255)
+	assert.NoError(t, err)
+}
+
+func Test_RandomString(t *testing.T) {
+	str1, err := RandomString(32)
+	assert.NoError(t, err)
+	matches, err := regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
+	assert.NoError(t, err)
+	assert.True(t, matches)
+
+	str2, err := RandomString(32)
+	assert.NoError(t, err)
+	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{32}$`, str1)
+	assert.NoError(t, err)
+	assert.True(t, matches)
+
+	assert.NotEqual(t, str1, str2)
+
+	str3, err := RandomString(256)
+	assert.NoError(t, err)
+	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str3)
+	assert.NoError(t, err)
+	assert.True(t, matches)
+
+	str4, err := RandomString(256)
+	assert.NoError(t, err)
+	matches, err = regexp.MatchString(`^[a-zA-Z0-9]{256}$`, str4)
+	assert.NoError(t, err)
+	assert.True(t, matches)
+
+	assert.NotEqual(t, str3, str4)
 }
