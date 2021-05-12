@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"net/url"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 )
+
+var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
 func AddPushMirrorRemote(m *models.PushMirror, addr string) error {
@@ -95,8 +98,8 @@ func syncPushMirror(ctx context.Context, mirrorID string) {
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Running Sync", mirrorID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
-		log.Error("SyncPushMirror [mirror: %s][repo: %-v]: %v", err)
-		m.LastError = err.Error()
+		log.Error("SyncPushMirror [mirror: %s][repo: %-v]: %v", mirrorID, m.Repo, err)
+		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
 	}
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Scheduling next update", mirrorID, m.Repo)
