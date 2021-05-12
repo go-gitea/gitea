@@ -103,6 +103,9 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	keys, err := checkArmoredGPGKeyString(testGPGArmor)
+	if !assert.NotEmpty(t, keys) {
+		return
+	}
 	ekey := keys[0]
 	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
@@ -189,6 +192,10 @@ Unknown GPG key with good email
 }
 
 func TestCheckGPGUserEmail(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	_ = AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+
 	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
 
@@ -222,9 +229,11 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 
 	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
 	assert.NoError(t, err)
-	key := keys[0]
-	if assert.Len(t, key.Emails, 1) {
-		assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	if assert.NotEmpty(t, keys) {
+		key := keys[0]
+		if assert.Len(t, key.Emails, 1) {
+			assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+		}
 	}
 }
 
@@ -374,7 +383,9 @@ epiDVQ==
 `
 	keys, err := checkArmoredGPGKeyString(testIssue6599)
 	assert.NoError(t, err)
-	ekey := keys[0]
-	expire := getExpiryTime(ekey)
-	assert.Equal(t, time.Unix(1586105389, 0), expire)
+	if assert.NotEmpty(t, keys) {
+		ekey := keys[0]
+		expire := getExpiryTime(ekey)
+		assert.Equal(t, time.Unix(1586105389, 0), expire)
+	}
 }

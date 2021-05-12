@@ -245,6 +245,11 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
+- `SCHEDULE` 所接受的格式
+   - 完整 crontab 控制, 例如 `* * * * * ?`
+   - 描述符, 例如 `@midnight`, `@every 1h30m` ...
+   - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
