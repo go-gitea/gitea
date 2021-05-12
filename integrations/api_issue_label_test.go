@@ -100,6 +100,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 		repo.OwnerName, repo.Name, issue.Index, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []string{"1", "label2"},
+		Mode:   "mixed",
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
@@ -121,10 +122,8 @@ func TestAPIAddIssueLabelIDOnly(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		repo.OwnerName, repo.Name, issue.Index, token)
-	idOnly := "id_only"
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []string{"1", "2"},
-		Mode:   &idOnly,
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
@@ -146,10 +145,9 @@ func TestAPIAddIssueLabelNameOnly(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels?token=%s",
 		repo.OwnerName, repo.Name, issue.Index, token)
-	nameOnly := "name_only"
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []string{"label1", "label2"},
-		Mode:   &nameOnly,
+		Mode:   "name_only",
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
@@ -194,7 +192,7 @@ func TestAPIDeletIssueLabel(t *testing.T) {
 	session := loginUser(t, repo1.OwnerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?token=%s",
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/1?token=%s",
 		repo1.OwnerName, repo1.Name, issue2.Index, token)
 
 	req := NewRequest(t, "DELETE", singleURLStr)
@@ -232,7 +230,7 @@ func TestAPIDeletIssueLabelByName(t *testing.T) {
 	session := loginUser(t, repo1.OwnerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?token=%s",
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/labels/label1?mode=mixed&token=%s",
 		repo1.OwnerName, repo1.Name, issue2.Index, token)
 
 	req := NewRequest(t, "DELETE", singleURLStr)

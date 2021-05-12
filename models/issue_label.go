@@ -404,12 +404,12 @@ func GetLabelByIDOrName(queryID string, repoID int64) (label *Label, exist bool,
 	if err == nil && id > 0 {
 		label, err = GetLabelByID(id)
 		if err != nil {
-			if IsErrLabelNotExist(err) {
-				return nil, false, nil
+			if !IsErrLabelNotExist(err) {
+				return nil, false, err
 			}
-			return nil, false, err
+		} else {
+			return label, true, nil
 		}
-		return label, true, nil
 	}
 
 	label, err = GetLabelInRepoByName(repoID, queryID)
@@ -424,7 +424,7 @@ func GetLabelByIDOrName(queryID string, repoID int64) (label *Label, exist bool,
 }
 
 // GetLabelByIDsOrNames gets label by ids or names and repo id
-func GetLabelByIDsOrNames(queryIDs []string, repoID int64) (labels []*Label, allExist bool, err error) {
+func GetLabelByIDsOrNames(queryIDs []string, repoID int64) (labels []*Label, err error) {
 	tmpIDs := make([]int64, 0, 5)
 	tmpNames := make([]string, 0, 5)
 	var id int64
@@ -443,32 +443,32 @@ func GetLabelByIDsOrNames(queryIDs []string, repoID int64) (labels []*Label, all
 		tmpNames = append(tmpNames, q)
 	}
 
-	if len(tmpNames) > 0 {
-		var labelIdsByNames []int64
-		labelIdsByNames, err = GetLabelIDsInRepoByNames(repoID, tmpNames)
-		if err != nil {
-			return nil, false, err
-		}
-
-		if len(labelIdsByNames) != len(tmpNames) {
-			return nil, false, nil
-		}
-
-		tmpIDs = append(tmpIDs, labelIdsByNames...)
-	}
-
 	if len(tmpIDs) > 0 {
 		labels, err = GetLabelsByIDs(tmpIDs)
 		if err != nil {
-			return nil, false, err
-		}
-
-		if len(labels) != len(tmpIDs) {
-			return nil, false, nil
+			return nil, err
 		}
 	}
 
-	return labels, true, nil
+	if len(labels) == 0 {
+		// can't find any label by id, maybe they are label names
+		tmpNames = queryIDs
+		labels = make([]*Label, 0, 5)
+	}
+
+	if len(tmpNames) > 0 {
+		var labelsByNames []*Label
+		labelsByNames, err = GetLabelsInRepoByNames(repoID, tmpNames)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(labelsByNames) > 0 {
+			labels = append(labels, labelsByNames...)
+		}
+	}
+
+	return labels, nil
 }
 
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names

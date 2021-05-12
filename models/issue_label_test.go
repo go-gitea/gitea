@@ -398,8 +398,7 @@ func TestGetLabelByIDOrName(t *testing.T) {
 }
 
 func TestGetLabelByIDsOrNames(t *testing.T) {
-	labels, allExist, err := GetLabelByIDsOrNames([]string{"1", "label2"}, 1)
+	labels, err := GetLabelByIDsOrNames([]string{"1", "label2"}, 1)
 	assert.NoError(t, err)
-	assert.Equal(t, true, allExist)
 	assert.Equal(t, 2, len(labels))
 }

@@ -154,6 +154,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   in: query
 	//   description: the type of id is id or name
 	//   type: string
+	//   enum: [id, name, mixed]
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -177,21 +178,10 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	mode := ctx.Query("mode")
-	var (
-		label *models.Label
-	)
-	if mode == "id" {
-		label, err = models.GetLabelByID(ctx.ParamsInt64(":id"))
-		if err != nil {
-			if models.IsErrLabelNotExist(err) {
-				ctx.Error(http.StatusUnprocessableEntity, "", err)
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
-			return
-		}
-	} else if mode == "name" {
+	var label *models.Label
+
+	switch ctx.Query("mode") {
+	case "name":
 		label, err = models.GetLabelInRepoByName(ctx.Repo.Repository.ID, ctx.Params(":id"))
 		if err != nil {
 			if models.IsErrLabelNotExist(err) {
@@ -201,7 +191,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
 			return
 		}
-	} else {
+	case "mixed":
 		exist := false
 		label, exist, err = models.GetLabelByIDOrName(ctx.Params(":id"), ctx.Repo.Repository.ID)
 		if err != nil {
@@ -211,6 +201,16 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 
 		if !exist {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
+			return
+		}
+	default: // id as default
+		label, err = models.GetLabelByID(ctx.ParamsInt64(":id"))
+		if err != nil {
+			if models.IsErrLabelNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
 			return
 		}
 	}
@@ -342,7 +342,20 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	if form.Mode != nil && *form.Mode == "id_only" {
+	switch form.Mode {
+	case "name_only":
+		labels, err = models.GetLabelsInRepoByNames(ctx.Repo.Repository.ID, form.Labels)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
+			return
+		}
+	case "mixed":
+		labels, err = models.GetLabelByIDsOrNames(form.Labels, ctx.Repo.Repository.ID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
+			return
+		}
+	default: // id_only as default
 		ids := make([]int64, 0, len(form.Labels))
 		for _, q := range form.Labels {
 			if len(q) == 0 {
@@ -362,34 +375,11 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
 			return
 		}
+	}
 
-		if len(labels) != len(form.Labels) {
-			ctx.NotFound()
-			return
-		}
-	} else if form.Mode != nil && *form.Mode == "name_only" {
-		labels, err = models.GetLabelsInRepoByNames(ctx.Repo.Repository.ID, form.Labels)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
-			return
-		}
-
-		if len(labels) != len(form.Labels) {
-			ctx.NotFound()
-			return
-		}
-	} else {
-		allExist := false
-		labels, allExist, err = models.GetLabelByIDsOrNames(form.Labels, ctx.Repo.Repository.ID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
-			return
-		}
-
-		if !allExist {
-			ctx.NotFound()
-			return
-		}
+	if len(labels) == 0 {
+		ctx.NotFound()
+		return
 	}
 
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
