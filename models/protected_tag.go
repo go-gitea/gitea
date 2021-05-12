@@ -44,7 +44,7 @@ func DeleteProtectedTag(pt *ProtectedTag) error {
 	return err
 }
 
-// EnsureCompiledPattern returns if the branch is protected
+// EnsureCompiledPattern ensures the glob pattern is compiled
 func (pt *ProtectedTag) EnsureCompiledPattern() error {
 	if pt.NameGlob != nil {
 		return nil
@@ -72,7 +72,7 @@ func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 	return in, nil
 }
 
-// GetProtectedTags gets all protected tags
+// GetProtectedTags gets all protected tags of the repository
 func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
 	return tags, x.Find(&tags, &ProtectedTag{RepoID: repo.ID})
