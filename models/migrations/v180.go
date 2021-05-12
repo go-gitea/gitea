@@ -21,7 +21,7 @@ func createPushMirrorTable(x *xorm.Engine) error {
 
 		Interval       time.Duration
 		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 		NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX next_update"`
 		LastError      string
 	}

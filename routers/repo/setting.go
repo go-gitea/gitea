@@ -288,10 +288,11 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		m := &models.PushMirror{
-			RepoID:     repo.ID,
-			Repo:       repo,
-			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			Interval:   interval,
+			RepoID:         repo.ID,
+			Repo:           repo,
+			RemoteName:     fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			Interval:       interval,
+			NextUpdateUnix: timeutil.TimeStampNow(),
 		}
 		if err := models.InsertPushMirror(m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)

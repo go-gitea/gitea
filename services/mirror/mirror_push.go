@@ -89,7 +89,7 @@ func syncPushMirror(ctx context.Context, mirrorID string) {
 		return
 	}
 
-	m.UpdatedUnix = timeutil.TimeStampNow()
+	m.LastUpdateUnix = timeutil.TimeStampNow()
 	m.LastError = ""
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Running Sync", mirrorID, m.Repo)

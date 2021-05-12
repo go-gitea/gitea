@@ -28,18 +28,9 @@ type PushMirror struct {
 
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-	UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
+	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX next_update"`
 	LastError      string
-}
-
-// BeforeInsert will be invoked by XORM before inserting a record
-func (m *PushMirror) BeforeInsert() {
-	if m != nil {
-		m.CreatedUnix = timeutil.TimeStampNow()
-		m.UpdatedUnix = 0
-		m.NextUpdateUnix = timeutil.TimeStampNow()
-	}
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
