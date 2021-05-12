@@ -76,6 +76,7 @@
 			</h4>
 			<div class="ui attached segment">
 				<table class="ui table">
+					{{if or .Repository.IsMirror .Repository.PushMirrors}}
 					<thead>
 						<tr>
 							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
@@ -84,6 +85,7 @@
 							<th></th>
 						</tr>
 					</thead>
+					{{end}}
 					{{if .Repository.IsMirror}}
 					<tbody>
 						<tr>
@@ -184,7 +186,7 @@
 						</tr>
 						{{else}}
 						<tr>
-							<td colspan="4">{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
+							<td>{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
 						</tr>
 						{{end}}
 						<tr>
