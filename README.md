@@ -105,8 +105,9 @@ NOTES:
 
 Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there. 
 
-You can also just create an issue for adding a language or ask on discord on the #translation channel
+You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope fo fill it as questions pop up.
 
+https://docs.gitea.io/en-us/translation-guidelines/
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 
