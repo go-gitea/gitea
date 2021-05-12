@@ -414,6 +414,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
@@ -461,6 +462,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated licenses and gitignores "
       remote: "git@github.com:go-gitea/gitea.git"

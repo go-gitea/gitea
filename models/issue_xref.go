@@ -290,6 +290,9 @@ func CommentTypeIsRef(t CommentType) bool {
 
 // RefCommentHTMLURL returns the HTML URL for the comment that created this reference
 func (comment *Comment) RefCommentHTMLURL() string {
+	if comment.RefCommentID == 0 {
+		return ""
+	}
 	if err := comment.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefComment(%d): %v", comment.RefCommentID, err)
 		return ""

@@ -102,7 +102,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 }
 
 func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
-	wr, rd, cancel := CatFileBatch(cache.repo.Path)
+	wr, rd, cancel := cache.repo.CatFileBatch()
 	defer cancel()
 
 	var unHitEntryPaths []string
@@ -144,7 +144,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 		}
 	}()
 
-	batchStdinWriter, batchReader, cancel := CatFileBatch(commit.repo.Path)
+	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
 	defer cancel()
 
 	mapsize := 4096
@@ -237,6 +237,10 @@ revListLoop:
 					// FIXME: is there any order to the way strings are emitted from cat-file?
 					// if there is - then we could skip once we've passed all of our data
 				}
+				if _, err := batchReader.Discard(1); err != nil {
+					return nil, err
+				}
+
 				break treeReadingLoop
 			}
 
@@ -280,6 +284,9 @@ revListLoop:
 				if err != nil {
 					return nil, err
 				}
+			}
+			if _, err := batchReader.Discard(1); err != nil {
+				return nil, err
 			}
 
 			// if we haven't found a treeID for the target directory our search is over
@@ -343,6 +350,9 @@ revListLoop:
 		}
 		c, err = CommitFromReader(commit.repo, MustIDFromString(string(commitID)), io.LimitReader(batchReader, int64(size)))
 		if err != nil {
+			return nil, err
+		}
+		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[i] = c
