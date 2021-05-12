@@ -13,11 +13,11 @@ import (
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/forms"
@@ -249,7 +249,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		log.Error("signInOpenIDVerify: Unable to save changes to the session: %v", err)
 	}
 
-	if u != nil || !setting.Service.EnableOpenIDSignUp {
+	if u != nil || !setting.Service.EnableOpenIDSignUp || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -267,6 +267,7 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -328,6 +329,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["Captcha"] = context.GetImageCaptcha()
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
@@ -367,6 +369,11 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["OpenID"] = oid
 
+	if setting.Service.AllowOnlyInternalRegistration {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
 	if setting.Service.EnableCaptcha {
 		var valid bool
 		var err error
@@ -404,7 +411,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	if length < 256 {
 		length = 256
 	}
-	password, err := generate.GetRandomString(length)
+	password, err := util.RandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return

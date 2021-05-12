@@ -177,9 +177,6 @@ github.com/bradfitz/gomemcache/memcache
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af
-## explicit
-github.com/chavacava/garif
 # github.com/chi-middleware/proxy v1.1.1
 ## explicit
 github.com/chi-middleware/proxy
@@ -239,10 +236,6 @@ github.com/emirpasic/gods/utils
 # github.com/ethantkoenig/rupture v1.0.0
 ## explicit
 github.com/ethantkoenig/rupture
-# github.com/fatih/color v1.10.0
-github.com/fatih/color
-# github.com/fatih/structtag v1.2.0
-github.com/fatih/structtag
 # github.com/felixge/httpsnoop v1.0.1
 github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.4.9
@@ -559,8 +552,6 @@ github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
 github.com/markbates/goth/providers/yandex
-# github.com/mattn/go-colorable v0.1.8
-github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
@@ -572,14 +563,6 @@ github.com/mattn/go-runewidth
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
-# github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
-## explicit
-github.com/mgechev/dots
-# github.com/mgechev/revive v1.0.6
-## explicit
-github.com/mgechev/revive/formatter
-github.com/mgechev/revive/lint
-github.com/mgechev/revive/rule
 # github.com/mholt/acmez v0.1.3
 github.com/mholt/acmez
 github.com/mholt/acmez/acme
@@ -612,7 +595,6 @@ github.com/minio/minio-go/v7/pkg/tags
 ## explicit
 github.com/minio/sha256-simd
 # github.com/mitchellh/go-homedir v1.1.0
-## explicit
 github.com/mitchellh/go-homedir
 # github.com/mitchellh/mapstructure v1.4.1
 github.com/mitchellh/mapstructure
@@ -639,6 +621,7 @@ github.com/nwaples/rardecode
 # github.com/oklog/ulid v1.3.1
 github.com/oklog/ulid
 # github.com/olekukonko/tablewriter v0.0.5
+## explicit
 github.com/olekukonko/tablewriter
 # github.com/oliamb/cutter v0.2.2
 ## explicit
