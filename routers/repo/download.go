@@ -32,7 +32,6 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	log.Info("ServeData(%s)", name)
 
 	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
 
@@ -72,14 +71,10 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 		}
 	}
 
-	log.Info("ServeData(%s) Header done", name)
-
 	_, err = ctx.Resp.Write(buf)
 	if err != nil {
 		return err
 	}
-	log.Info("ServeData(%s) buffer done", name)
-
 	_, err = io.Copy(ctx.Resp, reader)
 	return err
 }
