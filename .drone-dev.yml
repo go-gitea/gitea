@@ -231,12 +231,18 @@ steps:
     commands:
       - git fetch --tags --force
 
+  - name: tag docker image
+    image: golang:1.16
+    commands:
+    - git fetch --tags
+    - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
+    - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
+    - echo -n "$BRANCH,$VERSION,latest" > .tags
+
   - name: publish
     pull: always
     image: plugins/docker:linux-amd64
     settings:
-      auto_tag: true
-      auto_tag_suffix: linux-amd64
       repo: nexus.corp.sarov-site.online:8099/integra/gitea
       registry: nexus.corp.sarov-site.online:8099
       build_args:
@@ -247,12 +253,17 @@ steps:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
 
+  - name: tag rootless docker image
+    image: golang:1.16
+    commands:
+    - git fetch --tags
+    - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
+    - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
+    - echo -n "rootless-$BRANCH,rootless-$VERSION,rootless-latest" > .tags
   - name: publish-rootless
     image: plugins/docker:linux-amd64
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
-      auto_tag_suffix: linux-amd64-rootless
       repo: nexus.corp.sarov-site.online:8099/integra/gitea
       registry: nexus.corp.sarov-site.online:8099
       build_args:
