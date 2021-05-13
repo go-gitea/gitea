@@ -186,7 +186,7 @@ headerLoop:
 // constant hextable to help quickly convert between 20byte and 40byte hashes
 const hextable = "0123456789abcdef"
 
-// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the 
+// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
 // same 40 byte slice to support in place conversion without allocations.
 // This is at least 100x quicker that hex.EncodeToString
 // NB This requires that out is a 40-byte slice
