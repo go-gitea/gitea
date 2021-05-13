@@ -31,7 +31,8 @@ func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message strin
 	exists, _, err := getScheduledPullRequestMergeByPullID(sess, pullID)
 	if err != nil {
 		return
-	} else if exists {
+	}
+	if exists {
 		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
