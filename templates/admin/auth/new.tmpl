@@ -38,6 +38,8 @@
 				<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
 					<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 					<input id="pam_service_name" name="pam_service_name" value="{{.pam_service_name}}" />
+					<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
 
 				<!-- OAuth2 -->
