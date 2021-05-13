@@ -665,7 +665,7 @@ func GetPullRequestByHeadBranch(headBranch string, headRepo *Repository, status 
 		Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
 		Desc("id").
 		Find(prs)
-	if len(prs) == 0 {
+	if err != nil && len(prs) == 0 {
 		return nil, ErrPullRequestNotExist{
 			HeadBranch: headBranch,
 			HeadRepoID: headRepo.ID,
