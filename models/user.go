@@ -789,6 +789,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"favicon.ico",
 		"ghost",
 		"help",
 		"install",
@@ -807,10 +808,10 @@ var (
 		"repo",
 		"robots.txt",
 		"search",
+		"serviceworker.js",
 		"stars",
 		"template",
 		"user",
-		"favicon.ico",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}

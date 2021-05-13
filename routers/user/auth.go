@@ -983,9 +983,14 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
+	gothUserInterface := ctx.Session.Get("linkAccountGothUser")
+	if gothUserInterface == nil {
 		ctx.ServerError("UserSignUp", errors.New("not in LinkAccount session"))
+		return
+	}
+	gothUser, ok := gothUserInterface.(goth.User)
+	if !ok {
+		ctx.ServerError("UserSignUp", fmt.Errorf("session linkAccountGothUser type is %t but not goth.User", gothUserInterface))
 		return
 	}
 
@@ -1049,7 +1054,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.(goth.User).Provider)
+	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 	}
@@ -1061,10 +1066,10 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   models.LoginOAuth2,
 		LoginSource: loginSource.ID,
-		LoginName:   gothUser.(goth.User).UserID,
+		LoginName:   gothUser.UserID,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, gothUser.(*goth.User), false) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, &gothUser, false) {
 		// error already handled
 		return
 	}
