@@ -8,13 +8,13 @@ ListenAddress ::
 LogLevel INFO
 
 HostKey /data/ssh/ssh_host_ed25519_key
-HostCertificate /data/ssh/ssh_host_ed25519_cert
+${SSH_ED25519_CERT}
 HostKey /data/ssh/ssh_host_rsa_key
-HostCertificate /data/ssh/ssh_host_rsa_cert
+${SSH_RSA_CERT}
 HostKey /data/ssh/ssh_host_ecdsa_key
-HostCertificate /data/ssh/ssh_host_ecdsa_cert
+${SSH_ECDSA_CERT}
 HostKey /data/ssh/ssh_host_dsa_key
-HostCertificate /data/ssh/ssh_host_dsa_cert
+${SSH_DSA_CERT}
 
 AuthorizedKeysFile .ssh/authorized_keys
 AuthorizedPrincipalsFile .ssh/authorized_principals
