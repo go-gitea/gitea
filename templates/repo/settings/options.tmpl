@@ -75,6 +75,7 @@
 				{{.i18n.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
+				{{$.i18n.Tr "repo.settings.mirror_settings.docs" | Safe}}
 				<table class="ui table">
 					{{if or .Repository.IsMirror .Repository.PushMirrors}}
 					<thead>
