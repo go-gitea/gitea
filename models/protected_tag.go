@@ -78,6 +78,19 @@ func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 	return tags, x.Find(&tags, &ProtectedTag{RepoID: repo.ID})
 }
 
+// GetProtectedTagByID gets the protected tag with the specific id
+func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
+	tag := &ProtectedTag{ID: id}
+	has, err := x.Get(tag)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return tag, nil
+}
+
 // IsUserAllowedToControlTag checks if a user can control the specific tag.
 // It returns true if the tag name is not protected or the user is allowed to control it.
 func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int64) (bool, error) {

@@ -164,20 +164,18 @@ func setTagsContext(ctx *context.Context) error {
 }
 
 func selectProtectedTagByContext(ctx *context.Context) (*models.ProtectedTag, error) {
-	pts, err := ctx.Repo.Repository.GetProtectedTags()
-	if err != nil {
-		return nil, err
-	}
-
 	id := ctx.QueryInt64("id")
 	if id == 0 {
 		id = ctx.ParamsInt64(":id")
 	}
 
-	for _, pt := range pts {
-		if pt.ID == id {
-			return pt, nil
-		}
+	tag, err := models.GetProtectedTagByID(id)
+	if tag == nil || err != nil {
+		return nil, err
+	}
+
+	if tag.RepoID == ctx.Repo.Repository.ID {
+		return tag, nil
 	}
 
 	return nil, fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository)
