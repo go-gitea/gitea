@@ -64,6 +64,7 @@ func assertLabelEqual(t *testing.T, name, color, description string, label *base
 }
 
 func TestGitHubDownloadRepo(t *testing.T) {
+	t.Skip("skipping hardcoded url should be removed")
 	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
 	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
 	err := downloader.RefreshRate()
