@@ -92,6 +92,7 @@ func DeleteAttachment(ctx *context.Context) {
 
 // GetAttachment serve attachements
 func GetAttachment(ctx *context.Context) {
+	log.Info("GetAttachment(%s)", ctx.Params(":uuid"))
 	attach, err := models.GetAttachmentByUUID(ctx.Params(":uuid"))
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
@@ -156,4 +157,6 @@ func GetAttachment(ctx *context.Context) {
 		ctx.ServerError("ServeData", err)
 		return
 	}
+	log.Info("GetAttachment(%s) Done", ctx.Params(":uuid"))
+
 }

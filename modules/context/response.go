@@ -43,13 +43,13 @@ func (r *Response) Write(bs []byte) (int, error) {
 		}
 		r.beforeExecuted = true
 	}
+	if r.status == 0 {
+		r.WriteHeader(200)
+	}
 	size, err := r.ResponseWriter.Write(bs)
 	r.written += size
 	if err != nil {
 		return size, err
-	}
-	if r.status == 0 {
-		r.WriteHeader(200)
 	}
 	return size, nil
 }
