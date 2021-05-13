@@ -24,9 +24,13 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	enableHTTPChallenge := true
 	enableTLSALPNChallenge := true
 	altHTTPPort := 0
+	altTLSALPNPort := 0
 
 	if p, err := strconv.Atoi(setting.PortToRedirect); err == nil {
 		altHTTPPort = p
+	}
+	if p, err := strconv.Atoi(setting.HTTPPort); err == nil {
+		altTLSALPNPort = p
 	}
 
 	magic := certmagic.NewDefault()
@@ -36,7 +40,8 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
-		ListenHost:              listenAddr,
+		ListenHost:              setting.HTTPAddr,
+		AltTLSALPNPort:          altTLSALPNPort,
 		AltHTTPPort:             altHTTPPort,
 	})
 
