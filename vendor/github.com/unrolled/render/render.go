@@ -123,7 +123,7 @@ type Render struct {
 	// Customize Secure with an Options struct.
 	opt             Options
 	templates       *template.Template
-	templatesLk     sync.Mutex
+	templatesLk     sync.RWMutex
 	compiledCharset string
 }
 
@@ -196,8 +196,8 @@ func (r *Render) compileTemplates() {
 
 func (r *Render) compileTemplatesFromDir() {
 	dir := r.opt.Directory
-	r.templates = template.New(dir)
-	r.templates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
+	tmpTemplates := template.New(dir)
+	tmpTemplates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
 
 	// Walk the supplied directory and compile any files that match our extension list.
 	r.opt.FileSystem.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -227,7 +227,7 @@ func (r *Render) compileTemplatesFromDir() {
 				}
 
 				name := (rel[0 : len(rel)-len(ext)])
-				tmpl := r.templates.New(filepath.ToSlash(name))
+				tmpl := tmpTemplates.New(filepath.ToSlash(name))
 
 				// Add our funcmaps.
 				for _, funcs := range r.opt.Funcs {
@@ -241,12 +241,16 @@ func (r *Render) compileTemplatesFromDir() {
 		}
 		return nil
 	})
+
+	r.templatesLk.Lock()
+	r.templates = tmpTemplates
+	r.templatesLk.Unlock()
 }
 
 func (r *Render) compileTemplatesFromAsset() {
 	dir := r.opt.Directory
-	r.templates = template.New(dir)
-	r.templates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
+	tmpTemplates := template.New(dir)
+	tmpTemplates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
 
 	for _, path := range r.opt.AssetNames() {
 		if !strings.HasPrefix(path, dir) {
@@ -272,7 +276,7 @@ func (r *Render) compileTemplatesFromAsset() {
 				}
 
 				name := (rel[0 : len(rel)-len(ext)])
-				tmpl := r.templates.New(filepath.ToSlash(name))
+				tmpl := tmpTemplates.New(filepath.ToSlash(name))
 
 				// Add our funcmaps.
 				for _, funcs := range r.opt.Funcs {
@@ -285,6 +289,10 @@ func (r *Render) compileTemplatesFromAsset() {
 			}
 		}
 	}
+
+	r.templatesLk.Lock()
+	r.templates = tmpTemplates
+	r.templatesLk.Unlock()
 }
 
 // TemplateLookup is a wrapper around template.Lookup and returns
@@ -389,13 +397,14 @@ func (r *Render) Data(w io.Writer, status int, v []byte) error {
 
 // HTML builds up the response from the specified template and bindings.
 func (r *Render) HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...HTMLOptions) error {
-	r.templatesLk.Lock()
-	defer r.templatesLk.Unlock()
 
 	// If we are in development mode, recompile the templates on every HTML request.
 	if r.opt.IsDevelopment {
 		r.compileTemplates()
 	}
+
+	r.templatesLk.RLock()
+	defer r.templatesLk.RUnlock()
 
 	opt := r.prepareHTMLOptions(htmlOpt)
 	if tpl := r.templates.Lookup(name); tpl != nil {
