@@ -146,7 +146,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 			}
 		}
 		oldValue := key.Value()
-		if oldValue != value {
+		if !changed && oldValue != value {
 			changed = true
 		}
 		key.SetValue(value)
