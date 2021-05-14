@@ -1,0 +1,317 @@
+---
+kind: pipeline
+name: compliance
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
+steps:
+  - name: deps-frontend
+    pull: always
+    image: node:14
+    commands:
+      - make node_modules
+
+  - name: lint-frontend
+    image: node:14
+    commands:
+      - make lint-frontend
+    depends_on: [deps-frontend]
+
+  - name: lint-backend
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - make lint-backend
+    environment:
+      GOPROXY: off
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: lint-backend-gogit
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - make lint-backend
+    environment:
+      GOPROXY: off
+      GOSUMDB: sum.golang.org
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+
+  - name: checks-frontend
+    image: node:14
+    commands:
+      - make checks-frontend
+    depends_on: [deps-frontend]
+
+  - name: checks-backend
+    pull: always
+    image: golang:1.16
+    commands:
+      - make checks-backend
+    depends_on: [lint-backend]
+
+  - name: test-frontend
+    image: node:14
+    commands:
+      - make test-frontend
+    depends_on: [lint-frontend]
+
+  - name: build-frontend
+    image: node:14
+    commands:
+      - make frontend
+    depends_on: [test-frontend]
+
+  - name: build-backend-no-gcc
+    pull: always
+    image: golang:1.14 # this step is kept as the lowest version of golang that we support
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+    commands:
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    depends_on: [checks-backend]
+
+  - name: build-backend-386
+    image: golang:1.16
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+      GOOS: linux
+      GOARCH: 386
+    commands:
+      - go build -mod=vendor -o gitea_linux_386 # test if compatible with 32 bit
+    depends_on: [checks-backend]
+
+node:
+  oss: amd64
+---
+kind: pipeline
+name: testing-amd64
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - compliance
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
+services:
+  - name: mysql
+    image: mysql:5.7
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: test
+
+  - name: mysql8
+    image: mysql:8.0
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: yes
+      MYSQL_DATABASE: testgitea
+
+  - name: ldap
+    image: gitea/test-openldap:latest
+
+  - name: elasticsearch
+    environment:
+      discovery.type: single-node
+    image: elasticsearch:7.5.0
+
+  - name: minio
+    image: minio/minio:RELEASE.2021-03-12T00-00-47Z
+    commands:
+    - minio server /data
+    environment:
+      MINIO_ACCESS_KEY: 123456
+      MINIO_SECRET_KEY: 12345678
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: build
+    pull: always
+    image: golang:1.16
+    commands:
+      - make backend
+    environment:
+      GOPROXY: off
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: tag-pre-condition
+    pull: always
+    image: drone/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+
+  - name: unit-test
+    image: golang:1.16
+    commands:
+      - make unit-test-coverage test-check
+    environment:
+      GOPROXY: off
+      TAGS: bindata sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
+
+  - name: unit-test-gogit
+    pull: always
+    image: golang:1.16
+    commands:
+      - make unit-test-coverage test-check
+    environment:
+      GOPROXY: off
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
+
+  - name: test-mysql
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - make test-mysql-migration integration-test-coverage
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
+      TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
+    depends_on:
+      - build
+
+  - name: test-mysql8
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - timeout -s ABRT 180m make test-mysql8-migration test-mysql8
+    environment:
+      GOPROXY: off
+      TAGS: bindata
+      TEST_LDAP: 1
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+node:
+  oss: amd64
+
+---
+kind: pipeline
+name: docker-linux-amd64-release
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: tag docker image
+    image: golang:1.16
+    commands:
+    - git fetch --tags
+    - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
+    - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
+    - echo -n "$BRANCH,$VERSION,latest" > .tags
+
+  - name: publish
+    pull: always
+    image: plugins/docker:linux-amd64
+    settings:
+      repo: nexus.corp.sarov-site.online:8099/integra/gitea
+      registry: nexus.corp.sarov-site.online:8099
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: NEXUS_PUBLISHER_PASSWORD
+      username:
+        from_secret: NEXUS_PUBLISHER_USERNAME
+      insecure: true
+
+  - name: tag rootless docker image
+    image: golang:1.16
+    commands:
+    - git fetch --tags
+    - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
+    - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
+    - echo -n "rootless-$BRANCH,rootless-$VERSION,rootless-latest" > .tags
+  - name: publish-rootless
+    image: plugins/docker:linux-amd64
+    settings:
+      dockerfile: Dockerfile.rootless
+      repo: nexus.corp.sarov-site.online:8099/integra/gitea
+      registry: nexus.corp.sarov-site.online:8099
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: NEXUS_PUBLISHER_PASSWORD
+      username:
+        from_secret: NEXUS_PUBLISHER_USERNAME
+      insecure: true
+
+
+node:
+  oss: amd64
+
+---
+kind: pipeline
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+  - name: manifest
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+depends_on:
+  - docker-linux-amd64-release
+
+node:
+  oss: amd64
