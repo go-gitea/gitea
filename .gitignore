@@ -76,6 +76,8 @@ cpu.out
 /integrations/mssql.ini
 /node_modules
 /yarn.lock
+/yarn-error.log
+/npm-debug.log*
 /public/js
 /public/serviceworker.js
 /public/css
