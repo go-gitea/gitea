@@ -47,6 +47,10 @@ func DeleteRepo(ctx *context.Context) {
 		return
 	}
 
+	if ctx.Repo != nil && ctx.Repo.GitRepo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repo.ID {
+		ctx.Repo.GitRepo.Close()
+	}
+
 	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
