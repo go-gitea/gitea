@@ -240,6 +240,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	case models.LoginPAM:
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
+			EmailDomain: form.PAMEmailDomain,
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
@@ -347,6 +348,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	case models.LoginPAM:
 		config = &models.PAMConfig{
 			ServiceName: form.PAMServiceName,
+			EmailDomain: form.PAMEmailDomain,
 		}
 	case models.LoginOAuth2:
 		config = parseOAuth2Config(form)
