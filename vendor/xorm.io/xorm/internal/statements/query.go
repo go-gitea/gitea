@@ -14,6 +14,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
+// GenQuerySQL generate query SQL
 func (statement *Statement) GenQuerySQL(sqlOrArgs ...interface{}) (string, []interface{}, error) {
 	if len(sqlOrArgs) > 0 {
 		return statement.ConvertSQLOrArgs(sqlOrArgs...)
@@ -72,6 +73,7 @@ func (statement *Statement) GenQuerySQL(sqlOrArgs ...interface{}) (string, []int
 	return sqlStr, args, nil
 }
 
+// GenSumSQL generates sum SQL
 func (statement *Statement) GenSumSQL(bean interface{}, columns ...string) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
 		return statement.GenRawSQL(), statement.RawParams, nil
@@ -102,6 +104,7 @@ func (statement *Statement) GenSumSQL(bean interface{}, columns ...string) (stri
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
+// GenGetSQL generates Get SQL
 func (statement *Statement) GenGetSQL(bean interface{}) (string, []interface{}, error) {
 	v := rValue(bean)
 	isStruct := v.Kind() == reflect.Struct
@@ -316,6 +319,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 	return buf.String(), condArgs, nil
 }
 
+// GenExistSQL generates Exist SQL
 func (statement *Statement) GenExistSQL(bean ...interface{}) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
 		return statement.GenRawSQL(), statement.RawParams, nil
@@ -385,6 +389,7 @@ func (statement *Statement) GenExistSQL(bean ...interface{}) (string, []interfac
 	return sqlStr, args, nil
 }
 
+// GenFindSQL generates Find SQL
 func (statement *Statement) GenFindSQL(autoCond builder.Cond) (string, []interface{}, error) {
 	if statement.RawSQL != "" {
 		return statement.GenRawSQL(), statement.RawParams, nil

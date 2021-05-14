@@ -15,6 +15,7 @@ warningCode = 1
 [rule.if-return]
 [rule.increment-decrement]
 [rule.var-naming]
+  arguments = [["ID", "UID", "UUID", "URL", "JSON"], []]
 [rule.var-declaration]
 [rule.package-comments]
 [rule.range]
@@ -23,3 +24,4 @@ warningCode = 1
 [rule.unexported-return]
 [rule.indent-error-flow]
 [rule.errorf]
+[rule.struct-tag]

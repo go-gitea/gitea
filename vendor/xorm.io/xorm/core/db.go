@@ -23,6 +23,7 @@ var (
 	DefaultCacheSize = 200
 )
 
+// MapToSlice map query and struct as sql and args
 func MapToSlice(query string, mp interface{}) (string, []interface{}, error) {
 	vv := reflect.ValueOf(mp)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Map {
@@ -44,6 +45,7 @@ func MapToSlice(query string, mp interface{}) (string, []interface{}, error) {
 	return query, args, err
 }
 
+// StructToSlice converts a query and struct as sql and args
 func StructToSlice(query string, st interface{}) (string, []interface{}, error) {
 	vv := reflect.ValueOf(st)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
@@ -176,6 +178,7 @@ func (db *DB) QueryMap(query string, mp interface{}) (*Rows, error) {
 	return db.QueryMapContext(context.Background(), query, mp)
 }
 
+// QueryStructContext query rows with struct
 func (db *DB) QueryStructContext(ctx context.Context, query string, st interface{}) (*Rows, error) {
 	query, args, err := StructToSlice(query, st)
 	if err != nil {
@@ -184,10 +187,12 @@ func (db *DB) QueryStructContext(ctx context.Context, query string, st interface
 	return db.QueryContext(ctx, query, args...)
 }
 
+// QueryStruct query rows with struct
 func (db *DB) QueryStruct(query string, st interface{}) (*Rows, error) {
 	return db.QueryStructContext(context.Background(), query, st)
 }
 
+// QueryRowContext query row with args
 func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *Row {
 	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -196,10 +201,12 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...interfa
 	return &Row{rows, nil}
 }
 
+// QueryRow query row with args
 func (db *DB) QueryRow(query string, args ...interface{}) *Row {
 	return db.QueryRowContext(context.Background(), query, args...)
 }
 
+// QueryRowMapContext query row with map
 func (db *DB) QueryRowMapContext(ctx context.Context, query string, mp interface{}) *Row {
 	query, args, err := MapToSlice(query, mp)
 	if err != nil {
@@ -208,10 +215,12 @@ func (db *DB) QueryRowMapContext(ctx context.Context, query string, mp interface
 	return db.QueryRowContext(ctx, query, args...)
 }
 
+// QueryRowMap query row with map
 func (db *DB) QueryRowMap(query string, mp interface{}) *Row {
 	return db.QueryRowMapContext(context.Background(), query, mp)
 }
 
+// QueryRowStructContext query row with struct
 func (db *DB) QueryRowStructContext(ctx context.Context, query string, st interface{}) *Row {
 	query, args, err := StructToSlice(query, st)
 	if err != nil {
@@ -220,6 +229,7 @@ func (db *DB) QueryRowStructContext(ctx context.Context, query string, st interf
 	return db.QueryRowContext(ctx, query, args...)
 }
 
+// QueryRowStruct query row with struct
 func (db *DB) QueryRowStruct(query string, st interface{}) *Row {
 	return db.QueryRowStructContext(context.Background(), query, st)
 }
@@ -239,10 +249,12 @@ func (db *DB) ExecMapContext(ctx context.Context, query string, mp interface{}) 
 	return db.ExecContext(ctx, query, args...)
 }
 
+// ExecMap exec query with map
 func (db *DB) ExecMap(query string, mp interface{}) (sql.Result, error) {
 	return db.ExecMapContext(context.Background(), query, mp)
 }
 
+// ExecStructContext exec query with map
 func (db *DB) ExecStructContext(ctx context.Context, query string, st interface{}) (sql.Result, error) {
 	query, args, err := StructToSlice(query, st)
 	if err != nil {
@@ -251,6 +263,7 @@ func (db *DB) ExecStructContext(ctx context.Context, query string, st interface{
 	return db.ExecContext(ctx, query, args...)
 }
 
+// ExecContext exec query with args
 func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	hookCtx := contexts.NewContextHook(ctx, query, args)
 	ctx, err := db.beforeProcess(hookCtx)
@@ -265,6 +278,7 @@ func (db *DB) ExecContext(ctx context.Context, query string, args ...interface{}
 	return res, nil
 }
 
+// ExecStruct exec query with struct
 func (db *DB) ExecStruct(query string, st interface{}) (sql.Result, error) {
 	return db.ExecStructContext(context.Background(), query, st)
 }
@@ -288,6 +302,7 @@ func (db *DB) afterProcess(c *contexts.ContextHook) error {
 	return err
 }
 
+// AddHook adds hook
 func (db *DB) AddHook(h ...contexts.Hook) {
 	db.hooks.AddHook(h...)
 }

@@ -193,7 +193,8 @@ func (db *sqlite3) SQLType(c *schemas.Column) string {
 	case schemas.Char, schemas.Varchar, schemas.NVarchar, schemas.TinyText,
 		schemas.Text, schemas.MediumText, schemas.LongText, schemas.Json:
 		return schemas.Text
-	case schemas.Bit, schemas.TinyInt, schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.BigInt:
+	case schemas.Bit, schemas.TinyInt, schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.BigInt,
+		schemas.UnsignedBigInt, schemas.UnsignedInt:
 		return schemas.Integer
 	case schemas.Float, schemas.Double, schemas.Real:
 		return schemas.Real

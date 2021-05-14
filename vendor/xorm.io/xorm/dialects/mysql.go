@@ -254,6 +254,10 @@ func (db *mysql) SQLType(c *schemas.Column) string {
 		c.Length = 40
 	case schemas.Json:
 		res = schemas.Text
+	case schemas.UnsignedInt:
+		res = schemas.Int
+	case schemas.UnsignedBigInt:
+		res = schemas.BigInt
 	default:
 		res = t
 	}
@@ -271,6 +275,11 @@ func (db *mysql) SQLType(c *schemas.Column) string {
 	} else if hasLen1 {
 		res += "(" + strconv.Itoa(c.Length) + ")"
 	}
+
+	if c.SQLType.Name == schemas.UnsignedBigInt || c.SQLType.Name == schemas.UnsignedInt {
+		res += " UNSIGNED"
+	}
+
 	return res
 }
 
@@ -331,16 +340,16 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 		col := new(schemas.Column)
 		col.Indexes = make(map[string]int)
 
-		var columnName, isNullable, colType, colKey, extra, comment string
-		var alreadyQuoted bool
+		var columnName, nullableStr, colType, colKey, extra, comment string
+		var alreadyQuoted, isUnsigned bool
 		var colDefault *string
-		err = rows.Scan(&columnName, &isNullable, &colDefault, &colType, &colKey, &extra, &comment, &alreadyQuoted)
+		err = rows.Scan(&columnName, &nullableStr, &colDefault, &colType, &colKey, &extra, &comment, &alreadyQuoted)
 		if err != nil {
 			return nil, nil, err
 		}
 		col.Name = strings.Trim(columnName, "` ")
 		col.Comment = comment
-		if "YES" == isNullable {
+		if nullableStr == "YES" {
 			col.Nullable = true
 		}
 
@@ -351,8 +360,15 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 			col.DefaultIsEmpty = true
 		}
 
+		fields := strings.Fields(colType)
+		if len(fields) == 2 && fields[1] == "unsigned" {
+			isUnsigned = true
+		}
+		colType = fields[0]
 		cts := strings.Split(colType, "(")
 		colName := cts[0]
+		// Remove the /* mariadb-5.3 */ suffix from coltypes
+		colName = strings.TrimSuffix(colName, "/* mariadb-5.3 */")
 		colType = strings.ToUpper(colName)
 		var len1, len2 int
 		if len(cts) == 2 {
@@ -387,11 +403,8 @@ func (db *mysql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 				}
 			}
 		}
-		if colType == "FLOAT UNSIGNED" {
-			colType = "FLOAT"
-		}
-		if colType == "DOUBLE UNSIGNED" {
-			colType = "DOUBLE"
+		if isUnsigned {
+			colType = "UNSIGNED " + colType
 		}
 		col.Length = len1
 		col.Length2 = len2
