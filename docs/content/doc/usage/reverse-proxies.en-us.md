@@ -222,11 +222,24 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <system.webServer>
+        <security>
+          <requestFiltering>
+            <hiddenSegments>
+              <clear />
+            </hiddenSegments>
+            <denyUrlSequences>
+              <clear />
+            </denyUrlSequences>
+            <fileExtensions allowUnlisted="true">
+              <clear />
+            </fileExtensions>
+          </requestFiltering>
+        </security>
         <rewrite>
-            <rules>
+            <rules useOriginalURLEncoding="false">
                 <rule name="ReverseProxyInboundRule1" stopProcessing="true">
                     <match url="(.*)" />
-                    <action type="Rewrite" url="http://127.0.0.1:3000/{R:1}" />
+                    <action type="Rewrite" url="http://127.0.0.1:3000{UNENCODED_URL}" />
                     <serverVariables>
                         <set name="HTTP_X_ORIGINAL_ACCEPT_ENCODING" value="HTTP_ACCEPT_ENCODING" />
                         <set name="HTTP_ACCEPT_ENCODING" value="" />
@@ -255,6 +268,16 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
             </outboundRules>
         </rewrite>
         <urlCompression doDynamicCompression="true" />
+        <handlers>
+          <clear />
+          <add name="StaticFile" path="*" verb="*" modules="StaticFileModule,DefaultDocumentModule,DirectoryListingModule" resourceType="Either" requireAccess="Read" />
+        </handlers>
+        <!-- Map all extensions to the same MIME type, so all files can be
+               downloaded. -->
+        <staticContent>
+          <clear />
+          <mimeMap fileExtension="*" mimeType="application/octet-stream" />
+        </staticContent>
     </system.webServer>
 </configuration>
 ```
