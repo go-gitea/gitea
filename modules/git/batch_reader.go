@@ -149,17 +149,18 @@ headerLoop:
 // constant hextable to help quickly convert between 20byte and 40byte hashes
 const hextable = "0123456789abcdef"
 
-// To40ByteSHA converts a 20-byte SHA in a 40-byte slice into a 40-byte sha in place
-// without allocations. This is at least 100x quicker that hex.EncodeToString
-// NB This requires that sha is a 40-byte slice
-func To40ByteSHA(sha []byte) []byte {
+// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
+// same 40 byte slice to support in place conversion without allocations.
+// This is at least 100x quicker that hex.EncodeToString
+// NB This requires that out is a 40-byte slice
+func To40ByteSHA(sha, out []byte) []byte {
 	for i := 19; i >= 0; i-- {
 		v := sha[i]
 		vhi, vlo := v>>4, v&0x0f
 		shi, slo := hextable[vhi], hextable[vlo]
-		sha[i*2], sha[i*2+1] = shi, slo
+		out[i*2], out[i*2+1] = shi, slo
 	}
-	return sha
+	return out
 }
 
 // ParseTreeLineSkipMode reads an entry from a tree in a cat-file --batch stream
