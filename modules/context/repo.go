@@ -49,23 +49,25 @@ type PullRequest struct {
 // Repository contains information to operate a repository
 type Repository struct {
 	models.Permission
-	IsWatching   bool
-	IsViewBranch bool
-	IsViewTag    bool
-	IsViewCommit bool
-	Repository   *models.Repository
-	Owner        *models.User
-	Commit       *git.Commit
-	Tag          *git.Tag
-	GitRepo      *git.Repository
-	BranchName   string
-	TagName      string
-	TreePath     string
-	CommitID     string
-	RepoLink     string
-	CloneLink    models.CloneLink
-	CommitsCount int64
-	Mirror       *models.Mirror
+	IsWatching        bool
+	IsViewBranch      bool
+	IsViewTag         bool
+	IsViewCommit      bool
+	Repository        *models.Repository
+	Owner             *models.User
+	Commit            *git.Commit
+	Tag               *git.Tag
+	GitRepo           *git.Repository
+	BranchName        string
+	IsRenamedBranch   bool
+	RenamedBranchName string
+	TagName           string
+	TreePath          string
+	CommitID          string
+	RepoLink          string
+	CloneLink         models.CloneLink
+	CommitsCount      int64
+	Mirror            *models.Mirror
 
 	PullRequest *PullRequest
 }
@@ -701,7 +703,28 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		if len(ref) == 0 {
+			// maybe it's a renamed branch
+			return getRefNameFromPath(ctx, path, func(s string) bool {
+				b, exist, err := models.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				if err != nil {
+					log.Error("FindRenamedBranch", err)
+					return false
+				}
+
+				if !exist {
+					return false
+				}
+
+				ctx.Repo.IsRenamedBranch = true
+				ctx.Repo.RenamedBranchName = b.To
+
+				return true
+			})
+		}
+
+		return ref
 	case RepoRefTag:
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
@@ -780,8 +803,20 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
+			if refType.RefTypeIncludesBranches() {
 				ctx.Repo.IsViewBranch = true
+
+				if ctx.Repo.IsRenamedBranch {
+					ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, ctx.Repo.RenamedBranchName))
+					link := strings.Replace(ctx.Req.RequestURI, refName, ctx.Repo.RenamedBranchName, 1)
+					ctx.Redirect(link)
+					return
+				}
+
+				if !ctx.Repo.GitRepo.IsBranchExist(refName) {
+					ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
+					return
+				}
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 				if err != nil {

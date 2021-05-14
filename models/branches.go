@@ -596,3 +596,100 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 		log.Error("DeletedBranchesCleanup: %v", err)
 	}
 }
+
+// RenamedBranch proivde renamed branch log
+// will check it when an branch can't be found
+type RenamedBranch struct {
+	ID     int64 `xorm:"pk autoincr"`
+	RepoID int64 `xorm:"INDEX NOT NULL"`
+	From   string
+	To     string
+}
+
+// FindRenamedBranch check if a branch was renamed
+func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
+	branch = &RenamedBranch{
+		RepoID: repoID,
+		From:   from,
+	}
+	exist, err = x.Get(branch)
+
+	return
+}
+
+// RenameBranch rename a branch
+func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault bool) error) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// 1. update default branch if needed
+	isDefault := repo.DefaultBranch == from
+	if isDefault {
+		repo.DefaultBranch = to
+		_, err = sess.Cols("default_branch").Update(repo)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 2. Update protected branch if needed
+	protectedBranch, err := getProtectedBranchBy(sess, repo.ID, from)
+	if err != nil {
+		if err2 := sess.Rollback(); err2 != nil {
+			log.Error("RenameBranch: sess.Rollback: %v", err2)
+		}
+		return err
+	}
+
+	if protectedBranch != nil {
+		protectedBranch.BranchName = to
+		_, err = sess.Cols("branch_name").Update(protectedBranch)
+		if err != nil {
+			if err2 := sess.Rollback(); err2 != nil {
+				log.Error("RenameBranch: sess.Rollback: %v", err2)
+			}
+			return err
+		}
+	}
+
+	// 3. Update all not merged pull request base branch name
+	_, err = sess.Table(new(PullRequest)).Where("base_repo_id=? AND base_branch=? AND has_merged=?",
+		repo.ID, from, false).
+		Update(map[string]interface{}{"base_branch": to})
+	if err != nil {
+		if err2 := sess.Rollback(); err2 != nil {
+			log.Error("RenameBranch: sess.Rollback: %v", err2)
+		}
+		return err
+	}
+
+	// 4. do git action
+	if err = gitAction(isDefault); err != nil {
+		if err2 := sess.Rollback(); err2 != nil {
+			log.Error("RenameBranch: sess.Rollback: %v", err2)
+		}
+
+		return err
+	}
+
+	// 5. insert renamed branch record
+	renamedBranch := &RenamedBranch{
+		RepoID: repo.ID,
+		From:   from,
+		To:     to,
+	}
+
+	_, err = sess.Insert(renamedBranch)
+	if err != nil {
+		if err2 := sess.Rollback(); err2 != nil {
+			log.Error("RenameBranch: sess.Rollback: %v", err2)
+		}
+
+		return err
+	}
+
+	return sess.Commit()
+}
