@@ -803,20 +803,15 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if refType.RefTypeIncludesBranches() {
+			if ctx.Repo.IsRenamedBranch {
+				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, ctx.Repo.RenamedBranchName))
+				link := strings.Replace(ctx.Req.RequestURI, refName, ctx.Repo.RenamedBranchName, 1)
+				ctx.Redirect(link)
+				return
+			}
+
+			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
-
-				if ctx.Repo.IsRenamedBranch {
-					ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, ctx.Repo.RenamedBranchName))
-					link := strings.Replace(ctx.Req.RequestURI, refName, ctx.Repo.RenamedBranchName, 1)
-					ctx.Redirect(link)
-					return
-				}
-
-				if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-					ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
-					return
-				}
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 				if err != nil {
