@@ -12,17 +12,17 @@
 
 	{{template "base/footer_content" .}}
 {{if .RequireSimpleMDE}}
-	<script src="{{StaticUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
+	<script src="{{AssetUrlPrefix}}/js/easymde.js?v={{MD5 AppVer}}"></script>
+	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/addon/mode/loadmode.js"></script>
+	<script src="{{AssetUrlPrefix}}/vendor/plugins/codemirror/mode/meta.js"></script>
 	<script>
-		CodeMirror.modeURL = '{{StaticUrlPrefix}}/vendor/plugins/codemirror/mode/%N/%N.js';
+		CodeMirror.modeURL = '{{AssetUrlPrefix}}/vendor/plugins/codemirror/mode/%N/%N.js';
 	</script>
 {{end}}
 
 <!-- Third-party libraries -->
 {{if .RequireU2F}}
-	<script src="{{StaticUrlPrefix}}/vendor/plugins/u2f/index.js"></script>
+	<script src="{{AssetUrlPrefix}}/vendor/plugins/u2f/index.js"></script>
 {{end}}
 {{if .EnableCaptcha}}
 	{{if eq .CaptchaType "recaptcha"}}
@@ -32,7 +32,7 @@
 		<script src='https://hcaptcha.com/1/api.js' async></script>
 	{{end}}
 {{end}}
-	<script src="{{StaticUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
+	<script src="{{AssetUrlPrefix}}/js/index.js?v={{MD5 AppVer}}"></script>
 {{template "custom/footer" .}}
 </body>
 </html>

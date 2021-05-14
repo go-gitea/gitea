@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -213,19 +214,19 @@ func EllipsisString(str string, length int) string {
 	if length <= 3 {
 		return "..."
 	}
-	if len(str) <= length {
+	if utf8.RuneCountInString(str) <= length {
 		return str
 	}
-	return str[:length-3] + "..."
+	return string([]rune(str)[:length-3]) + "..."
 }
 
 // TruncateString returns a truncated string with given limit,
 // it returns input string if length is not reached limit.
 func TruncateString(str string, limit int) string {
-	if len(str) < limit {
+	if utf8.RuneCountInString(str) < limit {
 		return str
 	}
-	return str[:limit]
+	return string([]rune(str)[:limit])
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.

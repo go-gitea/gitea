@@ -40,8 +40,10 @@ func TestHashEmail(t *testing.T) {
 }
 
 func TestSizedAvatarLink(t *testing.T) {
+	setting.AppSubURL = "/testsuburl"
+
 	disableGravatar()
-	assert.Equal(t, "/suburl/img/avatar_default.png",
+	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
 		SizedAvatarLink("gitea@example.com", 100))
 
 	enableGravatar(t)
