@@ -391,84 +391,11 @@ func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error
 func GetLabelsInRepoByNames(repoID int64, labelNames []string) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelNames))
 	return labels, x.Table("label").
+		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
 		Cols("id", "repo_id", "org_id").
 		Find(&labels)
-}
-
-// GetLabelByIDOrName get label by id or name and repo id
-func GetLabelByIDOrName(queryID string, repoID int64) (label *Label, exist bool, err error) {
-	var id int64
-	id, err = strconv.ParseInt(queryID, 10, 64)
-	if err == nil && id > 0 {
-		label, err = GetLabelByID(id)
-		if err != nil {
-			if !IsErrLabelNotExist(err) {
-				return nil, false, err
-			}
-		} else {
-			return label, true, nil
-		}
-	}
-
-	label, err = GetLabelInRepoByName(repoID, queryID)
-	if err != nil {
-		if IsErrLabelNotExist(err) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return label, true, nil
-}
-
-// GetLabelByIDsOrNames gets label by ids or names and repo id
-func GetLabelByIDsOrNames(queryIDs []string, repoID int64) (labels []*Label, err error) {
-	tmpIDs := make([]int64, 0, 5)
-	tmpNames := make([]string, 0, 5)
-	var id int64
-
-	for _, q := range queryIDs {
-		if len(q) == 0 {
-			continue
-		}
-
-		id, err = strconv.ParseInt(q, 10, 64)
-		if err == nil && id > 0 {
-			tmpIDs = append(tmpIDs, id)
-			continue
-		}
-
-		tmpNames = append(tmpNames, q)
-	}
-
-	if len(tmpIDs) > 0 {
-		labels, err = GetLabelsByIDs(tmpIDs)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if len(labels) == 0 {
-		// can't find any label by id, maybe they are label names
-		tmpNames = queryIDs
-		labels = make([]*Label, 0, 5)
-	}
-
-	if len(tmpNames) > 0 {
-		var labelsByNames []*Label
-		labelsByNames, err = GetLabelsInRepoByNames(repoID, tmpNames)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(labelsByNames) > 0 {
-			labels = append(labels, labelsByNames...)
-		}
-	}
-
-	return labels, nil
 }
 
 // BuildLabelNamesIssueIDsCondition returns a builder where get issue ids match label names
@@ -592,6 +519,17 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 		Asc("name").
 		Cols("id").
 		Find(&labelIDs)
+}
+
+// GetLabelsInOrgByNames get labels in an org by label names
+func GetLabelsInOrgByNames(orgID int64, labelNames []string) ([]*Label, error) {
+	labels := make([]*Label, 0, len(labelNames))
+	return labels, x.Table("label").
+		Where("org_id = ?", orgID).
+		In("name", labelNames).
+		Asc("name").
+		Cols("id").
+		Find(&labels)
 }
 
 // GetLabelInOrgByID returns a label by ID in given organization.

@@ -157,7 +157,7 @@ func TestGetLabelInOrgByName(t *testing.T) {
 	assert.True(t, IsErrOrgLabelNotExist(err))
 }
 
-func TestGetLabelInOrgByNames(t *testing.T) {
+func TestGetLabelIDInOrgByNames(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	labelIDs, err := GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4"})
 	assert.NoError(t, err)
@@ -166,6 +166,17 @@ func TestGetLabelInOrgByNames(t *testing.T) {
 
 	assert.Equal(t, int64(3), labelIDs[0])
 	assert.Equal(t, int64(4), labelIDs[1])
+}
+
+func TestGetLabelInOrgByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	labelIDs, err := GetLabelsInOrgByNames(3, []string{"orglabel3", "orglabel4"})
+	assert.NoError(t, err)
+
+	assert.Len(t, labelIDs, 2)
+
+	assert.Equal(t, int64(3), labelIDs[0].ID)
+	assert.Equal(t, int64(4), labelIDs[1].ID)
 }
 
 func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
@@ -381,24 +392,6 @@ func TestDeleteIssueLabel(t *testing.T) {
 
 func TestGetLabelsInRepoByNames(t *testing.T) {
 	labels, err := GetLabelsInRepoByNames(1, []string{"label1", "label2"})
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(labels))
-}
-
-func TestGetLabelByIDOrName(t *testing.T) {
-	label, exist, err := GetLabelByIDOrName("1", 1)
-	assert.NoError(t, err)
-	assert.Equal(t, true, exist)
-	assert.Equal(t, int64(1), label.ID)
-
-	label, exist, err = GetLabelByIDOrName("label2", 1)
-	assert.NoError(t, err)
-	assert.Equal(t, true, exist)
-	assert.Equal(t, int64(2), label.ID)
-}
-
-func TestGetLabelByIDsOrNames(t *testing.T) {
-	labels, err := GetLabelByIDsOrNames([]string{"1", "label2"}, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(labels))
 }

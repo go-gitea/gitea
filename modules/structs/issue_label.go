@@ -37,5 +37,5 @@ type EditLabelOption struct {
 type IssueLabelsOption struct {
 	// list of label IDs or names
 	Labels []string `json:"labels"`
-	Mode   string   `json:"mode"` // id_only or name_only or mixed
+	Mode   string   `json:"mode"` // id_only or name_only
 }

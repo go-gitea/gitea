@@ -154,7 +154,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 	//   in: query
 	//   description: the type of id is id or name
 	//   type: string
-	//   enum: [id, name, mixed]
+	//   enum: [id, name, org_name]
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -191,18 +191,17 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "parseLabel", err)
 			return
 		}
-	case "mixed":
-		exist := false
-		label, exist, err = models.GetLabelByIDOrName(ctx.Params(":id"), ctx.Repo.Repository.ID)
+	case "org_name":
+		label, err = models.GetLabelInOrgByName(ctx.Repo.Repository.OwnerID, ctx.Params(":id"))
 		if err != nil {
+			if models.IsErrOrgNotExist(err) {
+				ctx.Error(http.StatusUnprocessableEntity, "", err)
+				return
+			}
 			ctx.Error(http.StatusInternalServerError, "GetLabelByIDOrName", err)
 			return
 		}
 
-		if !exist {
-			ctx.Error(http.StatusUnprocessableEntity, "", err)
-			return
-		}
 	default: // id as default
 		label, err = models.GetLabelByID(ctx.ParamsInt64(":id"))
 		if err != nil {
@@ -349,8 +348,8 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
 			return
 		}
-	case "mixed":
-		labels, err = models.GetLabelByIDsOrNames(form.Labels, ctx.Repo.Repository.ID)
+	case "org_name_only":
+		labels, err = models.GetLabelsInOrgByNames(ctx.Repo.Repository.OwnerID, form.Labels)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByIDsOrNames", err)
 			return
