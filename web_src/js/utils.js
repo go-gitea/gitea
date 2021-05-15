@@ -9,6 +9,16 @@ export function extname(path = '') {
   return ext || '';
 }
 
+// join a list of path segments with slashes, ensuring no double slashes
+export function joinPaths(...parts) {
+  let str = '';
+  for (const part of parts) {
+    if (!part) continue;
+    str = !str ? part : `${str.replace(/\/$/, '')}/${part.replace(/^\//, '')}`;
+  }
+  return str;
+}
+
 // test whether a variable is an object
 export function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]';

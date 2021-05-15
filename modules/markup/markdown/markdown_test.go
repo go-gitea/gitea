@@ -269,6 +269,9 @@ Here is a simple footnote,[^1] and here is a longer one.[^bignote]
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
@@ -305,6 +308,9 @@ func TestTotal_RenderWiki(t *testing.T) {
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {

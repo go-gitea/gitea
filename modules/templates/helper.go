@@ -60,7 +60,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
-		"StaticUrlPrefix": func() string {
+		"AssetUrlPrefix": func() string {
 			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
@@ -766,7 +766,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.

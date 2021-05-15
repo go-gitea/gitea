@@ -484,7 +484,7 @@ func createCustomEmoji(alias, class string) *html.Node {
 	}
 	if class != "" {
 		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
+		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/assets/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
 	}
 
 	span.AppendChild(img)

@@ -724,7 +724,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(refType RepoRefType) func(*Context) context.CancelFunc {
+func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) context.CancelFunc {
 	return func(ctx *Context) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
@@ -813,6 +813,9 @@ func RepoRefByType(refType RepoRefType) func(*Context) context.CancelFunc {
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
+				if len(ignoreNotExistErr) > 0 && ignoreNotExistErr[0] {
+					return
+				}
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
 				return
 			}
@@ -902,12 +905,18 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 					log.Debug("DataAsync: %v", err)
 					continue
 				}
-				defer r.Close()
+				closed := false
+				defer func() {
+					if !closed {
+						_ = r.Close()
+					}
+				}()
 				data, err := ioutil.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue
 				}
+				_ = r.Close()
 				var it api.IssueTemplate
 				content, err := markdown.ExtractMetadata(string(data), &it)
 				if err != nil {
