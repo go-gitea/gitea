@@ -187,14 +187,14 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			if flushable, ok := mq.Managed.(Flushable); ok {
 				log.Debug("Flushing (flushable) queue: %s", mq.Name)
 				go func(q *ManagedQueue) {
-					localCtx, localCancel := context.WithCancel(ctx)
-					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
+					localCtx, localCtxCancel := context.WithCancel(ctx)
+					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCtxCancel, true)
 					err := flushable.FlushWithContext(localCtx)
 					if err != nil && err != ctx.Err() {
 						cancel()
 					}
 					q.CancelWorkers(pid)
-					localCancel()
+					localCtxCancel()
 					wg.Done()
 				}(mq)
 			} else {
