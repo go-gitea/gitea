@@ -6,15 +6,15 @@ package json
 
 import "encoding/json"
 
-// JSONInterface represents an interface to handle json data
-type JSONInterface interface {
+// Interface represents an interface to handle json data
+type Interface interface {
 	Marshal(v interface{}) ([]byte, error)
 	Unmarshal(data []byte, v interface{}) error
 }
 
 var (
 	// DefaultJSONHandler default json handler
-	DefaultJSONHandler JSONInterface = StdJSON{}
+	DefaultJSONHandler Interface = StdJSON{}
 )
 
 // StdJSON implements JSONInterface via encoding/json
