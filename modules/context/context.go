@@ -683,6 +683,9 @@ func Contexter() func(next http.Handler) http.Handler {
 			} else {
 				ctx.Data["SignedUserID"] = int64(0)
 				ctx.Data["SignedUserName"] = ""
+
+				// ensure the session uid is deleted
+				_ = ctx.Session.Delete("uid")
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)

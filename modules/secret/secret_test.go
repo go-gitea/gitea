@@ -13,7 +13,7 @@ import (
 func TestNew(t *testing.T) {
 	result, err := New()
 	assert.NoError(t, err)
-	assert.True(t, len(result) > 32)
+	assert.True(t, len(result) == 44)
 
 	result2, err := New()
 	assert.NoError(t, err)

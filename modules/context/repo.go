@@ -905,12 +905,18 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 					log.Debug("DataAsync: %v", err)
 					continue
 				}
-				defer r.Close()
+				closed := false
+				defer func() {
+					if !closed {
+						_ = r.Close()
+					}
+				}()
 				data, err := ioutil.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue
 				}
+				_ = r.Close()
 				var it api.IssueTemplate
 				content, err := markdown.ExtractMetadata(string(data), &it)
 				if err != nil {
