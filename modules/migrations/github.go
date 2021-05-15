@@ -280,6 +280,11 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		email = *rel.Author.Email
 	}
 
+	var published time.Time
+	if rel.PublishedAt != nil {
+		published = rel.PublishedAt.Time
+	}
+
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
@@ -291,7 +296,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		PublisherID:     *rel.Author.ID,
 		PublisherName:   *rel.Author.Login,
 		PublisherEmail:  email,
-		Published:       rel.PublishedAt.Time,
+		Published:       published,
 	}
 
 	for _, asset := range rel.Assets {
