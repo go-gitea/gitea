@@ -15,12 +15,12 @@ trigger:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:16
     commands:
       - make node_modules
 
   - name: lint-frontend
-    image: node:14
+    image: node:16
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -58,7 +58,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    image: node:14
+    image: node:16
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -71,13 +71,13 @@ steps:
     depends_on: [lint-backend]
 
   - name: test-frontend
-    image: node:14
+    image: node:16
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:14
+    image: node:16
     commands:
       - make frontend
     depends_on: [test-frontend]
