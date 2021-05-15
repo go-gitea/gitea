@@ -1496,6 +1496,7 @@ a.ui.label:hover {
 .blame .code-inner {
   white-space: pre;
   word-break: normal;
+  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
 }
 
 .lines-commit {
@@ -1515,6 +1516,8 @@ a.ui.label:hover {
     display: block;
     user-select: none;
     padding: 0 0 0 10px;
+    line-height: 20px;
+    box-sizing: content-box;
 
     .blame-data {
       display: flex;
@@ -1525,7 +1528,6 @@ a.ui.label:hover {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        line-height: 20px;
       }
 
       .blame-time,
@@ -1538,6 +1540,8 @@ a.ui.label:hover {
   .ui.avatar.image {
     height: 18px;
     width: 18px;
+    display: block;
+    margin-top: 1px;
   }
 }
 
