@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -171,8 +172,19 @@ func Recovery() func(next http.Handler) http.Handler {
 						},
 					}
 
-					// Get user from session if logged in.
-					user, _ := sso.SignedInUser(req, w, &store, sessionStore)
+					var user *models.User
+					if apiContext := context.GetAPIContext(req); apiContext != nil {
+						user = apiContext.User
+					}
+					if user == nil {
+						if ctx := context.GetContext(req); ctx != nil {
+							user = ctx.User
+						}
+					}
+					if user == nil {
+						// Get user from session if logged in - do not attempt to sign-in
+						user = sso.SessionUser(sessionStore)
+					}
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user

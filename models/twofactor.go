@@ -11,10 +11,10 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
@@ -34,11 +34,11 @@ type TwoFactor struct {
 
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() (string, error) {
-	token, err := generate.GetRandomString(8)
+	token, err := util.RandomString(8)
 	if err != nil {
 		return "", err
 	}
-	t.ScratchSalt, _ = generate.GetRandomString(10)
+	t.ScratchSalt, _ = util.RandomString(10)
 	t.ScratchHash = hashToken(token, t.ScratchSalt)
 	return token, nil
 }

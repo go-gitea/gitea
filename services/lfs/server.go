@@ -94,7 +94,7 @@ func getAuthenticatedRepoAndMeta(ctx *context.Context, rc *requestContext, p lfs
 		return nil, nil
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, requireWrite) {
+	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
 		requireAuth(ctx)
 		return nil, nil
 	}
@@ -232,7 +232,7 @@ func PostHandler(ctx *context.Context) {
 		return
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, true) {
+	if !authenticate(ctx, repository, rc.Authorization, false, true) {
 		requireAuth(ctx)
 		return
 	}
@@ -322,7 +322,7 @@ func BatchHandler(ctx *context.Context) {
 			requireWrite = true
 		}
 
-		if !authenticate(ctx, repository, reqCtx.Authorization, requireWrite) {
+		if !authenticate(ctx, repository, reqCtx.Authorization, false, requireWrite) {
 			requireAuth(ctx)
 			return
 		}
@@ -561,7 +561,7 @@ func logRequest(r *http.Request, status int) {
 
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireWrite bool) bool {
+func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireSigned, requireWrite bool) bool {
 	accessMode := models.AccessModeRead
 	if requireWrite {
 		accessMode = models.AccessModeWrite
@@ -575,89 +575,72 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	}
 
 	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
-	if canRead {
+	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
 
-	user, repo, opStr, err := parseToken(authorization)
+	user, err := parseToken(authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already
 		log.Warn("Authentication failure for provided token with Error: %v", err)
 		return false
 	}
 	ctx.User = user
-	if opStr == "basic" {
-		perm, err = models.GetUserRepoPermission(repository, ctx.User)
-		if err != nil {
-			log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.User, repository)
-			return false
-		}
-		return perm.CanAccess(accessMode, models.UnitTypeCode)
-	}
-	if repository.ID == repo.ID {
-		if requireWrite && opStr != "upload" {
-			return false
-		}
-		return true
-	}
-	return false
+	return true
 }
 
-func parseToken(authorization string) (*models.User, *models.Repository, string, error) {
+func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+	if !strings.Contains(tokenSHA, ".") {
+		return nil, nil
+	}
+	token, err := jwt.ParseWithClaims(tokenSHA, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return setting.LFS.JWTSecretBytes, nil
+	})
+	if err != nil {
+		return nil, nil
+	}
+
+	claims, claimsOk := token.Claims.(*Claims)
+	if !token.Valid || !claimsOk {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	if claims.RepoID != target.ID {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	if mode == models.AccessModeWrite && claims.Op != "upload" {
+		return nil, fmt.Errorf("invalid token claim")
+	}
+
+	u, err := models.GetUserByID(claims.UserID)
+	if err != nil {
+		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
 	if authorization == "" {
-		return nil, nil, "unknown", fmt.Errorf("No token")
-	}
-	if strings.HasPrefix(authorization, "Bearer ") {
-		token, err := jwt.ParseWithClaims(authorization[7:], &Claims{}, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-			}
-			return setting.LFS.JWTSecretBytes, nil
-		})
-		if err != nil {
-			// The error here is WARN level because it is caused by bad authorization rather than an internal server error
-			return nil, nil, "unknown", err
-		}
-		claims, claimsOk := token.Claims.(*Claims)
-		if !token.Valid || !claimsOk {
-			return nil, nil, "unknown", fmt.Errorf("Token claim invalid")
-		}
-		r, err := models.GetRepositoryByID(claims.RepoID)
-		if err != nil {
-			log.Error("Unable to GetRepositoryById[%d]: Error: %v", claims.RepoID, err)
-			return nil, nil, claims.Op, err
-		}
-		u, err := models.GetUserByID(claims.UserID)
-		if err != nil {
-			log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
-			return nil, r, claims.Op, err
-		}
-		return u, r, claims.Op, nil
+		return nil, fmt.Errorf("no token")
 	}
 
-	if strings.HasPrefix(authorization, "Basic ") {
-		c, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
-		if err != nil {
-			return nil, nil, "basic", err
-		}
-		cs := string(c)
-		i := strings.IndexByte(cs, ':')
-		if i < 0 {
-			return nil, nil, "basic", fmt.Errorf("Basic auth invalid")
-		}
-		user, password := cs[:i], cs[i+1:]
-		u, err := models.GetUserByName(user)
-		if err != nil {
-			log.Error("Unable to GetUserByName[%d]: Error: %v", user, err)
-			return nil, nil, "basic", err
-		}
-		if !u.IsPasswordSet() || !u.ValidatePassword(password) {
-			return nil, nil, "basic", fmt.Errorf("Basic auth failed")
-		}
-		return u, nil, "basic", nil
+	parts := strings.SplitN(authorization, " ", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("no token")
 	}
-
-	return nil, nil, "unknown", fmt.Errorf("Token not found")
+	tokenSHA := parts[1]
+	switch strings.ToLower(parts[0]) {
+	case "bearer":
+		fallthrough
+	case "token":
+		return handleLFSToken(tokenSHA, target, mode)
+	}
+	return nil, fmt.Errorf("token not found")
 }
 
 func requireAuth(ctx *context.Context) {

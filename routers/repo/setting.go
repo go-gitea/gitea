@@ -544,6 +544,11 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
+		// Close the gitrepository before doing this.
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+		}
+
 		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return

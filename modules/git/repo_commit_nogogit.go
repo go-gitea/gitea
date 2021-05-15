@@ -11,8 +11,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -35,27 +33,15 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	if strings.HasPrefix(name, "refs/") {
-		// We're gonna try just reading the ref file as this is likely to be quicker than other options
-		fileInfo, err := os.Lstat(filepath.Join(repo.Path, name))
-		if err == nil && fileInfo.Mode().IsRegular() && fileInfo.Size() == 41 {
-			ref, err := ioutil.ReadFile(filepath.Join(repo.Path, name))
-
-			if err == nil && SHAPattern.Match(ref[:40]) && ref[40] == '\n' {
-				return string(ref[:40]), nil
-			}
-		}
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, _ = wr.Write([]byte(name + "\n"))
+	shaBs, _, _, err := ReadBatchLine(rd)
+	if IsErrNotExist(err) {
+		return "", ErrNotExist{name, ""}
 	}
 
-	stdout, err := NewCommand("show-ref", "--verify", "--hash", name).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-
-	return strings.TrimSpace(stdout), nil
+	return string(shaBs), nil
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
@@ -65,31 +51,18 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	stdoutReader, stdoutWriter := io.Pipe()
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
+	wr, rd, cancel := repo.CatFileBatch()
+	defer cancel()
 
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, &stderr, strings.NewReader(id.String()+"\n"))
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = stdoutWriter.Close()
-		}
-	}()
+	_, _ = wr.Write([]byte(id.String() + "\n"))
 
-	bufReader := bufio.NewReader(stdoutReader)
-
-	return repo.getCommitFromBatchReader(bufReader, id)
+	return repo.getCommitFromBatchReader(rd, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(bufReader *bufio.Reader, id SHA1) (*Commit, error) {
-	_, typ, size, err := ReadBatchLine(bufReader)
+func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Commit, error) {
+	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
-		if errors.Is(err, io.EOF) {
+		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: id.String()}
 		}
 		return nil, err
@@ -101,7 +74,11 @@ func (repo *Repository) getCommitFromBatchReader(bufReader *bufio.Reader, id SHA
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
-		data, err := ioutil.ReadAll(io.LimitReader(bufReader, size))
+		data, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		if err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
 		if err != nil {
 			return nil, err
 		}
@@ -122,11 +99,50 @@ func (repo *Repository) getCommitFromBatchReader(bufReader *bufio.Reader, id SHA
 
 		return commit, nil
 	case "commit":
-		return CommitFromReader(repo, id, io.LimitReader(bufReader, size))
+		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		if err != nil {
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		if err != nil {
+			return nil, err
+		}
+
+		return commit, nil
 	default:
 		log("Unknown typ: %s", typ)
+		_, err = rd.Discard(int(size) + 1)
+		if err != nil {
+			return nil, err
+		}
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}
 	}
+}
+
+// ConvertToSHA1 returns a Hash object from a potential ID string
+func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
+	if len(commitID) == 40 && SHAPattern.MatchString(commitID) {
+		sha1, err := NewIDFromString(commitID)
+		if err == nil {
+			return sha1, nil
+		}
+	}
+
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(commitID + "\n"))
+	if err != nil {
+		return SHA1{}, err
+	}
+	sha, _, _, err := ReadBatchLine(rd)
+	if err != nil {
+		if IsErrNotExist(err) {
+			return SHA1{}, ErrNotExist{commitID, ""}
+		}
+		return SHA1{}, err
+	}
+
+	return MustIDFromString(string(sha)), nil
 }
