@@ -406,11 +406,11 @@ dumper, err := testfixtures.NewDumper(
         testfixtures.DumpDatabase(db),
         testfixtures.DumpDialect("postgres"), // or your database of choice
         testfixtures.DumpDirectory("tmp/fixtures"),
-        textfixtures.DumpTables( // optional, will dump all table if not given
+        testfixtures.DumpTables( // optional, will dump all table if not given
           "posts",
           "comments",
           "tags",
-        )
+        ),
 )
 if err != nil {
         ...
@@ -454,7 +454,13 @@ brew install go-testfixtures/tap/testfixtures
 Usage is like this:
 
 ```bash
+# load
 testfixtures -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
+```
+
+```bash
+# dump
+testfixtures --dump -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
 ```
 
 The connection string changes for each database driver.

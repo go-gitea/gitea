@@ -13,13 +13,14 @@ package elastic
 // The wildcard query maps to Lucene WildcardQuery.
 //
 // For more details, see
-// https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-wildcard-query.html
+// https://www.elastic.co/guide/en/elasticsearch/reference/7.x/query-dsl-wildcard-query.html
 type WildcardQuery struct {
-	name      string
-	wildcard  string
-	boost     *float64
-	rewrite   string
-	queryName string
+	name            string
+	wildcard        string
+	boost           *float64
+	rewrite         string
+	queryName       string
+	caseInsensitive bool
 }
 
 // NewWildcardQuery creates and initializes a new WildcardQuery.
@@ -47,13 +48,20 @@ func (q *WildcardQuery) QueryName(queryName string) *WildcardQuery {
 	return q
 }
 
+// CaseInsensitive sets case insensitive matching of this query.
+func (q *WildcardQuery) CaseInsensitive(caseInsensitive bool) *WildcardQuery {
+	q.caseInsensitive = caseInsensitive
+	return q
+}
+
 // Source returns the JSON serializable body of this query.
 func (q *WildcardQuery) Source() (interface{}, error) {
 	// {
 	//	"wildcard" : {
 	//		"user" : {
-	//      "wildcard" : "ki*y",
-	//      "boost" : 1.0
+	//      "value" : "ki*y",
+	//      "boost" : 1.0,
+	//      "case_insensitive" : true
 	//    }
 	// }
 
@@ -65,7 +73,7 @@ func (q *WildcardQuery) Source() (interface{}, error) {
 	wq := make(map[string]interface{})
 	query[q.name] = wq
 
-	wq["wildcard"] = q.wildcard
+	wq["value"] = q.wildcard
 
 	if q.boost != nil {
 		wq["boost"] = *q.boost
@@ -75,6 +83,9 @@ func (q *WildcardQuery) Source() (interface{}, error) {
 	}
 	if q.queryName != "" {
 		wq["_name"] = q.queryName
+	}
+	if q.caseInsensitive {
+		wq["case_insensitive"] = true
 	}
 
 	return source, nil

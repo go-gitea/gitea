@@ -77,6 +77,8 @@ func SessionUser(sess SessionStore) *models.User {
 	if uid == nil {
 		return nil
 	}
+	log.Trace("Session Authorization: Found user[%d]", uid)
+
 	id, ok := uid.(int64)
 	if !ok {
 		return nil
@@ -90,6 +92,8 @@ func SessionUser(sess SessionStore) *models.User {
 		}
 		return nil
 	}
+
+	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user
 }
 

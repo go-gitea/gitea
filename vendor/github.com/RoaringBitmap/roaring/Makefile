@@ -97,10 +97,6 @@ nuke:
 	rm -rf ./target
 	GOPATH=$(GOPATH) go clean -i ./...
 
-
-ser: 
-	go generate
-
 cover:
 	go test -coverprofile=coverage.out
 	go tool cover -html=coverage.out

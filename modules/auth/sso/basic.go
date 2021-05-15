@@ -66,12 +66,16 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	// Assume username is token
 	authToken := uname
 	if !isUsernameToken {
+		log.Trace("Basic Authorization: Attempting login for: %s", uname)
 		// Assume password is token
 		authToken = passwd
+	} else {
+		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
 
 	uid := CheckOAuthAccessToken(authToken)
 	if uid != 0 {
+		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 		var err error
 		store.GetData()["IsApiToken"] = true
 
@@ -83,6 +87,8 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	}
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
+		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
+
 		u, err = models.GetUserByID(token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
@@ -98,6 +104,8 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	}
 
 	if u == nil {
+		log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
+
 		u, err = models.UserSignIn(uname, passwd)
 		if err != nil {
 			if !models.IsErrUserNotExist(err) {
@@ -108,6 +116,8 @@ func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store D
 	} else {
 		store.GetData()["IsApiToken"] = true
 	}
+
+	log.Trace("Basic Authorization: Logged in user %-v", u)
 
 	return u
 }

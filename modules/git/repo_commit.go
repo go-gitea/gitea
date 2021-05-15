@@ -21,35 +21,7 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	stdout, err := NewCommand("rev-list", "-n", "1", TagPrefix+name).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "unknown revision or path") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	return strings.TrimSpace(stdout), nil
-}
-
-// ConvertToSHA1 returns a Hash object from a potential ID string
-func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 {
-		sha1, err := NewIDFromString(commitID)
-		if err == nil {
-			return sha1, nil
-		}
-	}
-
-	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "unknown revision or path") ||
-			strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			return SHA1{}, ErrNotExist{commitID, ""}
-		}
-		return SHA1{}, err
-	}
-
-	return NewIDFromString(actualCommitID)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // GetCommit returns commit object of by ID string.

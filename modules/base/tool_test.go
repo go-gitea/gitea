@@ -170,6 +170,10 @@ func TestEllipsisString(t *testing.T) {
 	assert.Equal(t, "fo...", EllipsisString("foobar", 5))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 6))
 	assert.Equal(t, "foobar", EllipsisString("foobar", 10))
+	assert.Equal(t, "测...", EllipsisString("测试文本一二三四", 4))
+	assert.Equal(t, "测试...", EllipsisString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文...", EllipsisString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三四", EllipsisString("测试文本一二三四", 10))
 }
 
 func TestTruncateString(t *testing.T) {
@@ -181,6 +185,10 @@ func TestTruncateString(t *testing.T) {
 	assert.Equal(t, "fooba", TruncateString("foobar", 5))
 	assert.Equal(t, "foobar", TruncateString("foobar", 6))
 	assert.Equal(t, "foobar", TruncateString("foobar", 7))
+	assert.Equal(t, "测试文本", TruncateString("测试文本一二三四", 4))
+	assert.Equal(t, "测试文本一", TruncateString("测试文本一二三四", 5))
+	assert.Equal(t, "测试文本一二", TruncateString("测试文本一二三四", 6))
+	assert.Equal(t, "测试文本一二三", TruncateString("测试文本一二三四", 7))
 }
 
 func TestStringsToInt64s(t *testing.T) {

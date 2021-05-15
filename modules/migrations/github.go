@@ -132,6 +132,11 @@ func (g *GithubDownloaderV3) sleep() {
 func (g *GithubDownloaderV3) RefreshRate() error {
 	rates, _, err := g.client.RateLimits(g.ctx)
 	if err != nil {
+		// if rate limit is not enabled, ignore it
+		if strings.Contains(err.Error(), "404") {
+			g.rate = nil
+			return nil
+		}
 		return err
 	}
 

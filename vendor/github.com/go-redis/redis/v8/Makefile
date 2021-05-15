@@ -1,10 +1,9 @@
-all: testdeps
+test: testdeps
 	go test ./...
 	go test ./... -short -race
 	go test ./... -run=NONE -bench=. -benchmem
 	env GOOS=linux GOARCH=386 go test ./...
 	go vet
-	golangci-lint run
 
 testdeps: testdata/redis/src/redis-server
 
@@ -15,7 +14,7 @@ bench: testdeps
 
 testdata/redis:
 	mkdir -p $@
-	wget -qO- https://download.redis.io/releases/redis-6.2-rc3.tar.gz | tar xvz --strip-components=1 -C $@
+	wget -qO- https://download.redis.io/releases/redis-6.2.1.tar.gz | tar xvz --strip-components=1 -C $@
 
 testdata/redis/src/redis-server: testdata/redis
 	cd $< && make all

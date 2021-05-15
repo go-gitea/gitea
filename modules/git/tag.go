@@ -35,6 +35,7 @@ func (tag *Tag) Commit() (*Commit, error) {
 // \n\n separate headers from message
 func parseTagData(data []byte) (*Tag, error) {
 	tag := new(Tag)
+	tag.Tagger = &Signature{}
 	// we now have the contents of the commit object. Let's investigate...
 	nextline := 0
 l:

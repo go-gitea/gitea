@@ -384,7 +384,12 @@ type memStatsMetrics []struct {
 // https://github.com/povilasv/prommod for an example of a collector for the
 // module dependencies.
 func NewBuildInfoCollector() Collector {
-	path, version, sum := readBuildInfo()
+	path, version, sum := "unknown", "unknown", "unknown"
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		path = bi.Main.Path
+		version = bi.Main.Version
+		sum = bi.Main.Sum
+	}
 	c := &selfCollector{MustNewConstMetric(
 		NewDesc(
 			"go_build_info",

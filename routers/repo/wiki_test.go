@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
@@ -115,7 +115,7 @@ func TestNewWikiPost(t *testing.T) {
 		ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		web.SetForm(ctx, &auth.NewWikiForm{
+		web.SetForm(ctx, &forms.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,
@@ -133,7 +133,7 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1/wiki/_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
-	web.SetForm(ctx, &auth.NewWikiForm{
+	web.SetForm(ctx, &forms.NewWikiForm{
 		Title:   "_edit",
 		Content: content,
 		Message: message,
@@ -167,7 +167,7 @@ func TestEditWikiPost(t *testing.T) {
 		ctx.SetParams(":page", "Home")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
-		web.SetForm(ctx, &auth.NewWikiForm{
+		web.SetForm(ctx, &forms.NewWikiForm{
 			Title:   title,
 			Content: content,
 			Message: message,

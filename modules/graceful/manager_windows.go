@@ -68,17 +68,21 @@ func (g *Manager) start() {
 	// Set the running state
 	g.setState(stateRunning)
 	if skip, _ := strconv.ParseBool(os.Getenv("SKIP_MINWINSVC")); skip {
+		log.Trace("Skipping SVC check as SKIP_MINWINSVC is set")
 		return
 	}
 
 	// Make SVC process
 	run := svc.Run
-	isInteractive, err := svc.IsWindowsService()
+
+	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
 	if err != nil {
-		log.Error("Unable to ascertain if running as an Interactive Session: %v", err)
+		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return
 	}
-	if isInteractive {
+	if isAnInteractiveSession {
+		log.Trace("Not running a service ... using the debug SVC manager")
 		run = debug.Run
 	}
 	go func() {
@@ -94,10 +98,14 @@ func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, statu
 		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout / time.Millisecond)}
 	}
 
+	log.Trace("Awaiting server start-up")
 	// Now need to wait for everything to start...
 	if !g.awaitServer(setting.StartupTimeout) {
+		log.Trace("... start-up failed ... Stopped")
 		return false, 1
 	}
+
+	log.Trace("Sending Running state to SVC")
 
 	// We need to implement some way of svc.AcceptParamChange/svc.ParamChange
 	status <- svc.Status{
@@ -105,27 +113,34 @@ func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, statu
 		Accepts: svc.AcceptStop | svc.AcceptShutdown | acceptHammerCode,
 	}
 
+	log.Trace("Started")
+
 	waitTime := 30 * time.Second
 
 loop:
 	for {
 		select {
 		case <-g.ctx.Done():
+			log.Trace("Shutting down")
 			g.DoGracefulShutdown()
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case <-g.shutdownRequested:
+			log.Trace("Shutting down")
 			waitTime += setting.GracefulHammerTime
 			break loop
 		case change := <-changes:
 			switch change.Cmd {
 			case svc.Interrogate:
+				log.Trace("SVC sent interrogate")
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown:
+				log.Trace("SVC requested shutdown - shutting down")
 				g.DoGracefulShutdown()
 				waitTime += setting.GracefulHammerTime
 				break loop
 			case hammerCode:
+				log.Trace("SVC requested hammer - shutting down and hammering immediately")
 				g.DoGracefulShutdown()
 				g.DoImmediateHammer()
 				break loop
@@ -134,6 +149,8 @@ loop:
 			}
 		}
 	}
+
+	log.Trace("Sending StopPending state to SVC")
 	status <- svc.Status{
 		State:    svc.StopPending,
 		WaitHint: uint32(waitTime / time.Millisecond),
@@ -145,8 +162,10 @@ hammerLoop:
 		case change := <-changes:
 			switch change.Cmd {
 			case svc.Interrogate:
+				log.Trace("SVC sent interrogate")
 				status <- change.CurrentStatus
 			case svc.Stop, svc.Shutdown, hammerCmd:
+				log.Trace("SVC requested hammer - hammering immediately")
 				g.DoImmediateHammer()
 				break hammerLoop
 			default:
@@ -156,6 +175,8 @@ hammerLoop:
 			break hammerLoop
 		}
 	}
+
+	log.Trace("Stopped")
 	return false, 0
 }
 

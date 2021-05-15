@@ -9,42 +9,60 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
-	var (
-		emails      []string
-		destination string
-		content     bytes.Buffer
-	)
-
 	if newOwner.IsOrganization() {
 		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
 		if err != nil {
 			return err
 		}
 
-		for i := range users {
-			emails = append(emails, users[i].Email)
+		langMap := make(map[string][]string)
+		for _, user := range users {
+			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
-		destination = newOwner.DisplayName()
-	} else {
-		emails = []string{newOwner.Email}
-		destination = "you"
+
+		for lang, tos := range langMap {
+			if err := sendRepoTransferNotifyMailPerLang(lang, newOwner, doer, tos, repo); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
-	subject := fmt.Sprintf("%s would like to transfer \"%s\" to %s", doer.DisplayName(), repo.FullName(), destination)
-	data := map[string]interface{}{
-		"Doer":    doer,
-		"User":    repo.Owner,
-		"Repo":    repo.FullName(),
-		"Link":    repo.HTMLURL(),
-		"Subject": subject,
+	return sendRepoTransferNotifyMailPerLang(newOwner.Language, newOwner, doer, []string{newOwner.Email}, repo)
+}
 
+// sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
+func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User, emails []string, repo *models.Repository) error {
+	var (
+		locale  = translation.NewLocale(lang)
+		content bytes.Buffer
+	)
+
+	destination := locale.Tr("mail.repo.transfer.to_you")
+	subject := locale.Tr("mail.repo.transfer.subject_to_you", doer.DisplayName(), repo.FullName())
+	if newOwner.IsOrganization() {
+		destination = newOwner.DisplayName()
+		subject = locale.Tr("mail.repo.transfer.subject_to", doer.DisplayName(), repo.FullName(), destination)
+	}
+
+	data := map[string]interface{}{
+		"Doer":        doer,
+		"User":        repo.Owner,
+		"Repo":        repo.FullName(),
+		"Link":        repo.HTMLURL(),
+		"Subject":     subject,
+		"i18n":        locale,
+		"Language":    locale.Language(),
 		"Destination": destination,
 	}
 
+	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {
 		return err
 	}

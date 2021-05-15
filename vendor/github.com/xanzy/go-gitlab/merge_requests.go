@@ -201,7 +201,7 @@ type ListGroupMergeRequestsOptions struct {
 	Sort                   *string    `url:"sort,omitempty" json:"sort,omitempty"`
 	Milestone              *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
 	View                   *string    `url:"view,omitempty" json:"view,omitempty"`
-	Labels                 Labels     `url:"labels,omitempty" json:"labels,omitempty"`
+	Labels                 Labels     `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	NotLabels              Labels     `url:"not[labels],comma,omitempty" json:"not[labels],omitempty"`
 	WithLabelsDetails      *bool      `url:"with_labels_details,omitempty" json:"with_labels_details,omitempty"`
 	WithMergeStatusRecheck *bool      `url:"with_merge_status_recheck,omitempty" json:"with_merge_status_recheck,omitempty"`
@@ -218,6 +218,8 @@ type ListGroupMergeRequestsOptions struct {
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
 	Search                 *string    `url:"search,omitempty" json:"search,omitempty"`
+	In                     *string    `url:"in,omitempty" json:"in,omitempty"`
+	WIP                    *string    `url:"wip,omitempty" json:"wip,omitempty"`
 }
 
 // ListGroupMergeRequests gets all merge requests for this group.
@@ -709,7 +711,7 @@ func (s *MergeRequestsService) CancelMergeWhenPipelineSucceeds(pid interface{}, 
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/cancel_merge_when_pipeline_succeeds", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest(http.MethodPut, u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

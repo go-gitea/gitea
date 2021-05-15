@@ -580,6 +580,21 @@ func (a Aggregations) GeoHash(name string) (*AggregationBucketKeyItems, bool) {
 	return nil, false
 }
 
+// GeoTile returns geo-tile aggregation results.
+// https://www.elastic.co/guide/en/elasticsearch/reference/7.0/search-aggregations-bucket-geotilegrid-aggregation.html
+func (a Aggregations) GeoTile(name string) (*AggregationBucketKeyItems, bool) {
+	if raw, found := a[name]; found {
+		agg := new(AggregationBucketKeyItems)
+		if raw == nil {
+			return agg, true
+		}
+		if err := json.Unmarshal(raw, agg); err == nil {
+			return agg, true
+		}
+	}
+	return nil, false
+}
+
 // GeoCentroid returns geo-centroid aggregation results.
 // See: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/search-aggregations-metrics-geocentroid-aggregation.html
 func (a Aggregations) GeoCentroid(name string) (*AggregationGeoCentroidMetric, bool) {

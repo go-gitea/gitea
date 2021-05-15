@@ -83,7 +83,7 @@ func (r *Reader) readLine() ([]byte, error) {
 			return nil, err
 		}
 
-		full = append(full, b...)
+		full = append(full, b...) //nolint:makezero
 		b = full
 	}
 	if len(b) <= 2 || b[len(b)-1] != '\n' || b[len(b)-2] != '\r' {

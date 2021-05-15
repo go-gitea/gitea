@@ -75,7 +75,7 @@ func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, err2)
 	assert.NoError(t, err3)
 	assert.Equal(t, int64(3), count)
-	assert.Equal(t, (privateCount + publicCount), count)
+	assert.Equal(t, privateCount+publicCount, count)
 }
 
 func TestGetPublicRepositoryCount(t *testing.T) {

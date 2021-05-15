@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +30,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 	username := "gitea"
 	email := "gitea@gitea.io"
 
-	form := auth.AdminCreateUserForm{
+	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
 		LoginName:          "local",
 		UserName:           username,
@@ -68,7 +68,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	username := "gitea"
 	email := "gitea@gitea.io"
 
-	form := auth.AdminCreateUserForm{
+	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
 		LoginName:          "local",
 		UserName:           username,
@@ -106,7 +106,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 	username := "gitea"
 	email := "gitea@gitea.io\r\n"
 
-	form := auth.AdminCreateUserForm{
+	form := forms.AdminCreateUserForm{
 		LoginType:          "local",
 		LoginName:          "local",
 		UserName:           username,

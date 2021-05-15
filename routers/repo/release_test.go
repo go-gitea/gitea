@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 func TestNewReleasePost(t *testing.T) {
@@ -18,13 +18,13 @@ func TestNewReleasePost(t *testing.T) {
 		RepoID  int64
 		UserID  int64
 		TagName string
-		Form    auth.NewReleaseForm
+		Form    forms.NewReleaseForm
 	}{
 		{
 			RepoID:  1,
 			UserID:  2,
 			TagName: "v1.1", // pre-existing tag
-			Form: auth.NewReleaseForm{
+			Form: forms.NewReleaseForm{
 				TagName: "newtag",
 				Target:  "master",
 				Title:   "title",
@@ -35,7 +35,7 @@ func TestNewReleasePost(t *testing.T) {
 			RepoID:  1,
 			UserID:  2,
 			TagName: "newtag",
-			Form: auth.NewReleaseForm{
+			Form: forms.NewReleaseForm{
 				TagName: "newtag",
 				Target:  "master",
 				Title:   "title",
