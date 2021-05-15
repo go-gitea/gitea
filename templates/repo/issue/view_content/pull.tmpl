@@ -175,7 +175,7 @@
 				<div class="item toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
 					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
 					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" }}
-					{{if .HasIssuesOrPullsWritePermission}}
+					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
 						{{$.i18n.Tr "repo.pulls.remove_wip_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
 					{{end}}
 				</div>
