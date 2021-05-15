@@ -111,15 +111,17 @@
 						{{end}}
 					</tbody>
 				</table>
-				<div class="code-view-menu-list ui fluid popup transition hidden">
-					<div class="ui column relaxed equal height">
-						<div class="column">
-							<div class="ui link list">
-								<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+					{{if $.Permission.CanRead $.UnitTypeIssues}}
+						<div class="code-view-menu-list ui fluid popup transition hidden">
+							<div class="ui column relaxed equal height">
+								<div class="column">
+									<div class="ui link list">
+										<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+									</div>
+								</div>
 							</div>
 						</div>
-					</div>
-				</div>
+					{{end}}
 				{{end}}
 			{{end}}
 		</div>

@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +23,11 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
 	enableTLSALPNChallenge := true
+	altHTTPPort := 0
+
+	if p, err := strconv.Atoi(setting.PortToRedirect); err == nil {
+		altHTTPPort = p
+	}
 
 	magic := certmagic.NewDefault()
 	magic.Storage = &certmagic.FileStorage{Path: directory}
@@ -30,6 +36,8 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
+		ListenHost:              listenAddr,
+		AltHTTPPort:             altHTTPPort,
 	})
 
 	magic.Issuer = myACME

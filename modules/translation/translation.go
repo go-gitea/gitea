@@ -27,8 +27,9 @@ type LangType struct {
 }
 
 var (
-	matcher  language.Matcher
-	allLangs []LangType
+	matcher       language.Matcher
+	allLangs      []LangType
+	supportedTags []language.Tag
 )
 
 // AllLangs returns all supported langauages
@@ -51,12 +52,12 @@ func InitLocales() {
 		}
 	}
 
-	tags := make([]language.Tag, len(setting.Langs))
+	supportedTags = make([]language.Tag, len(setting.Langs))
 	for i, lang := range setting.Langs {
-		tags[i] = language.Raw.Make(lang)
+		supportedTags[i] = language.Raw.Make(lang)
 	}
 
-	matcher = language.NewMatcher(tags)
+	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
@@ -79,8 +80,9 @@ func InitLocales() {
 }
 
 // Match matches accept languages
-func Match(tags ...language.Tag) (tag language.Tag, index int, c language.Confidence) {
-	return matcher.Match(tags...)
+func Match(tags ...language.Tag) language.Tag {
+	_, i, _ := matcher.Match(tags...)
+	return supportedTags[i]
 }
 
 // locale represents the information of localization.

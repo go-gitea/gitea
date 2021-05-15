@@ -1,5 +1,3 @@
-self.name = 'eventsource.sharedworker.js';
-
 const sourcesByUrl = {};
 const sourcesByPort = {};
 

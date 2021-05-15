@@ -21,6 +21,7 @@ import (
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/urfave/cli"
 )
@@ -486,6 +487,10 @@ func runDeleteUser(c *cli.Context) error {
 	}
 
 	if err := initDB(); err != nil {
+		return err
+	}
+
+	if err := storage.Init(); err != nil {
 		return err
 	}
 

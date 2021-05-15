@@ -60,7 +60,7 @@
 					</div>
 					<div class="field {{if .Err_Content}}error{{end}}">
 						<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
-						<textarea id="ssh-key-content" name="content" required>{{.content}}</textarea>
+						<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 					</div>
 					<div class="field">
 						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">

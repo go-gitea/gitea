@@ -165,7 +165,7 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Optio
 		log.Println("[Static] Serving " + file)
 	}
 
-	if httpcache.HandleEtagCache(req, w, fi) {
+	if httpcache.HandleFileETagCache(req, w, fi) {
 		return true
 	}
 

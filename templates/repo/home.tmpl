@@ -110,13 +110,13 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
-						<div class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
+						<button id="download-btn" class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
 							{{svg "octicon-download"}}
 							<div class="menu">
 								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							</div>
-						</div>
+						</button>
 					</div>
 				{{end}}
 			</div>

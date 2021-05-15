@@ -76,22 +76,22 @@
 									<td class="three wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if .IsIncluded}}
-												<a class="ui poping up orange small label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-variation="tiny inverted" data-position="top right">
+												<a class="ui poping up orange large label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-variation="tiny inverted" data-position="top right">
 													{{svg "octicon-git-pull-request"}} {{$.i18n.Tr "repo.branch.included"}}
 												</a>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
-												<button id="new-pull-request" class="ui compact basic button">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
-												<button id="new-pull-request" class="ui compact basic button">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
 												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.i18n.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}

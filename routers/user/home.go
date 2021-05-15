@@ -546,14 +546,14 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
-	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 	for _, issue := range issues {
 		issue.Repo = showReposMap[issue.RepoID]
+	}
 
-		if isPullList {
-			var statuses, _ = pull_service.GetLastCommitStatus(issue.PullRequest)
-			commitStatus[issue.PullRequest.ID] = models.CalcCommitStatus(statuses)
-		}
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	if err != nil {
+		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		return
 	}
 
 	// -------------------------------

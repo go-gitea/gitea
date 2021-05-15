@@ -274,7 +274,11 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	appID := ctx.ParamsInt64(":id")
 	if err := models.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+		if models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+		}
 		return
 	}
 

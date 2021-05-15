@@ -33,14 +33,9 @@
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
 							{{if eq $refGroup "pull"}}
-								{{if $.HidePRRefs}}
-									{{if (containGeneric $.SelectedBranches .Name) }}
-										<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
-											{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
-										</a>
-									{{end}}
-								{{else}}
-									<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/issues/{{.ShortName|PathEscape}}">
+								{{if or (not $.HidePRRefs) (containGeneric $.SelectedBranches .Name)}}
+									<!-- it's intended to use issues not pulls, if it's a pull you will get redirected -->
+									<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/{{if $.Repository.UnitEnabled $.UnitTypePullRequests}}pulls{{else}}issues{{end}}/{{.ShortName|PathEscape}}">
 										{{svg "octicon-git-pull-request" 16 "mr-2"}}#{{.ShortName}}
 									</a>
 								{{end}}
@@ -68,7 +63,7 @@
 								{{$userName = $commit.User.FullName}}
 							{{end}}
 							{{avatar $commit.User}}
-							<a href="{{AppSubUrl}}/{{$commit.User}}">{{$userName}}</a>
+							<a href="{{$commit.User.HomeLink}}">{{$userName}}</a>
 						{{else}}
 							{{avatarByEmail $commit.Commit.Author.Email $userName}}
 							{{$userName}}

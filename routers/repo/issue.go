@@ -241,13 +241,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	var issueList = models.IssueList(issues)
+	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
 	}
-
-	var commitStatus = make(map[int64]*models.CommitStatus, len(issues))
 
 	// Get posters.
 	for i := range issues {
@@ -258,16 +257,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ctx.ServerError("GetIsRead", err)
 			return
 		}
+	}
 
-		if issues[i].IsPull {
-			if err := issues[i].LoadPullRequest(); err != nil {
-				ctx.ServerError("LoadPullRequest", err)
-				return
-			}
-
-			var statuses, _ = pull_service.GetLastCommitStatus(issues[i].PullRequest)
-			commitStatus[issues[i].PullRequest.ID] = models.CalcCommitStatus(statuses)
-		}
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	if err != nil {
+		ctx.ServerError("GetIssuesLastCommitStatus", err)
+		return
 	}
 
 	ctx.Data["Issues"] = issues
@@ -379,6 +374,9 @@ func Issues(ctx *context.Context) {
 	}
 
 	issues(ctx, ctx.QueryInt64("milestone"), ctx.QueryInt64("project"), util.OptionalBoolOf(isPullList))
+	if ctx.Written() {
+		return
+	}
 
 	var err error
 	// Get milestones
