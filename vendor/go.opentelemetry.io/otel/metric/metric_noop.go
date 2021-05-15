@@ -17,7 +17,7 @@ package metric // import "go.opentelemetry.io/otel/metric"
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/number"
 )
 
@@ -51,9 +51,9 @@ func (noopBoundInstrument) RecordOne(context.Context, number.Number) {
 func (noopBoundInstrument) Unbind() {
 }
 
-func (NoopSync) Bind([]label.KeyValue) BoundSyncImpl {
+func (NoopSync) Bind([]attribute.KeyValue) BoundSyncImpl {
 	return noopBoundInstrument{}
 }
 
-func (NoopSync) RecordOne(context.Context, number.Number, []label.KeyValue) {
+func (NoopSync) RecordOne(context.Context, number.Number, []attribute.KeyValue) {
 }

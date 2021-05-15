@@ -43,8 +43,6 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	basePath := repo.Path
 
-	hashStr := hash.String()
-
 	// Use rev-list to provide us with all commits in order
 	revListReader, revListWriter := io.Pipe()
 	defer func() {
@@ -64,7 +62,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := git.CatFileBatch(repo.Path)
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
 	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
@@ -74,7 +72,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
-	workingShaBuf := make([]byte, 40)
+	workingShaBuf := make([]byte, 20)
 
 	for scan.Scan() {
 		// Get the next commit ID
@@ -127,12 +125,12 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, sha, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, sha20byte, count, err := git.ParseTreeLine(batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
 					n += int64(count)
-					if bytes.Equal(sha, []byte(hashStr)) {
+					if bytes.Equal(sha20byte, hash[:]) {
 						result := LFSResult{
 							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),
@@ -142,7 +140,9 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						}
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
-						trees = append(trees, sha)
+						sha40Byte := make([]byte, 40)
+						git.To40ByteSHA(sha20byte, sha40Byte)
+						trees = append(trees, sha40Byte)
 						paths = append(paths, curPath+string(fname)+"/")
 					}
 				}

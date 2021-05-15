@@ -53,7 +53,7 @@
 			{{if and .OrderedOAuth2Names .OAuth2Providers}}
 			<div class="ui attached segment">
 				<div class="oauth2 center">
-					<div id="oauth2-login-loader" class="ui disabled centered  loader"></div>
+					<div id="oauth2-login-loader" class="ui disabled centered loader"></div>
 					<div>
 						<div id="oauth2-login-navigator">
 							<p>{{.i18n.Tr "sign_in_with"}}</p>
@@ -63,9 +63,8 @@
 									<img
 										alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
 										title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
-										class="{{$provider.Name}}"
+										class="{{$provider.Name}} oauth-login-image"
 										src="{{AppSubUrl}}{{$provider.Image}}"
-										onclick="window.onOAuthLoginClick()"
 									></a>
 							{{end}}
 						</div>

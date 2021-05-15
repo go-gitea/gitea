@@ -6,22 +6,23 @@ package setting
 
 import (
 	"errors"
+	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/tstranex/u2f"
 )
 
 // U2FRegister initializes the u2f registration procedure
 func U2FRegister(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.U2FRegistrationForm)
+	form := web.GetForm(ctx).(*forms.U2FRegistrationForm)
 	if form.Name == "" {
-		ctx.Error(409)
+		ctx.Error(http.StatusConflict)
 		return
 	}
 	challenge, err := u2f.NewChallenge(setting.U2F.AppID, setting.U2F.TrustedFacets)
@@ -40,7 +41,7 @@ func U2FRegister(ctx *context.Context) {
 	}
 	for _, reg := range regs {
 		if reg.Name == form.Name {
-			ctx.Error(409, "Name already taken")
+			ctx.Error(http.StatusConflict, "Name already taken")
 			return
 		}
 	}
@@ -53,7 +54,7 @@ func U2FRegister(ctx *context.Context) {
 		// we'll tolerate errors here as they *should* get saved elsewhere
 		log.Error("Unable to save changes to the session: %v", err)
 	}
-	ctx.JSON(200, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
+	ctx.JSON(http.StatusOK, u2f.NewWebRegisterRequest(challenge, regs.ToRegistrations()))
 }
 
 // U2FRegisterPost receives the response of the security key
@@ -86,7 +87,7 @@ func U2FRegisterPost(ctx *context.Context) {
 
 // U2FDelete deletes an security key by id
 func U2FDelete(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.U2FDeleteForm)
+	form := web.GetForm(ctx).(*forms.U2FDeleteForm)
 	reg, err := models.GetU2FRegistrationByID(form.ID)
 	if err != nil {
 		if models.IsErrU2FRegistrationNotExist(err) {
@@ -104,7 +105,7 @@ func U2FDelete(ctx *context.Context) {
 		ctx.ServerError("DeleteRegistration", err)
 		return
 	}
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/user/settings/security",
 	})
 }

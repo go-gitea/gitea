@@ -710,6 +710,13 @@ func (cmd *StringCmd) Bytes() ([]byte, error) {
 	return util.StringToBytes(cmd.val), cmd.err
 }
 
+func (cmd *StringCmd) Bool() (bool, error) {
+	if cmd.err != nil {
+		return false, cmd.err
+	}
+	return strconv.ParseBool(cmd.val)
+}
+
 func (cmd *StringCmd) Int() (int, error) {
 	if cmd.err != nil {
 		return 0, cmd.err
@@ -805,6 +812,55 @@ func (cmd *FloatCmd) String() string {
 
 func (cmd *FloatCmd) readReply(rd *proto.Reader) (err error) {
 	cmd.val, err = rd.ReadFloatReply()
+	return err
+}
+
+//------------------------------------------------------------------------------
+
+type FloatSliceCmd struct {
+	baseCmd
+
+	val []float64
+}
+
+var _ Cmder = (*FloatSliceCmd)(nil)
+
+func NewFloatSliceCmd(ctx context.Context, args ...interface{}) *FloatSliceCmd {
+	return &FloatSliceCmd{
+		baseCmd: baseCmd{
+			ctx:  ctx,
+			args: args,
+		},
+	}
+}
+
+func (cmd *FloatSliceCmd) Val() []float64 {
+	return cmd.val
+}
+
+func (cmd *FloatSliceCmd) Result() ([]float64, error) {
+	return cmd.val, cmd.err
+}
+
+func (cmd *FloatSliceCmd) String() string {
+	return cmdString(cmd, cmd.val)
+}
+
+func (cmd *FloatSliceCmd) readReply(rd *proto.Reader) error {
+	_, err := rd.ReadArrayReply(func(rd *proto.Reader, n int64) (interface{}, error) {
+		cmd.val = make([]float64, n)
+		for i := 0; i < len(cmd.val); i++ {
+			switch num, err := rd.ReadFloatReply(); {
+			case err == Nil:
+				cmd.val[i] = 0
+			case err != nil:
+				return nil, err
+			default:
+				cmd.val[i] = num
+			}
+		}
+		return nil, nil
+	})
 	return err
 }
 

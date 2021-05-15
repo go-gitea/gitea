@@ -53,6 +53,9 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 
 	for _, issue := range issues {
 		issue.Repo = repoMaps[issue.RepoID]
+		if issue.PullRequest != nil {
+			issue.PullRequest.BaseRepo = issue.Repo
+		}
 	}
 	return valuesRepository(repoMaps), nil
 }
@@ -514,6 +517,11 @@ func (issues IssueList) LoadComments() error {
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
 	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
+}
+
+// LoadPullRequests loads pull requests
+func (issues IssueList) LoadPullRequests() error {
+	return issues.loadPullRequests(x)
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts

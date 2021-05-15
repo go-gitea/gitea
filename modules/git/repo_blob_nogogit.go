@@ -11,7 +11,7 @@ func (repo *Repository) getBlob(id SHA1) (*Blob, error) {
 		return nil, ErrNotExist{id.String(), ""}
 	}
 	return &Blob{
-		ID:       id,
-		repoPath: repo.Path,
+		ID:   id,
+		repo: repo,
 	}, nil
 }

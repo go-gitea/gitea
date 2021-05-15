@@ -55,7 +55,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	return queue, nil
 }
 
-var _ (ByteFIFO) = &LevelQueueByteFIFO{}
+var _ ByteFIFO = &LevelQueueByteFIFO{}
 
 // LevelQueueByteFIFO represents a ByteFIFO formed from a LevelQueue
 type LevelQueueByteFIFO struct {

@@ -1,5 +1,3 @@
-self.name = 'eventsource.sharedworker.js';
-
 const sourcesByUrl = {};
 const sourcesByPort = {};
 
@@ -10,6 +8,7 @@ class Source {
     this.listening = {};
     this.clients = [];
     this.listen('open');
+    this.listen('close');
     this.listen('logout');
     this.listen('notification-count');
     this.listen('stopwatches');

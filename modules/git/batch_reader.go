@@ -13,9 +13,44 @@ import (
 	"strings"
 )
 
+// WriteCloserError wraps an io.WriteCloser with an additional CloseWithError function
+type WriteCloserError interface {
+	io.WriteCloser
+	CloseWithError(err error) error
+}
+
+// CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+	batchStdinReader, batchStdinWriter := io.Pipe()
+	batchStdoutReader, batchStdoutWriter := io.Pipe()
+	cancel := func() {
+		_ = batchStdinReader.Close()
+		_ = batchStdinWriter.Close()
+		_ = batchStdoutReader.Close()
+		_ = batchStdoutWriter.Close()
+	}
+
+	go func() {
+		stderr := strings.Builder{}
+		err := NewCommand("cat-file", "--batch-check").RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		if err != nil {
+			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
+		} else {
+			_ = batchStdoutWriter.Close()
+			_ = batchStdinReader.Close()
+		}
+	}()
+
+	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
+	batchReader := bufio.NewReader(batchStdoutReader)
+
+	return batchStdinWriter, batchReader, cancel
+}
+
 // CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(repoPath string) (*io.PipeWriter, *bufio.Reader, func()) {
-	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
+func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
@@ -47,6 +82,7 @@ func CatFileBatch(repoPath string) (*io.PipeWriter, *bufio.Reader, func()) {
 // ReadBatchLine reads the header line from cat-file --batch
 // We expect:
 // <sha> SP <type> SP <size> LF
+// sha is a 40byte not 20byte here
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
 	sha, err = rd.ReadBytes(' ')
 	if err != nil {
@@ -54,19 +90,20 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 	}
 	sha = sha[:len(sha)-1]
 
-	typ, err = rd.ReadString(' ')
-	if err != nil {
-		return
-	}
-	typ = typ[:len(typ)-1]
-
-	var sizeStr string
-	sizeStr, err = rd.ReadString('\n')
+	typ, err = rd.ReadString('\n')
 	if err != nil {
 		return
 	}
 
-	size, err = strconv.ParseInt(sizeStr[:len(sizeStr)-1], 10, 64)
+	idx := strings.Index(typ, " ")
+	if idx < 0 {
+		err = ErrNotExist{ID: string(sha)}
+		return
+	}
+	sizeStr := typ[idx+1 : len(typ)-1]
+	typ = typ[:idx]
+
+	size, err = strconv.ParseInt(sizeStr, 10, 64)
 	return
 }
 
@@ -128,7 +165,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n
+	discard := size - n + 1
 	for discard > math.MaxInt32 {
 		_, err := rd.Discard(math.MaxInt32)
 		if err != nil {
@@ -149,17 +186,18 @@ headerLoop:
 // constant hextable to help quickly convert between 20byte and 40byte hashes
 const hextable = "0123456789abcdef"
 
-// to40ByteSHA converts a 20-byte SHA in a 40-byte slice into a 40-byte sha in place
-// without allocations. This is at least 100x quicker that hex.EncodeToString
-// NB This requires that sha is a 40-byte slice
-func to40ByteSHA(sha []byte) []byte {
+// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
+// same 40 byte slice to support in place conversion without allocations.
+// This is at least 100x quicker that hex.EncodeToString
+// NB This requires that out is a 40-byte slice
+func To40ByteSHA(sha, out []byte) []byte {
 	for i := 19; i >= 0; i-- {
 		v := sha[i]
 		vhi, vlo := v>>4, v&0x0f
 		shi, slo := hextable[vhi], hextable[vlo]
-		sha[i*2], sha[i*2+1] = shi, slo
+		out[i*2], out[i*2+1] = shi, slo
 	}
-	return sha
+	return out
 }
 
 // ParseTreeLineSkipMode reads an entry from a tree in a cat-file --batch stream

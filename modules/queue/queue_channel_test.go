@@ -68,9 +68,9 @@ func TestChannelQueue_Batch(t *testing.T) {
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
 				QueueLength:  20,
 				BatchLength:  2,
-				BlockTimeout: 1 * time.Second,
-				BoostTimeout: 5 * time.Minute,
-				BoostWorkers: 5,
+				BlockTimeout: 0,
+				BoostTimeout: 0,
+				BoostWorkers: 0,
 				MaxWorkers:   10,
 			},
 			Workers: 1,

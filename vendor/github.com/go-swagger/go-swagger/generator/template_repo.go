@@ -137,6 +137,7 @@ func DefaultFuncMap(lang *LanguageOpts) template.FuncMap {
 		"httpStatus":          httpStatus,
 		"cleanupEnumVariant":  cleanupEnumVariant,
 		"gt0":                 gt0,
+		"hasfield":            hasField,
 	})
 }
 
@@ -179,15 +180,16 @@ func defaultAssets() map[string][]byte {
 		"swagger_json_embed.gotmpl": MustAsset("templates/swagger_json_embed.gotmpl"),
 
 		// server templates
-		"server/parameter.gotmpl":    MustAsset("templates/server/parameter.gotmpl"),
-		"server/urlbuilder.gotmpl":   MustAsset("templates/server/urlbuilder.gotmpl"),
-		"server/responses.gotmpl":    MustAsset("templates/server/responses.gotmpl"),
-		"server/operation.gotmpl":    MustAsset("templates/server/operation.gotmpl"),
-		"server/builder.gotmpl":      MustAsset("templates/server/builder.gotmpl"),
-		"server/server.gotmpl":       MustAsset("templates/server/server.gotmpl"),
-		"server/configureapi.gotmpl": MustAsset("templates/server/configureapi.gotmpl"),
-		"server/main.gotmpl":         MustAsset("templates/server/main.gotmpl"),
-		"server/doc.gotmpl":          MustAsset("templates/server/doc.gotmpl"),
+		"server/parameter.gotmpl":        MustAsset("templates/server/parameter.gotmpl"),
+		"server/urlbuilder.gotmpl":       MustAsset("templates/server/urlbuilder.gotmpl"),
+		"server/responses.gotmpl":        MustAsset("templates/server/responses.gotmpl"),
+		"server/operation.gotmpl":        MustAsset("templates/server/operation.gotmpl"),
+		"server/builder.gotmpl":          MustAsset("templates/server/builder.gotmpl"),
+		"server/server.gotmpl":           MustAsset("templates/server/server.gotmpl"),
+		"server/configureapi.gotmpl":     MustAsset("templates/server/configureapi.gotmpl"),
+		"server/autoconfigureapi.gotmpl": MustAsset("templates/server/autoconfigureapi.gotmpl"),
+		"server/main.gotmpl":             MustAsset("templates/server/main.gotmpl"),
+		"server/doc.gotmpl":              MustAsset("templates/server/doc.gotmpl"),
 
 		// client templates
 		"client/parameter.gotmpl": MustAsset("templates/client/parameter.gotmpl"),
@@ -196,6 +198,15 @@ func defaultAssets() map[string][]byte {
 		"client/facade.gotmpl":    MustAsset("templates/client/facade.gotmpl"),
 
 		"markdown/docs.gotmpl": MustAsset("templates/markdown/docs.gotmpl"),
+
+		// cli templates
+		"cli/cli.gotmpl":          MustAsset("templates/cli/cli.gotmpl"),
+		"cli/main.gotmpl":         MustAsset("templates/cli/main.gotmpl"),
+		"cli/modelcli.gotmpl":     MustAsset("templates/cli/modelcli.gotmpl"),
+		"cli/operation.gotmpl":    MustAsset("templates/cli/operation.gotmpl"),
+		"cli/registerflag.gotmpl": MustAsset("templates/cli/registerflag.gotmpl"),
+		"cli/retrieveflag.gotmpl": MustAsset("templates/cli/retrieveflag.gotmpl"),
+		"cli/schema.gotmpl":       MustAsset("templates/cli/schema.gotmpl"),
 	}
 }
 
@@ -829,4 +840,16 @@ func gt0(in *int64) bool {
 	// NOTE: plain {{ gt .MinProperties 0 }} just refuses to work normally
 	// with a pointer
 	return in != nil && *in > 0
+}
+
+// returns struct v has field of name
+func hasField(v interface{}, name string) bool {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	if rv.Kind() != reflect.Struct {
+		return false
+	}
+	return rv.FieldByName(name).IsValid()
 }

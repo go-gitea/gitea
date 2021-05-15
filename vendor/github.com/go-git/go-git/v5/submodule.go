@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -131,9 +133,29 @@ func (s *Submodule) Repository() (*Repository, error) {
 		return nil, err
 	}
 
+	moduleURL, err := url.Parse(s.c.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	if !path.IsAbs(moduleURL.Path) {
+		remotes, err := s.w.r.Remotes()
+		if err != nil {
+			return nil, err
+		}
+
+		rootURL, err := url.Parse(remotes[0].c.URLs[0])
+		if err != nil {
+			return nil, err
+		}
+
+		rootURL.Path = path.Join(rootURL.Path, moduleURL.Path)
+		*moduleURL = *rootURL
+	}
+
 	_, err = r.CreateRemote(&config.RemoteConfig{
 		Name: DefaultRemoteName,
-		URLs: []string{s.c.URL},
+		URLs: []string{moduleURL.String()},
 	})
 
 	return r, err

@@ -143,7 +143,7 @@ func GlobalInit(ctx context.Context) {
 	NewServices()
 
 	highlight.NewContext()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
 
 	if setting.EnableSQLite3 {

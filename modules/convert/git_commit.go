@@ -86,13 +86,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiAuthor = ToUser(cacheAuthor, false, false)
+		apiAuthor = ToUser(cacheAuthor, nil)
 	} else {
 		author, err := models.GetUserByEmail(commit.Author.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(author, false, false)
+			apiAuthor = ToUser(author, nil)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
@@ -108,13 +108,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	if ok {
-		apiCommitter = ToUser(cacheCommitter, false, false)
+		apiCommitter = ToUser(cacheCommitter, nil)
 	} else {
 		committer, err := models.GetUserByEmail(commit.Committer.Email)
 		if err != nil && !models.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(committer, false, false)
+			apiCommitter = ToUser(committer, nil)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}

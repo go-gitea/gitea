@@ -19,7 +19,7 @@
 	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
 	{{if eq .ActionName "push"}}
 		<p>
-			<b>{{.Doer.Name}}</b>  
+			<b>{{.Doer.Name}}</b>
 			{{if .Comment.IsForcePush}}
 				{{ $oldCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
 				{{ $newCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}

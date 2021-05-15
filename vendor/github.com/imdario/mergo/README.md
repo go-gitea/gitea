@@ -97,7 +97,7 @@ If Mergo is useful to you, consider buying me a coffee, a beer, or making a mont
 - [mantasmatelis/whooplist-server](https://github.com/mantasmatelis/whooplist-server)
 - [jnuthong/item_search](https://github.com/jnuthong/item_search)
 - [bukalapak/snowboard](https://github.com/bukalapak/snowboard)
-- [janoszen/containerssh](https://github.com/janoszen/containerssh)
+- [containerssh/containerssh](https://github.com/containerssh/containerssh)
 
 ## Install
 
