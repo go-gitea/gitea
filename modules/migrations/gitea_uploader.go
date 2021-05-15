@@ -851,6 +851,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
+		g.gitRepo.Close()
 		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
 			return err
 		}

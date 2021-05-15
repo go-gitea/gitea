@@ -1088,12 +1088,21 @@
 
       .comment-code-cloud {
         .segment.reactions {
+          margin-top: 16px !important;
+          margin-bottom: -8px !important;
           border-top: none !important;
 
           .ui.label {
             border: 1px solid;
-            padding: 6px !important;
+            padding: 6px 10px !important;
+            margin: 0 2px;
             border-radius: var(--border-radius);
+            border-color: var(--color-secondary-dark-1) !important;
+          }
+
+          .ui.label.basic.blue {
+            background-color: var(--color-reaction-active-bg) !important;
+            border-color: var(--color-primary-alpha-80) !important;
           }
         }
 
@@ -2316,6 +2325,7 @@
       font-size: 14px;
       font-weight: normal;
       border-color: var(--color-secondary) !important;
+      background: var(--color-reaction-bg);
 
       &.disabled {
         cursor: default;
@@ -2328,7 +2338,7 @@
     }
 
     .ui.label.basic.blue {
-      background-color: var(--color-primary-alpha-20) !important;
+      background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
 

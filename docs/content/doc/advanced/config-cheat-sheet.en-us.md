@@ -143,6 +143,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
 
+## Repository -  MIME type mapping (`repository.mimetype_mapping`)
+
+Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
+
+The following configuration set `Content-Type: application/vnd.android.package-archive` header when downloading files with `.apk` file extension.
+```ini
+.apk=application/vnd.android.package-archive
+```
+
 ## CORS (`cors`)
 
 - `ENABLED`: **false**: enable cors headers (disabled by default)
@@ -703,6 +712,11 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ENABLED`: **false**: Enable to run all cron tasks periodically with default settings.
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+
+- `SCHEDULE` accept formats
+   - Full crontab specs, e.g. `* * * * * ?`
+   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
+   - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 

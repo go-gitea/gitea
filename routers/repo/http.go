@@ -117,7 +117,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
 				context.RedirectToUser(ctx, username, redirectUserID)
 			} else {
-				ctx.NotFound("GetUserByName", err)
+				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
 			}
 		} else {
 			ctx.ServerError("GetUserByName", err)
