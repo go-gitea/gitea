@@ -629,7 +629,7 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 	isDefault := repo.DefaultBranch == from
 	if isDefault {
 		repo.DefaultBranch = to
-		_, err = sess.Cols("default_branch").Update(repo)
+		_, err = sess.ID(repo.ID).Cols("default_branch").Update(repo)
 		if err != nil {
 			return err
 		}
@@ -646,7 +646,7 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 
 	if protectedBranch != nil {
 		protectedBranch.BranchName = to
-		_, err = sess.Cols("branch_name").Update(protectedBranch)
+		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
 		if err != nil {
 			if err2 := sess.Rollback(); err2 != nil {
 				log.Error("RenameBranch: sess.Rollback: %v", err2)
