@@ -12,7 +12,7 @@ import "code.gitea.io/gitea/modules/structs"
 type MigrateOptions struct {
 	// required: true
 	CloneAddr             string `json:"clone_addr" binding:"Required"`
-	CloneAddrEncrypted    string `json:"clone_addr_encrypted" binding:"Required"`
+	CloneAddrEncrypted    string `json:"clone_addr_encrypted"`
 	AuthUsername          string `json:"auth_username"`
 	AuthPassword          string `json:"auth_password"`
 	AuthPasswordEncrypted string `json:"auth_password_encrypted"`
