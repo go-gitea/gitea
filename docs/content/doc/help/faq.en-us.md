@@ -324,7 +324,13 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
-you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.  
+If you are using MySQL 5, another possible fix is
+```mysql
+SET GLOBAL innodb_file_format=Barracuda;
+SET GLOBAL innodb_file_per_table=1;
+SET GLOBAL innodb_large_prefix=1;
+```
 
 ## Why Are Emoji Broken On MySQL
 

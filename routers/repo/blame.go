@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"html"
 	gotemplate "html/template"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -184,7 +185,7 @@ func RefBlame(ctx *context.Context) {
 
 	renderBlame(ctx, blameParts, commitNames)
 
-	ctx.HTML(200, tplBlame)
+	ctx.HTML(http.StatusOK, tplBlame)
 }
 
 func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit) {

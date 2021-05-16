@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -206,7 +207,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 // runSync returns true if sync finished without error.
-func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -253,13 +254,21 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+	defer gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
-		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
-	gitRepo.Close()
+
+	if m.LFS && setting.LFS.StartServer {
+		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+		readAddress(m)
+		ep := lfs.DetermineEndpoint(m.Address, m.LFSEndpoint)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep); err != nil {
+			log.Error("Failed to synchronize LFS objects for repository: %v", err)
+		}
+	}
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
@@ -378,12 +387,12 @@ func SyncMirrors(ctx context.Context) {
 			mirrorQueue.Close()
 			return
 		case repoID := <-mirrorQueue.Queue():
-			syncMirror(repoID)
+			syncMirror(ctx, repoID)
 		}
 	}
 }
 
-func syncMirror(repoID string) {
+func syncMirror(ctx context.Context, repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -403,7 +412,7 @@ func syncMirror(repoID string) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
-	results, ok := runSync(m)
+	results, ok := runSync(ctx, m)
 	if !ok {
 		return
 	}

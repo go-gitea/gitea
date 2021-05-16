@@ -486,7 +486,7 @@ func (l *Conn) NTLMChallengeBind(ntlmBindRequest *NTLMBindRequest) (*NTLMBindRes
 			child := packet.Children[1].Children[1]
 			ntlmsspChallenge = child.ByteValue
 			// Check to make sure we got the right message. It will always start with NTLMSSP
-			if !bytes.Equal(ntlmsspChallenge[:7], []byte("NTLMSSP")) {
+			if len(ntlmsspChallenge) < 7 || !bytes.Equal(ntlmsspChallenge[:7], []byte("NTLMSSP")) {
 				return result, GetLDAPError(packet)
 			}
 			l.Debug.Printf("%d: found ntlmssp challenge", msgCtx.id)

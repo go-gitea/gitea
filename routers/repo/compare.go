@@ -6,14 +6,20 @@ package repo
 
 import (
 	"bufio"
+	"encoding/csv"
+	"errors"
 	"fmt"
 	"html"
+	"net/http"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
+	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,6 +31,16 @@ const (
 	tplCompare     base.TplName = "repo/diff/compare"
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
 )
+
+// setCompareContext sets context data.
+func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+	ctx.Data["BaseCommit"] = base
+	ctx.Data["HeadCommit"] = head
+
+	setPathsCompareContext(ctx, base, head, headTarget)
+	setImageCompareContext(ctx, base, head)
+	setCsvCompareContext(ctx)
+}
 
 // setPathsCompareContext sets context data for source and raw paths
 func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
@@ -62,6 +78,66 @@ func setImageCompareContext(ctx *context.Context, base *git.Commit, head *git.Co
 			return nil
 		}
 		return result
+	}
+}
+
+// setCsvCompareContext sets context data that is required by the CSV compare template
+func setCsvCompareContext(ctx *context.Context) {
+	ctx.Data["IsCsvFile"] = func(diffFile *gitdiff.DiffFile) bool {
+		extension := strings.ToLower(filepath.Ext(diffFile.Name))
+		return extension == ".csv" || extension == ".tsv"
+	}
+
+	type CsvDiffResult struct {
+		Sections []*gitdiff.TableDiffSection
+		Error    string
+	}
+
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit *git.Commit, headCommit *git.Commit) CsvDiffResult {
+		if diffFile == nil || baseCommit == nil || headCommit == nil {
+			return CsvDiffResult{nil, ""}
+		}
+
+		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
+
+		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+			blob, err := c.GetBlobByPath(diffFile.Name)
+			if err != nil {
+				return nil, err
+			}
+
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+				return nil, errTooLarge
+			}
+
+			reader, err := blob.DataAsync()
+			if err != nil {
+				return nil, err
+			}
+			defer reader.Close()
+
+			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+		}
+
+		baseReader, err := csvReaderFromCommit(baseCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
+		headReader, err := csvReaderFromCommit(headCommit)
+		if err == errTooLarge {
+			return CsvDiffResult{nil, err.Error()}
+		}
+
+		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
+		if err != nil {
+			errMessage, err := csv_module.FormatError(err, ctx.Locale)
+			if err != nil {
+				log.Error("RenderCsvDiff failed: %v", err)
+				return CsvDiffResult{nil, ""}
+			}
+			return CsvDiffResult{nil, errMessage}
+		}
+		return CsvDiffResult{sections, ""}
 	}
 }
 
@@ -315,7 +391,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 	if rootRepo != nil &&
 		rootRepo.ID != headRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		perm, branches, err := getBranchesForRepo(ctx.User, rootRepo)
+		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
@@ -323,19 +399,20 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		if perm {
 			ctx.Data["RootRepo"] = rootRepo
 			ctx.Data["RootRepoBranches"] = branches
+			ctx.Data["RootRepoTags"] = tags
 		}
 	}
 
 	// If we have a ownForkRepo and it's different from:
 	// 1. The computed base
-	// 2. The computed hea
+	// 2. The computed head
 	// 3. The rootRepo (if we have one)
 	// then get the branches from it.
 	if ownForkRepo != nil &&
 		ownForkRepo.ID != headRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		perm, branches, err := getBranchesForRepo(ctx.User, ownForkRepo)
+		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
 		if err != nil {
 			ctx.ServerError("GetBranchesForRepo", err)
 			return nil, nil, nil, nil, "", ""
@@ -343,6 +420,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 		if perm {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			ctx.Data["OwnForkRepoBranches"] = branches
+			ctx.Data["OwnForkRepoTags"] = tags
 		}
 	}
 
@@ -431,11 +509,15 @@ func PrepareCompareDiff(
 		ctx.Data["IsNothingToCompare"] = true
 		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
+
 			if !config.AutodetectManualMerge {
-				ctx.Data["AllowEmptyPr"] = !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
-			} else {
-				ctx.Data["AllowEmptyPr"] = false
+				allowEmptyPr := !(baseBranch == headBranch && ctx.Repo.Repository.Name == headRepo.Name)
+				ctx.Data["AllowEmptyPr"] = allowEmptyPr
+
+				return !allowEmptyPr
 			}
+
+			ctx.Data["AllowEmptyPr"] = false
 		}
 		return true
 	}
@@ -486,32 +568,35 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
 
-	setImageCompareContext(ctx, baseCommit, headCommit)
 	headTarget := path.Join(headUser.Name, repo.Name)
-	setPathsCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setCompareContext(ctx, baseCommit, headCommit, headTarget)
 
 	return false
 }
 
-func getBranchesForRepo(user *models.User, repo *models.Repository) (bool, []string, error) {
+func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool, []string, []string, error) {
 	perm, err := models.GetUserRepoPermission(repo, user)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 	if !perm.CanRead(models.UnitTypeCode) {
-		return false, nil, nil
+		return false, nil, nil, nil
 	}
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
 	defer gitRepo.Close()
 
 	branches, _, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
-		return false, nil, err
+		return false, nil, nil, err
 	}
-	return true, branches, nil
+	tags, err := gitRepo.GetTags()
+	if err != nil {
+		return false, nil, nil, err
+	}
+	return true, branches, tags, nil
 }
 
 // CompareDiff show different from one commit to another commit
@@ -529,14 +614,29 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Data["PageIsComparePull"] == true {
-		headBranches, _, err := headGitRepo.GetBranches(0, 0)
-		if err != nil {
-			ctx.ServerError("GetBranches", err)
-			return
-		}
-		ctx.Data["HeadBranches"] = headBranches
+	baseGitRepo := ctx.Repo.GitRepo
+	baseTags, err := baseGitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["Tags"] = baseTags
 
+	headBranches, _, err := headGitRepo.GetBranches(0, 0)
+	if err != nil {
+		ctx.ServerError("GetBranches", err)
+		return
+	}
+	ctx.Data["HeadBranches"] = headBranches
+
+	headTags, err := headGitRepo.GetTags()
+	if err != nil {
+		ctx.ServerError("GetTags", err)
+		return
+	}
+	ctx.Data["HeadTags"] = headTags
+
+	if ctx.Data["PageIsComparePull"] == true {
 		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
@@ -546,7 +646,7 @@ func CompareDiff(ctx *context.Context) {
 		} else {
 			ctx.Data["HasPullRequest"] = true
 			ctx.Data["PullRequest"] = pr
-			ctx.HTML(200, tplCompareDiff)
+			ctx.HTML(http.StatusOK, tplCompareDiff)
 			return
 		}
 
@@ -574,7 +674,7 @@ func CompareDiff(ctx *context.Context) {
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
-	ctx.HTML(200, tplCompare)
+	ctx.HTML(http.StatusOK, tplCompare)
 }
 
 // ExcerptBlob render blob excerpt contents
@@ -593,7 +693,7 @@ func ExcerptBlob(ctx *context.Context) {
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		ctx.Error(500, "GetCommit")
+		ctx.Error(http.StatusInternalServerError, "GetCommit")
 		return
 	}
 	section := &gitdiff.DiffSection{
@@ -618,7 +718,7 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight = lastRight
 	}
 	if err != nil {
-		ctx.Error(500, "getExcerptLines")
+		ctx.Error(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
 	if idxRight > lastRight {
@@ -649,7 +749,7 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["fileName"] = filePath
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
-	ctx.HTML(200, tplBlobExcerpt)
+	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
 func getExcerptLines(commit *git.Commit, filePath string, idxLeft int, idxRight int, chunkSize int) ([]*gitdiff.DiffLine, error) {

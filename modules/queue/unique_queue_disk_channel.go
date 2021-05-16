@@ -36,7 +36,7 @@ type PersistableChannelUniqueQueueConfiguration struct {
 // task cannot be processed twice or more at the same time. Uniqueness is
 // only guaranteed whilst the task is waiting in the queue.
 type PersistableChannelUniqueQueue struct {
-	*ChannelUniqueQueue
+	channelQueue *ChannelUniqueQueue
 	delayedStarter
 	lock   sync.Mutex
 	closed chan struct{}
@@ -73,20 +73,20 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
 				QueueLength:  config.QueueLength,
 				BatchLength:  config.BatchLength,
-				BlockTimeout: 0,
-				BoostTimeout: 0,
-				BoostWorkers: 0,
-				MaxWorkers:   1,
+				BlockTimeout: 1 * time.Second,
+				BoostTimeout: 5 * time.Minute,
+				BoostWorkers: 1,
+				MaxWorkers:   5,
 			},
-			Workers: 1,
+			Workers: 0,
 			Name:    config.Name + "-level",
 		},
 		DataDir: config.DataDir,
 	}
 
 	queue := &PersistableChannelUniqueQueue{
-		ChannelUniqueQueue: channelUniqueQueue.(*ChannelUniqueQueue),
-		closed:             make(chan struct{}),
+		channelQueue: channelUniqueQueue.(*ChannelUniqueQueue),
+		closed:       make(chan struct{}),
 	}
 
 	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) {
@@ -138,14 +138,14 @@ func (q *PersistableChannelUniqueQueue) PushFunc(data Data, fn func() error) err
 	case <-q.closed:
 		return q.internal.(UniqueQueue).PushFunc(data, fn)
 	default:
-		return q.ChannelUniqueQueue.PushFunc(data, fn)
+		return q.channelQueue.PushFunc(data, fn)
 	}
 }
 
 // Has will test if the queue has the data
 func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 	// This is more difficult...
-	has, err := q.ChannelUniqueQueue.Has(data)
+	has, err := q.channelQueue.Has(data)
 	if err != nil || has {
 		return has, err
 	}
@@ -158,7 +158,7 @@ func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 }
 
 // Run starts to run the queue
-func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())) {
 	log.Debug("PersistableChannelUniqueQueue: %s Starting", q.delayedStarter.name)
 
 	q.lock.Lock()
@@ -170,7 +170,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(context
 					log.Error("Unable push to channelled queue: %v", err)
 				}
 			}
-		}, q.exemplar)
+		}, q.channelQueue.exemplar)
 		q.lock.Unlock()
 		if err != nil {
 			log.Fatal("Unable to create internal queue for %s Error: %v", q.Name(), err)
@@ -179,53 +179,73 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(context
 	} else {
 		q.lock.Unlock()
 	}
-	atShutdown(context.Background(), q.Shutdown)
-	atTerminate(context.Background(), q.Terminate)
+	atShutdown(q.Shutdown)
+	atTerminate(q.Terminate)
+	_ = q.channelQueue.AddWorkers(q.channelQueue.workers, 0)
 
-	// Just run the level queue - we shut it down later
-	go q.internal.Run(func(_ context.Context, _ func()) {}, func(_ context.Context, _ func()) {})
+	if luq, ok := q.internal.(*LevelUniqueQueue); ok && luq.ByteFIFOUniqueQueue.byteFIFO.Len(luq.shutdownCtx) != 0 {
+		// Just run the level queue - we shut it down once it's flushed
+		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
+		go func() {
+			_ = q.internal.Flush(0)
+			log.Debug("LevelUniqueQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
+			q.internal.(*LevelUniqueQueue).Shutdown()
+			GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
+		}()
+	} else {
+		log.Debug("PersistableChannelUniqueQueue: %s Skipping running the empty level queue", q.delayedStarter.name)
+		q.internal.(*LevelUniqueQueue).Shutdown()
+		GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
+	}
 
-	go func() {
-		_ = q.ChannelUniqueQueue.AddWorkers(q.workers, 0)
-	}()
-
-	log.Trace("PersistableChannelUniqueQueue: %s Waiting til closed", q.delayedStarter.name)
-	<-q.closed
-	log.Trace("PersistableChannelUniqueQueue: %s Cancelling pools", q.delayedStarter.name)
-	q.internal.(*LevelUniqueQueue).cancel()
-	q.ChannelUniqueQueue.cancel()
-	log.Trace("PersistableChannelUniqueQueue: %s Waiting til done", q.delayedStarter.name)
-	q.ChannelUniqueQueue.Wait()
-	q.internal.(*LevelUniqueQueue).Wait()
-	// Redirect all remaining data in the chan to the internal channel
-	go func() {
-		log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
-		for data := range q.ChannelUniqueQueue.dataChan {
-			_ = q.internal.Push(data)
-		}
-		log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
-	}()
-	log.Trace("PersistableChannelUniqueQueue: %s Done main loop", q.delayedStarter.name)
 }
 
 // Flush flushes the queue
 func (q *PersistableChannelUniqueQueue) Flush(timeout time.Duration) error {
-	return q.ChannelUniqueQueue.Flush(timeout)
+	return q.channelQueue.Flush(timeout)
+}
+
+// FlushWithContext flushes the queue
+func (q *PersistableChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
+	return q.channelQueue.FlushWithContext(ctx)
+}
+
+// IsEmpty checks if a queue is empty
+func (q *PersistableChannelUniqueQueue) IsEmpty() bool {
+	return q.channelQueue.IsEmpty()
 }
 
 // Shutdown processing this queue
 func (q *PersistableChannelUniqueQueue) Shutdown() {
 	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
 	q.lock.Lock()
-	defer q.lock.Unlock()
 	select {
 	case <-q.closed:
+		q.lock.Unlock()
+		return
 	default:
 		if q.internal != nil {
 			q.internal.(*LevelUniqueQueue).Shutdown()
 		}
 		close(q.closed)
+		q.lock.Unlock()
 	}
+
+	log.Trace("PersistableChannelUniqueQueue: %s Cancelling pools", q.delayedStarter.name)
+	q.internal.(*LevelUniqueQueue).baseCtxCancel()
+	q.channelQueue.baseCtxCancel()
+	log.Trace("PersistableChannelUniqueQueue: %s Waiting til done", q.delayedStarter.name)
+	q.channelQueue.Wait()
+	q.internal.(*LevelUniqueQueue).Wait()
+	// Redirect all remaining data in the chan to the internal channel
+	go func() {
+		log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
+		for data := range q.channelQueue.dataChan {
+			_ = q.internal.Push(data)
+		}
+		log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
+	}()
+
 	log.Debug("PersistableChannelUniqueQueue: %s Shutdown", q.delayedStarter.name)
 }
 

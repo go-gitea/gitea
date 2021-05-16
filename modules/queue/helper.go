@@ -50,7 +50,7 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 		var err error
 
 		configBytes, err = json.Marshal(cfg)
-		ok = (err == nil)
+		ok = err == nil
 	}
 	if !ok {
 		// no ... we've tried hard enough at this point - throw an error!

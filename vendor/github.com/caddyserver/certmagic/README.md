@@ -260,7 +260,7 @@ magic := certmagic.New(cache, certmagic.Config{
 	// any customizations you need go here
 })
 
-myACME := certmagic.NewACMEManager(magic, ACMEManager{
+myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
 	CA:     certmagic.LetsEncryptStagingCA,
 	Email:  "you@yours.com",
 	Agreed: true,
@@ -285,7 +285,7 @@ tlsConfig := magic.TLSConfig()
 // we can simply set its GetCertificate field and append the
 // TLS-ALPN challenge protocol to the NextProtos
 myTLSConfig.GetCertificate = magic.GetCertificate
-myTLSConfig.NextProtos = append(myTLSConfig.NextProtos, tlsalpn01.ACMETLS1Protocol}
+myTLSConfig.NextProtos = append(myTLSConfig.NextProtos, tlsalpn01.ACMETLS1Protocol)
 
 // the HTTP challenge has to be handled by your HTTP server;
 // if you don't have one, you should have disabled it earlier
@@ -394,7 +394,7 @@ To enable it, just set the `DNS01Solver` field on a `certmagic.ACMEManager` stru
 import "github.com/libdns/cloudflare"
 
 certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
-	DNSProvider: cloudflare.Provider{
+	DNSProvider: &cloudflare.Provider{
 		APIToken: "topsecret",
 	},
 }

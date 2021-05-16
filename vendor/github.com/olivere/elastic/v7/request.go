@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"runtime"
 	"strings"
 )
 
@@ -24,7 +23,6 @@ func NewRequest(method, url string) (*Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("User-Agent", "elastic/"+Version+" ("+runtime.GOOS+"-"+runtime.GOARCH+")")
 	req.Header.Add("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 	return (*Request)(req), nil

@@ -175,9 +175,9 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
 	}
 

@@ -66,7 +66,7 @@ func TestAPIPullReview(t *testing.T) {
 	var reviewComments []*api.PullReviewComment
 	DecodeJSON(t, resp, &reviewComments)
 	assert.Len(t, reviewComments, 1)
-	assert.EqualValues(t, "Ghost", reviewComments[0].Reviewer.UserName)
+	assert.EqualValues(t, "Ghost", reviewComments[0].Poster.UserName)
 	assert.EqualValues(t, "a review from a deleted user", reviewComments[0].Body)
 	assert.EqualValues(t, comment.ID, reviewComments[0].ID)
 	assert.EqualValues(t, comment.UpdatedUnix, reviewComments[0].Updated.Unix())
