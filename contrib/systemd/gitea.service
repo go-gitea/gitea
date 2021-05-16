@@ -7,10 +7,19 @@ After=network.target
 ###
 #
 #Requires=mysql.service
+#After=mysql.service
+#
 #Requires=mariadb.service
+#After=mariadb.service
+#
 #Requires=postgresql.service
+#After=postgresql.service
+#
 #Requires=memcached.service
+#After=memcached.service
+#
 #Requires=redis.service
+#After=redis.service
 #
 ###
 # If using socket activation for main http/s
