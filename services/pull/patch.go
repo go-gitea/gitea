@@ -96,6 +96,7 @@ func TestPatch(pr *models.PullRequest) error {
 	return nil
 }
 
+// conflictStatus info can be found at https://git-scm.com/docs/git-status#_short_format
 const conflictStatus = "DD AU UD UA DU AA UU "
 
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
