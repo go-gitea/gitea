@@ -31,15 +31,6 @@ func checkIsValidRequest(ctx *context.Context) bool {
 		writeStatus(ctx, http.StatusBadRequest)
 		return false
 	}
-	if !ctx.IsSigned {
-		user, _, _, err := parseToken(ctx.Req.Header.Get("Authorization"))
-		if err != nil {
-			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
-			writeStatus(ctx, http.StatusUnauthorized)
-			return false
-		}
-		ctx.User = user
-	}
 	return true
 }
 
@@ -73,19 +64,21 @@ func GetListLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	rv, _ := unpack(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
-		writeStatus(ctx, 404)
+		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+		ctx.JSON(401, api.LFSLockError{
+			Message: "You must have pull access to list locks",
+		})
 		return
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, rv.Authorization, false)
+	authenticated := authenticate(ctx, repository, rv.Authorization, true, false)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -93,6 +86,7 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	cursor := ctx.QueryInt("cursor")
 	if cursor < 0 {
@@ -160,7 +154,6 @@ func PostLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
@@ -169,12 +162,15 @@ func PostLockHandler(ctx *context.Context) {
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
-		writeStatus(ctx, 404)
+		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+		ctx.JSON(401, api.LFSLockError{
+			Message: "You must have push access to create locks",
+		})
 		return
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -182,6 +178,8 @@ func PostLockHandler(ctx *context.Context) {
 		})
 		return
 	}
+
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
@@ -229,7 +227,6 @@ func VerifyLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
@@ -238,12 +235,15 @@ func VerifyLockHandler(ctx *context.Context) {
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
-		writeStatus(ctx, 404)
+		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+		ctx.JSON(401, api.LFSLockError{
+			Message: "You must have push access to verify locks",
+		})
 		return
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -251,6 +251,8 @@ func VerifyLockHandler(ctx *context.Context) {
 		})
 		return
 	}
+
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	cursor := ctx.QueryInt("cursor")
 	if cursor < 0 {
@@ -296,7 +298,6 @@ func UnLockHandler(ctx *context.Context) {
 		// Status is written in checkIsValidRequest
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
@@ -305,12 +306,15 @@ func UnLockHandler(ctx *context.Context) {
 	repository, err := models.GetRepositoryByOwnerAndName(userName, repoName)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
-		writeStatus(ctx, 404)
+		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
+		ctx.JSON(401, api.LFSLockError{
+			Message: "You must have push access to delete locks",
+		})
 		return
 	}
 	repository.MustOwner()
 
-	authenticated := authenticate(ctx, repository, authorization, true)
+	authenticated := authenticate(ctx, repository, authorization, true, true)
 	if !authenticated {
 		ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 		ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
@@ -318,6 +322,8 @@ func UnLockHandler(ctx *context.Context) {
 		})
 		return
 	}
+
+	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
