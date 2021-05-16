@@ -89,13 +89,14 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 		closed:       make(chan struct{}),
 	}
 
-	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) {
+	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) []Data {
 		for _, datum := range data {
 			err := queue.Push(datum)
 			if err != nil && err != ErrAlreadyInQueue {
 				log.Error("Unable push to channelled queue: %v", err)
 			}
 		}
+		return nil
 	}, levelCfg, exemplar)
 	if err == nil {
 		queue.delayedStarter = delayedStarter{
@@ -163,13 +164,14 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 
 	q.lock.Lock()
 	if q.internal == nil {
-		err := q.setInternal(atShutdown, func(data ...Data) {
+		err := q.setInternal(atShutdown, func(data ...Data) []Data {
 			for _, datum := range data {
 				err := q.Push(datum)
 				if err != nil && err != ErrAlreadyInQueue {
 					log.Error("Unable push to channelled queue: %v", err)
 				}
 			}
+			return nil
 		}, q.channelQueue.exemplar)
 		q.lock.Unlock()
 		if err != nil {

@@ -13,11 +13,12 @@ import (
 
 func TestChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
-	handle := func(data ...Data) {
+	handle := func(data ...Data) []Data {
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
+		return nil
 	}
 
 	nilFn := func(_ func()) {}
@@ -52,12 +53,13 @@ func TestChannelQueue(t *testing.T) {
 
 func TestChannelQueue_Batch(t *testing.T) {
 	handleChan := make(chan *testData)
-	handle := func(data ...Data) {
+	handle := func(data ...Data) []Data {
 		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
+		return nil
 	}
 
 	nilFn := func(_ func()) {}

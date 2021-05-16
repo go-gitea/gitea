@@ -36,7 +36,7 @@ type Type string
 type Data interface{}
 
 // HandlerFunc is a function that takes a variable amount of data and processes it
-type HandlerFunc func(...Data)
+type HandlerFunc func(...Data) (unhandled []Data)
 
 // NewQueueFunc is a function that creates a queue
 type NewQueueFunc func(handler HandlerFunc, config interface{}, exemplar interface{}) (Queue, error)

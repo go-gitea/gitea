@@ -214,7 +214,7 @@ func InitializePullRequests(ctx context.Context) {
 }
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		id, _ := strconv.ParseInt(datum.(string), 10, 64)
 
@@ -238,6 +238,7 @@ func handle(data ...queue.Data) {
 		}
 		checkAndUpdateStatus(pr)
 	}
+	return nil
 }
 
 // CheckPrsForBaseBranch check all pulls with bseBrannch
