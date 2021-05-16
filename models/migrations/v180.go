@@ -5,36 +5,40 @@
 package migrations
 
 import (
+	jsoniter "github.com/json-iterator/go"
+	"xorm.io/builder"
+	"xorm.io/xorm"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
-	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 func deleteMigrationCredentials(x *xorm.Engine) (err error) {
 	const batchSize = 100
-	cond := builder.Eq{"type": structs.TaskTypeMigrateRepo}
+
+	// only match migration tasks, that are not pending or running
+	cond := builder.Eq{
+		"type": structs.TaskTypeMigrateRepo,
+	}.And(builder.Gte{
+		"status": structs.TaskStatusStopped,
+	})
 
 	sess := x.NewSession()
 	defer sess.Close()
 
 	for start := 0; ; start += batchSize {
 		tasks := make([]*models.Task, 0, batchSize)
-
 		if err = sess.Limit(batchSize, start).Where(cond, 0).Find(&tasks); err != nil {
 			return
 		}
 		if len(tasks) == 0 {
 			break
 		}
-
 		if err = sess.Begin(); err != nil {
 			return
 		}
-
 		for _, t := range tasks {
 			if t.PayloadContent, err = removeCredentials(t.PayloadContent); err != nil {
 				return
@@ -43,7 +47,6 @@ func deleteMigrationCredentials(x *xorm.Engine) (err error) {
 				return
 			}
 		}
-
 		if err = sess.Commit(); err != nil {
 			return
 		}
