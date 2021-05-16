@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -88,7 +87,7 @@ func RetrieveLabels(ctx *context.Context) {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
 			}
-			ctx.Org.OrgLink = setting.AppSubURL + "/org/" + org.LowerName
+			ctx.Org.OrgLink = org.OrganisationLink()
 			ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 			ctx.Data["OrganizationLink"] = ctx.Org.OrgLink
 		}

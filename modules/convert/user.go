@@ -38,13 +38,16 @@ func ToUserWithAccessMode(user *models.User, accessMode models.AccessMode) *api.
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
 func toUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
-		ID:         user.ID,
-		UserName:   user.Name,
-		FullName:   markup.Sanitize(user.FullName),
-		Email:      user.GetEmail(),
-		AvatarURL:  user.AvatarLink(),
-		Created:    user.CreatedUnix.AsTime(),
-		Restricted: user.IsRestricted,
+		ID:          user.ID,
+		UserName:    user.Name,
+		FullName:    markup.Sanitize(user.FullName),
+		Email:       user.GetEmail(),
+		AvatarURL:   user.AvatarLink(),
+		Created:     user.CreatedUnix.AsTime(),
+		Restricted:  user.IsRestricted,
+		Location:    user.Location,
+		Website:     user.Website,
+		Description: user.Description,
 	}
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
@@ -55,6 +58,8 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		result.IsAdmin = user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
+		result.IsActive = user.IsActive
+		result.ProhibitLogin = user.ProhibitLogin
 	}
 	return result
 }

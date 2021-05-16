@@ -1,64 +1,78 @@
-<div class="fitted item choose reference mr-1">
-	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.CanCreateBranch}}" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+{{$release := .release}}
+{{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
+<div class="fitted item choose reference{{if not $release}} mr-1{{end}}">
+	<div class="ui floating filter dropdown custom" data-can-create-branch="{{.root.CanCreateBranch}}" data-no-results="{{.root.i18n.Tr "repo.pulls.no_results"}}">
 		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text">
-				{{svg "octicon-git-branch"}}
-				{{if .IsViewBranch}}{{.i18n.Tr "repo.branch"}}{{else}}{{.i18n.Tr "repo.tree"}}{{end}}:
-				<strong>{{if .IsViewBranch}}{{.BranchName}}{{else}}{{ShortSha .BranchName}}{{end}}</strong>
+				{{if $release}}
+					{{.root.i18n.Tr "repo.release.compare"}}
+				{{else}}
+					{{svg "octicon-git-branch"}}
+					{{if .root.IsViewBranch}}{{.root.i18n.Tr "repo.branch"}}{{else}}{{.root.i18n.Tr "repo.tree"}}{{end}}:
+					<strong>{{if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.BranchName}}{{end}}</strong>
+				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		</div>
-		<div class="data" style="display: none" data-mode="{{if .IsViewTag}}tags{{else}}branches{{end}}">
-			{{range .Branches}}
-				<div class="item branch {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/branch/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
+		<div class="data" style="display: none" data-mode="{{if .root.IsViewTag}}tags{{else}}branches{{end}}">
+			{{if $showBranchesInDropdown}}
+				{{range .root.Branches}}
+					<div class="item branch {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
+				{{end}}
 			{{end}}
-			{{range .Tags}}
-				<div class="item tag {{if eq $.BranchName .}}selected{{end}}" data-url="{{$.RepoLink}}/{{if $.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.TreePath}}/{{EscapePound $.TreePath}}{{end}}">{{.}}</div>
+			{{range .root.Tags}}
+				{{if $release}}
+					<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/compare/{{EscapePound .}}...{{if $release.IsDraft}}{{EscapePound $release.Target}}{{else}}}{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}{{end}}">{{.}}</div>
+				{{else}}
+					<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
+				{{end}}
 			{{end}}
 		</div>
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
 				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{.i18n.Tr "repo.filter_branch_and_tag"}}...">
+				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $showBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
 			</div>
-			<div class="header branch-tag-choice">
-				<div class="ui grid">
-					<div class="two column row">
-						<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
-							<span class="text" :class="{black: mode == 'branches'}">
-								{{svg "octicon-git-branch" 16 "mr-2"}}{{.i18n.Tr "repo.branches"}}
-							</span>
-						</a>
-						<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
-							<span class="text" :class="{black: mode == 'tags'}">
-								{{svg "octicon-tag" 16 "mr-2"}}{{.i18n.Tr "repo.tags"}}
-							</span>
-						</a>
+			{{if $showBranchesInDropdown}}
+				<div class="header branch-tag-choice">
+					<div class="ui grid">
+						<div class="two column row">
+							<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
+								<span class="text" :class="{black: mode == 'branches'}">
+									{{svg "octicon-git-branch" 16 "mr-2"}}{{.root.i18n.Tr "repo.branches"}}
+								</span>
+							</a>
+							<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
+								<span class="text" :class="{black: mode == 'tags'}">
+									{{svg "octicon-tag" 16 "mr-2"}}{{.root.i18n.Tr "repo.tags"}}
+								</span>
+							</a>
+						</div>
 					</div>
 				</div>
-			</div>
+			{{end}}
 			<div class="scrolling menu" ref="scrollContainer">
 				<div v-for="(item, index) in filteredItems" :key="item.name" class="item" :class="{selected: item.selected, active: active == index}" @click="selectItem(item)" :ref="'listItem' + index">${ item.name }</div>
 				<div class="item" v-if="showCreateNewBranch" :class="{active: active == filteredItems.length}" :ref="'listItem' + filteredItems.length">
 					<a href="#" @click="createNewBranch()">
 						<div v-show="createTag">
 							<i class="reference tags icon"></i>
-							{{.i18n.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
+							{{.root.i18n.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
 						</div>
 						<div v-show="!createTag">
 							{{svg "octicon-git-branch"}}
-							{{.i18n.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
+							{{.root.i18n.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
 						</div>
 						<div class="text small">
-							{{if .IsViewBranch}}
-								{{.i18n.Tr "repo.branch.create_from" .BranchName}}
+							{{if or .root.IsViewBranch $release}}
+								{{.root.i18n.Tr "repo.branch.create_from" .root.BranchName}}
 							{{else}}
-								{{.i18n.Tr "repo.branch.create_from" (ShortSha .BranchName)}}
+								{{.root.i18n.Tr "repo.branch.create_from" (ShortSha .root.BranchName)}}
 							{{end}}
 						</div>
 					</a>
-					<form ref="newBranchForm" action="{{.RepoLink}}/branches/_new/{{EscapePound .BranchNameSubURL}}" method="post">
-						{{.CsrfTokenHtml}}
+					<form ref="newBranchForm" action="{{.root.RepoLink}}/branches/_new/{{EscapePound .root.BranchNameSubURL}}" method="post">
+						{{.root.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 						<input type="hidden" name="create_tag" v-model="createTag">
 					</form>

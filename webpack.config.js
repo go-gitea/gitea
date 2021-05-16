@@ -1,7 +1,6 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
@@ -48,6 +47,7 @@ export default {
       resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
       resolve(__dirname, 'web_src/js/index.js'),
       resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
+      resolve(__dirname, 'web_src/less/misc.css'),
       resolve(__dirname, 'web_src/less/index.less'),
     ],
     swagger: [
@@ -84,21 +84,8 @@ export default {
     minimizer: [
       new ESBuildMinifyPlugin({
         target: 'es2015',
-        minify: true
-      }),
-      new CssMinimizerPlugin({
-        sourceMap: true,
-        minimizerOptions: {
-          preset: [
-            'default',
-            {
-              discardComments: {
-                removeAll: true,
-              },
-              colormin: false,
-            },
-          ],
-        },
+        minify: true,
+        css: true,
       }),
     ],
     splitChunks: {

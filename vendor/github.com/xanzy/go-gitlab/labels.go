@@ -76,8 +76,9 @@ func (l Label) String() string {
 // GitLab API docs: https://docs.gitlab.com/ce/api/labels.html#list-labels
 type ListLabelsOptions struct {
 	ListOptions
-	WithCounts            *bool `url:"with_counts,omitempty" json:"with_counts,omitempty"`
-	IncludeAncestorGroups *bool `url:"include_ancestor_groups,omitempty" json:"include_ancestor_groups,omitempty"`
+	WithCounts            *bool   `url:"with_counts,omitempty" json:"with_counts,omitempty"`
+	IncludeAncestorGroups *bool   `url:"include_ancestor_groups,omitempty" json:"include_ancestor_groups,omitempty"`
+	Search                *string `url:"search,omitempty" json:"search,omitempty"`
 }
 
 // ListLabels gets all labels for given project.

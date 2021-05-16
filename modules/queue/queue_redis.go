@@ -6,7 +6,6 @@ package queue
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -47,8 +46,6 @@ func NewRedisQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 		return nil, err
 	}
 
-	byteFIFO.ctx = graceful.NewChannelContext(byteFIFOQueue.IsTerminated(), fmt.Errorf("queue has been terminated"))
-
 	queue := &RedisQueue{
 		ByteFIFOQueue: byteFIFOQueue,
 	}
@@ -73,8 +70,8 @@ var _ ByteFIFO = &RedisByteFIFO{}
 
 // RedisByteFIFO represents a ByteFIFO formed from a redisClient
 type RedisByteFIFO struct {
-	ctx       context.Context
-	client    redisClient
+	client redisClient
+
 	queueName string
 }
 
@@ -89,7 +86,6 @@ func NewRedisByteFIFO(config RedisByteFIFOConfiguration) (*RedisByteFIFO, error)
 	fifo := &RedisByteFIFO{
 		queueName: config.QueueName,
 	}
-	fifo.ctx = graceful.GetManager().TerminateContext()
 	fifo.client = nosql.GetManager().GetRedisClient(config.ConnectionString)
 	if err := fifo.client.Ping(graceful.GetManager().ShutdownContext()).Err(); err != nil {
 		return nil, err
@@ -98,18 +94,18 @@ func NewRedisByteFIFO(config RedisByteFIFOConfiguration) (*RedisByteFIFO, error)
 }
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
-func (fifo *RedisByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (fifo *RedisByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
 	if fn != nil {
 		if err := fn(); err != nil {
 			return err
 		}
 	}
-	return fifo.client.RPush(fifo.ctx, fifo.queueName, data).Err()
+	return fifo.client.RPush(ctx, fifo.queueName, data).Err()
 }
 
 // Pop pops data from the start of the fifo
-func (fifo *RedisByteFIFO) Pop() ([]byte, error) {
-	data, err := fifo.client.LPop(fifo.ctx, fifo.queueName).Bytes()
+func (fifo *RedisByteFIFO) Pop(ctx context.Context) ([]byte, error) {
+	data, err := fifo.client.LPop(ctx, fifo.queueName).Bytes()
 	if err == nil || err == redis.Nil {
 		return data, nil
 	}
@@ -122,8 +118,8 @@ func (fifo *RedisByteFIFO) Close() error {
 }
 
 // Len returns the length of the fifo
-func (fifo *RedisByteFIFO) Len() int64 {
-	val, err := fifo.client.LLen(fifo.ctx, fifo.queueName).Result()
+func (fifo *RedisByteFIFO) Len(ctx context.Context) int64 {
+	val, err := fifo.client.LLen(ctx, fifo.queueName).Result()
 	if err != nil {
 		log.Error("Error whilst getting length of redis queue %s: Error: %v", fifo.queueName, err)
 		return -1

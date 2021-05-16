@@ -170,18 +170,18 @@ func parseQuery(query string) (values []Query, err error) {
 }
 
 func encodeQueries(queries []Query) string {
-	var b strings.Builder
+	var buff bytes.Buffer
 	for i, query := range queries {
-		b.WriteString(url.QueryEscape(query.Key))
+		buff.WriteString(url.QueryEscape(query.Key))
 		if query.HasValue {
-			b.WriteString("=")
-			b.WriteString(url.QueryEscape(query.Value))
+			buff.WriteString("=")
+			buff.WriteString(url.QueryEscape(query.Value))
 		}
 		if i < len(queries)-1 {
-			b.WriteString("&")
+			buff.WriteString("&")
 		}
 	}
-	return b.String()
+	return buff.String()
 }
 
 func sanitizedURL(val string) (string, error) {

@@ -296,20 +296,13 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
-		buf = charset.ToUTF8WithFallback(append(buf, d...))
+		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		var fileContent string
-		if content, err := charset.ToUTF8WithErr(buf); err != nil {
-			log.Error("ToUTF8WithErr: %v", err)
-			fileContent = string(buf)
-		} else {
-			fileContent = content
-		}
+		fileContent, _ := ioutil.ReadAll(buf)
 
 		var output bytes.Buffer
-		lines := strings.Split(fileContent, "\n")
+		lines := strings.Split(string(fileContent), "\n")
 		//Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]

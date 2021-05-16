@@ -32,7 +32,7 @@ func DefaultAvatarLink() string {
 		return ""
 	}
 
-	u.Path = path.Join(u.Path, "/img/avatar_default.png")
+	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
 	return u.String()
 }
 

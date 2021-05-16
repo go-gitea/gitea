@@ -2,7 +2,7 @@
 	{{ $approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item df py-3">
-			<div class="issue-item-left df py-1">
+			<div class="issue-item-left df">
 				{{if $.CanWriteIssuesOrPulls}}
 					<div class="ui checkbox issue-checkbox">
 						<input type="checkbox" data-issue-id={{.ID}}></input>

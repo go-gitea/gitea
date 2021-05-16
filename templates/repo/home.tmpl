@@ -57,7 +57,7 @@
 		{{end}}
 		{{template "repo/sub_menu" .}}
 		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins">
-			{{template "repo/branch_dropdown" .}}
+			{{template "repo/branch_dropdown" dict "root" .}}
 			{{ $n := len .TreeNames}}
 			{{ $l := Subtract $n 1}}
 			<!-- If home page, show new PR. If not, show breadcrumb -->

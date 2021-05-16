@@ -174,8 +174,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []string, fromMention bool, info string) []*Message {
-
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []string, fromMention bool, info string) ([]*Message, error) {
 	var (
 		subject string
 		link    string
@@ -199,7 +198,14 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
+	body, err := markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Issue.Repo.HTMLURL(),
+		Metas:     ctx.Issue.Repo.ComposeMetas(),
+	}, ctx.Content)
+	if err != nil {
+		return nil, err
+	}
+
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
 	if actName != "new" {
@@ -240,12 +246,11 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 	// TODO: i18n templates?
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
+		if subject == "" {
+			subject = fallback
+		}
 	} else {
 		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
-	}
-
-	if subject == "" {
-		subject = fallback
 	}
 
 	subject = emoji.ReplaceAliases(subject)
@@ -275,7 +280,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos []str
 		msgs = append(msgs, msg)
 	}
 
-	return msgs
+	return msgs, nil
 }
 
 func sanitizeSubject(subject string) string {
@@ -288,21 +293,26 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) {
+func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) error {
 	langMap := make(map[string][]string)
 	for _, user := range recipients {
 		langMap[user.Language] = append(langMap[user.Language], user.Email)
 	}
 
 	for lang, tos := range langMap {
-		SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
+		msgs, err := composeIssueCommentMessages(&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: models.ActionType(0),
 			Content:    content,
 			Comment:    comment,
-		}, lang, tos, false, "issue assigned"))
+		}, lang, tos, false, "issue assigned")
+		if err != nil {
+			return err
+		}
+		SendAsyncs(msgs)
 	}
+	return nil
 }
 
 // actionToTemplate returns the type and name of the action facing the user

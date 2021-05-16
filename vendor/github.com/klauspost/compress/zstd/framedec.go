@@ -121,7 +121,7 @@ func (d *frameDec) reset(br byteBuffer) error {
 	d.SingleSegment = fhd&(1<<5) != 0
 
 	if fhd&(1<<3) != 0 {
-		return errors.New("Reserved bit set on frame header")
+		return errors.New("reserved bit set on frame header")
 	}
 
 	// Read Window_Descriptor

@@ -318,6 +318,7 @@ func (r *Renderer) renderHTMLBlock(w util.BufWriter, source []byte, node ast.Nod
 var ListAttributeFilter = GlobalAttributeFilter.Extend(
 	[]byte("start"),
 	[]byte("reversed"),
+	[]byte("type"),
 )
 
 func (r *Renderer) renderList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {

@@ -23,7 +23,7 @@ import (
 func CheckInternalToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		tokens := req.Header.Get("Authorization")
-		fields := strings.Fields(tokens)
+		fields := strings.SplitN(tokens, " ", 2)
 		if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
 			log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
@@ -69,6 +69,7 @@ func Routes() *web.Route {
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
 	r.Post("/mail/send", SendEmail)
+	r.Post("/restore_repo", RestoreRepo)
 
 	return r
 }

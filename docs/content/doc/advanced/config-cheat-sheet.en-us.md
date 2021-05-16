@@ -59,7 +59,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MIRROR_QUEUE_LENGTH`: **1000**: Patch test queue length, increase if pull request patch
    testing starts hanging.
 - `PREFERRED_LICENSES`: **Apache License 2.0,MIT License**: Preferred Licenses to place at
-   the top of the list. Name must match file name in conf/license or custom/conf/license.
+   the top of the list. Name must match file name in options/license or custom/options/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
@@ -142,6 +142,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Repository - Local (`repository.local`)
 
 - `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
+
+## Repository -  MIME type mapping (`repository.mimetype_mapping`)
+
+Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
+
+The following configuration set `Content-Type: application/vnd.android.package-archive` header when downloading files with `.apk` file extension.
+```ini
+.apk=application/vnd.android.package-archive
+```
 
 ## CORS (`cors`)
 
@@ -440,7 +449,7 @@ relation to port exhaustion.
     - nickname - use the nickname attribute
     - email - use the username part of the email attribute
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
-- `ACCOUNT_LINKING`: **disabled**: How to handle if an account / email already exists:
+- `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
     - disabled - show an error
     - login - show an account linking login
     - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
@@ -497,6 +506,7 @@ relation to port exhaustion.
 - `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
+- `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via gitea.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
 - `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
@@ -582,7 +592,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\].
-- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
+- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
@@ -703,6 +713,11 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 
+- `SCHEDULE` accept formats
+   - Full crontab specs, e.g. `* * * * * ?`
+   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
+   - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+
 ### Basic cron tasks - enabled by default
 
 #### Cron - Cleanup old repository archives (`cron.archive_cleanup`)
@@ -785,6 +800,13 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+
+#### Cron -  Delete all old actions from database ('cron.delete_old_actions')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 128h**: Cron syntax for scheduling a work, e.g. `@every 128h`.
+- `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
 
 ## Git (`git`)
 

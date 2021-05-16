@@ -8,6 +8,7 @@ package markdown
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -73,17 +74,17 @@ func (l *limitWriter) CloseWithError(err error) error {
 	return l.w.CloseWithError(err)
 }
 
-// NewGiteaParseContext creates a parser.Context with the gitea context set
-func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool) parser.Context {
+// newParserContext creates a parser.Context with the render context set
+func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
-	pc.Set(urlPrefixKey, urlPrefix)
-	pc.Set(isWikiKey, isWiki)
-	pc.Set(renderMetasKey, metas)
+	pc.Set(urlPrefixKey, ctx.URLPrefix)
+	pc.Set(isWikiKey, ctx.IsWiki)
+	pc.Set(renderMetasKey, ctx.Metas)
 	return pc
 }
 
 // actualRender renders Markdown to HTML without handling special links.
-func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
+func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	once.Do(func() {
 		converter = goldmark.New(
 			goldmark.WithExtensions(extension.Table,
@@ -169,7 +170,7 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: should we include a timeout that closes the pipe to abort the parser and sanitizer if it takes too long?
+	// FIXME: should we include a timeout that closes the pipe to abort the renderer and sanitizer if it takes too long?
 	go func() {
 		defer func() {
 			err := recover()
@@ -184,18 +185,26 @@ func actualRender(body []byte, urlPrefix string, metas map[string]string, wikiMa
 			_ = lw.CloseWithError(fmt.Errorf("%v", err))
 		}()
 
-		pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-		if err := converter.Convert(giteautil.NormalizeEOL(body), lw, parser.WithContext(pc)); err != nil {
+		// FIXME: Don't read all to memory, but goldmark doesn't support
+		pc := newParserContext(ctx)
+		buf, err := ioutil.ReadAll(input)
+		if err != nil {
+			log.Error("Unable to ReadAll: %v", err)
+			return
+		}
+		if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
 			log.Error("Unable to render: %v", err)
 			_ = lw.CloseWithError(err)
 			return
 		}
 		_ = lw.Close()
 	}()
-	return markup.SanitizeReader(rd).Bytes()
+	buf := markup.SanitizeReader(rd)
+	_, err := io.Copy(output, buf)
+	return err
 }
 
-func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) (ret []byte) {
+func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	defer func() {
 		err := recover()
 		if err == nil {
@@ -206,9 +215,13 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 		if log.IsDebug() {
 			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
 		}
-		ret = markup.SanitizeBytes(body)
+		ret := markup.SanitizeReader(input)
+		_, err = io.Copy(output, ret)
+		if err != nil {
+			log.Error("SanitizeReader failed: %v", err)
+		}
 	}()
-	return actualRender(body, urlPrefix, metas, wikiMarkdown)
+	return actualRender(ctx, input, output)
 }
 
 var (
@@ -217,48 +230,59 @@ var (
 )
 
 func init() {
-	markup.RegisterParser(Parser{})
+	markup.RegisterRenderer(Renderer{})
 }
 
-// Parser implements markup.Parser
-type Parser struct{}
+// Renderer implements markup.Renderer
+type Renderer struct{}
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.Parser
-func (Parser) NeedPostProcess() bool { return true }
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return setting.Markdown.FileExtensions
 }
 
-// Render implements markup.Parser
-func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	return render(rawBytes, urlPrefix, metas, isWiki)
+// Render implements markup.Renderer
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return render(ctx, input, output)
 }
 
 // Render renders Markdown to HTML with all specific handling stuff.
-func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
-	return markup.Render("a.md", rawBytes, urlPrefix, metas)
+func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	if ctx.Filename == "" {
+		ctx.Filename = "a.md"
+	}
+	return markup.Render(ctx, input, output)
+}
+
+// RenderString renders Markdown string to HTML with all specific handling stuff and return string
+func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.
-func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
-	return render(body, urlPrefix, map[string]string{}, wikiMarkdown)
+func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return render(ctx, input, output)
 }
 
-// RenderString renders Markdown to HTML with special links and returns string type.
-func RenderString(raw, urlPrefix string, metas map[string]string) string {
-	return markup.RenderString("a.md", raw, urlPrefix, metas)
-}
-
-// RenderWiki renders markdown wiki page to HTML and return HTML string
-func RenderWiki(rawBytes []byte, urlPrefix string, metas map[string]string) string {
-	return markup.RenderWiki("a.md", rawBytes, urlPrefix, metas)
+// RenderRawString renders Markdown to HTML without handling special links and return string
+func RenderRawString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := RenderRaw(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // IsMarkdownFile reports whether name looks like a Markdown file
