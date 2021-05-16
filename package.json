@@ -9,7 +9,6 @@
     "@claviska/jquery-minicolors": "2.3.5",
     "@primer/octicons": "13.0.0",
     "add-asset-webpack-plugin": "2.0.1",
-    "clipboard": "2.0.8",
     "codemirror": "5.61.0",
     "css-loader": "5.2.4",
     "dropzone": "5.9.2",
