@@ -15,6 +15,9 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/djherbis/buffer"
+	"github.com/djherbis/nio/v3"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
@@ -128,7 +131,9 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	// We read backwards from the commit to obtain all of the commits
 
 	// We'll do this by using rev-list to provide us with parent commits in order
-	revListReader, revListWriter := io.Pipe()
+	bufRevList := buffer.New(32 * 1024)
+
+	revListReader, revListWriter := nio.Pipe(bufRevList)
 	defer func() {
 		_ = revListWriter.Close()
 		_ = revListReader.Close()
@@ -162,7 +167,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	allShaBuf := make([]byte, (len(paths)+1)*20)
 	shaBuf := make([]byte, 20)
-	tmpTreeID := make([]byte, 40)
+	tmpTreeID := make([]byte, 41)
+	tmpTreeID[40] = '\n'
 
 	// commits is the returnable commits matching the paths provided
 	commits := make([]string, len(paths))
@@ -270,9 +276,9 @@ revListLoop:
 				}
 			}
 
-			if n < size {
+			if n < size+1 {
 				// Discard any remaining entries in the current tree
-				discard := size - n
+				discard := size - n + 1
 				for discard > math.MaxInt32 {
 					_, err := batchReader.Discard(math.MaxInt32)
 					if err != nil {
@@ -284,9 +290,6 @@ revListLoop:
 				if err != nil {
 					return nil, err
 				}
-			}
-			if _, err := batchReader.Discard(1); err != nil {
-				return nil, err
 			}
 
 			// if we haven't found a treeID for the target directory our search is over
@@ -312,10 +315,6 @@ revListLoop:
 			}
 			treeID = To40ByteSHA(treeID, treeID)
 			_, err = batchStdinWriter.Write(treeID)
-			if err != nil {
-				return nil, err
-			}
-			_, err = batchStdinWriter.Write([]byte("\n"))
 			if err != nil {
 				return nil, err
 			}
