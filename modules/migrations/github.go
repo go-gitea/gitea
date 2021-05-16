@@ -264,34 +264,29 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
-	var (
-		name string
-		desc string
-	)
-	if rel.Body != nil {
-		desc = *rel.Body
-	}
-	if rel.Name != nil {
-		name = *rel.Name
-	}
-
-	var email string
-	if rel.Author.Email != nil {
-		email = *rel.Author.Email
-	}
-
 	r := &base.Release{
 		TagName:         *rel.TagName,
 		TargetCommitish: *rel.TargetCommitish,
-		Name:            name,
-		Body:            desc,
 		Draft:           *rel.Draft,
 		Prerelease:      *rel.Prerelease,
 		Created:         rel.CreatedAt.Time,
 		PublisherID:     *rel.Author.ID,
 		PublisherName:   *rel.Author.Login,
-		PublisherEmail:  email,
-		Published:       rel.PublishedAt.Time,
+	}
+
+	if rel.Body != nil {
+		r.Body = *rel.Body
+	}
+	if rel.Name != nil {
+		r.Name = *rel.Name
+	}
+
+	if rel.Author.Email != nil {
+		r.PublisherEmail = *rel.Author.Email
+	}
+
+	if rel.PublishedAt != nil {
+		r.Published = rel.PublishedAt.Time
 	}
 
 	for _, asset := range rel.Assets {
@@ -306,18 +301,17 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 			Updated:       asset.UpdatedAt.Time,
 			DownloadFunc: func() (io.ReadCloser, error) {
 				g.sleep()
-				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
+				asset, redirectURL, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
 				if err != nil {
 					return nil, err
 				}
-				err = g.RefreshRate()
-				if err != nil {
+				if err := g.RefreshRate(); err != nil {
 					log.Error("g.client.RateLimits: %s", err)
 				}
 				if asset == nil {
-					if redir != "" {
+					if redirectURL != "" {
 						g.sleep()
-						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redirectURL, nil)
 						if err != nil {
 							return nil, err
 						}
