@@ -36,14 +36,22 @@ type Manager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	doneCtx                context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	doneCtxCancel          context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
 	shutdownRequested      chan struct{}
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -58,11 +66,13 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start() {
+	// Make contexts
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
+	g.doneCtx, g.doneCtxCancel = context.WithCancel(g.ctx)
+
 	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
 	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
@@ -171,7 +181,7 @@ hammerLoop:
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
 			}
-		case <-g.hammer:
+		case <-g.hammerCtx.Done():
 			break hammerLoop
 		}
 	}
