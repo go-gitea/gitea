@@ -359,7 +359,7 @@ test-backend:
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend:
+test-frontend: node_modules
 	@NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --color
 
 .PHONY: test-check

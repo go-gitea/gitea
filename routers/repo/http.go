@@ -22,15 +22,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -153,11 +150,8 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	// Only public pull don't need auth.
 	isPublicPull := repoExist && !repo.IsPrivate && isPull
 	var (
-		askAuth      = !isPublicPull || setting.Service.RequireSignInView
-		authUser     *models.User
-		authUsername string
-		authPasswd   string
-		environ      []string
+		askAuth = !isPublicPull || setting.Service.RequireSignInView
+		environ []string
 	)
 
 	// don't allow anonymous pulls if organization is not public
@@ -172,108 +166,33 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	// check access
 	if askAuth {
-		authUsername = ctx.Req.Header.Get(setting.ReverseProxyAuthUser)
-		if setting.Service.EnableReverseProxyAuth && len(authUsername) > 0 {
-			authUser, err = models.GetUserByName(authUsername)
-			if err != nil {
-				ctx.HandleText(401, "reverse proxy login error, got error while running GetUserByName")
-				return
-			}
-		} else {
-			authHead := ctx.Req.Header.Get("Authorization")
-			if len(authHead) == 0 {
-				ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
-				ctx.Error(http.StatusUnauthorized)
-				return
-			}
+		// rely on the results of Contexter
+		if !ctx.IsSigned {
+			// TODO: support digit auth - which would be Authorization header with digit
+			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=\".\"")
+			ctx.Error(http.StatusUnauthorized)
+			return
+		}
 
-			auths := strings.Fields(authHead)
-			// currently check basic auth
-			// TODO: support digit auth
-			// FIXME: middlewares/context.go did basic auth check already,
-			// maybe could use that one.
-			if len(auths) != 2 || auths[0] != "Basic" {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-				return
-			}
-			authUsername, authPasswd, err = base.BasicAuthDecode(auths[1])
-			if err != nil {
-				ctx.HandleText(http.StatusUnauthorized, "no basic auth and digit auth")
-				return
-			}
-
-			// Check if username or password is a token
-			isUsernameToken := len(authPasswd) == 0 || authPasswd == "x-oauth-basic"
-			// Assume username is token
-			authToken := authUsername
-			if !isUsernameToken {
-				// Assume password is token
-				authToken = authPasswd
-			}
-			uid := sso.CheckOAuthAccessToken(authToken)
-			if uid != 0 {
-				ctx.Data["IsApiToken"] = true
-
-				authUser, err = models.GetUserByID(uid)
-				if err != nil {
-					ctx.ServerError("GetUserByID", err)
-					return
-				}
-			}
-			// Assume password is a token.
-			token, err := models.GetAccessTokenBySHA(authToken)
+		if ctx.IsBasicAuth {
+			_, err = models.GetTwoFactorByUID(ctx.User.ID)
 			if err == nil {
-				authUser, err = models.GetUserByID(token.UID)
-				if err != nil {
-					ctx.ServerError("GetUserByID", err)
-					return
-				}
-
-				token.UpdatedUnix = timeutil.TimeStampNow()
-				if err = models.UpdateAccessToken(token); err != nil {
-					ctx.ServerError("UpdateAccessToken", err)
-				}
-			} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
-				log.Error("GetAccessTokenBySha: %v", err)
-			}
-
-			if authUser == nil {
-				// Check username and password
-				authUser, err = models.UserSignIn(authUsername, authPasswd)
-				if err != nil {
-					if models.IsErrUserProhibitLogin(err) {
-						ctx.HandleText(http.StatusForbidden, "User is not permitted to login")
-						return
-					} else if !models.IsErrUserNotExist(err) {
-						ctx.ServerError("UserSignIn error: %v", err)
-						return
-					}
-				}
-
-				if authUser == nil {
-					ctx.HandleText(http.StatusUnauthorized, fmt.Sprintf("invalid credentials from %s", ctx.RemoteAddr()))
-					return
-				}
-
-				_, err = models.GetTwoFactorByUID(authUser.ID)
-				if err == nil {
-					// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
-					ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
-					return
-				} else if !models.IsErrTwoFactorNotEnrolled(err) {
-					ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
-					return
-				}
+				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
+				ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
+				return
+			} else if !models.IsErrTwoFactorNotEnrolled(err) {
+				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
+				return
 			}
 		}
 
-		if !authUser.IsActive || authUser.ProhibitLogin {
+		if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 			ctx.HandleText(http.StatusForbidden, "Your account is disabled.")
 			return
 		}
 
 		if repoExist {
-			perm, err := models.GetUserRepoPermission(repo, authUser)
+			perm, err := models.GetUserRepoPermission(repo, ctx.User)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -293,14 +212,14 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		environ = []string{
 			models.EnvRepoUsername + "=" + username,
 			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + authUser.Name,
-			models.EnvPusherID + fmt.Sprintf("=%d", authUser.ID),
+			models.EnvPusherName + "=" + ctx.User.Name,
+			models.EnvPusherID + fmt.Sprintf("=%d", ctx.User.ID),
 			models.EnvIsDeployKey + "=false",
 			models.EnvAppURL + "=" + setting.AppURL,
 		}
 
-		if !authUser.KeepEmailPrivate {
-			environ = append(environ, models.EnvPusherEmail+"="+authUser.Email)
+		if !ctx.User.KeepEmailPrivate {
+			environ = append(environ, models.EnvPusherEmail+"="+ctx.User.Email)
 		}
 
 		if isWiki {
@@ -336,7 +255,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		repo, err = repo_service.PushCreateRepo(authUser, owner, reponame)
+		repo, err = repo_service.PushCreateRepo(ctx.User, owner, reponame)
 		if err != nil {
 			log.Error("pushCreateRepo: %v", err)
 			ctx.Status(http.StatusNotFound)
