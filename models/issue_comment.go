@@ -1397,7 +1397,7 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	return nil
 }
 
-func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest, user *User) (comment *Comment, err error) {
+func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest, doer *User) (comment *Comment, err error) {
 	if err = pr.loadIssue(sess); err != nil {
 		return
 	}
@@ -1408,7 +1408,7 @@ func createAutoMergeComment(sess *xorm.Session, typ CommentType, pr *PullRequest
 
 	comment, err = createComment(sess, &CreateCommentOptions{
 		Type:  typ,
-		Doer:  user,
+		Doer:  doer,
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
 	})

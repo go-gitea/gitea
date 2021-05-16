@@ -20,7 +20,7 @@ type ScheduledPullRequestMerge struct {
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
-func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message string) (err error) {
+func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message string) error {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -28,21 +28,19 @@ func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message strin
 	defer sess.Close()
 
 	// Check if we already have a merge scheduled for that pull request
-	exists, _, err := getScheduledPullRequestMergeByPullID(sess, pullID)
-	if err != nil {
-		return
-	}
-	if exists {
+	if exists, _, err := getScheduledPullRequestMergeByPullID(sess, pullID); err != nil {
+		return err
+	} else if exists {
 		return ErrPullRequestAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
-	if _, err = sess.Insert(&ScheduledPullRequestMerge{
+	if _, err := sess.Insert(&ScheduledPullRequestMerge{
 		DoerID:     doer.ID,
 		PullID:     pullID,
 		MergeStyle: style,
 		Message:    message,
 	}); err != nil {
-		return
+		return err
 	}
 
 	pr, err := getPullRequestByID(sess, pullID)

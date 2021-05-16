@@ -657,21 +657,22 @@ func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
 }
 
-// GetPullRequestByHeadBranch returns all prs by head branch
+// GetPullRequestsByHeadBranch returns all prs by head branch
 // Since there could be multiple prs to the same head branch, this function returns a slice of prs
-func GetPullRequestByHeadBranch(headBranch string, headRepo *Repository, status PullRequestStatus) (prs []*PullRequest, err error) {
-	prs = make([]*PullRequest, 0)
-	err = x.
-		Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
+func GetPullRequestsByHeadBranch(headBranch string, headRepo *Repository, status PullRequestStatus) ([]*PullRequest, error) {
+	prs := make([]*PullRequest, 0, 2)
+	if err := x.Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
 		Desc("id").
-		Find(prs)
-	if err != nil && len(prs) == 0 {
+		Find(prs); err != nil {
+		return nil, err
+	}
+	if len(prs) == 0 {
 		return nil, ErrPullRequestNotExist{
 			HeadBranch: headBranch,
 			HeadRepoID: headRepo.ID,
 		}
 	}
-	return
+	return prs, nil
 }
 
 // GetBaseBranchHTMLURL returns the HTML URL of the base branch
