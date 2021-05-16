@@ -63,7 +63,12 @@ $ curl --request GET --url https://yourusername:password@gitea.your.host/api/v1/
 [{"name":"test","sha1":"","token_last_eight:"........":},{"name":"dev","sha1":"","token_last_eight":"........"}]
 ```
 
-As of v1.8.0 of Gitea, if using basic authentication with the API and
+To use the API with basic authentication with two factor authentication
+enabled, you'll need to send an additional header that contains the one
+time password (6 digitrotating token).
+An example of the header is `X-Gitea-OTP: 123456` where `123456`
+is where you'd place the code from your authenticator.
+Here is how the request would look like in curl:
 your user has two factor authentication enabled, you'll need to send
 an additional header that contains the one time password (6 digit
 rotating token). An example of the header is `X-Gitea-OTP: 123456`
