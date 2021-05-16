@@ -319,7 +319,7 @@ trigger:
 services:
   - name: pgsql
     pull: default
-    image: postgres:13
+    image: postgres:10
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
