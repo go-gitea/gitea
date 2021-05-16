@@ -1,4 +1,4 @@
-image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}latest{{/if}}-rootless
+image: gitea/gitea:{{#if build.tag}}{{trimPrefix "v" build.tag}}{{else}}dev{{/if}}-rootless
 {{#if build.tags}}
 tags:
 {{#each build.tags}}
