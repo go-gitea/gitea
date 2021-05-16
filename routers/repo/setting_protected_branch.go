@@ -15,11 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
+	"code.gitea.io/gitea/services/repository"
 )
 
 // ProtectedBranch render the page to protect the repository
@@ -301,43 +301,23 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if form.From == form.To {
-		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
-		return
-	}
-
-	if ctx.Repo.GitRepo.IsBranchExist(form.To) {
-		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
-	}
-
-	if !ctx.Repo.GitRepo.IsBranchExist(form.From) {
-		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
-	}
-
-	if err := ctx.Repo.Repository.RenameBranch(form.From, form.To, func(isDefault bool) error {
-		err2 := ctx.Repo.GitRepo.RenameBranch(form.From, form.To)
-		if err2 != nil {
-			return err2
-		}
-
-		if isDefault {
-			err2 = ctx.Repo.GitRepo.SetDefaultBranch(form.To)
-			if err2 != nil {
-				return err2
-			}
-		}
-
-		return nil
-	}); err != nil {
+	msg, err := repository.RenameBranch(ctx.Repo.Repository, ctx.User, ctx.Repo.GitRepo, form.From, form.To)
+	if err != nil {
 		ctx.ServerError("RenameBranch", err)
 		return
 	}
 
-	notification.NotifyDeleteRef(ctx.User, ctx.Repo.Repository, "branch", "refs/heads/"+form.From)
-	notification.NotifyCreateRef(ctx.User, ctx.Repo.Repository, "branch", "refs/heads/"+form.To)
+	if msg == "target_exist" {
+		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_exist", form.To))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		return
+	}
+
+	if msg == "from_not_exist" {
+		ctx.Flash.Error(ctx.Tr("repo.settings.rename_branch_failed_not_exist", form.From))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))
+		return
+	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.rename_branch_success", form.From, form.To))
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches", ctx.Repo.RepoLink))

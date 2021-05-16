@@ -600,10 +600,11 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 // RenamedBranch proivde renamed branch log
 // will check it when an branch can't be found
 type RenamedBranch struct {
-	ID     int64 `xorm:"pk autoincr"`
-	RepoID int64 `xorm:"INDEX NOT NULL"`
-	From   string
-	To     string
+	ID          int64 `xorm:"pk autoincr"`
+	RepoID      int64 `xorm:"INDEX NOT NULL"`
+	From        string
+	To          string
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 // FindRenamedBranch check if a branch was renamed
@@ -638,9 +639,6 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 	// 2. Update protected branch if needed
 	protectedBranch, err := getProtectedBranchBy(sess, repo.ID, from)
 	if err != nil {
-		if err2 := sess.Rollback(); err2 != nil {
-			log.Error("RenameBranch: sess.Rollback: %v", err2)
-		}
 		return err
 	}
 
@@ -648,9 +646,6 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 		protectedBranch.BranchName = to
 		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
 		if err != nil {
-			if err2 := sess.Rollback(); err2 != nil {
-				log.Error("RenameBranch: sess.Rollback: %v", err2)
-			}
 			return err
 		}
 	}
@@ -660,18 +655,11 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 		repo.ID, from, false).
 		Update(map[string]interface{}{"base_branch": to})
 	if err != nil {
-		if err2 := sess.Rollback(); err2 != nil {
-			log.Error("RenameBranch: sess.Rollback: %v", err2)
-		}
 		return err
 	}
 
 	// 4. do git action
 	if err = gitAction(isDefault); err != nil {
-		if err2 := sess.Rollback(); err2 != nil {
-			log.Error("RenameBranch: sess.Rollback: %v", err2)
-		}
-
 		return err
 	}
 
@@ -681,13 +669,8 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 		From:   from,
 		To:     to,
 	}
-
 	_, err = sess.Insert(renamedBranch)
 	if err != nil {
-		if err2 := sess.Rollback(); err2 != nil {
-			log.Error("RenameBranch: sess.Rollback: %v", err2)
-		}
-
 		return err
 	}
 

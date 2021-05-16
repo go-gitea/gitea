@@ -49,25 +49,23 @@ type PullRequest struct {
 // Repository contains information to operate a repository
 type Repository struct {
 	models.Permission
-	IsWatching        bool
-	IsViewBranch      bool
-	IsViewTag         bool
-	IsViewCommit      bool
-	Repository        *models.Repository
-	Owner             *models.User
-	Commit            *git.Commit
-	Tag               *git.Tag
-	GitRepo           *git.Repository
-	BranchName        string
-	IsRenamedBranch   bool
-	RenamedBranchName string
-	TagName           string
-	TreePath          string
-	CommitID          string
-	RepoLink          string
-	CloneLink         models.CloneLink
-	CommitsCount      int64
-	Mirror            *models.Mirror
+	IsWatching   bool
+	IsViewBranch bool
+	IsViewTag    bool
+	IsViewCommit bool
+	Repository   *models.Repository
+	Owner        *models.User
+	Commit       *git.Commit
+	Tag          *git.Tag
+	GitRepo      *git.Repository
+	BranchName   string
+	TagName      string
+	TreePath     string
+	CommitID     string
+	RepoLink     string
+	CloneLink    models.CloneLink
+	CommitsCount int64
+	Mirror       *models.Mirror
 
 	PullRequest *PullRequest
 }
@@ -717,8 +715,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 					return false
 				}
 
-				ctx.Repo.IsRenamedBranch = true
-				ctx.Repo.RenamedBranchName = b.To
+				ctx.Data["IsRenamedBranch"] = true
+				ctx.Data["RenamedBranchName"] = b.To
 
 				return true
 			})
@@ -803,9 +801,11 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
-			if ctx.Repo.IsRenamedBranch {
-				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, ctx.Repo.RenamedBranchName))
-				link := strings.Replace(ctx.Req.RequestURI, refName, ctx.Repo.RenamedBranchName, 1)
+			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
+			if isRenamedBranch && has {
+				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
+				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, renamedBranchName))
+				link := strings.Replace(ctx.Req.RequestURI, refName, renamedBranchName, 1)
 				ctx.Redirect(link)
 				return
 			}
