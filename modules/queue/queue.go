@@ -61,6 +61,12 @@ type Queue interface {
 	Push(Data) error
 }
 
+// PushBackable queues can be pushed back to
+type PushBackable interface {
+	// PushBack pushes data back to the top of the fifo
+	PushBack(Data) error
+}
+
 // DummyQueueType is the type for the dummy queue
 const DummyQueueType Type = "dummy"
 
