@@ -2213,13 +2213,13 @@ function searchRepositories() {
   });
 }
 
-function showCodeViewMenu() {
+function showLineButton() {
   if ($('.code-line-menu').length === 0) return;
-  $('.code-line-menu').appendTo($('.code-view'));
   $('.code-line-button').remove();
-  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').prepend(
+  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').first().prepend(
     $(`<button class="code-line-button">${svg('octicon-kebab-horizontal')}</button>`)
   );
+  $('.code-line-menu').appendTo($('.code-view'));
   $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
 }
 
@@ -2235,9 +2235,7 @@ function initCodeView() {
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-
-      // show code view menu marker
-      showCodeViewMenu();
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
@@ -2252,10 +2250,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2263,10 +2258,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
