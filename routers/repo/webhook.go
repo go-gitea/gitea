@@ -641,10 +641,12 @@ func FeishuHooksNewPost(ctx *context.Context) {
 // WechatworkHooksNewPost response for creating wechatwork hook
 func WechatworkHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
+
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.WECHATWORK
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
