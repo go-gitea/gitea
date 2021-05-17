@@ -362,11 +362,7 @@ func (repo *Repository) GetBranchProtection(branchName string) (*ProtectedBranch
 }
 
 // IsProtectedBranch checks if branch is protected
-func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
+func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repo.ID,
 		BranchName: branchName,

@@ -122,7 +122,7 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
+	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

@@ -89,7 +89,7 @@ func DeleteBranchPost(ctx *context.Context) {
 		return
 	}
 
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
+	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName)
 	if err != nil {
 		log.Error("DeleteBranch: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
