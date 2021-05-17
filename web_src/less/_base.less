@@ -669,8 +669,14 @@ a.ui.card:hover,
   height: auto;
 }
 
-.ui.loading.segment::before {
+.ui.loading.segment::before,
+.ui.loading.form::before {
   background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: .35;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -1589,8 +1595,16 @@ a.ui.label:hover {
   box-shadow: none !important;
 }
 
+.ui.button:focus,
 .ui.button:hover {
   background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
   color: var(--color-text);
 }
 
