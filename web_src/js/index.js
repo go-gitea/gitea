@@ -22,6 +22,7 @@ import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {renderMarkupContent} from './markup/content.js';
+import {showLineButton} from './code/linebutton.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
@@ -2211,16 +2212,6 @@ function searchRepositories() {
     searchFields: ['full_name'],
     showNoResults: false
   });
-}
-
-function showLineButton() {
-  if ($('.code-line-menu').length === 0) return;
-  $('.code-line-button').remove();
-  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').first().prepend(
-    $(`<button class="code-line-button">${svg('octicon-kebab-horizontal')}</button>`)
-  );
-  $('.code-line-menu').appendTo($('.code-view'));
-  $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
 }
 
 function initCodeView() {
