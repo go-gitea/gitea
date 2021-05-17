@@ -563,15 +563,16 @@ type HookTaskType = string
 
 // Types of hook tasks
 const (
-	GITEA    HookTaskType = "gitea"
-	GOGS     HookTaskType = "gogs"
-	SLACK    HookTaskType = "slack"
-	DISCORD  HookTaskType = "discord"
-	DINGTALK HookTaskType = "dingtalk"
-	TELEGRAM HookTaskType = "telegram"
-	MSTEAMS  HookTaskType = "msteams"
-	FEISHU   HookTaskType = "feishu"
-	MATRIX   HookTaskType = "matrix"
+	GITEA      HookTaskType = "gitea"
+	GOGS       HookTaskType = "gogs"
+	SLACK      HookTaskType = "slack"
+	DISCORD    HookTaskType = "discord"
+	DINGTALK   HookTaskType = "dingtalk"
+	TELEGRAM   HookTaskType = "telegram"
+	MSTEAMS    HookTaskType = "msteams"
+	FEISHU     HookTaskType = "feishu"
+	MATRIX     HookTaskType = "matrix"
+	WECHATWORK HookTaskType = "wechatwork"
 )
 
 // HookEventType is the type of an hook event

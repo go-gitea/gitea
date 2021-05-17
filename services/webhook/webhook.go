@@ -55,6 +55,10 @@ var (
 			name:           models.MATRIX,
 			payloadCreator: GetMatrixPayload,
 		},
+		models.WECHATWORK: {
+			name:           models.WECHATWORK,
+			payloadCreator: GetWechatworkPayload,
+		},
 	}
 )
 
