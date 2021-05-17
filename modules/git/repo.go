@@ -147,11 +147,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	env := []string{
-		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
-	}
-
-	_, err = cmd.RunInDirTimeoutEnv(env, opts.Timeout, "")
+	_, err = cmd.RunTimeout(opts.Timeout)
 	return err
 }
 
