@@ -381,6 +381,18 @@ func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewFeishuHookForm form for creating feishu hook
+type NewWechatWorkHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
