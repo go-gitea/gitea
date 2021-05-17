@@ -41,6 +41,7 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
+	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
