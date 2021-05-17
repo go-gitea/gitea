@@ -3,22 +3,22 @@ Description=Gitea (Git with a cup of tea)
 After=syslog.target
 After=network.target
 ###
-# Don't forget to add the database service requirements
+# Don't forget to add the database service dependencies
 ###
 #
-#Requires=mysql.service
+#Wants=mysql.service
 #After=mysql.service
 #
-#Requires=mariadb.service
+#Wants=mariadb.service
 #After=mariadb.service
 #
-#Requires=postgresql.service
+#Wants=postgresql.service
 #After=postgresql.service
 #
-#Requires=memcached.service
+#Wants=memcached.service
 #After=memcached.service
 #
-#Requires=redis.service
+#Wants=redis.service
 #After=redis.service
 #
 ###
