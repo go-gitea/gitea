@@ -560,6 +560,19 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -1565,20 +1578,8 @@ a.ui.label:hover {
     border-bottom: 1px solid var(--color-secondary);
   }
 }
-.code-view {
-  overflow: auto;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &.has-context-menu {
-    overflow: visible;
-    overflow-x: visible;
-    overflow-y: visible;
-  }
-
-  table {
-    width: 100%;
-  }
+.code-view table {
+  width: 100%;
 }
 
 .octicon-tiny {

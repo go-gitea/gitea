@@ -3140,9 +3140,23 @@ td.blob-excerpt {
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
 }
 
-.code-line-marker {
-  width: 13px;
-  height: 20px;
-  background-color: rgb(34 36 38 / 15%);
+.code-line-menu {
+  width: auto !important;
+}
+
+.code-line-button {
+  background-color: var(--color-menu);
+  color: var(--color-text-light);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  padding: 1px 10px;
   position: absolute;
+  font-family: var(--fonts-regular);
+  left: 0;
+  transform: translateX(-70%);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-primary);
+  }
 }

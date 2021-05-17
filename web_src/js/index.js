@@ -2214,46 +2214,13 @@ function searchRepositories() {
 }
 
 function showCodeViewMenu() {
-  if ($('.code-view-menu-list').length === 0) {
-    return;
-  }
-
-  // Get clicked tr
-  const $code_tr = $('.code-view td.lines-code.active').parent();
-
-  // Reset code line marker
-  $('.code-view-menu-list').appendTo($('.code-view'));
-  $('.code-line-marker').remove();
-
-  // Generate new one
-  const icon_wrap = $('<div>', {
-    class: 'code-line-marker'
-  }).prependTo($code_tr.find('td:eq(0)').get(0)).hide();
-
-  const a_wrap = $('<a>', {
-    class: 'code-line-link'
-  }).appendTo(icon_wrap);
-
-  $('<i>', {
-    class: 'dropdown icon',
-    style: 'margin: 0px;'
-  }).appendTo(a_wrap);
-
-  icon_wrap.css({
-    left: '-7px',
-    display: 'block',
-  });
-
-  $('.code-view-menu-list').css({
-    'min-width': '220px',
-  });
-
-  // Popup the menu
-  $('.code-line-link').popup({
-    popup: $('.code-view-menu-list'),
-    on: 'click',
-    lastResort: 'bottom left',
-  });
+  if ($('.code-line-menu').length === 0) return;
+  $('.code-line-menu').appendTo($('.code-view'));
+  $('.code-line-button').remove();
+  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').prepend(
+    $(`<button class="code-line-button">${svg('octicon-kebab-horizontal')}</button>`)
+  );
+  $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
 }
 
 function initCodeView() {
