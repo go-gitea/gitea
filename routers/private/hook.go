@@ -270,7 +270,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		// 6. If we're not allowed to push directly
 		if !canPush {
 			// Is this is a merge from the UI/API?
-			if opts.ProtectedBranchID == 0 {
+			if opts.PullRequestID == 0 {
 				// 6a. If we're not merging from the UI/API then there are two ways we got here:
 				//
 				// We are changing a protected file and we're not allowed to do that
@@ -292,11 +292,11 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// 6b. Merge (from UI or API)
 
 			// Get the PR, user and permissions for the user in the repository
-			pr, err := models.GetPullRequestByID(opts.ProtectedBranchID)
+			pr, err := models.GetPullRequestByID(opts.PullRequestID)
 			if err != nil {
-				log.Error("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err)
+				log.Error("Unable to get PullRequest %d Error: %v", opts.PullRequestID, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.ProtectedBranchID, err),
+					"err": fmt.Sprintf("Unable to get PullRequest %d Error: %v", opts.PullRequestID, err),
 				})
 				return
 			}
@@ -354,13 +354,13 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				if models.IsErrNotAllowedToMerge(err) {
 					log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", opts.UserID, branchName, repo, pr.Index, err.Error())
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
-						"err": fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, opts.ProtectedBranchID, err.Error()),
+						"err": fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, opts.PullRequestID, err.Error()),
 					})
 					return
 				}
 				log.Error("Unable to check if mergable: protected branch %s in %-v and pr #%d. Error: %v", opts.UserID, branchName, repo, pr.Index, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"err": fmt.Sprintf("Unable to get status of pull request %d. Error: %v", opts.ProtectedBranchID, err),
+					"err": fmt.Sprintf("Unable to get status of pull request %d. Error: %v", opts.PullRequestID, err),
 				})
 				return
 			}
