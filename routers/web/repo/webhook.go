@@ -1106,39 +1106,6 @@ func FeishuHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
-// WechatworkHooksEditPost response for editing wechatwork hook
-func WechatworkHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := models.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
