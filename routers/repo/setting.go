@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -281,9 +281,9 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		remoteSuffix, err := generate.GetRandomString(10)
+		remoteSuffix, err := util.RandomString(10)
 		if err != nil {
-			ctx.ServerError("GetRandomString", err)
+			ctx.ServerError("RandomString", err)
 			return
 		}
 
