@@ -15,8 +15,8 @@ import (
 
 // Restart is not implemented for Windows based servers as they can't fork
 func Restart(ctx *context.PrivateContext) {
-	ctx.JSON(http.StatusNotImplemented, map[string]interface{}{
-		"err": "windows servers cannot be gracefully restarted - shutdown and restart manually",
+	ctx.JSON(http.StatusNotImplemented, private.Response{
+		Err: "windows servers cannot be gracefully restarted - shutdown and restart manually",
 	})
 }
 

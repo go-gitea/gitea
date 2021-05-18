@@ -10,6 +10,7 @@ import (
 
 	myCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/modules/private"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -18,8 +19,8 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 		return
 	}
@@ -30,8 +31,8 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units     []string
 	}{}
 	if err = json.Unmarshal(bs, &params); err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 		return
 	}
@@ -43,8 +44,8 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		params.RepoName,
 		params.Units,
 	); err != nil {
-		ctx.JSON(http.StatusInternalServerError, map[string]string{
-			"err": err.Error(),
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: err.Error(),
 		})
 	} else {
 		ctx.Status(http.StatusOK)
