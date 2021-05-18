@@ -14,9 +14,9 @@ type MigrateOptions struct {
 	CloneAddr             string `json:"clone_addr" binding:"Required"`
 	CloneAddrEncrypted    string `json:"clone_addr_encrypted,omitempty"`
 	AuthUsername          string `json:"auth_username"`
-	AuthPassword          string `json:"auth_password,omitempty"`
+	AuthPassword          string `json:"-"`
 	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
-	AuthToken             string `json:"auth_token,omitempty"`
+	AuthToken             string `json:"-"`
 	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
