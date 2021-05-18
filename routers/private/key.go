@@ -27,7 +27,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	deployKey, err := models.GetDeployKeyByRepo(keyID, repoID)
 	if err != nil {
 		if models.IsErrDeployKeyNotExist(err) {
-			ctx.PlainText(200, []byte("success"))
+			ctx.PlainText(http.StatusOK, []byte("success"))
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

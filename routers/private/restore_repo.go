@@ -6,6 +6,7 @@ package private
 
 import (
 	"io/ioutil"
+	"net/http"
 
 	myCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/migrations"
@@ -17,7 +18,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
-		ctx.JSON(500, map[string]string{
+		ctx.JSON(http.StatusInternalServerError, map[string]string{
 			"err": err.Error(),
 		})
 		return
@@ -29,7 +30,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		Units     []string
 	}{}
 	if err = json.Unmarshal(bs, &params); err != nil {
-		ctx.JSON(500, map[string]string{
+		ctx.JSON(http.StatusInternalServerError, map[string]string{
 			"err": err.Error(),
 		})
 		return
@@ -42,10 +43,10 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 		params.RepoName,
 		params.Units,
 	); err != nil {
-		ctx.JSON(500, map[string]string{
+		ctx.JSON(http.StatusInternalServerError, map[string]string{
 			"err": err.Error(),
 		})
 	} else {
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
