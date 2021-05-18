@@ -80,8 +80,8 @@ func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 
 // GetProtectedTagByID gets the protected tag with the specific id
 func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
-	tag := &ProtectedTag{ID: id}
-	has, err := x.Get(tag)
+	tag := new(ProtectedTag)
+	has, err := e.ID(id).Get(tag)
 	if err != nil {
 		return nil, err
 	}
