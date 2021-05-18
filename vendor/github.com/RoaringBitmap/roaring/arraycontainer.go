@@ -4,8 +4,6 @@ import (
 	"fmt"
 )
 
-//go:generate msgp -unexported
-
 type arrayContainer struct {
 	content []uint16
 }
@@ -485,7 +483,7 @@ func (ac *arrayContainer) orArrayCardinality(value2 *arrayContainer) int {
 func (ac *arrayContainer) lazyorArray(value2 *arrayContainer) container {
 	value1 := ac
 	maxPossibleCardinality := value1.getCardinality() + value2.getCardinality()
-	if maxPossibleCardinality > arrayLazyLowerBound { // it could be a bitmap!^M
+	if maxPossibleCardinality > arrayLazyLowerBound { // it could be a bitmap!
 		bc := newBitmapContainer()
 		for k := 0; k < len(value2.content); k++ {
 			v := value2.content[k]

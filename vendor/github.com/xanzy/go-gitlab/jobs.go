@@ -43,6 +43,7 @@ type Job struct {
 	FinishedAt        *time.Time `json:"finished_at"`
 	Duration          float64    `json:"duration"`
 	ArtifactsExpireAt *time.Time `json:"artifacts_expire_at"`
+	TagList           []string   `json:"tag_list"`
 	ID                int        `json:"id"`
 	Name              string     `json:"name"`
 	Pipeline          struct {

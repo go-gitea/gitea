@@ -677,7 +677,8 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 
 		status, err := getLastCommitStatus(gitRepo, issue.PullRequest)
 		if err != nil {
-			return nil, err
+			log.Error("getLastCommitStatus: cant get last commit of pull [%d]: %v", issue.PullRequest.ID, err)
+			continue
 		}
 		res[issue.PullRequest.ID] = status
 	}

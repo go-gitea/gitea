@@ -174,7 +174,7 @@ type XPackSecurityRole struct {
 type XPackSecurityApplicationPrivileges struct {
 	Application string   `json:"application"`
 	Privileges  []string `json:"privileges"`
-	Ressources  []string `json:"resources"`
+	Resources  []string `json:"resources"`
 }
 
 // XPackSecurityIndicesPermissions is the indices permission object

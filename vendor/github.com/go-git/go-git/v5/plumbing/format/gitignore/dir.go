@@ -125,7 +125,7 @@ func LoadGlobalPatterns(fs billy.Filesystem) (ps []Pattern, err error) {
 }
 
 // LoadSystemPatterns loads gitignore patterns from from the gitignore file
-// declared in a system's /etc/gitconfig file.  If the ~/.gitconfig file does
+// declared in a system's /etc/gitconfig file.  If the /etc/gitconfig file does
 // not exist the function will return nil.  If the core.excludesfile property
 // is not declared, the function will return nil.  If the file pointed to by
 // the core.excludesfile property does not exist, the function will return nil.

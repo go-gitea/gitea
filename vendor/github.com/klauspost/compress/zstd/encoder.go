@@ -106,7 +106,7 @@ func (e *Encoder) Reset(w io.Writer) {
 		s.encoder = e.o.encoder()
 	}
 	if s.writing == nil {
-		s.writing = &blockEnc{}
+		s.writing = &blockEnc{lowMem: e.o.lowMem}
 		s.writing.init()
 	}
 	s.writing.initNewEncode()
@@ -176,6 +176,12 @@ func (e *Encoder) nextBlock(final bool) error {
 	}
 	if !s.headerWritten {
 		// If we have a single block encode, do a sync compression.
+		if final && len(s.filling) == 0 && !e.o.fullZero {
+			s.headerWritten = true
+			s.fullFrameWritten = true
+			s.eofWritten = true
+			return nil
+		}
 		if final && len(s.filling) > 0 {
 			s.current = e.EncodeAll(s.filling, s.current[:0])
 			var n2 int
@@ -334,13 +340,13 @@ func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
 				println("ReadFrom: got EOF final block:", len(e.state.filling))
 			}
 			return n, nil
+		case nil:
 		default:
 			if debug {
 				println("ReadFrom: got error:", err)
 			}
 			e.state.err = err
 			return n, err
-		case nil:
 		}
 		if len(src) > 0 {
 			if debug {
@@ -471,7 +477,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 	}
 
 	// If less than 1MB, allocate a buffer up front.
-	if len(dst) == 0 && cap(dst) == 0 && len(src) < 1<<20 {
+	if len(dst) == 0 && cap(dst) == 0 && len(src) < 1<<20 && !e.o.lowMem {
 		dst = make([]byte, 0, len(src))
 	}
 	dst, err := fh.appendTo(dst)

@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -106,6 +106,7 @@ type Project struct {
 	PagesAccessLevel                          AccessControlValue         `json:"pages_access_level"`
 	OperationsAccessLevel                     AccessControlValue         `json:"operations_access_level"`
 	AutocloseReferencedIssues                 bool                       `json:"autoclose_referenced_issues"`
+	SuggestionCommitMessage                   string                     `json:"suggestion_commit_message"`
 	CIForwardDeploymentEnabled                bool                       `json:"ci_forward_deployment_enabled"`
 	SharedWithGroups                          []struct {
 		GroupID          int    `json:"group_id"`
@@ -118,6 +119,7 @@ type Project struct {
 	CIDefaultGitDepth    int                `json:"ci_default_git_depth"`
 	CustomAttributes     []*CustomAttribute `json:"custom_attributes"`
 	ComplianceFrameworks []string           `json:"compliance_frameworks"`
+	BuildCoverageRegex   string             `json:"build_coverage_regex"`
 }
 
 // ContainerExpirationPolicy represents the container expiration policy.
@@ -534,6 +536,7 @@ type CreateProjectOptions struct {
 	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
 	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -671,6 +674,7 @@ type EditProjectOptions struct {
 	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
 	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -948,6 +952,7 @@ type ProjectHook struct {
 	PipelineEvents           bool       `json:"pipeline_events"`
 	WikiPageEvents           bool       `json:"wiki_page_events"`
 	DeploymentEvents         bool       `json:"deployment_events"`
+	ReleasesEvents           bool       `json:"releases_events"`
 	EnableSSLVerification    bool       `json:"enable_ssl_verification"`
 	CreatedAt                *time.Time `json:"created_at"`
 }
@@ -1025,6 +1030,7 @@ type AddProjectHookOptions struct {
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
 	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -1072,6 +1078,7 @@ type EditProjectHookOptions struct {
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
 	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -1198,7 +1205,8 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 
-	fw, err := w.CreateFormFile("file", file)
+	_, filename := filepath.Split(file)
+	fw, err := w.CreateFormFile("file", filename)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1209,15 +1217,18 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	}
 	w.Close()
 
-	req, err := s.client.NewRequest("", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	req.Body = ioutil.NopCloser(b)
-	req.ContentLength = int64(b.Len())
+	// Set the buffer as the request body.
+	if err = req.SetBody(b); err != nil {
+		return nil, nil, err
+	}
+
+	// Overwrite the default content type.
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Method = http.MethodPost
 
 	uf := &ProjectFile{}
 	resp, err := s.client.Do(req, uf)

@@ -296,11 +296,15 @@ func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
 func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
-	_, err := x.In("id", builder.Select("`"+subject+"`.id").
+	subQuery := builder.Select("`"+subject+"`.id").
 		From("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"})).
-		Delete("`" + subject + "`")
+		Where(builder.IsNull{"`" + refobject + "`.id"})
+	sql, args, err := builder.Delete(builder.In("id", subQuery)).From("`" + subject + "`").ToSQL()
+	if err != nil {
+		return err
+	}
+	_, err = x.Exec(append([]interface{}{sql}, args...)...)
 	return err
 }
 

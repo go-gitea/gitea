@@ -22,7 +22,7 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 
-// ClientOptionFunc can be used customize a new GitLab API client.
+// ClientOptionFunc can be used to customize a new GitLab API client.
 type ClientOptionFunc func(*Client) error
 
 // WithBaseURL sets the base URL for API requests to a custom endpoint.

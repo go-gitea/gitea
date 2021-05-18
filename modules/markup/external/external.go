@@ -5,7 +5,7 @@
 package external
 
 import (
-	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,32 +19,32 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// RegisterParsers registers all supported third part parsers according settings
-func RegisterParsers() {
-	for _, parser := range setting.ExternalMarkupParsers {
-		if parser.Enabled && parser.Command != "" && len(parser.FileExtensions) > 0 {
-			markup.RegisterParser(&Parser{parser})
+// RegisterRenderers registers all supported third part renderers according settings
+func RegisterRenderers() {
+	for _, renderer := range setting.ExternalMarkupRenderers {
+		if renderer.Enabled && renderer.Command != "" && len(renderer.FileExtensions) > 0 {
+			markup.RegisterRenderer(&Renderer{renderer})
 		}
 	}
 }
 
-// Parser implements markup.Parser for external tools
-type Parser struct {
-	setting.MarkupParser
+// Renderer implements markup.Renderer for external tools
+type Renderer struct {
+	setting.MarkupRenderer
 }
 
 // Name returns the external tool name
-func (p *Parser) Name() string {
+func (p *Renderer) Name() string {
 	return p.MarkupName
 }
 
-// NeedPostProcess implements markup.Parser
-func (p *Parser) NeedPostProcess() bool {
-	return p.MarkupParser.NeedPostProcess
+// NeedPostProcess implements markup.Renderer
+func (p *Renderer) NeedPostProcess() bool {
+	return p.MarkupRenderer.NeedPostProcess
 }
 
 // Extensions returns the supported extensions of the tool
-func (p *Parser) Extensions() []string {
+func (p *Renderer) Extensions() []string {
 	return p.FileExtensions
 }
 
@@ -56,14 +56,10 @@ func envMark(envName string) string {
 }
 
 // Render renders the data of the document to HTML via the external tool.
-func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
+func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	var (
-		bs           []byte
-		buf          = bytes.NewBuffer(bs)
-		rd           = bytes.NewReader(rawBytes)
-		urlRawPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
-
-		command = strings.NewReplacer(envMark("GITEA_PREFIX_SRC"), urlPrefix,
+		urlRawPrefix = strings.Replace(ctx.URLPrefix, "/src/", "/raw/", 1)
+		command      = strings.NewReplacer(envMark("GITEA_PREFIX_SRC"), ctx.URLPrefix,
 			envMark("GITEA_PREFIX_RAW"), urlRawPrefix).Replace(p.Command)
 		commands = strings.Fields(command)
 		args     = commands[1:]
@@ -73,8 +69,7 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 		// write to temp file
 		f, err := ioutil.TempFile("", "gitea_input")
 		if err != nil {
-			log.Error("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
-			return []byte("")
+			return fmt.Errorf("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
 		tmpPath := f.Name()
 		defer func() {
@@ -83,17 +78,15 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 			}
 		}()
 
-		_, err = io.Copy(f, rd)
+		_, err = io.Copy(f, input)
 		if err != nil {
 			f.Close()
-			log.Error("%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
-			return []byte("")
+			return fmt.Errorf("%s write data to temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
 
 		err = f.Close()
 		if err != nil {
-			log.Error("%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
-			return []byte("")
+			return fmt.Errorf("%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
 		args = append(args, f.Name())
 	}
@@ -101,16 +94,15 @@ func (p *Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]stri
 	cmd := exec.Command(commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
-		"GITEA_PREFIX_SRC="+urlPrefix,
+		"GITEA_PREFIX_SRC="+ctx.URLPrefix,
 		"GITEA_PREFIX_RAW="+urlRawPrefix,
 	)
 	if !p.IsInputFile {
-		cmd.Stdin = rd
+		cmd.Stdin = input
 	}
-	cmd.Stdout = buf
+	cmd.Stdout = output
 	if err := cmd.Run(); err != nil {
-		log.Error("%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
-		return []byte("")
+		return fmt.Errorf("%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
 	}
-	return buf.Bytes()
+	return nil
 }

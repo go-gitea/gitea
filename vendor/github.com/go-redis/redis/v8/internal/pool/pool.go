@@ -228,8 +228,7 @@ func (p *ConnPool) Get(ctx context.Context) (*Conn, error) {
 		return nil, ErrClosed
 	}
 
-	err := p.waitTurn(ctx)
-	if err != nil {
+	if err := p.waitTurn(ctx); err != nil {
 		return nil, err
 	}
 

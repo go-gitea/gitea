@@ -6,9 +6,6 @@
 			<div class="column">
 				{{template "repo/issue/navbar" .}}
 			</div>
-			<div class="column center aligned">
-				{{template "repo/issue/search" .}}
-			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
@@ -73,13 +70,13 @@
 			{{ range $board := .Boards }}
 
 			<div class="ui segment board-column" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
-				<div class="board-column-header">
-					<div class="ui large label board-label">{{.Title}}</div>
+				<div class="board-column-header df ac sb">
+					<div class="ui large label board-label py-2">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
-						<div class="ui dropdown jump item poping up right" data-variation="tiny inverted">
-							<span class="ui text">
-								<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-kebab-horizontal" 24}}</span>
-							</span>
+						<div class="ui dropdown jump item poping up" data-variation="tiny inverted">
+							<div class="not-mobile px-3" tabindex="-1">
+								{{svg "octicon-kebab-horizontal"}}
+							</div>
 							<div class="menu user-menu" tabindex="-1">
 								<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
@@ -156,9 +153,9 @@
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
-						<div class="content">
+						<div class="content p-0">
 							<div class="header">
-								<span>
+								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
 									{{if .IsPull}}
 										{{if .PullRequest.HasMerged}}
 											{{svg "octicon-git-merge" 16 "text purple"}}
@@ -177,29 +174,47 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title" href="{{$.RepoLink}}/issues/{{.Index}}">#{{.Index}} {{.Title}}</a>
+								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+									{{.Title}}
+								</a>
+							</div>
+							<div class="meta my-2">
+								<span class="text light grey">
+									#{{.Index}}
+									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+									{{if .OriginalAuthor }}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+									{{else if gt .Poster.ID 0}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+									{{else}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+									{{end}}
+								</span>
 							</div>
 							{{- if .MilestoneID }}
-							<div class="meta">
+							<div class="meta my-2">
 								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
-									{{svg "octicon-milestone"}} {{ .Milestone.Name }}
+									{{svg "octicon-milestone" 16 "mr-2 vm"}}
+									<span class="vm">{{ .Milestone.Name }}</span>
 								</a>
 							</div>
 							{{- end }}
 							{{- range index $.LinkedPRs .ID }}
-							<div class="meta">
+							<div class="meta my-2">
 								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
-									<span class="{{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge"}}</span>
-									{{ .Title}} (#{{ .Index }})
+									<span class="m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
+									<span class="vm">{{ .Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>
 							{{- end }}
 						</div>
-						<div class="extra content">
-							{{ range .Labels }}
-							<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}; margin-bottom: 3px;" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-							{{ end }}
-						</div>
+						{{if .Labels}}
+							<div class="extra content labels-list p-0 pt-2">
+								{{ range .Labels }}
+								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+								{{ end }}
+							</div>
+						{{end}}
 					</div>
 					<!-- stop issue card -->
 

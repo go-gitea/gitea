@@ -152,7 +152,7 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
 		}
 		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path); err == nil {
+			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
 				opts.DB = db
 			}
 		}
@@ -168,7 +168,7 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
 		}
 		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path); err == nil {
+			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
 				opts.DB = db
 			}
 		}
@@ -186,7 +186,7 @@ func (m *Manager) GetRedisClient(connection string) redis.UniversalClient {
 			opts.Addrs = append(opts.Addrs, strings.Split(uri.Host, ",")...)
 		}
 		if uri.Path != "" {
-			if db, err := strconv.Atoi(uri.Path); err == nil {
+			if db, err := strconv.Atoi(uri.Path[1:]); err == nil {
 				opts.DB = db
 			}
 		}

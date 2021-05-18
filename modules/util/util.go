@@ -6,7 +6,9 @@ package util
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
+	"math/big"
 	"strings"
 )
 
@@ -123,4 +125,29 @@ func MergeInto(dict map[string]interface{}, values ...interface{}) (map[string]i
 	}
 
 	return dict, nil
+}
+
+// RandomInt returns a random integer between 0 and limit, inclusive
+func RandomInt(limit int64) (int64, error) {
+	int, err := rand.Int(rand.Reader, big.NewInt(limit))
+	if err != nil {
+		return 0, err
+	}
+	return int.Int64(), nil
+}
+
+const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// RandomString generates a random alphanumerical string
+func RandomString(length int64) (string, error) {
+	bytes := make([]byte, length)
+	limit := int64(len(letters))
+	for i := range bytes {
+		num, err := RandomInt(limit)
+		if err != nil {
+			return "", err
+		}
+		bytes[i] = letters[num]
+	}
+	return string(bytes), nil
 }

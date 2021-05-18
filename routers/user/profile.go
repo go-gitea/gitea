@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -45,11 +46,14 @@ func GetUserByParams(ctx *context.Context) *models.User {
 // Profile render user's profile page
 func Profile(ctx *context.Context) {
 	uname := ctx.Params(":username")
+
 	// Special handle for FireFox requests favicon.ico.
 	if uname == "favicon.ico" {
 		ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
 		return
-	} else if strings.HasSuffix(uname, ".png") {
+	}
+
+	if strings.HasSuffix(uname, ".png") {
 		ctx.Error(http.StatusNotFound)
 		return
 	}
@@ -110,7 +114,15 @@ func Profile(ctx *context.Context) {
 	}
 
 	if len(ctxUser.Description) != 0 {
-		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(ctxUser.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+		content, err := markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     map[string]string{"mode": "document"},
+		}, ctxUser.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["RenderedDescription"] = content
 	}
 
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
