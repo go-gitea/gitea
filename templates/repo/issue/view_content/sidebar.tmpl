@@ -6,12 +6,12 @@
 
 			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
 			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
-				<span class="text">
+				<a class="text df ac muted">
 					<strong>{{.i18n.Tr "repo.issues.review.reviewers"}}</strong>
 					{{if and .CanChooseReviewer (not .Repository.IsArchived)}}
-						{{svg "octicon-gear"}}
+						{{svg "octicon-gear" 16 "ml-2"}}
 					{{end}}
-				</span>
+				</a>
 				<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 					<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_reviewer_title"}}</div>
 					{{if .Reviewers}}
@@ -95,12 +95,12 @@
 		{{end}}
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-label dropdown">
-			<span class="text">
+			<a class="text df ac muted">
 				<strong>{{.i18n.Tr "repo.issues.new.labels"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear"}}
+					{{svg "octicon-gear" 16 "ml-2"}}
 				{{end}}
-			</span>
+			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/labels">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_labels_title"}}</div>
 				{{if or .Labels .OrgLabels}}
@@ -130,12 +130,12 @@
 		<div class="ui divider"></div>
 
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
-			<span class="text">
+			<a class="text df ac muted">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear"}}
+					{{svg "octicon-gear" 16 "ml-2"}}
 				{{end}}
-			</span>
+			</a>
 			<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/milestone">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_milestone_title"}}</div>
 				{{if or .OpenMilestones .ClosedMilestones}}
@@ -193,12 +193,12 @@
 			<div class="ui divider"></div>
 
 			<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-project dropdown">
-				<span class="text">
+				<a class="text df ac muted">
 					<strong>{{.i18n.Tr "repo.issues.new.projects"}}</strong>
 					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-						{{svg "octicon-gear"}}
+						{{svg "octicon-gear" 16 "ml-2"}}
 					{{end}}
-				</span>
+				</a>
 				<div class="menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/projects">
 					<div class="no-select item">{{.i18n.Tr "repo.issues.new.clear_projects"}}</div>
 					{{if .OpenProjects}}
@@ -244,12 +244,12 @@
 
 		<input id="assignee_id" name="assignee_id" type="hidden" value="{{.assignee_id}}">
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-assignees-modify dropdown">
-			<span class="text">
+			<a class="text df ac muted">
 				<strong>{{.i18n.Tr "repo.issues.new.assignees"}}</strong>
 				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-					{{svg "octicon-gear"}}
+					{{svg "octicon-gear" 16 "ml-2"}}
 				{{end}}
-			</span>
+			</a>
 			<div class="filter menu" data-action="update" data-issue-id="{{$.Issue.ID}}" data-update-url="{{$.RepoLink}}/issues/assignee">
 				<div class="header" style="text-transform: none;font-size:16px;">{{.i18n.Tr "repo.issues.new.add_assignees_title"}}</div>
 				<div class="ui icon search input">
@@ -312,12 +312,12 @@
 					<form method="POST" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/watch">
 						<input type="hidden" name="watch" value="{{if $.IssueWatch.IsWatching}}0{{else}}1{{end}}" />
 						{{$.CsrfTokenHtml}}
-						<button class="fluid ui button">
+						<button class="fluid ui button df jc">
 							{{if $.IssueWatch.IsWatching}}
-								{{svg "octicon-mute"}}
+								{{svg "octicon-mute" 16 "mr-3"}}
 								{{.i18n.Tr "repo.issues.unsubscribe"}}
 							{{else}}
-								{{svg "octicon-unmute"}}
+								{{svg "octicon-unmute" 16 "mr-3"}}
 								{{.i18n.Tr "repo.issues.subscribe"}}
 							{{end}}
 						</button>
@@ -338,34 +338,30 @@
 							{{$.CsrfTokenHtml}}
 						</form>
 						{{if  $.IsStopwatchRunning}}
-							<div class="ui buttons fluid">
-								<button class="ui button issue-stop-time">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
-								<button class="ui negative button issue-cancel-time">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
-							</div>
+							<button class="ui fluid button issue-stop-time">{{.i18n.Tr "repo.issues.stop_tracking"}}</button>
+							<button class="ui fluid negative button issue-cancel-time mt-3">{{.i18n.Tr "repo.issues.cancel_tracking"}}</button>
 						{{else}}
 							{{if .HasUserStopwatch}}
 								<div class="ui warning message">
 									{{.i18n.Tr "repo.issues.tracking_already_started" .OtherStopwatchURL | Safe}}
 								</div>
 							{{end}}
-							<div class="ui buttons two fluid">
-								<button class="ui button poping up issue-start-time" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
-								<div class="ui mini modal issue-start-time-modal">
-									<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
-									<div class="content">
-										<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
-											{{$.CsrfTokenHtml}}
-											<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
-											<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
-										</form>
-									</div>
-									<div class="actions">
-										<div class="ui green approve button">{{.i18n.Tr "repo.issues.add_time_short"}}</div>
-										<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
-									</div>
+							<button class="ui fluid button poping up issue-start-time" data-content='{{.i18n.Tr "repo.issues.start_tracking"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.start_tracking_short"}}</button>
+							<div class="ui mini modal issue-start-time-modal">
+								<div class="header">{{.i18n.Tr "repo.issues.add_time"}}</div>
+								<div class="content">
+									<form method="POST" id="add_time_manual_form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/times/add" class="ui action input fluid">
+										{{$.CsrfTokenHtml}}
+										<input placeholder='{{.i18n.Tr "repo.issues.add_time_hours"}}' type="number" name="hours">
+										<input placeholder='{{.i18n.Tr "repo.issues.add_time_minutes"}}' type="number" name="minutes" class="ui compact">
+									</form>
 								</div>
-								<button class="ui button green poping up issue-add-time" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
+								<div class="actions">
+									<div class="ui green approve button">{{.i18n.Tr "repo.issues.add_time_short"}}</div>
+									<div class="ui red cancel button">{{.i18n.Tr "repo.issues.add_time_cancel"}}</div>
+								</div>
 							</div>
+							<button class="ui fluid button green poping up issue-add-time mt-3" data-content='{{.i18n.Tr "repo.issues.add_time"}}' data-position="top center" data-variation="small inverted">{{.i18n.Tr "repo.issues.add_time_short"}}</button>
 						{{end}}
 					</div>
 				</div>
@@ -397,21 +393,23 @@
 		<span class="text"><strong>{{.i18n.Tr "repo.issues.due_date"}}</strong></span>
 		<div class="ui form" id="deadline-loader">
 			<div class="ui negative message" id="deadline-err-invalid-date" style="display: none;">
-				<i class="close icon"></i>
+				{{svg "octicon-x" 16 "close icon"}}
 				{{.i18n.Tr "repo.issues.due_date_invalid"}}
 			</div>
 			{{if ne .Issue.DeadlineUnix 0}}
 				<p>
-					{{svg "octicon-calendar"}}
-					{{.Issue.DeadlineUnix.FormatDate}}
-					{{if .Issue.IsOverdue}}
-						<span style="color: red;">{{.i18n.Tr "repo.issues.due_date_overdue"}}</span>
-					{{end}}
-					{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
-						<br/>
-						<a class="issue-due-edit"><i class="edit icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_edit"}}</a> -
-						<a class="issue-due-remove"><i class="remove icon"></i>{{$.i18n.Tr "repo.issues.due_date_form_remove"}}</a>
-					{{end}}
+					<div class="df sb ac">
+						<div class="due-date poping up {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.i18n.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+							{{svg "octicon-calendar" 16 "mr-3"}}
+							{{.Issue.DeadlineUnix.FormatDate}}
+						</div>
+						<div>
+							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+								<a class="issue-due-edit poping up muted" data-content="{{$.i18n.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil" 16 "mr-2"}}</a>
+								<a class="issue-due-remove poping up muted" data-content="{{$.i18n.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
+							{{end}}
+						</div>
+					</div>
 				</p>
 			{{else}}
 				<p><i>{{.i18n.Tr "repo.issues.due_date_not_set"}}</i></p>
@@ -424,9 +422,9 @@
 						<input required placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}" {{if gt .Issue.DeadlineUnix 0}}value="{{.Issue.DeadlineUnix.Format "2006-01-02"}}"{{end}} type="date" name="deadlineDate" id="deadlineDate">
 						<button class="ui green icon button">
 							{{if ne .Issue.DeadlineUnix 0}}
-								<i class="edit icon"></i>
+								{{svg "octicon-pencil"}}
 							{{else}}
-								<i class="plus icon"></i>
+								{{svg "octicon-plus"}}
 							{{end}}
 						</button>
 					</form>
@@ -467,7 +465,7 @@
 								</div>
 								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button poping up ci" data-id="{{.Issue.ID}}" data-type="blocking" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button poping up ci muted" data-id="{{.Issue.ID}}" data-type="blocking" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
@@ -494,7 +492,7 @@
 								</div>
 								<div class="item-right df ac">
 									{{if and $.CanCreateIssueDependencies (not $.Repository.IsArchived)}}
-										<a class="delete-dependency-button poping up ci" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
+										<a class="delete-dependency-button poping up ci muted" data-id="{{.Issue.ID}}" data-type="blockedBy" data-content="{{$.i18n.Tr "repo.issues.dependency.remove_info"}}" data-inverted="">
 											{{svg "octicon-trash" 16}}
 										</a>
 									{{end}}
@@ -516,7 +514,7 @@
 									<div class="default text">{{.i18n.Tr "repo.issues.dependency.add"}}</div>
 								</div>
 								<button class="ui green icon button">
-									<i class="plus icon"></i>
+									{{svg "octicon-plus"}}
 								</button>
 							</div>
 						</form>
@@ -550,12 +548,12 @@
 						{{end}}</p>
 					</div>
 					<div class="actions">
-						<div class="ui basic red cancel inverted button">
-							<i class="remove icon"></i>
+						<div class="ui red cancel inverted button">
+							{{svg "octicon-x"}}
 							{{.i18n.Tr "repo.issues.dependency.cancel"}}
 						</div>
-						<div class="ui basic green ok inverted button">
-							<i class="checkmark icon"></i>
+						<div class="ui green ok inverted button">
+							{{svg "octicon-check"}}
 							{{.i18n.Tr "repo.issues.dependency.remove"}}
 						</div>
 					</div>
