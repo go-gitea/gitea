@@ -564,22 +564,35 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 		return ""
 	}
 
+	maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
 	authorsMap := map[string]bool{}
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
 
-	stringBuilder.WriteString(pr.Issue.Content)
-	if stringBuilder.Len() > 0 {
-		stringBuilder.WriteRune('\n')
-		stringBuilder.WriteRune('\n')
-	}
-
 	// commits list is in reverse chronological order
 	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
+
+		if maxSize < 0 || stringBuilder.Len() < maxSize {
+			toWrite := []byte(commit.CommitMessage)
+			if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
+				toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+			}
+			if _, err := stringBuilder.Write(toWrite); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+
+			if _, err := stringBuilder.WriteRune('\n'); err != nil {
+				log.Error("Unable to write commit message Error: %v", err)
+				return ""
+			}
+		}
+
 		authorString := commit.Author.String()
 		if !authorsMap[authorString] && authorString != posterSig {
 			authors = append(authors, authorString)
