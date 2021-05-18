@@ -22,6 +22,11 @@ type SubModule struct {
 	URL  string
 }
 
+type SubModuleCommit struct {
+	Name   string
+	Commit string
+}
+
 // SubModuleFile represents a file with submodule type.
 type SubModuleFile struct {
 	*Commit
@@ -121,4 +126,64 @@ func (sf *SubModuleFile) RefURL(urlPrefix, repoFullName, sshDomain string) strin
 // RefID returns reference ID.
 func (sf *SubModuleFile) RefID() string {
 	return sf.refID
+}
+
+func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
+	var submodules []SubModuleCommit
+
+	submoduleOut, err := NewCommand("config", "-f", ".gitmodules", "--list", "--name-only").
+		RunInDir(repoPath)
+
+	if err != nil {
+		// Command fails if there are no or invalid submodules, just return an empty list
+		return submodules
+	}
+
+	for _, line := range strings.Split(strings.TrimSuffix(submoduleOut, "\n"), "\n") {
+		if len(line) < len("submodule.x.url") ||
+			!strings.HasPrefix(line, "submodule.") ||
+			!strings.HasSuffix(line, ".url") {
+
+			continue
+		}
+
+		name := line[len("submodule.") : len(line)-len(".url")]
+		name = strings.TrimSpace(name)
+
+		if len(name) == 0 {
+			log("Submodule skipped because it has no name")
+			continue
+		}
+
+		commit, err := NewCommand("submodule", "status", name).
+			RunInDir(repoPath)
+
+		// If no commit was found for the module skip it
+		if err != nil {
+			log("Submodule %s skipped because it has no commit", name)
+			continue
+		}
+
+		if len(commit) > 0 {
+			commit = commit[1:]
+		}
+
+		fields := strings.Fields(commit)
+
+		if len(fields) == 0 {
+			log("Submodule %s skipped because it has no valid commit", name)
+			continue
+		}
+
+		commit = fields[0]
+
+		if len(commit) != 40 {
+			log("Submodule %s skipped due to malformed commit hash", name)
+			continue
+		}
+
+		submodules = append(submodules, SubModuleCommit{name, commit})
+	}
+
+	return submodules
 }
