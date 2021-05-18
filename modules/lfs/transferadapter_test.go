@@ -7,13 +7,13 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +49,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 			assert.Equal(t, MediaType, req.Header.Get("Content-Type"))
 
 			var vp Pointer
-			err := json.NewDecoder(req.Body).Decode(&vp)
+			err := jsoniter.NewDecoder(req.Body).Decode(&vp)
 			assert.NoError(t, err)
 			assert.Equal(t, p.Oid, vp.Oid)
 			assert.Equal(t, p.Size, vp.Size)
@@ -60,7 +60,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 				Message: "Object not found",
 			}
 			payload := new(bytes.Buffer)
-			json.NewEncoder(payload).Encode(er)
+			jsoniter.NewEncoder(payload).Encode(er)
 
 			return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(payload)}
 		} else {

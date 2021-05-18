@@ -7,13 +7,13 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -146,7 +146,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	}
 
 	payload := new(bytes.Buffer)
-	json.NewEncoder(payload).Encode(batchResponse)
+	jsoniter.NewEncoder(payload).Encode(batchResponse)
 
 	return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(payload)}
 }
@@ -160,7 +160,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		assert.Equal(t, MediaType, req.Header.Get("Accept"))
 
 		var batchRequest BatchRequest
-		err := json.NewDecoder(req.Body).Decode(&batchRequest)
+		err := jsoniter.NewDecoder(req.Body).Decode(&batchRequest)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "download", batchRequest.Operation)
@@ -267,7 +267,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		assert.Equal(t, MediaType, req.Header.Get("Accept"))
 
 		var batchRequest BatchRequest
-		err := json.NewDecoder(req.Body).Decode(&batchRequest)
+		err := jsoniter.NewDecoder(req.Body).Decode(&batchRequest)
 		assert.NoError(t, err)
 
 		assert.Equal(t, "upload", batchRequest.Operation)
