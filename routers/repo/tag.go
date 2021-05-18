@@ -69,9 +69,8 @@ func EditProtectedTag(ctx *context.Context) {
 
 	ctx.Data["PageIsEditProtectedTag"] = true
 
-	pt, err := selectProtectedTagByContext(ctx)
-	if err != nil {
-		ctx.NotFound("", err)
+	pt := selectProtectedTagByContext(ctx)
+	if pt == nil {
 		return
 	}
 
@@ -95,9 +94,8 @@ func EditProtectedTagPost(ctx *context.Context) {
 		return
 	}
 
-	pt, err := selectProtectedTagByContext(ctx)
-	if err != nil {
-		ctx.NotFound("", err)
+	pt := selectProtectedTagByContext(ctx)
+	if pt == nil {
 		return
 	}
 
@@ -118,9 +116,8 @@ func EditProtectedTagPost(ctx *context.Context) {
 
 // DeleteProtectedTagPost handles deletion of a protected tag
 func DeleteProtectedTagPost(ctx *context.Context) {
-	pt, err := selectProtectedTagByContext(ctx)
-	if err != nil {
-		ctx.NotFound("", err)
+	pt := selectProtectedTagByContext(ctx)
+	if pt == nil {
 		return
 	}
 
@@ -163,20 +160,23 @@ func setTagsContext(ctx *context.Context) error {
 	return nil
 }
 
-func selectProtectedTagByContext(ctx *context.Context) (*models.ProtectedTag, error) {
+func selectProtectedTagByContext(ctx *context.Context) *models.ProtectedTag {
 	id := ctx.QueryInt64("id")
 	if id == 0 {
 		id = ctx.ParamsInt64(":id")
 	}
 
 	tag, err := models.GetProtectedTagByID(id)
-	if tag == nil || err != nil {
-		return nil, err
+	if err != nil {
+		ctx.ServerError("GetProtectedTagByID", err)
+		return nil
 	}
 
-	if tag.RepoID == ctx.Repo.Repository.ID {
-		return tag, nil
+	if tag != nil && tag.RepoID == ctx.Repo.Repository.ID {
+		return tag
 	}
 
-	return nil, fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository)
+	ctx.NotFound("", fmt.Errorf("ProtectedTag[%v] not associated to repository %v", id, ctx.Repo.Repository))
+
+	return nil
 }
