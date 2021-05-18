@@ -203,6 +203,9 @@ func EditUser(ctx *context.APIContext) {
 	if form.Location != nil {
 		u.Location = *form.Location
 	}
+	if form.Description != nil {
+		u.Description = *form.Description
+	}
 	if form.Active != nil {
 		u.IsActive = *form.Active
 	}

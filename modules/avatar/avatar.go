@@ -14,10 +14,8 @@ import (
 	_ "image/jpeg" // for processing jpeg images
 	_ "image/png"  // for processing png images
 
-	"math/rand"
-	"time"
-
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/issue9/identicon"
 	"github.com/nfnt/resize"
@@ -31,8 +29,11 @@ const AvatarSize = 290
 // in custom size (height and width).
 func RandomImageSize(size int, data []byte) (image.Image, error) {
 	randExtent := len(palette.WebSafe) - 32
-	rand.Seed(time.Now().UnixNano())
-	colorIndex := rand.Intn(randExtent)
+	integer, err := util.RandomInt(int64(randExtent))
+	if err != nil {
+		return nil, fmt.Errorf("util.RandomInt: %v", err)
+	}
+	colorIndex := int(integer)
 	backColorIndex := colorIndex - 1
 	if backColorIndex < 0 {
 		backColorIndex = randExtent - 1

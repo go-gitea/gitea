@@ -10,14 +10,6 @@ package main
 // These libraries will not be included in a normal compilation.
 
 import (
-	// for lint
-	_ "github.com/mgechev/dots"
-	_ "github.com/mgechev/revive/formatter"
-	_ "github.com/mgechev/revive/lint"
-	_ "github.com/mgechev/revive/rule"
-	_ "github.com/mitchellh/go-homedir"
-	_ "github.com/pelletier/go-toml"
-
 	// for embed
 	_ "github.com/shurcooL/vfsgen"
 

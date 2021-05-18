@@ -51,6 +51,7 @@ type AuthenticationForm struct {
 	TLS                           bool
 	SkipVerify                    bool
 	PAMServiceName                string
+	PAMEmailDomain                string
 	Oauth2Provider                string
 	Oauth2Key                     string
 	Oauth2Secret                  string

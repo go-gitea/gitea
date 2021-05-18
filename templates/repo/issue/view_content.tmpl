@@ -57,7 +57,7 @@
 						</div>
 					</div>
 					<div class="ui attached segment comment-body">
-						<div class="render-content markdown">
+						<div class="render-content markup">
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}
 							{{else}}
@@ -191,7 +191,7 @@
 			<div class="ui bottom active tab write">
 				<textarea tabindex="1" name="content"></textarea>
 			</div>
-			<div class="ui bottom tab preview markdown">
+			<div class="ui bottom tab preview markup">
 				{{$.i18n.Tr "loading"}}
 			</div>
 		</div>

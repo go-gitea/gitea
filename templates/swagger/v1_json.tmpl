@@ -13800,6 +13800,10 @@
           "type": "boolean",
           "x-go-name": "AllowImportLocal"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -14150,6 +14154,10 @@
         "mirrors_disabled": {
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
+        },
+        "stars_disabled": {
+          "type": "boolean",
+          "x-go-name": "StarsDisabled"
         },
         "time_tracking_disabled": {
           "type": "boolean",
@@ -16242,6 +16250,11 @@
       "description": "User represents a user",
       "type": "object",
       "properties": {
+        "active": {
+          "description": "Is user active",
+          "type": "boolean",
+          "x-go-name": "IsActive"
+        },
         "avatar_url": {
           "description": "URL to the user's avatar",
           "type": "string",
@@ -16251,6 +16264,11 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "description": {
+          "description": "the user's description",
+          "type": "string",
+          "x-go-name": "Description"
         },
         "email": {
           "type": "string",
@@ -16283,15 +16301,30 @@
           "format": "date-time",
           "x-go-name": "LastLogin"
         },
+        "location": {
+          "description": "the user's location",
+          "type": "string",
+          "x-go-name": "Location"
+        },
         "login": {
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
         },
+        "prohibit_login": {
+          "description": "Is user login prohibited",
+          "type": "boolean",
+          "x-go-name": "ProhibitLogin"
+        },
         "restricted": {
           "description": "Is user restricted",
           "type": "boolean",
           "x-go-name": "Restricted"
+        },
+        "website": {
+          "description": "the user's website",
+          "type": "string",
+          "x-go-name": "Website"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

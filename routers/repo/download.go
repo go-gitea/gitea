@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/charset"
@@ -65,6 +66,12 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 			}
 		} else {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+			if setting.MimeTypeMap.Enabled {
+				fileExtension := strings.ToLower(filepath.Ext(name))
+				if mimetype, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
+					ctx.Resp.Header().Set("Content-Type", mimetype)
+				}
+			}
 		}
 	}
 
@@ -105,7 +112,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	if err != nil {
 		return err
 	}
+	closed := false
 	defer func() {
+		if closed {
+			return
+		}
 		if err = dataRc.Close(); err != nil {
 			log.Error("ServeBlobOrLFS: Close: %v", err)
 		}
@@ -115,6 +126,10 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 	if pointer.IsValid() {
 		meta, _ := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
 		if meta == nil {
+			if err = dataRc.Close(); err != nil {
+				log.Error("ServeBlobOrLFS: Close: %v", err)
+			}
+			closed = true
 			return ServeBlob(ctx, blob)
 		}
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
@@ -131,6 +146,10 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob) error {
 		}()
 		return ServeData(ctx, ctx.Repo.TreePath, meta.Size, lfsDataRc)
 	}
+	if err = dataRc.Close(); err != nil {
+		log.Error("ServeBlobOrLFS: Close: %v", err)
+	}
+	closed = true
 
 	return ServeBlob(ctx, blob)
 }

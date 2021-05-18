@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
 )
@@ -83,7 +85,7 @@ func TestCreateRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 2)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 3)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
@@ -92,7 +94,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 2)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 3)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
@@ -101,7 +103,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 2)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 3)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
@@ -126,4 +128,81 @@ func TestCreateReleasePaging(t *testing.T) {
 	// Check that user4 does not see draft and still see 10 latest releases
 	session2 := loginUser(t, "user4")
 	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", i18n.Tr("en", "repo.release.stable"), 10)
+}
+
+func TestViewReleaseListNoLogin(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+
+	link := repo.Link() + "/releases"
+
+	req := NewRequest(t, "GET", link)
+	rsp := MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, rsp.Body)
+	releases := htmlDoc.Find("#release-list li.ui.grid")
+	assert.Equal(t, 1, releases.Length())
+
+	links := make([]string, 0, 5)
+	releases.Each(func(i int, s *goquery.Selection) {
+		link, exist := s.Find(".release-list-title a").Attr("href")
+		if !exist {
+			return
+		}
+		links = append(links, link)
+	})
+
+	assert.EqualValues(t, []string{"/user2/repo1/releases/tag/v1.1"}, links)
+}
+
+func TestViewReleaseListLogin(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+
+	link := repo.Link() + "/releases"
+
+	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", link)
+	rsp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, rsp.Body)
+	releases := htmlDoc.Find("#release-list li.ui.grid")
+	assert.Equal(t, 2, releases.Length())
+
+	links := make([]string, 0, 5)
+	releases.Each(func(i int, s *goquery.Selection) {
+		link, exist := s.Find(".release-list-title a").Attr("href")
+		if !exist {
+			return
+		}
+		links = append(links, link)
+	})
+
+	assert.EqualValues(t, []string{"/user2/repo1/releases/tag/draft-release",
+		"/user2/repo1/releases/tag/v1.1"}, links)
+}
+
+func TestViewTagsList(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+
+	link := repo.Link() + "/tags"
+
+	session := loginUser(t, "user1")
+	req := NewRequest(t, "GET", link)
+	rsp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, rsp.Body)
+	tags := htmlDoc.Find(".tag-list tr")
+	assert.Equal(t, 2, tags.Length())
+
+	tagNames := make([]string, 0, 5)
+	tags.Each(func(i int, s *goquery.Selection) {
+		tagNames = append(tagNames, s.Find(".tag a.df.ac").Text())
+	})
+
+	assert.EqualValues(t, []string{"delete-tag", "v1.1"}, tagNames)
 }

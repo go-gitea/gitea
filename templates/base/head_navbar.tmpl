@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/">
-			<img class="ui mini image" with="30" height="30" src="{{StaticUrlPrefix}}/img/logo.svg">
+			<img class="ui mini image" with="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
@@ -157,10 +157,12 @@
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{svg "octicon-star"}}
-						{{.i18n.Tr "your_starred"}}
-					</a>
+					{{if not .DisableStars}}
+						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+							{{svg "octicon-star"}}
+							{{.i18n.Tr "your_starred"}}
+						</a>
+					{{end}}
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->

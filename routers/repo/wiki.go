@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -211,12 +212,34 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	metas := ctx.Repo.Repository.ComposeDocumentMetas()
-	ctx.Data["content"] = markdown.RenderWiki(data, ctx.Repo.RepoLink, metas)
+	var rctx = &markup.RenderContext{
+		URLPrefix: ctx.Repo.RepoLink,
+		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+		IsWiki:    true,
+	}
+
+	var buf strings.Builder
+	if err := markdown.Render(rctx, bytes.NewReader(data), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
+	ctx.Data["content"] = buf.String()
+
+	buf.Reset()
+	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = markdown.RenderWiki(sidebarContent, ctx.Repo.RepoLink, metas)
+	ctx.Data["sidebarContent"] = buf.String()
+
+	buf.Reset()
+	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+		ctx.ServerError("Render", err)
+		return nil, nil
+	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = markdown.RenderWiki(footerContent, ctx.Repo.RepoLink, metas)
+	ctx.Data["footerContent"] = buf.String()
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)

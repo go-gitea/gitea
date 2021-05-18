@@ -3,7 +3,6 @@
 <head data-suburl="{{AppSubUrl}}">
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta http-equiv="x-ua-compatible" content="ie=edge">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
 	<link rel="manifest" href="data:{{.ManifestData}}"/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
@@ -30,7 +29,7 @@
 		window.config = {
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
-			StaticUrlPrefix: '{{StaticUrlPrefix}}',
+			AssetUrlPrefix: '{{AssetUrlPrefix}}',
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
@@ -62,12 +61,12 @@
 			{{end}}
 		};
 	</script>
-	<link rel="icon" href="{{StaticUrlPrefix}}/img/logo.svg" type="image/svg+xml">
-	<link rel="alternate icon" href="{{StaticUrlPrefix}}/img/favicon.png" type="image/png">
+	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
 {{if .RequireSimpleMDE}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/easymde.css?v={{MD5 AppVer}}">
 {{end}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
@@ -106,17 +105,17 @@
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
 	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{StaticUrlPrefix}}/img/logo.png" />
+	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png" />
 	<meta property="og:url" content="{{AppUrl}}" />
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 <meta property="og:site_name" content="{{AppName}}" />
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{StaticUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>

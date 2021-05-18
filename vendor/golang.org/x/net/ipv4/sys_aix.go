@@ -18,6 +18,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// IP_RECVIF is defined on AIX but doesn't work. IP_RECVINTERFACE must be used instead.
+const sockoptReceiveInterface = unix.IP_RECVINTERFACE
+
 var (
 	ctlOpts = [ctlMax]ctlOpt{
 		ctlTTL:       {unix.IP_RECVTTL, 1, marshalTTL, parseTTL},

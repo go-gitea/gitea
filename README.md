@@ -1,13 +1,13 @@
 <p align="center">
   <a href="https://gitea.io/">
-    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/master/public/img/gitea.svg" width="220"/>
+    <img alt="Gitea" src="https://raw.githubusercontent.com/go-gitea/gitea/main/public/img/gitea.svg" width="220"/>
   </a>
 </p>
 <h1 align="center">Gitea - Git with a cup of tea</h1>
 
 <p align="center">
   <a href="https://drone.gitea.io/go-gitea/gitea" title="Build Status">
-    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/master">
+    <img src="https://drone.gitea.io/api/badges/go-gitea/gitea/status.svg?ref=refs/heads/main">
   </a>
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
@@ -16,7 +16,7 @@
     <img src="https://images.microbadger.com/badges/image/gitea/gitea.svg">
   </a>
   <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
-    <img src="https://codecov.io/gh/go-gitea/gitea/branch/master/graph/badge.svg">
+    <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
   <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
@@ -101,6 +101,16 @@ NOTES:
 1. **YOU MUST READ THE [CONTRIBUTORS GUIDE](CONTRIBUTING.md) BEFORE STARTING TO WORK ON A PULL REQUEST.**
 2. If you have found a vulnerability in the project, please write privately to **security@gitea.io**. Thanks!
 
+## Translating
+
+Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there. 
+
+You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope fo fill it as questions pop up.
+
+https://docs.gitea.io/en-us/translation-guidelines/
+
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
+
 ## Further information
 
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.io/en-us/).
@@ -150,7 +160,7 @@ We're [working on it](https://github.com/go-gitea/gitea/issues/1029).
 ## License
 
 This project is licensed under the MIT License.
-See the [LICENSE](https://github.com/go-gitea/gitea/blob/master/LICENSE) file
+See the [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) file
 for the full license text.
 
 ## Screenshots
