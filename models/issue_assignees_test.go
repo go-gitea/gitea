@@ -61,6 +61,11 @@ func TestUpdateAssignee(t *testing.T) {
 }
 
 func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	_ = AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	_ = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
 	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{}, IDs)

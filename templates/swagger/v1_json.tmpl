@@ -13800,6 +13800,10 @@
           "type": "boolean",
           "x-go-name": "AllowImportLocal"
         },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
         "email": {
           "type": "string",
           "format": "email",
@@ -16246,20 +16250,25 @@
       "description": "User represents a user",
       "type": "object",
       "properties": {
+        "active": {
+          "description": "Is user active",
+          "type": "boolean",
+          "x-go-name": "IsActive"
+        },
         "avatar_url": {
           "description": "URL to the user's avatar",
           "type": "string",
           "x-go-name": "AvatarURL"
         },
-        "bio": {
-          "description": "the user's biography",
-          "type": "string",
-          "x-go-name": "Description"
-        },
         "created": {
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "description": {
+          "description": "the user's description",
+          "type": "string",
+          "x-go-name": "Description"
         },
         "email": {
           "type": "string",
@@ -16301,6 +16310,11 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "prohibit_login": {
+          "description": "Is user login prohibited",
+          "type": "boolean",
+          "x-go-name": "ProhibitLogin"
         },
         "restricted": {
           "description": "Is user restricted",

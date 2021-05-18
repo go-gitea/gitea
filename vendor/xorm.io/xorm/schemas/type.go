@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
+// DBType represents a database type
 type DBType string
 
+// enumerates all database types
 const (
 	POSTGRES DBType = "postgres"
 	SQLITE   DBType = "sqlite3"
@@ -28,6 +30,7 @@ type SQLType struct {
 	DefaultLength2 int
 }
 
+// enumerates all columns types
 const (
 	UNKNOW_TYPE = iota
 	TEXT_TYPE
@@ -37,6 +40,7 @@ const (
 	ARRAY_TYPE
 )
 
+// IsType reutrns ture if the column type is the same as the parameter
 func (s *SQLType) IsType(st int) bool {
 	if t, ok := SqlTypes[s.Name]; ok && t == st {
 		return true
@@ -44,42 +48,53 @@ func (s *SQLType) IsType(st int) bool {
 	return false
 }
 
+// IsText returns true if column is a text type
 func (s *SQLType) IsText() bool {
 	return s.IsType(TEXT_TYPE)
 }
 
+// IsBlob returns true if column is a binary type
 func (s *SQLType) IsBlob() bool {
 	return s.IsType(BLOB_TYPE)
 }
 
+// IsTime returns true if column is a time type
 func (s *SQLType) IsTime() bool {
 	return s.IsType(TIME_TYPE)
 }
 
+// IsNumeric returns true if column is a numeric type
 func (s *SQLType) IsNumeric() bool {
 	return s.IsType(NUMERIC_TYPE)
 }
 
+// IsArray returns true if column is an array type
 func (s *SQLType) IsArray() bool {
 	return s.IsType(ARRAY_TYPE)
 }
 
+// IsJson returns true if column is an array type
 func (s *SQLType) IsJson() bool {
 	return s.Name == Json || s.Name == Jsonb
 }
 
+// IsXML returns true if column is an xml type
 func (s *SQLType) IsXML() bool {
 	return s.Name == XML
 }
 
+// enumerates all the database column types
 var (
-	Bit       = "BIT"
-	TinyInt   = "TINYINT"
-	SmallInt  = "SMALLINT"
-	MediumInt = "MEDIUMINT"
-	Int       = "INT"
-	Integer   = "INTEGER"
-	BigInt    = "BIGINT"
+	Bit            = "BIT"
+	UnsignedBit    = "UNSIGNED BIT"
+	TinyInt        = "TINYINT"
+	SmallInt       = "SMALLINT"
+	MediumInt      = "MEDIUMINT"
+	Int            = "INT"
+	UnsignedInt    = "UNSIGNED INT"
+	Integer        = "INTEGER"
+	BigInt         = "BIGINT"
+	UnsignedBigInt = "UNSIGNED BIGINT"
 
 	Enum = "ENUM"
 	Set  = "SET"
@@ -136,13 +151,16 @@ var (
 	Array = "ARRAY"
 
 	SqlTypes = map[string]int{
-		Bit:       NUMERIC_TYPE,
-		TinyInt:   NUMERIC_TYPE,
-		SmallInt:  NUMERIC_TYPE,
-		MediumInt: NUMERIC_TYPE,
-		Int:       NUMERIC_TYPE,
-		Integer:   NUMERIC_TYPE,
-		BigInt:    NUMERIC_TYPE,
+		Bit:            NUMERIC_TYPE,
+		UnsignedBit:    NUMERIC_TYPE,
+		TinyInt:        NUMERIC_TYPE,
+		SmallInt:       NUMERIC_TYPE,
+		MediumInt:      NUMERIC_TYPE,
+		Int:            NUMERIC_TYPE,
+		UnsignedInt:    NUMERIC_TYPE,
+		Integer:        NUMERIC_TYPE,
+		BigInt:         NUMERIC_TYPE,
+		UnsignedBigInt: NUMERIC_TYPE,
 
 		Enum:  TEXT_TYPE,
 		Set:   TEXT_TYPE,
@@ -204,53 +222,55 @@ var (
 
 // !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparison
 var (
-	c_EMPTY_STRING       string
-	c_BOOL_DEFAULT       bool
-	c_BYTE_DEFAULT       byte
-	c_COMPLEX64_DEFAULT  complex64
-	c_COMPLEX128_DEFAULT complex128
-	c_FLOAT32_DEFAULT    float32
-	c_FLOAT64_DEFAULT    float64
-	c_INT64_DEFAULT      int64
-	c_UINT64_DEFAULT     uint64
-	c_INT32_DEFAULT      int32
-	c_UINT32_DEFAULT     uint32
-	c_INT16_DEFAULT      int16
-	c_UINT16_DEFAULT     uint16
-	c_INT8_DEFAULT       int8
-	c_UINT8_DEFAULT      uint8
-	c_INT_DEFAULT        int
-	c_UINT_DEFAULT       uint
-	c_TIME_DEFAULT       time.Time
+	emptyString       string
+	boolDefault       bool
+	byteDefault       byte
+	complex64Default  complex64
+	complex128Default complex128
+	float32Default    float32
+	float64Default    float64
+	int64Default      int64
+	uint64Default     uint64
+	int32Default      int32
+	uint32Default     uint32
+	int16Default      int16
+	uint16Default     uint16
+	int8Default       int8
+	uint8Default      uint8
+	intDefault        int
+	uintDefault       uint
+	timeDefault       time.Time
 )
 
+// enumerates all types
 var (
-	IntType   = reflect.TypeOf(c_INT_DEFAULT)
-	Int8Type  = reflect.TypeOf(c_INT8_DEFAULT)
-	Int16Type = reflect.TypeOf(c_INT16_DEFAULT)
-	Int32Type = reflect.TypeOf(c_INT32_DEFAULT)
-	Int64Type = reflect.TypeOf(c_INT64_DEFAULT)
+	IntType   = reflect.TypeOf(intDefault)
+	Int8Type  = reflect.TypeOf(int8Default)
+	Int16Type = reflect.TypeOf(int16Default)
+	Int32Type = reflect.TypeOf(int32Default)
+	Int64Type = reflect.TypeOf(int64Default)
 
-	UintType   = reflect.TypeOf(c_UINT_DEFAULT)
-	Uint8Type  = reflect.TypeOf(c_UINT8_DEFAULT)
-	Uint16Type = reflect.TypeOf(c_UINT16_DEFAULT)
-	Uint32Type = reflect.TypeOf(c_UINT32_DEFAULT)
-	Uint64Type = reflect.TypeOf(c_UINT64_DEFAULT)
+	UintType   = reflect.TypeOf(uintDefault)
+	Uint8Type  = reflect.TypeOf(uint8Default)
+	Uint16Type = reflect.TypeOf(uint16Default)
+	Uint32Type = reflect.TypeOf(uint32Default)
+	Uint64Type = reflect.TypeOf(uint64Default)
 
-	Float32Type = reflect.TypeOf(c_FLOAT32_DEFAULT)
-	Float64Type = reflect.TypeOf(c_FLOAT64_DEFAULT)
+	Float32Type = reflect.TypeOf(float32Default)
+	Float64Type = reflect.TypeOf(float64Default)
 
-	Complex64Type  = reflect.TypeOf(c_COMPLEX64_DEFAULT)
-	Complex128Type = reflect.TypeOf(c_COMPLEX128_DEFAULT)
+	Complex64Type  = reflect.TypeOf(complex64Default)
+	Complex128Type = reflect.TypeOf(complex128Default)
 
-	StringType = reflect.TypeOf(c_EMPTY_STRING)
-	BoolType   = reflect.TypeOf(c_BOOL_DEFAULT)
-	ByteType   = reflect.TypeOf(c_BYTE_DEFAULT)
+	StringType = reflect.TypeOf(emptyString)
+	BoolType   = reflect.TypeOf(boolDefault)
+	ByteType   = reflect.TypeOf(byteDefault)
 	BytesType  = reflect.SliceOf(ByteType)
 
-	TimeType = reflect.TypeOf(c_TIME_DEFAULT)
+	TimeType = reflect.TypeOf(timeDefault)
 )
 
+// enumerates all types
 var (
 	PtrIntType   = reflect.PtrTo(IntType)
 	PtrInt8Type  = reflect.PtrTo(Int8Type)
@@ -280,10 +300,14 @@ var (
 // Type2SQLType generate SQLType acorrding Go's type
 func Type2SQLType(t reflect.Type) (st SQLType) {
 	switch k := t.Kind(); k {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 		st = SQLType{Int, 0, 0}
-	case reflect.Int64, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
+		st = SQLType{UnsignedInt, 0, 0}
+	case reflect.Int64:
 		st = SQLType{BigInt, 0, 0}
+	case reflect.Uint64:
+		st = SQLType{UnsignedBigInt, 0, 0}
 	case reflect.Float32:
 		st = SQLType{Float, 0, 0}
 	case reflect.Float64:
@@ -291,7 +315,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	case reflect.Complex64, reflect.Complex128:
 		st = SQLType{Varchar, 64, 0}
 	case reflect.Array, reflect.Slice, reflect.Map:
-		if t.Elem() == reflect.TypeOf(c_BYTE_DEFAULT) {
+		if t.Elem() == reflect.TypeOf(byteDefault) {
 			st = SQLType{Blob, 0, 0}
 		} else {
 			st = SQLType{Text, 0, 0}
@@ -315,7 +339,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	return
 }
 
-// default sql type change to go types
+// SQLType2Type convert default sql type change to go types
 func SQLType2Type(st SQLType) reflect.Type {
 	name := strings.ToUpper(st.Name)
 	switch name {
@@ -334,7 +358,7 @@ func SQLType2Type(st SQLType) reflect.Type {
 	case Bool:
 		return reflect.TypeOf(true)
 	case DateTime, Date, Time, TimeStamp, TimeStampz, SmallDateTime, Year:
-		return reflect.TypeOf(c_TIME_DEFAULT)
+		return reflect.TypeOf(timeDefault)
 	case Decimal, Numeric, Money, SmallMoney:
 		return reflect.TypeOf("")
 	default:

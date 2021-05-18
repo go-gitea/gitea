@@ -12,7 +12,7 @@
 				</div>
 			</h4>
 			<div class="ui attached table unstackable segment">
-				<div class="file-view {{if .IsMarkup}}markdown{{else if .IsRenderedHTML}}plain-text{{else if .IsTextFile}}code-view{{end}}">
+				<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextFile}} code-view{{end}}">
 					{{if .IsMarkup}}
 						{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 					{{else if .IsRenderedHTML}}

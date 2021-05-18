@@ -114,6 +114,11 @@ func DeleteNotice(id int64) error {
 
 // DeleteNotices deletes all notices with ID from start to end (inclusive).
 func DeleteNotices(start, end int64) error {
+	if start == 0 && end == 0 {
+		_, err := x.Exec("DELETE FROM notice")
+		return err
+	}
+
 	sess := x.Where("id >= ?", start)
 	if end > 0 {
 		sess.And("id <= ?", end)
