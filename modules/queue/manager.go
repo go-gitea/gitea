@@ -310,6 +310,12 @@ func (q *ManagedQueue) AddWorkers(number int, timeout time.Duration) context.Can
 	return nil
 }
 
+// Flushable returns true if the queue is flushable
+func (q *ManagedQueue) Flushable() bool {
+	_, ok := q.Managed.(Flushable)
+	return ok
+}
+
 // Flush flushes the queue with a timeout
 func (q *ManagedQueue) Flush(timeout time.Duration) error {
 	if flushable, ok := q.Managed.(Flushable); ok {
@@ -325,6 +331,34 @@ func (q *ManagedQueue) IsEmpty() bool {
 		return flushable.IsEmpty()
 	}
 	return true
+}
+
+// Pausable returns whether the queue is Pausable
+func (q *ManagedQueue) Pausable() bool {
+	_, ok := q.Managed.(Pausable)
+	return ok
+}
+
+// Pause pauses the queue
+func (q *ManagedQueue) Pause() {
+	if pausable, ok := q.Managed.(Pausable); ok {
+		pausable.Pause()
+	}
+}
+
+// IsPaused reveals if the queue is paused
+func (q *ManagedQueue) IsPaused() bool {
+	if pausable, ok := q.Managed.(Pausable); ok {
+		return pausable.IsPaused()
+	}
+	return false
+}
+
+// Resume resumes the queue
+func (q *ManagedQueue) Resume() {
+	if pausable, ok := q.Managed.(Pausable); ok {
+		pausable.Resume()
+	}
 }
 
 // NumberOfWorkers returns the number of workers in the queue
