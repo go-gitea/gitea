@@ -5,12 +5,13 @@
 package webhook
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	api "code.gitea.io/gitea/modules/structs"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 type (
@@ -33,11 +34,11 @@ type (
 )
 
 // SetSecret sets the Wechatwork secret
-func (p *WechatworkPayload) SetSecret(_ string) {}
+func (f *WechatworkPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the WechatworkPayload to json
-func (p *WechatworkPayload) JSONPayload() ([]byte, error) {
-	data, err := json.MarshalIndent(p, "", "  ")
+func (f *WechatworkPayload) JSONPayload() ([]byte, error) {
+	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return []byte{}, err
 	}
@@ -102,8 +103,7 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			authorName = "Author：" + commit.Author.Name
 		}
 
-		var message string
-		message = strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
+		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
 
 		text += fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
 			message, authorName)
@@ -142,9 +142,7 @@ func (f *WechatworkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloa
 // PullRequest implements PayloadConvertor PullRequest method
 func (f *WechatworkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, _ := getPullRequestPayloadInfo(p, noneLinkFormatter, true)
-
-	var pr string
-	pr = fmt.Sprintf("> <font color=\"info\"> %s </font> \r\n > <font color=\"comment\">%s </font> \r\n > <font color=\"comment\">%s </font> \r\n",
+	pr := fmt.Sprintf("> <font color=\"info\"> %s </font> \r\n > <font color=\"comment\">%s </font> \r\n > <font color=\"comment\">%s </font> \r\n",
 		text, issueTitle, attachmentText)
 
 	return newWechatworkMarkdownPayload(pr), nil
@@ -192,7 +190,7 @@ func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error
 	return newWechatworkMarkdownPayload(text), nil
 }
 
-// GetFeishuPayload converts a ding talk webhook into a FeishuPayload
+// GetWechatworkPayload GetWechatworkPayload converts a ding talk webhook into a WechatworkPayload
 func GetWechatworkPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(WechatworkPayload), p, event)
 }
