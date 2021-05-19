@@ -51,7 +51,20 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 	}
 	config := configInterface.(PersistableChannelUniqueQueueConfiguration)
 
-	channelUniqueQueue, err := NewChannelUniqueQueue(handle, ChannelUniqueQueueConfiguration{
+	queue := &PersistableChannelUniqueQueue{
+		closed: make(chan struct{}),
+	}
+
+	wrappedHandle := func(data ...Data) (failed []Data) {
+		for _, unhandled := range handle(data...) {
+			if fail := queue.PushBack(unhandled); fail != nil {
+				failed = append(failed, fail)
+			}
+		}
+		return
+	}
+
+	channelUniqueQueue, err := NewChannelUniqueQueue(wrappedHandle, ChannelUniqueQueueConfiguration{
 		WorkerPoolConfiguration: WorkerPoolConfiguration{
 			QueueLength:  config.QueueLength,
 			BatchLength:  config.BatchLength,
@@ -84,10 +97,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 		DataDir: config.DataDir,
 	}
 
-	queue := &PersistableChannelUniqueQueue{
-		channelQueue: channelUniqueQueue.(*ChannelUniqueQueue),
-		closed:       make(chan struct{}),
-	}
+	queue.channelQueue = channelUniqueQueue.(*ChannelUniqueQueue)
 
 	levelQueue, err := NewLevelUniqueQueue(func(data ...Data) []Data {
 		for _, datum := range data {
@@ -140,6 +150,19 @@ func (q *PersistableChannelUniqueQueue) PushFunc(data Data, fn func() error) err
 		return q.internal.(UniqueQueue).PushFunc(data, fn)
 	default:
 		return q.channelQueue.PushFunc(data, fn)
+	}
+}
+
+// PushBack will push the indexer data to queue
+func (q *PersistableChannelUniqueQueue) PushBack(data Data) error {
+	select {
+	case <-q.closed:
+		if pbr, ok := q.internal.(PushBackable); ok {
+			return pbr.PushBack(data)
+		}
+		return q.internal.Push(data)
+	default:
+		return q.channelQueue.Push(data)
 	}
 }
 

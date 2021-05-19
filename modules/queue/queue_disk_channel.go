@@ -51,7 +51,20 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 	}
 	config := configInterface.(PersistableChannelQueueConfiguration)
 
-	channelQueue, err := NewChannelQueue(handle, ChannelQueueConfiguration{
+	queue := &PersistableChannelQueue{
+		closed: make(chan struct{}),
+	}
+
+	wrappedHandle := func(data ...Data) (failed []Data) {
+		for _, unhandled := range handle(data...) {
+			if fail := queue.PushBack(unhandled); fail != nil {
+				failed = append(failed, fail)
+			}
+		}
+		return
+	}
+
+	channelQueue, err := NewChannelQueue(wrappedHandle, ChannelQueueConfiguration{
 		WorkerPoolConfiguration: WorkerPoolConfiguration{
 			QueueLength:  config.QueueLength,
 			BatchLength:  config.BatchLength,
@@ -84,15 +97,12 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		DataDir: config.DataDir,
 	}
 
-	levelQueue, err := NewLevelQueue(handle, levelCfg, exemplar)
+	levelQueue, err := NewLevelQueue(wrappedHandle, levelCfg, exemplar)
 	if err == nil {
-		queue := &PersistableChannelQueue{
-			channelQueue: channelQueue.(*ChannelQueue),
-			delayedStarter: delayedStarter{
-				internal: levelQueue.(*LevelQueue),
-				name:     config.Name,
-			},
-			closed: make(chan struct{}),
+		queue.channelQueue = channelQueue.(*ChannelQueue)
+		queue.delayedStarter = delayedStarter{
+			internal: levelQueue.(*LevelQueue),
+			name:     config.Name,
 		}
 		_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar)
 		return queue, nil
@@ -102,16 +112,13 @@ func NewPersistableChannelQueue(handle HandlerFunc, cfg, exemplar interface{}) (
 		return nil, ErrInvalidConfiguration{cfg: cfg}
 	}
 
-	queue := &PersistableChannelQueue{
-		channelQueue: channelQueue.(*ChannelQueue),
-		delayedStarter: delayedStarter{
-			cfg:         levelCfg,
-			underlying:  LevelQueueType,
-			timeout:     config.Timeout,
-			maxAttempts: config.MaxAttempts,
-			name:        config.Name,
-		},
-		closed: make(chan struct{}),
+	queue.channelQueue = channelQueue.(*ChannelQueue)
+	queue.delayedStarter = delayedStarter{
+		cfg:         levelCfg,
+		underlying:  LevelQueueType,
+		timeout:     config.Timeout,
+		maxAttempts: config.MaxAttempts,
+		name:        config.Name,
 	}
 	_ = GetManager().Add(queue, PersistableChannelQueueType, config, exemplar)
 	return queue, nil
@@ -126,6 +133,19 @@ func (q *PersistableChannelQueue) Name() string {
 func (q *PersistableChannelQueue) Push(data Data) error {
 	select {
 	case <-q.closed:
+		return q.internal.Push(data)
+	default:
+		return q.channelQueue.Push(data)
+	}
+}
+
+// PushBack will push the indexer data to queue
+func (q *PersistableChannelQueue) PushBack(data Data) error {
+	select {
+	case <-q.closed:
+		if pbr, ok := q.internal.(PushBackable); ok {
+			return pbr.PushBack(data)
+		}
 		return q.internal.Push(data)
 	default:
 		return q.channelQueue.Push(data)
