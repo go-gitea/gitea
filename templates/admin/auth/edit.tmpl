@@ -188,6 +188,10 @@
 						<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{$cfg.ServiceName}}" required>
 					</div>
+					<div class="field">
+						<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
+					</div>
 				{{end}}
 
 				<!-- OAuth2 -->
