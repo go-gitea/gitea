@@ -174,7 +174,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 
-		if ctx.IsBasicAuth {
+		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
 			_, err = models.GetTwoFactorByUID(ctx.User.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented

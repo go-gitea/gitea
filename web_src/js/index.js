@@ -22,6 +22,7 @@ import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {renderMarkupContent} from './markup/content.js';
+import {showLineButton} from './code/linebutton.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
@@ -2213,49 +2214,6 @@ function searchRepositories() {
   });
 }
 
-function showCodeViewMenu() {
-  if ($('.code-view-menu-list').length === 0) {
-    return;
-  }
-
-  // Get clicked tr
-  const $code_tr = $('.code-view td.lines-code.active').parent();
-
-  // Reset code line marker
-  $('.code-view-menu-list').appendTo($('.code-view'));
-  $('.code-line-marker').remove();
-
-  // Generate new one
-  const icon_wrap = $('<div>', {
-    class: 'code-line-marker'
-  }).prependTo($code_tr.find('td:eq(0)').get(0)).hide();
-
-  const a_wrap = $('<a>', {
-    class: 'code-line-link'
-  }).appendTo(icon_wrap);
-
-  $('<i>', {
-    class: 'dropdown icon',
-    style: 'margin: 0px;'
-  }).appendTo(a_wrap);
-
-  icon_wrap.css({
-    left: '-7px',
-    display: 'block',
-  });
-
-  $('.code-view-menu-list').css({
-    'min-width': '220px',
-  });
-
-  // Popup the menu
-  $('.code-line-link').popup({
-    popup: $('.code-view-menu-list'),
-    on: 'click',
-    lastResort: 'bottom left',
-  });
-}
-
 function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -2268,9 +2226,7 @@ function initCodeView() {
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-
-      // show code view menu marker
-      showCodeViewMenu();
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
@@ -2285,10 +2241,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2296,10 +2249,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
