@@ -105,7 +105,7 @@ require (
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
-	github.com/unrolled/render v1.1.0
+	github.com/unrolled/render v1.1.1
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.48.0
@@ -131,7 +131,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.9
-	xorm.io/xorm v1.0.7
+	xorm.io/xorm v1.1.0
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1

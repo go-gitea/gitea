@@ -369,6 +369,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	// ignore non existing
 	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
@@ -381,6 +383,8 @@ func TestGetUserIDsByNames(t *testing.T) {
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	results, err := GetMaileableUsersByIDs([]int64{1, 4}, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(results))

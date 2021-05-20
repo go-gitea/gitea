@@ -29,9 +29,10 @@ func TestBlob_Data(t *testing.T) {
 	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
 	require.NotNil(t, r)
-	defer r.Close()
 
 	data, err := ioutil.ReadAll(r)
+	assert.NoError(t, r.Close())
+
 	assert.NoError(t, err)
 	assert.Equal(t, output, string(data))
 }
@@ -54,7 +55,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		defer r.Close()
 		ioutil.ReadAll(r)
+		_ = r.Close()
 	}
 }

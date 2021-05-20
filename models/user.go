@@ -23,7 +23,6 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -803,7 +802,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return generate.GetRandomString(10)
+	return util.RandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -847,6 +846,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"favicon.ico",
 		"ghost",
 		"help",
 		"install",
@@ -865,10 +865,10 @@ var (
 		"repo",
 		"robots.txt",
 		"search",
+		"serviceworker.js",
 		"stars",
 		"template",
 		"user",
-		"favicon.ico",
 	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
