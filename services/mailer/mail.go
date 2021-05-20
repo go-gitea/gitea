@@ -289,7 +289,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func generateAdditionalHeaders(ctx *mailCommentContext, actionType string, recipient *models.User) map[string]string {
+func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *models.User) map[string]string {
 	repo := ctx.Issue.Repo
 
 	return map[string]string{
@@ -301,7 +301,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, actionType string, recip
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
 		//"List-Unsubscribe": https://github.com/go-gitea/gitea/issues/10808, https://github.com/go-gitea/gitea/issues/13283
 
-		"X-Gitea-Reason":            actionType,
+		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
 		"X-Gitea-Recipient":         recipient.DisplayName(),
 		"X-Gitea-Recipient-Address": recipient.Email,
@@ -311,12 +311,12 @@ func generateAdditionalHeaders(ctx *mailCommentContext, actionType string, recip
 		"X-Gitea-Issue-ID":          strconv.FormatInt(ctx.Issue.Index, 10),
 		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
 
-		"X-GitHub-Reason":            actionType,
+		"X-GitHub-Reason":            reason,
 		"X-GitHub-Sender":            ctx.Doer.DisplayName(),
 		"X-GitHub-Recipient":         recipient.DisplayName(),
 		"X-GitHub-Recipient-Address": recipient.Email,
 
-		"X-GitLab-NotificationReason": actionType,
+		"X-GitLab-NotificationReason": reason,
 		"X-GitLab-Project":            repo.Name,
 		"X-GitLab-Project-Path":       repo.FullName(),
 		"X-GitLab-Issue-IID":          strconv.FormatInt(ctx.Issue.Index, 10),
