@@ -74,8 +74,8 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 				if queue.IsPaused() {
 					// We can only pushback to the channel if we're paused.
 					go func() {
-						if err := queue.Push(u); err != nil {
-							log.Error("Unable to push back to queue %d", queue.qid)
+						if err := queue.Push(u[0]); err != nil {
+							log.Error("Unable to push back to queue %d. Error: %v", queue.qid, err)
 						}
 					}()
 				} else {
@@ -144,10 +144,7 @@ func (q *ChannelUniqueQueue) Has(data Data) (bool, error) {
 
 // Flush flushes the channel with a timeout - the Flush worker will be registered as a flush worker with the manager
 func (q *ChannelUniqueQueue) Flush(timeout time.Duration) error {
-	q.lock.Lock()
-	paused := q.paused
-	q.lock.Unlock()
-	if paused {
+	if q.IsPaused() {
 		return nil
 	}
 	ctx, cancel := q.commonRegisterWorkers(1, timeout, true)
@@ -158,23 +155,16 @@ func (q *ChannelUniqueQueue) Flush(timeout time.Duration) error {
 // FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
 func (q *ChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
 	log.Trace("ChannelUniqueQueue: %d Flush", q.qid)
+	paused, _ := q.IsPausedIsResumed()
 	for {
-		q.lock.Lock()
-		paused := q.paused
-		q.lock.Unlock()
-		if paused {
+		select {
+		case <-paused:
 			return nil
+		default:
 		}
 		select {
 		case data := <-q.dataChan:
-			if q.IsPaused() {
-				// we're paused so we should push this back and stop
-				// (whilst handle will check this too we need to stop the flusher for this to work.)
-				go func() {
-					q.dataChan <- data
-				}()
-				return nil
-			} else if unhandled := q.handle(data); unhandled != nil {
+			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
 			atomic.AddInt64(&q.numInQueue, -1)

@@ -186,14 +186,18 @@ func (q *ByteFIFOQueue) readToChan() {
 		default:
 		}
 	}
+	paused, _ := q.IsPausedIsResumed()
 
 loop:
 	for {
-		paused, resumed := q.IsPausedIsResumed()
-		if paused {
+		select {
+		case <-paused:
 			log.Trace("Queue %s pausing", q.name)
+			_, resumed := q.IsPausedIsResumed()
+
 			select {
 			case <-resumed:
+				paused, _ = q.IsPausedIsResumed()
 				log.Trace("Queue %s resuming", q.name)
 			case <-q.shutdownCtx.Done():
 				// tell the pool to shutdown.
@@ -205,6 +209,7 @@ loop:
 				}
 				atomic.AddInt64(&q.numInQueue, -1)
 			}
+		default:
 		}
 
 		// empty the pushed channel

@@ -62,7 +62,7 @@ type Pausable interface {
 	// Resume will resume the pool or queue
 	Resume()
 	// IsPausedIsResumed will return a bool indicating if the pool or queue is paused and a channel that will be closed when it is resumed
-	IsPausedIsResumed() (bool, <-chan struct{})
+	IsPausedIsResumed() (paused, resumed <-chan struct{})
 }
 
 // ManagedPool is a simple interface to get certain details from a worker pool

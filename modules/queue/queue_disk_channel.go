@@ -247,6 +247,48 @@ func (q *PersistableChannelQueue) IsEmpty() bool {
 	return q.internal.IsEmpty()
 }
 
+// IsPaused returns if the pool is paused
+func (q *PersistableChannelQueue) IsPaused() bool {
+	return q.channelQueue.IsPaused()
+}
+
+// IsPausedIsResumed returns if the pool is paused and a channel that is closed when it is resumed
+func (q *PersistableChannelQueue) IsPausedIsResumed() (<-chan struct{}, <-chan struct{}) {
+	return q.channelQueue.IsPausedIsResumed()
+}
+
+// Pause pauses the WorkerPool
+func (q *PersistableChannelQueue) Pause() {
+	q.channelQueue.Pause()
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return
+	}
+
+	pausable, ok := q.internal.(Pausable)
+	if !ok {
+		return
+	}
+	pausable.Pause()
+}
+
+// Resume resumes the WorkerPool
+func (q *PersistableChannelQueue) Resume() {
+	q.channelQueue.Resume()
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	if q.internal == nil {
+		return
+	}
+
+	pausable, ok := q.internal.(Pausable)
+	if !ok {
+		return
+	}
+	pausable.Resume()
+}
+
 // Shutdown processing this queue
 func (q *PersistableChannelQueue) Shutdown() {
 	log.Trace("PersistableChannelQueue: %s Shutting down", q.delayedStarter.name)

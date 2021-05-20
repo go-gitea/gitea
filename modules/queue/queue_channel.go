@@ -101,10 +101,7 @@ func (q *ChannelQueue) Push(data Data) error {
 
 // Flush flushes the channel with a timeout - the Flush worker will be registered as a flush worker with the manager
 func (q *ChannelQueue) Flush(timeout time.Duration) error {
-	q.lock.Lock()
-	paused := q.paused
-	q.lock.Unlock()
-	if paused {
+	if q.IsPaused() {
 		return nil
 	}
 	ctx, cancel := q.commonRegisterWorkers(1, timeout, true)
@@ -115,23 +112,13 @@ func (q *ChannelQueue) Flush(timeout time.Duration) error {
 // FlushWithContext is very similar to CleanUp but it will return as soon as the dataChan is empty
 func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 	log.Trace("ChannelQueue: %d Flush", q.qid)
+	paused, _ := q.IsPausedIsResumed()
 	for {
-		q.lock.Lock()
-		paused := q.paused
-		q.lock.Unlock()
-		if paused {
-			return nil
-		}
 		select {
+		case <-paused:
+			return nil
 		case data := <-q.dataChan:
-			if q.IsPaused() {
-				// we're paused so we should push this back and stop
-				// (whilst handle will check this too we need to stop the flusher for this to work.)
-				go func() {
-					q.dataChan <- data
-				}()
-				return nil
-			} else if unhandled := q.handle(data); unhandled != nil {
+			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
 			atomic.AddInt64(&q.numInQueue, -1)

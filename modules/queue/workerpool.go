@@ -22,7 +22,7 @@ type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
-	paused             bool
+	paused             chan struct{}
 	resumed            chan struct{}
 	cond               *sync.Cond
 	qid                int64
@@ -63,6 +63,7 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		resumed:            resumed,
+		paused:             make(chan struct{}),
 		handle:             handle,
 		blockTimeout:       config.BlockTimeout,
 		boostTimeout:       config.BoostTimeout,
@@ -77,7 +78,15 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 func (p *WorkerPool) Push(data Data) {
 	atomic.AddInt64(&p.numInQueue, 1)
 	p.lock.Lock()
-	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) && !p.paused {
+	select {
+	case <-p.paused:
+		p.lock.Unlock()
+		p.dataChan <- data
+		return
+	default:
+	}
+
+	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
 		if p.numberOfWorkers == 0 {
 			p.zeroBoost()
 		} else {
@@ -302,11 +311,16 @@ func (p *WorkerPool) Wait() {
 func (p *WorkerPool) IsPaused() bool {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	return p.paused
+	select {
+	case <-p.paused:
+		return true
+	default:
+		return false
+	}
 }
 
 // IsPausedIsResumed returns if the pool is paused and a channel that is closed when it is resumed
-func (p *WorkerPool) IsPausedIsResumed() (bool, <-chan struct{}) {
+func (p *WorkerPool) IsPausedIsResumed() (<-chan struct{}, <-chan struct{}) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	return p.paused, p.resumed
@@ -316,9 +330,11 @@ func (p *WorkerPool) IsPausedIsResumed() (bool, <-chan struct{}) {
 func (p *WorkerPool) Pause() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if !p.paused {
+	select {
+	case <-p.paused:
+	default:
 		p.resumed = make(chan struct{})
-		p.paused = true
+		close(p.paused)
 	}
 }
 
@@ -326,9 +342,11 @@ func (p *WorkerPool) Pause() {
 func (p *WorkerPool) Resume() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	if p.paused {
+	select {
+	case <-p.resumed:
+	default:
+		p.paused = make(chan struct{})
 		close(p.resumed)
-		p.paused = false
 	}
 }
 
@@ -400,9 +418,10 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 	}
 
 	var data = make([]Data, 0, p.batchLength)
+	paused, _ := p.IsPausedIsResumed()
 	for {
-		paused, resumed := p.IsPausedIsResumed()
-		if paused {
+		select {
+		case <-paused:
 			log.Trace("Worker for Queue %d Pausing", p.qid)
 			if len(data) > 0 {
 				log.Trace("Handling: %d data, %v", len(data), data)
@@ -411,8 +430,10 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				}
 				atomic.AddInt64(&p.numInQueue, -1*int64(len(data)))
 			}
+			_, resumed := p.IsPausedIsResumed()
 			select {
 			case <-resumed:
+				paused, _ = p.IsPausedIsResumed()
 				log.Trace("Worker for Queue %d Resuming", p.qid)
 				if !timer.Stop() {
 					select {
@@ -424,8 +445,11 @@ func (p *WorkerPool) doWork(ctx context.Context) {
 				log.Trace("Worker shutting down")
 				return
 			}
+		default:
 		}
 		select {
+		case <-paused:
+			// go back around
 		case <-ctx.Done():
 			if len(data) > 0 {
 				log.Trace("Handling: %d data, %v", len(data), data)
