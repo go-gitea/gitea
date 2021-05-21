@@ -53,7 +53,13 @@
 						</div>
 						<span class="file mono">{{$file.Name}}</span>
 						<div class="diff-file-header-actions df ac">
-							<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
+							<div class="text grey">
+								{{if $file.IsIncompleteLineTooLong}}
+									{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
+								{{else}}
+									{{$.i18n.Tr "repo.diff.file_suppressed"}}
+								{{end}}
+							</div>
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
@@ -111,7 +117,7 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						<div id="diff-source-{{$i}}" class="file-body file-code has-context-menu code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+						<div id="diff-source-{{$i}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
 							{{if $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">{{$.i18n.Tr "repo.diff.bin_not_shown"}}</div>
 							{{else}}
@@ -125,7 +131,7 @@
 							{{end}}
 						</div>
 						{{if or $isImage $isCsv}}
-							<div id="diff-rendered-{{$i}}" class="file-body file-code has-context-menu{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
+							<div id="diff-rendered-{{$i}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
 								<table class="chroma w-100">
 									{{if $isImage}}
 										{{template "repo/diff/image_diff" dict "file" . "root" $}}
@@ -158,7 +164,7 @@
 					<div class="ui bottom attached active write tab segment">
 						<textarea class="review-textarea" tabindex="1" name="content"></textarea>
 					</div>
-					<div class="ui bottom attached tab preview segment markdown">
+					<div class="ui bottom attached tab preview segment markup">
 					{{$.i18n.Tr "loading"}}
 					</div>
 					<div class="text right edit buttons">

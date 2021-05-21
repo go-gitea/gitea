@@ -6,6 +6,7 @@ package caches
 
 import "sync"
 
+// Manager represents a cache manager
 type Manager struct {
 	cacher             Cacher
 	disableGlobalCache bool
@@ -14,6 +15,7 @@ type Manager struct {
 	cacherLock sync.RWMutex
 }
 
+// NewManager creates a cache manager
 func NewManager() *Manager {
 	return &Manager{
 		cachers: make(map[string]Cacher),
@@ -27,12 +29,14 @@ func (mgr *Manager) SetDisableGlobalCache(disable bool) {
 	}
 }
 
+// SetCacher set cacher of table
 func (mgr *Manager) SetCacher(tableName string, cacher Cacher) {
 	mgr.cacherLock.Lock()
 	mgr.cachers[tableName] = cacher
 	mgr.cacherLock.Unlock()
 }
 
+// GetCacher returns a cache of a table
 func (mgr *Manager) GetCacher(tableName string) Cacher {
 	var cacher Cacher
 	var ok bool

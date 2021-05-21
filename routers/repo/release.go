@@ -99,7 +99,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			Page:     ctx.QueryInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 		},
-		IncludeDrafts: writeAccess,
+		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
 	}
 
@@ -141,16 +141,22 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			}
 			cacheUsers[r.PublisherID] = r.Publisher
 		}
-		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
-			ctx.ServerError("calReleaseNumCommitsBehind", err)
-			return
-		}
+
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
+			return
+		}
+
+		if r.IsDraft {
+			continue
+		}
+
+		if err := calReleaseNumCommitsBehind(ctx.Repo, r, countCache); err != nil {
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
 			return
 		}
 	}
@@ -198,9 +204,11 @@ func SingleRelease(ctx *context.Context) {
 			return
 		}
 	}
-	if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
-		ctx.ServerError("calReleaseNumCommitsBehind", err)
-		return
+	if !release.IsDraft {
+		if err := calReleaseNumCommitsBehind(ctx.Repo, release, make(map[string]int64)); err != nil {
+			ctx.ServerError("calReleaseNumCommitsBehind", err)
+			return
+		}
 	}
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,

@@ -28,6 +28,7 @@ func NewIndex(name string, indexType int) *Index {
 	return &Index{true, name, indexType, make([]string, 0)}
 }
 
+// XName returns the special index name for the table
 func (index *Index) XName(tableName string) string {
 	if !strings.HasPrefix(index.Name, "UQE_") &&
 		!strings.HasPrefix(index.Name, "IDX_") {
@@ -43,11 +44,10 @@ func (index *Index) XName(tableName string) string {
 
 // AddColumn add columns which will be composite index
 func (index *Index) AddColumn(cols ...string) {
-	for _, col := range cols {
-		index.Cols = append(index.Cols, col)
-	}
+	index.Cols = append(index.Cols, cols...)
 }
 
+// Equal return true if the two Index is equal
 func (index *Index) Equal(dst *Index) bool {
 	if index.Type != dst.Type {
 		return false

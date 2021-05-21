@@ -115,7 +115,13 @@ func Init() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	graceful.GetManager().RunAtTerminate(ctx, func() {
+	graceful.GetManager().RunAtTerminate(func() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		cancel()
 		log.Debug("Closing repository indexer")
 		indexer.Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())

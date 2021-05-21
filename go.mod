@@ -22,7 +22,6 @@ require (
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.13.0
-	github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af // indirect
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
@@ -74,22 +73,20 @@ require (
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-runewidth v0.0.12 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7
-	github.com/mgechev/dots v0.0.0-20190921121421-c36f7dcfbb81
-	github.com/mgechev/revive v1.0.6
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.8
 	github.com/miekg/dns v1.1.40 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
 	github.com/minio/minio-go/v7 v7.0.10
 	github.com/minio/sha256-simd v1.0.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/msteinert/pam v0.0.0-20201130170657-e61372126161
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.5.0
+	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.24
-	github.com/pelletier/go-toml v1.9.0
+	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.3 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.3.0
@@ -108,7 +105,7 @@ require (
 	github.com/unknwon/com v1.0.1
 	github.com/unknwon/i18n v0.0.0-20210321134014-0ebbf2df1c44
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
-	github.com/unrolled/render v1.1.0
+	github.com/unrolled/render v1.1.1
 	github.com/urfave/cli v1.22.5
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.48.0
@@ -134,7 +131,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.9
-	xorm.io/xorm v1.0.7
+	xorm.io/xorm v1.1.0
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
