@@ -47,6 +47,16 @@
 						<a class="ui blue basic button" href="{{.RepoLink}}/milestones">
 							{{.i18n.Tr "repo.milestones.cancel"}}
 						</a>
+						{{if .IsClosed}}
+							<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/open">
+							  {{.i18n.Tr "repo.milestones.open"}}
+							</a>
+						{{else}}
+							<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/close">
+								{{.i18n.Tr "repo.milestones.close"}}
+							</a>
+						{{end}}
+  				{{end}}
 						<button class="ui green button">
 							{{.i18n.Tr "repo.milestones.modify"}}
 						</button>
