@@ -121,7 +121,7 @@
 }
 
 :root * {
-  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", var(--fonts-emoji), sans-serif;
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
 }
 
 textarea {
@@ -560,6 +560,19 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -669,8 +682,14 @@ a.ui.card:hover,
   height: auto;
 }
 
-.ui.loading.segment::before {
+.ui.loading.segment::before,
+.ui.loading.form::before {
   background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: .35;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -1504,6 +1523,7 @@ a.ui.label:hover {
 .blame .code-inner {
   white-space: pre;
   word-break: normal;
+  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
 }
 
 .lines-commit {
@@ -1523,6 +1543,8 @@ a.ui.label:hover {
     display: block;
     user-select: none;
     padding: 0 0 0 10px;
+    line-height: 20px;
+    box-sizing: content-box;
 
     .blame-data {
       display: flex;
@@ -1533,7 +1555,6 @@ a.ui.label:hover {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        line-height: 20px;
       }
 
       .blame-time,
@@ -1546,6 +1567,8 @@ a.ui.label:hover {
   .ui.avatar.image {
     height: 18px;
     width: 18px;
+    display: block;
+    margin-top: 1px;
   }
 }
 
@@ -1555,20 +1578,8 @@ a.ui.label:hover {
     border-bottom: 1px solid var(--color-secondary);
   }
 }
-.code-view {
-  overflow: auto;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &.has-context-menu {
-    overflow: visible;
-    overflow-x: visible;
-    overflow-y: visible;
-  }
-
-  table {
-    width: 100%;
-  }
+.code-view table {
+  width: 100%;
 }
 
 .octicon-tiny {
@@ -1585,8 +1596,16 @@ a.ui.label:hover {
   box-shadow: none !important;
 }
 
+.ui.button:focus,
 .ui.button:hover {
   background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
   color: var(--color-text);
 }
 
