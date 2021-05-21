@@ -1179,3 +1179,8 @@ func NewServices() {
 	newProject()
 	newMimeTypeMap()
 }
+
+func NewServicesForInstall() {
+	newService()
+	newMailService()
+}

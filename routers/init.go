@@ -100,6 +100,7 @@ func PreInstallInit(ctx context.Context) bool {
 			log.Info("SQLite3 Supported")
 		}
 		setting.InitDBConfig()
+		setting.NewServicesForInstall()
 		svg.Init()
 	}
 
