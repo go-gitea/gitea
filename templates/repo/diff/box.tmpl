@@ -29,10 +29,12 @@
 			{{range .Diff.Files}}
 				<li>
 					<div class="bold df ac pull-right">
-						{{if not .IsBin}}
-							{{template "repo/diff/stats" dict "file" . "root" $}}
+						{{if .IsBin}}
+							<span class="ml-1 mr-3">
+								{{$.i18n.Tr "repo.diff.bin"}}
+							</span>
 						{{else}}
-							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
+							{{template "repo/diff/stats" dict "file" . "root" $}}
 						{{end}}
 					</div>
 					<!-- todo finish all file status, now modify, add, delete and rename -->
@@ -87,7 +89,9 @@
 							</a>
 							<div class="bold df ac">
 								{{if $file.IsBin}}
-									{{$.i18n.Tr "repo.diff.bin"}}
+									<span class="ml-1 mr-3">
+										{{$.i18n.Tr "repo.diff.bin"}}
+									</span>
 								{{else}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
