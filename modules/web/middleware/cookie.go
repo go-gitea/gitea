@@ -76,6 +76,47 @@ func NewCookie(name, value string, maxAge int) *http.Cookie {
 	}
 }
 
+// SetRedirectToCookie convenience function to set the RedirectTo cookie consistently
+func SetRedirectToCookie(resp http.ResponseWriter, value string) {
+	SetCookie(resp, "redirect_to", value,
+		0,
+		setting.AppSubURL,
+		"",
+		setting.SessionConfig.Secure,
+		true,
+		SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteRedirectToCookie convenience function to delete most cookies consistently
+func DeleteRedirectToCookie(resp http.ResponseWriter) {
+	SetCookie(resp, "redirect_to", "",
+		-1,
+		setting.AppSubURL,
+		"",
+		setting.SessionConfig.Secure,
+		true,
+		SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteSesionConfigPathCookie convenience function to delete SessionConfigPath cookies consistently
+func DeleteSesionConfigPathCookie(resp http.ResponseWriter, name string) {
+	SetCookie(resp, name, "",
+		-1,
+		setting.SessionConfig.CookiePath,
+		setting.SessionConfig.Domain,
+		setting.SessionConfig.Secure,
+		true,
+		SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteCSRFCookie convenience function to delete SessionConfigPath cookies consistently
+func DeleteCSRFCookie(resp http.ResponseWriter) {
+	SetCookie(resp, setting.CSRFCookieName, "",
+		-1,
+		setting.SessionConfig.CookiePath,
+		setting.SessionConfig.Domain) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
+}
+
 // SetCookie set the cookies
 // TODO: Copied from gitea.com/macaron/macaron and should be improved after macaron removed.
 func SetCookie(resp http.ResponseWriter, name string, value string, others ...interface{}) {

@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -20,8 +20,6 @@ const (
 	posSlotBits = 6
 	// number of align bits
 	alignBits = 4
-	// maximum position slot
-	maxPosSlot = 63
 )
 
 // distCodec provides encoding and decoding of distance values.
@@ -43,20 +41,6 @@ func (dc *distCodec) deepcopy(src *distCodec) {
 		dc.posModel[i].deepcopy(&src.posModel[i])
 	}
 	dc.alignCodec.deepcopy(&src.alignCodec)
-}
-
-// distBits returns the number of bits required to encode dist.
-func distBits(dist uint32) int {
-	if dist < startPosModel {
-		return 6
-	}
-	// slot s > 3, dist d
-	// s = 2(bits(d)-1) + bit(d, bits(d)-2)
-	// s>>1 = bits(d)-1
-	// bits(d) = 32-nlz32(d)
-	// s>>1=31-nlz32(d)
-	// n = 5 + (s>>1) = 36 - nlz32(d)
-	return 36 - nlz32(dist)
 }
 
 // newDistCodec creates a new distance codec.

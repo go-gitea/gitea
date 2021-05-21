@@ -374,12 +374,14 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 			ID:       orgUsers[0].ID,
 			OrgID:    6,
 			UID:      5,
-			IsPublic: true}, *orgUsers[0])
+			IsPublic: true,
+		}, *orgUsers[0])
 		assert.Equal(t, OrgUser{
 			ID:       orgUsers[1].ID,
 			OrgID:    7,
 			UID:      5,
-			IsPublic: false}, *orgUsers[1])
+			IsPublic: false,
+		}, *orgUsers[1])
 	}
 
 	publicOrgUsers, err := GetOrgUsersByUserID(5, &SearchOrganizationsOptions{All: false})
@@ -406,12 +408,14 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 			ID:       orgUsers[0].ID,
 			OrgID:    3,
 			UID:      2,
-			IsPublic: true}, *orgUsers[0])
+			IsPublic: true,
+		}, *orgUsers[0])
 		assert.Equal(t, OrgUser{
 			ID:       orgUsers[1].ID,
 			OrgID:    3,
 			UID:      4,
-			IsPublic: false}, *orgUsers[1])
+			IsPublic: false,
+		}, *orgUsers[1])
 	}
 
 	orgUsers, err = GetOrgUsersByOrgID(&FindOrgMembersOpts{
@@ -634,4 +638,22 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	assert.Equal(t, test1, true)  // owner of org
 	assert.Equal(t, test2, false) // user not a part of org
 	assert.Equal(t, test3, false) // logged out user
+}
+
+func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	users, err := GetUsersWhoCanCreateOrgRepo(3)
+	assert.NoError(t, err)
+	assert.Len(t, users, 2)
+	var ids []int64
+	for i := range users {
+		ids = append(ids, users[i].ID)
+	}
+	assert.ElementsMatch(t, ids, []int64{2, 28})
+
+	users, err = GetUsersWhoCanCreateOrgRepo(7)
+	assert.NoError(t, err)
+	assert.Len(t, users, 1)
+	assert.EqualValues(t, 5, users[0].ID)
 }

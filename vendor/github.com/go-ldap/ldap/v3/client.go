@@ -10,6 +10,7 @@ type Client interface {
 	Start()
 	StartTLS(*tls.Config) error
 	Close()
+	IsClosing() bool
 	SetTimeout(time.Duration)
 
 	Bind(username, password string) error

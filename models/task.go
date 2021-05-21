@@ -5,12 +5,12 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 )
@@ -105,6 +105,7 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -134,7 +135,7 @@ func (err ErrTaskDoesNotExist) Error() string {
 
 // GetMigratingTask returns the migrating task by repo's id
 func GetMigratingTask(repoID int64) (*Task, error) {
-	var task = Task{
+	task := Task{
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
@@ -149,7 +150,7 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
-	var task = Task{
+	task := Task{
 		ID:     id,
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
@@ -162,6 +163,7 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	}
 
 	var opts migration.MigrateOptions
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
 		return nil, nil, err
 	}
@@ -175,7 +177,7 @@ type FindTaskOptions struct {
 
 // ToConds generates conditions for database operation.
 func (opts FindTaskOptions) ToConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.Status >= 0 {
 		cond = cond.And(builder.Eq{"status": opts.Status})
 	}
@@ -184,7 +186,7 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 
 // FindTasks find all tasks
 func FindTasks(opts FindTaskOptions) ([]*Task, error) {
-	var tasks = make([]*Task, 0, 10)
+	tasks := make([]*Task, 0, 10)
 	err := x.Where(opts.ToConds()).Find(&tasks)
 	return tasks, err
 }

@@ -13,10 +13,12 @@ import (
 
 func TestCombineLabelComments(t *testing.T) {
 	var kases = []struct {
+		name           string
 		beforeCombined []*models.Comment
 		afterCombined  []*models.Comment
 	}{
 		{
+			name: "kase 1",
 			beforeCombined: []*models.Comment{
 				{
 					Type:     models.CommentTypeLabel,
@@ -72,6 +74,7 @@ func TestCombineLabelComments(t *testing.T) {
 			},
 		},
 		{
+			name: "kase 2",
 			beforeCombined: []*models.Comment{
 				{
 					Type:     models.CommentTypeLabel,
@@ -136,6 +139,7 @@ func TestCombineLabelComments(t *testing.T) {
 			},
 		},
 		{
+			name: "kase 3",
 			beforeCombined: []*models.Comment{
 				{
 					Type:     models.CommentTypeLabel,
@@ -200,6 +204,7 @@ func TestCombineLabelComments(t *testing.T) {
 			},
 		},
 		{
+			name: "kase 4",
 			beforeCombined: []*models.Comment{
 				{
 					Type:     models.CommentTypeLabel,
@@ -240,13 +245,80 @@ func TestCombineLabelComments(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "kase 5",
+			beforeCombined: []*models.Comment{
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+				{
+					Type:        models.CommentTypeComment,
+					PosterID:    2,
+					Content:     "testtest",
+					CreatedUnix: 0,
+				},
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+			},
+			afterCombined: []*models.Comment{
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					AddedLabels: []*models.Label{
+						{
+							Name: "kind/bug",
+						},
+					},
+					CreatedUnix: 0,
+				},
+				{
+					Type:        models.CommentTypeComment,
+					PosterID:    2,
+					Content:     "testtest",
+					CreatedUnix: 0,
+				},
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "",
+					RemovedLabels: []*models.Label{
+						{
+							Name: "kind/bug",
+						},
+					},
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+			},
+		},
 	}
 
 	for _, kase := range kases {
-		var issue = models.Issue{
-			Comments: kase.beforeCombined,
-		}
-		combineLabelComments(&issue)
-		assert.EqualValues(t, kase.afterCombined, issue.Comments)
+		t.Run(kase.name, func(t *testing.T) {
+			var issue = models.Issue{
+				Comments: kase.beforeCombined,
+			}
+			combineLabelComments(&issue)
+			assert.EqualValues(t, kase.afterCombined, issue.Comments)
+		})
 	}
 }

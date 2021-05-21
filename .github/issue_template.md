@@ -30,6 +30,9 @@
 <!-- In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini -->
 
 ## Description
+<!-- If using a proxy or a CDN (e.g. CloudFlare) in front of gitea, please
+     disable the proxy/CDN fully and connect to gitea directly to confirm
+     the issue still persists without those services. -->
 
 ...
 

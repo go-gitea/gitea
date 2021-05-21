@@ -12,7 +12,7 @@ import (
 )
 
 func listen(server *ssh.Server) {
-	gracefulServer := graceful.NewServer("tcp", server.Addr)
+	gracefulServer := graceful.NewServer("tcp", server.Addr, "SSH")
 
 	err := gracefulServer.ListenAndServe(server.Serve)
 	if err != nil {

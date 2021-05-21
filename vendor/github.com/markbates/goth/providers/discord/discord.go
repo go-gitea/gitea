@@ -162,9 +162,21 @@ func userFromReader(r io.Reader, user *goth.User) error {
 		return err
 	}
 
+	//If this prefix is present, the image should be available as a gif,
+	//See : https://discord.com/developers/docs/reference#image-formatting
+	//Introduced by : Yyewolf
+
+	if u.AvatarID != "" {
+		avatarExtension := ".jpg"
+		prefix := "a_"
+		if len(u.AvatarID) >= len(prefix) && u.AvatarID[0:len(prefix)] == prefix {
+			avatarExtension = ".gif"
+		}
+		user.AvatarURL = "https://media.discordapp.net/avatars/" + u.ID + "/" + u.AvatarID + avatarExtension
+	}
+
 	user.Name = u.Name
 	user.Email = u.Email
-	user.AvatarURL = "https://media.discordapp.net/avatars/" + u.ID + "/" + u.AvatarID + ".jpg"
 	user.UserID = u.ID
 
 	return nil

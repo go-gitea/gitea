@@ -44,16 +44,11 @@ import (
 	"unsafe"
 )
 
-//go:generate msgp -unexported
-
 // runContainer16 does run-length encoding of sets of
 // uint16 integers.
 type runContainer16 struct {
 	iv   []interval16
 	card int64
-
-	// avoid allocation during search
-	myOpts searchOptions `msg:"-"`
 }
 
 // interval16 is the internal to runContainer16
@@ -119,8 +114,6 @@ func (p uint16Slice) Less(i, j int) bool { return p[i] < p[j] }
 
 // Swap swaps elements i and j.
 func (p uint16Slice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
-
-//msgp:ignore addHelper
 
 // addHelper helps build a runContainer16.
 type addHelper16 struct {
@@ -617,10 +610,7 @@ func (rc *runContainer16) unionCardinality(b *runContainer16) uint64 {
 
 // indexOfIntervalAtOrAfter is a helper for union.
 func (rc *runContainer16) indexOfIntervalAtOrAfter(key int64, startIndex int64) int64 {
-	rc.myOpts.startIndex = startIndex
-	rc.myOpts.endxIndex = 0
-
-	w, already, _ := rc.search(key, &rc.myOpts)
+	w, already, _ := rc.searchRange(key, startIndex, 0)
 	if already {
 		return w
 	}
@@ -844,7 +834,7 @@ toploop:
 
 // get returns true iff key is in the container.
 func (rc *runContainer16) contains(key uint16) bool {
-	_, in, _ := rc.search(int64(key), nil)
+	_, in, _ := rc.search(int64(key))
 	return in
 }
 
@@ -853,22 +843,7 @@ func (rc *runContainer16) numIntervals() int {
 	return len(rc.iv)
 }
 
-// searchOptions allows us to accelerate search with
-// prior knowledge of (mostly lower) bounds. This is used by Union
-// and Intersect.
-type searchOptions struct {
-	// start here instead of at 0
-	startIndex int64
-
-	// upper bound instead of len(rc.iv);
-	// endxIndex == 0 means ignore the bound and use
-	// endxIndex == n ==len(rc.iv) which is also
-	// naturally the default for search()
-	// when opt = nil.
-	endxIndex int64
-}
-
-// search returns alreadyPresent to indicate if the
+// searchRange returns alreadyPresent to indicate if the
 // key is already in one of our interval16s.
 //
 // If key is alreadyPresent, then whichInterval16 tells
@@ -892,24 +867,16 @@ type searchOptions struct {
 //
 // runContainer16.search always returns whichInterval16 < len(rc.iv).
 //
-// If not nil, opts can be used to further restrict
-// the search space.
+// The search space is from startIndex to endxIndex. If endxIndex is set to zero, then there 
+// no upper bound.
 //
-func (rc *runContainer16) search(key int64, opts *searchOptions) (whichInterval16 int64, alreadyPresent bool, numCompares int) {
+func (rc *runContainer16) searchRange(key int64, startIndex int64, endxIndex int64) (whichInterval16 int64, alreadyPresent bool, numCompares int) {
 	n := int64(len(rc.iv))
 	if n == 0 {
 		return -1, false, 0
 	}
-
-	startIndex := int64(0)
-	endxIndex := n
-	if opts != nil {
-		startIndex = opts.startIndex
-
-		// let endxIndex == 0 mean no effect
-		if opts.endxIndex > 0 {
-			endxIndex = opts.endxIndex
-		}
+	if endxIndex == 0 {
+		endxIndex = n
 	}
 
 	// sort.Search returns the smallest index i
@@ -977,6 +944,34 @@ func (rc *runContainer16) search(key int64, opts *searchOptions) (whichInterval1
 	// INVAR: key >= rc.iv[below-1].endx && key < rc.iv[below].start
 	// leave alreadyPresent = false
 	return
+}
+
+// search returns alreadyPresent to indicate if the
+// key is already in one of our interval16s.
+//
+// If key is alreadyPresent, then whichInterval16 tells
+// you where.
+//
+// If key is not already present, then whichInterval16 is
+// set as follows:
+//
+//  a) whichInterval16 == len(rc.iv)-1 if key is beyond our
+//     last interval16 in rc.iv;
+//
+//  b) whichInterval16 == -1 if key is before our first
+//     interval16 in rc.iv;
+//
+//  c) whichInterval16 is set to the minimum index of rc.iv
+//     which comes strictly before the key;
+//     so  rc.iv[whichInterval16].last < key,
+//     and  if whichInterval16+1 exists, then key < rc.iv[whichInterval16+1].start
+//     (Note that whichInterval16+1 won't exist when
+//     whichInterval16 is the last interval.)
+//
+// runContainer16.search always returns whichInterval16 < len(rc.iv).
+//
+func (rc *runContainer16) search(key int64) (whichInterval16 int64, alreadyPresent bool, numCompares int) {
+	return rc.searchRange(key, 0, 0)
 }
 
 // cardinality returns the count of the integers stored in the
@@ -1072,7 +1067,7 @@ func (rc *runContainer16) Add(k uint16) (wasNew bool) {
 
 	k64 := int64(k)
 
-	index, present, _ := rc.search(k64, nil)
+	index, present, _ := rc.search(k64)
 	if present {
 		return // already there
 	}
@@ -1147,8 +1142,6 @@ func (rc *runContainer16) Add(k uint16) (wasNew bool) {
 	return
 }
 
-//msgp:ignore runIterator
-
 // runIterator16 advice: you must call hasNext()
 // before calling next()/peekNext() to insure there are contents.
 type runIterator16 struct {
@@ -1207,13 +1200,8 @@ func (ri *runIterator16) advanceIfNeeded(minval uint16) {
 		return
 	}
 
-	opt := &searchOptions{
-		startIndex: ri.curIndex,
-		endxIndex:  int64(len(ri.rc.iv)),
-	}
-
 	// interval cannot be -1 because of minval > peekNext
-	interval, isPresent, _ := ri.rc.search(int64(minval), opt)
+	interval, isPresent, _ := ri.rc.searchRange(int64(minval), ri.curIndex, int64(len(ri.rc.iv)))
 
 	// if the minval is present, set the curPosIndex at the right position
 	if isPresent {
@@ -1366,7 +1354,7 @@ func (ri *runIterator16) nextMany64(hs uint64, buf []uint64) int {
 func (rc *runContainer16) removeKey(key uint16) (wasPresent bool) {
 
 	var index int64
-	index, wasPresent, _ = rc.search(int64(key), nil)
+	index, wasPresent, _ = rc.search(int64(key))
 	if !wasPresent {
 		return // already removed, nothing to do.
 	}
@@ -1457,12 +1445,8 @@ func intersectWithLeftover16(astart, alast, bstart, blast int64) (isOverlap, isL
 	return
 }
 
-func (rc *runContainer16) findNextIntervalThatIntersectsStartingFrom(startIndex int64, key int64) (index int64, done bool) {
-
-	rc.myOpts.startIndex = startIndex
-	rc.myOpts.endxIndex = 0
-
-	w, _, _ := rc.search(key, &rc.myOpts)
+func (rc *runContainer16) findNextIntervalThatIntersectsStartingFrom(startIndex int64, key int64) (index int64, done bool) {	
+	w, _, _ := rc.searchRange(key, startIndex, 0)
 	// rc.search always returns w < len(rc.iv)
 	if w < startIndex {
 		// not found and comes before lower bound startIndex,
@@ -1603,8 +1587,8 @@ func (rc *runContainer16) isubtract(del interval16) {
 	}
 
 	// INVAR there is some intersection between rc and del
-	istart, startAlready, _ := rc.search(int64(del.start), nil)
-	ilast, lastAlready, _ := rc.search(int64(del.last()), nil)
+	istart, startAlready, _ := rc.search(int64(del.start))
+	ilast, lastAlready, _ := rc.search(int64(del.last()))
 	rc.card = -1
 	if istart == -1 {
 		if ilast == n-1 && !lastAlready {
@@ -2356,7 +2340,7 @@ func (rc *runContainer16) getCardinality() int {
 func (rc *runContainer16) rank(x uint16) int {
 	n := int64(len(rc.iv))
 	xx := int64(x)
-	w, already, _ := rc.search(xx, nil)
+	w, already, _ := rc.search(xx)
 	if w < 0 {
 		return 0
 	}

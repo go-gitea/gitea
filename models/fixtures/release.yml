@@ -43,3 +43,15 @@
   is_tag: true
   created_unix: 946684800
 
+-
+  id: 4
+  repo_id: 1
+  publisher_id: 2
+  tag_name: "draft-release"
+  lower_tag_name: "draft-release"
+  target: "master"
+  title: "draft-release"
+  is_draft: true
+  is_prerelease: false
+  is_tag: false
+  created_unix: 1619524806

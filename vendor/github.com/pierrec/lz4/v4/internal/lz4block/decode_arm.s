@@ -140,25 +140,22 @@ readMatchlenLoop:
 	BEQ     readMatchlenLoop
 
 readMatchlenDone:
-	ADD minMatch, len
-
-	// Bounds check dst+len and match = dst-offset.
+	// Bounds check dst+len+minMatch and match = dst-offset.
 	ADD    dst, len, tmp1
+	ADD    minMatch, tmp1
 	CMP    dstend, tmp1
 	//BHI  shortDst	// Uncomment for distinct error codes.
 	SUB    offset, dst, match
 	CMP.LS match, dstorig
 	BHI    corrupt
 
-	// If the offset is at least four (len is, because of minMatch),
-	// do a four-way unrolled byte copy loop. Using MOVD instead of four
-	// byte loads is much faster, but to remain portable we'd have to
-	// align match first, which in turn is too expensive.
-	CMP $4, offset
-	BLO copyMatch
-
-	SUB $4, len
+	// Since len+minMatch is at least four, we can do a 4× unrolled
+	// byte copy loop. Using MOVW instead of four byte loads is faster,
+	// but to remain portable we'd have to align match first, which is
+	// too expensive. By alternating loads and stores, we also handle
+	// the case offset < 4.
 copyMatch4:
+	SUB.S   $4, len
 	MOVBU.P 4(match), tmp1
 	MOVB.P  tmp1, 4(dst)
 	MOVBU   -3(match), tmp2
@@ -167,7 +164,6 @@ copyMatch4:
 	MOVB    tmp3, -2(dst)
 	MOVBU   -1(match), tmp1
 	MOVB    tmp1, -1(dst)
-	SUB.S   $4, len
 	BPL     copyMatch4
 
 	// Restore len, which is now negative.
@@ -175,7 +171,7 @@ copyMatch4:
 	BEQ   copyMatchDone
 
 copyMatch:
-	// Simple byte-at-a-time copy.
+	// Finish with a byte-at-a-time copy.
 	SUB.S   $1, len
 	MOVBU.P 1(match), tmp2
 	MOVB.P  tmp2, 1(dst)

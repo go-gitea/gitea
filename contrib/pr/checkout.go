@@ -114,7 +114,7 @@ func runPR() {
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
 	c := routes.NormalRoutes()
 

@@ -10,11 +10,11 @@
 package logging
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -50,115 +50,61 @@ func NewLogger(out io.Writer, lvl Level, fmtLogging LogEntryFormatter, fmtArgs .
 	return logger
 }
 
-func (gl *goLogger) Logp(level Level, msg string, kv ...Pair) {
+// anonymous function variants
+
+func (gl *goLogger) Loga(level Level, f func() string) {
 	if gl.logger == nil {
 		return
 	}
 	if level <= gl.level {
-		e := newLogEntry(msg, level)
-		copyPairs(e, kv)
-		gl.log(e)
+		gl.log(level, NONE, f())
 	}
 }
-
-func (gl *goLogger) Debugp(msg string, kv ...Pair) {
-	gl.Logp(DEBUG, msg, kv...)
+func (gl *goLogger) Debuga(f func() string) {
+	gl.Loga(DEBUG, f)
 }
 
-func (gl *goLogger) Tracep(msg string, kv ...Pair) {
-	gl.Logp(TRACE, msg, kv...)
+func (gl *goLogger) Tracea(f func() string) {
+	gl.Loga(TRACE, f)
 }
 
-func (gl *goLogger) Requestp(rlevel Level, msg string, kv ...Pair) {
+func (gl *goLogger) Requesta(rlevel Level, f func() string) {
 	if gl.logger == nil {
 		return
 	}
 	if REQUEST <= gl.level {
-		e := newLogEntry(msg, REQUEST)
-		e.Rlevel = rlevel
-		copyPairs(e, kv)
-		gl.log(e)
+		gl.log(REQUEST, rlevel, f())
 	}
 }
 
-func (gl *goLogger) Infop(msg string, kv ...Pair) {
-	gl.Logp(INFO, msg, kv...)
+func (gl *goLogger) Infoa(f func() string) {
+	gl.Loga(INFO, f)
 }
 
-func (gl *goLogger) Warnp(msg string, kv ...Pair) {
-	gl.Logp(WARN, msg, kv...)
+func (gl *goLogger) Warna(f func() string) {
+	gl.Loga(WARN, f)
 }
 
-func (gl *goLogger) Errorp(msg string, kv ...Pair) {
-	gl.Logp(ERROR, msg, kv...)
+func (gl *goLogger) Errora(f func() string) {
+	gl.Loga(ERROR, f)
 }
 
-func (gl *goLogger) Severep(msg string, kv ...Pair) {
-	gl.Logp(SEVERE, msg, kv...)
+func (gl *goLogger) Severea(f func() string) {
+	gl.Loga(SEVERE, f)
 }
 
-func (gl *goLogger) Fatalp(msg string, kv ...Pair) {
-	gl.Logp(FATAL, msg, kv...)
+func (gl *goLogger) Fatala(f func() string) {
+	gl.Loga(FATAL, f)
 }
 
-func (gl *goLogger) Logm(level Level, msg string, kv Map) {
-	if gl.logger == nil {
-		return
-	}
-	if level <= gl.level {
-		e := newLogEntry(msg, level)
-		e.Data = kv
-		gl.log(e)
-	}
-}
-
-func (gl *goLogger) Debugm(msg string, kv Map) {
-	gl.Logm(DEBUG, msg, kv)
-}
-
-func (gl *goLogger) Tracem(msg string, kv Map) {
-	gl.Logm(TRACE, msg, kv)
-}
-
-func (gl *goLogger) Requestm(rlevel Level, msg string, kv Map) {
-	if gl.logger == nil {
-		return
-	}
-	if REQUEST <= gl.level {
-		e := newLogEntry(msg, REQUEST)
-		e.Rlevel = rlevel
-		e.Data = kv
-		gl.log(e)
-	}
-}
-
-func (gl *goLogger) Infom(msg string, kv Map) {
-	gl.Logm(INFO, msg, kv)
-}
-
-func (gl *goLogger) Warnm(msg string, kv Map) {
-	gl.Logm(WARN, msg, kv)
-}
-
-func (gl *goLogger) Errorm(msg string, kv Map) {
-	gl.Logm(ERROR, msg, kv)
-}
-
-func (gl *goLogger) Severem(msg string, kv Map) {
-	gl.Logm(SEVERE, msg, kv)
-}
-
-func (gl *goLogger) Fatalm(msg string, kv Map) {
-	gl.Logm(FATAL, msg, kv)
-}
+// printf-style variants
 
 func (gl *goLogger) Logf(level Level, format string, args ...interface{}) {
 	if gl.logger == nil {
 		return
 	}
 	if level <= gl.level {
-		e := newLogEntry(fmt.Sprintf(format, args...), level)
-		gl.log(e)
+		gl.log(level, NONE, fmt.Sprintf(format, args...))
 	}
 }
 
@@ -175,9 +121,7 @@ func (gl *goLogger) Requestf(rlevel Level, format string, args ...interface{}) {
 		return
 	}
 	if REQUEST <= gl.level {
-		e := newLogEntry(fmt.Sprintf(format, args...), REQUEST)
-		e.Rlevel = rlevel
-		gl.log(e)
+		gl.log(REQUEST, rlevel, fmt.Sprintf(format, args...))
 	}
 }
 
@@ -209,37 +153,13 @@ func (gl *goLogger) SetLevel(level Level) {
 	gl.level = level
 }
 
-func (gl *goLogger) log(newEntry *logEntry) {
-	s := gl.entryFormatter.format(newEntry)
-	gl.logger.Print(s)
-}
-
-type logEntry struct {
-	Time    string
-	Level   Level
-	Rlevel  Level
-	Message string
-	Data    Map
-}
-
-func newLogEntry(msg string, level Level) *logEntry {
-	return &logEntry{
-		Time:    time.Now().Format("2006-01-02T15:04:05.000-07:00"), // time.RFC3339 with milliseconds
-		Level:   level,
-		Rlevel:  NONE,
-		Message: msg,
-	}
-}
-
-func copyPairs(newEntry *logEntry, pairs []Pair) {
-	newEntry.Data = make(Map, len(pairs))
-	for _, p := range pairs {
-		newEntry.Data[p.Name] = p.Value
-	}
+func (gl *goLogger) log(level Level, rlevel Level, msg string) {
+	tm := time.Now().Format("2006-01-02T15:04:05.000-07:00") // time.RFC3339 with milliseconds
+	gl.logger.Print(gl.entryFormatter.format(tm, level, rlevel, msg))
 }
 
 type formatter interface {
-	format(*logEntry) string
+	format(string, Level, Level, string) string
 }
 
 type textFormatter struct {
@@ -247,24 +167,20 @@ type textFormatter struct {
 
 // ex. 2016-02-10T09:15:25.498-08:00 [INFO] This is a message from test in text format
 
-func (*textFormatter) format(newEntry *logEntry) string {
-	b := &bytes.Buffer{}
-	appendValue(b, newEntry.Time)
-	if newEntry.Rlevel != NONE {
-		fmt.Fprintf(b, "[%s,%s] ", newEntry.Level.String(), newEntry.Rlevel.String())
+func (*textFormatter) format(tm string, level Level, rlevel Level, msg string) string {
+	b := &strings.Builder{}
+	appendValue(b, tm)
+	if rlevel != NONE {
+		fmt.Fprintf(b, "[%s,%s] ", level.String(), rlevel.String())
 	} else {
-		fmt.Fprintf(b, "[%s] ", newEntry.Level.String())
+		fmt.Fprintf(b, "[%s] ", level.String())
 	}
-	appendValue(b, newEntry.Message)
-	for key, value := range newEntry.Data {
-		appendKeyValue(b, key, value)
-	}
+	appendValue(b, msg)
 	b.WriteByte('\n')
-	s := bytes.NewBuffer(b.Bytes())
-	return s.String()
+	return b.String()
 }
 
-func appendValue(b *bytes.Buffer, value interface{}) {
+func appendValue(b *strings.Builder, value interface{}) {
 	if _, ok := value.(string); ok {
 		fmt.Fprintf(b, "%s ", value)
 	} else {
@@ -277,23 +193,19 @@ type keyvalueFormatter struct {
 
 // ex. _time=2016-02-10T09:15:25.498-08:00 _level=INFO _msg=This is a message from test in key-value format
 
-func (*keyvalueFormatter) format(newEntry *logEntry) string {
-	b := &bytes.Buffer{}
-	appendKeyValue(b, _TIME, newEntry.Time)
-	appendKeyValue(b, _LEVEL, newEntry.Level.String())
-	if newEntry.Rlevel != NONE {
-		appendKeyValue(b, _RLEVEL, newEntry.Rlevel.String())
+func (*keyvalueFormatter) format(tm string, level Level, rlevel Level, msg string) string {
+	b := &strings.Builder{}
+	appendKeyValue(b, _TIME, tm)
+	appendKeyValue(b, _LEVEL, level.String())
+	if rlevel != NONE {
+		appendKeyValue(b, _RLEVEL, rlevel.String())
 	}
-	appendKeyValue(b, _MSG, newEntry.Message)
-	for key, value := range newEntry.Data {
-		appendKeyValue(b, key, value)
-	}
+	appendKeyValue(b, _MSG, msg)
 	b.WriteByte('\n')
-	s := bytes.NewBuffer(b.Bytes())
-	return s.String()
+	return b.String()
 }
 
-func appendKeyValue(b *bytes.Buffer, key, value interface{}) {
+func appendKeyValue(b *strings.Builder, key, value interface{}) {
 	if _, ok := value.(string); ok {
 		fmt.Fprintf(b, "%v=%s ", key, value)
 	} else {
@@ -306,19 +218,19 @@ type jsonFormatter struct {
 
 // ex. {"_level":"INFO","_msg":"This is a message from test in json format","_time":"2016-02-10T09:12:59.518-08:00"}
 
-func (*jsonFormatter) format(newEntry *logEntry) string {
-	if newEntry.Data == nil {
-		newEntry.Data = make(Map, 5)
+func (*jsonFormatter) format(tm string, level Level, rlevel Level, msg string) string {
+	data := make(map[string]interface{}, 4)
+	data[_TIME] = tm
+	data[_LEVEL] = level.String()
+	if rlevel != NONE {
+		data[_RLEVEL] = rlevel.String()
 	}
-	newEntry.Data[_TIME] = newEntry.Time
-	newEntry.Data[_LEVEL] = newEntry.Level.String()
-	if newEntry.Rlevel != NONE {
-		newEntry.Data[_RLEVEL] = newEntry.Rlevel.String()
-	}
-	newEntry.Data[_MSG] = newEntry.Message
-	serialized, _ := json.Marshal(newEntry.Data)
-	s := bytes.NewBuffer(append(serialized, '\n'))
-	return s.String()
+	data[_MSG] = msg
+	serialized, _ := json.Marshal(data)
+	var b strings.Builder
+	b.Write(serialized)
+	b.WriteByte('\n')
+	return b.String()
 }
 
 type ComponentCallback func() string
@@ -345,21 +257,17 @@ func (level Level) UniformString() string {
 	return _LEVEL_UNIFORM[level]
 }
 
-func (uf *uniformFormatter) format(newEntry *logEntry) string {
-	b := &bytes.Buffer{}
-	appendValue(b, newEntry.Time)
+func (uf *uniformFormatter) format(tm string, level Level, rlevel Level, msg string) string {
+	b := &strings.Builder{}
+	appendValue(b, tm)
 	component := uf.callback()
-	if newEntry.Rlevel != NONE {
+	if rlevel != NONE {
 		// not really any accommodation for a composite level in the uniform standard; just output as abbr,abbr
-		fmt.Fprintf(b, "%s,%s %s ", newEntry.Level.UniformString(), newEntry.Rlevel.UniformString(), component)
+		fmt.Fprintf(b, "%s,%s %s ", level.UniformString(), rlevel.UniformString(), component)
 	} else {
-		fmt.Fprintf(b, "%s %s ", newEntry.Level.UniformString(), component)
+		fmt.Fprintf(b, "%s %s ", level.UniformString(), component)
 	}
-	appendValue(b, newEntry.Message)
-	for key, value := range newEntry.Data {
-		appendKeyValue(b, key, value)
-	}
+	appendValue(b, msg)
 	b.WriteByte('\n')
-	s := bytes.NewBuffer(b.Bytes())
-	return s.String()
+	return b.String()
 }

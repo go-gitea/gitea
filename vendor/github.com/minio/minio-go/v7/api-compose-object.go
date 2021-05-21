@@ -202,7 +202,7 @@ func (opts CopySrcOptions) validate() (err error) {
 
 // Low level implementation of CopyObject API, supports only upto 5GiB worth of copy.
 func (c Client) copyObjectDo(ctx context.Context, srcBucket, srcObject, destBucket, destObject string,
-	metadata map[string]string, dstOpts PutObjectOptions) (ObjectInfo, error) {
+	metadata map[string]string, srcOpts CopySrcOptions, dstOpts PutObjectOptions) (ObjectInfo, error) {
 
 	// Build headers.
 	headers := make(http.Header)
@@ -240,7 +240,9 @@ func (c Client) copyObjectDo(ctx context.Context, srcBucket, srcObject, destBuck
 
 	// Set the source header
 	headers.Set("x-amz-copy-source", s3utils.EncodePath(srcBucket+"/"+srcObject))
-
+	if srcOpts.VersionID != "" {
+		headers.Set("x-amz-copy-source", s3utils.EncodePath(srcBucket+"/"+srcObject)+"?versionId="+srcOpts.VersionID)
+	}
 	// Send upload-part-copy request
 	resp, err := c.executeMethod(ctx, http.MethodPut, reqMetadata)
 	defer closeResponse(resp)

@@ -116,7 +116,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
-		// PR was fast-forwarded, so just use last commit of PR
+		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = commitID[:40]
 	}
 
@@ -137,6 +137,21 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(pr *models.PullRequest) bool {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
+		return false
+	}
+
+	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		if !config.AutodetectManualMerge {
+			return false
+		}
+	} else {
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(models.UnitTypePullRequests): %v", pr.ID, err)
+		return false
+	}
+
 	commit, err := getMergeCommit(pr)
 	if err != nil {
 		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)

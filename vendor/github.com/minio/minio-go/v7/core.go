@@ -56,8 +56,8 @@ func (c Core) ListObjectsV2(bucketName, objectPrefix, continuationToken string, 
 }
 
 // CopyObject - copies an object from source object to destination object on server side.
-func (c Core) CopyObject(ctx context.Context, sourceBucket, sourceObject, destBucket, destObject string, metadata map[string]string, dstOpts PutObjectOptions) (ObjectInfo, error) {
-	return c.copyObjectDo(ctx, sourceBucket, sourceObject, destBucket, destObject, metadata, dstOpts)
+func (c Core) CopyObject(ctx context.Context, sourceBucket, sourceObject, destBucket, destObject string, metadata map[string]string, srcOpts CopySrcOptions, dstOpts PutObjectOptions) (ObjectInfo, error) {
+	return c.copyObjectDo(ctx, sourceBucket, sourceObject, destBucket, destObject, metadata, srcOpts, dstOpts)
 }
 
 // CopyObjectPart - creates a part in a multipart upload by copying (a

@@ -162,14 +162,18 @@ func (c *client) listenFirstError(r io.Reader) chan string {
 	return errLine
 }
 
-// AdvertisedReferences retrieves the advertised references from the server.
 func (s *session) AdvertisedReferences() (*packp.AdvRefs, error) {
+	return s.AdvertisedReferencesContext(context.TODO())
+}
+
+// AdvertisedReferences retrieves the advertised references from the server.
+func (s *session) AdvertisedReferencesContext(ctx context.Context) (*packp.AdvRefs, error) {
 	if s.advRefs != nil {
 		return s.advRefs, nil
 	}
 
 	ar := packp.NewAdvRefs()
-	if err := ar.Decode(s.Stdout); err != nil {
+	if err := ar.Decode(s.StdoutContext(ctx)); err != nil {
 		if err := s.handleAdvRefDecodeError(err); err != nil {
 			return nil, err
 		}
@@ -237,7 +241,7 @@ func (s *session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) 
 		return nil, err
 	}
 
-	if _, err := s.AdvertisedReferences(); err != nil {
+	if _, err := s.AdvertisedReferencesContext(ctx); err != nil {
 		return nil, err
 	}
 

@@ -90,6 +90,13 @@ databases.
     post: "..."
 ```
 
+Binary columns can be represented as hexadecimal strings (should start with `0x`):
+
+```yaml
+- id: 1
+  binary_column: 0x1234567890abcdef
+```
+
 If you need to write raw SQL, probably to call a function, prefix the value
 of the column with `RAW=`:
 
@@ -129,7 +136,7 @@ func TestMain(m *testing.M) {
                 ...
         }
 
-        fixtures, err := testfixtures.New(
+        fixtures, err = testfixtures.New(
                 testfixtures.Database(db), // You database connection
                 testfixtures.Dialect("postgres"), // Available: "postgresql", "timescaledb", "mysql", "mariadb", "sqlite" and "sqlserver"
                 testfixtures.Directory("testdata/fixtures"), // the directory containing the YAML files
@@ -399,11 +406,11 @@ dumper, err := testfixtures.NewDumper(
         testfixtures.DumpDatabase(db),
         testfixtures.DumpDialect("postgres"), // or your database of choice
         testfixtures.DumpDirectory("tmp/fixtures"),
-        textfixtures.DumpTables( // optional, will dump all table if not given
+        testfixtures.DumpTables( // optional, will dump all table if not given
           "posts",
           "comments",
           "tags",
-        )
+        ),
 )
 if err != nil {
         ...
@@ -447,7 +454,13 @@ brew install go-testfixtures/tap/testfixtures
 Usage is like this:
 
 ```bash
+# load
 testfixtures -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
+```
+
+```bash
+# dump
+testfixtures --dump -d postgres -c "postgres://user:password@localhost/database" -D testdata/fixtures
 ```
 
 The connection string changes for each database driver.
@@ -497,6 +510,7 @@ unit test database code without having to connect to a real database
 - [dbcleaner][dbcleaner] - Clean database for testing, inspired by
 database_cleaner for Ruby
 
+[doc]: https://pkg.go.dev/github.com/go-testfixtures/testfixtures/v3?tab=doc
 [railstests]: http://guides.rubyonrails.org/testing.html#the-test-database
 [gotxdb]: https://github.com/DATA-DOG/go-txdb
 [gosqlmock]: https://github.com/DATA-DOG/go-sqlmock

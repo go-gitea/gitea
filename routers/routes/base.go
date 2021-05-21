@@ -11,9 +11,11 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -87,13 +89,21 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 				return
 			}
 
-			if !strings.HasPrefix(req.URL.RequestURI(), "/"+prefix) {
+			prefix := strings.Trim(prefix, "/")
+
+			if !strings.HasPrefix(req.URL.EscapedPath(), "/"+prefix+"/") {
 				next.ServeHTTP(w, req)
 				return
 			}
 
-			rPath := strings.TrimPrefix(req.URL.RequestURI(), "/"+prefix)
+			rPath := strings.TrimPrefix(req.URL.EscapedPath(), "/"+prefix+"/")
 			rPath = strings.TrimPrefix(rPath, "/")
+			if rPath == "" {
+				http.Error(w, "file not found", 404)
+				return
+			}
+			rPath = path.Clean("/" + filepath.ToSlash(rPath))
+			rPath = rPath[1:]
 
 			fi, err := objStore.Stat(rPath)
 			if err == nil && httpcache.HandleTimeCache(req, w, fi) {
@@ -162,8 +172,19 @@ func Recovery() func(next http.Handler) http.Handler {
 						},
 					}
 
-					// Get user from session if logged in.
-					user, _ := sso.SignedInUser(req, w, &store, sessionStore)
+					var user *models.User
+					if apiContext := context.GetAPIContext(req); apiContext != nil {
+						user = apiContext.User
+					}
+					if user == nil {
+						if ctx := context.GetContext(req); ctx != nil {
+							user = ctx.User
+						}
+					}
+					if user == nil {
+						// Get user from session if logged in - do not attempt to sign-in
+						user = sso.SessionUser(sessionStore)
+					}
 					if user != nil {
 						store.Data["IsSigned"] = true
 						store.Data["SignedUser"] = user

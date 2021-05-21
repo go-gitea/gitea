@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package gitlab
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // SettingsService handles communication with the application SettingsService
 // related methods of the GitLab API.
@@ -206,7 +209,7 @@ func (s Settings) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#get-current-application.settings
 func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, *Response, error) {
-	req, err := s.client.NewRequest("GET", "application/settings", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "application/settings", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -394,7 +397,7 @@ type UpdateSettingsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#change-application.settings
 func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...RequestOptionFunc) (*Settings, *Response, error) {
-	req, err := s.client.NewRequest("PUT", "application/settings", opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, "application/settings", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

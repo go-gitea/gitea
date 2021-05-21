@@ -9,6 +9,16 @@ export function extname(path = '') {
   return ext || '';
 }
 
+// join a list of path segments with slashes, ensuring no double slashes
+export function joinPaths(...parts) {
+  let str = '';
+  for (const part of parts) {
+    if (!part) continue;
+    str = !str ? part : `${str.replace(/\/$/, '')}/${part.replace(/^\//, '')}`;
+  }
+  return str;
+}
+
 // test whether a variable is an object
 export function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]';
@@ -27,4 +37,17 @@ export function uniq(arr) {
 // strip <tags> from a string
 export function stripTags(text) {
   return text.replace(/<[^>]*>?/gm, '');
+}
+
+// searches the inclusive range [minValue, maxValue].
+// credits: https://matthiasott.com/notes/write-your-media-queries-in-pixels-not-ems
+export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
+  if (maxValue - minValue < step) {
+    return minValue;
+  }
+  const mid = Math.ceil((minValue + maxValue) / 2 / step) * step;
+  if (matchMedia(`screen and (min-${feature}:${mid}${unit})`).matches) {
+    return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
+  }
+  return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
 }

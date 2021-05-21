@@ -194,6 +194,30 @@ request an AXFR for miek.nl. with TSIG key named "axfr." and secret
 You can now read the records from the transfer as they come in. Each envelope
 is checked with TSIG. If something is not correct an error is returned.
 
+A custom TSIG implementation can be used. This requires additional code to
+perform any session establishment and signature generation/verification. The
+client must be configured with an implementation of the TsigProvider interface:
+
+	type Provider struct{}
+
+	func (*Provider) Generate(msg []byte, tsig *dns.TSIG) ([]byte, error) {
+		// Use tsig.Hdr.Name and tsig.Algorithm in your code to
+		// generate the MAC using msg as the payload.
+	}
+
+	func (*Provider) Verify(msg []byte, tsig *dns.TSIG) error {
+		// Use tsig.Hdr.Name and tsig.Algorithm in your code to verify
+		// that msg matches the value in tsig.MAC.
+	}
+
+	c := new(dns.Client)
+	c.TsigProvider = new(Provider)
+	m := new(dns.Msg)
+	m.SetQuestion("miek.nl.", dns.TypeMX)
+	m.SetTsig(keyname, dns.HmacSHA1, 300, time.Now().Unix())
+	...
+	// TSIG RR is calculated by calling your Generate method
+
 Basic use pattern validating and replying to a message that has TSIG set.
 
 	server := &dns.Server{Addr: ":53", Net: "udp"}
@@ -260,7 +284,7 @@ From RFC 2931:
     on requests and responses, and protection of the overall integrity of a response.
 
 It works like TSIG, except that SIG(0) uses public key cryptography, instead of
-the shared secret approach in TSIG. Supported algorithms: DSA, ECDSAP256SHA256,
+the shared secret approach in TSIG. Supported algorithms: ECDSAP256SHA256,
 ECDSAP384SHA384, RSASHA1, RSASHA256 and RSASHA512.
 
 Signing subsequent messages in multi-message sessions is not implemented.

@@ -5,7 +5,6 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // FlushQueues flushes all the Queues
@@ -130,6 +130,7 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	bufferLen := setting.Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)

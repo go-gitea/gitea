@@ -5,6 +5,7 @@
 package admin
 
 import (
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -46,6 +47,10 @@ func DeleteRepo(ctx *context.Context) {
 		return
 	}
 
+	if ctx.Repo != nil && ctx.Repo.GitRepo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == repo.ID {
+		ctx.Repo.GitRepo.Close()
+	}
+
 	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
@@ -53,7 +58,7 @@ func DeleteRepo(ctx *context.Context) {
 	log.Trace("Repository deleted: %s", repo.FullName())
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Query("page") + "&sort=" + ctx.Query("sort"),
 	})
 }
@@ -85,7 +90,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		pager.SetDefaultParams(ctx)
 		pager.AddParam(ctx, "search", "search")
 		ctx.Data["Page"] = pager
-		ctx.HTML(200, tplUnadoptedRepos)
+		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
 	}
 
@@ -99,7 +104,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
-	ctx.HTML(200, tplUnadoptedRepos)
+	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
 
 // AdoptOrDeleteRepository adopts or deletes a repository

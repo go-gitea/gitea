@@ -7,8 +7,7 @@ OF THE PROGRAM CONSTITUTES RECIPIENT'S ACCEPTANCE OF THIS AGREEMENT.
 1. DEFINITIONS
 "Contribution" means:
 
-a.  in the case of International Business Machines Corporation ("IBM"), the
-Original Program, and
+a.  in the case of International Business Machines Corporation ("IBM"), the Original Program, and
 
 b.  in the case of each Contributor,
 	i.  changes to the Program, and
@@ -100,11 +99,9 @@ a.  it must be made available under this Agreement; and
 b.  a copy of this Agreement must be included with each copy of the
 Program.
 
-Each Contributor must include the following in a conspicuous location in the
-Program:
+Each Contributor must include the following in a conspicuous location in the Program:
 
-	Copyright (C) 1996, 1999 International Business Machines Corporation and
-others. All Rights Reserved.
+	Copyright (C) 1996, 1999 International Business Machines Corporation and others. All Rights Reserved.
 
 In addition, each Contributor must identify itself as the originator
 of its Contribution, if any, in a manner that reasonably allows

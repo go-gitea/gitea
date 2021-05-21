@@ -6,6 +6,8 @@
 package org
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -37,7 +39,7 @@ func Members(ctx *context.Context) {
 	if ctx.User != nil {
 		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember")
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
@@ -45,7 +47,7 @@ func Members(ctx *context.Context) {
 
 	total, err := models.CountOrgMembers(opts)
 	if err != nil {
-		ctx.Error(500, "CountOrgMembers")
+		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
 		return
 	}
 
@@ -63,7 +65,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["MembersIsUserOrgOwner"] = members.IsUserOrgOwner(org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
-	ctx.HTML(200, tplMembers)
+	ctx.HTML(http.StatusOK, tplMembers)
 }
 
 // MembersAction response for operation to a member of organization
@@ -79,19 +81,19 @@ func MembersAction(ctx *context.Context) {
 	switch ctx.Params(":action") {
 	case "private":
 		if ctx.User.ID != uid && !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = models.ChangeOrgUserStatus(org.ID, uid, false)
 	case "public":
 		if ctx.User.ID != uid && !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = models.ChangeOrgUserStatus(org.ID, uid, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
-			ctx.Error(404)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = org.RemoveMember(uid)
@@ -111,7 +113,7 @@ func MembersAction(ctx *context.Context) {
 
 	if err != nil {
 		log.Error("Action(%s): %v", ctx.Params(":action"), err)
-		ctx.JSON(200, map[string]interface{}{
+		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"ok":  false,
 			"err": err.Error(),
 		})

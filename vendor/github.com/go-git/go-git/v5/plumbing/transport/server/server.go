@@ -108,6 +108,10 @@ type upSession struct {
 }
 
 func (s *upSession) AdvertisedReferences() (*packp.AdvRefs, error) {
+	return s.AdvertisedReferencesContext(context.TODO())
+}
+
+func (s *upSession) AdvertisedReferencesContext(ctx context.Context) (*packp.AdvRefs, error) {
 	ar := packp.NewAdvRefs()
 
 	if err := s.setSupportedCapabilities(ar.Capabilities); err != nil {
@@ -204,6 +208,10 @@ type rpSession struct {
 }
 
 func (s *rpSession) AdvertisedReferences() (*packp.AdvRefs, error) {
+	return s.AdvertisedReferencesContext(context.TODO())
+}
+
+func (s *rpSession) AdvertisedReferencesContext(ctx context.Context) (*packp.AdvRefs, error) {
 	ar := packp.NewAdvRefs()
 
 	if err := s.setSupportedCapabilities(ar.Capabilities); err != nil {

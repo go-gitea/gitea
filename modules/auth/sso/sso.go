@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -28,9 +29,9 @@ import (
 // for users that have already signed in.
 var ssoMethods = []SingleSignOn{
 	&OAuth2{},
+	&Basic{},
 	&Session{},
 	&ReverseProxy{},
-	&Basic{},
 }
 
 // The purpose of the following three function variables is to let the linter know that
@@ -78,6 +79,8 @@ func SessionUser(sess SessionStore) *models.User {
 	if uid == nil {
 		return nil
 	}
+	log.Trace("Session Authorization: Found user[%d]", uid)
+
 	id, ok := uid.(int64)
 	if !ok {
 		return nil
@@ -91,12 +94,27 @@ func SessionUser(sess SessionStore) *models.User {
 		}
 		return nil
 	}
+
+	log.Trace("Session Authorization: Logged in user %-v", user)
 	return user
 }
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
+}
+
+var gitPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/))`)
+var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
+
+func isGitOrLFSPath(req *http.Request) bool {
+	if gitPathRe.MatchString(req.URL.Path) {
+		return true
+	}
+	if setting.LFS.StartServer {
+		return lfsPathRe.MatchString(req.URL.Path)
+	}
+	return false
 }
 
 // handleSignIn clears existing session variables and stores new ones for the specified user object
@@ -129,8 +147,8 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 		}
 	}
 
-	middleware.SetCookie(resp, "lang", user.Language, nil, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.SetLocaleCookie(resp, user.Language, 0)
 
 	// Clear whatever CSRF has right now, force to generate a new one
-	middleware.SetCookie(resp, setting.CSRFCookieName, "", -1, setting.AppSubURL, setting.SessionConfig.Domain, setting.SessionConfig.Secure, true)
+	middleware.DeleteCSRFCookie(resp)
 }

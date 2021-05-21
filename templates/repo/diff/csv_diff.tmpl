@@ -1,0 +1,46 @@
+<tr>
+	<td>
+		{{$result := call .root.CreateCsvDiff .file .root.BaseCommit .root.HeadCommit}}
+		{{if $result.Error}}
+			<div class="ui center">{{$result.Error}}</div>
+		{{else if $result.Sections}}
+			<table class="data-table">
+			{{range $i, $section := $result.Sections}}
+				<tbody {{if gt $i 0}}class="section"{{end}}>
+				{{range $j, $row := $section.Rows}}
+					<tr>
+						{{if and (eq $i 0) (eq $j 0)}}
+							<th class="line-num">{{.RowIdx}}</th>
+							{{range $j, $cell := $row.Cells}}
+								{{if eq $cell.Type 2}}
+									<th class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></th>
+								{{else if eq $cell.Type 3}}
+									<th class="added"><span class="added-code">{{.LeftCell}}</span></th>
+								{{else if eq $cell.Type 4}}
+									<th class="removed"><span class="removed-code">{{.LeftCell}}</span></th>
+								{{else}}
+									<th>{{.RightCell}}</th>
+								{{end}}
+							{{end}}
+						{{else}}
+							<td class="line-num">{{if .RowIdx}}{{.RowIdx}}{{end}}</td>
+							{{range $j, $cell := $row.Cells}}
+								{{if eq $cell.Type 2}}
+									<td class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></td>
+								{{else if eq $cell.Type 3}}
+									<td class="added"><span class="added-code">{{.LeftCell}}</span></td>
+								{{else if eq $cell.Type 4}}
+									<td class="removed"><span class="removed-code">{{.LeftCell}}</span></td>
+								{{else}}
+									<td>{{.RightCell}}</td>
+								{{end}}
+							{{end}}
+						{{end}}
+					</tr>
+				{{end}}
+				</tbody>
+			{{end}}
+			</table>
+		{{end}}
+	</td>
+</tr>

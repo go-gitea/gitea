@@ -1,4 +1,5 @@
-# Render [![GoDoc](http://godoc.org/github.com/unrolled/render?status.svg)](http://godoc.org/github.com/unrolled/render) [![Build Status](https://travis-ci.org/unrolled/render.svg)](https://travis-ci.org/unrolled/render)
+# Render [![GoDoc](http://godoc.org/github.com/unrolled/render?status.svg)](http://godoc.org/github.com/unrolled/render) [![Test](https://github.com/unrolled/render/workflows/Test/badge.svg?branch=v1)](https://github.com/unrolled/render/actions)
+
 
 Render is a package that provides functionality for easily rendering JSON, XML, text, binary data, and HTML templates. This package is based on the [Martini](https://github.com/go-martini/martini) [render](https://github.com/martini-contrib/render) work.
 

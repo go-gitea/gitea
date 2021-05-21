@@ -5,8 +5,8 @@
 package swagger
 
 import (
-	auth "code.gitea.io/gitea/modules/forms"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/forms"
 )
 
 // not actually a response, just a hack to get go-swagger to include definitions
@@ -72,7 +72,7 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditPullRequestOption api.EditPullRequestOption
 	// in:body
-	MergePullRequestOption auth.MergePullRequestForm
+	MergePullRequestOption forms.MergePullRequestForm
 
 	// in:body
 	CreateReleaseOption api.CreateReleaseOption
@@ -106,7 +106,7 @@ type swaggerParameterBodies struct {
 	EditUserOption api.EditUserOption
 
 	// in:body
-	MigrateRepoForm auth.MigrateRepoForm
+	MigrateRepoForm forms.MigrateRepoForm
 
 	// in:body
 	EditAttachmentOptions api.EditAttachmentOptions
@@ -149,6 +149,9 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	SubmitPullReviewOptions api.SubmitPullReviewOptions
+
+	// in:body
+	DismissPullReviewOptions api.DismissPullReviewOptions
 
 	// in:body
 	MigrateRepoOptions api.MigrateRepoOptions

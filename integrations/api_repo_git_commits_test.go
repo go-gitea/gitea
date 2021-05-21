@@ -14,6 +14,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func compareCommitFiles(t *testing.T, expect []string, files []*api.CommitAffectedFiles) {
+	var actual []string
+	for i := range files {
+		actual = append(actual, files[i].Filename)
+	}
+	assert.ElementsMatch(t, expect, actual)
+}
+
 func TestAPIReposGitCommits(t *testing.T) {
 	defer prepareTestEnv(t)()
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
@@ -56,10 +64,13 @@ func TestAPIReposGitCommitList(t *testing.T) {
 	var apiData []api.Commit
 	DecodeJSON(t, resp, &apiData)
 
-	assert.Equal(t, 3, len(apiData))
-	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
-	assert.Equal(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", apiData[1].CommitMeta.SHA)
-	assert.Equal(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
+	assert.Len(t, apiData, 3)
+	assert.EqualValues(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
+	assert.EqualValues(t, "27566bd5738fc8b4e3fef3c5e72cce608537bd95", apiData[1].CommitMeta.SHA)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[1].Files)
+	assert.EqualValues(t, "5099b81332712fe655e34e8dd63574f503f61811", apiData[2].CommitMeta.SHA)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[2].Files)
 }
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
@@ -76,7 +87,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	var apiData []api.Commit
 	DecodeJSON(t, resp, &apiData)
 
-	assert.Equal(t, 0, len(apiData))
+	assert.Len(t, apiData, 0)
 }
 
 func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
@@ -93,6 +104,7 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 	var apiData []api.Commit
 	DecodeJSON(t, resp, &apiData)
 
-	assert.Equal(t, 1, len(apiData))
+	assert.Len(t, apiData, 1)
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 }

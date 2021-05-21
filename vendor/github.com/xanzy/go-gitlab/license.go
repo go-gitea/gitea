@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Patrick Webster
+// Copyright 2021, Patrick Webster
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package gitlab
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // LicenseService handles communication with the license
 // related methods of the GitLab API.
@@ -68,7 +71,7 @@ func (l License) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/license.html#retrieve-information-about-the-current-license
 func (s *LicenseService) GetLicense() (*License, *Response, error) {
-	req, err := s.client.NewRequest("GET", "license", nil, nil)
+	req, err := s.client.NewRequest(http.MethodGet, "license", nil, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +97,7 @@ type AddLicenseOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/license.html#add-a-new-license
 func (s *LicenseService) AddLicense(opt *AddLicenseOptions, options ...RequestOptionFunc) (*License, *Response, error) {
-	req, err := s.client.NewRequest("POST", "license", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "license", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -7,20 +7,21 @@
 package git
 
 import (
+	"bufio"
 	"path"
 )
 
 // LastCommitCache represents a cache to store last commit
 type LastCommitCache struct {
 	repoPath    string
-	ttl         int64
+	ttl         func() int64
 	repo        *Repository
 	commitCache map[string]*Commit
 	cache       Cache
 }
 
 // NewLastCommitCache creates a new last commit cache for repo
-func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl int64, cache Cache) *LastCommitCache {
+func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, cache Cache) *LastCommitCache {
 	if cache == nil {
 		return nil
 	}
@@ -34,7 +35,7 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl int64, cache C
 }
 
 // Get get the last commit information by commit id and entry path
-func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
+func (c *LastCommitCache) Get(ref, entryPath string, wr WriteCloserError, rd *bufio.Reader) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
 		log("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
@@ -46,7 +47,10 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := c.repo.getCommit(id)
+		if _, err := wr.Write([]byte(vs + "\n")); err != nil {
+			return nil, err
+		}
+		commit, err := c.repo.getCommitFromBatchReader(rd, id)
 		if err != nil {
 			return nil, err
 		}

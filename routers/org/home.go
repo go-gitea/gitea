@@ -5,11 +5,13 @@
 package org
 
 import (
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -36,7 +38,15 @@ func Home(ctx *context.Context) {
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
-		ctx.Data["RenderedDescription"] = string(markdown.Render([]byte(org.Description), ctx.Repo.RepoLink, map[string]string{"mode": "document"}))
+		desc, err := markdown.RenderString(&markup.RenderContext{
+			URLPrefix: ctx.Repo.RepoLink,
+			Metas:     map[string]string{"mode": "document"},
+		}, org.Description)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		ctx.Data["RenderedDescription"] = desc
 	}
 
 	var orderBy models.SearchOrderBy
@@ -106,7 +116,7 @@ func Home(ctx *context.Context) {
 	if ctx.User != nil {
 		isMember, err := org.IsOrgMember(ctx.User.ID)
 		if err != nil {
-			ctx.Error(500, "IsOrgMember")
+			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
@@ -137,5 +147,5 @@ func Home(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(200, tplOrgHome)
+	ctx.HTML(http.StatusOK, tplOrgHome)
 }

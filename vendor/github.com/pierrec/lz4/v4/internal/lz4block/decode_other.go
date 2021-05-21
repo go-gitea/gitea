@@ -2,7 +2,13 @@
 
 package lz4block
 
+import "encoding/binary"
+
 func decodeBlock(dst, src []byte) (ret int) {
+	// Restrict capacities so we don't read or write out of bounds.
+	dst = dst[:len(dst):len(dst)]
+	src = src[:len(src):len(src)]
+
 	const hasError = -2
 	defer func() {
 		if recover() != nil {
@@ -32,7 +38,7 @@ func decodeBlock(dst, src []byte) (ret int) {
 					// if the match length (4..18) fits within the literals, then copy
 					// all 18 bytes, even if not all are part of the literals.
 					mLen += 4
-					if offset := uint(src[si]) | uint(src[si+1])<<8; mLen <= offset {
+					if offset := u16(src[si:]); mLen <= offset {
 						i := di - offset
 						end := i + 18
 						if end > uint(len(dst)) {
@@ -66,7 +72,7 @@ func decodeBlock(dst, src []byte) (ret int) {
 			return hasError
 		}
 
-		offset := uint(src[si]) | uint(src[si+1])<<8
+		offset := u16(src[si:])
 		if offset == 0 {
 			return hasError
 		}
@@ -98,3 +104,5 @@ func decodeBlock(dst, src []byte) (ret int) {
 		di += uint(copy(dst[di:di+mLen], expanded[:mLen]))
 	}
 }
+
+func u16(p []byte) uint { return uint(binary.LittleEndian.Uint16(p)) }

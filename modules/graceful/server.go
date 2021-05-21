@@ -28,6 +28,9 @@ var (
 	DefaultMaxHeaderBytes int
 )
 
+// PerWriteWriteTimeout timeout for writes
+const PerWriteWriteTimeout = 5 * time.Second
+
 func init() {
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
 }
@@ -48,11 +51,11 @@ type Server struct {
 }
 
 // NewServer creates a server on network at provided address
-func NewServer(network, address string) *Server {
+func NewServer(network, address, name string) *Server {
 	if GetManager().IsChild() {
-		log.Info("Restarting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Restarting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	} else {
-		log.Info("Starting new server: %s:%s on PID: %d", network, address, os.Getpid())
+		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
 		wg:      sync.WaitGroup{},
@@ -248,6 +251,13 @@ type wrappedConn struct {
 	net.Conn
 	server *Server
 	closed *int32
+}
+
+func (w wrappedConn) Write(p []byte) (n int, err error) {
+	if PerWriteWriteTimeout > 0 {
+		_ = w.Conn.SetWriteDeadline(time.Now().Add(PerWriteWriteTimeout))
+	}
+	return w.Conn.Write(p)
 }
 
 func (w wrappedConn) Close() error {

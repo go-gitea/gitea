@@ -86,11 +86,12 @@ func getDirAssetNames(dir string) []string {
 // HTMLRenderer returns a render.
 func HTMLRenderer() *render.Render {
 	return render.New(render.Options{
-		Extensions:    []string{".tmpl"},
-		Directory:     "templates",
-		Funcs:         NewFuncMap(),
-		Asset:         GetAsset,
-		AssetNames:    GetAssetNames,
-		IsDevelopment: !setting.IsProd(),
+		Extensions:                []string{".tmpl"},
+		Directory:                 "templates",
+		Funcs:                     NewFuncMap(),
+		Asset:                     GetAsset,
+		AssetNames:                GetAssetNames,
+		IsDevelopment:             !setting.IsProd(),
+		DisableHTTPErrorRendering: true,
 	})
 }

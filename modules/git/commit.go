@@ -9,6 +9,7 @@ import (
 	"bufio"
 	"bytes"
 	"container/list"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -17,6 +18,7 @@ import (
 	_ "image/png"  // for processing png images
 	"io"
 	"net/http"
+	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -264,23 +266,33 @@ func (c *Commit) CommitsBefore() (*list.List, error) {
 
 // HasPreviousCommit returns true if a given commitHash is contained in commit's parents
 func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
-	for i := 0; i < c.ParentCount(); i++ {
-		commit, err := c.Parent(i)
-		if err != nil {
-			return false, err
-		}
-		if commit.ID == commitHash {
-			return true, nil
-		}
-		commitInParentCommit, err := commit.HasPreviousCommit(commitHash)
-		if err != nil {
-			return false, err
-		}
-		if commitInParentCommit {
-			return true, nil
-		}
+	this := c.ID.String()
+	that := commitHash.String()
+
+	if this == that {
+		return false, nil
 	}
-	return false, nil
+
+	if err := CheckGitVersionAtLeast("1.8"); err == nil {
+		_, err := NewCommand("merge-base", "--is-ancestor", that, this).RunInDir(c.repo.Path)
+		if err == nil {
+			return true, nil
+		}
+		var exitError *exec.ExitError
+		if errors.As(err, &exitError) {
+			if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+				return false, nil
+			}
+		}
+		return false, err
+	}
+
+	result, err := NewCommand("rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunInDir(c.repo.Path)
+	if err != nil {
+		return false, err
+	}
+
+	return len(strings.TrimSpace(result)) > 0, nil
 }
 
 // CommitsBeforeLimit returns num commits before current revision

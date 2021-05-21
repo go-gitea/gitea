@@ -19,7 +19,7 @@
 	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
 	{{if eq .ActionName "push"}}
 		<p>
-			<b>{{.Doer.Name}}</b>  
+			<b>{{.Doer.Name}}</b>
 			{{if .Comment.IsForcePush}}
 				{{ $oldCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
 				{{ $newCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
@@ -49,6 +49,8 @@
 			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
 		{{else if eq .ActionName "review"}}
 			<b>@{{.Doer.Name}}</b> commented on this pull request.
+		{{else if eq .ActionName "review_dismissed"}}
+			<b>@{{.Doer.Name}}</b> dismissed last review from {{.Comment.Review.Reviewer.Name}} for this pull request.
 		{{end}}
 
 		{{- if eq .Body ""}}
