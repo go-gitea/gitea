@@ -1,5 +1,7 @@
 /**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
+ * The code assumes the checkbox will be initially disabled by the markdown renderer.
+ *
  * When a checkbox value changes, the corresponding [ ] or [x] in the markdown string
  * is set accordingly and sent to the server. On success it updates the raw-content on
  * error it resets the checkbox to its original value.
@@ -7,10 +9,10 @@
 
 const preventListener = (e) => e.preventDefault();
 
-export default function initMarkupTasklist() {
-  for (const el of document.querySelectorAll(`.markup[data-can-edit='true']`) || []) {
+export function initMarkupTasklist() {
+  for (const el of document.querySelectorAll(`.markup[data-can-edit=true]`) || []) {
     const container = el.parentNode;
-    const checkboxes = el.querySelectorAll(`.task-list-item input[type=checkbox]`);
+    const checkboxes = el.querySelectorAll(`.task-list-item input[type=checkbox][disabled]`);
 
     for (const checkbox of checkboxes) {
       checkbox.addEventListener('input', async () => {
