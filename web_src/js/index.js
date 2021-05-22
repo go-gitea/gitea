@@ -909,17 +909,14 @@ async function initRepository() {
     });
 
     // Toggle WIP
-    $('.toggle-wip a').on('click', (e) => {
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
       e.preventDefault();
-      const $toggle = $(e.target).closest('div');
-      const title = $toggle.data('title');
-      const prefix = $toggle.data('wip-prefix');
-      const newTitle = title.startsWith(prefix) ? title.substr(prefix.length).trim() : `${prefix.trim()} ${title}`;
-      $.post($toggle.data('update-url'), {
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
         _csrf: csrf,
-        title: newTitle
-      }).done(reload);
-      return false;
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
     });
 
     // Issue Comments
