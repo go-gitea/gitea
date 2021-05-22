@@ -116,7 +116,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		checkUnit = models.UnitTypePullRequests
 	}
 
-	langMap := make(map[string][]string)
+	langMap := make(map[string][]*models.User)
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
@@ -138,7 +138,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 			continue
 		}
 
-		langMap[user.Language] = append(langMap[user.Language], user.Email)
+		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 
 	for lang, receivers := range langMap {

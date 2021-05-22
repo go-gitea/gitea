@@ -92,21 +92,27 @@
 					</a>
 					{{if not .DisableStars}}
 						<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-							{{svg "octicon-star"}}  {{.i18n.Tr "user.starred"}}
-							<div class="ui label">{{.Owner.NumStars}}</div>
+							{{svg "octicon-star"}} {{.i18n.Tr "user.starred"}}
+							{{if .Owner.NumStars}}
+								<div class="ui primary label">{{.Owner.NumStars}}</div>
+							{{end}}
 						</a>
 					{{else}}
 						<a class='{{if eq .TabName "watching"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=watching">
-							{{svg "octicon-eye"}}  {{.i18n.Tr "user.watched"}}
+							{{svg "octicon-eye"}} {{.i18n.Tr "user.watched"}}
 						</a>
 					{{end}}
 					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
-						{{svg "octicon-person"}}  {{.i18n.Tr "user.following"}}
-						<div class="ui label">{{.Owner.NumFollowing}}</div>
+						{{svg "octicon-person"}} {{.i18n.Tr "user.following"}}
+						{{if .Owner.NumFollowing}}
+							<div class="ui primary label">{{.Owner.NumFollowing}}</div>
+						{{end}}
 					</a>
 					<a class='{{if eq .TabName "followers"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=followers">
-						{{svg "octicon-person"}}  {{.i18n.Tr "user.followers"}}
-						<div class="ui label">{{.Owner.NumFollowers}}</div>
+						{{svg "octicon-person"}} {{.i18n.Tr "user.followers"}}
+						{{if .Owner.NumFollowers}}
+							<div class="ui primary label">{{.Owner.NumFollowers}}</div>
+						{{end}}
 					</a>
 				</div>
 
