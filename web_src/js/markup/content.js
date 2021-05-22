@@ -7,6 +7,6 @@ export async function initMarkupContent() {
 }
 
 // code that only runs for comments
-export async function initCommentContent() {
+export function initCommentContent() {
   initMarkupTasklist();
 }
