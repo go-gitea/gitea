@@ -89,6 +89,14 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 	if err != nil {
 		return
 	}
+	if len(typ) == 1 {
+		// Somewhere there is a missing discard
+		log("WARNING: ReadBatchLine read empty string - there is a missing Discard")
+		typ, err = rd.ReadString('\n')
+		if err != nil {
+			return
+		}
+	}
 
 	idx := strings.IndexByte(typ, ' ')
 	if idx < 0 {
