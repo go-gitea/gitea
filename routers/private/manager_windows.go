@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/private"
 )
 
 // Restart is not implemented for Windows based servers as they can't fork
