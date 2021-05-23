@@ -38,9 +38,7 @@ export default {
 
   computed: {
     createdAt() {
-      return this.issue !== null ?
-        new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}) :
-        null;
+      return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
     },
 
     body() {
