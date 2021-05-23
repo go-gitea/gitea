@@ -2563,7 +2563,6 @@ $(document).ready(async () => {
     direction: 'upward',
     fullTextSearch: 'exact'
   });
-  $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
   $('.ui.progress').progress({
     showActivity: false
