@@ -55,6 +55,7 @@ func Routes() *web.Route {
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)
+	r.Post("/ssh/log", bind(private.SSHLogOption{}), SSHLog)
 	r.Post("/hook/pre-receive/{owner}/{repo}", bind(private.HookOptions{}), HookPreReceive)
 	r.Post("/hook/post-receive/{owner}/{repo}", bind(private.HookOptions{}), HookPostReceive)
 	r.Post("/hook/set-default-branch/{owner}/{repo}/{branch}", SetDefaultBranch)
