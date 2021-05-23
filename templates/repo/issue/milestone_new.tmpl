@@ -35,6 +35,10 @@
 					</label>
 					<input type="date" id="deadline" name="deadline" value="{{.deadline}}" placeholder="{{.i18n.Tr "repo.issues.due_date_form"}}">
 				</div>
+				<div class="ui checkbox">
+				  <input name="IsClosed" type="checkbox" {{if .IsClosed}}checked{{end}}>
+					<label>{{.i18n.Tr "repo.milestones.close"}}</label>
+				</div>
 				<div class="field">
 					<label>{{.i18n.Tr "repo.milestones.desc"}}</label>
 					<textarea name="content">{{.content}}</textarea>
@@ -47,15 +51,6 @@
 						<a class="ui blue basic button" href="{{.RepoLink}}/milestones">
 							{{.i18n.Tr "repo.milestones.cancel"}}
 						</a>
-						{{if .IsClosed}}
-							<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/open">
-								{{.i18n.Tr "repo.milestones.open"}}
-							</a>
-						{{else}}
-							<a class="ui button" href="{{.RepoLink}}/milestones/{{.MilestoneID}}/close">
-								{{.i18n.Tr "repo.milestones.close"}}
-							</a>
-						{{end}}
 						<button class="ui green button">
 							{{.i18n.Tr "repo.milestones.modify"}}
 						</button>
