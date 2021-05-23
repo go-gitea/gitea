@@ -108,7 +108,7 @@
 									</td>
 									<td class="two wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<div class="ui basic jump button icon poping up show-create-branch-modal" data-branch-from="{{EscapePound .Name}}" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" (.Name)}}" data-variation="tiny inverted" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<div class="ui basic jump button icon poping up show-create-branch-modal" data-branch-from="{{EscapePound .Name}}" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" .Name}}" data-variation="tiny inverted" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}
 											</div>
 										{{end}}
