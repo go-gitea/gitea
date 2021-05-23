@@ -283,14 +283,14 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 			for n < size {
 				// Read each tree entry in turn
-				mode, fname, sha, count, err := ParseTreeLine(batchReader, modeBuf, fnameBuf, shaBuf)
+				isTree, fname, sha, count, err := ParseTreeLineTree(batchReader, modeBuf, fnameBuf, shaBuf)
 				if err != nil {
 					return nil, err
 				}
 				n += int64(count)
 
 				// if we have found the target directory
-				if bytes.Equal(fname, []byte(target)) && bytes.Equal(mode, []byte("40000")) {
+				if isTree && bytes.Equal(fname, []byte(target)) {
 					copy(tmpTreeID, sha)
 					treeID = tmpTreeID
 					break
