@@ -99,7 +99,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions, messenger func(string, ...interface{})) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*models.Repository, error) {
 	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
 	if err != nil {
 		return nil, err
@@ -167,9 +167,9 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger func(string, ...interface{})) error {
+func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
-		messenger = func(string, ...interface{}) {}
+		messenger = base.NilMessenger
 	}
 
 	repo, err := downloader.GetRepoInfo()
