@@ -47,9 +47,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		PullRequests: true,
 		Private:      true,
 		Mirror:       false,
-	}, func(format string, args ...interface{}) {
-
-	})
+	}, nil)
 	assert.NoError(t, err)
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)

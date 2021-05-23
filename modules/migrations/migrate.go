@@ -168,6 +168,10 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
 func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger func(string, ...interface{})) error {
+	if messenger == nil {
+		messenger = func(string, ...interface{}) {}
+	}
+
 	repo, err := downloader.GetRepoInfo()
 	if err != nil {
 		if !base.IsErrNotSupported(err) {
