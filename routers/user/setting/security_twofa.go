@@ -10,14 +10,15 @@ import (
 	"encoding/base64"
 	"html/template"
 	"image/png"
+	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
@@ -162,12 +163,12 @@ func EnrollTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplSettingsTwofaEnroll)
+	ctx.HTML(http.StatusOK, tplSettingsTwofaEnroll)
 }
 
 // EnrollTwoFactorPost handles enrolling the user into 2FA.
 func EnrollTwoFactorPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.TwoFactorAuthForm)
+	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
@@ -187,7 +188,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		if !twofaGenerateSecretAndQr(ctx) {
 			return
 		}
-		ctx.HTML(200, tplSettingsTwofaEnroll)
+		ctx.HTML(http.StatusOK, tplSettingsTwofaEnroll)
 		return
 	}
 

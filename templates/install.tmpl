@@ -145,171 +145,162 @@
 					<h4 class="ui dividing header">{{.i18n.Tr "install.optional_title"}}</h4>
 
 					<!-- Email -->
-					<div class="ui accordion optional field">
-						<div class="title {{if .Err_SMTP}}text red{{end}}">
-							<i class="icon dropdown"></i>
+					<details class="optional field">
+						<summary class="title py-3{{if .Err_SMTP}} text red{{end}}">
 							{{.i18n.Tr "install.email_title"}}
+						</summary>
+						<div class="inline field">
+							<label for="smtp_host">{{.i18n.Tr "install.smtp_host"}}</label>
+							<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
 						</div>
-						<div class="content">
-							<div class="inline field">
-								<label for="smtp_host">{{.i18n.Tr "install.smtp_host"}}</label>
-								<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
-							</div>
-							<div class="inline field {{if .Err_SMTPFrom}}error{{end}}">
-								<label for="smtp_from">{{.i18n.Tr "install.smtp_from"}}</label>
-								<input id="smtp_from" name="smtp_from" value="{{.smtp_from}}">
-								<span class="help">{{.i18n.Tr "install.smtp_from_helper"}}</span>
-							</div>
-							<div class="inline field {{if .Err_SMTPUser}}error{{end}}">
-								<label for="smtp_user">{{.i18n.Tr "install.mailer_user"}}</label>
-								<input id="smtp_user" name="smtp_user" value="{{.smtp_user}}">
-							</div>
-							<div class="inline field">
-								<label for="smtp_passwd">{{.i18n.Tr "install.mailer_password"}}</label>
-								<input id="smtp_passwd" name="smtp_passwd" type="password" value="{{.smtp_passwd}}">
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label><strong>{{.i18n.Tr "install.register_confirm"}}</strong></label>
-									<input name="register_confirm" type="checkbox" {{if .register_confirm}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label><strong>{{.i18n.Tr "install.mail_notify"}}</strong></label>
-									<input name="mail_notify" type="checkbox" {{if .mail_notify}}checked{{end}}>
-								</div>
+						<div class="inline field {{if .Err_SMTPFrom}}error{{end}}">
+							<label for="smtp_from">{{.i18n.Tr "install.smtp_from"}}</label>
+							<input id="smtp_from" name="smtp_from" value="{{.smtp_from}}">
+							<span class="help">{{.i18n.Tr "install.smtp_from_helper"}}</span>
+						</div>
+						<div class="inline field {{if .Err_SMTPUser}}error{{end}}">
+							<label for="smtp_user">{{.i18n.Tr "install.mailer_user"}}</label>
+							<input id="smtp_user" name="smtp_user" value="{{.smtp_user}}">
+						</div>
+						<div class="inline field">
+							<label for="smtp_passwd">{{.i18n.Tr "install.mailer_password"}}</label>
+							<input id="smtp_passwd" name="smtp_passwd" type="password" value="{{.smtp_passwd}}">
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label><strong>{{.i18n.Tr "install.register_confirm"}}</strong></label>
+								<input name="register_confirm" type="checkbox" {{if .register_confirm}}checked{{end}}>
 							</div>
 						</div>
-					</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label><strong>{{.i18n.Tr "install.mail_notify"}}</strong></label>
+								<input name="mail_notify" type="checkbox" {{if .mail_notify}}checked{{end}}>
+							</div>
+						</div>
+					</details>
 
 					<!-- Server and other services -->
-					<div class="ui accordion optional field">
-						<div class="title {{if .Err_Services}}text red{{end}}">
-							<i class="icon dropdown"></i>
+					<details class="optional field">
+						<summary class="title py-3{{if .Err_Services}} text red{{end}}">
 							{{.i18n.Tr "install.server_service_title"}}
-						</div>
-						<div class="content">
-							<div class="inline field">
-								<div class="ui checkbox" id="offline-mode">
-									<label class="poping up" data-content="{{.i18n.Tr "install.offline_mode_popup"}}"><strong>{{.i18n.Tr "install.offline_mode"}}</strong></label>
-									<input name="offline_mode" type="checkbox" {{if .offline_mode}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="disable-gravatar">
-									<label class="poping up" data-content="{{.i18n.Tr "install.disable_gravatar_popup"}}"><strong>{{.i18n.Tr "install.disable_gravatar"}}</strong></label>
-									<input name="disable_gravatar" type="checkbox" {{if .disable_gravatar}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="federated-avatar-lookup">
-									<label class="poping up" data-content="{{.i18n.Tr "install.federated_avatar_lookup_popup"}}"><strong>{{.i18n.Tr "install.federated_avatar_lookup"}}</strong></label>
-									<input name="enable_federated_avatar" type="checkbox" {{if .enable_federated_avatar}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-openid-signin">
-									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
-									<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="disable-registration">
-									<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
-									<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="allow-only-external-registration">
-									<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
-									<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-openid-signup">
-									<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
-									<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox" id="enable-captcha">
-									<label class="poping up" data-content="{{.i18n.Tr "install.enable_captcha_popup"}}"><strong>{{.i18n.Tr "install.enable_captcha"}}</strong></label>
-									<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label class="poping up" data-content="{{.i18n.Tr "install.require_sign_in_view_popup"}}"><strong>{{.i18n.Tr "install.require_sign_in_view"}}</strong></label>
-									<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label class="poping up" data-content="{{.i18n.Tr "install.default_keep_email_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_email_private"}}</strong></label>
-									<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label class="poping up" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
-									<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label class="poping up" data-content="{{.i18n.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.i18n.Tr "install.default_enable_timetracking"}}</strong></label>
-									<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
-								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
-								<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>
-							</div>
-							<div class="inline field">
-								<label for="password_algorithm">{{.i18n.Tr "install.password_algorithm"}}</label>
-								<div class="ui selection dropdown">
-									<input id="password_algorithm" type="hidden" name="password_algorithm" value="{{.password_algorithm}}">
-									<div class="text">{{.password_algorithm}}</div>
-									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="menu">
-										{{range .PasswordHashAlgorithms}}
-											<div class="item" data-value="{{.}}">{{.}}</div>
-										{{end}}
-									</div>
-								</div>
-								<span class="help">{{.i18n.Tr "install.password_algorithm_helper"}}</span>
+						</summary>
+						<div class="inline field">
+							<div class="ui checkbox" id="offline-mode">
+								<label class="poping up" data-content="{{.i18n.Tr "install.offline_mode_popup"}}"><strong>{{.i18n.Tr "install.offline_mode"}}</strong></label>
+								<input name="offline_mode" type="checkbox" {{if .offline_mode}}checked{{end}}>
 							</div>
 						</div>
-					</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="disable-gravatar">
+								<label class="poping up" data-content="{{.i18n.Tr "install.disable_gravatar_popup"}}"><strong>{{.i18n.Tr "install.disable_gravatar"}}</strong></label>
+								<input name="disable_gravatar" type="checkbox" {{if .disable_gravatar}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="federated-avatar-lookup">
+								<label class="poping up" data-content="{{.i18n.Tr "install.federated_avatar_lookup_popup"}}"><strong>{{.i18n.Tr "install.federated_avatar_lookup"}}</strong></label>
+								<input name="enable_federated_avatar" type="checkbox" {{if .enable_federated_avatar}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="enable-openid-signin">
+								<label class="poping up" data-content="{{.i18n.Tr "install.openid_signin_popup"}}"><strong>{{.i18n.Tr "install.openid_signin"}}</strong></label>
+								<input name="enable_open_id_sign_in" type="checkbox" {{if .enable_open_id_sign_in}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="disable-registration">
+								<label class="poping up" data-content="{{.i18n.Tr "install.disable_registration_popup"}}"><strong>{{.i18n.Tr "install.disable_registration"}}</strong></label>
+								<input name="disable_registration" type="checkbox" {{if .disable_registration}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="allow-only-external-registration">
+								<label class="poping up" data-content="{{.i18n.Tr "install.allow_only_external_registration_popup"}}"><strong>{{.i18n.Tr "install.allow_only_external_registration_popup"}}</strong></label>
+								<input name="allow_only_external_registration" type="checkbox" {{if .allow_only_external_registration}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="enable-openid-signup">
+								<label class="poping up" data-content="{{.i18n.Tr "install.openid_signup_popup"}}"><strong>{{.i18n.Tr "install.openid_signup"}}</strong></label>
+								<input name="enable_open_id_sign_up" type="checkbox" {{if .enable_open_id_sign_up}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox" id="enable-captcha">
+								<label class="poping up" data-content="{{.i18n.Tr "install.enable_captcha_popup"}}"><strong>{{.i18n.Tr "install.enable_captcha"}}</strong></label>
+								<input name="enable_captcha" type="checkbox" {{if .enable_captcha}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.require_sign_in_view_popup"}}"><strong>{{.i18n.Tr "install.require_sign_in_view"}}</strong></label>
+								<input name="require_sign_in_view" type="checkbox" {{if .require_sign_in_view}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.default_keep_email_private_popup"}}"><strong>{{.i18n.Tr "install.default_keep_email_private"}}</strong></label>
+								<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.default_allow_create_organization_popup"}}"><strong>{{.i18n.Tr "install.default_allow_create_organization"}}</strong></label>
+								<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.default_enable_timetracking_popup"}}"><strong>{{.i18n.Tr "install.default_enable_timetracking"}}</strong></label>
+								<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
+							<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
+							<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>
+						</div>
+						<div class="inline field">
+							<label for="password_algorithm">{{.i18n.Tr "install.password_algorithm"}}</label>
+							<div class="ui selection dropdown">
+								<input id="password_algorithm" type="hidden" name="password_algorithm" value="{{.password_algorithm}}">
+								<div class="text">{{.password_algorithm}}</div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									{{range .PasswordHashAlgorithms}}
+										<div class="item" data-value="{{.}}">{{.}}</div>
+									{{end}}
+								</div>
+							</div>
+							<span class="help">{{.i18n.Tr "install.password_algorithm_helper"}}</span>
+						</div>
+					</details>
 
 					<!-- Admin -->
-					<div class="ui accordion optional field">
-						<div class="title {{if .Err_Admin}}text red{{end}}">
-							<i class="icon dropdown"></i>
+					<details class="optional field">
+						<summary class="title py-3{{if .Err_Admin}} text red{{end}}">
 							{{.i18n.Tr "install.admin_title"}}
+						</summary>
+						<p class="center">{{.i18n.Tr "install.admin_setting_desc"}}</p>
+						<div class="inline field {{if .Err_AdminName}}error{{end}}">
+							<label for="admin_name">{{.i18n.Tr "install.admin_name"}}</label>
+							<input id="admin_name" name="admin_name" value="{{.admin_name}}">
 						</div>
-						<div class="content">
-							<p class="center">{{.i18n.Tr "install.admin_setting_desc"}}</p>
-							<div class="inline field {{if .Err_AdminName}}error{{end}}">
-								<label for="admin_name">{{.i18n.Tr "install.admin_name"}}</label>
-								<input id="admin_name" name="admin_name" value="{{.admin_name}}">
-							</div>
-							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
-								<label for="admin_passwd">{{.i18n.Tr "install.admin_password"}}</label>
-								<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
-							</div>
-							<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
-								<label for="admin_confirm_passwd">{{.i18n.Tr "install.confirm_password"}}</label>
-								<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
-							</div>
-							<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
-								<label for="admin_email">{{.i18n.Tr "install.admin_email"}}</label>
-								<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
-							</div>
+						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
+							<label for="admin_passwd">{{.i18n.Tr "install.admin_password"}}</label>
+							<input id="admin_passwd" name="admin_passwd" type="password" autocomplete="new-password" value="{{.admin_passwd}}">
 						</div>
-					</div>
+						<div class="inline field {{if .Err_AdminPasswd}}error{{end}}">
+							<label for="admin_confirm_passwd">{{.i18n.Tr "install.confirm_password"}}</label>
+							<input id="admin_confirm_passwd" name="admin_confirm_passwd" autocomplete="new-password" type="password" value="{{.admin_confirm_passwd}}">
+						</div>
+						<div class="inline field {{if .Err_AdminEmail}}error{{end}}">
+							<label for="admin_email">{{.i18n.Tr "install.admin_email"}}</label>
+							<input id="admin_email" name="admin_email" type="email" value="{{.admin_email}}">
+						</div>
+					</details>
 
 					<div class="ui divider"></div>
 					<div class="inline field">
@@ -321,5 +312,5 @@
 		</div>
 	</div>
 </div>
-<img style="display: none" src="{{StaticUrlPrefix}}/img/loading.png"/>
+<img style="display: none" src="{{AssetUrlPrefix}}/img/loading.png"/>
 {{template "base/footer" .}}

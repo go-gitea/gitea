@@ -141,7 +141,6 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 	var issueIDs []int64
-	var labelIDs []int64
 	if len(keyword) > 0 && len(repoIDs) > 0 {
 		if issueIDs, err = issue_indexer.SearchIssuesByKeyword(repoIDs, keyword); err != nil {
 			ctx.Error(http.StatusInternalServerError, "SearchIssuesByKeyword", err)
@@ -176,7 +175,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
@@ -675,7 +674,7 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {

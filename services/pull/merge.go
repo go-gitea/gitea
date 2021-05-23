@@ -64,7 +64,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err = pr.SetMerged(); err != nil {
+	if _, err := pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
@@ -98,7 +98,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		if err = ref.Issue.LoadRepo(); err != nil {
 			return err
 		}
-		close := (ref.RefAction == references.XRefActionCloses)
+		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
 			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
 				return err

@@ -7,9 +7,6 @@ package integrations
 import (
 	"archive/zip"
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,46 +15,36 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/routers/routes"
 
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
 
-func GenerateLFSOid(content io.Reader) (string, error) {
-	h := sha256.New()
-	if _, err := io.Copy(h, content); err != nil {
-		return "", err
-	}
-	sum := h.Sum(nil)
-	return hex.EncodeToString(sum), nil
-}
-
 var lfsID = int64(20000)
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
-	oid, err := GenerateLFSOid(bytes.NewReader(*content))
+	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 	var lfsMetaObject *models.LFSMetaObject
 
 	if setting.Database.UsePostgreSQL {
-		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Pointer: pointer, RepositoryID: repositoryID}
 	} else {
-		lfsMetaObject = &models.LFSMetaObject{Oid: oid, Size: int64(len(*content)), RepositoryID: repositoryID}
+		lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID}
 	}
 
 	lfsID++
 	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
 	assert.NoError(t, err)
-	contentStore := &lfs.ContentStore{ObjectStorage: storage.LFS}
-	exist, err := contentStore.Exists(lfsMetaObject)
+	contentStore := lfs.NewContentStore()
+	exist, err := contentStore.Exists(pointer)
 	assert.NoError(t, err)
 	if !exist {
-		err := contentStore.Put(lfsMetaObject, bytes.NewReader(*content))
+		err := contentStore.Put(pointer, bytes.NewReader(*content))
 		assert.NoError(t, err)
 	}
-	return oid
+	return pointer.Oid
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {

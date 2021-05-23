@@ -53,7 +53,7 @@ RUN addgroup \
     -u 1000 \
     -G git \
     git && \
-  echo "git:$(dd if=/dev/urandom bs=24 count=1 status=none | base64)" | chpasswd
+  echo "git:*" | chpasswd -e
 
 ENV USER git
 ENV GITEA_CUSTOM /data/gitea

@@ -76,7 +76,7 @@ func allowLFSFilters() []string {
 	return filteredLFSGlobalArgs[:j]
 }
 
-func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
+func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...bool) {
 	if len(prepare) == 0 || prepare[0] {
 		defer prepareTestEnv(t, 1)()
 	}
@@ -106,6 +106,12 @@ func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bo
 	//Started by config go ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 
 	callback(t, u)
+}
+
+func onGiteaRun(t *testing.T, callback func(*testing.T, *url.URL), prepare ...bool) {
+	onGiteaRunTB(t, func(t testing.TB, u *url.URL) {
+		callback(t.(*testing.T), u)
+	}, prepare...)
 }
 
 func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {

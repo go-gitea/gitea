@@ -320,7 +320,7 @@ func DumpDatabase(filePath, dbType string) error {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	t, err := x.TableInfo(Version{})
+	t, err := x.TableInfo(&Version{})
 	if err != nil {
 		return err
 	}

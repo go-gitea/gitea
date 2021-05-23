@@ -8,6 +8,7 @@ package repo
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
@@ -15,12 +16,12 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/webhook"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -47,7 +48,7 @@ func Webhooks(ctx *context.Context) {
 	}
 	ctx.Data["Webhooks"] = ws
 
-	ctx.HTML(200, tplHooks)
+	ctx.HTML(http.StatusOK, tplHooks)
 }
 
 type orgRepoCtx struct {
@@ -148,11 +149,11 @@ func WebhooksNew(ctx *context.Context) {
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
-	ctx.HTML(200, orCtx.NewTemplate)
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // ParseHookEvent convert web form content to models.HookEvent
-func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
+func ParseHookEvent(form forms.WebhookForm) *models.HookEvent {
 	return &models.HookEvent{
 		PushOnly:       form.PushOnly(),
 		SendEverything: form.SendEverything(),
@@ -183,7 +184,7 @@ func ParseHookEvent(form auth.WebhookForm) *models.HookEvent {
 
 // GiteaHooksNewPost response for creating Gitea webhook
 func GiteaHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewWebhookForm)
+	form := web.GetForm(ctx).(*forms.NewWebhookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -198,7 +199,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -233,12 +234,12 @@ func GiteaHooksNewPost(ctx *context.Context) {
 
 // GogsHooksNewPost response for creating webhook
 func GogsHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewGogshookForm)
+	form := web.GetForm(ctx).(*forms.NewGogshookForm)
 	newGogsWebhookPost(ctx, *form, models.GOGS)
 }
 
 // newGogsWebhookPost response for creating gogs hook
-func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind models.HookTaskType) {
+func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind models.HookTaskType) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -253,7 +254,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 	ctx.Data["BaseLink"] = orCtx.LinkNew
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -287,7 +288,7 @@ func newGogsWebhookPost(ctx *context.Context, form auth.NewGogshookForm, kind mo
 
 // DiscordHooksNewPost response for creating discord hook
 func DiscordHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewDiscordHookForm)
+	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -301,7 +302,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -340,7 +341,7 @@ func DiscordHooksNewPost(ctx *context.Context) {
 
 // DingtalkHooksNewPost response for creating dingtalk hook
 func DingtalkHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewDingtalkHookForm)
+	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -354,7 +355,7 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -383,7 +384,7 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 
 // TelegramHooksNewPost response for creating telegram hook
 func TelegramHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewTelegramHookForm)
+	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -397,7 +398,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -436,7 +437,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 
 // MatrixHooksNewPost response for creating a Matrix hook
 func MatrixHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewMatrixHookForm)
+	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -450,7 +451,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -492,7 +493,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 
 // MSTeamsHooksNewPost response for creating MS Teams hook
 func MSTeamsHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewMSTeamsHookForm)
+	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -506,7 +507,7 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -535,7 +536,7 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewSlackHookForm)
+	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -549,7 +550,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -596,7 +597,7 @@ func SlackHooksNewPost(ctx *context.Context) {
 
 // FeishuHooksNewPost response for creating feishu hook
 func FeishuHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewFeishuHookForm)
+	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -610,7 +611,7 @@ func FeishuHooksNewPost(ctx *context.Context) {
 	}
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -695,12 +696,12 @@ func WebHooksEdit(ctx *context.Context) {
 	}
 	ctx.Data["Webhook"] = w
 
-	ctx.HTML(200, orCtx.NewTemplate)
+	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 }
 
 // WebHooksEditPost response for editing web hook
 func WebHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewWebhookForm)
+	form := web.GetForm(ctx).(*forms.NewWebhookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -712,7 +713,7 @@ func WebHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -741,7 +742,7 @@ func WebHooksEditPost(ctx *context.Context) {
 
 // GogsHooksEditPost response for editing gogs hook
 func GogsHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewGogshookForm)
+	form := web.GetForm(ctx).(*forms.NewGogshookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -753,7 +754,7 @@ func GogsHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -781,7 +782,7 @@ func GogsHooksEditPost(ctx *context.Context) {
 
 // SlackHooksEditPost response for editing slack hook
 func SlackHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewSlackHookForm)
+	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -793,7 +794,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -833,7 +834,7 @@ func SlackHooksEditPost(ctx *context.Context) {
 
 // DiscordHooksEditPost response for editing discord hook
 func DiscordHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewDiscordHookForm)
+	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -845,7 +846,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -877,7 +878,7 @@ func DiscordHooksEditPost(ctx *context.Context) {
 
 // DingtalkHooksEditPost response for editing discord hook
 func DingtalkHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewDingtalkHookForm)
+	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -889,7 +890,7 @@ func DingtalkHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -910,7 +911,7 @@ func DingtalkHooksEditPost(ctx *context.Context) {
 
 // TelegramHooksEditPost response for editing discord hook
 func TelegramHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewTelegramHookForm)
+	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -922,7 +923,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -952,7 +953,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 
 // MatrixHooksEditPost response for editing a Matrix hook
 func MatrixHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewMatrixHookForm)
+	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -964,7 +965,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -997,7 +998,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 
 // MSTeamsHooksEditPost response for editing MS Teams hook
 func MSTeamsHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewMSTeamsHookForm)
+	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -1009,7 +1010,7 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -1030,7 +1031,7 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 
 // FeishuHooksEditPost response for editing feishu hook
 func FeishuHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*auth.NewFeishuHookForm)
+	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
@@ -1042,7 +1043,7 @@ func FeishuHooksEditPost(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	if ctx.HasError() {
-		ctx.HTML(200, orCtx.NewTemplate)
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
 
@@ -1124,7 +1125,7 @@ func DeleteWebhook(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
 	}
 
-	ctx.JSON(200, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/hooks",
 	})
 }

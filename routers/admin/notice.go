@@ -6,6 +6,7 @@
 package admin
 
 import (
+	"net/http"
 	"strconv"
 
 	"code.gitea.io/gitea/models"
@@ -42,7 +43,7 @@ func Notices(ctx *context.Context) {
 
 	ctx.Data["Page"] = context.NewPagination(int(total), setting.UI.Admin.NoticePagingNum, page, 5)
 
-	ctx.HTML(200, tplNotices)
+	ctx.HTML(http.StatusOK, tplNotices)
 }
 
 // DeleteNotices delete the specific notices

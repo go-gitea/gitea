@@ -114,7 +114,7 @@ func CreateUser(ctx *context.APIContext) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.User))
 }
@@ -202,6 +202,9 @@ func EditUser(ctx *context.APIContext) {
 	}
 	if form.Location != nil {
 		u.Location = *form.Location
+	}
+	if form.Description != nil {
+		u.Description = *form.Description
 	}
 	if form.Active != nil {
 		u.IsActive = *form.Active

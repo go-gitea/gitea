@@ -1,0 +1,83 @@
+.board {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 .5em;
+}
+
+.board-column {
+  background-color: var(--color-project-board-bg) !important;
+  border: 1px solid var(--color-secondary) !important;
+  margin: 0 .5rem !important;
+  padding: .5rem !important;
+  width: 320px;
+  height: 60vh;
+  overflow-y: scroll;
+  flex: 0 0 auto;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-column-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.board-label {
+  background: none !important;
+  line-height: 1.25 !important;
+}
+
+.board-column > .cards {
+  flex: 1;
+  display: flex;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-wrap: nowrap !important;
+  flex-direction: column;
+}
+
+.project-board-title {
+  word-break: break-word;
+}
+
+.board-column > .divider {
+  margin: 5px 0;
+}
+
+.board-column:first-child {
+  margin-left: auto !important;
+}
+
+.board-column:last-child {
+  margin-right: auto !important;
+}
+
+.board-card {
+  margin: 4px 2px !important;
+  border-radius: 5px !important;
+  cursor: move;
+  width: calc(100% - 4px) !important;
+  padding: .5rem !important;
+  min-height: auto !important;
+}
+
+.board-card .meta * {
+  margin-right: 0 !important;
+}
+
+.board-card .header {
+  margin-top: 0 !important;
+  font-size: 16px !important;
+}
+
+.card-ghost {
+  border-style: dashed !important;
+  background: none !important;
+}
+
+.card-ghost * {
+  opacity: 0;
+}

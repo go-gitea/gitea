@@ -173,7 +173,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 		if err != nil {
 			log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
-			ctx.JSON(500, map[string]interface{}{
+			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"err": err.Error(),
 			})
 			return

@@ -11,17 +11,18 @@ import (
 )
 
 func Sleep(ctx context.Context, dur time.Duration) error {
-	return WithSpan(ctx, "time.Sleep", func(ctx context.Context, span trace.Span) error {
-		t := time.NewTimer(dur)
-		defer t.Stop()
+	_, span := StartSpan(ctx, "time.Sleep")
+	defer span.End()
 
-		select {
-		case <-t.C:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	})
+	t := time.NewTimer(dur)
+	defer t.Stop()
+
+	select {
+	case <-t.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func ToLower(s string) string {
@@ -54,15 +55,11 @@ func isLower(s string) bool {
 
 var tracer = otel.Tracer("github.com/go-redis/redis")
 
-func WithSpan(ctx context.Context, name string, fn func(context.Context, trace.Span) error) error {
+func StartSpan(ctx context.Context, name string) (context.Context, trace.Span) {
 	if span := trace.SpanFromContext(ctx); !span.IsRecording() {
-		return fn(ctx, span)
+		return ctx, span
 	}
-
-	ctx, span := tracer.Start(ctx, name)
-	defer span.End()
-
-	return fn(ctx, span)
+	return tracer.Start(ctx, name)
 }
 
 func RecordError(ctx context.Context, span trace.Span, err error) error {

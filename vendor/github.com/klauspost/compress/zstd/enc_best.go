@@ -407,6 +407,7 @@ encodeLoop:
 // Most notable difference is that src will not be copied for history and
 // we do not need to check for max match length.
 func (e *bestFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
+	e.ensureHist(len(src))
 	e.Encode(blk, src)
 }
 
