@@ -320,6 +320,7 @@ var (
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
 	EnableAccessLog    bool
+	EnableSSHLog       bool
 	AccessLogTemplate  string
 	EnableXORMLog      bool
 

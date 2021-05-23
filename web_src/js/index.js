@@ -21,8 +21,8 @@ import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {renderMarkupContent} from './markup/content.js';
 import {showLineButton} from './code/linebutton.js';
+import {initMarkupContent, initCommentContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
@@ -52,7 +52,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkupContent();
+      initMarkupContent();
     });
   });
 
@@ -82,7 +82,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkupContent();
+        initMarkupContent();
       });
     });
   }
@@ -1108,7 +1108,8 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkupContent();
+            initMarkupContent();
+            initCommentContent();
           });
         });
       } else {
@@ -1481,7 +1482,7 @@ function initWikiForm() {
             wiki: true
           }, (data) => {
             preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
-            renderMarkupContent();
+            initMarkupContent();
           });
         };
 
@@ -2563,7 +2564,6 @@ $(document).ready(async () => {
     direction: 'upward',
     fullTextSearch: 'exact'
   });
-  $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
   $('.ui.progress').progress({
     showActivity: false
@@ -2733,6 +2733,7 @@ $(document).ready(async () => {
   searchRepositories();
 
   initMarkupAnchors();
+  initCommentContent();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2790,7 +2791,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkupContent(),
+    initMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);
