@@ -347,7 +347,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 // <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <20-byte SHA>
 //
 // We don't attempt to convert the 20-byte SHA to 40-byte SHA to save a lot of time
-func ParseTreeLineTree(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (directory bool, fname, sha []byte, n int, err error) {
+func ParseTreeLineTree(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (isTree bool, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -371,7 +371,7 @@ func ParseTreeLineTree(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (dire
 		n += d
 		return
 	}
-	directory = true
+	isTree = true
 
 	n += 6
 	readBytes = readBytes[6:]
