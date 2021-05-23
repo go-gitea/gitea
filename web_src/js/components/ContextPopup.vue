@@ -3,7 +3,7 @@
     <div v-if="loading" class="ui active centered inline loader"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
-      <p><span :class="color" v-html="icon" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p><svg-icon :name="icon" :class="[color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
       <p>{{ body }}</p>
       <div>
         <div
@@ -20,11 +20,16 @@
 </template>
 
 <script>
-import {svg} from '../svg.js';
+import {SvgIcon} from '../svg.js';
+
 const {AppSubUrl} = window.config;
 
 export default {
   name: 'ContextPopup',
+
+  components: {
+    SvgIcon,
+  },
 
   data: () => ({
     loading: false,
@@ -49,15 +54,15 @@ export default {
     icon() {
       if (this.issue.pull_request !== null) {
         if (this.issue.state === 'open') {
-          return svg('octicon-git-pull-request'); // Open PR
+          return 'octicon-git-pull-request'; // Open PR
         } else if (this.issue.pull_request.merged === true) {
-          return svg('octicon-git-merge'); // Merged PR
+          return 'octicon-git-merge'; // Merged PR
         }
-        return svg('octicon-git-pull-request'); // Closed PR
+        return 'octicon-git-pull-request'; // Closed PR
       } else if (this.issue.state === 'open') {
-        return svg('octicon-issue-opened'); // Open Issue
+        return 'octicon-issue-opened'; // Open Issue
       }
-      return svg('octicon-issue-closed'); // Closed Issue
+      return 'octicon-issue-closed'; // Closed Issue
     },
 
     color() {
