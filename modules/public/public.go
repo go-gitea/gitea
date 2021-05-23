@@ -5,13 +5,13 @@
 package public
 
 import (
-	"log"
 	"net/http"
-	"path"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -24,67 +24,33 @@ type Options struct {
 	Prefix      string
 }
 
-// KnownPublicEntries list all direct children in the `public` directory
-var KnownPublicEntries = []string{
-	"css",
-	"fonts",
-	"img",
-	"js",
-	"serviceworker.js",
-	"vendor",
-}
-
-// Custom implements the static handler for serving custom assets.
-func Custom(opts *Options) func(next http.Handler) http.Handler {
-	return opts.staticHandler(path.Join(setting.CustomPath, "public"))
-}
-
-// staticFileSystem implements http.FileSystem interface.
-type staticFileSystem struct {
-	dir *http.Dir
-}
-
-func newStaticFileSystem(directory string) staticFileSystem {
-	if !filepath.IsAbs(directory) {
-		directory = filepath.Join(setting.AppWorkPath, directory)
-	}
-	dir := http.Dir(directory)
-	return staticFileSystem{&dir}
-}
-
-func (fs staticFileSystem) Open(name string) (http.File, error) {
-	return fs.dir.Open(name)
-}
-
-// StaticHandler sets up a new middleware for serving static files in the
-func StaticHandler(dir string, opts *Options) func(next http.Handler) http.Handler {
-	return opts.staticHandler(dir)
-}
-
-func (opts *Options) staticHandler(dir string) func(next http.Handler) http.Handler {
+// Assets implements the static handler for serving custom or original assets.
+func Assets(opts *Options) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		// Defaults
-		if len(opts.IndexFile) == 0 {
-			opts.IndexFile = "index.html"
-		}
-		// Normalize the prefix if provided
-		if opts.Prefix != "" {
-			// Ensure we have a leading '/'
-			if opts.Prefix[0] != '/' {
-				opts.Prefix = "/" + opts.Prefix
-			}
-			// Remove any trailing '/'
-			opts.Prefix = strings.TrimRight(opts.Prefix, "/")
-		}
-		if opts.FileSystem == nil {
-			opts.FileSystem = newStaticFileSystem(dir)
+		var custPath = filepath.Join(setting.CustomPath, "public")
+		if !filepath.IsAbs(custPath) {
+			custPath = filepath.Join(setting.AppWorkPath, custPath)
 		}
 
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			if !opts.handle(w, req, opts) {
-				next.ServeHTTP(w, req)
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			// custom files
+			if opts.staticHandler(http.Dir(custPath), opts.Prefix)(resp, req) {
+				return
 			}
+
+			// internal files
+			if opts.staticHandler(fileSystem(opts.Directory), opts.Prefix)(resp, req) {
+				return
+			}
+
+			resp.WriteHeader(404)
 		})
+	}
+}
+
+func (opts *Options) staticHandler(fs http.FileSystem, prefix string) func(resp http.ResponseWriter, req *http.Request) bool {
+	return func(resp http.ResponseWriter, req *http.Request) bool {
+		return opts.handle(resp, req, fs, prefix)
 	}
 }
 
@@ -98,70 +64,45 @@ func parseAcceptEncoding(val string) map[string]bool {
 	return types
 }
 
-func (opts *Options) handle(w http.ResponseWriter, req *http.Request, opt *Options) bool {
+func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, prefix string) bool {
 	if req.Method != "GET" && req.Method != "HEAD" {
 		return false
 	}
 
 	file := req.URL.Path
 	// if we have a prefix, filter requests by stripping the prefix
-	if opt.Prefix != "" {
-		if !strings.HasPrefix(file, opt.Prefix) {
+	if prefix != "" {
+		if !strings.HasPrefix(file, prefix) {
 			return false
 		}
-		file = file[len(opt.Prefix):]
+		file = file[len(prefix):]
 		if file != "" && file[0] != '/' {
 			return false
 		}
 	}
 
-	f, err := opt.FileSystem.Open(file)
+	f, err := fs.Open(file)
 	if err != nil {
-		// 404 requests to any known entries in `public`
-		if path.Base(opts.Directory) == "public" {
-			parts := strings.Split(file, "/")
-			if len(parts) < 2 {
-				return false
-			}
-			for _, entry := range KnownPublicEntries {
-				if entry == parts[1] {
-					w.WriteHeader(404)
-					return true
-				}
-			}
+		if os.IsNotExist(err) {
+			return false
 		}
-		return false
+		w.WriteHeader(500)
+		log.Error("[Static] Open %q failed: %v", file, err)
+		return true
 	}
 	defer f.Close()
 
 	fi, err := f.Stat()
 	if err != nil {
-		log.Printf("[Static] %q exists, but fails to open: %v", file, err)
+		w.WriteHeader(500)
+		log.Error("[Static] %q exists, but fails to open: %v", file, err)
 		return true
 	}
 
 	// Try to serve index file
 	if fi.IsDir() {
-		// Redirect if missing trailing slash.
-		if !strings.HasSuffix(req.URL.Path, "/") {
-			http.Redirect(w, req, path.Clean(req.URL.Path+"/"), http.StatusFound)
-			return true
-		}
-
-		f, err = opt.FileSystem.Open(file)
-		if err != nil {
-			return false // Discard error.
-		}
-		defer f.Close()
-
-		fi, err = f.Stat()
-		if err != nil || fi.IsDir() {
-			return false
-		}
-	}
-
-	if !opt.SkipLogging {
-		log.Println("[Static] Serving " + file)
+		w.WriteHeader(404)
+		return true
 	}
 
 	if httpcache.HandleFileETagCache(req, w, fi) {

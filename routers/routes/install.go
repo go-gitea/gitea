@@ -93,21 +93,14 @@ func InstallRoutes() *web.Route {
 	}))
 
 	r.Use(installRecovery())
-
-	r.Use(public.Custom(
-		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-	r.Use(public.Static(
-		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
-			Prefix:      "/assets",
-		},
-	))
-
 	r.Use(routers.InstallInit)
+
+	r.Route("/assets/*", "GET, HEAD", corsHandler, public.Assets(&public.Options{
+		Directory:   path.Join(setting.StaticRootPath, "public"),
+		SkipLogging: setting.DisableRouterLog,
+		Prefix:      "/assets",
+	}))
+
 	r.Get("/", routers.Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), routers.InstallPost)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
