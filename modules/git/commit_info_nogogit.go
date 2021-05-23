@@ -330,13 +330,11 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 						return nil, err
 					}
 				}
-			} else {
-				if hasNext {
-					// push the tree to the cat-file --batch process
-					_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
-					if err != nil {
-						return nil, err
-					}
+			} else if hasNext {
+				// push the tree to the cat-file --batch process
+				_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
+				if err != nil {
+					return nil, err
 				}
 			}
 
