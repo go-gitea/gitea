@@ -1849,8 +1849,6 @@
           }
 
           .download {
-            margin-top: 20px;
-
             > a {
               .svg {
                 margin-left: 5px;
@@ -1860,18 +1858,29 @@
 
             .list {
               padding-left: 0;
-              border-top: 1px solid var(--color-secondary);
 
               li {
                 list-style: none;
                 display: block;
-                padding-top: 8px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid var(--color-secondary);
+                padding: 8px;
+                border: 1px solid var(--color-secondary);
+                background: var(--color-light);
 
                 a > .text.right {
                   margin-right: 5px;
                 }
+              }
+
+              li + li {
+                border-top: 0;
+              }
+
+              li:first-of-type {
+                border-radius: var(--border-radius) 0 0 var(--border-radius);
+              }
+
+              li:last-of-type {
+                border-radius: 0 var(--border-radius) var(--border-radius) 0;
               }
             }
           }
