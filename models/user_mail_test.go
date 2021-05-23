@@ -45,13 +45,15 @@ func TestAddEmailAddress(t *testing.T) {
 
 	assert.NoError(t, AddEmailAddress(&EmailAddress{
 		Email:       "user1234567890@example.com",
+		LowerEmail:  "user1234567890@example.com",
 		IsPrimary:   true,
 		IsActivated: true,
 	}))
 
 	// ErrEmailAlreadyUsed
 	err := AddEmailAddress(&EmailAddress{
-		Email: "user1234567890@example.com",
+		Email:      "user1234567890@example.com",
+		LowerEmail: "user1234567890@example.com",
 	})
 	assert.Error(t, err)
 	assert.True(t, IsErrEmailAlreadyUsed(err))
@@ -64,10 +66,12 @@ func TestAddEmailAddresses(t *testing.T) {
 	emails := make([]*EmailAddress, 2)
 	emails[0] = &EmailAddress{
 		Email:       "user1234@example.com",
+		LowerEmail:  "user1234@example.com",
 		IsActivated: true,
 	}
 	emails[1] = &EmailAddress{
 		Email:       "user5678@example.com",
+		LowerEmail:  "user5678@example.com",
 		IsActivated: true,
 	}
 	assert.NoError(t, AddEmailAddresses(emails))
@@ -82,20 +86,23 @@ func TestDeleteEmailAddress(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
-		UID:   int64(1),
-		ID:    int64(1),
-		Email: "user11@example.com",
+		UID:        int64(1),
+		ID:         int64(1),
+		Email:      "user11@example.com",
+		LowerEmail: "user11@example.com",
 	}))
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
-		UID:   int64(1),
-		Email: "user12@example.com",
+		UID:        int64(1),
+		Email:      "user12@example.com",
+		LowerEmail: "user12@example.com",
 	}))
 
 	// Email address does not exist
 	err := DeleteEmailAddress(&EmailAddress{
-		UID:   int64(1),
-		Email: "user1234567890@example.com",
+		UID:        int64(1),
+		Email:      "user1234567890@example.com",
+		LowerEmail: "user1234567890@example.com",
 	})
 	assert.Error(t, err)
 }
@@ -106,13 +113,15 @@ func TestDeleteEmailAddresses(t *testing.T) {
 	// delete multiple email address
 	emails := make([]*EmailAddress, 2)
 	emails[0] = &EmailAddress{
-		UID:   int64(2),
-		ID:    int64(3),
-		Email: "user2@example.com",
+		UID:        int64(2),
+		ID:         int64(3),
+		Email:      "user2@example.com",
+		LowerEmail: "user2@example.com",
 	}
 	emails[1] = &EmailAddress{
-		UID:   int64(2),
-		Email: "user21@example.com",
+		UID:        int64(2),
+		Email:      "user21@example.com",
+		LowerEmail: "user21@example.com",
 	}
 	assert.NoError(t, DeleteEmailAddresses(emails))
 

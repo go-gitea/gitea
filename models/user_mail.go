@@ -23,6 +23,7 @@ type EmailAddress struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UID         int64  `xorm:"INDEX NOT NULL"`
 	Email       string `xorm:"UNIQUE NOT NULL"`
+	LowerEmail  string `xorm:"UNIQUE NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 }
@@ -72,7 +73,7 @@ func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) 
 
 	// Can't filter by boolean field unless it's explicit
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"email": email}, builder.Neq{"id": emailID})
+	cond = cond.And(builder.Eq{"lower_email": strings.ToLower(email)}, builder.Neq{"id": emailID})
 	if setting.Service.RegisterEmailConfirm {
 		// Inactive (unvalidated) addresses don't count as active if email validation is required
 		cond = cond.And(builder.Eq{"is_activated": true})
@@ -94,7 +95,7 @@ func isEmailUsed(e Engine, email string) (bool, error) {
 		return true, nil
 	}
 
-	return e.Where("email=?", email).Get(&EmailAddress{})
+	return e.Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
 // IsEmailUsed returns true if the email has been used.
@@ -103,8 +104,9 @@ func IsEmailUsed(email string) (bool, error) {
 }
 
 func addEmailAddress(e Engine, email *EmailAddress) error {
-	email.Email = strings.ToLower(strings.TrimSpace(email.Email))
-	used, err := isEmailUsed(e, email.Email)
+	email.Email = strings.TrimSpace(email.Email)
+	checkLowerEmail(email)
+	used, err := isEmailUsed(e, email.LowerEmail)
 	if err != nil {
 		return err
 	} else if used {
@@ -132,8 +134,9 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 
 	// Check if any of them has been used
 	for i := range emails {
-		emails[i].Email = strings.ToLower(strings.TrimSpace(emails[i].Email))
-		used, err := IsEmailUsed(emails[i].Email)
+		emails[i].Email = strings.TrimSpace(emails[i].Email)
+		checkLowerEmail(emails[i])
+		used, err := IsEmailUsed(emails[i].LowerEmail)
 		if err != nil {
 			return err
 		} else if used {
@@ -194,7 +197,7 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 		deleted, err = x.ID(email.ID).Delete(&address)
 	} else {
 		deleted, err = x.
-			Where("email=?", email.Email).
+			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
 	}
 
@@ -217,8 +220,15 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 	return nil
 }
 
+func checkLowerEmail(email *EmailAddress) {
+	if email.LowerEmail == "" {
+		email.LowerEmail = strings.ToLower(email.Email)
+	}
+}
+
 // MakeEmailPrimary sets primary email address of given user.
 func MakeEmailPrimary(email *EmailAddress) error {
+	checkLowerEmail(email)
 	has, err := x.Get(email)
 	if err != nil {
 		return err
@@ -316,16 +326,16 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 
 	switch {
 	case opts.IsPrimary.IsTrue():
-		cond = cond.And(builder.Eq{"emails.is_primary": true})
+		cond = cond.And(builder.Eq{"email_address.is_primary": true})
 	case opts.IsPrimary.IsFalse():
-		cond = cond.And(builder.Eq{"emails.is_primary": false})
+		cond = cond.And(builder.Eq{"email_address.is_primary": false})
 	}
 
 	switch {
 	case opts.IsActivated.IsTrue():
-		cond = cond.And(builder.Eq{"emails.is_activated": true})
+		cond = cond.And(builder.Eq{"email_address.is_activated": true})
 	case opts.IsActivated.IsFalse():
-		cond = cond.And(builder.Eq{"emails.is_activated": false})
+		cond = cond.And(builder.Eq{"email_address.is_activated": false})
 	}
 
 	count, err := x.Join("INNER", "`user`", "`user`.ID = email_address.uid").
@@ -362,7 +372,7 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 
 	// Activate/deactivate a user's secondary email address
 	// First check if there's another user active with the same address
-	addr := EmailAddress{UID: userID, Email: email}
+	addr := EmailAddress{UID: userID, LowerEmail: strings.ToLower(email)}
 	if has, err := sess.Get(&addr); err != nil {
 		return err
 	} else if !has {
