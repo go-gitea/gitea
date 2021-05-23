@@ -177,20 +177,34 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
-revListLoop:
-	for scan.Scan() {
-		// Get the next parent commit ID
-		commitID := scan.Text()
-		if !scan.Scan() {
-			break revListLoop
+	var nextCommitID string
+	var nextRootTreeID string
+	hasNext := scan.Scan()
+	if hasNext {
+		nextCommitID = scan.Text()
+		hasNext = scan.Scan()
+		if hasNext {
+			nextCommitID = nextCommitID[7:]
+			nextRootTreeID = scan.Text()
+			// push the tree to the cat-file --batch process
+			_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
+			if err != nil {
+				return nil, err
+			}
 		}
-		commitID = commitID[7:]
-		rootTreeID := scan.Text()
+	}
 
-		// push the tree to the cat-file --batch process
-		_, err := batchStdinWriter.Write([]byte(rootTreeID + "\n"))
-		if err != nil {
-			return nil, err
+	for hasNext {
+		commitID := nextCommitID
+		rootTreeID := nextRootTreeID
+		hasNext = scan.Scan()
+		if hasNext {
+			nextCommitID = scan.Text()
+			hasNext = scan.Scan()
+			if hasNext {
+				nextCommitID = nextCommitID[7:]
+				nextRootTreeID = scan.Text()
+			}
 		}
 
 		currentPath := ""
@@ -220,6 +234,13 @@ revListLoop:
 
 			// Two options: currentPath is the targetTreepath
 			if treePath == currentPath {
+				if hasNext {
+					// push the tree to the cat-file --batch process
+					_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
+					if err != nil {
+						return nil, err
+					}
+				}
 				// We are in the right directory
 				// Parse each tree line in turn. (don't care about mode here.)
 				for n < size {
@@ -275,6 +296,49 @@ revListLoop:
 					break
 				}
 			}
+			if len(treeID) > 0 {
+				// add the target to the current path
+				if idx > 0 {
+					currentPath += "/"
+				}
+				currentPath += target
+
+				// if we've now found the current path check its sha id and commit status
+				if treePath == currentPath && paths[0] == "" {
+					if len(ids[0]) == 0 {
+						copy(allShaBuf[0:20], treeID)
+						ids[0] = allShaBuf[0:20]
+						commits[0] = string(commitID)
+					} else if bytes.Equal(ids[0], treeID) {
+						for i := range commits {
+							commits[i] = string(commitID)
+						}
+						if hasNext {
+							// push the tree to the cat-file --batch process
+							_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
+							if err != nil {
+								return nil, err
+							}
+						}
+						treeID = nil
+					}
+				}
+				if treeID != nil {
+					treeID = To40ByteSHA(treeID, treeID)
+					_, err = batchStdinWriter.Write(treeID)
+					if err != nil {
+						return nil, err
+					}
+				}
+			} else {
+				if hasNext {
+					// push the tree to the cat-file --batch process
+					_, err := batchStdinWriter.Write([]byte(nextRootTreeID + "\n"))
+					if err != nil {
+						return nil, err
+					}
+				}
+			}
 
 			if n < size+1 {
 				// Discard any remaining entries in the current tree
@@ -297,27 +361,6 @@ revListLoop:
 				break treeReadingLoop
 			}
 
-			// add the target to the current path
-			if idx > 0 {
-				currentPath += "/"
-			}
-			currentPath += target
-
-			// if we've now found the current path check its sha id and commit status
-			if treePath == currentPath && paths[0] == "" {
-				if len(ids[0]) == 0 {
-					copy(allShaBuf[0:20], treeID)
-					ids[0] = allShaBuf[0:20]
-					commits[0] = string(commitID)
-				} else if bytes.Equal(ids[0], treeID) {
-					commits[0] = string(commitID)
-				}
-			}
-			treeID = To40ByteSHA(treeID, treeID)
-			_, err = batchStdinWriter.Write(treeID)
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 
