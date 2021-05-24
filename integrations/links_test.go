@@ -37,9 +37,6 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1/projects/1",
 		"/assets/img/404.png",
 		"/assets/img/500.png",
-		"/assets/js/index.js",
-		"/assets/css/index.css",
-		"/assets/serviceworker.js",
 	}
 
 	for _, link := range links {
