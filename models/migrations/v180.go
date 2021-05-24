@@ -5,14 +5,14 @@
 package migrations
 
 import (
-	jsoniter "github.com/json-iterator/go"
-	"xorm.io/builder"
-	"xorm.io/xorm"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+
+	jsoniter "github.com/json-iterator/go"
+	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 func deleteMigrationCredentials(x *xorm.Engine) (err error) {
