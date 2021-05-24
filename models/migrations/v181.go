@@ -1,10 +1,11 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package migrations
 
 import (
+	"strings"
+
 	"xorm.io/xorm"
 )
 
@@ -15,20 +16,35 @@ func addPrimaryEmail2EmailAddress(x *xorm.Engine) (err error) {
 		IsActive bool   `xorm:"INDEX"` // Activate primary email
 	}
 
-	type EmailAddress struct {
+	type EmailAddress1 struct {
 		ID          int64  `xorm:"pk autoincr"`
 		UID         int64  `xorm:"INDEX NOT NULL"`
 		Email       string `xorm:"UNIQUE NOT NULL"`
+		LowerEmail  string
 		IsActivated bool
 		IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 	}
 
-	// Add is_primary column
-	if err = x.Sync2(new(EmailAddress)); err != nil {
+	// Add lower_email and is_primary columns
+	if err = x.Table("email_address").Sync2(new(EmailAddress1)); err != nil {
 		return
 	}
 
-	if _, err = x.Exec("UPDATE email_address SET is_primary=? WHERE is_primary IS NULL", false); err != nil {
+	if _, err = x.Exec("UPDATE email_address SET lower_email=LOWER(email), is_primary=?", false); err != nil {
+		return
+	}
+
+	type EmailAddress struct {
+		ID          int64  `xorm:"pk autoincr"`
+		UID         int64  `xorm:"INDEX NOT NULL"`
+		Email       string `xorm:"UNIQUE NOT NULL"`
+		LowerEmail  string `xorm:"UNIQUE NOT NULL"`
+		IsActivated bool
+		IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
+	}
+
+	// change lower_email as unique
+	if err = x.Sync2(new(EmailAddress)); err != nil {
 		return
 	}
 
@@ -56,6 +72,7 @@ func addPrimaryEmail2EmailAddress(x *xorm.Engine) (err error) {
 				if _, err = sess.Insert(&EmailAddress{
 					UID:         user.ID,
 					Email:       user.Email,
+					LowerEmail:  strings.ToLower(user.Email),
 					IsActivated: user.IsActive,
 					IsPrimary:   true,
 				}); err != nil {
@@ -70,5 +87,6 @@ func addPrimaryEmail2EmailAddress(x *xorm.Engine) (err error) {
 			}
 		}
 	}
+
 	return nil
 }

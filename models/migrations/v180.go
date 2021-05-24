@@ -25,6 +25,20 @@ func deleteMigrationCredentials(x *xorm.Engine) (err error) {
 		"status": structs.TaskStatusStopped,
 	})
 
+	type EmailAddress struct {
+		ID          int64  `xorm:"pk autoincr"`
+		UID         int64  `xorm:"INDEX NOT NULL"`
+		Email       string `xorm:"UNIQUE NOT NULL"`
+		LowerEmail  string `xorm:"UNIQUE NOT NULL"`
+		IsActivated bool
+		IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
+	}
+
+	// change lower_email as unique
+	if err = x.Sync2(new(EmailAddress)); err != nil {
+		return
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 
