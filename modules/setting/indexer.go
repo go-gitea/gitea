@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -68,23 +67,23 @@ var (
 func newIndexerService() {
 	sec := Cfg.Section("indexer")
 	Indexer.IssueType = sec.Key("ISSUE_INDEXER_TYPE").MustString("bleve")
-	Indexer.IssuePath = sec.Key("ISSUE_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/issues.bleve"))
+	Indexer.IssuePath = filepath.ToSlash(sec.Key("ISSUE_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/issues.bleve"))))
 	if !filepath.IsAbs(Indexer.IssuePath) {
-		Indexer.IssuePath = path.Join(AppWorkPath, Indexer.IssuePath)
+		Indexer.IssuePath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.IssuePath))
 	}
 	Indexer.IssueConnStr = sec.Key("ISSUE_INDEXER_CONN_STR").MustString(Indexer.IssueConnStr)
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
-	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "queues/common"))
+	Indexer.IssueQueueDir = filepath.ToSlash(sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "queues/common"))))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 
 	Indexer.RepoIndexerEnabled = sec.Key("REPO_INDEXER_ENABLED").MustBool(false)
 	Indexer.RepoType = sec.Key("REPO_INDEXER_TYPE").MustString("bleve")
-	Indexer.RepoPath = sec.Key("REPO_INDEXER_PATH").MustString(path.Join(AppDataPath, "indexers/repos.bleve"))
+	Indexer.RepoPath = filepath.ToSlash(sec.Key("REPO_INDEXER_PATH").MustString(filepath.ToSlash(filepath.Join(AppDataPath, "indexers/repos.bleve"))))
 	if !filepath.IsAbs(Indexer.RepoPath) {
-		Indexer.RepoPath = path.Join(AppWorkPath, Indexer.RepoPath)
+		Indexer.RepoPath = filepath.ToSlash(filepath.Join(AppWorkPath, Indexer.RepoPath))
 	}
 	Indexer.RepoConnStr = sec.Key("REPO_INDEXER_CONN_STR").MustString("")
 	Indexer.RepoIndexerName = sec.Key("REPO_INDEXER_NAME").MustString("gitea_codes")
