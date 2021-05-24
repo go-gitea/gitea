@@ -48,7 +48,7 @@ func GetQueueSettings(name string) QueueSettings {
 	q.Name = name
 
 	// DataDir is not directly inheritable
-	q.DataDir = filepath.Join(Queue.DataDir, name)
+	q.DataDir = filepath.Join(Queue.DataDir, "common")
 	// QueueName is not directly inheritable either
 	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
@@ -103,11 +103,11 @@ func NewQueueService() {
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
-	Queue.Workers = sec.Key("WORKERS").MustInt(1)
+	Queue.Workers = sec.Key("WORKERS").MustInt(0)
 	Queue.MaxWorkers = sec.Key("MAX_WORKERS").MustInt(10)
 	Queue.BlockTimeout = sec.Key("BLOCK_TIMEOUT").MustDuration(1 * time.Second)
 	Queue.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(5 * time.Minute)
-	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(5)
+	Queue.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(1)
 	Queue.QueueName = sec.Key("QUEUE_NAME").MustString("_queue")
 	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
