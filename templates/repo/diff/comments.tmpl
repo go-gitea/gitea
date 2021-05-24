@@ -51,7 +51,7 @@
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			<div class="render-content markup">
+			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
 				{{.RenderedContent|Str2html}}
 			{{else}}
