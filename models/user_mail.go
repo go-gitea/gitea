@@ -28,6 +28,13 @@ type EmailAddress struct {
 	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 }
 
+// BeforeInsert will be invoked by XORM before inserting a record
+func (email *EmailAddress) BeforeInsert() {
+	if email.LowerEmail == "" {
+		email.LowerEmail = strings.ToLower(email.Email)
+	}
+}
+
 // ValidateEmail check if email is a allowed address
 func ValidateEmail(email string) error {
 	if len(email) == 0 {
@@ -105,8 +112,7 @@ func IsEmailUsed(email string) (bool, error) {
 
 func addEmailAddress(e Engine, email *EmailAddress) error {
 	email.Email = strings.TrimSpace(email.Email)
-	checkLowerEmail(email)
-	used, err := isEmailUsed(e, email.LowerEmail)
+	used, err := isEmailUsed(e, email.Email)
 	if err != nil {
 		return err
 	} else if used {
@@ -135,8 +141,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 	// Check if any of them has been used
 	for i := range emails {
 		emails[i].Email = strings.TrimSpace(emails[i].Email)
-		checkLowerEmail(emails[i])
-		used, err := IsEmailUsed(emails[i].LowerEmail)
+		used, err := IsEmailUsed(emails[i].Email)
 		if err != nil {
 			return err
 		} else if used {
@@ -220,15 +225,8 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 	return nil
 }
 
-func checkLowerEmail(email *EmailAddress) {
-	if email.LowerEmail == "" {
-		email.LowerEmail = strings.ToLower(email.Email)
-	}
-}
-
 // MakeEmailPrimary sets primary email address of given user.
 func MakeEmailPrimary(email *EmailAddress) error {
-	checkLowerEmail(email)
 	has, err := x.Get(email)
 	if err != nil {
 		return err
