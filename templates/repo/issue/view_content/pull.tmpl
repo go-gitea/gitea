@@ -35,7 +35,7 @@
 						<div class="review-item-right">
 							{{if .Review.Stale}}
 								<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
-									<i class="octicon icon fa-hourglass-end"></i>
+									{{svg "octicon-hourglass" 16 "icon"}}
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
