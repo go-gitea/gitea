@@ -54,3 +54,34 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 	http.ServeContent(w, req, fi.Name(), modtime, content)
 	return
 }
+
+func Asset(name string) ([]byte, error) {
+	f, err := Assets.Open("/" + name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ioutil.ReadAll(f)
+}
+
+func AssetNames() []string {
+	realFS := Assets.(vfsgen۰FS)
+	var results = make([]string, 0, len(realFS))
+	for k := range realFS {
+		results = append(results, k[1:])
+	}
+	return results
+}
+
+func AssetIsDir(name string) (bool, error) {
+	if f, err := Assets.Open("/" + name); err != nil {
+		return false, err
+	} else {
+		defer f.Close()
+		if fi, err := f.Stat(); err != nil {
+			return false, err
+		} else {
+			return fi.IsDir(), nil
+		}
+	}
+}
