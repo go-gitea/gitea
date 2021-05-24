@@ -35,23 +35,17 @@ func AssetsHandler(opts *Options) func(http.Handler) http.Handler {
 
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			// custom files
-			if opts.staticHandler(http.Dir(custPath), opts.Prefix)(resp, req) {
+			if opts.handle(resp, req, http.Dir(custPath), opts.Prefix) {
 				return
 			}
 
 			// internal files
-			if opts.staticHandler(fileSystem(opts.Directory), opts.Prefix)(resp, req) {
+			if opts.handle(resp, req, fileSystem(opts.Directory), opts.Prefix) {
 				return
 			}
 
 			resp.WriteHeader(404)
 		})
-	}
-}
-
-func (opts *Options) staticHandler(fs http.FileSystem, prefix string) func(resp http.ResponseWriter, req *http.Request) bool {
-	return func(resp http.ResponseWriter, req *http.Request) bool {
-		return opts.handle(resp, req, fs, prefix)
 	}
 }
 
