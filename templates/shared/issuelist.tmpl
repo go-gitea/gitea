@@ -67,7 +67,7 @@
 						</a>
 					{{end}}
 					{{if .Ref}}
-						<a class="ref" {{if $.RepoLink}}href="{{$.RepoLink}}{{index $.IssueRefURLs .ID}}"{{else}}href="{{AppSubUrl}}/{{.Repo.OwnerName}}/{{.Repo.Name}}{{index $.IssueRefURLs .ID}}"{{end}}>
+ 						<a class="ref" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{AppSubUrl}}/{{.Repo.OwnerName}}/{{.Repo.Name}}{{index $.IssueRefURLs .ID}}"{{end}}>
 							{{svg "octicon-git-branch" 14 "mr-2"}}{{index $.IssueRefEndNames .ID}}
 						</a>
 					{{end}}
