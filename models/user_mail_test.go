@@ -17,9 +17,9 @@ func TestGetEmailAddresses(t *testing.T) {
 
 	emails, _ := GetEmailAddresses(int64(1))
 	if assert.Len(t, emails, 3) {
-		assert.False(t, emails[0].IsPrimary)
+		assert.True(t, emails[0].IsPrimary)
 		assert.True(t, emails[2].IsActivated)
-		assert.True(t, emails[2].IsPrimary)
+		assert.False(t, emails[2].IsPrimary)
 	}
 
 	emails, _ = GetEmailAddresses(int64(2))
@@ -87,15 +87,15 @@ func TestDeleteEmailAddress(t *testing.T) {
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
 		UID:        int64(1),
-		ID:         int64(1),
-		Email:      "user11@example.com",
-		LowerEmail: "user11@example.com",
+		ID:         int64(33),
+		Email:      "user1-2@example.com",
+		LowerEmail: "user1-2@example.com",
 	}))
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
 		UID:        int64(1),
-		Email:      "user12@example.com",
-		LowerEmail: "user12@example.com",
+		Email:      "user1-3@example.com",
+		LowerEmail: "user1-3@example.com",
 	}))
 
 	// Email address does not exist
@@ -120,8 +120,8 @@ func TestDeleteEmailAddresses(t *testing.T) {
 	}
 	emails[1] = &EmailAddress{
 		UID:        int64(2),
-		Email:      "user21@example.com",
-		LowerEmail: "user21@example.com",
+		Email:      "user2-2@example.com",
+		LowerEmail: "user2-2@example.com",
 	}
 	assert.NoError(t, DeleteEmailAddresses(emails))
 
@@ -177,15 +177,21 @@ func TestActivate(t *testing.T) {
 	emails, _ := GetEmailAddresses(int64(1))
 	assert.Len(t, emails, 3)
 	assert.True(t, emails[0].IsActivated)
+	assert.True(t, emails[0].IsPrimary)
+	assert.False(t, emails[1].IsPrimary)
 	assert.True(t, emails[2].IsActivated)
-	assert.True(t, emails[2].IsPrimary)
+	assert.False(t, emails[2].IsPrimary)
 }
 
 func TestListEmails(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// Must find all users and their emails
-	opts := &SearchEmailOptions{}
+	opts := &SearchEmailOptions{
+		ListOptions: ListOptions{
+			PageSize: 10000,
+		},
+	}
 	emails, count, err := SearchEmails(opts)
 	assert.NoError(t, err)
 	assert.NotEqual(t, int64(0), count)

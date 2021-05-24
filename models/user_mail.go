@@ -285,10 +285,10 @@ func (s SearchEmailOrderBy) String() string {
 
 // Strings for sorting result
 const (
-	SearchEmailOrderByEmail        SearchEmailOrderBy = "emails.email ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "emails.email DESC, is_primary ASC, sortid DESC"
-	SearchEmailOrderByName         SearchEmailOrderBy = "`user`.lower_name ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, is_primary ASC, sortid DESC"
+	SearchEmailOrderByEmail        SearchEmailOrderBy = "email_address.email ASC, email_address.is_primary DESC, email_address.id ASC"
+	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "email_address.email DESC, email_address.is_primary ASC, email_address.id DESC"
+	SearchEmailOrderByName         SearchEmailOrderBy = "`user`.lower_name ASC, email_address.is_primary DESC, email_address.id ASC"
+	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, email_address.is_primary ASC, email_address.id DESC"
 )
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
@@ -314,11 +314,11 @@ type SearchEmailResult struct {
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
 func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
-	var cond builder.Cond = builder.Eq{"type": UserTypeIndividual}
+	var cond builder.Cond = builder.Eq{"user.`type`": UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		cond = cond.And(builder.Or(
-			builder.Like{"(lower(`user`.full_name)", likeStr},
+			builder.Like{"lower(`user`.full_name)", likeStr},
 			builder.Like{"`user`.lower_name", likeStr},
 			builder.Like{"email_address.email", likeStr},
 		))
@@ -352,10 +352,12 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 	opts.setDefaultValues()
 
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
-	err = x.Select("email_address.*, `user`.name, `user`.full_name").
+	err = x.Table("email_address").
+		Select("email_address.*, `user`.name, `user`.full_name").
 		Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Where(cond).
 		OrderBy(orderby).
-		Limit(opts.PageSize, opts.Page*opts.PageSize).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
 		Find(&emails)
 
 	return emails, count, err
