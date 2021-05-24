@@ -51,7 +51,7 @@ var (
 		IssueConnStr:          "",
 		IssueIndexerName:      "gitea_issues",
 		IssueQueueType:        LevelQueueType,
-		IssueQueueDir:         "indexers/issues.queue",
+		IssueQueueDir:         "queues/common",
 		IssueQueueConnStr:     "",
 		IssueQueueBatchNumber: 20,
 
@@ -76,7 +76,7 @@ func newIndexerService() {
 	Indexer.IssueIndexerName = sec.Key("ISSUE_INDEXER_NAME").MustString(Indexer.IssueIndexerName)
 
 	Indexer.IssueQueueType = sec.Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(LevelQueueType)
-	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "indexers/issues.queue"))
+	Indexer.IssueQueueDir = sec.Key("ISSUE_INDEXER_QUEUE_DIR").MustString(path.Join(AppDataPath, "queues/common"))
 	Indexer.IssueQueueConnStr = sec.Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
 	Indexer.IssueQueueBatchNumber = sec.Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(20)
 
