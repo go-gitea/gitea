@@ -42,7 +42,7 @@
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
-										<i class="fa fa-openid"></i>
+										{{svg "fontawesome-openid"}}
 										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
 									</li>
 								{{end}}

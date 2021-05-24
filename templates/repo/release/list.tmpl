@@ -139,39 +139,36 @@
 							<div class="markup desc">
 								{{Str2html .Note}}
 							</div>
-							<div class="ui accordion download">
-								<h2 class="title {{if eq $idx 0}}active{{end}} df ac mb-0">
-									{{svg "octicon-triangle-right" 14 "dropdown icon"}}
+							<details class="download border-secondary-top mt-4 pt-4" {{if eq $idx 0}}open{{end}}>
+								<summary class="mb-4">
 									{{$.i18n.Tr "repo.release.downloads"}}
-								</h2>
-								<div class="content {{if eq $idx 0}}active{{end}}">
-									<ul class="list">
-										{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
+								</summary>
+								<ul class="list">
+									{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
+										<li>
+											<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+										</li>
+										<li>
+											<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+										</li>
+									{{end}}
+									{{if .Attachments}}
+										{{range .Attachments}}
 											<li>
-												<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
-											</li>
-											<li>
-												<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | EscapePound}}.tar.gz"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
-											</li>
-										{{end}}
-										{{if .Attachments}}
-											{{range .Attachments}}
-												<li>
-													<span class="ui text middle aligned right">
-														<span class="ui text grey">{{.Size | FileSize}}</span>
-														<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
-															{{svg "octicon-info"}}
-														</span>
+												<span class="ui text middle aligned right">
+													<span class="ui text grey">{{.Size | FileSize}}</span>
+													<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+														{{svg "octicon-info"}}
 													</span>
-													<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-														<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
-													</a>
-												</li>
-											{{end}}
+												</span>
+												<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+													<strong><span class="ui image" title='{{.Name}}'>{{svg "octicon-package" 16 "mr-2"}}</span>{{.Name}}</strong>
+												</a>
+											</li>
 										{{end}}
-									</ul>
-								</div>
-							</div>
+									{{end}}
+								</ul>
+							</details>
 						{{end}}
 						<span class="dot">&nbsp;</span>
 					</div>
