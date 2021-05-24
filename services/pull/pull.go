@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -573,7 +574,10 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	stringBuilder.WriteString(pr.Issue.Content)
 	if stringBuilder.Len() > 0 {
 		stringBuilder.WriteRune('\n')
-		stringBuilder.WriteRune('\n')
+		commitMessageTrailersPattern := regexp.MustCompile(`(^|.*\n\n)([\w-]+: [^\n]+)(\n[\w-]+: [^\n]+)*$`)
+		if !commitMessageTrailersPattern.MatchString(pr.Issue.Content) {
+			stringBuilder.WriteRune('\n')
+		}
 	}
 
 	// commits list is in reverse chronological order
