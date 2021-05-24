@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-// ServeContent serve http content
-func ServeContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
-	http.ServeContent(w, req, fi.Name(), modtime, content)
-}
-
 func fileSystem(dir string) http.FileSystem {
 	return http.Dir(dir)
+}
+
+// serveContent serve http content
+func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+	http.ServeContent(w, req, fi.Name(), modtime, content)
 }

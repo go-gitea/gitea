@@ -17,15 +17,12 @@ import (
 
 // Options represents the available options to configure the handler.
 type Options struct {
-	Directory   string
-	IndexFile   string
-	SkipLogging bool
-	FileSystem  http.FileSystem
-	Prefix      string
+	Directory string
+	Prefix    string
 }
 
-// Assets implements the static handler for serving custom or original assets.
-func Assets(opts *Options) func(http.Handler) http.Handler {
+// AssetsHandler implements the static handler for serving custom or original assets.
+func AssetsHandler(opts *Options) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		var custPath = filepath.Join(setting.CustomPath, "public")
 		if !filepath.IsAbs(custPath) {
@@ -109,6 +106,6 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 		return true
 	}
 
-	ServeContent(w, req, fi, fi.ModTime(), f)
+	serveContent(w, req, fi, fi.ModTime(), f)
 	return true
 }

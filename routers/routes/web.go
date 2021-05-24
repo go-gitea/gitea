@@ -162,10 +162,9 @@ func WebRoutes() *web.Route {
 
 	routes.Use(Recovery())
 
-	routes.Route("/assets/*", "GET, HEAD", corsHandler, public.Assets(&public.Options{
-		Directory:   path.Join(setting.StaticRootPath, "public"),
-		SkipLogging: setting.DisableRouterLog,
-		Prefix:      "/assets",
+	routes.Route("/assets/*", "GET, HEAD", corsHandler, public.AssetsHandler(&public.Options{
+		Directory: path.Join(setting.StaticRootPath, "public"),
+		Prefix:    "/assets",
 	}))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler

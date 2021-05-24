@@ -24,39 +24,8 @@ func fileSystem(dir string) http.FileSystem {
 	return Assets
 }
 
-func Asset(name string) ([]byte, error) {
-	f, err := Assets.Open("/" + name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return ioutil.ReadAll(f)
-}
-
-func AssetNames() []string {
-	realFS := Assets.(vfsgen۰FS)
-	var results = make([]string, 0, len(realFS))
-	for k := range realFS {
-		results = append(results, k[1:])
-	}
-	return results
-}
-
-func AssetIsDir(name string) (bool, error) {
-	if f, err := Assets.Open("/" + name); err != nil {
-		return false, err
-	} else {
-		defer f.Close()
-		if fi, err := f.Stat(); err != nil {
-			return false, err
-		} else {
-			return fi.IsDir(), nil
-		}
-	}
-}
-
-// ServeContent serve http content
-func ServeContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
+// serveContent serve http content
+func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
 	if encodings["gzip"] {
 		if cf, ok := fi.(*vfsgen۰CompressedFileInfo); ok {

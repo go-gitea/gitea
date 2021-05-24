@@ -95,10 +95,9 @@ func InstallRoutes() *web.Route {
 	r.Use(installRecovery())
 	r.Use(routers.InstallInit)
 
-	r.Route("/assets/*", "GET, HEAD", corsHandler, public.Assets(&public.Options{
-		Directory:   path.Join(setting.StaticRootPath, "public"),
-		SkipLogging: setting.DisableRouterLog,
-		Prefix:      "/assets",
+	r.Route("/assets/*", "GET, HEAD", corsHandler, public.AssetsHandler(&public.Options{
+		Directory: path.Join(setting.StaticRootPath, "public"),
+		Prefix:    "/assets",
 	}))
 
 	r.Get("/", routers.Install)
