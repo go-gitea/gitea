@@ -29,6 +29,10 @@ func AssetsHandler(opts *Options) func(http.Handler) http.Handler {
 			custPath = filepath.Join(setting.AppWorkPath, custPath)
 		}
 
+		if !filepath.IsAbs(opts.Directory) {
+			opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
+		}
+
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			// custom files
 			if opts.staticHandler(http.Dir(custPath), opts.Prefix)(resp, req) {
