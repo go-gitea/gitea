@@ -225,6 +225,11 @@ platform:
 depends_on:
   - testing-amd64
 
+trigger:
+  event:
+    exclude:
+    - pull_request
+
 steps:
   - name: fetch-tags
     image: docker:git
@@ -270,11 +275,6 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
-
-when:
-  event:
-    exclude:
-    - pull_request
 
 node:
   oss: amd64
