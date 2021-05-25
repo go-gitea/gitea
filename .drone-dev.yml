@@ -225,12 +225,16 @@ platform:
 depends_on:
   - testing-amd64
 
+trigger:
+  event:
+    exclude:
+    - pull_request
+
 steps:
   - name: fetch-tags
     image: docker:git
     commands:
       - git fetch --tags --force
-
   - name: tag docker image
     image: golang:1.16
     commands:
@@ -238,7 +242,6 @@ steps:
     - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
     - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
     - echo -n "$BRANCH,$VERSION,latest" > .tags
-
   - name: publish
     pull: always
     image: plugins/docker:linux-amd64
@@ -252,7 +255,6 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
-
   - name: tag rootless docker image
     image: golang:1.16
     commands:
@@ -273,7 +275,6 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
-
 
 node:
   oss: amd64
