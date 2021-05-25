@@ -83,7 +83,7 @@
 							<tbody>
 								{{range .ProtectedTags}}
 									<tr>
-										<td>{{.NamePattern}}</td>
+										<td><pre>{{.NamePattern}}</pre></td>
 										<td>
 											{{if or .WhitelistUserIDs (and $.Owner.IsOrganization .WhitelistTeamIDs)}}
 												{{$userIDs := .WhitelistUserIDs}}
@@ -106,7 +106,7 @@
 										</td>
 										<td class="right aligned">
 											<a class="ui tiny blue button" href="{{$.Link}}/{{.ID}}">{{$.i18n.Tr "edit"}}</a>
-											<form style="display: inline-block" action="{{$.Link}}/delete" method="post">
+											<form style="display: inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}" />
 												<button class="ui tiny red button">{{$.i18n.Tr "remove"}}</button>

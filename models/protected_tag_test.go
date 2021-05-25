@@ -56,11 +56,11 @@ func TestIsUserAllowed(t *testing.T) {
 func TestIsUserAllowedToControlTag(t *testing.T) {
 	protectedTags := []*ProtectedTag{
 		{
-			NamePattern:      "*gitea",
+			NamePattern:      `gitea\z`,
 			WhitelistUserIDs: []int64{1},
 		},
 		{
-			NamePattern:      "v-*",
+			NamePattern:      `\Av-`,
 			WhitelistUserIDs: []int64{2},
 		},
 		{

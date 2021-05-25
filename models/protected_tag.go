@@ -5,12 +5,11 @@
 package models
 
 import (
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/gobwas/glob"
 )
 
 // ProtectedTag struct
@@ -18,9 +17,9 @@ type ProtectedTag struct {
 	ID               int64 `xorm:"pk autoincr"`
 	RepoID           int64
 	NamePattern      string
-	NameGlob         glob.Glob `xorm:"-"`
-	WhitelistUserIDs []int64   `xorm:"JSON TEXT"`
-	WhitelistTeamIDs []int64   `xorm:"JSON TEXT"`
+	CompiledPattern  *regexp.Regexp `xorm:"-"`
+	WhitelistUserIDs []int64        `xorm:"JSON TEXT"`
+	WhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -46,12 +45,12 @@ func DeleteProtectedTag(pt *ProtectedTag) error {
 
 // EnsureCompiledPattern ensures the glob pattern is compiled
 func (pt *ProtectedTag) EnsureCompiledPattern() error {
-	if pt.NameGlob != nil {
+	if pt.CompiledPattern != nil {
 		return nil
 	}
 
 	var err error
-	pt.NameGlob, err = glob.Compile(strings.TrimSpace(pt.NamePattern))
+	pt.CompiledPattern, err = regexp.Compile(strings.TrimSpace(pt.NamePattern))
 	return err
 }
 
@@ -101,7 +100,7 @@ func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int6
 			return false, err
 		}
 
-		if !tag.NameGlob.Match(tagName) {
+		if !tag.CompiledPattern.MatchString(tagName) {
 			continue
 		}
 

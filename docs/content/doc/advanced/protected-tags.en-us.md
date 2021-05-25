@@ -15,7 +15,7 @@ menu:
 
 # Protected tags
 
-Protected tags allow control over who has permission to create or update git tags. Each rule allows you to match either an individual tag name, or use wildcards to control multiple tags at once. 
+Protected tags allow control over who has permission to create or update git tags. Each rule allows you to match either an individual tag name, or use an appropriate pattern to control multiple tags at once. 
 
 **Table of Contents**
 
@@ -26,21 +26,23 @@ Protected tags allow control over who has permission to create or update git tag
 To protect a tag, you need to follow these steps:
 
 1. Go to the repository’s **Settings** > **Tags** page.
-2. Type the name of specific tag or use a pattern to match multiple tags at once.
-3. Choose the allowed users and/or teams. If you leave these fields empty noone is allowed to create or modify this tag.
-4. Select **Save** to save the configuration.
+1. Type a regular expression pattern to match a name.
+1. Choose the allowed users and/or teams. If you leave these fields empty noone is allowed to create or modify this tag.
+1. Select **Save** to save the configuration.
 
-## Wildcard protected tags
+## Pattern protected tags
 
-You can specify a wildcard protected tag, which protects all tags matching the wildcard. For example:
+The pattern uses regular expressions to match a tag name. Examples:
 
-| Wildcard Protected Tag | Matching Tags                           |
+| Pattern Protected Tag  | Possible Matching Tags                  |
 | ---------------------- | --------------------------------------- |
-| `v*`                   | `v`, `v-1`, `version2`                  |
-| `v[0-9]`               | `v0`, `v1` up to `v9`                   |
-| `*-release`            | `2.1-release`, `final-release`          |
-| `*gitea*`              | `gitea`, `2.1-gitea`, `1_gitea-release` |
-| `{v,rel}-*`            | `v-`, `v-1`, `v-final`, `rel-`, `rel-x` |
-| `*`                    | matches all possible tag names          |
-
-See [github.com/gobwas/glob](https://pkg.go.dev/github.com/gobwas/glob#Compile) documentation for syntax.
+| `\Av`                  | `v`, `v-1`, `version2`                  |
+| `\Av[0-9]\z`           | `v0`, `v1` up to `v9`                   |
+| `\Av\d+\.\d+\.\d+\z`   | `v1.0.17`, `v2.1.0`                     |
+| `\Av\d+(\.\d+){0,2}\z` | `v1`, `v2.1`, `v1.2.34`                 |
+| `-release\z`           | `2.1-release`, `final-release`          |
+| `gitea`                | `gitea`, `2.1-gitea`, `1_gitea-release` |
+| `\Agitea\z`            | only `gitea`                            |
+| `^gitea$`              | only `gitea`                            |
+| `\A(v\|rel)-`           | `v-`, `v-1`, `v-final`, `rel-`, `rel-x` |
+| `.+`                   | matches all possible tag names          |

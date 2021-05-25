@@ -19,6 +19,9 @@ const (
 
 	// ErrGlobPattern is returned when glob pattern is invalid
 	ErrGlobPattern = "GlobPattern"
+
+	// ErrRegexPattern is returned when a regex pattern is invalid
+	ErrRegexPattern = "RegexPattern"
 )
 
 var (
@@ -53,6 +56,7 @@ func AddBindingRules() {
 	addGitRefNameBindingRule()
 	addValidURLBindingRule()
 	addGlobPatternRule()
+	addRegexPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -110,6 +114,24 @@ func addGlobPatternRule() {
 					errs.Add([]string{name}, ErrGlobPattern, err.Error())
 					return false, errs
 				}
+			}
+
+			return true, errs
+		},
+	})
+}
+
+func addRegexPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "RegexPattern"
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+
+			if _, err := regexp.Compile(str); err != nil {
+				errs.Add([]string{name}, ErrRegexPattern, err.Error())
+				return false, errs
 			}
 
 			return true, errs
