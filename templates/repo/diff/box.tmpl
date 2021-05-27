@@ -117,7 +117,7 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						<div id="diff-source-{{$i}}" class="file-body file-code has-context-menu code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+						<div id="diff-source-{{$i}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
 							{{if $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">{{$.i18n.Tr "repo.diff.bin_not_shown"}}</div>
 							{{else}}
@@ -131,7 +131,7 @@
 							{{end}}
 						</div>
 						{{if or $isImage $isCsv}}
-							<div id="diff-rendered-{{$i}}" class="file-body file-code has-context-menu{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
+							<div id="diff-rendered-{{$i}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}} hide">
 								<table class="chroma w-100">
 									{{if $isImage}}
 										{{template "repo/diff/image_diff" dict "file" . "root" $}}
