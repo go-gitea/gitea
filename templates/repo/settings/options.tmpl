@@ -94,12 +94,11 @@
 						<input id="mirror_address" name="mirror_address" value="{{MirrorFullAddress .Mirror}}" required>
 						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 					</div>
-					<div class="ui accordion optional field">
-						<label class="ui title {{if .Err_Auth}}text red active{{end}}">
-							<i class="icon dropdown"></i>
-							<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
-						</label>
-						<div class="content {{if .Err_Auth}}active{{else if (MirrorUserName .Mirror)}}active{{end}}">
+					<details class="ui optional field" {{if .Err_Auth}}open{{else if (MirrorUserName .Mirror)}}open{{end}}>
+						<summary class="p-2">
+							{{.i18n.Tr "repo.need_auth"}}
+						</summary>
+						<div class="p-2">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_username">{{.i18n.Tr "username"}}</label>
 								<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
@@ -110,7 +109,7 @@
 								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 							</div>
 						</div>
-					</div>
+					</details>
 
 					{{if .LFSStartServer}}
 					<div class="inline field">
