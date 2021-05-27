@@ -916,7 +916,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 	converted := emoji.FromAlias(alias)
 	if converted == nil {
 		// check if this is a custom reaction
-		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
+		s := strings.Join(setting.UI.Reactions, " ") + "gitea" + "codeberg"
 		if strings.Contains(s, alias) {
 			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
 			return
