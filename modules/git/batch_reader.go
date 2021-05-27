@@ -230,7 +230,7 @@ func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sh
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
-		log("missing space readBytes: %s", readBytes)
+		log("missing space in readBytes: %s", readBytes)
 		err = &ErrNotExist{}
 		return
 	}
@@ -288,7 +288,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
-		log("missing space readBytes: %s", readBytes)
+		log("missing space in readBytes: %s", readBytes)
 
 		err = &ErrNotExist{}
 		return
@@ -356,7 +356,7 @@ func ParseTreeLineTree(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (isTr
 		return
 	}
 	if len(readBytes) < 6 {
-		log("bad line: %v", readBytes)
+		log("missing space in readBytes: %v", readBytes)
 		err = &ErrNotExist{}
 		return
 	}
