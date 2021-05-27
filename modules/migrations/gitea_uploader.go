@@ -250,14 +250,16 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			rel.OriginalAuthorID = release.PublisherID
 		}
 
-		// calc NumCommits
-		commit, err := g.gitRepo.GetCommit(rel.TagName)
-		if err != nil {
-			return fmt.Errorf("GetCommit: %v", err)
-		}
-		rel.NumCommits, err = commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
+		// calc NumCommits if no draft
+		if !release.Draft {
+			commit, err := g.gitRepo.GetCommit(rel.TagName)
+			if err != nil {
+				return fmt.Errorf("GetCommit: %v", err)
+			}
+			rel.NumCommits, err = commit.CommitsCount()
+			if err != nil {
+				return fmt.Errorf("CommitsCount: %v", err)
+			}
 		}
 
 		for _, asset := range release.Assets {
@@ -270,9 +272,10 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 
 			// download attachment
-			err = func() error {
+			err := func() error {
 				// asset.DownloadURL maybe a local file
 				var rc io.ReadCloser
+				var err error
 				if asset.DownloadURL == nil {
 					rc, err = asset.DownloadFunc()
 					if err != nil {
