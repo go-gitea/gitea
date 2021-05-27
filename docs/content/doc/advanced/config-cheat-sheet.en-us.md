@@ -381,11 +381,11 @@ relation to port exhaustion.
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
 - Queues by default come with a dynamically scaling worker pool. The following settings configure this:
-- `WORKERS`: **1**: Number of initial workers for the queue.
+- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue. 
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
-- `BOOST_WORKERS`: **5**: This many workers will be added to the worker pool if there is a boost.
+- `BOOST_WORKERS`: **1** (v1.14 and before: **5**): This many workers will be added to the worker pool if there is a boost.
 
 ## Admin (`admin`)
 
