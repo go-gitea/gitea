@@ -360,6 +360,7 @@ func RegisterRoutes(m *web.Route) {
 	} else {
 		m.Post("/login/oauth/access_token", bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 	}
+	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
