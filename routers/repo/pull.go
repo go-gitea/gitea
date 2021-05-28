@@ -519,6 +519,8 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
+	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
+
 	if pull.IsWorkInProgress() {
 		ctx.Data["IsPullWorkInProgress"] = true
 		ctx.Data["WorkInProgressPrefix"] = pull.GetWorkInProgressPrefix()
