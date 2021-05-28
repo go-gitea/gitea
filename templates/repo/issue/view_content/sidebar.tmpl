@@ -91,6 +91,13 @@
 					{{end}}
 				</div>
 			</div>
+			{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .HasMerged) (not .Issue.IsClosed) (not .IsPullWorkInProgress)}}
+				<div class="toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{(index .PullRequestWorkInProgressPrefixes 0| Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+					<a class="muted">
+						{{.i18n.Tr "repo.pulls.still_in_progress"}} {{.i18n.Tr "repo.pulls.add_prefix" (index .PullRequestWorkInProgressPrefixes 0| Escape) | Safe}}
+					</a>
+				</div>
+			{{end}}
 			<div class="ui divider"></div>
 		{{end}}
 
