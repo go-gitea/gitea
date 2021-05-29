@@ -13,7 +13,7 @@
 									{{avatar .User}}
 								</a>
 							{{end}}
-							<span class="text grey">
+							<span>
 								{{if .User}}
 									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
@@ -39,7 +39,7 @@
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
+								<a href="#" class="ui muted poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -172,9 +172,18 @@
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
+				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" }}
+					</div>
+					<div>
+						{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
+							<button class="ui compact button">
+								{{$.i18n.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							</button>
+						{{end}}
+					</div>
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
@@ -182,7 +191,7 @@
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsEmpty}}
-				<div class="item text grey">
+				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.is_empty"}}
 				</div>
@@ -443,14 +452,14 @@
 								{{svg "octicon-x"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
 							</div>
-							<div class="item text grey">
+							<div class="item">
 								{{svg "octicon-info"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
 					{{else}}
 						<div class="ui divider"></div>
-						<div class="item text grey">
+						<div class="item">
 							{{svg "octicon-info"}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
@@ -503,7 +512,7 @@
 						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>
-					<div class="item text grey">
+					<div class="item">
 						{{svg "octicon-info"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
@@ -511,17 +520,21 @@
 			{{end}}
 
 			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
-				<div class="item text grey">
-					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-					{{if .UpdateAllowed}}
-						<form action="{{.Link}}/update" method="post" class="ui floating right">
-							{{.CsrfTokenHtml}}
-							<button class="ui compact button" data-do="update">
-								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-							</button>
-						</form>
-					{{end}}
+				<div class="item df ac sb">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+					</div>
+					<div>
+						{{if .UpdateAllowed}}
+							<form action="{{.Link}}/update" method="post">
+								{{.CsrfTokenHtml}}
+								<button class="ui compact button" data-do="update">
+									<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+								</button>
+							</form>
+						{{end}}
+					</div>
 				</div>
 			{{end}}
 
