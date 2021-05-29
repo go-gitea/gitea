@@ -36,6 +36,9 @@ func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
 	if opts.Prefix == "" {
 		opts.Prefix = "/"
 	}
+	if opts.Prefix != "/" {
+		opts.Prefix = opts.Prefix + "/"
+	}
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
@@ -54,10 +57,11 @@ func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
 				resp.WriteHeader(http.StatusNotFound)
 				return
 			}
-			if !strings.HasPrefix(file, "/") {
-				next.ServeHTTP(resp, req)
+			if strings.Contains(file, "\\") {
+				resp.WriteHeader(http.StatusBadRequest)
 				return
 			}
+			file = "/" + file
 
 			var written bool
 			if opts.CorsHandler != nil {
