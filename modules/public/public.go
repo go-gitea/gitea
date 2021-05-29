@@ -22,30 +22,28 @@ type Options struct {
 }
 
 // AssetsHandler implements the static handler for serving custom or original assets.
-func AssetsHandler(opts *Options) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		var custPath = filepath.Join(setting.CustomPath, "public")
-		if !filepath.IsAbs(custPath) {
-			custPath = filepath.Join(setting.AppWorkPath, custPath)
+func AssetsHandler(opts *Options) func(resp http.ResponseWriter, req *http.Request) {
+	var custPath = filepath.Join(setting.CustomPath, "public")
+	if !filepath.IsAbs(custPath) {
+		custPath = filepath.Join(setting.AppWorkPath, custPath)
+	}
+
+	if !filepath.IsAbs(opts.Directory) {
+		opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
+	}
+
+	return func(resp http.ResponseWriter, req *http.Request) {
+		// custom files
+		if opts.handle(resp, req, http.Dir(custPath), opts.Prefix) {
+			return
 		}
 
-		if !filepath.IsAbs(opts.Directory) {
-			opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
+		// internal files
+		if opts.handle(resp, req, fileSystem(opts.Directory), opts.Prefix) {
+			return
 		}
 
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// custom files
-			if opts.handle(resp, req, http.Dir(custPath), opts.Prefix) {
-				return
-			}
-
-			// internal files
-			if opts.handle(resp, req, fileSystem(opts.Directory), opts.Prefix) {
-				return
-			}
-
-			resp.WriteHeader(404)
-		})
+		resp.WriteHeader(404)
 	}
 }
 
