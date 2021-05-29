@@ -1148,7 +1148,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 		return
 	}
 	if err := cfg.SaveTo(CustomConf); err != nil {
-		log.Fatal("error saving generating JWT secret to custom config: %v", err)
+		log.Fatal("error saving to custom config: %v", err)
 	}
 }
 
