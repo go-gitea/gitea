@@ -909,6 +909,17 @@ async function initRepository() {
       return false;
     });
 
+    // Toggle WIP
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+      e.preventDefault();
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
+        _csrf: csrf,
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
+    });
+
     // Issue Comments
     initIssueComments();
 
@@ -2657,6 +2668,11 @@ $(document).ready(async () => {
   });
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
+  });
+  $('.show-create-branch-modal.button').on('click', function () {
+    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
+    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
+    $($(this).data('modal')).modal('show');
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');

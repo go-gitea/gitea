@@ -51,7 +51,7 @@ func (b *Basic) IsEnabled() bool {
 func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitOrLFSPath(req) {
+	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
 		return nil
 	}
 

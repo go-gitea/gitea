@@ -48,7 +48,7 @@ func GetQueueSettings(name string) QueueSettings {
 	q.Name = name
 
 	// DataDir is not directly inheritable
-	q.DataDir = filepath.Join(Queue.DataDir, "common")
+	q.DataDir = filepath.ToSlash(filepath.Join(Queue.DataDir, "common"))
 	// QueueName is not directly inheritable either
 	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
@@ -91,9 +91,9 @@ func GetQueueSettings(name string) QueueSettings {
 // This is exported for tests to be able to use the queue
 func NewQueueService() {
 	sec := Cfg.Section("queue")
-	Queue.DataDir = sec.Key("DATADIR").MustString("queues/")
+	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {
-		Queue.DataDir = filepath.Join(AppDataPath, Queue.DataDir)
+		Queue.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, Queue.DataDir))
 	}
 	Queue.QueueLength = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
