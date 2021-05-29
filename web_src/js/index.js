@@ -1100,6 +1100,7 @@ async function initRepository() {
               $renderContent.html($('#no-content').html());
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
