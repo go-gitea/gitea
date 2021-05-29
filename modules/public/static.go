@@ -41,7 +41,7 @@ func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modt
 				_, err := rd.Seek(0, io.SeekStart) // rewind to output whole file
 				if err != nil {
 					log.Error("rd.Seek error: %v", err)
-					http.Error(w, http.StatusText(500), 500)
+					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					return
 				}
 			}

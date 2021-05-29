@@ -7,6 +7,7 @@ package public
 import (
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -17,12 +18,13 @@ import (
 
 // Options represents the available options to configure the handler.
 type Options struct {
-	Directory string
-	Prefix    string
+	Directory   string
+	Prefix      string
+	CorsHandler func(http.Handler) http.Handler
 }
 
 // AssetsHandler implements the static handler for serving custom or original assets.
-func AssetsHandler(opts *Options) func(resp http.ResponseWriter, req *http.Request) {
+func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
 	var custPath = filepath.Join(setting.CustomPath, "public")
 	if !filepath.IsAbs(custPath) {
 		custPath = filepath.Join(setting.AppWorkPath, custPath)
@@ -31,19 +33,55 @@ func AssetsHandler(opts *Options) func(resp http.ResponseWriter, req *http.Reque
 	if !filepath.IsAbs(opts.Directory) {
 		opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
 	}
+	if opts.Prefix == "" {
+		opts.Prefix = "/"
+	}
 
-	return func(resp http.ResponseWriter, req *http.Request) {
-		// custom files
-		if opts.handle(resp, req, http.Dir(custPath), opts.Prefix) {
-			return
-		}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if !strings.HasPrefix(req.URL.Path, opts.Prefix) {
+				next.ServeHTTP(resp, req)
+				return
+			}
+			if req.Method != "GET" && req.Method != "HEAD" {
+				resp.WriteHeader(http.StatusNotFound)
+				return
+			}
 
-		// internal files
-		if opts.handle(resp, req, fileSystem(opts.Directory), opts.Prefix) {
-			return
-		}
+			file := req.URL.Path
+			file = file[len(opts.Prefix):]
+			if len(file) == 0 {
+				resp.WriteHeader(http.StatusNotFound)
+				return
+			}
+			if !strings.HasPrefix(file, "/") {
+				next.ServeHTTP(resp, req)
+				return
+			}
 
-		resp.WriteHeader(404)
+			var written bool
+			if opts.CorsHandler != nil {
+				written = true
+				opts.CorsHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+					written = false
+				})).ServeHTTP(resp, req)
+			}
+			if written {
+				return
+			}
+
+			// custom files
+			if opts.handle(resp, req, http.Dir(custPath), file) {
+				return
+			}
+
+			// internal files
+			if opts.handle(resp, req, fileSystem(opts.Directory), file) {
+				return
+			}
+
+			resp.WriteHeader(http.StatusNotFound)
+		})
 	}
 }
 
@@ -57,29 +95,14 @@ func parseAcceptEncoding(val string) map[string]bool {
 	return types
 }
 
-func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, prefix string) bool {
-	if req.Method != "GET" && req.Method != "HEAD" {
-		return false
-	}
-
-	file := req.URL.Path
-	// if we have a prefix, filter requests by stripping the prefix
-	if prefix != "" {
-		if !strings.HasPrefix(file, prefix) {
-			return false
-		}
-		file = file[len(prefix):]
-		if file != "" && file[0] != '/' {
-			return false
-		}
-	}
-
-	f, err := fs.Open(file)
+func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.FileSystem, file string) bool {
+	// use clean to keep the file is a valid path with no . or ..
+	f, err := fs.Open(path.Clean(file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Error("[Static] Open %q failed: %v", file, err)
 		return true
 	}
@@ -87,14 +110,14 @@ func (opts *Options) handle(w http.ResponseWriter, req *http.Request, fs http.Fi
 
 	fi, err := f.Stat()
 	if err != nil {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		log.Error("[Static] %q exists, but fails to open: %v", file, err)
 		return true
 	}
 
 	// Try to serve index file
 	if fi.IsDir() {
-		w.WriteHeader(404)
+		w.WriteHeader(http.StatusNotFound)
 		return true
 	}
 

@@ -133,9 +133,7 @@ func NormalRoutes() *web.Route {
 		})
 	} else {
 		corsHandler = func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				next.ServeHTTP(resp, req)
-			})
+			return next
 		}
 	}
 
@@ -149,6 +147,12 @@ func NormalRoutes() *web.Route {
 func WebRoutes() *web.Route {
 	routes := web.NewRoute()
 
+	routes.Use(public.AssetsHandler(&public.Options{
+		Directory:   path.Join(setting.StaticRootPath, "public"),
+		Prefix:      "/assets",
+		CorsHandler: corsHandler,
+	}))
+
 	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -161,11 +165,6 @@ func WebRoutes() *web.Route {
 	}))
 
 	routes.Use(Recovery())
-
-	routes.Route("/assets/*", "GET, HEAD", corsHandler, public.AssetsHandler(&public.Options{
-		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    "/assets",
-	}))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
@@ -356,11 +355,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
-	if setting.CORSConfig.Enabled {
-		m.Post("/login/oauth/access_token", corsHandler, bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	} else {
-		m.Post("/login/oauth/access_token", bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	}
+	m.Post("/login/oauth/access_token", corsHandler, bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
