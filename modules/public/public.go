@@ -29,15 +29,11 @@ func AssetsHandler(opts *Options) func(next http.Handler) http.Handler {
 	if !filepath.IsAbs(custPath) {
 		custPath = filepath.Join(setting.AppWorkPath, custPath)
 	}
-
 	if !filepath.IsAbs(opts.Directory) {
 		opts.Directory = filepath.Join(setting.AppWorkPath, opts.Directory)
 	}
-	if opts.Prefix == "" {
-		opts.Prefix = "/"
-	}
-	if opts.Prefix != "/" {
-		opts.Prefix = opts.Prefix + "/"
+	if !strings.HasSuffix(opts.Prefix, "/") {
+		opts.Prefix += "/"
 	}
 
 	return func(next http.Handler) http.Handler {
