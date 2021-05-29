@@ -99,7 +99,6 @@ func InstallRoutes() *web.Route {
 
 	r.Use(installRecovery())
 	r.Use(routers.InstallInit)
-
 	r.Get("/", routers.Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), routers.InstallPost)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
