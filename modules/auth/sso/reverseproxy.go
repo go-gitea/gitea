@@ -78,7 +78,7 @@ func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, 
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
 		if sess.Get("uid").(int64) != user.ID {
 			handleSignIn(w, req, sess, user)
 		}
