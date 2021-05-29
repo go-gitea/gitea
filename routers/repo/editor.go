@@ -106,7 +106,13 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
-		defer dataRc.Close()
+		closed := false
+
+		defer func() {
+			if !closed {
+				dataRc.Close()
+			}
+		}()
 
 		ctx.Data["FileSize"] = blob.Size()
 		ctx.Data["FileName"] = blob.Name()
@@ -122,6 +128,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
+		if err := dataRc.Close(); err != nil {
+			log.Error("Error whilst closing blob data: %v", err)
+		}
+		closed = true
+
 		buf = append(buf, d...)
 		if content, err := charset.ToUTF8WithErr(buf); err != nil {
 			log.Error("ToUTF8WithErr: %v", err)
