@@ -83,7 +83,7 @@ func (key rsaSingingKey) VerifyKey() interface{} {
 func (key rsaSingingKey) ToJSON() map[string]string {
 	pubKey := key.key.Public().(*rsa.PublicKey)
 
-	return map[string]string {
+	return map[string]string{
 		"kty": "RSA",
 		"alg": key.SigningMethod().Alg(),
 		"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pubKey.E)).Bytes()),
@@ -115,7 +115,7 @@ func (key ecdsaSingingKey) VerifyKey() interface{} {
 func (key ecdsaSingingKey) ToJSON() map[string]string {
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
 
-	return map[string]string {
+	return map[string]string{
 		"kty": "EC",
 		"alg": key.SigningMethod().Alg(),
 		"crv": pubKey.Params().Name,

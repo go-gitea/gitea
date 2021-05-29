@@ -465,8 +465,8 @@ func OIDCKeys(ctx *context.Context) {
 	keyJSON := oauth2.DefaultSigningKey.ToJSON()
 	keyJSON["use"] = "sig"
 
-	jwkSet := map[string][]map[string]string {
-		"keys": []map[string]string {
+	jwkSet := map[string][]map[string]string{
+		"keys": {
 			keyJSON,
 		},
 	}
