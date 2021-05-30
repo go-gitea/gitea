@@ -6,11 +6,9 @@ package web
 
 import (
 	"encoding/gob"
-	"fmt"
 	"net/http"
 	"os"
 	"path"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -45,7 +43,6 @@ import (
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
-	"github.com/chi-middleware/proxy"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,63 +53,6 @@ const (
 	// GzipMinSize represents min size to compress for the body size of response
 	GzipMinSize = 1400
 )
-
-func commonMiddlewares() []func(http.Handler) http.Handler {
-	var handlers = []func(http.Handler) http.Handler{
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				next.ServeHTTP(context.NewResponse(resp), req)
-			})
-		},
-	}
-
-	if setting.ReverseProxyLimit > 0 {
-		opt := proxy.NewForwardedHeadersOptions().
-			WithForwardLimit(setting.ReverseProxyLimit).
-			ClearTrustedProxies()
-		for _, n := range setting.ReverseProxyTrustedProxies {
-			if !strings.Contains(n, "/") {
-				opt.AddTrustedProxy(n)
-			} else {
-				opt.AddTrustedNetwork(n)
-			}
-		}
-		handlers = append(handlers, proxy.ForwardedHeaders(opt))
-	}
-
-	handlers = append(handlers, middleware.StripSlashes)
-
-	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
-		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
-		}
-	}
-	if setting.EnableAccessLog {
-		handlers = append(handlers, context.AccessLogger())
-	}
-
-	handlers = append(handlers, func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			// Why we need this? The Recovery() will try to render a beautiful
-			// error page for user, but the process can still panic again, and other
-			// middleware like session also may panic then we have to recover twice
-			// and send a simple error page that should not panic any more.
-			defer func() {
-				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
-					if setting.IsProd() {
-						http.Error(resp, http.StatusText(500), 500)
-					} else {
-						http.Error(resp, combinedErr, 500)
-					}
-				}
-			}()
-			next.ServeHTTP(resp, req)
-		})
-	})
-	return handlers
-}
 
 var corsHandler func(http.Handler) http.Handler
 
