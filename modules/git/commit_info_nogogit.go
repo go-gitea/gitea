@@ -141,7 +141,11 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
+		args := []string{"rev-list", "--format=%T", commit.ID.String()}
+		if treePath != "" {
+			args = append(args, "--", treePath)
+		}
+		err := NewCommand(args...).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
