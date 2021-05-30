@@ -1048,26 +1048,9 @@ func loadOrGenerateInternalToken(sec *ini.Section) string {
 		}
 
 		// Save secret
-		cfgSave := ini.Empty()
-		isFile, err := util.IsFile(CustomConf)
-		if err != nil {
-			log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
-		}
-		if isFile {
-			// Keeps custom settings if there is already something.
-			if err := cfgSave.Append(CustomConf); err != nil {
-				log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-			}
-		}
-
-		cfgSave.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-
-		if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-			log.Fatal("Failed to create '%s': %v", CustomConf, err)
-		}
-		if err := cfgSave.SaveTo(CustomConf); err != nil {
-			log.Fatal("Error saving generated INTERNAL_TOKEN to custom config: %v", err)
-		}
+		CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+		})
 	}
 	return token
 }
@@ -1131,6 +1114,32 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 	}
 
 	return bytes
+}
+
+// CreateOrAppendToCustomConf creates or updates the custom config.
+// Use the callback to set individual values.
+func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
+	cfg := ini.Empty()
+	isFile, err := util.IsFile(CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+	}
+	if isFile {
+		if err := cfg.Append(CustomConf); err != nil {
+			log.Error("failed to load custom conf %s: %v", CustomConf, err)
+			return
+		}
+	}
+
+	callback(cfg)
+
+	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
+		log.Fatal("failed to create '%s': %v", CustomConf, err)
+		return
+	}
+	if err := cfg.SaveTo(CustomConf); err != nil {
+		log.Fatal("error saving to custom config: %v", err)
+	}
 }
 
 // NewServices initializes the services

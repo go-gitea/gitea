@@ -6,14 +6,11 @@ package setting
 
 import (
 	"encoding/base64"
-	"os"
-	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -64,27 +61,9 @@ func newLFSService() {
 			}
 
 			// Save secret
-			cfg := ini.Empty()
-			isFile, err := util.IsFile(CustomConf)
-			if err != nil {
-				log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
-			}
-			if isFile {
-				// Keeps custom settings if there is already something.
-				if err := cfg.Append(CustomConf); err != nil {
-					log.Error("Failed to load custom conf '%s': %v", CustomConf, err)
-				}
-			}
-
-			cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
-
-			if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
-				log.Fatal("Failed to create '%s': %v", CustomConf, err)
-			}
-			if err := cfg.SaveTo(CustomConf); err != nil {
-				log.Fatal("Error saving generated JWT Secret to custom config: %v", err)
-				return
-			}
+			CreateOrAppendToCustomConf(func(cfg *ini.File) {
+				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
+			})
 		}
 	}
 }
