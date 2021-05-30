@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/routes"
 
@@ -152,19 +151,6 @@ func setPort(port string) error {
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
-		// Save LOCAL_ROOT_URL if port changed
-		cfg := ini.Empty()
-		isFile, err := util.IsFile(setting.CustomConf)
-		if err != nil {
-			log.Fatal("Unable to check if %s is a file", err)
-		}
-		if isFile {
-			// Keeps custom settings if there is already something.
-			if err := cfg.Append(setting.CustomConf); err != nil {
-				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-			}
-		}
-
 		defaultLocalURL := string(setting.Protocol) + "://"
 		if setting.HTTPAddr == "0.0.0.0" {
 			defaultLocalURL += "localhost"
@@ -173,10 +159,10 @@ func setPort(port string) error {
 		}
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
-		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := cfg.SaveTo(setting.CustomConf); err != nil {
-			return fmt.Errorf("Error saving generated LOCAL_ROOT_URL to custom config: %v", err)
-		}
+		// Save LOCAL_ROOT_URL if port changed
+		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		})
 	}
 	return nil
 }
