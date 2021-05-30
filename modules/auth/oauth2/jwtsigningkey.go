@@ -9,6 +9,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -43,7 +44,7 @@ type JWTSigningKey interface {
 	SigningMethod() jwt.SigningMethod
 	SignKey() interface{}
 	VerifyKey() interface{}
-	ToJSON() map[string]string
+	ToJWK() (map[string]string, error)
 }
 
 type hmacSingingKey struct {
@@ -67,8 +68,8 @@ func (key hmacSingingKey) VerifyKey() interface{} {
 	return key.secret
 }
 
-func (key hmacSingingKey) ToJSON() map[string]string {
-	return map[string]string{}
+func (key hmacSingingKey) ToJWK() (map[string]string, error) {
+	return map[string]string{}, nil
 }
 
 type rsaSingingKey struct {
@@ -92,15 +93,21 @@ func (key rsaSingingKey) VerifyKey() interface{} {
 	return key.key.Public()
 }
 
-func (key rsaSingingKey) ToJSON() map[string]string {
+func (key rsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*rsa.PublicKey)
+
+	kid, err := createPublicKeyFingerprint(pubKey)
+	if err != nil {
+		return nil, err
+	}
 
 	return map[string]string{
 		"kty": "RSA",
 		"alg": key.SigningMethod().Alg(),
+		"kid": base64.RawURLEncoding.EncodeToString(kid),
 		"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pubKey.E)).Bytes()),
 		"n":   base64.RawURLEncoding.EncodeToString(pubKey.N.Bytes()),
-	}
+	}, nil
 }
 
 type ecdsaSingingKey struct {
@@ -124,16 +131,33 @@ func (key ecdsaSingingKey) VerifyKey() interface{} {
 	return key.key.Public()
 }
 
-func (key ecdsaSingingKey) ToJSON() map[string]string {
+func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
+
+	kid, err := createPublicKeyFingerprint(pubKey)
+	if err != nil {
+		return nil, err
+	}
 
 	return map[string]string{
 		"kty": "EC",
 		"alg": key.SigningMethod().Alg(),
+		"kid": base64.RawURLEncoding.EncodeToString(kid),
 		"crv": pubKey.Params().Name,
 		"x":   base64.RawURLEncoding.EncodeToString(pubKey.X.Bytes()),
 		"y":   base64.RawURLEncoding.EncodeToString(pubKey.Y.Bytes()),
+	}, nil
+}
+
+func createPublicKeyFingerprint(key interface{}) ([]byte, error) {
+	bytes, err := x509.MarshalPKIXPublicKey(key)
+	if err != nil {
+		return nil, err
 	}
+
+	checksum := sha256.Sum256(bytes)
+
+	return checksum[:], nil
 }
 
 // CreateJWTSingingKey creates a signing key from an algorithm / key pair.

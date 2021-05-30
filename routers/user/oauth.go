@@ -462,18 +462,24 @@ func OIDCWellKnown(ctx *context.Context) {
 
 // OIDCKeys generates the JSON Web Key Set
 func OIDCKeys(ctx *context.Context) {
-	keyJSON := oauth2.DefaultSigningKey.ToJSON()
-	keyJSON["use"] = "sig"
+	jwk, err := oauth2.DefaultSigningKey.ToJWK()
+	if err != nil {
+		log.Error("Error converting signing key to JWK: %v", err)
+		ctx.Error(http.StatusInternalServerError)
+		return
+	}
 
-	jwkSet := map[string][]map[string]string{
+	jwk["use"] = "sig"
+
+	jwks := map[string][]map[string]string{
 		"keys": {
-			keyJSON,
+			jwk,
 		},
 	}
 
 	ctx.Resp.Header().Set("Content-Type", "application/json")
 	enc := jsoniter.NewEncoder(ctx.Resp)
-	if err := enc.Encode(jwkSet); err != nil {
+	if err := enc.Encode(jwks); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}
 }
