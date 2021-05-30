@@ -5,8 +5,8 @@ AddressFamily any
 ListenAddress 0.0.0.0
 ListenAddress ::
 
-MaxStartups ${SSHD_MAX_STARTUPS}
-MaxSessions ${SSHD_MAX_SESSIONS}
+MaxStartups ${SSH_MAX_STARTUPS}
+MaxSessions ${SSH_MAX_SESSIONS}
 
 LogLevel INFO
 
