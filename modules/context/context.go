@@ -528,6 +528,26 @@ func (ctx *Context) Status(status int) {
 	ctx.Resp.WriteHeader(status)
 }
 
+// Deadline is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
+	return ctx.Req.Context().Deadline()
+}
+
+// Done is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Done() <-chan struct{} {
+	return ctx.Req.Context().Done()
+}
+
+// Err is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Err() error {
+	return ctx.Req.Context().Err()
+}
+
+// Value is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Value(key interface{}) interface{} {
+	return ctx.Req.Context().Value(key)
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
