@@ -6,14 +6,26 @@ package oauth2
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"math/big"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dgrijalva/jwt-go"
+	ini "gopkg.in/ini.v1"
 )
 
 // ErrInvalidAlgorithmType represents an invalid algorithm error.
@@ -178,13 +190,127 @@ func CreateJWTSingingKey(algorithm string, key interface{}) (JWTSigningKey, erro
 var DefaultSigningKey JWTSigningKey
 
 // InitSigningKey creates the default signing key from settings or creates a random key.
-func InitSigningKey() error {
-	key, err := CreateJWTSingingKey("HS256", setting.OAuth2.JWTSecretBytes)
-	if err != nil {
-		return err
+func InitSigningKey() (err error) {
+	var key interface{}
+
+	switch setting.OAuth2.JWTSigningAlgorithm {
+	case "HS256":
+		fallthrough
+	case "HS384":
+		fallthrough
+	case "HS512":
+		key, err = loadOrCreateSymmetricKey()
+
+	case "RS256":
+		fallthrough
+	case "RS384":
+		fallthrough
+	case "RS512":
+		fallthrough
+	case "ES256":
+		fallthrough
+	case "ES384":
+		fallthrough
+	case "ES512":
+		key, err = loadOrCreateAsymmetricKey()
+
+	default:
+		return ErrInvalidAlgorithmType{setting.OAuth2.JWTSigningAlgorithm}
 	}
 
-	DefaultSigningKey = key
+	if err != nil {
+		log.Error("Error while loading or creating symmetric key: %v", err)
+		return
+	}
 
-	return nil
+	signingKey, err := CreateJWTSingingKey(setting.OAuth2.JWTSigningAlgorithm, key)
+	if err != nil {
+		return
+	}
+
+	DefaultSigningKey = signingKey
+
+	return
+}
+
+func loadOrCreateSymmetricKey() (interface{}, error) {
+	key := make([]byte, 32)
+	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
+	if err != nil || n != 32 {
+		key, err = generate.NewJwtSecret()
+		if err != nil {
+			log.Fatal("error generating JWT secret: %v", err)
+			return nil, err
+		}
+
+		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
+			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
+		})
+	}
+
+	return key, nil
+}
+
+func loadOrCreateAsymmetricKey() (interface{}, error) {
+	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
+
+	isExist, err := util.IsExist(keyPath)
+	if err != nil {
+		log.Fatal("Unable to check if %s exists. Error: %v", keyPath, err)
+	}
+	if !isExist {
+		err := func() error {
+			key, err := func() (interface{}, error) {
+				if strings.HasPrefix(setting.OAuth2.JWTSigningAlgorithm, "RS") {
+					return rsa.GenerateKey(rand.Reader, 4096)
+				}
+				return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			}()
+			if err != nil {
+				return err
+			}
+
+			bytes, err := x509.MarshalPKCS8PrivateKey(key)
+			if err != nil {
+				return err
+			}
+
+			privateKeyPEM := &pem.Block{Type: "PRIVATE KEY", Bytes: bytes}
+
+			if err := os.MkdirAll(filepath.Dir(keyPath), os.ModePerm); err != nil {
+				return err
+			}
+
+			f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+			if err != nil {
+				return err
+			}
+			defer func() {
+				if err = f.Close(); err != nil {
+					log.Error("Close: %v", err)
+				}
+			}()
+
+			return pem.Encode(f, privateKeyPEM)
+		}()
+		if err != nil {
+			log.Fatal("Error generating private key: %v", err)
+			return nil, err
+		}
+	}
+
+	bytes, err := ioutil.ReadFile(keyPath)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(bytes)
+	if block == nil {
+		return nil, fmt.Errorf("no valid PEM data found in %s", keyPath)
+	} else if block.Type != "PRIVATE KEY" {
+		return nil, fmt.Errorf("expected PRIVATE KEY, got %s in %s", block.Type, keyPath)
+	}
+
+	return x509.ParsePKCS8PrivateKey(block.Bytes)
 }
