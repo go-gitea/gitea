@@ -361,8 +361,8 @@ var (
 		AccessTokenExpirationTime  int64
 		RefreshTokenExpirationTime int64
 		InvalidateRefreshTokens    bool
-		JWTSecretBase64            string `ini:"JWT_SECRET"`
 		JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
+		JWTSecretBase64            string `ini:"JWT_SECRET"`
 		JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 		MaxTokenLength             int
 	}{
@@ -787,7 +787,7 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
-		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(CustomPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
 	sec = Cfg.Section("admin")

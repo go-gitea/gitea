@@ -69,7 +69,10 @@ func (key hmacSingingKey) VerifyKey() interface{} {
 }
 
 func (key hmacSingingKey) ToJWK() (map[string]string, error) {
-	return map[string]string{}, nil
+	return map[string]string{
+		"kty": "oct",
+		"alg": key.SigningMethod().Alg(),
+	}, nil
 }
 
 type rsaSingingKey struct {
@@ -149,6 +152,8 @@ func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	}, nil
 }
 
+// createPublicKeyFingerprint creates a fingerprint of the given key.
+// The fingerprint is the sha256 sum of the PKIX structure of the key.
 func createPublicKeyFingerprint(key interface{}) ([]byte, error) {
 	bytes, err := x509.MarshalPKIXPublicKey(key)
 	if err != nil {
@@ -214,7 +219,8 @@ func CreateJWTSingingKey(algorithm string, key interface{}) (JWTSigningKey, erro
 var DefaultSigningKey JWTSigningKey
 
 // InitSigningKey creates the default signing key from settings or creates a random key.
-func InitSigningKey() (err error) {
+func InitSigningKey() error {
+	var err error
 	var key interface{}
 
 	switch setting.OAuth2.JWTSigningAlgorithm {
@@ -243,20 +249,21 @@ func InitSigningKey() (err error) {
 	}
 
 	if err != nil {
-		log.Error("Error while loading or creating symmetric key: %v", err)
-		return
+		return fmt.Errorf("Error while loading or creating symmetric key: %v", err)
 	}
 
 	signingKey, err := CreateJWTSingingKey(setting.OAuth2.JWTSigningAlgorithm, key)
 	if err != nil {
-		return
+		return err
 	}
 
 	DefaultSigningKey = signingKey
 
-	return
+	return nil
 }
 
+// loadOrCreateSymmetricKey checks if the configured secret is valid.
+// If it is not valid a new secret is created and saved in the configuration file.
 func loadOrCreateSymmetricKey() (interface{}, error) {
 	key := make([]byte, 32)
 	n, err := base64.RawURLEncoding.Decode(key, []byte(setting.OAuth2.JWTSecretBase64))
@@ -276,6 +283,8 @@ func loadOrCreateSymmetricKey() (interface{}, error) {
 	return key, nil
 }
 
+// loadOrCreateAsymmetricKey checks if the configured private key exists.
+// If it does not exist a new random key gets generated and saved on the configured path.
 func loadOrCreateAsymmetricKey() (interface{}, error) {
 	keyPath := setting.OAuth2.JWTSigningPrivateKeyFile
 
