@@ -123,23 +123,23 @@
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 									</div>
-									<div class="ui accordion optional field">
-										<label class="ui title {{if .Err_Auth}}text red active{{end}}">
-											<i class="icon dropdown"></i>
-											<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
-										</label>
-										<div class="content {{if or .Err_Auth $address.Username}}active{{end}}">
+									<details class="ui optional field" {{if or .Err_Auth (MirrorUserName .Mirror)}}open{{end}}>
+										<summary class="p-2">
+											{{.i18n.Tr "repo.need_auth"}}
+										</summary>
+										<div class="p-2">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
 												<label for="mirror_username">{{.i18n.Tr "username"}}</label>
-												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+												<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 											</div>
 											<input class="fake" type="password">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
 												<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-												<input id="mirror_password" name="mirror_password" type="password" value="{{$address.Password}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+												<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 											</div>
 										</div>
-									</div>
+									</details>
+
 									{{if .LFSStartServer}}
 									<div class="inline field">
 										<label>{{.i18n.Tr "repo.mirror_lfs"}}</label>
@@ -200,23 +200,22 @@
 										<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
 										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 									</div>
-									<div class="ui accordion optional field">
-										<label class="ui title {{if .Err_PushMirrorAuth}}text red active{{end}}">
-											<i class="icon dropdown"></i>
-											<label for="">{{.i18n.Tr "repo.need_auth"}}</label>
-										</label>
-										<div class="content {{if or .Err_PushMirrorAuth .push_mirror_username}}active{{end}}">
+									<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+										<summary class="p-2">
+											{{.i18n.Tr "repo.need_auth"}}
+										</summary>
+										<div class="p-2">
 											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 												<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
-												<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}" data-need-clear="true">
+												<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
 											</div>
 											<input class="fake" type="password">
 											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 												<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
-												<input id="push_mirror_password" name="push_mirror_password" value="{{.push_mirror_password}}" type="password" data-need-clear="true" autocomplete="off">
+												<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 											</div>
 										</div>
-									</div>
+									</details>
 									<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
 										<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
 										<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">

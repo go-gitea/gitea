@@ -113,11 +113,28 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 	return handlers
 }
 
+var corsHandler func(http.Handler) http.Handler
+
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Route {
 	r := web.NewRoute()
 	for _, middle := range commonMiddlewares() {
 		r.Use(middle)
+	}
+
+	if setting.CORSConfig.Enabled {
+		corsHandler = cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		})
+	} else {
+		corsHandler = func(next http.Handler) http.Handler {
+			return next
+		}
 	}
 
 	r.Mount("/", WebRoutes())
@@ -129,6 +146,12 @@ func NormalRoutes() *web.Route {
 // WebRoutes returns all web routes
 func WebRoutes() *web.Route {
 	routes := web.NewRoute()
+
+	routes.Use(public.AssetsHandler(&public.Options{
+		Directory:   path.Join(setting.StaticRootPath, "public"),
+		Prefix:      "/assets",
+		CorsHandler: corsHandler,
+	}))
 
 	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -142,22 +165,6 @@ func WebRoutes() *web.Route {
 	}))
 
 	routes.Use(Recovery())
-
-	// TODO: we should consider if there is a way to mount these using r.Route as at present
-	// these two handlers mean that every request has to hit these "filesystems" twice
-	// before finally getting to the router. It allows them to override any matching router below.
-	routes.Use(public.Custom(
-		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-	routes.Use(public.Static(
-		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
-			Prefix:      "/assets",
-		},
-	))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
@@ -348,18 +355,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
-	if setting.CORSConfig.Enabled {
-		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
-			AllowedMethods:   setting.CORSConfig.Methods,
-			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
-		}), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	} else {
-		m.Post("/login/oauth/access_token", bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	}
+	m.Post("/login/oauth/access_token", corsHandler, bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)

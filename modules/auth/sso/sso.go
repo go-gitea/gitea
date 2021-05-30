@@ -104,11 +104,11 @@ func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
 }
 
-var gitPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/))`)
+var gitRawPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/(?:(?:git-(?:(?:upload)|(?:receive))-pack$)|(?:info/refs$)|(?:HEAD$)|(?:objects/)|raw/)`)
 var lfsPathRe = regexp.MustCompile(`^/[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+/info/lfs/`)
 
-func isGitOrLFSPath(req *http.Request) bool {
-	if gitPathRe.MatchString(req.URL.Path) {
+func isGitRawOrLFSPath(req *http.Request) bool {
+	if gitRawPathRe.MatchString(req.URL.Path) {
 		return true
 	}
 	if setting.LFS.StartServer {
