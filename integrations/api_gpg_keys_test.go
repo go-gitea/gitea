@@ -19,7 +19,7 @@ type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseReco
 
 func TestGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
-	session := loginUser(t, "user2")
+	session := loginUser(t, "user21")
 	token := getTokenForLoggedInUser(t, session)
 
 	tt := []struct {
@@ -89,7 +89,7 @@ func TestGPGKeys(t *testing.T) {
 		primaryKey2 := keys[1] //Primary key 2
 		assert.EqualValues(t, "FABF39739FE1E927", primaryKey2.KeyID)
 		assert.Len(t, primaryKey2.Emails, 1)
-		assert.EqualValues(t, "user21@example.com", primaryKey2.Emails[0].Email)
+		assert.EqualValues(t, "user2-2@example.com", primaryKey2.Emails[0].Email)
 		assert.False(t, primaryKey2.Emails[0].Verified)
 
 		var key api.GPGKey
@@ -112,7 +112,7 @@ func TestGPGKeys(t *testing.T) {
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "FABF39739FE1E927", key.KeyID)
 		assert.Len(t, key.Emails, 1)
-		assert.EqualValues(t, "user21@example.com", key.Emails[0].Email)
+		assert.EqualValues(t, "user2-2@example.com", key.Emails[0].Email)
 		assert.False(t, key.Emails[0].Verified)
 
 	})
@@ -231,7 +231,7 @@ uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 }
 
 func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	//User2 <user21@example.com> //secondary and not activated
+	//User2 <user2-2@example.com> //secondary and not activated
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGWN4BCAC18V4tVGO65VLCV7p14FuXJlUtZ5CuYMvgEkcOqrvRaBSW9ao4
