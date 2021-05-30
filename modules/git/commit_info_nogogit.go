@@ -137,7 +137,7 @@ func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string,
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
+		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).SetParentContext(ctx).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -203,6 +203,11 @@ revListLoop:
 
 	treeReadingLoop:
 		for {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				return nil, err
@@ -321,6 +326,9 @@ revListLoop:
 				return nil, err
 			}
 		}
+	}
+	if scan.Err() != nil {
+		return nil, scan.Err()
 	}
 
 	commitsMap := make(map[string]*Commit, len(commits))

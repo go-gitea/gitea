@@ -193,6 +193,11 @@ func GetLastCommitForPaths(ctx context.Context, c cgobject.CommitNode, treePath 
 	heap.Push(&commitAndPaths{c, paths, initialHashes})
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		cIn, ok := heap.Pop()
 		if !ok {
 			break
