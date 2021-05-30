@@ -509,7 +509,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx.Req.Context())
+	chiCtx := chi.RouteContext(ctx)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
 
