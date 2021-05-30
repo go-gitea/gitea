@@ -20,12 +20,16 @@ func mailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 	for i, u := range mentions {
 		mentionedIDs[i] = u.ID
 	}
+	content := c.Content
+	if c.Type == models.CommentTypePullPush {
+		content = ""
+	}
 	if err = mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       c.Poster,
 			ActionType: opType,
-			Content:    c.Content,
+			Content:    content,
 			Comment:    c,
 		}, mentionedIDs); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)
