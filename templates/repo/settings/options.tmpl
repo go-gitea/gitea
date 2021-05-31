@@ -123,19 +123,19 @@
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
 										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 									</div>
-									<details class="ui optional field" {{if or .Err_Auth (MirrorUserName .Mirror)}}open{{end}}>
+									<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
 										<summary class="p-2">
 											{{.i18n.Tr "repo.need_auth"}}
 										</summary>
 										<div class="p-2">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
 												<label for="mirror_username">{{.i18n.Tr "username"}}</label>
-												<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 											</div>
 											<input class="fake" type="password">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
 												<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if MirrorPassword .Mirror }}{{.i18n.Tr "repo.mirror_password_placeholder"}}{{else}}{{.i18n.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.i18n.Tr "repo.mirror_password_placeholder"}}{{else}}{{.i18n.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 											</div>
 											<p class="help">{{.i18n.Tr "repo.mirror_password_help"}}</p>
 										</div>
