@@ -19,7 +19,7 @@ type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseReco
 
 func TestGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
-	session := loginUser(t, "user21")
+	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 
 	tt := []struct {
@@ -36,7 +36,6 @@ func TestGPGKeys(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-
 		//Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {
