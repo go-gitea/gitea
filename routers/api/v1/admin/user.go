@@ -88,7 +88,7 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
-	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	pwned, err := password.IsPwned(ctx, form.Password)
 	if pwned {
 		if err != nil {
 			log.Error(err.Error())
@@ -162,7 +162,7 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		pwned, err := password.IsPwned(ctx, form.Password)
 		if pwned {
 			if err != nil {
 				log.Error(err.Error())

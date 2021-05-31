@@ -400,7 +400,7 @@ func InstallPost(ctx *context.Context) {
 	}
 
 	// Re-read settings
-	PostInstallInit(ctx.Req.Context())
+	PostInstallInit(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -454,7 +454,7 @@ func InstallPost(ctx *context.Context) {
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	srv := ctx.Value(http.ServerContextKey).(*http.Server)
 	go func() {
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)
