@@ -414,7 +414,7 @@ func LFSPointerFiles(ctx *context.Context) {
 	err = func() error {
 		pointerChan := make(chan lfs.PointerBlob)
 		errChan := make(chan error, 1)
-		go lfs.SearchPointerBlobs(ctx.Req.Context(), ctx.Repo.GitRepo, pointerChan, errChan)
+		go lfs.SearchPointerBlobs(ctx, ctx.Repo.GitRepo, pointerChan, errChan)
 
 		numPointers := 0
 		var numAssociated, numNoExist, numAssociatable int
