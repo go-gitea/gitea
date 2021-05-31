@@ -7,7 +7,6 @@ package mirror
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -255,7 +254,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	return parseRemoteUpdateOutput(output), true
 }
 
-func syncPullMirror(ctx context.Context, repoID string) bool {
+func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -263,13 +262,12 @@ func syncPullMirror(ctx context.Context, repoID string) bool {
 			return
 		}
 		// There was a panic whilst syncMirrors...
-		log.Error("PANIC whilst syncMirrors[%s] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
+		log.Error("PANIC whilst syncMirrors[%d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
-	id, _ := strconv.ParseInt(repoID, 10, 64)
-	m, err := models.GetMirrorByRepoID(id)
+	m, err := models.GetMirrorByRepoID(repoID)
 	if err != nil {
-		log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
+		log.Error("GetMirrorByRepoID [%d]: %v", repoID, err)
 		return false
 	}
 
@@ -282,7 +280,7 @@ func syncPullMirror(ctx context.Context, repoID string) bool {
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	if err = models.UpdateMirror(m); err != nil {
-		log.Error("UpdateMirror [%s]: %v", repoID, err)
+		log.Error("UpdateMirror [%d]: %v", m.RepoID, err)
 		return false
 	}
 
@@ -320,7 +318,7 @@ func syncPullMirror(ctx context.Context, repoID string) bool {
 			}
 			commitID, err := gitRepo.GetRefCommitID(result.refName)
 			if err != nil {
-				log.Error("gitRepo.GetRefCommitID [repo_id: %s, ref_name: %s]: %v", m.RepoID, result.refName, err)
+				log.Error("gitRepo.GetRefCommitID [repo_id: %d, ref_name: %s]: %v", m.RepoID, result.refName, err)
 				continue
 			}
 			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{

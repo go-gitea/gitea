@@ -7,6 +7,7 @@ package mirror
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -74,7 +75,8 @@ func syncMirrors(ctx context.Context) {
 			return
 		case item := <-mirrorQueue.Queue():
 			if strings.HasPrefix(item, "pull") {
-				_ = syncPullMirror(ctx, item[5:])
+				id, _ := strconv.ParseInt(item[5:], 10, 64)
+				_ = SyncPullMirror(ctx, id)
 			} else if strings.HasPrefix(item, "push") {
 				_ = syncPushMirror(ctx, item[5:])
 			} else {
