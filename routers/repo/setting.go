@@ -170,10 +170,9 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		oldUsername := mirror_service.Username(ctx.Repo.Mirror)
-		oldPassword := mirror_service.Password(ctx.Repo.Mirror)
-		if form.MirrorPassword == "" && form.MirrorUsername == oldUsername {
-			form.MirrorPassword = oldPassword
+		u, _ := git.GetRemoteAddress(ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
+			form.MirrorPassword, _ = u.User.Password()
 		}
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
