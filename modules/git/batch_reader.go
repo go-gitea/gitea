@@ -11,6 +11,9 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/djherbis/buffer"
+	"github.com/djherbis/nio/v3"
 )
 
 // WriteCloserError wraps an io.WriteCloser with an additional CloseWithError function
@@ -23,7 +26,7 @@ type WriteCloserError interface {
 func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 
 	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
+	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(4 * 1024))
 	cancel := func() {
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
@@ -43,7 +46,7 @@ func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()
 		}
 	}()
 
-	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
+	// For simplicities sake we'll use a buffered reader to read from the cat-file --batch-check
 	batchReader := bufio.NewReader(batchStdoutReader)
 
 	return batchStdinWriter, batchReader, cancel
@@ -54,7 +57,7 @@ func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
+	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
 	cancel := func() {
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
