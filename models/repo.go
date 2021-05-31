@@ -1599,7 +1599,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		removeStorageWithNotice(sess, storage.RepoArchives, "Delete repo archive file", p)
 	}
 
-	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
