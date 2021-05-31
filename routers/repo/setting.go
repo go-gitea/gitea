@@ -49,6 +49,7 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["DockerEnabled"] = setting.Docker.Enabled
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -319,6 +320,18 @@ func SettingsPost(ctx *context.Context) {
 			})
 		} else if !models.UnitTypeProjects.UnitGlobalDisabled() {
 			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		}
+
+		if form.EnablePackages && !models.UnitTypePackages.UnitGlobalDisabled() {
+			units = append(units, models.RepoUnit{
+				RepoID: repo.ID,
+				Type:   models.UnitTypePackages,
+				Config: &models.PackagesConfig{
+					EnableContainerRegistry: form.EnableContainerRegistry,
+				},
+			})
+		} else if !models.UnitTypePackages.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePackages)
 		}
 
 		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
