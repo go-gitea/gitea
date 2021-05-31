@@ -252,7 +252,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		// calc NumCommits if no draft
 		if !release.Draft {
-			commit, err := g.gitRepo.GetCommit(rel.TagName)
+			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if err != nil {
 				return fmt.Errorf("GetCommit: %v", err)
 			}
