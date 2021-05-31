@@ -1011,9 +1011,9 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		case setting.ImageCaptcha:
 			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1153,9 +1153,9 @@ func SignUpPost(ctx *context.Context) {
 		case setting.ImageCaptcha:
 			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1191,7 +1191,7 @@ func SignUpPost(ctx *context.Context) {
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
 		return
 	}
-	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	pwned, err := password.IsPwned(ctx, form.Password)
 	if pwned {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
@@ -1620,7 +1620,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
-	} else if pwned, err := password.IsPwned(ctx.Req.Context(), passwd); pwned || err != nil {
+	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
 			log.Error(err.Error())
