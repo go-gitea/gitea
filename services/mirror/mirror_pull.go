@@ -255,7 +255,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	return parseRemoteUpdateOutput(output), true
 }
 
-func syncPullMirror(ctx context.Context, repoID string) {
+func syncPullMirror(ctx context.Context, repoID string) bool {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -270,20 +270,20 @@ func syncPullMirror(ctx context.Context, repoID string) {
 	m, err := models.GetMirrorByRepoID(id)
 	if err != nil {
 		log.Error("GetMirrorByRepoID [%s]: %v", repoID, err)
-		return
+		return false
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
-		return
+		return false
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
 	if err = models.UpdateMirror(m); err != nil {
 		log.Error("UpdateMirror [%s]: %v", repoID, err)
-		return
+		return false
 	}
 
 	var gitRepo *git.Repository
@@ -294,12 +294,12 @@ func syncPullMirror(ctx context.Context, repoID string) {
 		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
-			return
+			return false
 		}
 		defer gitRepo.Close()
 
 		if ok := checkAndUpdateEmptyRepository(m, gitRepo, results); !ok {
-			return
+			return false
 		}
 	}
 
@@ -374,15 +374,17 @@ func syncPullMirror(ctx context.Context, repoID string) {
 	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
 	if err != nil {
 		log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
-		return
+		return false
 	}
 
 	if err = models.UpdateRepositoryUpdatedTime(m.RepoID, commitDate); err != nil {
 		log.Error("Update repository 'updated_unix' [%d]: %v", m.RepoID, err)
-		return
+		return false
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Successfully updated", m.Repo)
+
+	return true
 }
 
 func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {

@@ -7,6 +7,7 @@ package mirror
 import (
 	"context"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -76,7 +77,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	err = mirror.GetMirror()
 	assert.NoError(t, err)
 
-	_, ok := runSync(ctx, mirror.Mirror)
+	ok := syncPullMirror(ctx, strconv.FormatInt(mirror.ID, 10))
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -87,7 +88,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
 
-	_, ok = runSync(ctx, mirror.Mirror)
+	ok = syncPullMirror(ctx, strconv.FormatInt(mirror.ID, 10))
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)

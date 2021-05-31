@@ -74,7 +74,7 @@ func RemovePushMirrorRemote(m *models.PushMirror) error {
 	return nil
 }
 
-func syncPushMirror(ctx context.Context, mirrorID string) {
+func syncPushMirror(ctx context.Context, mirrorID string) bool {
 	log.Trace("SyncPushMirror [mirror: %s]", mirrorID)
 	defer func() {
 		err := recover()
@@ -89,7 +89,7 @@ func syncPushMirror(ctx context.Context, mirrorID string) {
 	m, err := models.GetPushMirrorByID(id)
 	if err != nil {
 		log.Error("GetPushMirrorByID [%s]: %v", mirrorID, err)
-		return
+		return false
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
@@ -104,11 +104,15 @@ func syncPushMirror(ctx context.Context, mirrorID string) {
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Scheduling next update", mirrorID, m.Repo)
 	m.ScheduleNextUpdate()
-	if err = models.UpdatePushMirror(m); err != nil {
+	if err := models.UpdatePushMirror(m); err != nil {
 		log.Error("UpdatePushMirror [%s]: %v", mirrorID, err)
+
+		return false
 	}
 
 	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Finished", mirrorID, m.Repo)
+
+	return err == nil
 }
 
 func runPushSync(ctx context.Context, m *models.PushMirror) error {
