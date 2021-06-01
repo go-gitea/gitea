@@ -216,6 +216,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 		nextRevList = 70
 	}
 
+	lastCommitID := ""
+
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan, close := revlister(nioBuffer, commit.ID.String(), commit.repo.Path, revlistPaths...)
 	defer close()
@@ -227,6 +229,21 @@ revListLoop:
 			break revListLoop
 		}
 		commitID = commitID[7:]
+		if lastCommitID == commitID {
+			// skip this
+			if !scan.Scan() {
+				break revListLoop
+			}
+			if !scan.Scan() {
+				break revListLoop
+			}
+			commitID = scan.Text()
+			if !scan.Scan() {
+				break revListLoop
+			}
+			commitID = commitID[7:]
+		}
+		lastCommitID = commitID
 		delete(parentsRemaining, commitID)
 
 		rootTreeID := scan.Text()
@@ -418,19 +435,6 @@ revListLoop:
 
 				scan, close = revlister(nioBuffer, commitID, commit.repo.Path, revlistPaths...)
 				defer close()
-				if !scan.Scan() {
-					break revListLoop
-				}
-				if !scan.Scan() {
-					break revListLoop
-				}
-				rootTreeID = scan.Text()
-				nextParents = strings.Split(rootTreeID, " ")
-				if len(nextParents[0]) > 40 {
-					nextParents[0] = nextParents[0][40:]
-				} else {
-					nextParents = nil
-				}
 				if needToFind > 70 {
 					nextRevList = 70
 				} else {
