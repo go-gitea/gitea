@@ -1,6 +1,6 @@
 import {joinPaths} from '../utils.js';
 
-const {UseServiceWorker, AppSubUrl, AssetUrlPrefix, AppVer} = window.config;
+const {UseServiceWorker, AssetUrlPrefix, AppVer} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
 const workerAssetPath = joinPaths(AssetUrlPrefix, 'serviceworker.js');
 
