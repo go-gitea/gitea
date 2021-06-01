@@ -2,7 +2,8 @@ import emojis from '../../../assets/emoji.json';
 
 const {AssetUrlPrefix} = window.config;
 
-const tempMap = {gitea: ':gitea:'};
+// TODO: use setting.UI.CustomEmojis
+const tempMap = {gitea: ':gitea:', codeberg: ':codeberg:'};
 for (const {emoji, aliases} of emojis) {
   for (const alias of aliases || []) {
     tempMap[alias] = emoji;
@@ -23,8 +24,9 @@ for (const key of emojiKeys) {
 // retrieve HTML for given emoji name
 export function emojiHTML(name) {
   let inner;
-  if (name === 'gitea') {
-    inner = `<img alt=":${name}:" src="${AssetUrlPrefix}/img/emoji/gitea.png">`;
+  // TODO: use setting.UI.CustomEmojis
+  if (name === 'gitea' || name === 'codeberg') {
+    inner = `<img alt=":${name}:" src="${AssetUrlPrefix}/img/emoji/${name}.png">`;
   } else {
     inner = emojiString(name);
   }

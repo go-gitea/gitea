@@ -284,6 +284,13 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		":gitea:",
 		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
+	test(
+		":custom-emoji:",
+		`<p>:custom-emoji:</p>`)
+	setting.UI.CustomEmojis = append(setting.UI.CustomEmojis, "custom-emoji")
+	test(
+		":custom-emoji:",
+		`<p><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
 
 	test(
 		"Some text with 😄 in the middle",

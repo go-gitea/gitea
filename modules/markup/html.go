@@ -66,7 +66,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
@@ -916,8 +916,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 	converted := emoji.FromAlias(alias)
 	if converted == nil {
 		// check if this is a custom reaction
-		s := strings.Join(setting.UI.Reactions, " ") + "gitea" + "codeberg"
-		if strings.Contains(s, alias) {
+		if util.ExistsInSlice(alias, setting.UI.CustomEmojis) {
 			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
 			return
 		}

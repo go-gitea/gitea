@@ -198,7 +198,8 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsMap          map[string]bool
+		ReactionsMap          map[string]bool `ini:"-"`
+		CustomEmojis          []string
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -246,6 +247,7 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		CustomEmojis:        []string{`gitea`, `codeberg`},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
