@@ -15,6 +15,9 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/djherbis/buffer"
+	"github.com/djherbis/nio/v3"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
@@ -123,9 +126,10 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 	return results, unHitEntryPaths, nil
 }
 
-func revlister(commitID, repoPath string, paths ...string) (*bufio.Scanner, func()) {
+func revlister(buf buffer.Buffer, commitID, repoPath string, paths ...string) (*bufio.Scanner, func()) {
 	// We'll do this by using rev-list to provide us with parent commits in order
-	revListReader, revListWriter := io.Pipe()
+	buf.Reset()
+	revListReader, revListWriter := nio.Pipe(buf)
 
 	go func() {
 		stderr := strings.Builder{}
@@ -160,6 +164,8 @@ func revlister(commitID, repoPath string, paths ...string) (*bufio.Scanner, func
 func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
 
+	nioBuffer := buffer.New(32 * 1024)
+
 	// We'll do this by using rev-list to provide us with parent commits in order
 
 	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
@@ -185,7 +191,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	allShaBuf := make([]byte, (len(paths)+1)*20)
 
 	shaBuf := make([]byte, 20)
-	tmpTreeID := make([]byte, 40)
+	tmpTreeID := make([]byte, 41)
+	tmpTreeID[40] = '\n'
 
 	// commits is the returnable commits matching the paths provided
 	commits := make([]string, len(paths))
@@ -210,7 +217,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	}
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
-	scan, close := revlister(commit.ID.String(), commit.repo.Path, revlistPaths...)
+	scan, close := revlister(nioBuffer, commit.ID.String(), commit.repo.Path, revlistPaths...)
 	defer close()
 revListLoop:
 	for scan.Scan() {
@@ -239,7 +246,7 @@ revListLoop:
 
 		currentPath := ""
 
-		// OK if the target tree path is "" and the "" is in the pat hs just set this now
+		// OK if the target tree path is "" and the "" is in the paths just set this now
 		if treePath == "" && paths[0] == "" {
 			// If this is the first time we see this set the id appropriate for this paths to this tree and set the last commit to curCommit
 			if len(ids[0]) == 0 {
@@ -323,14 +330,14 @@ revListLoop:
 
 			for n < size {
 				// Read each tree entry in turn
-				mode, fname, sha, count, err := ParseTreeLine(batchReader, modeBuf, fnameBuf, shaBuf)
+				isTree, fname, sha, count, err := ParseTreeLineTree(batchReader, modeBuf, fnameBuf, shaBuf)
 				if err != nil {
 					return nil, err
 				}
 				n += int64(count)
 
 				// if we have found the target directory
-				if bytes.Equal(fname, []byte(target)) && bytes.Equal(mode, []byte("40000")) {
+				if isTree && bytes.Equal(fname, []byte(target)) {
 					copy(tmpTreeID, sha)
 					treeID = tmpTreeID
 					break
@@ -355,6 +362,12 @@ revListLoop:
 
 			// if we haven't found a treeID for the target directory our search is over
 			if len(treeID) == 0 {
+				if len(parentsRemaining) == 0 {
+					for i := range foundIdx {
+						foundIdx[i] = true
+					}
+					needToFind = 0
+				}
 				break treeReadingLoop
 			}
 
@@ -371,15 +384,15 @@ revListLoop:
 					ids[0] = allShaBuf[0:20]
 					commits[0] = string(commitID)
 				} else if bytes.Equal(ids[0], treeID) {
-					commits[0] = string(commitID)
+					for i := range commits {
+						commits[i] = string(commitID)
+					}
+					treeID = nil
+					break treeReadingLoop
 				}
 			}
 			treeID = To40ByteSHA(treeID, treeID)
 			_, err = batchStdinWriter.Write(treeID)
-			if err != nil {
-				return nil, err
-			}
-			_, err = batchStdinWriter.Write([]byte("\n"))
 			if err != nil {
 				return nil, err
 			}
@@ -388,19 +401,22 @@ revListLoop:
 		if needToFind > 0 {
 			if needToFind <= nextRevList {
 				close()
-				revlistPaths = revlistPaths[:0]
-				for _, pth := range paths {
-					if foundIdx[path2idx[pth]] || pth == "" {
-						continue
-					}
-					revlistPaths = append(revlistPaths, path.Join(treePath, pth))
-				}
-				if len(revlistPaths) > 70 {
+				if needToFind > 70 {
 					revlistPaths = revlistPaths[:0]
-					revlistPaths = append(revlistPaths, treePath+"/")
+					if treePath != "" {
+						revlistPaths = append(revlistPaths, treePath+"/")
+					}
+				} else {
+					revlistPaths = revlistPaths[:0]
+					for _, pth := range paths {
+						if foundIdx[path2idx[pth]] || pth == "" {
+							continue
+						}
+						revlistPaths = append(revlistPaths, path.Join(treePath, pth))
+					}
 				}
 
-				scan, close = revlister(commitID, commit.repo.Path, revlistPaths...)
+				scan, close = revlister(nioBuffer, commitID, commit.repo.Path, revlistPaths...)
 				defer close()
 				if !scan.Scan() {
 					break revListLoop

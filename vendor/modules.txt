@@ -208,6 +208,14 @@ github.com/denisenkom/go-mssqldb/internal/querytext
 github.com/dgrijalva/jwt-go
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
+# github.com/djherbis/buffer v1.2.0
+## explicit
+github.com/djherbis/buffer
+github.com/djherbis/buffer/limio
+github.com/djherbis/buffer/wrapio
+# github.com/djherbis/nio/v3 v3.0.1
+## explicit
+github.com/djherbis/nio/v3
 # github.com/dlclark/regexp2 v1.4.0
 ## explicit
 github.com/dlclark/regexp2

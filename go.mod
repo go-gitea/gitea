@@ -28,6 +28,8 @@ require (
 	github.com/couchbase/goutils v0.0.0-20210118111533-e33d3ffb5401 // indirect
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/djherbis/buffer v1.2.0
+	github.com/djherbis/nio/v3 v3.0.1
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
