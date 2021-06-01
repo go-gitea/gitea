@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/url"
 	"regexp"
-	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -74,43 +73,43 @@ func RemovePushMirrorRemote(m *models.PushMirror) error {
 	return nil
 }
 
-func syncPushMirror(ctx context.Context, mirrorID string) bool {
-	log.Trace("SyncPushMirror [mirror: %s]", mirrorID)
+// SyncPushMirror starts the sync of the push mirror and schedules the next run.
+func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
+	log.Trace("SyncPushMirror [mirror: %d]", mirrorID)
 	defer func() {
 		err := recover()
 		if err == nil {
 			return
 		}
 		// There was a panic whilst syncPushMirror...
-		log.Error("PANIC whilst syncPushMirror[%s] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
+		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	id, _ := strconv.ParseInt(mirrorID, 10, 64)
-	m, err := models.GetPushMirrorByID(id)
+	m, err := models.GetPushMirrorByID(mirrorID)
 	if err != nil {
-		log.Error("GetPushMirrorByID [%s]: %v", mirrorID, err)
+		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
 	}
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 	m.LastError = ""
 
-	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Running Sync", mirrorID, m.Repo)
+	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
-		log.Error("SyncPushMirror [mirror: %s][repo: %-v]: %v", mirrorID, m.Repo, err)
+		log.Error("SyncPushMirror [mirror: %d][repo: %-v]: %v", m.ID, m.Repo, err)
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
 	}
 
-	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Scheduling next update", mirrorID, m.Repo)
+	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Scheduling next update", m.ID, m.Repo)
 	m.ScheduleNextUpdate()
 	if err := models.UpdatePushMirror(m); err != nil {
-		log.Error("UpdatePushMirror [%s]: %v", mirrorID, err)
+		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
 
 		return false
 	}
 
-	log.Trace("SyncPushMirror [mirror: %s][repo: %-v]: Finished", mirrorID, m.Repo)
+	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Finished", m.ID, m.Repo)
 
 	return err == nil
 }
@@ -163,9 +162,15 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	}
 
 	if m.Repo.HasWiki() {
-		err := performPush(m.Repo.WikiPath())
-		if err != nil {
-			return err
+		wikiPath := m.Repo.WikiPath()
+		_, err := git.GetRemoteAddress(wikiPath, m.RemoteName)
+		if err == nil {
+			err := performPush(wikiPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Trace("Skipping wiki: No remote configured")
 		}
 	}
 
