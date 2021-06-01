@@ -275,5 +275,5 @@
   uid: 2
   email: user2-2@example.com
   lower_email: user2-2@example.com
-  is_activated: true
+  is_activated: false
   is_primary: false

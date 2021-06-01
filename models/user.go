@@ -905,8 +905,11 @@ func CreateUser(u *User) (err error) {
 
 	// insert email address
 	if _, err := sess.Insert(&EmailAddress{
-		UID:   u.ID,
-		Email: u.Email,
+		UID:         u.ID,
+		Email:       u.Email,
+		LowerEmail:  strings.ToLower(u.Email),
+		IsActivated: u.IsActive,
+		IsPrimary:   true,
 	}); err != nil {
 		return err
 	}
