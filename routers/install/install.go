@@ -446,7 +446,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Re-read settings
-	PostInstallInit(ctx)
+	PostInit(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
