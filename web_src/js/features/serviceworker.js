@@ -44,7 +44,7 @@ export default async function initServiceWorker() {
       // normally we'd serve the service worker as a static asset from AssetUrlPrefix but
       // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
       await checkCacheValidity();
-      await navigator.serviceWorker.register(joinPaths(AppSubUrl, workerAssetPath));
+      await navigator.serviceWorker.register(workerAssetPath);
     } catch (err) {
       console.error(err);
       await invalidateCache();
