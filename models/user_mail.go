@@ -201,6 +201,9 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 	if email.ID > 0 {
 		deleted, err = x.ID(email.ID).Delete(&address)
 	} else {
+		if email.Email != "" && email.LowerEmail == "" {
+			email.LowerEmail = strings.ToLower(email.Email)
+		}
 		deleted, err = x.
 			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
