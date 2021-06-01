@@ -229,11 +229,20 @@ revListLoop:
 			break revListLoop
 		}
 		commitID = commitID[7:]
+		delete(parentsRemaining, commitID)
+
 		if lastCommitID == commitID {
-			// skip this
-			if !scan.Scan() {
-				break revListLoop
+			// need to skip this commit but just add the parents
+			nextParents = strings.Split(scan.Text(), " ")
+			if len(nextParents[0]) > 40 {
+				nextParents[0] = nextParents[0][40:]
+			} else {
+				nextParents = nil
 			}
+			for _, parent := range nextParents {
+				parentsRemaining[parent] = true
+			}
+
 			if !scan.Scan() {
 				break revListLoop
 			}
@@ -242,10 +251,8 @@ revListLoop:
 				break revListLoop
 			}
 			commitID = commitID[7:]
+			delete(parentsRemaining, commitID)
 		}
-		lastCommitID = commitID
-		delete(parentsRemaining, commitID)
-
 		rootTreeID := scan.Text()
 		nextParents = strings.Split(rootTreeID, " ")
 		rootTreeID = nextParents[0][:40]
@@ -254,6 +261,7 @@ revListLoop:
 		} else {
 			nextParents = nil
 		}
+		lastCommitID = commitID
 
 		// push the tree to the cat-file --batch process
 		_, err := batchStdinWriter.Write([]byte(rootTreeID + "\n"))
@@ -435,6 +443,7 @@ revListLoop:
 
 				scan, close = revlister(nioBuffer, commitID, commit.repo.Path, revlistPaths...)
 				defer close()
+				nextParents = nextParents[:0]
 				if needToFind > 70 {
 					nextRevList = 70
 				} else {
@@ -442,7 +451,10 @@ revListLoop:
 				}
 			}
 
-			for _, parent := range nextParents {
+			for i, parent := range nextParents {
+				if parentsRemaining[parent] {
+					nextParents[i] = ""
+				}
 				parentsRemaining[parent] = true
 			}
 		} else {
