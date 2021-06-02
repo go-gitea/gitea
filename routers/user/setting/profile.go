@@ -67,8 +67,13 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			}
 			return err
 		}
-		log.Trace("User name changed: %s -> %s", user.Name, newName)
+	} else {
+		if err := models.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return err
+		}
 	}
+	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
 
@@ -84,6 +89,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	if len(form.Name) != 0 && ctx.User.Name != form.Name {
+		log.Debug("Changing name for %s to %s", ctx.User.Name, form.Name)
 		if err := HandleUsernameChange(ctx, ctx.User, form.Name); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
