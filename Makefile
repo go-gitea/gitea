@@ -43,6 +43,9 @@ endif
 ifeq ($(OS), Windows_NT)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+else ifeq ($(OS), Windows)
+	GOFLAGS := -v -buildmode=exe
+	EXECUTABLE ?= gitea.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
