@@ -697,9 +697,9 @@ platform:
   os: linux
   arch: amd64
 
-depends_on:
-  - testing-amd64
-  - testing-arm64
+# depends_on:
+#   - testing-amd64
+#   - testing-arm64
 
 trigger:
   ref:
@@ -764,8 +764,8 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  - compliance
+# depends_on:
+#   - compliance
 
 trigger:
   ref:
@@ -796,9 +796,9 @@ platform:
   os: linux
   arch: arm64
 
-depends_on:
-  - testing-amd64
-  - testing-arm64
+# depends_on:
+#   - testing-amd64
+#   - testing-arm64
 
 trigger:
   ref:
