@@ -21,7 +21,6 @@
   "rtl": false,
   "admin": false,
   "components": [
-    "accordion",
     "api",
     "breadcrumb",
     "button",
