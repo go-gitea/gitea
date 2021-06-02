@@ -904,6 +904,39 @@ depends_on:
 
 ---
 kind: pipeline
+name: docker-manifest-dry-run
+
+platform:
+  os: linux
+  arch: arm64
+
+steps:
+  - name: manifest
+    pull: always
+    image: plugins/manifest
+    settings:
+      dry_run: true
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/main
+  - "refs/pull/**"
+  event:
+    exclude:
+    - cron
+
+depends_on:
+  - docker-linux-arm64-dry-run
+
+---
+kind: pipeline
 name: notifications
 
 platform:
