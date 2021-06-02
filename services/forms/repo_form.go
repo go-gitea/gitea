@@ -551,7 +551,7 @@ type MergePullRequestForm struct {
 	MergeMessageField      string
 	MergeCommitID          string // only used for manually-merged
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
-	DeleteBranchAfterMerge bool
+	DeleteBranchAfterMerge bool   `json:"-"`
 }
 
 // Validate validates the fields
