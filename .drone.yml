@@ -520,7 +520,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
-      RACE_ENABLED: "0"
+      RACE_ENABLED: true
 
   - name: gpg-sign
     pull: always
@@ -617,7 +617,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
-      RACE_ENABLED: "0"
+      RACE_ENABLED: true
 
   - name: gpg-sign
     pull: always
