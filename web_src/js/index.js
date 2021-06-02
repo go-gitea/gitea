@@ -1098,8 +1098,10 @@ async function initRepository() {
           }, (data) => {
             if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
+              $rawContent.text('');
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {

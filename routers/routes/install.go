@@ -94,6 +94,7 @@ func InstallRoutes() *web.Route {
 		Gclifetime:     setting.SessionConfig.Gclifetime,
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
@@ -102,7 +103,7 @@ func InstallRoutes() *web.Route {
 	r.Get("/", routers.Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), routers.InstallPost)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, setting.AppURL, 302)
+		http.Redirect(w, req, setting.AppURL, http.StatusFound)
 	})
 	return r
 }
