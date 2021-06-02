@@ -568,7 +568,7 @@
 #       event:
 #         - push
 
----
+# ---
 # kind: pipeline
 # name: release-version
 
