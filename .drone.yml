@@ -719,7 +719,7 @@ steps:
     pull: always
     image: plugins/docker:linux-amd64
     settings:
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-amd64
       tags: dev
       repo: gitea/gitea
@@ -738,7 +738,7 @@ steps:
     image: plugins/docker:linux-amd64
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
+      auto_tag: false
       auto_tag_suffix: linux-amd64-rootless
       tags: dev
       repo: gitea/gitea
@@ -777,8 +777,11 @@ steps:
     image: plugins/docker:linux-arm64
     settings:
       dry_run: true
+      auto_tag: false
       repo: gitea/gitea
-      tags: linux-arm64
+      tags:
+        - linux-arm64
+        - dev
       build_args:
         - GOPROXY=off
     environment:
