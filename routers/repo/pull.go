@@ -961,6 +961,11 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
+
+	if form.DeleteBranchAfterMerge {
+		cleanUpPullRequest(ctx, false)
+	}
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 }
 
@@ -1126,6 +1131,10 @@ func TriggerTask(ctx *context.Context) {
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
 func CleanUpPullRequest(ctx *context.Context) {
+	cleanUpPullRequest(ctx, true)
+}
+
+func cleanUpPullRequest(ctx *context.Context, json bool) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -1180,11 +1189,13 @@ func CleanUpPullRequest(ctx *context.Context) {
 	}
 	defer gitBaseRepo.Close()
 
-	defer func() {
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
-		})
-	}()
+	if json {
+		defer func() {
+			ctx.JSON(http.StatusOK, map[string]interface{}{
+				"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
+			})
+		}()
+	}
 
 	if pr.HeadBranch == pr.HeadRepo.DefaultBranch || !gitRepo.IsBranchExist(pr.HeadBranch) {
 		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
