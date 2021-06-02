@@ -41,8 +41,7 @@ export default async function initServiceWorker() {
     // unregister all service workers where scriptURL does not match the current one
     await unregisterOtherWorkers();
     try {
-      // normally we'd serve the service worker as a static asset from AssetUrlPrefix but
-      // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
+      // the spec strictly requires it to be same-origin so the AssetUrlPrefix should contain AppSubUrl
       await checkCacheValidity();
       await navigator.serviceWorker.register(workerAssetPath);
     } catch (err) {
