@@ -29,7 +29,6 @@ type PushMirror struct {
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-	NextUpdateUnix timeutil.TimeStamp `xorm:"INDEX next_update"`
 	LastError      string
 }
 
@@ -101,16 +100,7 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
 	return x.
-		Where("next_update<=?", time.Now().Unix()).
-		And("next_update!=0").
+		Where("last_update + (interval / ?) <= ?", time.Second, time.Now().Unix()).
+		And("interval != 0").
 		Iterate(new(PushMirror), f)
-}
-
-// ScheduleNextUpdate calculates and sets next update time.
-func (m *PushMirror) ScheduleNextUpdate() {
-	if m.Interval != 0 {
-		m.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(m.Interval)
-	} else {
-		m.NextUpdateUnix = 0
-	}
 }

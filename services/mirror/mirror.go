@@ -53,11 +53,11 @@ func Update(ctx context.Context) error {
 	}
 
 	if err := models.MirrorsIterate(handler); err != nil {
-		log.Trace("MirrorsIterate: %v", err)
+		log.Error("MirrorsIterate: %v", err)
 		return err
 	}
 	if err := models.PushMirrorsIterate(handler); err != nil {
-		log.Trace("PushMirrorsIterate: %v", err)
+		log.Error("PushMirrorsIterate: %v", err)
 		return err
 	}
 	log.Trace("Finished: Update")

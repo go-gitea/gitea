@@ -91,7 +91,6 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	m.LastUpdateUnix = timeutil.TimeStampNow()
 	m.LastError = ""
 
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
@@ -101,8 +100,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		m.LastError = stripExitStatus.ReplaceAllLiteralString(err.Error(), "")
 	}
 
-	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Scheduling next update", m.ID, m.Repo)
-	m.ScheduleNextUpdate()
+	m.LastUpdateUnix = timeutil.TimeStampNow()
+
 	if err := models.UpdatePushMirror(m); err != nil {
 		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
 
