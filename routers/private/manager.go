@@ -35,7 +35,7 @@ func FlushQueues(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	err := queue.GetManager().FlushAll(ctx.Req.Context(), opts.Timeout)
+	err := queue.GetManager().FlushAll(ctx, opts.Timeout)
 	if err != nil {
 		ctx.JSON(http.StatusRequestTimeout, map[string]interface{}{
 			"err": fmt.Sprintf("%v", err),

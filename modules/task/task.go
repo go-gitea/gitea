@@ -13,8 +13,11 @@ import (
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -65,6 +68,24 @@ func MigrateRepository(doer, u *models.User, opts base.MigrateOptions) error {
 
 // CreateMigrateTask creates a migrate task
 func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.Task, error) {
+	// encrypt credentials for persistence
+	var err error
+	opts.CloneAddrEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.CloneAddr)
+	if err != nil {
+		return nil, err
+	}
+	opts.CloneAddr = util.SanitizeURLCredentials(opts.CloneAddr, true)
+	opts.AuthPasswordEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AuthPassword)
+	if err != nil {
+		return nil, err
+	}
+	opts.AuthPassword = ""
+	opts.AuthTokenEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AuthToken)
+	if err != nil {
+		return nil, err
+	}
+	opts.AuthToken = ""
+
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(&opts)
 	if err != nil {

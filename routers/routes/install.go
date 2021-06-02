@@ -81,6 +81,11 @@ func InstallRoutes() *web.Route {
 		r.Use(middle)
 	}
 
+	r.Use(public.AssetsHandler(&public.Options{
+		Directory: path.Join(setting.StaticRootPath, "public"),
+		Prefix:    "/assets",
+	}))
+
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -89,29 +94,16 @@ func InstallRoutes() *web.Route {
 		Gclifetime:     setting.SessionConfig.Gclifetime,
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
 	r.Use(installRecovery())
-
-	r.Use(public.Custom(
-		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-	r.Use(public.Static(
-		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
-			Prefix:      "/assets",
-		},
-	))
-
 	r.Use(routers.InstallInit)
 	r.Get("/", routers.Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), routers.InstallPost)
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, setting.AppURL, 302)
+		http.Redirect(w, req, setting.AppURL, http.StatusFound)
 	})
 	return r
 }

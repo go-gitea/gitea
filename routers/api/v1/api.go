@@ -557,6 +557,7 @@ func Routes() *web.Route {
 		Gclifetime:     setting.SessionConfig.Gclifetime,
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	}))
 	m.Use(securityHeaders())
