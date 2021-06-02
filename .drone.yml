@@ -648,7 +648,7 @@
 #       GITHUB_TOKEN:
 #         from_secret: github_token
 
----
+# ---
 # kind: pipeline
 # name: docs
 
@@ -688,8 +688,8 @@
 #         - main
 #       event:
 #         - push
-
----
+#
+# ---
 kind: pipeline
 name: docker-linux-amd64-release
 
