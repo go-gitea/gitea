@@ -385,13 +385,13 @@ func RegisterOpenIDPost(ctx *context.Context) {
 				ctx.ServerError("", err)
 				return
 			}
-			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			if err := ctx.Req.ParseForm(); err != nil {
 				ctx.ServerError("", err)
 				return
 			}
-			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
