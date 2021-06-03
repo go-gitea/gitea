@@ -106,8 +106,9 @@
 							<input class="fake" type="password">
 							<div class="inline field {{if .Err_Auth}}error{{end}}">
 								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+								<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if MirrorPassword .Mirror }}{{.i18n.Tr "repo.mirror_password_placeholder"}}{{else}}{{.i18n.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
 							</div>
+							<p class="help">{{.i18n.Tr "repo.mirror_password_help"}}</p>
 						</div>
 					</details>
 
