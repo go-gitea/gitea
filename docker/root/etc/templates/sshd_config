@@ -5,6 +5,9 @@ AddressFamily any
 ListenAddress 0.0.0.0
 ListenAddress ::
 
+${SSH_MAX_STARTUPS}
+${SSH_MAX_SESSIONS}
+
 LogLevel INFO
 
 HostKey /data/ssh/ssh_host_ed25519_key

@@ -166,6 +166,12 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
+		oldUsername := mirror_service.Username(ctx.Repo.Mirror)
+		oldPassword := mirror_service.Password(ctx.Repo.Mirror)
+		if form.MirrorPassword == "" && form.MirrorUsername == oldUsername {
+			form.MirrorPassword = oldPassword
+		}
+
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
 			err = migrations.IsMigrateURLAllowed(address, ctx.User)
