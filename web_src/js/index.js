@@ -21,8 +21,8 @@ import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {renderMarkupContent} from './markup/content.js';
 import {showLineButton} from './code/linebutton.js';
+import {initMarkupContent, initCommentContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
@@ -52,7 +52,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkupContent();
+      initMarkupContent();
     });
   });
 
@@ -82,7 +82,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkupContent();
+        initMarkupContent();
       });
     });
   }
@@ -909,6 +909,17 @@ async function initRepository() {
       return false;
     });
 
+    // Toggle WIP
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+      e.preventDefault();
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
+        _csrf: csrf,
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
+    });
+
     // Issue Comments
     initIssueComments();
 
@@ -1087,8 +1098,10 @@ async function initRepository() {
           }, (data) => {
             if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
+              $rawContent.text('');
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
@@ -1108,7 +1121,8 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkupContent();
+            initMarkupContent();
+            initCommentContent();
           });
         });
       } else {
@@ -1481,7 +1495,7 @@ function initWikiForm() {
             wiki: true
           }, (data) => {
             preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
-            renderMarkupContent();
+            initMarkupContent();
           });
         };
 
@@ -2563,7 +2577,6 @@ $(document).ready(async () => {
     direction: 'upward',
     fullTextSearch: 'exact'
   });
-  $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
   $('.ui.progress').progress({
     showActivity: false
@@ -2658,6 +2671,11 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
+  $('.show-create-branch-modal.button').on('click', function () {
+    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
+    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
+    $($(this).data('modal')).modal('show');
+  });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
@@ -2733,6 +2751,7 @@ $(document).ready(async () => {
   searchRepositories();
 
   initMarkupAnchors();
+  initCommentContent();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2790,7 +2809,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkupContent(),
+    initMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);

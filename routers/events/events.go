@@ -42,7 +42,7 @@ func Events(ctx *context.Context) {
 	}
 
 	// Listen to connection close and un-register messageChan
-	notify := ctx.Req.Context().Done()
+	notify := ctx.Done()
 	ctx.Resp.Flush()
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()

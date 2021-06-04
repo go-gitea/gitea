@@ -11,12 +11,16 @@ import (
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
 func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
+	content := c.Content
+	if c.Type == models.CommentTypePullPush {
+		content = ""
+	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       c.Poster,
 			ActionType: opType,
-			Content:    c.Content,
+			Content:    content,
 			Comment:    c,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)

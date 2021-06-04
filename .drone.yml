@@ -153,7 +153,7 @@ services:
       MYSQL_DATABASE: test
 
   - name: mysql8
-    image: mysql:8.0
+    image: mysql:8
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
@@ -319,7 +319,7 @@ trigger:
 services:
   - name: pgsql
     pull: default
-    image: postgres:9.5
+    image: postgres:10
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
