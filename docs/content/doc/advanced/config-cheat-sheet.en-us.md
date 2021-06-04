@@ -991,15 +991,15 @@ MINIO_USE_SSL = false
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
-## Repository Archive (`repo-archive`)
+## Repository Archive Storage (`storage.repo-archive`)
 
-Configuration for repository archive included storage. It will be derived from default `[storage]` or
-`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. When derived, the default of `PATH`
+Configuration for repository archive storage. It will inherit from default `[storage]` or
+`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. The default of `PATH`
 is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 
 - `STORAGE_TYPE`: **local**: Storage type for repo archive, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`
 - `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
-- `PATH`: **./data/repo-archive**: Where to store LFS files, only available when `STORAGE_TYPE` is `local`. If not set it fall back to deprecated LFS_CONTENT_PATH value in [server] section.
+- `PATH`: **./data/repo-archive**: Where to store archive files, only available when `STORAGE_TYPE` is `local`.
 - `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
 - `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`

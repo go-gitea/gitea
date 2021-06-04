@@ -64,9 +64,11 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	overrides = append(overrides, sec)
 
 	for _, override := range overrides {
-		for _, key := range override.Keys() {
-			if !targetSec.HasKey(key.Name()) {
-				_, _ = targetSec.NewKey(key.Name(), key.Value())
+		if targetSec != nil {
+			for _, key := range override.Keys() {
+				if !targetSec.HasKey(key.Name()) {
+					_, _ = targetSec.NewKey(key.Name(), key.Value())
+				}
 			}
 		}
 		if len(storage.Type) == 0 {

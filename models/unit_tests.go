@@ -74,7 +74,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 	setting.RepoAvatar.Storage.Path = filepath.Join(setting.AppDataPath, "repo-avatars")
 
-	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archives")
+	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
