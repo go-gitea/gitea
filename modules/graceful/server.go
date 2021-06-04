@@ -263,7 +263,7 @@ func (w wrappedConn) Write(p []byte) (n int, err error) {
 		minDeadline := time.Now().Add(minTimeout)
 
 		if minTimeout < PerWriteWriteTimeout {
-			minDeadline := time.Now().Add(PerWriteWriteTimeout)
+			minDeadline = time.Now().Add(PerWriteWriteTimeout)
 		}
 
 		minDeadline := time.Now().Add(minTimeout)
