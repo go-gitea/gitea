@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -180,6 +181,11 @@ func deleteBranch(ctx *context.Context, branchName string) error {
 		Force: true,
 	}); err != nil {
 		log.Error("DeleteBranch: %v", err)
+		return err
+	}
+
+	if err := pull_service.CloseBranchPulls(ctx.User, ctx.Repo.Repository.ID, branchName); err != nil {
+		log.Error("CloseBranchPulls: %v", err)
 		return err
 	}
 

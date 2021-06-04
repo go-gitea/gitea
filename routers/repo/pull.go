@@ -1226,6 +1226,12 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
+	if err := pull_service.CloseBranchPulls(ctx.User, pr.HeadRepo.ID, pr.HeadBranch); err != nil {
+		log.Error("CloseBranchPulls: %v", err)
+		ctx.Flash.Error(ctx.Tr("repo.branch.delete_branch_close_prs_failed", fullBranchName))
+		return
+	}
+
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + pr.HeadBranch,

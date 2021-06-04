@@ -155,6 +155,11 @@ func DeleteBranch(ctx *context.APIContext) {
 		return
 	}
 
+	if err := pull_service.CloseBranchPulls(ctx.User, ctx.Repo.Repository.ID, branchName); err != nil {
+		log.Error("CloseBranchPulls: %v", err)
+		return
+	}
+
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
 		&repo_module.PushUpdateOptions{
