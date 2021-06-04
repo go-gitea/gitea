@@ -44,7 +44,7 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 
 	if targetSec == nil {
-		targetSec = &ini.Section{}
+		targetSec, _ = Cfg.NewSection(name)
 	}
 
 	var storage Storage
