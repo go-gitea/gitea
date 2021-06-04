@@ -317,7 +317,7 @@
 									</button>
 									{{if .IsPullBranchDeletable}}
 										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
@@ -336,7 +336,7 @@
 									</button>
 									{{if .IsPullBranchDeletable}}
 										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
@@ -361,7 +361,7 @@
 									</button>
 									{{if .IsPullBranchDeletable}}
 										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
@@ -386,7 +386,7 @@
 									</button>
 									{{if .IsPullBranchDeletable}}
 										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
@@ -408,7 +408,7 @@
 										</button>
 										{{if .IsPullBranchDeletable}}
 											<div class="ui checkbox ml-2">
-												<input name="delete_branch_after_merge" type="checkbox">
+												<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
 												<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 											</div>
 										{{end}}

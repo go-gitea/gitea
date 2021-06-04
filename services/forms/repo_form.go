@@ -146,6 +146,7 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
+	DefaultDeleteBranchAfterMerge         bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
