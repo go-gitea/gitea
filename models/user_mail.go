@@ -55,6 +55,7 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
 	if err := x.
 		Where("uid=?", uid).
+		Asc("id").
 		Find(&emails); err != nil {
 		return nil, err
 	}
