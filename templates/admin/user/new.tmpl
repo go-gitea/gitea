@@ -59,6 +59,13 @@
 					</div>
 				{{end}}
 
+				<div class="inline field">
+					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.hide_from_explore_page_tooltip"}}" data-variation="very wide">
+						<label><strong>{{.i18n.Tr "admin.users.hide_from_explore_page"}}</strong></label>
+						<input name="hide_from_explore_page" type="checkbox" {{if .User.HideFromExplorePage}}checked{{end}}>
+					</div>
+				</div>
+
 				<div class="field">
 					<button class="ui green button">{{.i18n.Tr "admin.users.new_account"}}</button>
 				</div>
