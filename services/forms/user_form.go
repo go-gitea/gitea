@@ -231,6 +231,7 @@ type UpdateProfileForm struct {
 	Language            string
 	Description         string `binding:"MaxSize(255)"`
 	KeepActivityPrivate bool
+	HideFromExplorePage bool
 }
 
 // Validate validates the fields

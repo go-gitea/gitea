@@ -69,6 +69,13 @@
 					</div>
 				</div>
 				<div class="field">
+					<!-- continue of privacy settings -->
+					<div class="ui checkbox" id="hide_from_explore_page">
+						<label class="poping up" data-content="{{.i18n.Tr "settings.hide_from_explore_page_popup"}}"><strong>{{.i18n.Tr "settings.hide_from_explore_page"}}</strong></label>
+						<input name="hide_from_explore_page" type="checkbox" {{if .SignedUser.HideFromExplorePage}}checked{{end}}>
+					</div>
+				</div>
+				<div class="field">
 					<button class="ui green button">{{$.i18n.Tr "settings.update_profile"}}</button>
 				</div>
 			</form>

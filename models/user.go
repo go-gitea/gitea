@@ -166,6 +166,8 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+	// Users may don't want to appear on /explore/users page.
+	HideFromExplorePage bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchOrganizationsOptions options to filter organizations

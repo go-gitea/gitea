@@ -6,6 +6,7 @@
 
 		<div class="ui user list">
 			{{range .Users}}
+				{{if not .HideFromExplorePage}}
 				<div class="item">
 					{{avatar .}}
 					<div class="content">
@@ -22,6 +23,7 @@
 						</div>
 					</div>
 				</div>
+				{{end}}
 			{{else}}
 				<div>{{$.i18n.Tr "explore.user_no_results"}}</div>
 			{{end}}
