@@ -259,8 +259,15 @@ type wrappedConn struct {
 
 func (w wrappedConn) Write(p []byte) (n int, err error) {
 	if PerWriteWriteTimeout > 0 {
-		minDeadline := time.Now().Add(PerWriteWriteTimeout)
-		w.deadline = w.deadline.Add(PerWriteWriteTimeout/2 + time.Duration(len(p)/1024)*PerWriteWriteTimeoutKbRate)
+		minTimeout := PerWriteWriteTimeout/2 + time.Duration(len(p)/1024)*PerWriteWriteTimeoutKbRate
+		minDeadline := time.Now().Add(minTimeout)
+
+		if minTimeout < PerWriteWriteTimeout {
+			minDeadline := time.Now().Add(PerWriteWriteTimeout)
+		}
+
+		minDeadline := time.Now().Add(minTimeout)
+		w.deadline = w.deadline.Add(minTimeout)
 		if minDeadline.After(w.deadline) {
 			w.deadline = minDeadline
 		}
