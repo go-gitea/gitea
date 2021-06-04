@@ -311,6 +311,8 @@ var migrations = []Migration{
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 	// v180 -> v181
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Add column to User to allow them hide self from explore/users page", addHideFromExplorePageUserColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
