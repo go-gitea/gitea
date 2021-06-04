@@ -43,6 +43,10 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	sec.Key("MINIO_LOCATION").MustString("us-east-1")
 	sec.Key("MINIO_USE_SSL").MustBool(false)
 
+	if targetSec == nil {
+		targetSec = &ini.Section{}
+	}
+
 	var storage Storage
 	storage.Section = targetSec
 	storage.Type = typ
@@ -64,11 +68,9 @@ func getStorage(name, typ string, targetSec *ini.Section) Storage {
 	overrides = append(overrides, sec)
 
 	for _, override := range overrides {
-		if targetSec != nil {
-			for _, key := range override.Keys() {
-				if !targetSec.HasKey(key.Name()) {
-					_, _ = targetSec.NewKey(key.Name(), key.Value())
-				}
+		for _, key := range override.Keys() {
+			if !targetSec.HasKey(key.Name()) {
+				_, _ = targetSec.NewKey(key.Name(), key.Value())
 			}
 		}
 		if len(storage.Type) == 0 {
