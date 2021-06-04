@@ -67,13 +67,13 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
 	u := &models.User{
-		Name:               form.Username,
-		FullName:           form.FullName,
-		Email:              form.Email,
-		Passwd:             form.Password,
-		MustChangePassword: true,
-		IsActive:           true,
-		LoginType:          models.LoginPlain,
+		Name:                form.Username,
+		FullName:            form.FullName,
+		Email:               form.Email,
+		Passwd:              form.Password,
+		MustChangePassword:  true,
+		IsActive:            true,
+		LoginType:           models.LoginPlain,
 		HideFromExplorePage: false,
 	}
 	if form.MustChangePassword != nil {

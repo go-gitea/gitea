@@ -16,10 +16,10 @@ type CreateUserOption struct {
 	// swagger:strfmt email
 	Email string `json:"email" binding:"Required;Email;MaxSize(254)"`
 	// required: true
-	Password           string `json:"password" binding:"Required;MaxSize(255)"`
-	MustChangePassword *bool  `json:"must_change_password"`
-	SendNotify         bool   `json:"send_notify"`
-	HideFromExplorePage *bool `json:"hide_from_explore_page"`
+	Password            string `json:"password" binding:"Required;MaxSize(255)"`
+	MustChangePassword  *bool  `json:"must_change_password"`
+	SendNotify          bool   `json:"send_notify"`
+	HideFromExplorePage *bool  `json:"hide_from_explore_page"`
 }
 
 // EditUserOption edit user options
