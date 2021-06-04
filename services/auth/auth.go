@@ -36,14 +36,30 @@ var authMethods = []Method{
 	&Session{},
 }
 
+var authAPIMethods = []Auth{
+	&OAuth2{},
+	&Basic{},
+	&ReverseProxy{},
+}
+
 // The purpose of the following three function variables is to let the linter know that
 // those functions are not dead code and are actually being used
 var (
 	_ = handleSignIn
 )
 
+<<<<<<< HEAD
 // Methods returns the instances of all registered methods
 func Methods() []Method {
+=======
+// Methods returns the instances of all SSO methods API needed
+func APIMethods() []Auth {
+	return authAPIMethods
+}
+
+// Methods returns the instances of all registered SSO methods
+func Methods() []Auth {
+>>>>>>> 87b8db9e5 (Remove session sso check for api/v1)
 	return authMethods
 }
 

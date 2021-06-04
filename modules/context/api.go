@@ -8,7 +8,6 @@ package context
 import (
 	"context"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"strings"
@@ -247,8 +246,9 @@ func (ctx *APIContext) CheckForOTP() {
 // APIAuth converts auth_service.Auth as a middleware
 func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
+		var store = session.NewEmptyStore()
 		// Get user from session if logged in.
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, store)
 		if ctx.Doer != nil {
 			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
@@ -271,13 +271,11 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 func APIContexter() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			locale := middleware.Locale(w, req)
 			ctx := APIContext{
 				Context: &Context{
-					Resp:    NewResponse(w),
-					Data:    map[string]interface{}{},
-					Locale:  locale,
-					Session: session.GetSession(req),
+					Resp:   NewResponse(w),
+					Data:   map[string]interface{}{},
+					Locale: middleware.Locale(w, req),
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},
@@ -297,9 +295,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
-
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
-			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 
