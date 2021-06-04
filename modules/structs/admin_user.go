@@ -19,6 +19,7 @@ type CreateUserOption struct {
 	Password           string `json:"password" binding:"Required;MaxSize(255)"`
 	MustChangePassword *bool  `json:"must_change_password"`
 	SendNotify         bool   `json:"send_notify"`
+	HideFromExplorePage *bool `json:"hide_from_explore_page"`
 }
 
 // EditUserOption edit user options
@@ -43,4 +44,5 @@ type EditUserOption struct {
 	ProhibitLogin           *bool   `json:"prohibit_login"`
 	AllowCreateOrganization *bool   `json:"allow_create_organization"`
 	Restricted              *bool   `json:"restricted"`
+	HideFromExplorePage     *bool   `json:"hide_from_explore_page"`
 }

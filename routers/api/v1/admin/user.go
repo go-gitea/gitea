@@ -74,9 +74,13 @@ func CreateUser(ctx *context.APIContext) {
 		MustChangePassword: true,
 		IsActive:           true,
 		LoginType:          models.LoginPlain,
+		HideFromExplorePage: false,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
+	}
+	if form.HideFromExplorePage != nil {
+		u.HideFromExplorePage = *form.HideFromExplorePage
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
@@ -229,6 +233,9 @@ func EditUser(ctx *context.APIContext) {
 	}
 	if form.Restricted != nil {
 		u.IsRestricted = *form.Restricted
+	}
+	if form.HideFromExplorePage != nil {
+		u.HideFromExplorePage = *form.HideFromExplorePage
 	}
 
 	if err := models.UpdateUser(u); err != nil {

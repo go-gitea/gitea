@@ -21,7 +21,8 @@ type AdminCreateUserForm struct {
 	Email              string `binding:"Required;Email;MaxSize(254)"`
 	Password           string `binding:"MaxSize(255)"`
 	SendNotify         bool
-	MustChangePassword bool
+	MustChangePassword  bool
+	HideFromExplorePage bool
 }
 
 // Validate validates form fields
@@ -49,6 +50,7 @@ type AdminEditUserForm struct {
 	AllowCreateOrganization bool
 	ProhibitLogin           bool
 	Reset2FA                bool `form:"reset_2fa"`
+	HideFromExplorePage     bool
 }
 
 // Validate validates form fields
