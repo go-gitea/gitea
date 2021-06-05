@@ -1558,14 +1558,15 @@ func GetUser(user *User) (bool, error) {
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	ListOptions
-	Keyword       string
-	Type          UserType
-	UID           int64
-	OrderBy       SearchOrderBy
-	Visible       []structs.VisibleType
-	Actor         *User // The user doing the search
-	IsActive      util.OptionalBool
-	SearchByEmail bool // Search by email as well as username/full name
+	Keyword             string
+	Type                UserType
+	UID                 int64
+	OrderBy             SearchOrderBy
+	Visible             []structs.VisibleType
+	Actor               *User // The user doing the search
+	IsActive            util.OptionalBool
+	HideFromExplorePage util.OptionalBool
+	SearchByEmail       bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1617,6 +1618,10 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
+	}
+
+	if !opts.HideFromExplorePage.IsNone() {
+		cond = cond.And(builder.Eq{"hide_from_explore_page": opts.HideFromExplorePage.IsTrue()})
 	}
 
 	return cond

@@ -259,11 +259,12 @@ func ExploreUsers(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	RenderUserSearch(ctx, &models.SearchUserOptions{
-		Actor:       ctx.User,
-		Type:        models.UserTypeIndividual,
-		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
-		IsActive:    util.OptionalBoolTrue,
-		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
+		Actor:               ctx.User,
+		Type:                models.UserTypeIndividual,
+		ListOptions:         models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		IsActive:            util.OptionalBoolTrue,
+		HideFromExplorePage: util.OptionalBoolFalse,
+		Visible:             []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)
 }
 
