@@ -126,6 +126,9 @@ func NewUserPost(ctx *context.Context) {
 		}
 		u.MustChangePassword = form.MustChangePassword
 	}
+
+	u.HideFromExplorePage = form.HideFromExplorePage
+
 	if err := models.CreateUser(u); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
@@ -311,6 +314,7 @@ func EditUserPost(ctx *context.Context) {
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
+	u.HideFromExplorePage = form.HideFromExplorePage
 
 	// skip self Prohibit Login
 	if ctx.User.ID == u.ID {
