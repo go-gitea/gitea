@@ -12,8 +12,14 @@ import (
 )
 
 func Test_addPrimaryEmail2EmailAddress(t *testing.T) {
+	type User struct {
+		ID       int64
+		Email    string
+		IsActive bool
+	}
+
 	// Prepare and load the testing database
-	x, deferable := prepareTestEnv(t, 0)
+	x, deferable := prepareTestEnv(t, 0, new(User))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return
@@ -30,12 +36,6 @@ func Test_addPrimaryEmail2EmailAddress(t *testing.T) {
 		LowerEmail  string `xorm:"UNIQUE NOT NULL"`
 		IsActivated bool
 		IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
-	}
-
-	type User struct {
-		ID       int64
-		Email    string
-		IsActive bool
 	}
 
 	var users = make([]User, 0, 20)
