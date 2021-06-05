@@ -358,33 +358,35 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			if opts.Comments && !supportAllComments {
-				// plain comments
-				var allComments = make([]*base.Comment, 0, commentBatchSize)
-				for _, pr := range prs {
-					log.Trace("migrating pull request %d's comments", pr.Number)
-					comments, _, err := downloader.GetComments(base.GetCommentOptions{
-						IssueNumber: pr.Number,
-					})
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
+			if opts.Comments {
+				if !supportAllComments {
+					// plain comments
+					var allComments = make([]*base.Comment, 0, commentBatchSize)
+					for _, pr := range prs {
+						log.Trace("migrating pull request %d's comments", pr.Number)
+						comments, _, err := downloader.GetComments(base.GetCommentOptions{
+							IssueNumber: pr.Number,
+						})
+						if err != nil {
+							if !base.IsErrNotSupported(err) {
+								return err
+							}
+							log.Warn("migrating comments is not supported, ignored")
+						}
+
+						allComments = append(allComments, comments...)
+
+						if len(allComments) >= commentBatchSize {
+							if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+								return err
+							}
+							allComments = allComments[commentBatchSize:]
+						}
+					}
+					if len(allComments) > 0 {
+						if err = uploader.CreateComments(allComments...); err != nil {
 							return err
 						}
-						log.Warn("migrating comments is not supported, ignored")
-					}
-
-					allComments = append(allComments, comments...)
-
-					if len(allComments) >= commentBatchSize {
-						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
-							return err
-						}
-						allComments = allComments[commentBatchSize:]
-					}
-				}
-				if len(allComments) > 0 {
-					if err = uploader.CreateComments(allComments...); err != nil {
-						return err
 					}
 				}
 
