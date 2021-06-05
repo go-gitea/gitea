@@ -288,7 +288,7 @@ func RegisterRoutes(m *web.Route) {
 
 	lfsServerEnabled := func(ctx *context.Context) {
 		if !setting.LFS.StartServer {
-			ctx.Error(http.StatusForbidden)
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 	}
