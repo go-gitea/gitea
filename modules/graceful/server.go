@@ -31,8 +31,8 @@ var (
 // PerWriteWriteTimeout timeout for writes
 const PerWriteWriteTimeout = 30 * time.Second
 
-// PerWriteWriteTimeoutKbRate is a timeout taking account of how much there is to be written
-const PerWriteWriteTimeoutKbRate = 2 * time.Second
+// PerWriteWriteTimeoutKbTime is a timeout taking account of how much there is to be written
+const PerWriteWriteTimeoutKbTime = 10 * time.Second
 
 func init() {
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
@@ -259,7 +259,7 @@ type wrappedConn struct {
 
 func (w wrappedConn) Write(p []byte) (n int, err error) {
 	if PerWriteWriteTimeout > 0 {
-		minTimeout := time.Duration(len(p)/1024)*PerWriteWriteTimeoutKbRate
+		minTimeout := time.Duration(len(p)/1024) * PerWriteWriteTimeoutKbTime
 		minDeadline := time.Now().Add(minTimeout).Add(PerWriteWriteTimeout)
 
 		w.deadline = w.deadline.Add(minTimeout)
