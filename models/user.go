@@ -872,6 +872,7 @@ func CreateUser(u *User) (err error) {
 		return err
 	}
 
+	u.Email = strings.ToLower(u.Email)
 	if err = ValidateEmail(u.Email); err != nil {
 		return err
 	}
