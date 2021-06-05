@@ -12,5 +12,5 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	models.MainTest(m, filepath.Join("..", "..", "..", ".."))
 }
