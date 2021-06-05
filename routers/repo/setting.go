@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -1021,7 +1022,8 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if err != nil {
 		return fmt.Errorf("ioutil.ReadAll: %v", err)
 	}
-	if !base.IsImageFile(data) {
+	st := typesniffer.DetectContentType(data)
+	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = ctxRepo.UploadAvatar(data); err != nil {
