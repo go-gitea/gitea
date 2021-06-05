@@ -29,7 +29,7 @@ var (
 )
 
 // PerWriteWriteTimeout timeout for writes
-const PerWriteWriteTimeout = 5 * time.Second
+const PerWriteWriteTimeout = 30 * time.Second
 
 // PerWriteWriteTimeoutKbRate is a timeout taking account of how much there is to be written
 const PerWriteWriteTimeoutKbRate = 2 * time.Second
@@ -259,7 +259,7 @@ type wrappedConn struct {
 
 func (w wrappedConn) Write(p []byte) (n int, err error) {
 	if PerWriteWriteTimeout > 0 {
-		minTimeout := PerWriteWriteTimeout/2 + time.Duration(len(p)/1024)*PerWriteWriteTimeoutKbRate
+		minTimeout := PerWriteWriteTimeout + time.Duration(len(p)/1024)*PerWriteWriteTimeoutKbRate
 		minDeadline := time.Now().Add(minTimeout)
 
 		if minTimeout < PerWriteWriteTimeout {
