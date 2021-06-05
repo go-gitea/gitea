@@ -582,6 +582,7 @@ type SubmitReviewForm struct {
 	Content  string
 	Type     string `binding:"Required;In(approve,comment,reject)"`
 	CommitID string
+	Files    []string
 }
 
 // Validate validates the fields

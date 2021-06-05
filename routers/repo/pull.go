@@ -694,6 +694,10 @@ func ViewPullFiles(ctx *context.Context) {
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
+
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+
 	ctx.HTML(http.StatusOK, tplPullFiles)
 }
 

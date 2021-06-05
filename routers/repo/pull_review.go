@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -211,7 +212,12 @@ func SubmitReview(ctx *context.Context) {
 		}
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID)
+	var attachments []string
+	if setting.Attachment.Enabled {
+		attachments = form.Files
+	}
+
+	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
