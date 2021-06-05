@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -20,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 // ServeData download file from io.Reader
@@ -45,28 +45,32 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 	// Google Chrome dislike commas in filenames, so let's change it to a space
 	name = strings.ReplaceAll(name, ",", " ")
 
-	if base.IsTextFile(buf) || ctx.QueryBool("render") {
+	st := typesniffer.DetectContentType(buf)
+
+	if st.IsText() || ctx.QueryBool("render") {
 		cs, err := charset.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
 		ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
-	} else if base.IsImageFile(buf) || base.IsPDFFile(buf) {
-		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
-		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if base.IsSVGImageFile(buf) {
-			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-			ctx.Resp.Header().Set("Content-Type", base.SVGMimeType)
-		}
 	} else {
-		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if setting.MimeTypeMap.Enabled {
-			fileExtension := strings.ToLower(filepath.Ext(name))
-			if mimetype, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
-				ctx.Resp.Header().Set("Content-Type", mimetype)
+
+		if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
+			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
+			if st.IsSvgImage() {
+				ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+				ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+				ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
+			}
+		} else {
+			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+			if setting.MimeTypeMap.Enabled {
+				fileExtension := strings.ToLower(filepath.Ext(name))
+				if mimetype, ok := setting.MimeTypeMap.Map[fileExtension]; ok {
+					ctx.Resp.Header().Set("Content-Type", mimetype)
+				}
 			}
 		}
 	}
