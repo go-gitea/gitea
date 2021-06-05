@@ -535,9 +535,9 @@ func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, er
 }
 
 // GetAllComments returns repository comments according page and perPageSize
-func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comment, bool, error) {
+func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment, bool, error) {
 	var (
-		allComments = make([]*base.Comment, 0, perPageSize)
+		allComments = make([]*base.Comment, 0, perPage)
 		created     = "created"
 		asc         = "asc"
 	)
@@ -546,7 +546,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comm
 		Direction: &asc,
 		ListOptions: github.ListOptions{
 			Page:    page,
-			PerPage: perPageSize,
+			PerPage: perPage,
 		},
 	}
 
@@ -555,6 +555,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comm
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
+	log.Trace("Request get comments %d/%d, but in fact get %d", perPage, page, len(comments))
 	g.rate = &resp.Rate
 	for _, comment := range comments {
 		var email string
@@ -599,7 +600,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comm
 		})
 	}
 
-	return allComments, len(allComments) < perPageSize, nil
+	return allComments, len(allComments) < perPage, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
@@ -622,6 +623,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
+	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.rate = &resp.Rate
 	for _, pr := range prs {
 		var body string
