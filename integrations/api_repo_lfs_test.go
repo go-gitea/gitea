@@ -29,15 +29,15 @@ func TestAPILFSNotStarted(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "PUT", "/%s/%s.git/info/lfs/objects/oid/10", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid/name", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/objects/oid", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/verify", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPILFSMediaType(t *testing.T) {

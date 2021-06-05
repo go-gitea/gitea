@@ -25,13 +25,13 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "POST", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks/verify", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 	req = NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks/10/unlock", user.Name, repo.Name)
-	MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestAPILFSLocksNotLogin(t *testing.T) {
