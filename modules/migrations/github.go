@@ -520,7 +520,7 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 	return allComments, nil
 }
 
-// GetComments returns comments according issueNumber
+// GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comment, bool, error) {
 	var (
 		allComments = make([]*base.Comment, 0, perPageSize)
