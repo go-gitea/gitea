@@ -451,8 +451,22 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	return allIssues, len(issues) < perPage, nil
 }
 
+// SupportGetRepoComments return true if it supports get repo comments
+func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
+	return true
+}
+
 // GetComments returns comments according issueNumber
-func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, error) {
+func (g *GithubDownloaderV3) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	if opts.IssueNumber > 0 {
+		comments, err := g.getComments(opts.IssueNumber)
+		return comments, false, err
+	}
+
+	return g.GetAllComments(opts.Page, opts.PageSize)
+}
+
+func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
