@@ -34,11 +34,6 @@ type Downloader interface {
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 }
 
-// CommentsDownloader represents an interface which supports get comments without issue number
-type CommentsDownloader interface {
-	GetAllComments(page, perPage int) ([]*Comment, bool, error)
-}
-
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader
 type DownloaderFactory interface {
 	New(ctx context.Context, opts MigrateOptions) (Downloader, error)
