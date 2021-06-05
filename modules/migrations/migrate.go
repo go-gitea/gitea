@@ -283,6 +283,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
 	)
 
+	commentsDownloader, supportAllComments := downloader.(base.CommentsDownloader)
+
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		var issueBatchSize = uploader.MaxBatchInsertSize("issue")
@@ -301,7 +303,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			if opts.Comments {
+			if opts.Comments && !supportAllComments {
 				var allComments = make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
@@ -354,7 +356,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			if opts.Comments {
+			if opts.Comments && !supportAllComments {
 				// plain comments
 				var allComments = make([]*base.Comment, 0, commentBatchSize)
 				for _, pr := range prs {
@@ -420,6 +422,24 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 						return err
 					}
 				}
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if opts.Comments && supportAllComments {
+		log.Trace("migrating comments")
+		for i := 1; ; i++ {
+			comments, isEnd, err := commentsDownloader.GetAllComments(i, commentBatchSize)
+			if err != nil {
+				return err
+			}
+
+			if err := uploader.CreateComments(comments...); err != nil {
+				return err
 			}
 
 			if isEnd {

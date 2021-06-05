@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -517,6 +518,74 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		opt.Page = resp.NextPage
 	}
 	return allComments, nil
+}
+
+// GetComments returns comments according issueNumber
+func (g *GithubDownloaderV3) GetAllComments(page, perPageSize int) ([]*base.Comment, bool, error) {
+	var (
+		allComments = make([]*base.Comment, 0, perPageSize)
+		created     = "created"
+		asc         = "asc"
+	)
+	opt := &github.IssueListCommentsOptions{
+		Sort:      &created,
+		Direction: &asc,
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: perPageSize,
+		},
+	}
+
+	g.sleep()
+	comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, 0, opt)
+	if err != nil {
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+	}
+	g.rate = &resp.Rate
+	for _, comment := range comments {
+		var email string
+		if comment.User.Email != nil {
+			email = *comment.User.Email
+		}
+
+		// get reactions
+		var reactions []*base.Reaction
+		for i := 1; ; i++ {
+			g.sleep()
+			res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
+				Page:    i,
+				PerPage: g.maxPerPage,
+			})
+			if err != nil {
+				return nil, false, err
+			}
+			g.rate = &resp.Rate
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+		idx := strings.LastIndex(*comment.IssueURL, "/")
+		issueIndex, _ := strconv.ParseInt((*comment.IssueURL)[idx+1:], 10, 64)
+		allComments = append(allComments, &base.Comment{
+			IssueIndex:  issueIndex,
+			PosterID:    *comment.User.ID,
+			PosterName:  *comment.User.Login,
+			PosterEmail: email,
+			Content:     *comment.Body,
+			Created:     *comment.CreatedAt,
+			Updated:     *comment.UpdatedAt,
+			Reactions:   reactions,
+		})
+	}
+
+	return allComments, len(allComments) < perPageSize, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
