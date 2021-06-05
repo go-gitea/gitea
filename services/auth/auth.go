@@ -36,7 +36,7 @@ var authMethods = []Method{
 	&Session{},
 }
 
-var authAPIMethods = []Auth{
+var authAPIMethods = []Method{
 	&OAuth2{},
 	&Basic{},
 	&ReverseProxy{},
@@ -48,18 +48,13 @@ var (
 	_ = handleSignIn
 )
 
-<<<<<<< HEAD
-// Methods returns the instances of all registered methods
-func Methods() []Method {
-=======
-// Methods returns the instances of all SSO methods API needed
-func APIMethods() []Auth {
+// APIMethods returns the instances of all SSO methods API needed
+func APIMethods() []Method {
 	return authAPIMethods
 }
 
 // Methods returns the instances of all registered SSO methods
-func Methods() []Auth {
->>>>>>> 87b8db9e5 (Remove session sso check for api/v1)
+func Methods() []Method {
 	return authMethods
 }
 
