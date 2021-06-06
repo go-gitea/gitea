@@ -21,10 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
-	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/private"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -52,19 +50,6 @@ const (
 	// GzipMinSize represents min size to compress for the body size of response
 	GzipMinSize = 1400
 )
-
-// NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
-	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
-
-	r.Mount("/", Routes())
-	r.Mount("/api/v1", apiv1.Routes())
-	r.Mount("/api/internal", private.Routes())
-	return r
-}
 
 // Routes returns all web routes
 func Routes() *web.Route {
