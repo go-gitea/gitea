@@ -129,14 +129,14 @@ func TestMakeEmailPrimary(t *testing.T) {
 	}
 	err := MakeEmailPrimary(email)
 	assert.Error(t, err)
-	assert.Equal(t, ErrEmailNotExist.Error(), err.Error())
+	assert.EqualError(t, err, ErrEmailNotExist.Error())
 
 	email = &EmailAddress{
 		Email: "user11@example.com",
 	}
 	err = MakeEmailPrimary(email)
 	assert.Error(t, err)
-	assert.Equal(t, ErrEmailNotActivated.Error(), err.Error())
+	assert.EqualError(t, err, ErrEmailNotActivated.Error())
 
 	email = &EmailAddress{
 		Email: "user9999999@example.com",
@@ -232,6 +232,6 @@ func TestListEmails(t *testing.T) {
 	}
 	emails, count, err = SearchEmails(opts)
 	assert.NoError(t, err)
-	assert.Equal(t, 5, len(emails))
-	assert.True(t, count > int64(len(emails)))
+	assert.Len(t, emails, 5)
+	assert.Greater(t, count, int64(len(emails)))
 }
