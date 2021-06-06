@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -68,8 +69,13 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			}
 			return err
 		}
-		log.Trace("User name changed: %s -> %s", user.Name, newName)
+	} else {
+		if err := models.UpdateRepositoryOwnerNames(user.ID, newName); err != nil {
+			ctx.ServerError("UpdateRepository", err)
+			return err
+		}
 	}
+	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
 
@@ -85,6 +91,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 
 	if len(form.Name) != 0 && ctx.User.Name != form.Name {
+		log.Debug("Changing name for %s to %s", ctx.User.Name, form.Name)
 		if err := HandleUsernameChange(ctx, ctx.User, form.Name); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
@@ -153,7 +160,9 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if err != nil {
 			return fmt.Errorf("ioutil.ReadAll: %v", err)
 		}
-		if !base.IsImageFile(data) {
+
+		st := typesniffer.DetectContentType(data)
+		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
 		if err = ctxUser.UploadAvatar(data); err != nil {

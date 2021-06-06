@@ -815,7 +815,7 @@
         .avatar.image img {
           width: 20px;
           height: 20px;
-          margin-right: .5rem;
+          margin: 0 .25rem;
         }
 
         &:first-child:not(.commit) {
@@ -1088,12 +1088,21 @@
 
       .comment-code-cloud {
         .segment.reactions {
+          margin-top: 16px !important;
+          margin-bottom: -8px !important;
           border-top: none !important;
 
           .ui.label {
             border: 1px solid;
-            padding: 6px !important;
+            padding: 6px 10px !important;
+            margin: 0 2px;
             border-radius: var(--border-radius);
+            border-color: var(--color-secondary-dark-1) !important;
+          }
+
+          .ui.label.basic.blue {
+            background-color: var(--color-reaction-active-bg) !important;
+            border-color: var(--color-primary-alpha-80) !important;
           }
         }
 
@@ -1840,8 +1849,6 @@
           }
 
           .download {
-            margin-top: 20px;
-
             > a {
               .svg {
                 margin-left: 5px;
@@ -1851,18 +1858,29 @@
 
             .list {
               padding-left: 0;
-              border-top: 1px solid var(--color-secondary);
 
               li {
                 list-style: none;
                 display: block;
-                padding-top: 8px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid var(--color-secondary);
+                padding: 8px;
+                border: 1px solid var(--color-secondary);
+                background: var(--color-light);
 
                 a > .text.right {
                   margin-right: 5px;
                 }
+              }
+
+              li + li {
+                border-top: 0;
+              }
+
+              li:first-of-type {
+                border-radius: var(--border-radius) 0 0 var(--border-radius);
+              }
+
+              li:last-of-type {
+                border-radius: 0 var(--border-radius) var(--border-radius) 0;
               }
             }
           }
@@ -2316,6 +2334,7 @@
       font-size: 14px;
       font-weight: normal;
       border-color: var(--color-secondary) !important;
+      background: var(--color-reaction-bg);
 
       &.disabled {
         cursor: default;
@@ -2328,7 +2347,7 @@
     }
 
     .ui.label.basic.blue {
-      background-color: var(--color-primary-alpha-20) !important;
+      background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
 
@@ -3128,11 +3147,4 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
-}
-
-.code-line-marker {
-  width: 13px;
-  height: 20px;
-  background-color: rgb(34 36 38 / 15%);
-  position: absolute;
 }

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -164,6 +165,12 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
 			}
+		}
+
+		oldUsername := mirror_service.Username(ctx.Repo.Mirror)
+		oldPassword := mirror_service.Password(ctx.Repo.Mirror)
+		if form.MirrorPassword == "" && form.MirrorUsername == oldUsername {
+			form.MirrorPassword = oldPassword
 		}
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
@@ -542,6 +549,11 @@ func SettingsPost(ctx *context.Context) {
 		if repo.Name != form.RepoName {
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
 			return
+		}
+
+		// Close the gitrepository before doing this.
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
 		}
 
 		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
@@ -1010,7 +1022,8 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if err != nil {
 		return fmt.Errorf("ioutil.ReadAll: %v", err)
 	}
-	if !base.IsImageFile(data) {
+	st := typesniffer.DetectContentType(data)
+	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
 	if err = ctxRepo.UploadAvatar(data); err != nil {

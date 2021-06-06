@@ -166,9 +166,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
 <ul>
-<li class="task-list-item"><input type="checkbox" disabled=""/>unchecked</li>
-<li class="task-list-item"><input type="checkbox" disabled="" checked=""/>checked</li>
-<li class="task-list-item"><input type="checkbox" disabled=""/>still unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
@@ -269,6 +269,9 @@ Here is a simple footnote,[^1] and here is a longer one.[^bignote]
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
@@ -305,6 +308,9 @@ func TestTotal_RenderWiki(t *testing.T) {
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {

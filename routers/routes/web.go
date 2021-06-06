@@ -8,7 +8,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -22,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -51,7 +49,6 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
-	"github.com/unknwon/com"
 )
 
 const (
@@ -116,11 +113,28 @@ func commonMiddlewares() []func(http.Handler) http.Handler {
 	return handlers
 }
 
+var corsHandler func(http.Handler) http.Handler
+
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Route {
 	r := web.NewRoute()
 	for _, middle := range commonMiddlewares() {
 		r.Use(middle)
+	}
+
+	if setting.CORSConfig.Enabled {
+		corsHandler = cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		})
+	} else {
+		corsHandler = func(next http.Handler) http.Handler {
+			return next
+		}
 	}
 
 	r.Mount("/", WebRoutes())
@@ -133,6 +147,12 @@ func NormalRoutes() *web.Route {
 func WebRoutes() *web.Route {
 	routes := web.NewRoute()
 
+	routes.Use(public.AssetsHandler(&public.Options{
+		Directory:   path.Join(setting.StaticRootPath, "public"),
+		Prefix:      "/assets",
+		CorsHandler: corsHandler,
+	}))
+
 	routes.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -141,26 +161,11 @@ func WebRoutes() *web.Route {
 		Gclifetime:     setting.SessionConfig.Gclifetime,
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
 	routes.Use(Recovery())
-
-	// TODO: we should consider if there is a way to mount these using r.Route as at present
-	// these two handlers mean that every request has to hit these "filesystems" twice
-	// before finally getting to the router. It allows them to override any matching router below.
-	routes.Use(public.Custom(
-		&public.Options{
-			SkipLogging: setting.DisableRouterLog,
-		},
-	))
-	routes.Use(public.Static(
-		&public.Options{
-			Directory:   path.Join(setting.StaticRootPath, "public"),
-			SkipLogging: setting.DisableRouterLog,
-			Prefix:      "/assets",
-		},
-	))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
@@ -173,7 +178,7 @@ func WebRoutes() *web.Route {
 
 	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "img/apple-touch-icon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
 	})
 
 	gob.Register(&u2f.Challenge{})
@@ -228,6 +233,7 @@ func WebRoutes() *web.Route {
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
 	common = append(common, user.GetNotificationCount)
 	common = append(common, repo.GetActiveStopwatch)
+	common = append(common, goGet)
 
 	others := web.NewRoute()
 	for _, middle := range common {
@@ -237,67 +243,6 @@ func WebRoutes() *web.Route {
 	RegisterRoutes(others)
 	routes.Mount("", others)
 	return routes
-}
-
-func goGet(ctx *context.Context) {
-	if ctx.Query("go-get") != "1" {
-		return
-	}
-
-	// Quick responses appropriate go-get meta with status 200
-	// regardless of if user have access to the repository,
-	// or the repository does not exist at all.
-	// This is particular a workaround for "go get" command which does not respect
-	// .netrc file.
-
-	ownerName := ctx.Params(":username")
-	repoName := ctx.Params(":reponame")
-	trimmedRepoName := strings.TrimSuffix(repoName, ".git")
-
-	if ownerName == "" || trimmedRepoName == "" {
-		_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-		ctx.Status(400)
-		return
-	}
-	branchName := setting.Repository.DefaultBranch
-
-	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
-	if err == nil && len(repo.DefaultBranch) > 0 {
-		branchName = repo.DefaultBranch
-	}
-	prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
-
-	appURL, _ := url.Parse(setting.AppURL)
-
-	insecure := ""
-	if appURL.Scheme == string(setting.HTTP) {
-		insecure = "--insecure "
-	}
-	ctx.Header().Set("Content-Type", "text/html")
-	ctx.Status(http.StatusOK)
-	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
-<html>
-	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
-	</head>
-	<body>
-		go get {Insecure}{GoGetImport}
-	</body>
-</html>
-`, map[string]string{
-		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
-		"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
-		"GoDocDirectory": prefix + "{/dir}",
-		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-		"Insecure":       insecure,
-	})))
 }
 
 // RegisterRoutes register routes
@@ -337,6 +282,13 @@ func RegisterRoutes(m *web.Route) {
 	webhooksEnabled := func(ctx *context.Context) {
 		if setting.DisableWebhooks {
 			ctx.Error(http.StatusForbidden)
+			return
+		}
+	}
+
+	lfsServerEnabled := func(ctx *context.Context) {
+		if !setting.LFS.StartServer {
+			ctx.Error(http.StatusNotFound)
 			return
 		}
 	}
@@ -411,18 +363,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
-	if setting.CORSConfig.Enabled {
-		m.Post("/login/oauth/access_token", cors.Handler(cors.Options{
-			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
-			AllowedOrigins: setting.CORSConfig.AllowDomain,
-			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
-			AllowedMethods:   setting.CORSConfig.Methods,
-			AllowCredentials: setting.CORSConfig.AllowCredentials,
-			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
-		}), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	} else {
-		m.Post("/login/oauth/access_token", bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
-	}
+	m.Post("/login/oauth/access_token", corsHandler, bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -1104,25 +1045,25 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
 			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
-		}, goGet, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
+		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {
-				m.Post("/objects/batch", lfs.BatchHandler)
-				m.Get("/objects/{oid}/{filename}", lfs.ObjectOidHandler)
-				m.Any("/objects/{oid}", lfs.ObjectOidHandler)
-				m.Post("/objects", lfs.PostHandler)
-				m.Post("/verify", lfs.VerifyHandler)
+				m.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
+				m.Put("/objects/{oid}/{size}", lfs.UploadHandler)
+				m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
+				m.Get("/objects/{oid}", lfs.DownloadHandler)
+				m.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
 				m.Group("/locks", func() {
 					m.Get("/", lfs.GetListLockHandler)
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
 					m.Post("/{lid}/unlock", lfs.UnLockHandler)
-				})
+				}, lfs.CheckAcceptMediaType)
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})
-			}, ignSignInAndCsrf)
+			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
 				m.Post("/git-upload-pack", repo.ServiceUploadPack)

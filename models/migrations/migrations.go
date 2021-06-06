@@ -310,6 +310,8 @@ var migrations = []Migration{
 	// v179 -> v180
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 	// v180 -> v181
+	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
 }
 

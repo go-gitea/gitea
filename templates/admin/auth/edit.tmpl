@@ -53,7 +53,6 @@
 						<div class="field">
 							<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 							<input id="bind_password" name="bind_password" type="password" value="{{$cfg.BindPassword}}">
-							<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 						</div>
 					{{end}}
 					<div class="{{if .Source.IsLDAP}}required{{end}} field">
@@ -187,6 +186,10 @@
 					<div class="required field">
 						<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{$cfg.ServiceName}}" required>
+					</div>
+					<div class="field">
+						<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
 					</div>
 				{{end}}
 

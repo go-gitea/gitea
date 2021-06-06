@@ -617,7 +617,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if setting.OAuth2Client.EnableAutoRegistration {
+		if !(setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration) && setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var missingFields []string
 			if gothUser.UserID == "" {
@@ -828,6 +828,7 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
+	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
 	// use this to set the right link into the signIn and signUp templates in the link_account template
@@ -982,9 +983,14 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/link_account_signin"
 	ctx.Data["SignUpLink"] = setting.AppSubURL + "/user/link_account_signup"
 
-	gothUser := ctx.Session.Get("linkAccountGothUser")
-	if gothUser == nil {
+	gothUserInterface := ctx.Session.Get("linkAccountGothUser")
+	if gothUserInterface == nil {
 		ctx.ServerError("UserSignUp", errors.New("not in LinkAccount session"))
+		return
+	}
+	gothUser, ok := gothUserInterface.(goth.User)
+	if !ok {
+		ctx.ServerError("UserSignUp", fmt.Errorf("session linkAccountGothUser type is %t but not goth.User", gothUserInterface))
 		return
 	}
 
@@ -993,7 +999,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 
-	if setting.Service.DisableRegistration {
+	if setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
@@ -1005,9 +1011,9 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		case setting.ImageCaptcha:
 			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1048,7 +1054,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.(goth.User).Provider)
+	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 	}
@@ -1060,10 +1066,10 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   models.LoginOAuth2,
 		LoginSource: loginSource.ID,
-		LoginName:   gothUser.(goth.User).UserID,
+		LoginName:   gothUser.UserID,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, gothUser.(*goth.User), false) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, &gothUser, false) {
 		// error already handled
 		return
 	}
@@ -1147,9 +1153,9 @@ func SignUpPost(ctx *context.Context) {
 		case setting.ImageCaptcha:
 			valid = context.GetImageCaptcha().VerifyReq(ctx.Req)
 		case setting.ReCaptcha:
-			valid, err = recaptcha.Verify(ctx.Req.Context(), form.GRecaptchaResponse)
+			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
-			valid, err = hcaptcha.Verify(ctx.Req.Context(), form.HcaptchaResponse)
+			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -1185,7 +1191,7 @@ func SignUpPost(ctx *context.Context) {
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplSignUp, &form)
 		return
 	}
-	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	pwned, err := password.IsPwned(ctx, form.Password)
 	if pwned {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
@@ -1614,7 +1620,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		ctx.Data["Err_Password"] = true
 		ctx.RenderWithErr(password.BuildComplexityError(ctx), tplResetPassword, nil)
 		return
-	} else if pwned, err := password.IsPwned(ctx.Req.Context(), passwd); pwned || err != nil {
+	} else if pwned, err := password.IsPwned(ctx, passwd); pwned || err != nil {
 		errMsg := ctx.Tr("auth.password_pwned")
 		if err != nil {
 			log.Error(err.Error())

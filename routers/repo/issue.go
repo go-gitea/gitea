@@ -372,6 +372,9 @@ func Issues(ctx *context.Context) {
 	}
 
 	issues(ctx, ctx.QueryInt64("milestone"), ctx.QueryInt64("project"), util.OptionalBoolOf(isPullList))
+	if ctx.Written() {
+		return
+	}
 
 	var err error
 	// Get milestones

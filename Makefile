@@ -43,6 +43,9 @@ endif
 ifeq ($(OS), Windows_NT)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+else ifeq ($(OS), Windows)
+	GOFLAGS := -v -buildmode=exe
+	EXECUTABLE ?= gitea.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
@@ -61,8 +64,9 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-ifneq ($(RACE_ENABLED),)
-	GOTESTFLAGS ?= -race
+ifeq ($(RACE_ENABLED),true)
+	GOFLAGS += -race
+	GOTESTFLAGS += -race
 endif
 
 STORED_VERSION_FILE := VERSION
@@ -282,7 +286,10 @@ errcheck:
 
 .PHONY: revive
 revive:
-	GO111MODULE=on $(GO) run -mod=vendor build/lint.go -config .revive.toml -exclude=./vendor/... ./... || exit 1
+	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		GO111MODULE=off $(GO) get -u github.com/mgechev/revive; \
+	fi
+	@revive -config .revive.toml -exclude=./vendor/... ./...
 
 .PHONY: misspell-check
 misspell-check:
@@ -356,7 +363,7 @@ test-backend:
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend:
+test-frontend: node_modules
 	@NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --color
 
 .PHONY: test-check
@@ -374,7 +381,7 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test -mod=vendor $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
