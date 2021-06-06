@@ -20,6 +20,8 @@ type SessionStore session.Store
 
 // SingleSignOn represents a SSO authentication method (plugin) for HTTP requests.
 type SingleSignOn interface {
+	Name() string
+
 	// Init should be called exactly once before using any of the other methods,
 	// in order to allow the plugin to allocate necessary resources
 	Init() error

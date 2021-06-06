@@ -39,6 +39,11 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 	return webAuthUser
 }
 
+// Name represents the name of auth method
+func (b *ReverseProxy) Name() string {
+	return "reverse_proxy"
+}
+
 // Init does nothing as the ReverseProxy implementation does not need initialization
 func (r *ReverseProxy) Init() error {
 	return nil

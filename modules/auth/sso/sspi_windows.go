@@ -62,6 +62,11 @@ func (s *SSPI) Init() error {
 	return nil
 }
 
+// Name represents the name of auth method
+func (b *SSPI) Name() string {
+	return "sspi"
+}
+
 // Free releases resources used by the global websspi.Authenticator object
 func (s *SSPI) Free() error {
 	return sspiAuth.Free()

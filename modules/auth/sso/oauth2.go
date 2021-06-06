@@ -56,6 +56,11 @@ func (o *OAuth2) Init() error {
 	return nil
 }
 
+// Name represents the name of auth method
+func (b *OAuth2) Name() string {
+	return "oauth2"
+}
+
 // Free does nothing as the OAuth2 implementation does not have to release any resources
 func (o *OAuth2) Free() error {
 	return nil

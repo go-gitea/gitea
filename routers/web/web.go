@@ -11,6 +11,7 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -148,6 +149,9 @@ func Routes() *web.Route {
 
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	common = append(common, context.Contexter())
+
+	// Get user from session if logged in.
+	common = append(common, context.Auth(sso.NewGroup(sso.Methods()...)))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)

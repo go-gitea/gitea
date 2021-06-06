@@ -605,6 +605,32 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
+// Auth converts sso.SingleSignOn as a middleware
+func Auth(authMethod sso.SingleSignOn) func(*Context) {
+	return func(ctx *Context) {
+		if !authMethod.IsEnabled() {
+			return
+		}
+
+		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(sso.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+
+			// ensure the session uid is deleted
+			_ = ctx.Session.Delete("uid")
+		}
+	}
+}
+
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -688,24 +714,6 @@ func Contexter() func(next http.Handler) http.Handler {
 					ctx.ServerError("ParseMultipartForm", err)
 					return
 				}
-			}
-
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-
-				// ensure the session uid is deleted
-				_ = ctx.Session.Delete("uid")
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)

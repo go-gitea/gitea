@@ -70,6 +70,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -572,6 +573,9 @@ func Routes() *web.Route {
 		}))
 	}
 	m.Use(context.APIContexter())
+
+	// Get user from session if logged in.
+	m.Use(context.APIAuth(sso.NewGroup(sso.Methods()...)))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,

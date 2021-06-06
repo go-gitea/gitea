@@ -28,6 +28,11 @@ var (
 type Basic struct {
 }
 
+// Name represents the name of auth method
+func (b *Basic) Name() string {
+	return "basic"
+}
+
 // Init does nothing as the Basic implementation does not need to allocate any resources
 func (b *Basic) Init() error {
 	return nil
@@ -49,9 +54,8 @@ func (b *Basic) IsEnabled() bool {
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
 		return nil
 	}
 

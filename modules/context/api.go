@@ -217,6 +217,29 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
+// APIAuth converts sso.SingleSignOn as a middleware
+func APIAuth(authMethod sso.SingleSignOn) func(*APIContext) {
+	return func(ctx *APIContext) {
+		if !authMethod.IsEnabled() {
+			return
+		}
+		// Get user from session if logged in.
+		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(sso.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+		}
+	}
+}
+
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
 	var csrfOpts = getCsrfOpts()
@@ -248,20 +271,6 @@ func APIContexter() func(http.Handler) http.Handler {
 					ctx.InternalServerError(err)
 					return
 				}
-			}
-
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
