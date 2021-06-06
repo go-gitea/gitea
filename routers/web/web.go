@@ -1001,7 +1001,4 @@ func RegisterRoutes(m *web.Route) {
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
 	}
-
-	// Not found handler.
-	m.NotFound(web.Wrap(NotFound))
 }
