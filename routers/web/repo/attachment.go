@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/routers/common"
 )
 
 // UploadIssueAttachment response for Issue/PR attachments
@@ -152,7 +153,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 	defer fr.Close()
 
-	if err = ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
+	if err = common.ServeData(ctx, attach.Name, attach.Size, fr); err != nil {
 		ctx.ServerError("ServeData", err)
 		return
 	}

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -558,7 +559,7 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = ServeBlob(ctx, entry.Blob()); err != nil {
+		if err = common.ServeBlob(ctx, entry.Blob()); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return

@@ -364,30 +364,6 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(http.StatusNotFound)
 }
 
-// Download an archive of a repository
-func Download(ctx *context.Context) {
-	uri := ctx.Params("*")
-	aReq := archiver_service.DeriveRequestFrom(ctx, uri)
-
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
-
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
-	complete := aReq.IsComplete()
-	if !complete {
-		aReq = archiver_service.ArchiveRepository(aReq)
-		complete = aReq.WaitForCompletion(ctx)
-	}
-
-	if complete {
-		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
-	} else {
-		ctx.Error(http.StatusNotFound)
-	}
-}
-
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.

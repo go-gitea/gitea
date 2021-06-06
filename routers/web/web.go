@@ -896,7 +896,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Group("/archive", func() {
-			m.Get("/*", repo.Download)
+			m.Get("/*", common.Download)
 			m.Post("/*", repo.InitiateDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
