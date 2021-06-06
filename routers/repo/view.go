@@ -146,7 +146,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
