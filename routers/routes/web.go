@@ -286,6 +286,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	lfsServerEnabled := func(ctx *context.Context) {
+		if !setting.LFS.StartServer {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -1042,21 +1049,21 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/{reponame}", func() {
 			m.Group("/info/lfs", func() {
-				m.Post("/objects/batch", lfs.BatchHandler)
-				m.Get("/objects/{oid}/{filename}", lfs.ObjectOidHandler)
-				m.Any("/objects/{oid}", lfs.ObjectOidHandler)
-				m.Post("/objects", lfs.PostHandler)
-				m.Post("/verify", lfs.VerifyHandler)
+				m.Post("/objects/batch", lfs.CheckAcceptMediaType, lfs.BatchHandler)
+				m.Put("/objects/{oid}/{size}", lfs.UploadHandler)
+				m.Get("/objects/{oid}/{filename}", lfs.DownloadHandler)
+				m.Get("/objects/{oid}", lfs.DownloadHandler)
+				m.Post("/verify", lfs.CheckAcceptMediaType, lfs.VerifyHandler)
 				m.Group("/locks", func() {
 					m.Get("/", lfs.GetListLockHandler)
 					m.Post("/", lfs.PostLockHandler)
 					m.Post("/verify", lfs.VerifyLockHandler)
 					m.Post("/{lid}/unlock", lfs.UnLockHandler)
-				})
+				}, lfs.CheckAcceptMediaType)
 				m.Any("/*", func(ctx *context.Context) {
 					ctx.NotFound("", nil)
 				})
-			}, ignSignInAndCsrf)
+			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
 				m.Post("/git-upload-pack", repo.ServiceUploadPack)
