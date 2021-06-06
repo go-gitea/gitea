@@ -65,7 +65,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
-	query := "user3"
+	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -81,7 +81,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 
 func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
 	defer prepareTestEnv(t)()
-	query := "user3"
+	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
