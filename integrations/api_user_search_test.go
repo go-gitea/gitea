@@ -82,7 +82,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
 	defer prepareTestEnv(t)()
 	query := "user3"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
