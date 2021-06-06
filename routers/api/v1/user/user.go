@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -58,10 +59,11 @@ func Search(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &models.SearchUserOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         ctx.QueryInt64("uid"),
-		Type:        models.UserTypeIndividual,
-		ListOptions: listOptions,
+		Keyword:             strings.Trim(ctx.Query("q"), " "),
+		UID:                 ctx.QueryInt64("uid"),
+		Type:                models.UserTypeIndividual,
+		ListOptions:         listOptions,
+		HideFromExplorePage: util.OptionalBoolFalse, // As api is public - respect user privacy
 	}
 
 	users, maxResults, err := models.SearchUsers(opts)
