@@ -59,3 +59,33 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
+	defer prepareTestEnv(t)()
+	adminUsername := "user1"
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
+	query := "user3"
+	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	var results SearchResults
+	DecodeJSON(t, resp, &results)
+	assert.NotEmpty(t, results.Data)
+	for _, user := range results.Data {
+		assert.Contains(t, user.UserName, query)
+		assert.NotEmpty(t, user.Email)
+		assert.True(t, user.HideFromExplorePage)
+	}
+}
+
+func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
+	defer prepareTestEnv(t)()
+	query := "user3"
+	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	var results SearchResults
+	DecodeJSON(t, resp, &results)
+	assert.Empty(t, results.Data)
+}
