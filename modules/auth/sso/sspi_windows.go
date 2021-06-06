@@ -174,8 +174,6 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		} else if req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if middleware.IsInternalPath(req) {
-		shouldAuth = false
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
