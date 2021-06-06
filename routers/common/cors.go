@@ -23,9 +23,9 @@ func CorsHandler() func(next http.Handler) http.Handler {
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		})
-	} else {
-		return func(next http.Handler) http.Handler {
-			return next
-		}
+	}
+
+	return func(next http.Handler) http.Handler {
+		return next
 	}
 }
