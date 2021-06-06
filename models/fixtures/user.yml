@@ -50,6 +50,7 @@
   type: 1 # organization
   salt: ZogKvWdyEx
   is_admin: false
+  hide_from_explode_page: true
   avatar: avatar3
   avatar_email: user3@example.com
   num_repos: 3

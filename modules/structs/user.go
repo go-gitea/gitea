@@ -43,6 +43,8 @@ type User struct {
 	Website string `json:"website"`
 	// the user's description
 	Description string `json:"description"`
+	// user hides from public
+	HideFromExplorePage bool `json:"hide_from_explore_page"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

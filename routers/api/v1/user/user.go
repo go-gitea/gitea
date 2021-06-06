@@ -59,11 +59,10 @@ func Search(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &models.SearchUserOptions{
-		Keyword:             strings.Trim(ctx.Query("q"), " "),
-		UID:                 ctx.QueryInt64("uid"),
-		Type:                models.UserTypeIndividual,
-		ListOptions:         listOptions,
-		HideFromExplorePage: util.OptionalBoolFalse, // As api is public - respect user privacy
+		Keyword:     strings.Trim(ctx.Query("q"), " "),
+		UID:         ctx.QueryInt64("uid"),
+		Type:        models.UserTypeIndividual,
+		ListOptions: listOptions,
 	}
 
 	users, maxResults, err := models.SearchUsers(opts)

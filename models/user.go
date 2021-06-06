@@ -1558,15 +1558,14 @@ func GetUser(user *User) (bool, error) {
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	ListOptions
-	Keyword             string
-	Type                UserType
-	UID                 int64
-	OrderBy             SearchOrderBy
-	Visible             []structs.VisibleType
-	Actor               *User // The user doing the search
-	IsActive            util.OptionalBool
-	HideFromExplorePage util.OptionalBool
-	SearchByEmail       bool // Search by email as well as username/full name
+	Keyword       string
+	Type          UserType
+	UID           int64
+	OrderBy       SearchOrderBy
+	Visible       []structs.VisibleType
+	Actor         *User // The user doing the search
+	IsActive      util.OptionalBool
+	SearchByEmail bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1610,6 +1609,12 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
 		}
 		cond = cond.And(accessCond)
+
+		if !opts.Actor.IsAdmin {
+			cond = cond.And(builder.Eq{"hide_from_explore_page": false}.Or(builder.Eq{"id": opts.Actor.ID}))
+		}
+	} else {
+		cond = cond.And(builder.Eq{"hide_from_explore_page": false})
 	}
 
 	if opts.UID > 0 {
@@ -1618,10 +1623,6 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 	if !opts.IsActive.IsNone() {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
-	}
-
-	if !opts.HideFromExplorePage.IsNone() {
-		cond = cond.And(builder.Eq{"hide_from_explore_page": opts.HideFromExplorePage.IsTrue()})
 	}
 
 	return cond
