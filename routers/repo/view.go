@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 const (
@@ -265,7 +266,9 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		n, _ := dataRc.Read(buf)
 		buf = buf[:n]
 
-		isTextFile := base.IsTextFile(buf)
+		st := typesniffer.DetectContentType(buf)
+		isTextFile := st.IsText()
+
 		ctx.Data["FileIsText"] = isTextFile
 		ctx.Data["FileName"] = readmeFile.name
 		fileSize := int64(0)
@@ -302,7 +305,8 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 					buf = buf[:n]
 
-					isTextFile = base.IsTextFile(buf)
+					st = typesniffer.DetectContentType(buf)
+					isTextFile = st.IsText()
 					ctx.Data["IsTextFile"] = isTextFile
 
 					fileSize = meta.Size
@@ -405,7 +409,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	n, _ := dataRc.Read(buf)
 	buf = buf[:n]
 
-	isTextFile := base.IsTextFile(buf)
+	st := typesniffer.DetectContentType(buf)
+	isTextFile := st.IsText()
+
 	isLFSFile := false
 	isDisplayingSource := ctx.Query("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
@@ -441,14 +447,16 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 				buf = buf[:n]
 
-				isTextFile = base.IsTextFile(buf)
+				st = typesniffer.DetectContentType(buf)
+				isTextFile = st.IsText()
+
 				fileSize = meta.Size
 				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
 			}
 		}
 	}
 
-	isRepresentableAsText := base.IsRepresentableAsText(buf)
+	isRepresentableAsText := st.IsRepresentableAsText()
 	if !isRepresentableAsText {
 		// If we can't show plain text, always try to render.
 		isDisplayingSource = false
@@ -483,8 +491,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 	switch {
 	case isRepresentableAsText:
-		// This will be true for SVGs.
-		if base.IsImageFile(buf) {
+		if st.IsSvgImage() {
 			ctx.Data["IsImageFile"] = true
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
@@ -540,13 +547,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 		}
 
-	case base.IsPDFFile(buf):
+	case st.IsPDF():
 		ctx.Data["IsPDFFile"] = true
-	case base.IsVideoFile(buf):
+	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
-	case base.IsAudioFile(buf):
+	case st.IsAudio():
 		ctx.Data["IsAudioFile"] = true
-	case base.IsImageFile(buf):
+	case st.IsImage() && (setting.UI.SVG.Enabled || !st.IsSvgImage()):
 		ctx.Data["IsImageFile"] = true
 	default:
 		if fileSize >= setting.UI.MaxDisplayFileSize {
