@@ -20,13 +20,22 @@ import (
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User) {
-
 	listOptions := utils.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
 
-	orgs, err := models.GetOrgsByUserID(u.ID, showPrivate)
+	var opts = models.FindOrgOptions{
+		ListOptions:    listOptions,
+		UserID:         u.ID,
+		IncludePrivate: showPrivate,
+	}
+	orgs, err := models.FindOrgs(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
+		ctx.Error(http.StatusInternalServerError, "FindOrgs", err)
+		return
+	}
+	maxResults, err := models.CountOrgs(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CountOrgs", err)
 		return
 	}
 

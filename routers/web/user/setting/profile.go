@@ -230,10 +230,14 @@ func Organization(ctx *context.Context) {
 
 	orgs, err := models.FindOrgs(opts)
 	if err != nil {
-		ctx.ServerError("GetOrgsByUserID", err)
+		ctx.ServerError("FindOrgs", err)
 		return
 	}
 	total, err := models.CountOrgs(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgs", err)
+		return
+	}
 	ctx.Data["Orgs"] = orgs
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
