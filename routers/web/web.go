@@ -54,17 +54,10 @@ const (
 	GzipMinSize = 1400
 )
 
-var corsHandler func(http.Handler) http.Handler
-
-// NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
-	r := web.NewRoute()
-	for _, middle := range common.Middlewares() {
-		r.Use(middle)
-	}
-
+// CorsHandler return a http handler who set CORS options if enabled by config
+func CorsHandler() func(next http.Handler) http.Handler {
 	if setting.CORSConfig.Enabled {
-		corsHandler = cors.Handler(cors.Options{
+		return cors.Handler(cors.Options{
 			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
 			AllowedOrigins: setting.CORSConfig.AllowDomain,
 			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
@@ -73,10 +66,19 @@ func NormalRoutes() *web.Route {
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		})
 	} else {
-		corsHandler = func(next http.Handler) http.Handler {
+		return func(next http.Handler) http.Handler {
 			return next
 		}
 	}
+}
+
+// NormalRoutes represents non install routes
+func NormalRoutes() *web.Route {
+	r := web.NewRoute()
+	for _, middle := range common.Middlewares() {
+		r.Use(middle)
+	}
+
 	r.Mount("/", Routes())
 	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
@@ -90,7 +92,7 @@ func Routes() *web.Route {
 	routes.Use(public.AssetsHandler(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
 		Prefix:      "/assets",
-		CorsHandler: corsHandler,
+		CorsHandler: CorsHandler(),
 	}))
 
 	routes.Use(session.Sessioner(session.Options{
@@ -303,7 +305,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
-	m.Post("/login/oauth/access_token", corsHandler, bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
