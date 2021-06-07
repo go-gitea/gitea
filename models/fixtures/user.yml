@@ -508,7 +508,6 @@
   num_repos: 0
   is_active: true
 
-
 -
   id: 30
   lower_name: user30
@@ -526,7 +525,7 @@
   num_repos: 2
   is_active: true
 
-  -
+-
   id: 31
   lower_name: user31
   name: user31
@@ -541,5 +540,5 @@
   hide_from_explore_page: true
   avatar: avatar31
   avatar_email: user31@example.com
-  is_active: true
   num_repos: 0
+  is_active: true

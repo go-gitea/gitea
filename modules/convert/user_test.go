@@ -29,9 +29,9 @@ func TestUser_ToUser(t *testing.T) {
 	assert.False(t, apiUser.IsAdmin)
 	assert.False(t, apiUser.HideFromExplorePage)
 
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3, IsAdmin: false, HideFromExplorePage: true}).(*models.User)
+	user31 := models.AssertExistsAndLoadBean(t, &models.User{ID: 31, IsAdmin: false, HideFromExplorePage: true}).(*models.User)
 
-	apiUser = toUser(user3, true, true)
+	apiUser = toUser(user31, true, true)
 	assert.False(t, apiUser.IsAdmin)
 	assert.True(t, apiUser.HideFromExplorePage)
 
