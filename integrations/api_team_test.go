@@ -148,7 +148,7 @@ func TestAPITeamSearch(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
-	assert.Equal(t, 1, len(results.Data))
+	assert.Len(t, results.Data, 1)
 	assert.Equal(t, "test_team", results.Data[0].Name)
 
 	// no access if not organization member
