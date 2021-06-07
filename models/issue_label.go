@@ -779,3 +779,36 @@ func deleteLabelsByRepoID(sess Engine, repoID int64) error {
 	_, err := sess.Delete(&Label{RepoID: repoID})
 	return err
 }
+
+// CountWrongLabels counts wrong data in issue_label and label
+func CountWrongLabels() (int64, int64, error) {
+	wrongLabels, err := x.Where("repo_id > 0 and repo_id not in (select id from repository)").Count(new(Label))
+	if err != nil {
+		return 0, 0, err
+	}
+
+	wrongIssueLabels, err := x.Where("label_id IN (select id from label where repo_id > 0 and repo_id not in (select id from repository))").Count(new(IssueLabel))
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return wrongLabels, wrongIssueLabels, nil
+}
+
+// FixWrongLabels fix wrong data in label
+func FixWrongLabels() (int64, error) {
+	res, err := x.Exec("DELETE FROM label WHERE repo_id > 0 and repo_id not in (select id from repository)")
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// FixWrongIssueLables fix wrong label data
+func FixWrongIssueLables() (int64, error) {
+	res, err := x.Exec("DELETE FROM issue_label WHERE label_id in (select id FROM label WHERE repo_id > 0 and repo_id not in (select id from repository))")
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
