@@ -402,6 +402,7 @@ func GetAllUsers(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		Actor:       ctx.User,
 		Type:        models.UserTypeIndividual,
 		OrderBy:     models.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
