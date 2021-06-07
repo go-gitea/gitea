@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -82,34 +83,23 @@ func Branches(ctx *context.Context) {
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 	branchName := ctx.Query("name")
-	if branchName == ctx.Repo.Repository.DefaultBranch {
-		log.Debug("DeleteBranch: Can't delete default branch '%s'", branchName)
-		ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
-		return
-	}
 
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-	if err != nil {
-		log.Error("DeleteBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
-		return
-	}
+	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+		switch {
+		case git.IsErrBranchNotExist(err):
+			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
+		case errors.Is(err, repo_service.ErrBranchIsDefault):
+			log.Debug("DeleteBranch: Can't delete default branch '%s'", branchName)
+			ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
+		case errors.Is(err, repo_service.ErrBranchIsProtected):
+			log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
+			ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
+		default:
+			log.Error("DeleteBranch: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
+		}
 
-	if isProtected {
-		log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
-		ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
-		return
-	}
-
-	if !ctx.Repo.GitRepo.IsBranchExist(branchName) {
-		log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
-		return
-	}
-
-	if err := deleteBranch(ctx, branchName); err != nil {
-		log.Error("DeleteBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", branchName))
 		return
 	}
 
@@ -166,41 +156,6 @@ func redirect(ctx *context.Context) {
 	ctx.JSON(200, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/branches",
 	})
-}
-
-func deleteBranch(ctx *context.Context, branchName string) error {
-	commit, err := ctx.Repo.GitRepo.GetBranchCommit(branchName)
-	if err != nil {
-		log.Error("GetBranchCommit: %v", err)
-		return err
-	}
-
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: true,
-	}); err != nil {
-		log.Error("DeleteBranch: %v", err)
-		return err
-	}
-
-	// Don't return error below this
-	if err := repo_service.PushUpdate(
-		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
-			OldCommitID:  commit.ID.String(),
-			NewCommitID:  git.EmptySHA,
-			PusherID:     ctx.User.ID,
-			PusherName:   ctx.User.Name,
-			RepoUserName: ctx.Repo.Owner.Name,
-			RepoName:     ctx.Repo.Repository.Name,
-		}); err != nil {
-		log.Error("Update: %v", err)
-	}
-
-	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, commit.ID.String(), ctx.User.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
-	}
-
-	return nil
 }
 
 // loadBranches loads branches from the repository limited by page & pageSize.
