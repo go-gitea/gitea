@@ -67,6 +67,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	req.SetBasicAuth(token, "x-oauth-basic")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
