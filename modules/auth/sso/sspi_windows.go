@@ -63,7 +63,7 @@ func (s *SSPI) Init() error {
 }
 
 // Name represents the name of auth method
-func (b *SSPI) Name() string {
+func (s *SSPI) Name() string {
 	return "sspi"
 }
 
