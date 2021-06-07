@@ -1,22 +1,38 @@
+const selector = '[data-clipboard-target], [data-clipboard-text]';
+
+// TODO: replace these with toast-style notifications
+function onSuccess(btn) {
+  if (!btn.dataset.content) return;
+  $(btn).popup('destroy');
+  btn.dataset.content = btn.dataset.success;
+  $(btn).popup('show');
+  btn.dataset.content = btn.dataset.original;
+}
+function onError(btn) {
+  if (!btn.dataset.content) return;
+  $(btn).popup('destroy');
+  btn.dataset.content = btn.dataset.error;
+  $(btn).popup('show');
+  btn.dataset.content = btn.dataset.original;
+}
+
 export default async function initClipboard() {
-  const els = document.querySelectorAll('.clipboard');
-  if (!els || !els.length) return;
+  for (const btn of document.querySelectorAll(selector) || []) {
+    btn.addEventListener('click', async () => {
+      let text;
+      if (btn.dataset.clipboardText) {
+        text = btn.dataset.clipboardText;
+      } else if (btn.dataset.clipboardTarget) {
+        text = document.querySelector(btn.dataset.clipboardTarget)?.value;
+      }
+      if (!text) return;
 
-  const {default: ClipboardJS} = await import(/* webpackChunkName: "clipboard" */'clipboard');
-
-  const clipboard = new ClipboardJS(els);
-  clipboard.on('success', (e) => {
-    e.clearSelection();
-    $(e.trigger).popup('destroy');
-    e.trigger.dataset.content = e.trigger.dataset.success;
-    $(e.trigger).popup('show');
-    e.trigger.dataset.content = e.trigger.dataset.original;
-  });
-
-  clipboard.on('error', (e) => {
-    $(e.trigger).popup('destroy');
-    e.trigger.dataset.content = e.trigger.dataset.error;
-    $(e.trigger).popup('show');
-    e.trigger.dataset.content = e.trigger.dataset.original;
-  });
+      try {
+        await navigator.clipboard.writeText(text);
+        onSuccess(btn);
+      } catch {
+        onError(btn);
+      }
+    });
+  }
 }

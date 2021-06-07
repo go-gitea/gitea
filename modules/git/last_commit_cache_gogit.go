@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"path"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -60,7 +61,7 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 }
 
 // CacheCommit will cache the commit from the gitRepository
-func (c *LastCommitCache) CacheCommit(commit *Commit) error {
+func (c *LastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
 
 	commitNodeIndex, _ := commit.repo.CommitNodeIndex()
 
@@ -69,10 +70,10 @@ func (c *LastCommitCache) CacheCommit(commit *Commit) error {
 		return err
 	}
 
-	return c.recursiveCache(index, &commit.Tree, "", 1)
+	return c.recursiveCache(ctx, index, &commit.Tree, "", 1)
 }
 
-func (c *LastCommitCache) recursiveCache(index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
+func (c *LastCommitCache) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -89,7 +90,7 @@ func (c *LastCommitCache) recursiveCache(index cgobject.CommitNode, tree *Tree, 
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(index, treePath, entryPaths)
+	commits, err := GetLastCommitForPaths(ctx, index, treePath, entryPaths)
 	if err != nil {
 		return err
 	}
@@ -103,7 +104,7 @@ func (c *LastCommitCache) recursiveCache(index cgobject.CommitNode, tree *Tree, 
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(index, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(ctx, index, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}

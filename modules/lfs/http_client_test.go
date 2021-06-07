@@ -56,7 +56,7 @@ func TestHTTPClientDownload(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, "download", batchRequest.Operation)
-			assert.Equal(t, 1, len(batchRequest.Objects))
+			assert.Len(t, batchRequest.Objects, 1)
 			assert.Equal(t, oid, batchRequest.Objects[0].Oid)
 			assert.Equal(t, size, batchRequest.Objects[0].Size)
 

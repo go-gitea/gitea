@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func Test_isGitOrLFSPath(t *testing.T) {
+func Test_isGitRawOrLFSPath(t *testing.T) {
 
 	tests := []struct {
 		path string
@@ -64,6 +64,10 @@ func Test_isGitOrLFSPath(t *testing.T) {
 			true,
 		},
 		{
+			"/owner/repo/raw/branch/foo/fanaso",
+			true,
+		},
+		{
 			"/owner/repo/stars",
 			false,
 		},
@@ -98,11 +102,11 @@ func Test_isGitOrLFSPath(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", "http://localhost"+tt.path, nil)
 			setting.LFS.StartServer = false
-			if got := isGitOrLFSPath(req); got != tt.want {
+			if got := isGitRawOrLFSPath(req); got != tt.want {
 				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
 			}
 			setting.LFS.StartServer = true
-			if got := isGitOrLFSPath(req); got != tt.want {
+			if got := isGitRawOrLFSPath(req); got != tt.want {
 				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
 			}
 		})
@@ -111,11 +115,11 @@ func Test_isGitOrLFSPath(t *testing.T) {
 		t.Run(tt, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", tt, nil)
 			setting.LFS.StartServer = false
-			if got := isGitOrLFSPath(req); got != setting.LFS.StartServer {
-				t.Errorf("isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitPathRe.MatchString(tt))
+			if got := isGitRawOrLFSPath(req); got != setting.LFS.StartServer {
+				t.Errorf("isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitRawPathRe.MatchString(tt))
 			}
 			setting.LFS.StartServer = true
-			if got := isGitOrLFSPath(req); got != setting.LFS.StartServer {
+			if got := isGitRawOrLFSPath(req); got != setting.LFS.StartServer {
 				t.Errorf("isGitOrLFSPath(%q) = %v, want %v", tt, got, setting.LFS.StartServer)
 			}
 		})

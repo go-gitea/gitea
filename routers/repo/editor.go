@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -106,6 +107,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.NotFound("blob.Data", err)
 			return
 		}
+
 		defer dataRc.Close()
 
 		ctx.Data["FileSize"] = blob.Size()
@@ -116,12 +118,16 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		buf = buf[:n]
 
 		// Only some file types are editable online as text.
-		if !base.IsRepresentableAsText(buf) {
-			ctx.NotFound("base.IsRepresentableAsText", nil)
+		if !typesniffer.DetectContentType(buf).IsRepresentableAsText() {
+			ctx.NotFound("typesniffer.IsRepresentableAsText", nil)
 			return
 		}
 
 		d, _ := ioutil.ReadAll(dataRc)
+		if err := dataRc.Close(); err != nil {
+			log.Error("Error whilst closing blob data: %v", err)
+		}
+
 		buf = append(buf, d...)
 		if content, err := charset.ToUTF8WithErr(buf); err != nil {
 			log.Error("ToUTF8WithErr: %v", err)
