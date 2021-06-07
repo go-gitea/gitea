@@ -57,7 +57,7 @@ func (o *OAuth2) Init() error {
 }
 
 // Name represents the name of auth method
-func (b *OAuth2) Name() string {
+func (o *OAuth2) Name() string {
 	return "oauth2"
 }
 

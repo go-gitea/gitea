@@ -40,7 +40,7 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 }
 
 // Name represents the name of auth method
-func (b *ReverseProxy) Name() string {
+func (r *ReverseProxy) Name() string {
 	return "reverse_proxy"
 }
 

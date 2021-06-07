@@ -26,7 +26,7 @@ func (s *Session) Init() error {
 }
 
 // Name represents the name of auth method
-func (b *Session) Name() string {
+func (s *Session) Name() string {
 	return "session"
 }
 
