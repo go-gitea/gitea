@@ -399,8 +399,6 @@ func GetAllUsers(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	log.Trace("GetAllUsers requested by admin(%s): is admin?= %ui", ctx.User.Name, ctx.User.IsAdmin)
-
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{

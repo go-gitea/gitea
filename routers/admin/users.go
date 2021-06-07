@@ -37,7 +37,8 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 
 	routers.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type: models.UserTypeIndividual,
+		Actor: ctx.User,
+		Type:  models.UserTypeIndividual,
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
