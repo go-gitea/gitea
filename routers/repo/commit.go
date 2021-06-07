@@ -355,7 +355,7 @@ func Diff(ctx *context.Context) {
 	}
 
 	note := &git.Note{}
-	err = git.GetNote(ctx.Repo.GitRepo, commitID, note)
+	err = git.GetNote(ctx, ctx.Repo.GitRepo, commitID, note)
 	if err == nil {
 		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
