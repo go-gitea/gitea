@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -42,6 +43,32 @@ type RenderContext struct {
 	URLPrefix   string
 	Metas       map[string]string
 	DefaultLink string
+	GitRepo     *git.Repository
+	cancelFn    func()
+}
+
+// Cancel runs any cleanup functions that have been registered for this Ctx
+func (ctx *RenderContext) Cancel() {
+	if ctx == nil || ctx.cancelFn == nil {
+		return
+	}
+	ctx.cancelFn()
+}
+
+// AddCancel adds the provided fn as a Cleanup for this Ctx
+func (ctx *RenderContext) AddCancel(fn func()) {
+	if ctx == nil {
+		return
+	}
+	oldCancelFn := ctx.cancelFn
+	if oldCancelFn == nil {
+		ctx.cancelFn = fn
+		return
+	}
+	ctx.cancelFn = func() {
+		defer oldCancelFn()
+		fn()
+	}
 }
 
 // Renderer defines an interface for rendering markup file to HTML

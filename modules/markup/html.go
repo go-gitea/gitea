@@ -285,6 +285,7 @@ var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM
 var nulCleaner = strings.NewReplacer("\000", "")
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
+	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
 	rawHTML, err := ioutil.ReadAll(input)
 	if err != nil {
@@ -947,6 +948,17 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		return
 	}
 	hash := node.Data[m[2]:m[3]]
+
+	if ctx.GitRepo == nil {
+		var err error
+		ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repo"])
+		if err != nil {
+			log.Error("unable to open repository: %s Error: %v", ctx.Metas["repo"], err)
+			return
+		}
+		ctx.AddCancel(ctx.GitRepo.Close)
+	}
+
 	// The regex does not lie, it matches the hash pattern.
 	// However, a regex cannot know if a hash actually exists or not.
 	// We could assume that a SHA1 hash should probably contain alphas AND numerics
@@ -955,10 +967,8 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 	// as used by git and github for linking and thus we have to do similar.
 	// Because of this, we check to make sure that a matched hash is actually
 	// a commit in the repository before making it a link.
-	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.Metas["repoPath"]); err != nil {
-		if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
-		}
+
+	if !ctx.GitRepo.IsObjectExist(hash) {
 		return
 	}
 
