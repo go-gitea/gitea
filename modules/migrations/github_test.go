@@ -147,7 +147,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	// downloader.GetIssues()
 	issues, isEnd, err := downloader.GetIssues(1, 2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(issues))
+	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
 
 	var (
@@ -242,7 +242,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	// downloader.GetComments()
 	comments, err := downloader.GetComments(2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(comments))
+	assert.Len(t, comments, 2)
 	assert.EqualValues(t, []*base.Comment{
 		{
 			IssueIndex: 2,
@@ -273,7 +273,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	// downloader.GetPullRequests()
 	prs, _, err := downloader.GetPullRequests(1, 2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(prs))
+	assert.Len(t, prs, 2)
 
 	closed1 = time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)
 	var merged1 = time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)
