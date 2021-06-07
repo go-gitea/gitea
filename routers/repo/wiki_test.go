@@ -64,7 +64,7 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas interface{}) {
 	if !assert.True(t, ok) {
 		return
 	}
-	if !assert.EqualValues(t, len(expectedNames), len(pageMetas)) {
+	if !assert.Len(t, pageMetas, len(expectedNames)) {
 		return
 	}
 	for i, pageMeta := range pageMetas {

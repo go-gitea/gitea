@@ -188,7 +188,7 @@ func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())
 		go q.internal.Run(func(_ func()) {}, func(_ func()) {})
 		go func() {
 			_ = q.internal.Flush(0)
-			log.Debug("LevelUniqueQueue: %s flushed so shutting down", q.internal.(*LevelQueue).Name())
+			log.Debug("LevelUniqueQueue: %s flushed so shutting down", q.internal.(*LevelUniqueQueue).Name())
 			q.internal.(*LevelUniqueQueue).Shutdown()
 			GetManager().Remove(q.internal.(*LevelUniqueQueue).qid)
 		}()

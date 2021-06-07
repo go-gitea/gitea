@@ -69,7 +69,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		// user1 on this org is public
 		var users []*api.User
 		DecodeJSON(t, resp, &users)
-		assert.EqualValues(t, 1, len(users))
+		assert.Len(t, users, 1)
 		assert.EqualValues(t, "user1", users[0].UserName)
 	})
 }

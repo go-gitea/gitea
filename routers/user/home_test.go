@@ -33,9 +33,9 @@ func TestArchivedIssues(t *testing.T) {
 		IsArchived[repo.ID] = repo.IsArchived
 		NumIssues[repo.ID] = repo.NumIssues
 	}
-	assert.EqualValues(t, false, IsArchived[50])
+	assert.False(t, IsArchived[50])
 	assert.EqualValues(t, 1, NumIssues[50])
-	assert.EqualValues(t, true, IsArchived[51])
+	assert.True(t, IsArchived[51])
 	assert.EqualValues(t, 1, NumIssues[51])
 
 	// Act
