@@ -13,7 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
-// IsReferenceExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if given reference exists in the repository.
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
