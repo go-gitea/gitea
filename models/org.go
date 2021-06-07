@@ -425,6 +425,25 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
+// QueryUserOrgIDs returns a condition to return user's organization id
+func QueryUserOrgIDs(uid int64) *builder.Builder {
+	return builder.Select("team.org_id").
+		From("team_user").InnerJoin("team", "team.id = team_user.team_id").
+		Where(builder.Eq{"team_user.uid": uid})
+}
+
+// SimpleOrg represents a simple orgnization with only needed columns
+type SimpleOrg = User
+
+// GetUserOrgsList returns one user's all orgs list
+func GetUserOrgsList(uid int64) ([]*SimpleOrg, error) {
+	var orgs = make([]*SimpleOrg, 0, 20)
+	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
+		Table("user").
+		In("id", QueryUserOrgIDs(uid)).
+		Find(&orgs)
+}
+
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
