@@ -78,42 +78,42 @@ func TestGPGKeys(t *testing.T) {
 
 		primaryKey1 := keys[0] //Primary key 1
 		assert.EqualValues(t, "38EA3BCED732982C", primaryKey1.KeyID)
-		assert.EqualValues(t, 1, len(primaryKey1.Emails))
+		assert.Len(t, primaryKey1.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", primaryKey1.Emails[0].Email)
-		assert.EqualValues(t, true, primaryKey1.Emails[0].Verified)
+		assert.True(t, primaryKey1.Emails[0].Verified)
 
 		subKey := primaryKey1.SubsKey[0] //Subkey of 38EA3BCED732982C
 		assert.EqualValues(t, "70D7C694D17D03AD", subKey.KeyID)
-		assert.EqualValues(t, 0, len(subKey.Emails))
+		assert.Empty(t, subKey.Emails)
 
 		primaryKey2 := keys[1] //Primary key 2
 		assert.EqualValues(t, "FABF39739FE1E927", primaryKey2.KeyID)
-		assert.EqualValues(t, 1, len(primaryKey2.Emails))
+		assert.Len(t, primaryKey2.Emails, 1)
 		assert.EqualValues(t, "user21@example.com", primaryKey2.Emails[0].Email)
-		assert.EqualValues(t, false, primaryKey2.Emails[0].Verified)
+		assert.False(t, primaryKey2.Emails[0].Verified)
 
 		var key api.GPGKey
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+token) //Primary key 1
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
-		assert.EqualValues(t, 1, len(key.Emails))
+		assert.Len(t, key.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
-		assert.EqualValues(t, true, key.Emails[0].Verified)
+		assert.True(t, key.Emails[0].Verified)
 
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+token) //Subkey of 38EA3BCED732982C
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
-		assert.EqualValues(t, 0, len(key.Emails))
+		assert.Empty(t, key.Emails)
 
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey2.ID, 10)+"?token="+token) //Primary key 2
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "FABF39739FE1E927", key.KeyID)
-		assert.EqualValues(t, 1, len(key.Emails))
+		assert.Len(t, key.Emails, 1)
 		assert.EqualValues(t, "user21@example.com", key.Emails[0].Email)
-		assert.EqualValues(t, false, key.Emails[0].Verified)
+		assert.False(t, key.Emails[0].Verified)
 
 	})
 
@@ -124,7 +124,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
@@ -132,7 +132,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
@@ -140,7 +140,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, true, branch.Commit.Verification.Verified)
+			assert.True(t, branch.Commit.Verification.Verified)
 		})
 	})
 }

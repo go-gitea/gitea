@@ -38,6 +38,8 @@ type MarkupSanitizerRule struct {
 }
 
 func newMarkup() {
+	ExternalMarkupRenderers = make([]MarkupRenderer, 0, 10)
+	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 	for _, sec := range Cfg.Section("markup").ChildSections() {
 		name := strings.TrimPrefix(sec.Name(), "markup.")
 		if name == "" {

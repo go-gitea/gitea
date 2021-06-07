@@ -223,9 +223,9 @@ func TestInt64sToMap(t *testing.T) {
 
 func TestInt64sContains(t *testing.T) {
 	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
-	assert.Equal(t, true, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
-	assert.Equal(t, true, Int64sContains([]int64{2323}, 2323))
-	assert.Equal(t, false, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
+	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
+	assert.True(t, Int64sContains([]int64{2323}, 2323))
+	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
 }
 
 func TestIsLetter(t *testing.T) {
@@ -249,7 +249,7 @@ func TestIsLetter(t *testing.T) {
 
 func TestSetupGiteaRoot(t *testing.T) {
 	_ = os.Setenv("GITEA_ROOT", "test")
-	assert.EqualValues(t, "test", SetupGiteaRoot())
+	assert.Equal(t, "test", SetupGiteaRoot())
 	_ = os.Setenv("GITEA_ROOT", "")
 	assert.NotEqual(t, "test", SetupGiteaRoot())
 }
