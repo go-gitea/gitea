@@ -532,7 +532,7 @@ func (opts FindOrgOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"`org_user`.uid": opts.UserID})
 	}
 	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"`user`.visibility=?": structs.VisibleTypePublic})
+		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
 	}
 	return cond
 }
