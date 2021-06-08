@@ -42,6 +42,7 @@ import (
 	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
 )
@@ -51,6 +52,24 @@ const (
 	GzipMinSize = 1400
 )
 
+// CorsHandler return a http handler who set CORS options if enabled by config
+func CorsHandler() func(next http.Handler) http.Handler {
+	if setting.CORSConfig.Enabled {
+		return cors.Handler(cors.Options{
+			//Scheme:           setting.CORSConfig.Scheme, // FIXME: the cors middleware needs scheme option
+			AllowedOrigins: setting.CORSConfig.AllowDomain,
+			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
+			AllowedMethods:   setting.CORSConfig.Methods,
+			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
+		})
+	}
+
+	return func(next http.Handler) http.Handler {
+		return next
+	}
+}
+
 // Routes returns all web routes
 func Routes() *web.Route {
 	routes := web.NewRoute()
@@ -58,7 +77,7 @@ func Routes() *web.Route {
 	routes.Use(public.AssetsHandler(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
 		Prefix:      "/assets",
-		CorsHandler: common.CorsHandler(),
+		CorsHandler: CorsHandler(),
 	}))
 
 	routes.Use(session.Sessioner(session.Options{
@@ -271,7 +290,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/authorize", bindIgnErr(forms.AuthorizationForm{}), user.AuthorizeOAuth)
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
-	m.Post("/login/oauth/access_token", common.CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
