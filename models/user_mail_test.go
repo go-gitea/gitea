@@ -138,7 +138,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	}
 	err := MakeEmailPrimary(email)
 	assert.Error(t, err)
-	assert.EqualError(t, err, ErrEmailAddressNotExist.Error())
+	assert.EqualError(t, err, ErrEmailAddressNotExist{email.Email}.Error())
 
 	email = &EmailAddress{
 		Email: "user11@example.com",
