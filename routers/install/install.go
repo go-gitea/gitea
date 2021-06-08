@@ -1,11 +1,11 @@
 // Copyright 2014 The Gogs Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package install
 
 import (
-	std_context "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,14 +21,12 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -84,40 +82,6 @@ func Init(next http.Handler) http.Handler {
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
-}
-
-// PreInit preloads the configuration to check if we need to run install
-func PreInit(ctx std_context.Context) bool {
-	setting.NewContext()
-	if !setting.InstallLock {
-		log.Trace("AppPath: %s", setting.AppPath)
-		log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-		log.Trace("Custom path: %s", setting.CustomPath)
-		log.Trace("Log path: %s", setting.LogRootPath)
-		log.Trace("Preparing to run install page")
-		translation.InitLocales()
-		if setting.EnableSQLite3 {
-			log.Info("SQLite3 Supported")
-		}
-		setting.InitDBConfig()
-		svg.Init()
-	}
-
-	return !setting.InstallLock
-}
-
-// PostInit rereads the settings and starts up the database
-func PostInit(ctx std_context.Context) {
-	setting.NewContext()
-	setting.InitDBConfig()
-	if setting.InstallLock {
-		if err := common.InitDBEngine(ctx); err == nil {
-			log.Info("ORM engine initialization successful!")
-		} else {
-			log.Fatal("ORM engine initialization failed: %v", err)
-		}
-		svg.Init()
-	}
 }
 
 // Install render installation page
@@ -446,7 +410,7 @@ func SubmitInstall(ctx *context.Context) {
 	}
 
 	// Re-read settings
-	PostInit(ctx)
+	ReloadSettings(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {

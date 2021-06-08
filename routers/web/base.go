@@ -113,12 +113,10 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 	}
 }
 
-type dataStore struct {
-	Data map[string]interface{}
-}
+type dataStore map[string]interface{}
 
 func (d *dataStore) GetData() map[string]interface{} {
-	return d.Data
+	return *d
 }
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
@@ -144,11 +142,9 @@ func Recovery() func(next http.Handler) http.Handler {
 
 					var lc = middleware.Locale(w, req)
 					var store = dataStore{
-						Data: templates.Vars{
-							"Language":   lc.Language(),
-							"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
-							"i18n":       lc,
-						},
+						"Language":   lc.Language(),
+						"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
+						"i18n":       lc,
 					}
 
 					var user *models.User
@@ -165,22 +161,22 @@ func Recovery() func(next http.Handler) http.Handler {
 						user = sso.SessionUser(sessionStore)
 					}
 					if user != nil {
-						store.Data["IsSigned"] = true
-						store.Data["SignedUser"] = user
-						store.Data["SignedUserID"] = user.ID
-						store.Data["SignedUserName"] = user.Name
-						store.Data["IsAdmin"] = user.IsAdmin
+						store["IsSigned"] = true
+						store["SignedUser"] = user
+						store["SignedUserID"] = user.ID
+						store["SignedUserName"] = user.Name
+						store["IsAdmin"] = user.IsAdmin
 					} else {
-						store.Data["SignedUserID"] = int64(0)
-						store.Data["SignedUserName"] = ""
+						store["SignedUserID"] = int64(0)
+						store["SignedUserName"] = ""
 					}
 
 					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 					if !setting.IsProd() {
-						store.Data["ErrorMsg"] = combinedErr
+						store["ErrorMsg"] = combinedErr
 					}
-					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
+					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
 					}

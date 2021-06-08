@@ -21,7 +21,7 @@ const (
 )
 
 // Codes render explore code page
-func Codes(ctx *context.Context) {
+func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
 		ctx.Redirect(setting.AppSubURL+"/explore", 302)
 		return

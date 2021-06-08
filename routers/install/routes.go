@@ -21,12 +21,10 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-type dataStore struct {
-	Data map[string]interface{}
-}
+type dataStore map[string]interface{}
 
 func (d *dataStore) GetData() map[string]interface{} {
-	return d.Data
+	return *d
 }
 
 func installRecovery() func(next http.Handler) http.Handler {
@@ -56,21 +54,19 @@ func installRecovery() func(next http.Handler) http.Handler {
 
 					lc := middleware.Locale(w, req)
 					var store = dataStore{
-						Data: templates.Vars{
-							"Language":       lc.Language(),
-							"CurrentURL":     setting.AppSubURL + req.URL.RequestURI(),
-							"i18n":           lc,
-							"SignedUserID":   int64(0),
-							"SignedUserName": "",
-						},
+						"Language":       lc.Language(),
+						"CurrentURL":     setting.AppSubURL + req.URL.RequestURI(),
+						"i18n":           lc,
+						"SignedUserID":   int64(0),
+						"SignedUserName": "",
 					}
 
 					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 					if !setting.IsProd() {
-						store.Data["ErrorMsg"] = combinedErr
+						store["ErrorMsg"] = combinedErr
 					}
-					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store.Data))
+					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
 					}
