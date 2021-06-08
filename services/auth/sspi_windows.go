@@ -32,10 +32,10 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ Auth = &SSPI{}
+	_ SingleSignOn = &SSPI{}
 )
 
-// SSPI implements the Auth interface and authenticates requests
+// SSPI implements the SingleSignOn interface and authenticates requests
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.
@@ -72,16 +72,11 @@ func (s *SSPI) Free() error {
 	return sspiAuth.Free()
 }
 
-// IsEnabled checks if there is an active SSPI authentication source
-func (s *SSPI) IsEnabled() bool {
-	return models.IsSSPIEnabled()
-}
-
-// VerifyAuthData uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
+// Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
 // If authentication is successful, returs the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !s.shouldAuthenticate(req) {
 		return nil
 	}
@@ -240,10 +235,12 @@ func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
 	return username
 }
 
-// init registers the SSPI auth method as the last method in the list.
+// specialInit registers the SSPI auth method as the last method in the list.
 // The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
-func init() {
-	Register(&SSPI{})
+func specialInit() {
+	if models.IsSSPIEnabled() {
+		Register(&SSPI{})
+	}
 }

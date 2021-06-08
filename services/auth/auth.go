@@ -55,6 +55,7 @@ func Init() {
 	if setting.Service.EnableReverseProxyAuth {
 		Register(&ReverseProxy{})
 	}
+	specialInit()
 	for _, method := range Methods() {
 		err := method.Init()
 		if err != nil {
