@@ -220,11 +220,8 @@ func (ctx *APIContext) CheckForOTP() {
 // APIAuth converts auth.Auth as a middleware
 func APIAuth(authMethod auth.Auth) func(*APIContext) {
 	return func(ctx *APIContext) {
-		if !authMethod.IsEnabled() {
-			return
-		}
 		// Get user from session if logged in.
-		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
 			ctx.IsSigned = true

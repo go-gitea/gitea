@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Ensure the struct implements the interface.
@@ -35,19 +36,40 @@ func (s *Session) Free() error {
 	return nil
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible to disable
-// it from settings.
-func (s *Session) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData checks if there is a user uid stored in the session and returns the user
+// Verify checks if there is a user uid stored in the session and returns the user
 // object for that uid.
 // Returns nil if there is no user uid stored in the session.
-func (s *Session) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	user := SessionUser(sess)
 	if user != nil {
 		return user
 	}
 	return nil
+}
+
+// SessionUser returns the user object corresponding to the "uid" session variable.
+func SessionUser(sess SessionStore) *models.User {
+	// Get user ID
+	uid := sess.Get("uid")
+	if uid == nil {
+		return nil
+	}
+	log.Trace("Session Authorization: Found user[%d]", uid)
+
+	id, ok := uid.(int64)
+	if !ok {
+		return nil
+	}
+
+	// Get user object
+	user, err := models.GetUserByID(id)
+	if err != nil {
+		if !models.IsErrUserNotExist(err) {
+			log.Error("GetUserById: %v", err)
+		}
+		return nil
+	}
+
+	log.Trace("Session Authorization: Logged in user %-v", user)
+	return user
 }

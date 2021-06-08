@@ -43,17 +43,11 @@ func (b *Basic) Free() error {
 	return nil
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible to disable
-// it from settings.
-func (b *Basic) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData extracts and validates Basic data (username and password/token) from the
+// Verify extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
 		return nil

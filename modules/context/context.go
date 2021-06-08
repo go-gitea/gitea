@@ -608,11 +608,7 @@ func getCsrfOpts() CsrfOptions {
 // Auth converts auth.Auth as a middleware
 func Auth(authMethod auth.Auth) func(*Context) {
 	return func(ctx *Context) {
-		if !authMethod.IsEnabled() {
-			return
-		}
-
-		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
 			ctx.IsSigned = true

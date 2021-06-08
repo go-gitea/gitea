@@ -31,7 +31,6 @@ var authMethods = []Auth{
 	&OAuth2{},
 	&Basic{},
 	&Session{},
-	&ReverseProxy{},
 }
 
 // The purpose of the following three function variables is to let the linter know that
@@ -53,6 +52,9 @@ func Register(method Auth) {
 // Init should be called exactly once when the application starts to allow plugins
 // to allocate necessary resources
 func Init() {
+	if setting.Service.EnableReverseProxyAuth {
+		Register(&ReverseProxy{})
+	}
 	for _, method := range Methods() {
 		err := method.Init()
 		if err != nil {
@@ -70,33 +72,6 @@ func Free() {
 			log.Error("Could not free '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
 	}
-}
-
-// SessionUser returns the user object corresponding to the "uid" session variable.
-func SessionUser(sess SessionStore) *models.User {
-	// Get user ID
-	uid := sess.Get("uid")
-	if uid == nil {
-		return nil
-	}
-	log.Trace("Session Authorization: Found user[%d]", uid)
-
-	id, ok := uid.(int64)
-	if !ok {
-		return nil
-	}
-
-	// Get user object
-	user, err := models.GetUserByID(id)
-	if err != nil {
-		if !models.IsErrUserNotExist(err) {
-			log.Error("GetUserById: %v", err)
-		}
-		return nil
-	}
-
-	log.Trace("Session Authorization: Logged in user %-v", user)
-	return user
 }
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment

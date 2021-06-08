@@ -52,24 +52,15 @@ func (b *Group) Free() error {
 	return nil
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible to disable
-// it from settings.
-func (b *Group) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData extracts and validates
-func (b *Group) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+// Verify extracts and validates
+func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !models.HasEngine {
 		return nil
 	}
 
 	// Try to sign in with each of the enabled plugins
 	for _, ssoMethod := range b.methods {
-		if !ssoMethod.IsEnabled() {
-			continue
-		}
-		user := ssoMethod.VerifyAuthData(req, w, store, sess)
+		user := ssoMethod.Verify(req, w, store, sess)
 		if user != nil {
 			if store.GetData()["AuthedMethod"] == nil {
 				store.GetData()["AuthedMethod"] = ssoMethod.Name()

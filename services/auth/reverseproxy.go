@@ -54,19 +54,14 @@ func (r *ReverseProxy) Free() error {
 	return nil
 }
 
-// IsEnabled checks if EnableReverseProxyAuth setting is true
-func (r *ReverseProxy) IsEnabled() bool {
-	return setting.Service.EnableReverseProxyAuth
-}
-
-// VerifyAuthData extracts the username from the "setting.ReverseProxyAuthUser" header
+// Verify extracts the username from the "setting.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
 // the revese proxy.
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil

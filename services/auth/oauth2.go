@@ -112,17 +112,11 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	return t.UID
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible
-// to disable it from settings.
-func (o *OAuth2) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData extracts the user ID from the OAuth token in the query parameters
+// Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !models.HasEngine {
 		return nil
 	}

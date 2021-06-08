@@ -30,13 +30,10 @@ type Auth interface {
 	// give chance to the plugin to free any allocated resources
 	Free() error
 
-	// IsEnabled checks if the current auth method has been enabled in settings.
-	IsEnabled() bool
-
-	// VerifyAuthData tries to verify the authentication data contained in the request.
+	// Verify tries to verify the authentication data contained in the request.
 	// If verification is successful returns either an existing user object (with id > 0)
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
 	// Returns nil if verification fails.
-	VerifyAuthData(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
+	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
 }
