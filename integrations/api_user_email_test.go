@@ -33,7 +33,7 @@ func TestAPIListEmails(t *testing.T) {
 			Primary:  true,
 		},
 		{
-			Email:    "user21@example.com",
+			Email:    "user2-2@example.com",
 			Verified: false,
 			Primary:  false,
 		},
@@ -55,7 +55,7 @@ func TestAPIAddEmail(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	opts = api.CreateEmailOption{
-		Emails: []string{"user22@example.com"},
+		Emails: []string{"user2-3@example.com"},
 	}
 	req = NewRequestWithJSON(t, "POST", "/api/v1/user/emails?token="+token, &opts)
 	resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -64,7 +64,7 @@ func TestAPIAddEmail(t *testing.T) {
 	DecodeJSON(t, resp, &emails)
 	assert.EqualValues(t, []*api.Email{
 		{
-			Email:    "user22@example.com",
+			Email:    "user2-3@example.com",
 			Verified: true,
 			Primary:  false,
 		},
@@ -79,13 +79,13 @@ func TestAPIDeleteEmail(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	opts := api.DeleteEmailOption{
-		Emails: []string{"user22@example.com"},
+		Emails: []string{"user2-3@example.com"},
 	}
 	req := NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	opts = api.DeleteEmailOption{
-		Emails: []string{"user21@example.com"},
+		Emails: []string{"user2-2@example.com"},
 	}
 	req = NewRequestWithJSON(t, "DELETE", "/api/v1/user/emails?token="+token, &opts)
 	session.MakeRequest(t, req, http.StatusNoContent)

@@ -28,7 +28,7 @@ func TestAPIReposGetTags(t *testing.T) {
 	var tags []*api.Tag
 	DecodeJSON(t, resp, &tags)
 
-	assert.EqualValues(t, 1, len(tags))
+	assert.Len(t, tags, 1)
 	assert.Equal(t, "v1.1", tags[0].Name)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.SHA)
 	assert.Equal(t, setting.AppURL+"api/v1/repos/user2/repo1/git/commits/65f1bf27bc3bf70f64657658635e66094edbcb4d", tags[0].Commit.URL)

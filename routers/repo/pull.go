@@ -9,6 +9,7 @@ package repo
 import (
 	"container/list"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"net/http"
 	"path"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
@@ -1186,20 +1186,6 @@ func CleanUpPullRequest(ctx *context.Context) {
 		})
 	}()
 
-	if pr.HeadBranch == pr.HeadRepo.DefaultBranch || !gitRepo.IsBranchExist(pr.HeadBranch) {
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-		return
-	}
-
-	// Check if branch is not protected
-	if protected, err := pr.HeadRepo.IsProtectedBranch(pr.HeadBranch, ctx.User); err != nil || protected {
-		if err != nil {
-			log.Error("HeadRepo.IsProtectedBranch: %v", err)
-		}
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
-		return
-	}
-
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
 	if err != nil {
@@ -1218,25 +1204,19 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := gitRepo.DeleteBranch(pr.HeadBranch, git.DeleteBranchOptions{
-		Force: true,
-	}); err != nil {
-		log.Error("DeleteBranch: %v", err)
-		ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+	if err := repo_service.DeleteBranch(ctx.User, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
+		switch {
+		case git.IsErrBranchNotExist(err):
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		case errors.Is(err, repo_service.ErrBranchIsDefault):
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		case errors.Is(err, repo_service.ErrBranchIsProtected):
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		default:
+			log.Error("DeleteBranch: %v", err)
+			ctx.Flash.Error(ctx.Tr("repo.branch.deletion_failed", fullBranchName))
+		}
 		return
-	}
-
-	if err := repo_service.PushUpdate(
-		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + pr.HeadBranch,
-			OldCommitID:  branchCommitID,
-			NewCommitID:  git.EmptySHA,
-			PusherID:     ctx.User.ID,
-			PusherName:   ctx.User.Name,
-			RepoUserName: pr.HeadRepo.Owner.Name,
-			RepoName:     pr.HeadRepo.Name,
-		}); err != nil {
-		log.Error("Update: %v", err)
 	}
 
 	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
