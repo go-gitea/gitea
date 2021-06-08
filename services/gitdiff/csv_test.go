@@ -110,13 +110,13 @@ func TestCSVDiff(t *testing.T) {
 
 		result, err := CreateCsvDiff(diff.Files[0], baseReader, headReader)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(result), "case %d: should be one section", n)
+		assert.Len(t, result, 1, "case %d: should be one section", n)
 
 		section := result[0]
-		assert.Equal(t, len(c.cells), len(section.Rows), "case %d: should be %d rows", n, len(c.cells))
+		assert.Len(t, section.Rows, len(c.cells), "case %d: should be %d rows", n, len(c.cells))
 
 		for i, row := range section.Rows {
-			assert.Equal(t, 2, len(row.Cells), "case %d: row %d should have two cells", n, i)
+			assert.Len(t, row.Cells, 2, "case %d: row %d should have two cells", n, i)
 			for j, cell := range row.Cells {
 				assert.Equal(t, c.cells[i][j], cell.Type, "case %d: row %d cell %d should be equal", n, i, j)
 			}
