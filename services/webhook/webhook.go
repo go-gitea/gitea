@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"crypto/hmac"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -179,17 +180,32 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 		signature = hex.EncodeToString(sig.Sum(nil))
 	}
 
+	var signaturegithub string
+	if len(w.Secret) > 0 {
+		data, err := payloader.JSONPayload()
+		if err != nil {
+			log.Error("prepareWebhooks.JSONPayload: %v", err)
+		}
+		sig := hmac.New(sha1.New, []byte(w.Secret))
+		_, err = sig.Write(data)
+		if err != nil {
+			log.Error("prepareWebhooks.sigWrite: %v", err)
+		}
+		signaturegithub = "sha1=" + hex.EncodeToString(sig.Sum(nil))
+	}
+
 	if err = models.CreateHookTask(&models.HookTask{
-		RepoID:      repo.ID,
-		HookID:      w.ID,
-		Typ:         w.Type,
-		URL:         w.URL,
-		Signature:   signature,
-		Payloader:   payloader,
-		HTTPMethod:  w.HTTPMethod,
-		ContentType: w.ContentType,
-		EventType:   event,
-		IsSSL:       w.IsSSL,
+		RepoID:      			repo.ID,
+		HookID:      			w.ID,
+		Typ:         			w.Type,
+		URL:         			w.URL,
+		Signature:   			signature,
+		SignatureGithub: 	signaturegithub,
+		Payloader:   			payloader,
+		HTTPMethod:  			w.HTTPMethod,
+		ContentType: 			w.ContentType,
+		EventType:   			event,
+		IsSSL:       			w.IsSSL,
 	}); err != nil {
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}

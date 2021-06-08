@@ -97,6 +97,7 @@ func Deliver(t *models.HookTask) error {
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
 	req.Header.Add("X-Gogs-Event", t.EventType.Event())
 	req.Header.Add("X-Gogs-Signature", t.Signature)
+	req.Header.Add("X-Hub-Signature", t.SignatureGithub)
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
 	req.Header["X-GitHub-Event"] = []string{t.EventType.Event()}
 
