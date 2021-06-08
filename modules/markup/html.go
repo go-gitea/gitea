@@ -951,9 +951,9 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	if ctx.GitRepo == nil {
 		var err error
-		ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repo"])
+		ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
 		if err != nil {
-			log.Error("unable to open repository: %s Error: %v", ctx.Metas["repo"], err)
+			log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
 			return
 		}
 		ctx.AddCancel(ctx.GitRepo.Close)
