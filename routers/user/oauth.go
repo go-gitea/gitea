@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -91,6 +92,24 @@ type AccessTokenError struct {
 // Error returns the error message
 func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
+}
+
+// BearerTokenErrorCode represents an error code specified in RFC 6750
+type BearerTokenErrorCode string
+
+const (
+	// BearerTokenErrorCodeInvalidRequest represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInvalidRequest BearerTokenErrorCode = "invalid_request"
+	// BearerTokenErrorCodeInvalidToken represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInvalidToken BearerTokenErrorCode = "invalid_token"
+	// BearerTokenErrorCodeInsufficientScope represents an error code specified in RFC 6750
+	BearerTokenErrorCodeInsufficientScope BearerTokenErrorCode = "insufficient_scope"
+)
+
+// BearerTokenError represents an error response specified in RFC 6750
+type BearerTokenError struct {
+	ErrorCode        BearerTokenErrorCode `json:"error" form:"error"`
+	ErrorDescription string               `json:"error_description"`
 }
 
 // TokenType specifies the kind of token
@@ -191,6 +210,45 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 		RefreshToken: signedRefreshToken,
 		IDToken:      signedIDToken,
 	}, nil
+}
+
+type userInfoResponse struct {
+	Sub      string `json:"sub"`
+	Name     string `json:"name"`
+	Username string `json:"preferred_username"`
+	Email    string `json:"email"`
+	Picture  string `json:"picture"`
+}
+
+// InfoOAuth manages request for userinfo endpoint
+func InfoOAuth(ctx *context.Context) {
+	header := ctx.Req.Header.Get("Authorization")
+	auths := strings.Fields(header)
+	if len(auths) != 2 || auths[0] != "Bearer" {
+		ctx.HandleText(http.StatusUnauthorized, "no valid auth token authorization")
+		return
+	}
+	uid := sso.CheckOAuthAccessToken(auths[1])
+	if uid == 0 {
+		handleBearerTokenError(ctx, BearerTokenError{
+			ErrorCode:        BearerTokenErrorCodeInvalidToken,
+			ErrorDescription: "Access token not assigned to any user",
+		})
+		return
+	}
+	authUser, err := models.GetUserByID(uid)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
+		return
+	}
+	response := &userInfoResponse{
+		Sub:      fmt.Sprint(authUser.ID),
+		Name:     authUser.FullName,
+		Username: authUser.Name,
+		Email:    authUser.Email,
+		Picture:  authUser.AvatarLink(),
+	}
+	ctx.JSON(http.StatusOK, response)
 }
 
 // AuthorizeOAuth manages authorize requests
@@ -389,6 +447,16 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	ctx.Redirect(redirect.String(), 302)
 }
 
+// OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
+func OIDCWellKnown(ctx *context.Context) {
+	t := ctx.Render.TemplateLookup("user/auth/oidc_wellknown")
+	ctx.Resp.Header().Set("Content-Type", "application/json")
+	if err := t.Execute(ctx.Resp, ctx.Data); err != nil {
+		log.Error("%v", err)
+		ctx.Error(http.StatusInternalServerError)
+	}
+}
+
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
@@ -560,4 +628,19 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String(), 302)
+}
+
+func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
+	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
+	switch beErr.ErrorCode {
+	case BearerTokenErrorCodeInvalidRequest:
+		ctx.JSON(http.StatusBadRequest, beErr)
+	case BearerTokenErrorCodeInvalidToken:
+		ctx.JSON(http.StatusUnauthorized, beErr)
+	case BearerTokenErrorCodeInsufficientScope:
+		ctx.JSON(http.StatusForbidden, beErr)
+	default:
+		log.Error("Invalid BearerTokenErrorCode: %v", beErr.ErrorCode)
+		ctx.ServerError("Unhandled BearerTokenError", fmt.Errorf("BearerTokenError: error=\"%v\", error_description=\"%v\"", beErr.ErrorCode, beErr.ErrorDescription))
+	}
 }

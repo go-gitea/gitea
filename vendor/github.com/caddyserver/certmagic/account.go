@@ -16,6 +16,8 @@ package certmagic
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -33,18 +35,24 @@ import (
 // getAccount either loads or creates a new account, depending on if
 // an account can be found in storage for the given CA + email combo.
 func (am *ACMEManager) getAccount(ca, email string) (acme.Account, error) {
-	regBytes, err := am.config.Storage.Load(am.storageKeyUserReg(ca, email))
+	acct, err := am.loadAccount(ca, email)
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			return am.newAccount(email)
 		}
+		return acct, err
+	}
+	return acct, err
+}
+
+// loadAccount loads an account from storage, but does not create a new one.
+func (am *ACMEManager) loadAccount(ca, email string) (acme.Account, error) {
+	regBytes, err := am.config.Storage.Load(am.storageKeyUserReg(ca, email))
+	if err != nil {
 		return acme.Account{}, err
 	}
 	keyBytes, err := am.config.Storage.Load(am.storageKeyUserPrivateKey(ca, email))
 	if err != nil {
-		if _, ok := err.(ErrNotExist); ok {
-			return am.newAccount(email)
-		}
 		return acme.Account{}, err
 	}
 
@@ -56,54 +64,6 @@ func (am *ACMEManager) getAccount(ca, email string) (acme.Account, error) {
 	acct.PrivateKey, err = decodePrivateKey(keyBytes)
 	if err != nil {
 		return acct, fmt.Errorf("could not decode account's private key: %v", err)
-	}
-
-	// TODO: July 2020 - transition to new ACME lib and account structure;
-	// for a while, we will need to convert old accounts to new structure
-	acct, err = am.transitionAccountToACMEzJuly2020Format(ca, acct, regBytes)
-	if err != nil {
-		return acct, fmt.Errorf("one-time account transition: %v", err)
-	}
-
-	return acct, err
-}
-
-// TODO: this is a temporary transition helper starting July 2020.
-// It can go away when we think enough time has passed that most active assets have transitioned.
-func (am *ACMEManager) transitionAccountToACMEzJuly2020Format(ca string, acct acme.Account, regBytes []byte) (acme.Account, error) {
-	if acct.Status != "" && acct.Location != "" {
-		return acct, nil
-	}
-
-	var oldAcct struct {
-		Email        string `json:"Email"`
-		Registration struct {
-			Body struct {
-				Status                 string          `json:"status"`
-				TermsOfServiceAgreed   bool            `json:"termsOfServiceAgreed"`
-				Orders                 string          `json:"orders"`
-				ExternalAccountBinding json.RawMessage `json:"externalAccountBinding"`
-			} `json:"body"`
-			URI string `json:"uri"`
-		} `json:"Registration"`
-	}
-	err := json.Unmarshal(regBytes, &oldAcct)
-	if err != nil {
-		return acct, fmt.Errorf("decoding into old account type: %v", err)
-	}
-
-	acct.Status = oldAcct.Registration.Body.Status
-	acct.TermsOfServiceAgreed = oldAcct.Registration.Body.TermsOfServiceAgreed
-	acct.Location = oldAcct.Registration.URI
-	acct.ExternalAccountBinding = oldAcct.Registration.Body.ExternalAccountBinding
-	acct.Orders = oldAcct.Registration.Body.Orders
-	if oldAcct.Email != "" {
-		acct.Contact = []string{"mailto:" + oldAcct.Email}
-	}
-
-	err = am.saveAccount(ca, acct)
-	if err != nil {
-		return acct, fmt.Errorf("saving converted account: %v", err)
 	}
 
 	return acct, nil
@@ -122,6 +82,71 @@ func (*ACMEManager) newAccount(email string) (acme.Account, error) {
 	}
 	acct.PrivateKey = privateKey
 	return acct, nil
+}
+
+// GetAccount first tries loading the account with the associated private key from storage.
+// If it does not exist in storage, it will be retrieved from the ACME server and added to storage.
+// The account must already exist; it does not create a new account.
+func (am *ACMEManager) GetAccount(ctx context.Context, privateKeyPEM []byte) (acme.Account, error) {
+	account, err := am.loadAccountByKey(ctx, privateKeyPEM)
+	if err != nil {
+		if _, ok := err.(ErrNotExist); ok {
+			account, err = am.lookUpAccount(ctx, privateKeyPEM)
+		} else {
+			return account, err
+		}
+	}
+	return account, err
+}
+
+// loadAccountByKey loads the account with the given private key from storage, if it exists.
+// If it does not exist, an error of type ErrNotExist is returned. This is not very efficient
+// for lots of accounts.
+func (am *ACMEManager) loadAccountByKey(ctx context.Context, privateKeyPEM []byte) (acme.Account, error) {
+	accountList, err := am.config.Storage.List(am.storageKeyUsersPrefix(am.CA), false)
+	if err != nil {
+		return acme.Account{}, err
+	}
+	for _, accountFolderKey := range accountList {
+		email := path.Base(accountFolderKey)
+		keyBytes, err := am.config.Storage.Load(am.storageKeyUserPrivateKey(am.CA, email))
+		if err != nil {
+			return acme.Account{}, err
+		}
+		if bytes.Equal(bytes.TrimSpace(keyBytes), bytes.TrimSpace(privateKeyPEM)) {
+			return am.loadAccount(am.CA, email)
+		}
+	}
+	return acme.Account{}, ErrNotExist(fmt.Errorf("no account found with that key"))
+}
+
+// lookUpAccount looks up the account associated with privateKeyPEM from the ACME server.
+// If the account is found by the server, it will be saved to storage and returned.
+func (am *ACMEManager) lookUpAccount(ctx context.Context, privateKeyPEM []byte) (acme.Account, error) {
+	client, err := am.newACMEClient(false)
+	if err != nil {
+		return acme.Account{}, fmt.Errorf("creating ACME client: %v", err)
+	}
+
+	privateKey, err := decodePrivateKey([]byte(privateKeyPEM))
+	if err != nil {
+		return acme.Account{}, fmt.Errorf("decoding private key: %v", err)
+	}
+
+	// look up the account
+	account := acme.Account{PrivateKey: privateKey}
+	account, err = client.GetAccount(ctx, account)
+	if err != nil {
+		return acme.Account{}, fmt.Errorf("looking up account with server: %v", err)
+	}
+
+	// save the account details to storage
+	err = am.saveAccount(client.Directory, account)
+	if err != nil {
+		return account, fmt.Errorf("could not save account to storage: %v", err)
+	}
+
+	return account, nil
 }
 
 // saveAccount persists an ACME account's info and private key to storage.
@@ -242,8 +267,12 @@ func (am *ACMEManager) askUserAgreement(agreementURL string) bool {
 	return answer == "y" || answer == "yes"
 }
 
+func storageKeyACMECAPrefix(issuerKey string) string {
+	return path.Join(prefixACME, StorageKeys.Safe(issuerKey))
+}
+
 func (am *ACMEManager) storageKeyCAPrefix(caURL string) string {
-	return path.Join(prefixACME, StorageKeys.Safe(am.issuerKey(caURL)))
+	return storageKeyACMECAPrefix(am.issuerKey(caURL))
 }
 
 func (am *ACMEManager) storageKeyUsersPrefix(caURL string) string {
@@ -305,7 +334,8 @@ func (am *ACMEManager) mostRecentAccountEmail(caURL string) (string, bool) {
 	// get all the key infos ahead of sorting, because
 	// we might filter some out
 	stats := make(map[string]KeyInfo)
-	for i, u := range accountList {
+	for i := 0; i < len(accountList); i++ {
+		u := accountList[i]
 		keyInfo, err := am.config.Storage.Stat(u)
 		if err != nil {
 			continue
@@ -318,6 +348,7 @@ func (am *ACMEManager) mostRecentAccountEmail(caURL string) (string, bool) {
 			// frankly one's OS shouldn't mess with the data folder
 			// in the first place.
 			accountList = append(accountList[:i], accountList[i+1:]...)
+			i--
 			continue
 		}
 		stats[u] = keyInfo

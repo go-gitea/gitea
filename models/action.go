@@ -395,3 +395,13 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	return cond, nil
 }
+
+// DeleteOldActions deletes all old actions from database.
+func DeleteOldActions(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	return
+}

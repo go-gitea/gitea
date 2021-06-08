@@ -84,10 +84,10 @@ func (te *TreeEntry) IsExecutable() bool {
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
-		ID:       te.ID,
-		repoPath: te.ptree.repo.Path,
-		name:     te.Name(),
-		size:     te.size,
-		gotSize:  te.sized,
+		ID:      te.ID,
+		name:    te.Name(),
+		size:    te.size,
+		gotSize: te.sized,
+		repo:    te.ptree.repo,
 	}
 }

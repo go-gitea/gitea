@@ -43,7 +43,7 @@ func ReplaceSanitizer() {
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
+	sanitizer.policy.AllowAttrs("checked", "disabled", "data-source-position").OnElements("input")
 
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
@@ -130,14 +130,4 @@ func Sanitize(s string) string {
 func SanitizeReader(r io.Reader) *bytes.Buffer {
 	NewSanitizer()
 	return sanitizer.policy.SanitizeReader(r)
-}
-
-// SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
-func SanitizeBytes(b []byte) []byte {
-	if len(b) == 0 {
-		// nothing to sanitize
-		return b
-	}
-	NewSanitizer()
-	return sanitizer.policy.SanitizeBytes(b)
 }

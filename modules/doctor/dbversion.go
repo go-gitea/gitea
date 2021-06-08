@@ -23,7 +23,7 @@ func checkDBVersion(logger log.Logger, autofix bool) error {
 
 		err = models.NewEngine(context.Background(), migrations.Migrate)
 		if err != nil {
-			logger.Critical("Error: %v during migration")
+			logger.Critical("Error: %v during migration", err)
 		}
 		return err
 	}

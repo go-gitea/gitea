@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -61,6 +62,8 @@ func InstallInit(next http.Handler) http.Handler {
 				"DbOptions":     setting.SupportedDatabases,
 				"i18n":          locale,
 				"Language":      locale.Language(),
+				"Lang":          locale.Language(),
+				"AllLangs":      translation.AllLangs(),
 				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 				"TmplLoadTimes": func() string {
@@ -68,6 +71,12 @@ func InstallInit(next http.Handler) http.Handler {
 				},
 				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
 			},
+		}
+		for _, lang := range translation.AllLangs() {
+			if lang.Lang == locale.Language() {
+				ctx.Data["LangName"] = lang.Name
+				break
+			}
 		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
@@ -400,7 +409,7 @@ func InstallPost(ctx *context.Context) {
 	}
 
 	// Re-read settings
-	PostInstallInit(ctx.Req.Context())
+	PostInstallInit(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
@@ -454,7 +463,7 @@ func InstallPost(ctx *context.Context) {
 
 	// Now get the http.Server from this request and shut it down
 	// NB: This is not our hammerable graceful shutdown this is http.Server.Shutdown
-	srv := ctx.Req.Context().Value(http.ServerContextKey).(*http.Server)
+	srv := ctx.Value(http.ServerContextKey).(*http.Server)
 	go func() {
 		if err := srv.Shutdown(graceful.GetManager().HammerContext()); err != nil {
 			log.Error("Unable to shutdown the install server! Error: %v", err)

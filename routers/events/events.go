@@ -32,17 +32,17 @@ func Events(ctx *context.Context) {
 
 	if !ctx.IsSigned {
 		// Return unauthorized status event
-		event := (&eventsource.Event{
+		event := &eventsource.Event{
 			Name: "close",
 			Data: "unauthorized",
-		})
+		}
 		_, _ = event.WriteTo(ctx)
 		ctx.Resp.Flush()
 		return
 	}
 
 	// Listen to connection close and un-register messageChan
-	notify := ctx.Req.Context().Done()
+	notify := ctx.Done()
 	ctx.Resp.Flush()
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
@@ -137,10 +137,10 @@ loop:
 					break loop
 				}
 				// Replace the event - we don't want to expose the session ID to the user
-				event = (&eventsource.Event{
+				event = &eventsource.Event{
 					Name: "logout",
 					Data: "elsewhere",
-				})
+				}
 			}
 
 			_, err := event.WriteTo(ctx.Resp)

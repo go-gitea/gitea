@@ -130,16 +130,16 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
 	contexts, _ := models.FindRepoRecentCommitStatusContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
-	for _, context := range protectBranch.StatusCheckContexts {
+	for _, ctx := range protectBranch.StatusCheckContexts {
 		var found bool
-		for _, ctx := range contexts {
-			if ctx == context {
+		for i := range contexts {
+			if contexts[i] == ctx {
 				found = true
 				break
 			}
 		}
 		if !found {
-			contexts = append(contexts, context)
+			contexts = append(contexts, ctx)
 		}
 	}
 

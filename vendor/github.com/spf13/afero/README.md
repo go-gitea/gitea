@@ -33,7 +33,7 @@ filesystem for full interoperability.
 * Support for compositional (union) file systems by combining multiple file systems acting as one
 * Specialized backends which modify existing filesystems (Read Only, Regexp filtered)
 * A set of utility functions ported from io, ioutil & hugo to be afero aware
-
+* Wrapper for go 1.16 filesystem abstraction `io/fs.FS`
 
 # Using Afero
 

@@ -60,8 +60,8 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
-		"StaticUrlPrefix": func() string {
-			return setting.StaticURLPrefix
+		"AssetUrlPrefix": func() string {
+			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
 			return setting.AppURL
@@ -665,7 +665,11 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -692,7 +696,11 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
+	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
@@ -714,7 +722,10 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
+	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -724,7 +735,10 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(text)), urlPrefix, metas)
+	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderIssueTitle: %v", err)
 		return template.HTML("")
@@ -734,7 +748,7 @@ func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.
 
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
@@ -752,13 +766,16 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
 func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderNote: %v", err)
 		return ""

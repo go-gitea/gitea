@@ -193,6 +193,9 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["Licenses"] = models.Licenses
 	ctx.Data["Readmes"] = models.Readmes
 
+	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
@@ -237,7 +240,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	} else {
@@ -256,7 +259,7 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(setting.AppSubURL + "/" + ctxUser.Name + "/" + repo.Name)
+			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
 			return
 		}
 	}

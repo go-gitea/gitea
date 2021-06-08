@@ -66,7 +66,7 @@ export async function initNotificationCount() {
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
-        if (event.data !== 'here') {
+        if (event.data.data !== 'here') {
           return;
         }
         worker.port.postMessage({

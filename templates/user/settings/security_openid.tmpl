@@ -19,12 +19,12 @@
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
 							<button class="ui tiny button">
-							<i class="icon fa-eye"></i>
+							{{svg "octicon-eye" 16 "icon"}}
 							{{$.i18n.Tr "settings.hide_openid"}}
 							</button>
 						{{else}}
 							<button class="ui tiny button">
-							<i class="icon fa-eye-slash"></i>
+							{{svg "octicon-eye-closed" 16 "icon"}}
 							{{$.i18n.Tr "settings.show_openid"}}
 							</button>
 						{{end}}

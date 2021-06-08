@@ -509,7 +509,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx.Req.Context())
+	chiCtx := chi.RouteContext(ctx)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
 
@@ -526,6 +526,26 @@ func (ctx *Context) Written() bool {
 // Status writes status code
 func (ctx *Context) Status(status int) {
 	ctx.Resp.WriteHeader(status)
+}
+
+// Deadline is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
+	return ctx.Req.Context().Deadline()
+}
+
+// Done is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Done() <-chan struct{} {
+	return ctx.Req.Context().Done()
+}
+
+// Err is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Err() error {
+	return ctx.Req.Context().Err()
+}
+
+// Value is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Value(key interface{}) interface{} {
+	return ctx.Req.Context().Value(key)
 }
 
 // Handler represents a custom handler
@@ -683,6 +703,9 @@ func Contexter() func(next http.Handler) http.Handler {
 			} else {
 				ctx.Data["SignedUserID"] = int64(0)
 				ctx.Data["SignedUserName"] = ""
+
+				// ensure the session uid is deleted
+				_ = ctx.Session.Delete("uid")
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
@@ -692,6 +715,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
@@ -704,8 +728,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 
 			ctx.Data["ManifestData"] = setting.ManifestData
+
+			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

@@ -1,39 +1,43 @@
-/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
-
 import './publicpath.js';
 
 import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
 
-import initMigration from './features/migration.js';
-import initContextPopups from './features/contextpopup.js';
-import initGitGraph from './features/gitgraph.js';
-import initClipboard from './features/clipboard.js';
-import initHeatmap from './features/heatmap.js';
-import initProject from './features/projects.js';
-import initServiceWorker from './features/serviceworker.js';
-import initMarkdownAnchors from './markdown/anchors.js';
-import renderMarkdownContent from './markdown/content.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
-import initTableSort from './features/tablesort.js';
+import initClipboard from './features/clipboard.js';
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initHeatmap from './features/heatmap.js';
 import initImageDiff from './features/imagediff.js';
-import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import initMigration from './features/migration.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initTableSort from './features/tablesort.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {createCodeEditor, createMonaco} from './features/codeeditor.js';
-import {svg, svgs} from './svg.js';
+import {showLineButton} from './code/linebutton.js';
+import {initMarkupContent, initCommentContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
+import {svg, svgs} from './svg.js';
 
-const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
 const commentMDEditors = {};
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
+
+// Silence Vue's console advertisments in dev mode
+// To use the Vue browser extension, enable the devtools option temporarily
+Vue.config.productionTip = false;
+Vue.config.devtools = false;
 
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
@@ -48,7 +52,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkdownContent();
+      initMarkupContent();
     });
   });
 
@@ -78,7 +82,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkdownContent();
+        initMarkupContent();
       });
     });
   }
@@ -778,7 +782,8 @@ async function initRepository() {
   });
 
   // File list and commits
-  if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
+  if ($('.repository.file.list').length > 0 ||
+    $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
   }
 
@@ -904,6 +909,17 @@ async function initRepository() {
       return false;
     });
 
+    // Toggle WIP
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+      e.preventDefault();
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
+        _csrf: csrf,
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
+    });
+
     // Issue Comments
     initIssueComments();
 
@@ -994,6 +1010,9 @@ async function initRepository() {
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
             timeout: 0,
+            thumbnailMethod: 'contain',
+            thumbnailWidth: 480,
+            thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -1079,8 +1098,10 @@ async function initRepository() {
           }, (data) => {
             if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
+              $rawContent.text('');
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
@@ -1100,7 +1121,8 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkdownContent();
+            initMarkupContent();
+            initCommentContent();
           });
         });
       } else {
@@ -1148,14 +1170,38 @@ async function initRepository() {
       return false;
     });
 
+    // Delete Issue dependency
+    $(document).on('click', '.delete-dependency-button', (e) => {
+      const {id, type} = e.currentTarget.dataset;
+
+      $('.remove-dependency').modal({
+        closable: false,
+        duration: 200,
+        onApprove: () => {
+          $('#removeDependencyID').val(id);
+          $('#dependencyType').val(type);
+          $('#removeDependencyForm').trigger('submit');
+        }
+      }).modal('show');
+    });
+
+    // Cancel inline code comment
+    $(document).on('click', '.cancel-code-comment', (e) => {
+      const form = $(e.currentTarget).closest('form');
+      if (form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
+      } else {
+        form.closest('.comment-code-cloud').remove();
+      }
+    });
+
     // Change status
     const $statusButton = $('#status-button');
     $('#comment-form textarea').on('keyup', function () {
-      if ($(this).val().length === 0) {
-        $statusButton.text($statusButton.data('status'));
-      } else {
-        $statusButton.text($statusButton.data('status-and-comment'));
-      }
+      const $simplemde = $(this).data('simplemde');
+      const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+      $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
     });
     $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
@@ -1185,6 +1231,7 @@ async function initRepository() {
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
     });
+
     initReactionSelector();
   }
 
@@ -1209,10 +1256,16 @@ async function initRepository() {
     $(this).select();
   });
 
+  // Compare or pull request
+  const $repoDiff = $('.repository.diff');
+  if ($repoDiff.length) {
+    initBranchOrTagDropdown('.choose.branch .dropdown');
+    initFilterSearchDropdown('.choose.branch .dropdown');
+  }
+
   // Pull request
   const $repoComparePull = $('.repository.compare.pull');
   if ($repoComparePull.length > 0) {
-    initFilterSearchDropdown('.choose.branch .dropdown');
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
@@ -1301,7 +1354,7 @@ function initPullRequestReview() {
   $(document).on('click', 'button.comment-form-reply', function (e) {
     e.preventDefault();
     $(this).hide();
-    const form = $(this).parent().find('.comment-form');
+    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
     let $simplemde;
@@ -1441,8 +1494,8 @@ function initWikiForm() {
             text: plainText,
             wiki: true
           }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            renderMarkdownContent();
+            preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
+            initMarkupContent();
           });
         };
 
@@ -1521,7 +1574,7 @@ function initWikiForm() {
             const $form = $('.repository.wiki.new .ui.form');
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
-            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
+            $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
             initCommentPreviewTab($form);
           },
           className: 'fa fa-file',
@@ -1664,6 +1717,8 @@ function setCommentSimpleMDE($editArea) {
     }
   });
   attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  $editArea.data('simplemde', simplemde);
+  $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
   return simplemde;
 }
 
@@ -2173,45 +2228,6 @@ function searchRepositories() {
   });
 }
 
-function showCodeViewMenu() {
-  // Get clicked tr
-  const $code_tr = $('.code-view td.lines-code.active').parent();
-
-  // Reset code line marker
-  $('.code-view-menu-list').appendTo($('.code-view'));
-  $('.code-line-marker').remove();
-
-  // Generate new one
-  const icon_wrap = $('<div>', {
-    class: 'code-line-marker'
-  }).prependTo($code_tr.find('td:eq(0)').get(0)).hide();
-
-  const a_wrap = $('<a>', {
-    class: 'code-line-link'
-  }).appendTo(icon_wrap);
-
-  $('<i>', {
-    class: 'dropdown icon',
-    style: 'margin: 0px;'
-  }).appendTo(a_wrap);
-
-  icon_wrap.css({
-    left: '-7px',
-    display: 'block',
-  });
-
-  $('.code-view-menu-list').css({
-    'min-width': '220px',
-  });
-
-  // Popup the menu
-  $('.code-line-link').popup({
-    popup: $('.code-view-menu-list'),
-    on: 'click',
-    lastResort: 'bottom left',
-  });
-}
-
 function initCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
@@ -2224,9 +2240,7 @@ function initCodeView() {
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-
-      // show code view menu marker
-      showCodeViewMenu();
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
@@ -2241,10 +2255,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2252,10 +2263,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-
-        // show code view menu marker
-        showCodeViewMenu();
-
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
@@ -2569,7 +2577,6 @@ $(document).ready(async () => {
     direction: 'upward',
     fullTextSearch: 'exact'
   });
-  $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
   $('.ui.progress').progress({
     showActivity: false
@@ -2619,6 +2626,9 @@ $(document).ready(async () => {
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
       timeout: 0,
+      thumbnailMethod: 'contain',
+      thumbnailWidth: 480,
+      thumbnailHeight: 480,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
@@ -2660,6 +2670,11 @@ $(document).ready(async () => {
   });
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
+  });
+  $('.show-create-branch-modal.button').on('click', function () {
+    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
+    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
+    $($(this).data('modal')).modal('show');
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
@@ -2735,7 +2750,8 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
-  initMarkdownAnchors();
+  initMarkupAnchors();
+  initCommentContent();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2793,7 +2809,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkdownContent(),
+    initMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);
@@ -2836,6 +2852,11 @@ function selectRange($list, $select, $from) {
 
       // add hashchange to permalink
       const $issue = $('a.ref-in-new-issue');
+
+      if ($issue.length === 0) {
+        return;
+      }
+
       const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
       if (matched) {
         $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
@@ -2851,6 +2872,11 @@ function selectRange($list, $select, $from) {
 
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
+
+  if ($issue.length === 0) {
+    return;
+  }
+
   const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
   if (matched) {
     $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
@@ -3081,7 +3107,7 @@ function initVueComponents() {
         finalPage: 1,
         searchQuery,
         isLoading: false,
-        staticPrefix: StaticUrlPrefix,
+        staticPrefix: AssetUrlPrefix,
         counts: {},
         repoTypes: {
           all: {
@@ -3121,7 +3147,7 @@ function initVueComponents() {
     },
 
     mounted() {
-      this.searchRepos(this.reposFilter);
+      this.changeReposFilter(this.reposFilter);
       $(this.$el).find('.poping.up').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
@@ -3393,6 +3419,17 @@ function initIssueTimetracking() {
         $(`${sel} form`).trigger('submit');
       }
     }).modal('show');
+  });
+}
+
+function initBranchOrTagDropdown(selector) {
+  $(selector).each(function() {
+    const $dropdown = $(this);
+    $dropdown.find('.reference.column').on('click', function () {
+      $dropdown.find('.scrolling.reference-list-menu').hide();
+      $($(this).data('target')).show();
+      return false;
+    });
   });
 }
 
@@ -3801,19 +3838,6 @@ function initIssueDue() {
   });
 }
 
-window.deleteDependencyModal = function (id, type) {
-  $('.remove-dependency')
-    .modal({
-      closable: false,
-      duration: 200,
-      onApprove() {
-        $('#removeDependencyID').val(id);
-        $('#dependencyType').val(type);
-        $('#removeDependencyForm').trigger('submit');
-      }
-    }).modal('show');
-};
-
 function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
@@ -3900,17 +3924,7 @@ $(document).on('submit', '.conversation-holder form', async (e) => {
   initClipboard();
 });
 
-window.cancelCodeComment = function (btn) {
-  const form = $(btn).closest('form');
-  if (form.length > 0 && form.hasClass('comment-form')) {
-    form.addClass('hide');
-    form.parent().find('button.comment-form-reply').show();
-  } else {
-    form.closest('.comment-code-cloud').remove();
-  }
-};
-
-window.onOAuthLoginClick = function () {
+$(document).on('click', '.oauth-login-image', () => {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
 
@@ -3923,4 +3937,4 @@ window.onOAuthLoginClick = function () {
     oauthLoader.addClass('disabled');
     oauthNav.show();
   }, 5000);
-};
+});

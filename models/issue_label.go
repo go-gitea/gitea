@@ -510,19 +510,6 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 		Find(&labelIDs)
 }
 
-// GetLabelIDsInOrgsByNames returns a list of labelIDs by names in one of the given
-// organization.
-// it silently ignores label names that do not belong to the organization.
-func GetLabelIDsInOrgsByNames(orgIDs []int64, labelNames []string) ([]int64, error) {
-	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table("label").
-		In("org_id", orgIDs).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
-}
-
 // GetLabelInOrgByID returns a label by ID in given organization.
 func GetLabelInOrgByID(orgID, labelID int64) (*Label, error) {
 	return getLabelInOrgByID(x, orgID, labelID)

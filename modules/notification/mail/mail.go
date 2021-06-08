@@ -54,7 +54,6 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.Us
 
 func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	var actionType models.ActionType
-	issue.Content = ""
 	if issue.IsPull {
 		if isClosed {
 			actionType = models.ActionClosePullRequest
@@ -104,14 +103,18 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *model
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{assignee})
+		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{assignee}); err != nil {
+			log.Error("Error in SendIssueAssignedMail for issue[%d] to assignee[%d]: %v", issue.ID, assignee.ID, err)
+		}
 	}
 }
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
 	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == models.EmailNotificationsEnabled {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
-		mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{reviewer})
+		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*models.User{reviewer}); err != nil {
+			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
+		}
 	}
 }
 
@@ -120,7 +123,6 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-	pr.Issue.Content = ""
 	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest, nil); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
@@ -147,8 +149,6 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 	if err := comment.LoadPushCommits(); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
-	comment.Content = ""
-
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment, nil)
 }
 
