@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -19,10 +19,10 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Basic{}
+	_ Auth = &Basic{}
 )
 
-// Basic implements the SingleSignOn interface and authenticates requests (API requests
+// Basic implements the Auth interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
 type Basic struct {

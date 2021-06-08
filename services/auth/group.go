@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -12,16 +12,16 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Group{}
+	_ Auth = &Group{}
 )
 
-// Group implements the SingleSignOn interface with serval SingleSignOn.
+// Group implements the Auth interface with serval Auth.
 type Group struct {
-	methods []SingleSignOn
+	methods []Auth
 }
 
 // NewGroup creates a new auth group
-func NewGroup(methods ...SingleSignOn) *Group {
+func NewGroup(methods ...Auth) *Group {
 	return &Group{
 		methods: methods,
 	}

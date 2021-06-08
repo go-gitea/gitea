@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -19,10 +19,10 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &ReverseProxy{}
+	_ Auth = &ReverseProxy{}
 )
 
-// ReverseProxy implements the SingleSignOn interface, but actually relies on
+// ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"errors"
@@ -32,10 +32,10 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ SingleSignOn = &SSPI{}
+	_ Auth = &SSPI{}
 )
 
-// SSPI implements the SingleSignOn interface and authenticates requests
+// SSPI implements the Auth interface and authenticates requests
 // via the built-in SSPI module in Windows for SPNEGO authentication.
 // On successful authentication returns a valid user object.
 // Returns nil if authentication fails.

@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -18,7 +18,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &OAuth2{}
+	_ Auth = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
@@ -45,7 +45,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	return grant.UserID
 }
 
-// OAuth2 implements the SingleSignOn interface and authenticates requests
+// OAuth2 implements the Auth interface and authenticates requests
 // (API requests only) by looking for an OAuth token in query parameters or the
 // "Authorization" header.
 type OAuth2 struct {

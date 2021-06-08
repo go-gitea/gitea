@@ -70,7 +70,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -84,6 +83,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
@@ -575,7 +575,7 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	// Get user from session if logged in.
-	m.Use(context.APIAuth(sso.NewGroup(sso.Methods()...)))
+	m.Use(context.APIAuth(auth.NewGroup(auth.Methods()...)))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,

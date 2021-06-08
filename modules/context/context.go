@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -605,8 +605,8 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
-// Auth converts sso.SingleSignOn as a middleware
-func Auth(authMethod sso.SingleSignOn) func(*Context) {
+// Auth converts auth.Auth as a middleware
+func Auth(authMethod auth.Auth) func(*Context) {
 	return func(ctx *Context) {
 		if !authMethod.IsEnabled() {
 			return
@@ -614,7 +614,7 @@ func Auth(authMethod sso.SingleSignOn) func(*Context) {
 
 		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(sso.Basic).Name()
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User

@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -217,8 +217,8 @@ func (ctx *APIContext) CheckForOTP() {
 	}
 }
 
-// APIAuth converts sso.SingleSignOn as a middleware
-func APIAuth(authMethod sso.SingleSignOn) func(*APIContext) {
+// APIAuth converts auth.Auth as a middleware
+func APIAuth(authMethod auth.Auth) func(*APIContext) {
 	return func(ctx *APIContext) {
 		if !authMethod.IsEnabled() {
 			return
@@ -226,7 +226,7 @@ func APIAuth(authMethod sso.SingleSignOn) func(*APIContext) {
 		// Get user from session if logged in.
 		ctx.User = authMethod.VerifyAuthData(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(sso.Basic).Name()
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
