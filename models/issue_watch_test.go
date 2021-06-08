@@ -32,7 +32,7 @@ func TestGetIssueWatch(t *testing.T) {
 	iw, exists, err := GetIssueWatch(2, 2)
 	assert.True(t, exists)
 	assert.NoError(t, err)
-	assert.EqualValues(t, false, iw.IsWatching)
+	assert.False(t, iw.IsWatching)
 
 	_, exists, err = GetIssueWatch(3, 1)
 	assert.False(t, exists)

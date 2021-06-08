@@ -25,7 +25,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref := AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypePullRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, true, ref.RefIsPull)
+	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
 
 	// Comment on PR to reopen issue #1
@@ -34,7 +34,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: c.ID}).(*Comment)
 	assert.Equal(t, CommentTypeCommentRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, true, ref.RefIsPull)
+	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionReopens, ref.RefAction)
 
 	// Issue mentioning issue #1
@@ -43,7 +43,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, false, ref.RefIsPull)
+	assert.False(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Issue #4 to test against
@@ -55,7 +55,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, i.RepoID, ref.RefRepoID)
-	assert.Equal(t, false, ref.RefIsPull)
+	assert.False(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Cross-reference to issue #4 with no permission

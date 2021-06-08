@@ -9,6 +9,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -21,7 +22,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -34,13 +35,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	var revs map[string]*Commit
 	if cache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, cache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
 			sort.Strings(unHitPaths)
-			commits, err := GetLastCommitForPaths(commit, treePath, unHitPaths)
+			commits, err := GetLastCommitForPaths(ctx, commit, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -56,7 +57,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 		sort.Strings(entryPaths)
 		revs = map[string]*Commit{}
 		var foundCommits []*Commit
-		foundCommits, err = GetLastCommitForPaths(commit, treePath, entryPaths)
+		foundCommits, err = GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
 		for i, found := range foundCommits {
 			revs[entryPaths[i]] = found
 		}
@@ -104,7 +105,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	return commitsInfo, treeCommit, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	wr, rd, cancel := cache.repo.CatFileBatch()
 	defer cancel()
 
@@ -126,7 +127,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 	return results, unHitEntryPaths, nil
 }
 
-func revlister(buf buffer.Buffer, commitID, repoPath string, paths ...string) (*bufio.Scanner, func()) {
+func revlister(ctx context.Context, buf buffer.Buffer, commitID, repoPath string, paths ...string) (*bufio.Scanner, func()) {
 	// We'll do this by using rev-list to provide us with parent commits in order
 	buf.Reset()
 	revListReader, revListWriter := nio.Pipe(buf)
@@ -144,7 +145,7 @@ func revlister(buf buffer.Buffer, commitID, repoPath string, paths ...string) (*
 			copy(args[4:], paths)
 		}
 
-		err := NewCommand(args...).RunInDirPipeline(repoPath, revListWriter, &stderr)
+		err := NewCommand(args...).SetParentContext(ctx).RunInDirPipeline(repoPath, revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -161,7 +162,7 @@ func revlister(buf buffer.Buffer, commitID, repoPath string, paths ...string) (*
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) ([]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
 
 	nioBuffer := buffer.New(32 * 1024)
@@ -219,7 +220,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 	lastCommitID := ""
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
-	scan, close := revlister(nioBuffer, commit.ID.String(), commit.repo.Path, revlistPaths...)
+	scan, close := revlister(ctx, nioBuffer, commit.ID.String(), commit.repo.Path, revlistPaths...)
 	defer close()
 revListLoop:
 	for scan.Scan() {
@@ -284,6 +285,11 @@ revListLoop:
 
 	treeReadingLoop:
 		for {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				return nil, err
@@ -441,7 +447,7 @@ revListLoop:
 					}
 				}
 
-				scan, close = revlister(nioBuffer, commitID, commit.repo.Path, revlistPaths...)
+				scan, close = revlister(ctx, nioBuffer, commitID, commit.repo.Path, revlistPaths...)
 				defer close()
 				nextParents = nextParents[:0]
 				if needToFind > 70 {
@@ -460,6 +466,9 @@ revListLoop:
 		} else {
 			break
 		}
+	}
+	if scan.Err() != nil {
+		return nil, scan.Err()
 	}
 
 	commitsMap := make(map[string]*Commit, len(commits))

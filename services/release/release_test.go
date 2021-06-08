@@ -221,7 +221,7 @@ func TestRelease_Update(t *testing.T) {
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
 	assert.EqualValues(t, attach.Name, release.Attachments[0].Name)
@@ -232,7 +232,7 @@ func TestRelease_Update(t *testing.T) {
 	}))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
 	assert.EqualValues(t, "test2.txt", release.Attachments[0].Name)
@@ -241,7 +241,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 0, len(release.Attachments))
+	assert.Empty(t, release.Attachments)
 }
 
 func TestRelease_createTag(t *testing.T) {

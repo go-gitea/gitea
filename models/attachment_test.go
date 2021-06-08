@@ -61,11 +61,11 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	// count of attachments from issue ID
 	attachments, err := GetAttachmentsByIssueID(1)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(attachments))
+	assert.Len(t, attachments, 1)
 
 	attachments, err = GetAttachmentsByCommentID(1)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(attachments))
+	assert.Len(t, attachments, 2)
 }
 
 func TestDeleteAttachments(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 
 	attachList, err := GetAttachmentsByUUIDs(DefaultDBContext(), []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(attachList))
+	assert.Len(t, attachList, 2)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", attachList[1].UUID)
 	assert.Equal(t, int64(1), attachList[0].IssueID)
