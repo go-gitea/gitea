@@ -131,13 +131,3 @@ func SanitizeReader(r io.Reader) *bytes.Buffer {
 	NewSanitizer()
 	return sanitizer.policy.SanitizeReader(r)
 }
-
-// SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
-func SanitizeBytes(b []byte) []byte {
-	if len(b) == 0 {
-		// nothing to sanitize
-		return b
-	}
-	NewSanitizer()
-	return sanitizer.policy.SanitizeBytes(b)
-}

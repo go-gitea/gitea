@@ -312,6 +312,8 @@ var migrations = []Migration{
 	// v180 -> v181
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
 	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
 	NewMigration("Create PushMirror table", createPushMirrorTable),
 }
 
