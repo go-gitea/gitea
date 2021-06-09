@@ -54,20 +54,6 @@ func TestIsUserAllowed(t *testing.T) {
 }
 
 func TestIsUserAllowedToControlTag(t *testing.T) {
-	protectedTags := []*ProtectedTag{
-		{
-			NamePattern:      `gitea\z`,
-			WhitelistUserIDs: []int64{1},
-		},
-		{
-			NamePattern:      `\Av-`,
-			WhitelistUserIDs: []int64{2},
-		},
-		{
-			NamePattern: "release",
-		},
-	}
-
 	cases := []struct {
 		name    string
 		userid  int64
@@ -130,9 +116,47 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 		},
 	}
 
-	for n, c := range cases {
-		isAllowed, err := IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
-		assert.NoError(t, err)
-		assert.Equal(t, c.allowed, isAllowed, "case %d: error should match", n)
-	}
+	t.Run("Glob", func(t *testing.T) {
+		protectedTags := []*ProtectedTag{
+			{
+				NamePattern:      `*gitea`,
+				WhitelistUserIDs: []int64{1},
+			},
+			{
+				NamePattern:      `v-*`,
+				WhitelistUserIDs: []int64{2},
+			},
+			{
+				NamePattern: "release",
+			},
+		}
+
+		for n, c := range cases {
+			isAllowed, err := IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
+			assert.NoError(t, err)
+			assert.Equal(t, c.allowed, isAllowed, "case %d: error should match", n)
+		}
+	})
+
+	t.Run("Regex", func(t *testing.T) {
+		protectedTags := []*ProtectedTag{
+			{
+				NamePattern:      `/gitea\z/`,
+				WhitelistUserIDs: []int64{1},
+			},
+			{
+				NamePattern:      `/\Av-/`,
+				WhitelistUserIDs: []int64{2},
+			},
+			{
+				NamePattern: "/release/",
+			},
+		}
+
+		for n, c := range cases {
+			isAllowed, err := IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
+			assert.NoError(t, err)
+			assert.Equal(t, c.allowed, isAllowed, "case %d: error should match", n)
+		}
+	})
 }
