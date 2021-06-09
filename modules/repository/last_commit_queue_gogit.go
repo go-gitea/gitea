@@ -7,6 +7,8 @@
 package repository
 
 import (
+	"context"
+	"fmt"
 	"path"
 	"path/filepath"
 	"sync"
@@ -15,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -33,6 +36,9 @@ type CommitCacheRequest struct {
 
 // Do runs the cache request uniquely ensuring that only one cache request is running for this request triple
 func (req *CommitCacheRequest) Do() error {
+	ctx, cancel, _ := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Cache: %s:%s:%s:%t", req.Repo, req.CommitID, req.TreePath, req.Recursive))
+	defer cancel()
+
 	recursive := req.Recursive
 	req.Recursive = false
 
@@ -52,8 +58,14 @@ func (req *CommitCacheRequest) Do() error {
 
 	directories := []string{req.TreePath}
 	for len(directories) > 0 {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		req.TreePath = directories[len(directories)-1]
-		next, err := req.doTree(repo, commit, recursive, lccache)
+		next, err := req.doTree(ctx, repo, commit, recursive, lccache)
 		if err != nil {
 			return err
 		}
@@ -62,8 +74,7 @@ func (req *CommitCacheRequest) Do() error {
 	return nil
 }
 
-func (req *CommitCacheRequest) doTree(repo *git.Repository, commit *git.Commit, recursive bool, lccache *git.LastCommitCache) ([]string, error) {
-
+func (req *CommitCacheRequest) doTree(ctx context.Context, repo *git.Repository, commit *git.Commit, recursive bool, lccache *git.LastCommitCache) ([]string, error) {
 	tree, err := commit.Tree.SubTree(req.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -125,7 +136,7 @@ func (req *CommitCacheRequest) doTree(repo *git.Repository, commit *git.Commit, 
 		return directories, nil
 	}
 
-	commits, err := git.GetLastCommitForPaths(graceful.GetManager().HammerContext(), commitNode, req.TreePath, entryPaths)
+	commits, err := git.GetLastCommitForPaths(ctx, commitNode, req.TreePath, entryPaths)
 	if err != nil {
 		return nil, err
 	}
