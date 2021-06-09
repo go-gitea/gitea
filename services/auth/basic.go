@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -19,13 +19,18 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &Basic{}
+	_ Auth = &Basic{}
 )
 
-// Basic implements the SingleSignOn interface and authenticates requests (API requests
+// Basic implements the Auth interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
 type Basic struct {
+}
+
+// Name represents the name of auth method
+func (b *Basic) Name() string {
+	return "basic"
 }
 
 // Init does nothing as the Basic implementation does not need to allocate any resources
@@ -38,20 +43,13 @@ func (b *Basic) Free() error {
 	return nil
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible to disable
-// it from settings.
-func (b *Basic) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData extracts and validates Basic data (username and password/token) from the
+// Verify extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
 		return nil
 	}
 

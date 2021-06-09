@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -18,7 +18,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &OAuth2{}
+	_ Auth = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
@@ -45,7 +45,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	return grant.UserID
 }
 
-// OAuth2 implements the SingleSignOn interface and authenticates requests
+// OAuth2 implements the Auth interface and authenticates requests
 // (API requests only) by looking for an OAuth token in query parameters or the
 // "Authorization" header.
 type OAuth2 struct {
@@ -54,6 +54,11 @@ type OAuth2 struct {
 // Init does nothing as the OAuth2 implementation does not need to allocate any resources
 func (o *OAuth2) Init() error {
 	return nil
+}
+
+// Name represents the name of auth method
+func (o *OAuth2) Name() string {
+	return "oauth2"
 }
 
 // Free does nothing as the OAuth2 implementation does not have to release any resources
@@ -107,22 +112,16 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 	return t.UID
 }
 
-// IsEnabled returns true as this plugin is enabled by default and its not possible
-// to disable it from settings.
-func (o *OAuth2) IsEnabled() bool {
-	return true
-}
-
-// VerifyAuthData extracts the user ID from the OAuth token in the query parameters
+// Verify extracts the user ID from the OAuth token in the query parameters
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !models.HasEngine {
 		return nil
 	}
 
-	if middleware.IsInternalPath(req) || !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
 		return nil
 	}
 
