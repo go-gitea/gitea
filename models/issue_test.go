@@ -41,7 +41,7 @@ func Test_GetIssueIDsByRepoID(t *testing.T) {
 
 	ids, err := GetIssueIDsByRepoID(1)
 	assert.NoError(t, err)
-	assert.Len(t, ids, 6)
+	assert.Len(t, ids, 5)
 }
 
 func TestIssueAPIURL(t *testing.T) {
