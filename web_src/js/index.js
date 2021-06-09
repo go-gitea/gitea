@@ -2745,6 +2745,10 @@ $(document).ready(async () => {
     }
   });
 
+  if ($('.reload.loader').length > 0) {
+    setTimeout(reload, 500);
+  }
+
   buttonsClickOnEnter();
   searchUsers();
   searchTeams();
