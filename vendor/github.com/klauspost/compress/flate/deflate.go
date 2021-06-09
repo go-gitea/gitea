@@ -644,7 +644,7 @@ func (d *compressor) init(w io.Writer, level int) (err error) {
 		d.fill = (*compressor).fillBlock
 		d.step = (*compressor).store
 	case level == ConstantCompression:
-		d.w.logNewTablePenalty = 8
+		d.w.logNewTablePenalty = 10
 		d.window = make([]byte, 32<<10)
 		d.fill = (*compressor).fillBlock
 		d.step = (*compressor).storeHuff
