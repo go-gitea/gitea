@@ -22,10 +22,10 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 		p    string
 		code int
 	}{
-		/*{
-			p:    "info/refs",
+		{
+			p:    "user2/repo1/info/refs",
 			code: 200,
-		},*/
+		},
 		{
 			p:    "user2/repo1/HEAD",
 			code: 200,
