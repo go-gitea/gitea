@@ -35,7 +35,7 @@ func waitForCount(t *testing.T, num int) {
 		}
 	}
 
-	assert.Equal(t, num, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, num)
 }
 
 func releaseOneEntry(t *testing.T, inFlight []*ArchiveRequest) {
@@ -128,7 +128,7 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Sleep two seconds to make sure the queue doesn't change.
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, 3, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, 3)
 
 	// Release them all, they'll then stall at the archiveQueueReleaseCond while
 	// we examine the queue state.
@@ -160,7 +160,7 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Queues should not have drained yet, because we haven't released them.
 	// Do so now.
-	assert.Equal(t, 3, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, 3)
 
 	zipReq2 := DeriveRequestFrom(ctx, firstCommit+".zip")
 	// This zipReq should match what's sitting in the queue, as we haven't
@@ -174,15 +174,15 @@ func TestArchive_Basic(t *testing.T) {
 	ArchiveRepository(zipReq2)
 
 	// Make sure the queue hasn't grown any.
-	assert.Equal(t, 3, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, 3)
 
 	// Make sure the queue drains properly
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, 2, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, 2)
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, 1, len(archiveInProgress))
+	assert.Len(t, archiveInProgress, 1)
 	releaseOneEntry(t, inFlight)
-	assert.Equal(t, 0, len(archiveInProgress))
+	assert.Empty(t, archiveInProgress)
 
 	// Now we'll submit a request and TimedWaitForCompletion twice, before and
 	// after we release it.  We should trigger both the timeout and non-timeout
@@ -194,8 +194,8 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Guaranteed to timeout; we haven't signalled the request to start..
 	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 2*time.Second)
-	assert.Equal(t, false, completed)
-	assert.Equal(t, true, timedout)
+	assert.False(t, completed)
+	assert.True(t, timedout)
 
 	queueMutex.Lock()
 	archiveQueueStartCond.Broadcast()
@@ -203,8 +203,8 @@ func TestArchive_Basic(t *testing.T) {
 
 	// Shouldn't timeout, we've now signalled it and it's a small request.
 	completed, timedout = timedReq.TimedWaitForCompletion(ctx, 15*time.Second)
-	assert.Equal(t, true, completed)
-	assert.Equal(t, false, timedout)
+	assert.True(t, completed)
+	assert.False(t, timedout)
 
 	zipReq2 = DeriveRequestFrom(ctx, firstCommit+".zip")
 	// Now, we're guaranteed to have released the original zipReq from the queue.

@@ -48,6 +48,7 @@ type RenderContext struct {
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
+	NeedPostProcess() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -94,7 +95,7 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writer) error {
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
@@ -103,29 +104,38 @@ func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writ
 		_ = pw.Close()
 	}()
 
-	pr2, pw2 := io.Pipe()
-	defer func() {
-		_ = pr2.Close()
-		_ = pw2.Close()
-	}()
+	if renderer.NeedPostProcess() {
+		pr2, pw2 := io.Pipe()
+		defer func() {
+			_ = pr2.Close()
+			_ = pw2.Close()
+		}()
 
-	wg.Add(1)
-	go func() {
-		buf := SanitizeReader(pr2)
-		_, err = io.Copy(output, buf)
-		_ = pr2.Close()
-		wg.Done()
-	}()
+		wg.Add(1)
+		go func() {
+			buf := SanitizeReader(pr2)
+			_, err = io.Copy(output, buf)
+			_ = pr2.Close()
+			wg.Done()
+		}()
 
-	wg.Add(1)
-	go func() {
-		err = PostProcess(ctx, pr, pw2)
-		_ = pr.Close()
-		_ = pw2.Close()
-		wg.Done()
-	}()
-
-	if err1 := parser.Render(ctx, input, pw); err1 != nil {
+		wg.Add(1)
+		go func() {
+			err = PostProcess(ctx, pr, pw2)
+			_ = pr.Close()
+			_ = pw2.Close()
+			wg.Done()
+		}()
+	} else {
+		wg.Add(1)
+		go func() {
+			buf := SanitizeReader(pr)
+			_, err = io.Copy(output, buf)
+			_ = pr.Close()
+			wg.Done()
+		}()
+	}
+	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
 		return err1
 	}
 	_ = pw.Close()
