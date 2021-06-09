@@ -6,9 +6,6 @@
 			<div class="column">
 				{{template "repo/issue/navbar" .}}
 			</div>
-			<div class="column center aligned">
-				{{template "repo/issue/search" .}}
-			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>

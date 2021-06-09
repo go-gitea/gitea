@@ -36,7 +36,7 @@ func RestoreRepo(ctx *myCtx.PrivateContext) {
 	}
 
 	if err := migrations.RestoreRepository(
-		ctx.Req.Context(),
+		ctx,
 		params.RepoDir,
 		params.OwnerName,
 		params.RepoName,

@@ -51,7 +51,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(payloadCommits))
+	assert.Len(t, payloadCommits, 3)
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
@@ -112,13 +112,13 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
-		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=56",
+		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=112",
 		pushCommits.AvatarLink("user2@example.com"))
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/"+
 			fmt.Sprintf("%x", md5.Sum([]byte("nonexistent@example.com")))+
-			"?d=identicon&s=56",
+			"?d=identicon&s=112",
 		pushCommits.AvatarLink("nonexistent@example.com"))
 }
 
