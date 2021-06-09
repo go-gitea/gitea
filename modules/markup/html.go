@@ -956,7 +956,10 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
 			return
 		}
-		ctx.AddCancel(ctx.GitRepo.Close)
+		ctx.AddCancel(func() {
+			ctx.GitRepo.Close()
+			ctx.GitRepo = nil
+		})
 	}
 
 	// The regex does not lie, it matches the hash pattern.
