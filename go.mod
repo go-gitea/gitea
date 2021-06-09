@@ -11,8 +11,9 @@ require (
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
 	gitea.com/lunny/levelqueue v0.3.0
-	github.com/Microsoft/go-winio v0.4.18 // indirect
+	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
+	github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c // indirect
 	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/RoaringBitmap/roaring v0.7.3 // indirect
 	github.com/alecthomas/chroma v0.9.1
@@ -39,7 +40,7 @@ require (
 	github.com/go-chi/cors v1.2.0
 	github.com/go-enry/go-enry/v2 v2.7.0
 	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.3.0
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-ldap/ldap/v3 v3.3.0
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-sql-driver/mysql v1.6.0

@@ -30,13 +30,31 @@ gitea.com/go-chi/session/postgres
 gitea.com/lunny/levelqueue
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
 github.com/Azure/go-ntlmssp
-# github.com/Microsoft/go-winio v0.4.18
+# github.com/Microsoft/go-winio v0.5.0
 ## explicit
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
 # github.com/NYTimes/gziphandler v1.1.1
 ## explicit
 github.com/NYTimes/gziphandler
+# github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c
+## explicit
+github.com/ProtonMail/go-crypto/bitcurves
+github.com/ProtonMail/go-crypto/brainpool
+github.com/ProtonMail/go-crypto/eax
+github.com/ProtonMail/go-crypto/internal/byteutil
+github.com/ProtonMail/go-crypto/ocb
+github.com/ProtonMail/go-crypto/openpgp
+github.com/ProtonMail/go-crypto/openpgp/aes/keywrap
+github.com/ProtonMail/go-crypto/openpgp/armor
+github.com/ProtonMail/go-crypto/openpgp/ecdh
+github.com/ProtonMail/go-crypto/openpgp/elgamal
+github.com/ProtonMail/go-crypto/openpgp/errors
+github.com/ProtonMail/go-crypto/openpgp/internal/algorithm
+github.com/ProtonMail/go-crypto/openpgp/internal/ecc
+github.com/ProtonMail/go-crypto/openpgp/internal/encoding
+github.com/ProtonMail/go-crypto/openpgp/packet
+github.com/ProtonMail/go-crypto/openpgp/s2k
 # github.com/PuerkitoBio/goquery v1.6.1
 ## explicit
 github.com/PuerkitoBio/goquery
@@ -48,6 +66,8 @@ github.com/PuerkitoBio/urlesc
 ## explicit
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
+# github.com/acomagu/bufpipe v1.0.3
+github.com/acomagu/bufpipe
 # github.com/alecthomas/chroma v0.9.1
 ## explicit
 github.com/alecthomas/chroma
@@ -278,7 +298,7 @@ github.com/go-git/go-billy/v5/helper/polyfill
 github.com/go-git/go-billy/v5/memfs
 github.com/go-git/go-billy/v5/osfs
 github.com/go-git/go-billy/v5/util
-# github.com/go-git/go-git/v5 v5.3.0
+# github.com/go-git/go-git/v5 v5.4.2
 ## explicit
 github.com/go-git/go-git/v5
 github.com/go-git/go-git/v5/config
