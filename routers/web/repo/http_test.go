@@ -24,6 +24,10 @@ func TestContainsParentDirectorySeparator(t *testing.T) {
 			b: false,
 		},
 		{
+			v: `user2/repo1/some.../strange_file...mp3`,
+			b: false,
+		},
+		{
 			v: `user2/repo1/../../custom/conf/app.ini`,
 			b: true,
 		},
