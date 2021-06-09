@@ -15,27 +15,18 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers/web"
 
+	jsoniter "github.com/json-iterator/go"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
 
-var lfsID = int64(20000)
-
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
-	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.Database.UsePostgreSQL {
-		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Pointer: pointer, RepositoryID: repositoryID}
-	} else {
-		lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID}
-	}
-
-	lfsID++
-	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
+	_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
@@ -108,7 +99,7 @@ func TestGetLFSLarge(t *testing.T) {
 		t.Skip()
 		return
 	}
-	content := make([]byte, routes.GzipMinSize*10)
+	content := make([]byte, web.GzipMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
@@ -124,7 +115,7 @@ func TestGetLFSGzip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, routes.GzipMinSize*10)
+	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -145,7 +136,7 @@ func TestGetLFSZip(t *testing.T) {
 		t.Skip()
 		return
 	}
-	b := make([]byte, routes.GzipMinSize*10)
+	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -210,7 +201,14 @@ func TestGetLFSRange(t *testing.T) {
 				"Range": []string{tt.in},
 			}
 			resp := storeAndGetLfs(t, &content, &h, tt.status)
-			assert.Equal(t, tt.out, resp.Body.String())
+			if tt.status == http.StatusPartialContent || tt.status == http.StatusOK {
+				assert.Equal(t, tt.out, resp.Body.String())
+			} else {
+				var er lfs.ErrorResponse
+				err := jsoniter.Unmarshal(resp.Body.Bytes(), &er)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.out, er.Message)
+			}
 		})
 	}
 }

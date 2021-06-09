@@ -219,11 +219,11 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 
 	redirect, err := code.GenerateRedirectURI("thestate")
 	assert.NoError(t, err)
-	assert.Equal(t, redirect.String(), "https://example.com/callback?code=thecode&state=thestate")
+	assert.Equal(t, "https://example.com/callback?code=thecode&state=thestate", redirect.String())
 
 	redirect, err = code.GenerateRedirectURI("")
 	assert.NoError(t, err)
-	assert.Equal(t, redirect.String(), "https://example.com/callback?code=thecode")
+	assert.Equal(t, "https://example.com/callback?code=thecode", redirect.String())
 }
 
 func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
