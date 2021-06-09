@@ -37,7 +37,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/NYTimes/gziphandler v1.1.1
 ## explicit
 github.com/NYTimes/gziphandler
-# github.com/PuerkitoBio/goquery v1.5.1
+# github.com/PuerkitoBio/goquery v1.6.1
 ## explicit
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.1.1
@@ -84,7 +84,8 @@ github.com/alecthomas/chroma/styles
 # github.com/andybalholm/brotli v1.0.1
 ## explicit
 github.com/andybalholm/brotli
-# github.com/andybalholm/cascadia v1.1.0
+# github.com/andybalholm/cascadia v1.2.0
+## explicit
 github.com/andybalholm/cascadia
 # github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 ## explicit
@@ -864,7 +865,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210421230115-4e50805a0758
+# golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -889,7 +890,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210421221651-33663a62ff08
+# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
