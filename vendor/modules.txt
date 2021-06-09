@@ -803,7 +803,7 @@ github.com/yuin/goldmark/renderer
 github.com/yuin/goldmark/renderer/html
 github.com/yuin/goldmark/text
 github.com/yuin/goldmark/util
-# github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
+# github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
 ## explicit
 github.com/yuin/goldmark-highlighting
 # github.com/yuin/goldmark-meta v1.0.0

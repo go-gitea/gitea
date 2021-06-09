@@ -114,7 +114,7 @@ require (
 	github.com/xanzy/go-gitlab v0.50.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.3.7
-	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
+	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
 	github.com/yuin/goldmark-meta v1.0.0
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.jolheiser.com/hcaptcha v0.0.4
