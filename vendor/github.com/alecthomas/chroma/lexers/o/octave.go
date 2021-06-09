@@ -6,14 +6,18 @@ import (
 )
 
 // Octave lexer.
-var Octave = internal.Register(MustNewLexer(
+var Octave = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Octave",
 		Aliases:   []string{"octave"},
 		Filenames: []string{"*.m"},
 		MimeTypes: []string{"text/octave"},
 	},
-	Rules{
+	octaveRules,
+))
+
+func octaveRules() Rules {
+	return Rules{
 		"root": {
 			{`[%#].*$`, Comment, nil},
 			{`^\s*function`, Keyword, Push("deffunc")},
@@ -42,5 +46,5 @@ var Octave = internal.Register(MustNewLexer(
 			{`(\s*)(?:(.+)(\s*)(=)(\s*))?(.+)(\()(.*)(\))(\s*)`, ByGroups(TextWhitespace, Text, TextWhitespace, Punctuation, TextWhitespace, NameFunction, Punctuation, Text, Punctuation, TextWhitespace), Pop(1)},
 			{`(\s*)([a-zA-Z_]\w*)`, ByGroups(Text, NameFunction), Pop(1)},
 		},
-	},
-))
+	}
+}

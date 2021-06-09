@@ -1,4 +1,4 @@
-package lexers
+package q
 
 import (
 	. "github.com/alecthomas/chroma" // nolint
@@ -6,7 +6,7 @@ import (
 )
 
 // Qml lexer.
-var Qml = internal.Register(MustNewLexer(
+var Qml = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "QML",
 		Aliases:   []string{"qml", "qbs"},
@@ -14,7 +14,11 @@ var Qml = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-qml", "application/x-qt.qbs+qml"},
 		DotAll:    true,
 	},
-	Rules{
+	qmlRules,
+))
+
+func qmlRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`<!--`, Comment, nil},
@@ -50,5 +54,5 @@ var Qml = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, LiteralStringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

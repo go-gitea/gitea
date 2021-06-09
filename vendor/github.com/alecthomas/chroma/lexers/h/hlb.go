@@ -1,4 +1,4 @@
-package lexers
+package h
 
 import (
 	. "github.com/alecthomas/chroma" // nolint
@@ -6,14 +6,18 @@ import (
 )
 
 // HLB lexer.
-var HLB = internal.Register(MustNewLexer(
+var HLB = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "HLB",
 		Aliases:   []string{"hlb"},
 		Filenames: []string{"*.hlb"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	hlbRules,
+))
+
+func hlbRules() Rules {
+	return Rules{
 		"root": {
 			{`(#.*)`, ByGroups(CommentSingle), nil},
 			{`((\b(0(b|B|o|O|x|X)[a-fA-F0-9]+)\b)|(\b(0|[1-9][0-9]*)\b))`, ByGroups(LiteralNumber), nil},
@@ -50,5 +54,5 @@ var HLB = internal.Register(MustNewLexer(
 			{`(\n|\r|\r\n)`, Text, nil},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

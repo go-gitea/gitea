@@ -6,14 +6,18 @@ import (
 )
 
 // Ocaml lexer.
-var Ocaml = internal.Register(MustNewLexer(
+var Ocaml = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "OCaml",
 		Aliases:   []string{"ocaml"},
 		Filenames: []string{"*.ml", "*.mli", "*.mll", "*.mly"},
 		MimeTypes: []string{"text/x-ocaml"},
 	},
-	Rules{
+	ocamlRules,
+))
+
+func ocamlRules() Rules {
+	return Rules{
 		"escape-sequence": {
 			{`\\[\\"\'ntbr]`, LiteralStringEscape, nil},
 			{`\\[0-9]{3}`, LiteralStringEscape, nil},
@@ -62,5 +66,5 @@ var Ocaml = internal.Register(MustNewLexer(
 			{`[a-z_][\w\']*`, Name, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

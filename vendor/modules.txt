@@ -48,7 +48,7 @@ github.com/PuerkitoBio/urlesc
 ## explicit
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
-# github.com/alecthomas/chroma v0.8.2
+# github.com/alecthomas/chroma v0.9.1
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
@@ -210,7 +210,6 @@ github.com/dgrijalva/jwt-go
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
 # github.com/dlclark/regexp2 v1.4.0
-## explicit
 github.com/dlclark/regexp2
 github.com/dlclark/regexp2/syntax
 # github.com/dsnet/compress v0.0.1
