@@ -118,7 +118,7 @@ func (s *ProjectAccessTokensService) CreateProjectAccessToken(pid interface{}, o
 	return pat, resp, err
 }
 
-// RemoveProjectAccessToken deletes a Project Access Token.
+// DeleteProjectAccessToken deletes a Project Access Token.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_access_tokens.html#revoke-a-project-access-token
