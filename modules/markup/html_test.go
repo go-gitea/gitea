@@ -420,11 +420,8 @@ func TestIssue16020(t *testing.T) {
 
 	data := `<img src="data:image/png;base64,i//V"/>`
 
-	var res strings.Builder
-	err := PostProcess(&RenderContext{
-		URLPrefix: "https://example.com",
-		Metas:     localMetas,
-	}, strings.NewReader(data), &res)
+	// func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) ([]byte, error)
+	res, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
 	assert.NoError(t, err)
-	assert.Equal(t, data, res.String())
+	assert.Equal(t, data, string(res))
 }
