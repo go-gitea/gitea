@@ -42,7 +42,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 
 	pt := &models.ProtectedTag{
 		RepoID:      repo.ID,
-		NamePattern: form.NamePattern,
+		NamePattern: strings.TrimSpace(form.NamePattern),
 	}
 
 	if strings.TrimSpace(form.WhitelistUsers) != "" {
@@ -101,7 +101,7 @@ func EditProtectedTagPost(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.ProtectTagForm)
 
-	pt.NamePattern = form.NamePattern
+	pt.NamePattern = strings.TrimSpace(form.NamePattern)
 	pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
 	pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
 

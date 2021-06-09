@@ -15,7 +15,7 @@ import (
 
 // ProtectTagForm form for changing protected tag settings
 type ProtectTagForm struct {
-	NamePattern    string `binding:"Required;RegexPattern"`
+	NamePattern    string `binding:"Required;GlobOrRegexPattern"`
 	WhitelistUsers string
 	WhitelistTeams string
 }

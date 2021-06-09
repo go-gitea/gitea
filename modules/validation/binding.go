@@ -57,6 +57,7 @@ func AddBindingRules() {
 	addValidURLBindingRule()
 	addGlobPatternRule()
 	addRegexPatternRule()
+	addGlobOrRegexPatternRule()
 }
 
 func addGitRefNameBindingRule() {
@@ -106,19 +107,21 @@ func addGlobPatternRule() {
 		IsMatch: func(rule string) bool {
 			return rule == "GlobPattern"
 		},
-		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-
-			if len(str) != 0 {
-				if _, err := glob.Compile(str); err != nil {
-					errs.Add([]string{name}, ErrGlobPattern, err.Error())
-					return false, errs
-				}
-			}
-
-			return true, errs
-		},
+		IsValid: globPatternValidator,
 	})
+}
+
+func globPatternValidator(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+	str := fmt.Sprintf("%v", val)
+
+	if len(str) != 0 {
+		if _, err := glob.Compile(str); err != nil {
+			errs.Add([]string{name}, ErrGlobPattern, err.Error())
+			return false, errs
+		}
+	}
+
+	return true, errs
 }
 
 func addRegexPatternRule() {
@@ -126,15 +129,33 @@ func addRegexPatternRule() {
 		IsMatch: func(rule string) bool {
 			return rule == "RegexPattern"
 		},
+		IsValid: regexPatternValidator,
+	})
+}
+
+func regexPatternValidator(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+	str := fmt.Sprintf("%v", val)
+
+	if _, err := regexp.Compile(str); err != nil {
+		errs.Add([]string{name}, ErrRegexPattern, err.Error())
+		return false, errs
+	}
+
+	return true, errs
+}
+
+func addGlobOrRegexPatternRule() {
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return rule == "GlobOrRegexPattern"
+		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
-			str := fmt.Sprintf("%v", val)
-
-			if _, err := regexp.Compile(str); err != nil {
-				errs.Add([]string{name}, ErrRegexPattern, err.Error())
-				return false, errs
+			str := strings.TrimSpace(fmt.Sprintf("%v", val))
+		
+			if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
+				return regexPatternValidator(errs, name, str[1:len(str)-1])
 			}
-
-			return true, errs
+			return globPatternValidator(errs, name, val)
 		},
 	})
 }
