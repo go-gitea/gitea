@@ -54,7 +54,7 @@ func (pt *ProtectedTag) EnsureCompiledPattern() error {
 
 	var err error
 	if len(pt.NamePattern) >= 2 && strings.HasPrefix(pt.NamePattern, "/") && strings.HasSuffix(pt.NamePattern, "/") {
-		pt.RegexPattern, err = regexp.Compile(pt.NamePattern[1:len(pt.NamePattern)-1])
+		pt.RegexPattern, err = regexp.Compile(pt.NamePattern[1 : len(pt.NamePattern)-1])
 	} else {
 		pt.GlobPattern, err = glob.Compile(pt.NamePattern)
 	}

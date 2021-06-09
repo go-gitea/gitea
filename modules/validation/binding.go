@@ -151,7 +151,7 @@ func addGlobOrRegexPatternRule() {
 		},
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := strings.TrimSpace(fmt.Sprintf("%v", val))
-		
+
 			if len(str) >= 2 && strings.HasPrefix(str, "/") && strings.HasSuffix(str, "/") {
 				return regexPatternValidator(errs, name, str[1:len(str)-1])
 			}
