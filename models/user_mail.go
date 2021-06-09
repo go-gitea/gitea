@@ -17,14 +17,22 @@ import (
 	"xorm.io/builder"
 )
 
-// EmailAddress is the list of all email addresses of a user. Can contain the
-// primary email address, but is not obligatory.
+// EmailAddress is the list of all email addresses of a user. It also contains the
+// primary email address which is saved in user table.
 type EmailAddress struct {
 	ID          int64  `xorm:"pk autoincr"`
 	UID         int64  `xorm:"INDEX NOT NULL"`
 	Email       string `xorm:"UNIQUE NOT NULL"`
+	LowerEmail  string `xorm:"UNIQUE NOT NULL"`
 	IsActivated bool
-	IsPrimary   bool `xorm:"-"`
+	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
+}
+
+// BeforeInsert will be invoked by XORM before inserting a record
+func (email *EmailAddress) BeforeInsert() {
+	if email.LowerEmail == "" {
+		email.LowerEmail = strings.ToLower(email.Email)
+	}
 }
 
 // ValidateEmail check if email is a allowed address
@@ -47,33 +55,9 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
 	if err := x.
 		Where("uid=?", uid).
+		Asc("id").
 		Find(&emails); err != nil {
 		return nil, err
-	}
-
-	u, err := GetUserByID(uid)
-	if err != nil {
-		return nil, err
-	}
-
-	isPrimaryFound := false
-	for _, email := range emails {
-		if email.Email == u.Email {
-			isPrimaryFound = true
-			email.IsPrimary = true
-		} else {
-			email.IsPrimary = false
-		}
-	}
-
-	// We always want the primary email address displayed, even if it's not in
-	// the email address table (yet).
-	if !isPrimaryFound {
-		emails = append(emails, &EmailAddress{
-			Email:       u.Email,
-			IsActivated: u.IsActive,
-			IsPrimary:   true,
-		})
 	}
 	return emails, nil
 }
@@ -97,33 +81,16 @@ func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) 
 
 	// Can't filter by boolean field unless it's explicit
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"email": email}, builder.Neq{"id": emailID})
+	cond = cond.And(builder.Eq{"lower_email": strings.ToLower(email)}, builder.Neq{"id": emailID})
 	if setting.Service.RegisterEmailConfirm {
 		// Inactive (unvalidated) addresses don't count as active if email validation is required
 		cond = cond.And(builder.Eq{"is_activated": true})
 	}
 
-	em := EmailAddress{}
-
+	var em EmailAddress
 	if has, err := e.Where(cond).Get(&em); has || err != nil {
 		if has {
 			log.Info("isEmailActive('%s',%d,%d) found duplicate in email ID %d", email, userID, emailID, em.ID)
-		}
-		return has, err
-	}
-
-	// Can't filter by boolean field unless it's explicit
-	cond = builder.NewCond()
-	cond = cond.And(builder.Eq{"email": email}, builder.Neq{"id": userID})
-	if setting.Service.RegisterEmailConfirm {
-		cond = cond.And(builder.Eq{"is_active": true})
-	}
-
-	us := User{}
-
-	if has, err := e.Where(cond).Get(&us); has || err != nil {
-		if has {
-			log.Info("isEmailActive('%s',%d,%d) found duplicate in user ID %d", email, userID, emailID, us.ID)
 		}
 		return has, err
 	}
@@ -136,7 +103,7 @@ func isEmailUsed(e Engine, email string) (bool, error) {
 		return true, nil
 	}
 
-	return e.Where("email=?", email).Get(&EmailAddress{})
+	return e.Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
 // IsEmailUsed returns true if the email has been used.
@@ -145,7 +112,7 @@ func IsEmailUsed(email string) (bool, error) {
 }
 
 func addEmailAddress(e Engine, email *EmailAddress) error {
-	email.Email = strings.ToLower(strings.TrimSpace(email.Email))
+	email.Email = strings.TrimSpace(email.Email)
 	used, err := isEmailUsed(e, email.Email)
 	if err != nil {
 		return err
@@ -174,7 +141,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 
 	// Check if any of them has been used
 	for i := range emails {
-		emails[i].Email = strings.ToLower(strings.TrimSpace(emails[i].Email))
+		emails[i].Email = strings.TrimSpace(emails[i].Email)
 		used, err := IsEmailUsed(emails[i].Email)
 		if err != nil {
 			return err
@@ -223,6 +190,10 @@ func (email *EmailAddress) updateActivation(e Engine, activate bool) error {
 
 // DeleteEmailAddress deletes an email address of given user.
 func DeleteEmailAddress(email *EmailAddress) (err error) {
+	if email.IsPrimary {
+		return ErrPrimaryEmailCannotDelete{Email: email.Email}
+	}
+
 	var deleted int64
 	// ask to check UID
 	address := EmailAddress{
@@ -231,8 +202,11 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 	if email.ID > 0 {
 		deleted, err = x.ID(email.ID).Delete(&address)
 	} else {
+		if email.Email != "" && email.LowerEmail == "" {
+			email.LowerEmail = strings.ToLower(email.Email)
+		}
 		deleted, err = x.
-			Where("email=?", email.Email).
+			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
 	}
 
@@ -261,7 +235,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrEmailNotExist
+		return ErrEmailAddressNotExist{Email: email.Email}
 	}
 
 	if !email.IsActivated {
@@ -276,29 +250,28 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		return ErrUserNotExist{email.UID, "", 0}
 	}
 
-	// Make sure the former primary email doesn't disappear.
-	formerPrimaryEmail := &EmailAddress{UID: user.ID, Email: user.Email}
-	has, err = x.Get(formerPrimaryEmail)
-	if err != nil {
-		return err
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if !has {
-		formerPrimaryEmail.UID = user.ID
-		formerPrimaryEmail.IsActivated = user.IsActive
-		if _, err = sess.Insert(formerPrimaryEmail); err != nil {
-			return err
-		}
-	}
-
+	// 1. Update user table
 	user.Email = email.Email
 	if _, err = sess.ID(user.ID).Cols("email").Update(user); err != nil {
+		return err
+	}
+
+	// 2. Update old primary email
+	if _, err = sess.Where("uid=? AND is_primary=?", email.UID, true).Cols("is_primary").Update(&EmailAddress{
+		IsPrimary: false,
+	}); err != nil {
+		return err
+	}
+
+	// 3. update new primay email
+	email.IsPrimary = true
+	if _, err = sess.ID(email.ID).Cols("is_primary").Update(email); err != nil {
 		return err
 	}
 
@@ -314,10 +287,10 @@ func (s SearchEmailOrderBy) String() string {
 
 // Strings for sorting result
 const (
-	SearchEmailOrderByEmail        SearchEmailOrderBy = "emails.email ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "emails.email DESC, is_primary ASC, sortid DESC"
-	SearchEmailOrderByName         SearchEmailOrderBy = "`user`.lower_name ASC, is_primary DESC, sortid ASC"
-	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, is_primary ASC, sortid DESC"
+	SearchEmailOrderByEmail        SearchEmailOrderBy = "email_address.lower_email ASC, email_address.is_primary DESC, email_address.id ASC"
+	SearchEmailOrderByEmailReverse SearchEmailOrderBy = "email_address.lower_email DESC, email_address.is_primary ASC, email_address.id DESC"
+	SearchEmailOrderByName         SearchEmailOrderBy = "`user`.lower_name ASC, email_address.is_primary DESC, email_address.id ASC"
+	SearchEmailOrderByNameReverse  SearchEmailOrderBy = "`user`.lower_name DESC, email_address.is_primary ASC, email_address.id DESC"
 )
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
@@ -343,54 +316,32 @@ type SearchEmailResult struct {
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
 func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
-	// Unfortunately, UNION support for SQLite in xorm is currently broken, so we must
-	// build the SQL ourselves.
-	where := make([]string, 0, 5)
-	args := make([]interface{}, 0, 5)
-
-	emailsSQL := "(SELECT id as sortid, uid, email, is_activated, 0 as is_primary " +
-		"FROM email_address " +
-		"UNION ALL " +
-		"SELECT id as sortid, id AS uid, email, is_active AS is_activated, 1 as is_primary " +
-		"FROM `user` " +
-		"WHERE type = ?) AS emails"
-	args = append(args, UserTypeIndividual)
-
+	var cond builder.Cond = builder.Eq{"user.`type`": UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
-		// Note: % can be injected in the Keyword parameter, but it won't do any harm.
-		where = append(where, "(lower(`user`.full_name) LIKE ? OR `user`.lower_name LIKE ? OR emails.email LIKE ?)")
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
-		args = append(args, likeStr)
-		args = append(args, likeStr)
-		args = append(args, likeStr)
+		cond = cond.And(builder.Or(
+			builder.Like{"lower(`user`.full_name)", likeStr},
+			builder.Like{"`user`.lower_name", likeStr},
+			builder.Like{"email_address.lower_email", likeStr},
+		))
 	}
 
 	switch {
 	case opts.IsPrimary.IsTrue():
-		where = append(where, "emails.is_primary = ?")
-		args = append(args, true)
+		cond = cond.And(builder.Eq{"email_address.is_primary": true})
 	case opts.IsPrimary.IsFalse():
-		where = append(where, "emails.is_primary = ?")
-		args = append(args, false)
+		cond = cond.And(builder.Eq{"email_address.is_primary": false})
 	}
 
 	switch {
 	case opts.IsActivated.IsTrue():
-		where = append(where, "emails.is_activated = ?")
-		args = append(args, true)
+		cond = cond.And(builder.Eq{"email_address.is_activated": true})
 	case opts.IsActivated.IsFalse():
-		where = append(where, "emails.is_activated = ?")
-		args = append(args, false)
+		cond = cond.And(builder.Eq{"email_address.is_activated": false})
 	}
 
-	var whereStr string
-	if len(where) > 0 {
-		whereStr = "WHERE " + strings.Join(where, " AND ")
-	}
-
-	joinSQL := "FROM " + emailsSQL + " INNER JOIN `user` ON `user`.id = emails.uid " + whereStr
-
-	count, err := x.SQL("SELECT count(*) "+joinSQL, args...).Count()
+	count, err := x.Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -400,36 +351,16 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		orderby = SearchEmailOrderByEmail.String()
 	}
 
-	querySQL := "SELECT emails.uid, emails.email, emails.is_activated, emails.is_primary, " +
-		"`user`.name, `user`.full_name " + joinSQL + " ORDER BY " + orderby
-
 	opts.setDefaultValues()
 
-	rows, err := x.SQL(querySQL, args...).Rows(new(SearchEmailResult))
-	if err != nil {
-		return nil, 0, fmt.Errorf("Emails: %v", err)
-	}
-
-	// Page manually because xorm can't handle Limit() with raw SQL
-	defer rows.Close()
-
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
-	skip := (opts.Page - 1) * opts.PageSize
-
-	for rows.Next() {
-		var email SearchEmailResult
-		if err := rows.Scan(&email); err != nil {
-			return nil, 0, err
-		}
-		if skip > 0 {
-			skip--
-			continue
-		}
-		emails = append(emails, &email)
-		if len(emails) == opts.PageSize {
-			break
-		}
-	}
+	err = x.Table("email_address").
+		Select("email_address.*, `user`.name, `user`.full_name").
+		Join("INNER", "`user`", "`user`.ID = email_address.uid").
+		Where(cond).
+		OrderBy(orderby).
+		Limit(opts.PageSize, (opts.Page-1)*opts.PageSize).
+		Find(&emails)
 
 	return emails, count, err
 }
@@ -442,6 +373,30 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 	if err = sess.Begin(); err != nil {
 		return err
 	}
+
+	// Activate/deactivate a user's secondary email address
+	// First check if there's another user active with the same address
+	addr := EmailAddress{UID: userID, LowerEmail: strings.ToLower(email)}
+	if has, err := sess.Get(&addr); err != nil {
+		return err
+	} else if !has {
+		return fmt.Errorf("no such email: %d (%s)", userID, email)
+	}
+	if addr.IsActivated == activate {
+		// Already in the desired state; no action
+		return nil
+	}
+	if activate {
+		if used, err := isEmailActive(sess, email, 0, addr.ID); err != nil {
+			return fmt.Errorf("isEmailActive(): %v", err)
+		} else if used {
+			return ErrEmailAlreadyUsed{Email: email}
+		}
+	}
+	if err = addr.updateActivation(sess, activate); err != nil {
+		return fmt.Errorf("updateActivation(): %v", err)
+	}
+
 	if primary {
 		// Activate/deactivate a user's primary email address
 		user := User{ID: userID, Email: email}
@@ -454,13 +409,6 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 			// Already in the desired state; no action
 			return nil
 		}
-		if activate {
-			if used, err := isEmailActive(sess, email, userID, 0); err != nil {
-				return fmt.Errorf("isEmailActive(): %v", err)
-			} else if used {
-				return ErrEmailAlreadyUsed{Email: email}
-			}
-		}
 		user.IsActive = activate
 		if user.Rands, err = GetUserSalt(); err != nil {
 			return fmt.Errorf("generate salt: %v", err)
@@ -468,29 +416,7 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 		if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
 			return fmt.Errorf("updateUserCols(): %v", err)
 		}
-	} else {
-		// Activate/deactivate a user's secondary email address
-		// First check if there's another user active with the same address
-		addr := EmailAddress{UID: userID, Email: email}
-		if has, err := sess.Get(&addr); err != nil {
-			return err
-		} else if !has {
-			return fmt.Errorf("no such email: %d (%s)", userID, email)
-		}
-		if addr.IsActivated == activate {
-			// Already in the desired state; no action
-			return nil
-		}
-		if activate {
-			if used, err := isEmailActive(sess, email, 0, addr.ID); err != nil {
-				return fmt.Errorf("isEmailActive(): %v", err)
-			} else if used {
-				return ErrEmailAlreadyUsed{Email: email}
-			}
-		}
-		if err = addr.updateActivation(sess, activate); err != nil {
-			return fmt.Errorf("updateActivation(): %v", err)
-		}
 	}
+
 	return sess.Commit()
 }
