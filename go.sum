@@ -335,8 +335,9 @@ github.com/go-enry/go-oniguruma v1.2.1/go.mod h1:bWDhYP+S6xZQgiRL7wlTScFYBe023B6
 github.com/go-git/gcfg v1.5.0 h1:Q5ViNfGF8zFgyJWPqYwA7qGFoMTEiBmdlkcfRmpIMa4=
 github.com/go-git/gcfg v1.5.0/go.mod h1:5m20vg6GwYabIxaOonVkTdrILxQMpEShl1xiMF4ua+E=
 github.com/go-git/go-billy/v5 v5.0.0/go.mod h1:pmpqyWchKfYfrkb/UVH4otLvyi/5gJlGI4Hb3ZqZ3W0=
-github.com/go-git/go-billy/v5 v5.1.0 h1:4pl5BV4o7ZG/lterP4S6WzJ6xr49Ba5ET9ygheTYahk=
 github.com/go-git/go-billy/v5 v5.1.0/go.mod h1:pmpqyWchKfYfrkb/UVH4otLvyi/5gJlGI4Hb3ZqZ3W0=
+github.com/go-git/go-billy/v5 v5.3.1 h1:CPiOUAzKtMRvolEKw+bG1PLRpT7D3LIs3/3ey4Aiu34=
+github.com/go-git/go-billy/v5 v5.3.1/go.mod h1:pmpqyWchKfYfrkb/UVH4otLvyi/5gJlGI4Hb3ZqZ3W0=
 github.com/go-git/go-git-fixtures/v4 v4.0.2-0.20200613231340-f56387b50c12 h1:PbKy9zOy4aAKrJ5pibIRpVO2BXnK1Tlcg+caKI7Ox5M=
 github.com/go-git/go-git-fixtures/v4 v4.0.2-0.20200613231340-f56387b50c12/go.mod h1:m+ICp2rF3jDhFgEZ/8yziagdT1C+ZpZcrJjappBCDSw=
 github.com/go-git/go-git/v5 v5.3.0 h1:8WKMtJR2j8RntEXR/uvTKagfEt4GYlwQ7mntE4+0GWc=
