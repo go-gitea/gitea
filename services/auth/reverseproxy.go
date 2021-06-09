@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"net/http"
@@ -19,10 +19,10 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ SingleSignOn = &ReverseProxy{}
+	_ Auth = &ReverseProxy{}
 )
 
-// ReverseProxy implements the SingleSignOn interface, but actually relies on
+// ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
 // "setting.ReverseProxyAuthUser" header. Optionally it can also populate the email of the
@@ -39,6 +39,11 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 	return webAuthUser
 }
 
+// Name represents the name of auth method
+func (r *ReverseProxy) Name() string {
+	return "reverse_proxy"
+}
+
 // Init does nothing as the ReverseProxy implementation does not need initialization
 func (r *ReverseProxy) Init() error {
 	return nil
@@ -49,19 +54,14 @@ func (r *ReverseProxy) Free() error {
 	return nil
 }
 
-// IsEnabled checks if EnableReverseProxyAuth setting is true
-func (r *ReverseProxy) IsEnabled() bool {
-	return setting.Service.EnableReverseProxyAuth
-}
-
-// VerifyAuthData extracts the username from the "setting.ReverseProxyAuthUser" header
+// Verify extracts the username from the "setting.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
 // the revese proxy.
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil

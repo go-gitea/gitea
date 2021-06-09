@@ -13,13 +13,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
@@ -228,7 +228,7 @@ func InfoOAuth(ctx *context.Context) {
 		ctx.HandleText(http.StatusUnauthorized, "no valid auth token authorization")
 		return
 	}
-	uid := sso.CheckOAuthAccessToken(auths[1])
+	uid := auth.CheckOAuthAccessToken(auths[1])
 	if uid == 0 {
 		handleBearerTokenError(ctx, BearerTokenError{
 			ErrorCode:        BearerTokenErrorCodeInvalidToken,
