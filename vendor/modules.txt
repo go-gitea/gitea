@@ -587,7 +587,7 @@ github.com/markbates/goth/providers/yandex
 # github.com/mattn/go-isatty v0.0.12
 ## explicit
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.12
+# github.com/mattn/go-runewidth v0.0.13
 ## explicit
 github.com/mattn/go-runewidth
 # github.com/mattn/go-sqlite3 v1.14.7
@@ -703,7 +703,6 @@ github.com/prometheus/procfs/internal/util
 github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
 # github.com/rivo/uniseg v0.2.0
-## explicit
 github.com/rivo/uniseg
 # github.com/rs/xid v1.2.1
 github.com/rs/xid
