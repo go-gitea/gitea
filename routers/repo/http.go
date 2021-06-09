@@ -447,7 +447,26 @@ func (h *serviceHandler) setHeaderCacheForever() {
 	h.w.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
+func containsParentDirectorySeparator(v string) bool {
+	if !strings.Contains(v, "..") {
+		return false
+	}
+	for _, ent := range strings.FieldsFunc(v, isSlashRune) {
+		if ent == ".." {
+			return true
+		}
+	}
+	return false
+}
+
+func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
+
 func (h *serviceHandler) sendFile(contentType, file string) {
+	if containsParentDirectorySeparator(file) {
+		log.Error("request file path contains invalid path: %v", file)
+		h.w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	reqFile := path.Join(h.dir, file)
 
 	fi, err := os.Stat(reqFile)
