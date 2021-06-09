@@ -45,7 +45,7 @@ require (
 	github.com/go-redis/redis/v8 v8.10.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-swagger/go-swagger v0.27.0
-	github.com/go-testfixtures/testfixtures/v3 v3.6.0
+	github.com/go-testfixtures/testfixtures/v3 v3.6.1
 	github.com/gobwas/glob v0.2.3
 	github.com/goccy/go-json v0.6.1 // indirect
 	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
@@ -69,7 +69,7 @@ require (
 	github.com/klauspost/compress v1.12.1
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.4.0
-	github.com/lib/pq v1.10.1
+	github.com/lib/pq v1.10.2
 	github.com/libdns/libdns v0.2.1 // indirect
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.67.1

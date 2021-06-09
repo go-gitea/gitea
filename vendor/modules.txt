@@ -402,7 +402,7 @@ github.com/go-swagger/go-swagger/cmd/swagger/commands/initcmd
 github.com/go-swagger/go-swagger/codescan
 github.com/go-swagger/go-swagger/generator
 github.com/go-swagger/go-swagger/scan
-# github.com/go-testfixtures/testfixtures/v3 v3.6.0
+# github.com/go-testfixtures/testfixtures/v3 v3.6.1
 ## explicit
 github.com/go-testfixtures/testfixtures/v3
 # github.com/gobwas/glob v0.2.3
@@ -549,7 +549,7 @@ github.com/kr/text
 ## explicit
 github.com/lafriks/xormstore
 github.com/lafriks/xormstore/util
-# github.com/lib/pq v1.10.1
+# github.com/lib/pq v1.10.2
 ## explicit
 github.com/lib/pq
 github.com/lib/pq/oid
