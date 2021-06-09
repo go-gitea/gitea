@@ -113,7 +113,7 @@ require (
 	github.com/urfave/cli v1.22.5
 	github.com/xanzy/go-gitlab v0.50.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.3.5
+	github.com/yuin/goldmark v1.3.7
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
 	go.etcd.io/bbolt v1.3.6 // indirect
