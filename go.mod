@@ -14,12 +14,12 @@ require (
 	github.com/Microsoft/go-winio v0.4.18 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.6.1
-	github.com/RoaringBitmap/roaring v0.6.0 // indirect
+	github.com/RoaringBitmap/roaring v0.7.3 // indirect
 	github.com/alecthomas/chroma v0.9.1
 	github.com/andybalholm/brotli v1.0.1 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/blevesearch/bleve/v2 v2.0.3
+	github.com/blevesearch/bleve/v2 v2.0.5
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.13.0
@@ -113,6 +113,7 @@ require (
 	github.com/yuin/goldmark v1.3.5
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	github.com/yuin/goldmark-meta v1.0.0
+	go.etcd.io/bbolt v1.3.6 // indirect
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
 	go.uber.org/multierr v1.6.0 // indirect
@@ -120,7 +121,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+	golang.org/x/sys v0.0.0-20210608053332-aa57babbf139
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	golang.org/x/tools v0.1.0

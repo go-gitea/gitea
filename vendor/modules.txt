@@ -44,7 +44,7 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.6.0
+# github.com/RoaringBitmap/roaring v0.7.3
 ## explicit
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
@@ -97,7 +97,9 @@ github.com/aymerick/douceur/css
 github.com/aymerick/douceur/parser
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blevesearch/bleve/v2 v2.0.3
+# github.com/bits-and-blooms/bitset v1.2.0
+github.com/bits-and-blooms/bitset
+# github.com/blevesearch/bleve/v2 v2.0.5
 ## explicit
 github.com/blevesearch/bleve/v2
 github.com/blevesearch/bleve/v2/analysis
@@ -150,7 +152,7 @@ github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
 # github.com/blevesearch/upsidedown_store_api v1.0.1
 github.com/blevesearch/upsidedown_store_api
-# github.com/blevesearch/vellum v1.0.3
+# github.com/blevesearch/vellum v1.0.4
 github.com/blevesearch/vellum
 github.com/blevesearch/vellum/levenshtein
 github.com/blevesearch/vellum/regexp
@@ -759,8 +761,6 @@ github.com/unrolled/render
 # github.com/urfave/cli v1.22.5
 ## explicit
 github.com/urfave/cli
-# github.com/willf/bitset v1.1.10
-github.com/willf/bitset
 # github.com/xanzy/go-gitlab v0.48.0
 ## explicit
 github.com/xanzy/go-gitlab
@@ -788,7 +788,8 @@ github.com/yuin/goldmark-highlighting
 # github.com/yuin/goldmark-meta v1.0.0
 ## explicit
 github.com/yuin/goldmark-meta
-# go.etcd.io/bbolt v1.3.5
+# go.etcd.io/bbolt v1.3.6
+## explicit
 go.etcd.io/bbolt
 # go.jolheiser.com/hcaptcha v0.0.4
 ## explicit
@@ -889,7 +890,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+# golang.org/x/sys v0.0.0-20210608053332-aa57babbf139
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
