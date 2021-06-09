@@ -12,11 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package otel // import "go.opentelemetry.io/otel"
+package trace // import "go.opentelemetry.io/otel/trace"
 
-// ErrorHandler handles irremediable events.
-type ErrorHandler interface {
-	// Handle handles any error deemed irremediable by an OpenTelemetry
-	// component.
-	Handle(error)
+// nonRecordingSpan is a minimal implementation of a Span that wraps a
+// SpanContext. It performs no operations other than to return the wrapped
+// SpanContext.
+type nonRecordingSpan struct {
+	noopSpan
+
+	sc SpanContext
 }
+
+// SpanContext returns the wrapped SpanContext.
+func (s nonRecordingSpan) SpanContext() SpanContext { return s.sc }
