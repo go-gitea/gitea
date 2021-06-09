@@ -107,7 +107,6 @@ require (
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.1.1
 	github.com/urfave/cli v1.22.5
-	github.com/willf/bitset v1.1.11 // indirect
 	github.com/xanzy/go-gitlab v0.48.0
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.3.5

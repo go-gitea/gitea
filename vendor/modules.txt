@@ -749,8 +749,7 @@ github.com/unrolled/render
 # github.com/urfave/cli v1.22.5
 ## explicit
 github.com/urfave/cli
-# github.com/willf/bitset v1.1.11
-## explicit
+# github.com/willf/bitset v1.1.10
 github.com/willf/bitset
 # github.com/xanzy/go-gitlab v0.48.0
 ## explicit
