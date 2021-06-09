@@ -1000,7 +1000,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
 				m.Get("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
 				m.Get("/objects/info/packs", repo.GetInfoPacks)
-				m.Get("/objects/info/{file:*}", repo.GetTextFile(""))
+				m.Get("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
 				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
 				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
 				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
