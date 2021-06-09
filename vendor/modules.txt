@@ -704,7 +704,8 @@ github.com/quasoft/websspi
 github.com/quasoft/websspi/secctx
 # github.com/rivo/uniseg v0.2.0
 github.com/rivo/uniseg
-# github.com/rs/xid v1.2.1
+# github.com/rs/xid v1.3.0
+## explicit
 github.com/rs/xid
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
