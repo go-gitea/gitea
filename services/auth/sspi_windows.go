@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package sso
+package auth
 
 import (
 	"errors"
@@ -32,7 +32,7 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ SingleSignOn = &SSPI{}
+	_ Auth = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests
@@ -62,21 +62,21 @@ func (s *SSPI) Init() error {
 	return nil
 }
 
+// Name represents the name of auth method
+func (s *SSPI) Name() string {
+	return "sspi"
+}
+
 // Free releases resources used by the global websspi.Authenticator object
 func (s *SSPI) Free() error {
 	return sspiAuth.Free()
 }
 
-// IsEnabled checks if there is an active SSPI authentication source
-func (s *SSPI) IsEnabled() bool {
-	return models.IsSSPIEnabled()
-}
-
-// VerifyAuthData uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
+// Verify uses SSPI (Windows implementation of SPNEGO) to authenticate the request.
 // If authentication is successful, returs the corresponding user object.
 // If negotiation should continue or authentication fails, immediately returns a 401 HTTP
 // response code, as required by the SPNEGO protocol.
-func (s *SSPI) VerifyAuthData(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	if !s.shouldAuthenticate(req) {
 		return nil
 	}
@@ -169,8 +169,6 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 		} else if req.FormValue("auth_with_sspi") == "1" {
 			shouldAuth = true
 		}
-	} else if middleware.IsInternalPath(req) {
-		shouldAuth = false
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
@@ -237,10 +235,12 @@ func sanitizeUsername(username string, cfg *models.SSPIConfig) string {
 	return username
 }
 
-// init registers the SSPI auth method as the last method in the list.
+// specialInit registers the SSPI auth method as the last method in the list.
 // The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
-func init() {
-	Register(&SSPI{})
+func specialInit() {
+	if models.IsSSPIEnabled() {
+		Register(&SSPI{})
+	}
 }
