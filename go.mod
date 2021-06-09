@@ -17,7 +17,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.6.1
 	github.com/RoaringBitmap/roaring v0.7.3 // indirect
 	github.com/alecthomas/chroma v0.9.1
-	github.com/andybalholm/brotli v1.0.1 // indirect
+	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/blevesearch/bleve/v2 v2.0.5
@@ -90,7 +90,7 @@ require (
 	github.com/oliamb/cutter v0.2.2
 	github.com/olivere/elastic/v7 v7.0.24
 	github.com/pelletier/go-toml v1.9.0 // indirect
-	github.com/pierrec/lz4/v4 v4.1.3 // indirect
+	github.com/pierrec/lz4/v4 v4.1.7 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.3.0
 	github.com/prometheus/client_golang v1.10.0
