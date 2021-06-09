@@ -366,7 +366,7 @@ func (h *serviceHandler) setHeaderCacheForever() {
 	h.w.Header().Set("Cache-Control", "public, max-age=31536000")
 }
 
-func containsDotDot(v string) bool {
+func containsParentDirectorySeparator(v string) bool {
 	if !strings.Contains(v, "..") {
 		return false
 	}
@@ -381,7 +381,7 @@ func containsDotDot(v string) bool {
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
 
 func (h *serviceHandler) sendFile(contentType, file string) {
-	if containsDotDot(file) {
+	if containsParentDirectorySeparator(file) {
 		log.Error("request file path contains invalid path: %v", file)
 		h.w.WriteHeader(http.StatusBadRequest)
 		return
