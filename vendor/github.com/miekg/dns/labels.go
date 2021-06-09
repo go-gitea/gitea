@@ -10,7 +10,7 @@ package dns
 // escaped dots (\.) for instance.
 // s must be a syntactically valid domain name, see IsDomainName.
 func SplitDomainName(s string) (labels []string) {
-	if len(s) == 0 {
+	if s == "" {
 		return nil
 	}
 	fqdnEnd := 0 // offset of the final '.' or the length of the name

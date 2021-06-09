@@ -3,11 +3,10 @@ package dns
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"math/big"
 	"strconv"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 const format = "Private-key-format: v1.3\n"
