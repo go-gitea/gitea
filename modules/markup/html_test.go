@@ -408,3 +408,20 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	assert.NotContains(t, string(val), "<html")
 }
+
+func TestIssue16020(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := `<img src="data:image/png;base64,i//V"/>`
+
+	// func PostProcess(rawHTML []byte, urlPrefix string, metas map[string]string, isWikiMarkdown bool) ([]byte, error)
+	res, err := PostProcess([]byte(data), "https://example.com", localMetas, false)
+	assert.NoError(t, err)
+	assert.Equal(t, data, string(res))
+}
