@@ -43,7 +43,7 @@ type User struct {
 	Website string `json:"website"`
 	// the user's description
 	Description string `json:"description"`
-	// user hides from public
+	// User visibility level option
 	Visibility string `json:"visibility" binding:"In(,public,limited,private)"`
 }
 

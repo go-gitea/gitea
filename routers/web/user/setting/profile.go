@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -114,7 +115,9 @@ func ProfilePost(ctx *context.Context) {
 	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
-	ctx.User.Visibility = form.Visibility
+	if form.Visibility != "" {
+		ctx.User.Visibility = api.VisibilityModes[form.Visibility]
+	}
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))

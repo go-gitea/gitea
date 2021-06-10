@@ -13014,10 +13014,6 @@
           "type": "string",
           "x-go-name": "FullName"
         },
-        "visibility": {
-          "type": "string",
-          "x-go-name": "Visibility"
-        },
         "login_name": {
           "type": "string",
           "x-go-name": "LoginName"
@@ -13042,6 +13038,10 @@
         "username": {
           "type": "string",
           "x-go-name": "Username"
+        },
+        "visibility": {
+          "type": "string",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13817,10 +13817,6 @@
           "type": "string",
           "x-go-name": "FullName"
         },
-        "visibility": {
-          "type": "string",
-          "x-go-name": "Visibility"
-        },
         "location": {
           "type": "string",
           "x-go-name": "Location"
@@ -13854,6 +13850,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
+        },
+        "visibility": {
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -16288,11 +16288,6 @@
           "type": "string",
           "x-go-name": "FullName"
         },
-        "visibility": {
-          "description": "prefer user visibility option",
-          "type": "string",
-          "x-go-name": "Visibility"
-        },
         "id": {
           "description": "the user's id",
           "type": "integer",
@@ -16333,6 +16328,11 @@
           "description": "Is user restricted",
           "type": "boolean",
           "x-go-name": "Restricted"
+        },
+        "visibility": {
+          "description": "User visibility level option",
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "description": "the user's website",
