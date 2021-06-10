@@ -68,11 +68,13 @@ func newLFSService() {
 			})
 		}
 
-		_, parseErr := url.Parse(GetLFSRootURL())
+		rootURL, parseErr := url.Parse(GetLFSRootURL())
 		if parseErr != nil {
 			log.Fatal("Failed to parse LFS root URL `%s`: %w", GetLFSRootURL(), parseErr)
 		} else {
 			if len(LFS.RootURL) > 0 {
+				rootURL.Path = "/"
+				LFS.RootURL = rootURL.String()
 				log.Debug("Using custom LFS root URL: %s", LFS.RootURL)
 			}
 		}
