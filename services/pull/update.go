@@ -5,7 +5,6 @@
 package pull
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -130,13 +129,7 @@ func doRebase(pr *models.PullRequest, doer *models.User) error {
 	baseBranch := "base"
 	trackingBranch := "tracking"
 
-	// 2. checkout base branch
-	msg, err := git.NewCommand("checkout", baseBranch).RunInDir(tmpBasePath)
-	if err != nil {
-		return errors.New(msg)
-	}
-
-	// 3. do rebase to ttacking branch
+	// 2. do rebase to ttacking branch
 	sig := doer.NewGitSig()
 	committer := sig
 
@@ -173,7 +166,7 @@ func doRebase(pr *models.PullRequest, doer *models.User) error {
 		return fmt.Errorf("git rebase [%s:%s -> %s:%s]: %v\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch, err, outbuf.String(), errbuf.String())
 	}
 
-	// 4. force push to base branch
+	// 3. force push to base branch
 	env = models.FullPushingEnvironment(doer, doer, pr.BaseRepo, pr.BaseRepo.Name, pr.ID)
 
 	outbuf.Reset()
