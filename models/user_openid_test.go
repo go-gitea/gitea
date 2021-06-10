@@ -15,15 +15,15 @@ func TestGetUserOpenIDs(t *testing.T) {
 
 	oids, err := GetUserOpenIDs(int64(1))
 	if assert.NoError(t, err) && assert.Len(t, oids, 2) {
-		assert.Equal(t, oids[0].URI, "https://user1.domain1.tld/")
+		assert.Equal(t, "https://user1.domain1.tld/", oids[0].URI)
 		assert.False(t, oids[0].Show)
-		assert.Equal(t, oids[1].URI, "http://user1.domain2.tld/")
+		assert.Equal(t, "http://user1.domain2.tld/", oids[1].URI)
 		assert.True(t, oids[1].Show)
 	}
 
 	oids, err = GetUserOpenIDs(int64(2))
 	if assert.NoError(t, err) && assert.Len(t, oids, 1) {
-		assert.Equal(t, oids[0].URI, "https://domain1.tld/user2/")
+		assert.Equal(t, "https://domain1.tld/user2/", oids[0].URI)
 		assert.True(t, oids[0].Show)
 	}
 }
@@ -38,12 +38,12 @@ func TestGetUserByOpenID(t *testing.T) {
 
 	user, err := GetUserByOpenID("https://user1.domain1.tld")
 	if assert.NoError(t, err) {
-		assert.Equal(t, user.ID, int64(1))
+		assert.Equal(t, int64(1), user.ID)
 	}
 
 	user, err = GetUserByOpenID("https://domain1.tld/user2/")
 	if assert.NoError(t, err) {
-		assert.Equal(t, user.ID, int64(2))
+		assert.Equal(t, int64(2), user.ID)
 	}
 }
 

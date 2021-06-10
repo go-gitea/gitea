@@ -26,7 +26,7 @@ func TestSMTPLogger(t *testing.T) {
 
 	logger := NewSMTPLogger()
 	smtpLogger, ok := logger.(*SMTPLogger)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 
 	err := logger.Init(fmt.Sprintf("{\"prefix\":\"%s\",\"level\":\"%s\",\"flags\":%d,\"username\":\"%s\",\"password\":\"%s\",\"host\":\"%s\",\"subject\":\"%s\",\"sendTos\":[\"%s\",\"%s\"]}", prefix, level.String(), flags, username, password, host, subject, sendTos[0], sendTos[1]))
 	assert.NoError(t, err)
