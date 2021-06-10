@@ -1086,7 +1086,7 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 
 func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 10)
-	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	err := e.Table("issue").Cols("id").Where("repo_id = ?", repoID).Find(&ids)
 	return ids, err
 }
 
