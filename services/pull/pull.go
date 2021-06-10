@@ -586,7 +586,13 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
 			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 			if maxSize < 0 || stringBuilder.Len() < maxSize {
-				toWrite := []byte(commit.CommitMessage)
+				var toWrite []byte
+				if element == list.Back() {
+					toWrite = []byte(strings.TrimPrefix(commit.CommitMessage, pr.Issue.Title))
+				} else {
+					toWrite = []byte(commit.CommitMessage)
+				}
+
 				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
 					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
 				}
