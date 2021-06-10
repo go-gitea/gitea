@@ -655,7 +655,7 @@ type HookTask struct {
 	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
 	URL             string       `xorm:"TEXT"`
 	Signature       string       `xorm:"TEXT"`
-	SignatureGithub string       `xorm:"TEXT"`
+	SignatureSHA1   string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
