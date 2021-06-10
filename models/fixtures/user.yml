@@ -529,9 +529,8 @@
   id: 31
   lower_name: user31
   name: user31
-  full_name: " <<<< >> >> > >> > >>> >> "
+  full_name: "user31"
   email: user31@example.com
-  email_notifications_preference: onmention
   passwd_hash_algo: argon2
   passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
   type: 0 # individual
