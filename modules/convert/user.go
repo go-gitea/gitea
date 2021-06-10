@@ -7,6 +7,7 @@ package convert
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -57,7 +58,11 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
-		result.Visibility = user.Visibility.String()
+		v := user.Visibility.String()
+		if v == "" {
+			v = setting.Service.DefaultUserVisibility
+		}
+		result.Visibility = v
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
