@@ -165,7 +165,7 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 func TestEditUserPost_VisibilityPrivate(t *testing.T) {
 
 	models.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/edit")
+	ctx := test.MockContext(t, "admin/users/32")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
