@@ -59,11 +59,11 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 }
 
 // retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
+func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*models.Action {
 	actions, err := models.GetFeeds(options)
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
-		return
+		return nil
 	}
 
 	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
@@ -85,13 +85,13 @@ func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
 					continue
 				}
 				ctx.ServerError("GetUserByID", err)
-				return
+				return nil
 			}
 			userCache[repoOwner.ID] = repoOwner
 		}
 		act.Repo.Owner = repoOwner
 	}
-	ctx.Data["Feeds"] = actions
+	return actions
 }
 
 // Dashboard render the dashboard page
@@ -149,7 +149,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, models.GetFeedsOptions{
+	actions := retrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
@@ -158,10 +158,11 @@ func Dashboard(ctx *context.Context) {
 		IncludeDeleted:  false,
 		Date:            ctx.Query("date"),
 	})
-
 	if ctx.Written() {
 		return
 	}
+	ctx.Data["Feeds"] = actions
+
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 

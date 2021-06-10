@@ -208,7 +208,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		actions := retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -218,6 +218,7 @@ func Profile(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+		ctx.Data["Feeds"] = actions
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
