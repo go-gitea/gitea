@@ -36,6 +36,14 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 	testSuccess(1, []int64{})
 }
 
+func Test_GetIssueIDsByRepoID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	ids, err := GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 5)
+}
+
 func TestIssueAPIURL(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)

@@ -6,14 +6,18 @@ import (
 )
 
 // Ragel lexer.
-var Ragel = internal.Register(MustNewLexer(
+var Ragel = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Ragel",
 		Aliases:   []string{"ragel"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	ragelRules,
+))
+
+func ragelRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\s+`, TextWhitespace, nil},
 		},
@@ -72,5 +76,5 @@ var Ragel = internal.Register(MustNewLexer(
 			{`\{`, Punctuation, Push()},
 			{`\}`, Punctuation, Pop(1)},
 		},
-	},
-))
+	}
+}

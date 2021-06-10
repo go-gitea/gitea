@@ -6,7 +6,7 @@ import (
 )
 
 // Haxe lexer.
-var Haxe = internal.Register(MustNewLexer(
+var Haxe = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Haxe",
 		Aliases:   []string{"hx", "haxe", "hxsl"},
@@ -14,7 +14,11 @@ var Haxe = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/haxe", "text/x-haxe", "text/x-hx"},
 		DotAll:    true,
 	},
-	Rules{
+	haxeRules,
+))
+
+func haxeRules() Rules {
+	return Rules{
 		"root": {
 			Include("spaces"),
 			Include("meta"),
@@ -609,8 +613,8 @@ var Haxe = internal.Register(MustNewLexer(
 			{`\}`, Punctuation, Pop(1)},
 			{`,`, Punctuation, Push("#pop", "object")},
 		},
-	},
-))
+	}
+}
 
 func haxePreProcMutator(state *LexerState) error {
 	stack, ok := state.Get("haxe-pre-proc").([][]string)

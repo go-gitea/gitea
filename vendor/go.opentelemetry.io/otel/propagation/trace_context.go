@@ -54,15 +54,22 @@ func (tc TraceContext) Inject(ctx context.Context, carrier TextMapCarrier) {
 
 	carrier.Set(tracestateHeader, sc.TraceState().String())
 
-	h := fmt.Sprintf("%.2x-%s-%s-%.2x",
+	// Clear all flags other than the trace-context supported sampling bit.
+	flags := sc.TraceFlags() & trace.FlagsSampled
+
+	h := fmt.Sprintf("%.2x-%s-%s-%s",
 		supportedVersion,
 		sc.TraceID(),
 		sc.SpanID(),
-		sc.TraceFlags()&trace.FlagsSampled)
+		flags)
 	carrier.Set(traceparentHeader, h)
 }
 
 // Extract reads tracecontext from the carrier into a returned Context.
+//
+// The returned Context will be a copy of ctx and contain the extracted
+// tracecontext as the remote SpanContext. If the extracted tracecontext is
+// invalid, the passed ctx will be returned directly instead.
 func (tc TraceContext) Extract(ctx context.Context, carrier TextMapCarrier) context.Context {
 	sc := tc.extract(carrier)
 	if !sc.IsValid() {
@@ -130,7 +137,7 @@ func (tc TraceContext) extract(carrier TextMapCarrier) trace.SpanContext {
 		return trace.SpanContext{}
 	}
 	// Clear all flags other than the trace-context supported sampling bit.
-	scc.TraceFlags = opts[0] & trace.FlagsSampled
+	scc.TraceFlags = trace.TraceFlags(opts[0]) & trace.FlagsSampled
 
 	scc.TraceState = parseTraceState(carrier.Get(tracestateHeader))
 	scc.Remote = true

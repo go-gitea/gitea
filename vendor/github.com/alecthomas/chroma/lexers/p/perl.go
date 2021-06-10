@@ -6,7 +6,7 @@ import (
 )
 
 // Perl lexer.
-var Perl = internal.Register(MustNewLexer(
+var Perl = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Perl",
 		Aliases:   []string{"perl", "pl"},
@@ -14,7 +14,11 @@ var Perl = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-perl", "application/x-perl"},
 		DotAll:    true,
 	},
-	Rules{
+	perlRules,
+))
+
+func perlRules() Rules {
+	return Rules{
 		"balanced-regex": {
 			{`/(\\\\|\\[^\\]|[^\\/])*/[egimosx]*`, LiteralStringRegex, Pop(1)},
 			{`!(\\\\|\\[^\\]|[^\\!])*![egimosx]*`, LiteralStringRegex, Pop(1)},
@@ -134,5 +138,5 @@ var Perl = internal.Register(MustNewLexer(
 		"end-part": {
 			{`.+`, CommentPreproc, Pop(1)},
 		},
-	},
-))
+	}
+}
