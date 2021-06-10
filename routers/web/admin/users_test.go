@@ -169,18 +169,16 @@ func TestEditUserPost_VisibilityPrivate(t *testing.T) {
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
-		ID:      2,
+		ID:      32,
 	}).(*models.User)
 
 	ctx.User = u
 
-	username := "user31"
-	email := "user31@example.com"
+	username := "user32"
+	email := "user32@example.com"
 
 	form := forms.AdminEditUserForm{
 		LoginType:  "local",
-		LoginName:  "user31",
-		UserName:   username,
 		Email:      email,
 		Visibility: api.VisibleTypePrivate,
 	}

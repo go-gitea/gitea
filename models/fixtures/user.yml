@@ -542,3 +542,21 @@
   avatar_email: user31@example.com
   num_repos: 0
   is_active: true
+
+-
+  id: 32
+  lower_name: user32
+  name: user32
+  full_name: " <<<< >> >> > >> > >>> >> "
+  email: user32@example.com
+  email_notifications_preference: onmention
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  visibility: 1
+  avatar: avatar32
+  avatar_email: user32@example.com
+  num_repos: 0
+  is_active: true
