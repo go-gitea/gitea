@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -18,6 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/org"
+
+	"github.com/gorilla/feeds"
 )
 
 // GetUserByName get user by name
@@ -70,6 +73,12 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
+	isShowRSS := false
+	if strings.HasSuffix(uname, ".rss") {
+		isShowRSS = true
+		uname = strings.TrimSuffix(uname, ".rss")
+	}
+
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
 		return
@@ -84,6 +93,12 @@ func Profile(ctx *context.Context) {
 	// Show GPG keys.
 	if isShowGPG {
 		ShowGPGKeys(ctx, ctxUser.ID)
+		return
+	}
+
+	// Show User RSS feed
+	if isShowRSS {
+		ShowRSS(ctx, ctxUser)
 		return
 	}
 
@@ -304,6 +319,53 @@ func Profile(ctx *context.Context) {
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(http.StatusOK, tplProfile)
+}
+
+// ShowRSS show user activity as RSS feed
+func ShowRSS(ctx *context.Context, ctxUser *models.User) {
+	actions := retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		Actor:           ctx.User,
+		IncludePrivate:  false,
+		OnlyPerformedBy: true,
+		IncludeDeleted:  false,
+		Date:            ctx.Query("date"),
+	})
+	if ctx.Written() {
+		return
+	}
+
+	now := time.Now()
+	feed := &feeds.Feed{
+		Title:       ctxUser.FullName,
+		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
+		Description: ctxUser.Description,
+		Created:     now,
+	}
+
+	feed.Items = feedActionsToFeedItems(actions)
+
+	//atom, err := feed.ToAtom()
+	if rss, err := feed.ToRss(); err != nil {
+		ctx.ServerError("ToRss", err)
+	} else {
+		ctx.PlainText(http.StatusOK, []byte(rss))
+	}
+
+}
+
+func feedActionsToFeedItems(actions []*models.Action) (items []*feeds.Item) {
+	for i := range actions {
+		actions[i].LoadActUser()
+
+		items = append(items, &feeds.Item{
+			Title:       string(actions[i].GetOpType()),
+			Link:        &feeds.Link{Href: actions[i].GetCommentLink(), Rel: actions[i].ActUser.AvatarLink()},
+			Description: "A discussion on controlled parallelism in golang",
+			Author:      &feeds.Author{Name: actions[i].ActUser.FullName, Email: actions[i].ActUser.GetEmail()},
+			Created:     actions[i].CreatedUnix.AsTime(),
+		})
+	}
+	return
 }
 
 // Action response for follow/unfollow user request
