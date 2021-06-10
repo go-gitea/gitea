@@ -118,7 +118,6 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 // Issue implements PayloadConvertor Issue method
 func (f *WechatworkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
-
 	var content string
 	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\"> %s</font>", text, attachmentText, issueTitle)
 
@@ -129,7 +128,6 @@ func (f *WechatworkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 // IssueComment implements PayloadConvertor IssueComment method
 func (f *WechatworkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
-
 	var content string
 	content += fmt.Sprintf(" ><font color=\"info\">%s</font>\n >%s \n ><font color=\"warning\">%s</font>", text, p.Comment.Body, issueTitle)
 
@@ -156,10 +154,8 @@ func (f *WechatworkPayload) Review(p *api.PullRequestPayload, event models.HookE
 		if err != nil {
 			return nil, err
 		}
-
 		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.Review.Content
-
 	}
 
 	return newWechatworkMarkdownPayload("# " + title + "\r\n\r\n >" + text), nil
