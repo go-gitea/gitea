@@ -117,6 +117,8 @@ var (
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
+	PerWriteTimeout      = 30 * time.Second
+	PerWritePerKbTimeout = 10 * time.Second
 	StaticURLPrefix      string
 	AbsoluteAssetURL     string
 
@@ -147,18 +149,22 @@ var (
 		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
 		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
 		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
+		PerWriteTimeout                time.Duration     `ini:"SSH_PER_WRITE_TIMEOUT"`
+		PerWritePerKbTimeout           time.Duration     `ini:"SSH_PER_WRITE_PER_KB_TIMEOUT"`
 	}{
-		Disabled:            false,
-		StartBuiltinServer:  false,
-		Domain:              "",
-		Port:                22,
-		ServerCiphers:       []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
-		ServerKeyExchanges:  []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
-		ServerMACs:          []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
-		KeygenPath:          "ssh-keygen",
-		MinimumKeySizeCheck: true,
-		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
-		ServerHostKeys:      []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+		Disabled:             false,
+		StartBuiltinServer:   false,
+		Domain:               "",
+		Port:                 22,
+		ServerCiphers:        []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges:   []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:           []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
+		KeygenPath:           "ssh-keygen",
+		MinimumKeySizeCheck:  true,
+		MinimumKeySizes:      map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		ServerHostKeys:       []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+		PerWriteTimeout:      PerWriteTimeout,
+		PerWritePerKbTimeout: PerWritePerKbTimeout,
 	}
 
 	// Security settings
@@ -607,6 +613,8 @@ func NewContext() {
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
+	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -772,6 +780,8 @@ func NewContext() {
 	}
 
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
+	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
