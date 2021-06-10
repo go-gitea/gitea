@@ -6,7 +6,7 @@ import (
 )
 
 // Sas lexer.
-var Sas = internal.Register(MustNewLexer(
+var Sas = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "SAS",
 		Aliases:         []string{"sas"},
@@ -14,7 +14,11 @@ var Sas = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-sas", "text/sas", "application/x-sas"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	sasRules,
+))
+
+func sasRules() Rules {
+	return Rules{
 		"root": {
 			Include("comments"),
 			Include("proc-data"),
@@ -90,5 +94,5 @@ var Sas = internal.Register(MustNewLexer(
 		"special": {
 			{`(null|missing|_all_|_automatic_|_character_|_n_|_infile_|_name_|_null_|_numeric_|_user_|_webout_)`, KeywordConstant, nil},
 		},
-	},
-))
+	}
+}
