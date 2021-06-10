@@ -376,7 +376,7 @@ func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// NewFeishuHookForm form for creating feishu hook
+// NewWechatWorkHookForm form for creating wechatwork hook
 type NewWechatWorkHookForm struct {
 	PayloadURL string `binding:"Required;ValidUrl"`
 	WebhookForm

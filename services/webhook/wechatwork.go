@@ -17,19 +17,15 @@ import (
 type (
 	// WechatworkPayload represents
 	WechatworkPayload struct {
-		Msgtype  string   `json:"msgtype"`
-		Text     Text     `json:"text"`
-		Markdown Markdown `json:"markdown"`
-	}
-
-	Text struct {
-		Content             string   `json:"content"`
-		MentionedList       []string `json:"mentioned_list"`
-		MentionedMobileList []string `json:"mentioned_mobile_list"`
-	}
-
-	Markdown struct {
-		Content string `json:"content"`
+		Msgtype string `json:"msgtype"`
+		Text    struct {
+			Content             string   `json:"content"`
+			MentionedList       []string `json:"mentioned_list"`
+			MentionedMobileList []string `json:"mentioned_mobile_list"`
+		} `json:"text"`
+		Markdown struct {
+			Content string `json:"content"`
+		} `json:"markdown"`
 	}
 )
 
@@ -48,7 +44,9 @@ func (f *WechatworkPayload) JSONPayload() ([]byte, error) {
 func newWechatworkMarkdownPayload(title string) *WechatworkPayload {
 	return &WechatworkPayload{
 		Msgtype: "markdown",
-		Markdown: Markdown{
+		Markdown: struct {
+			Content string `json:"content"`
+		}{
 			Content: title,
 		},
 	}
