@@ -460,6 +460,8 @@ func makeDataOpt(code uint16) EDNS0 {
 		return new(EDNS0_N3U)
 	case EDNS0PADDING:
 		return new(EDNS0_PADDING)
+	case EDNS0EDE:
+		return new(EDNS0_EDE)
 	default:
 		e := new(EDNS0_LOCAL)
 		e.Code = code

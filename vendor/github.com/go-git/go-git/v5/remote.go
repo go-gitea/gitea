@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5/config"
@@ -91,7 +92,7 @@ func (r *Remote) Push(o *PushOptions) error {
 // the remote was already up-to-date.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (r *Remote) PushContext(ctx context.Context, o *PushOptions) (err error) {
 	if err := o.Validate(); err != nil {
@@ -284,7 +285,7 @@ func (r *Remote) updateRemoteReferenceStorage(
 // no changes to be fetched, or an error.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (r *Remote) FetchContext(ctx context.Context, o *FetchOptions) error {
 	_, err := r.fetch(ctx, o)
@@ -349,6 +350,13 @@ func (r *Remote) fetch(ctx context.Context, o *FetchOptions) (sto storer.Referen
 		return nil, err
 	}
 
+	if !req.Depth.IsZero() {
+		req.Shallows, err = r.s.Shallow()
+		if err != nil {
+			return nil, fmt.Errorf("existing checkout is not shallow")
+		}
+	}
+
 	req.Wants, err = getWants(r.s, refs)
 	if len(req.Wants) > 0 {
 		req.Haves, err = getHaves(localRefs, remoteRefs, r.s)
@@ -367,10 +375,40 @@ func (r *Remote) fetch(ctx context.Context, o *FetchOptions) (sto storer.Referen
 	}
 
 	if !updated {
+		updated, err = depthChanged(req.Shallows, r.s)
+		if err != nil {
+			return nil, fmt.Errorf("error checking depth change: %v", err)
+		}
+	}
+
+	if !updated {
 		return remoteRefs, NoErrAlreadyUpToDate
 	}
 
 	return remoteRefs, nil
+}
+
+func depthChanged(before []plumbing.Hash, s storage.Storer) (bool, error) {
+	after, err := s.Shallow()
+	if err != nil {
+		return false, err
+	}
+
+	if len(before) != len(after) {
+		return true, nil
+	}
+
+	bm := make(map[plumbing.Hash]bool, len(before))
+	for _, b := range before {
+		bm[b] = true
+	}
+	for _, a := range after {
+		if _, ok := bm[a]; !ok {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func newUploadPackSession(url string, auth transport.AuthMethod, insecure bool, cabundle []byte) (transport.UploadPackSession, error) {
@@ -777,6 +815,11 @@ func doCalculateRefs(
 }
 
 func getWants(localStorer storage.Storer, refs memory.ReferenceStorage) ([]plumbing.Hash, error) {
+	shallow := false
+	if s, _ := localStorer.Shallow(); len(s) > 0 {
+		shallow = true
+	}
+
 	wants := map[plumbing.Hash]bool{}
 	for _, ref := range refs {
 		hash := ref.Hash()
@@ -785,7 +828,7 @@ func getWants(localStorer storage.Storer, refs memory.ReferenceStorage) ([]plumb
 			return nil, err
 		}
 
-		if !exists {
+		if !exists || shallow {
 			wants[hash] = true
 		}
 	}
@@ -1030,7 +1073,24 @@ func (r *Remote) buildFetchedTags(refs memory.ReferenceStorage) (updated bool, e
 }
 
 // List the references on the remote repository.
+// The provided Context must be non-nil. If the context expires before the
+// operation is complete, an error is returned. The context only affects to the
+// transport operations.
+func (r *Remote) ListContext(ctx context.Context, o *ListOptions) (rfs []*plumbing.Reference, err error) {
+	refs, err := r.list(ctx, o)
+	if err != nil {
+		return refs, err
+	}
+	return refs, nil
+}
+
 func (r *Remote) List(o *ListOptions) (rfs []*plumbing.Reference, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return r.ListContext(ctx, o)
+}
+
+func (r *Remote) list(ctx context.Context, o *ListOptions) (rfs []*plumbing.Reference, err error) {
 	s, err := newUploadPackSession(r.c.URLs[0], o.Auth, o.InsecureSkipTLS, o.CABundle)
 	if err != nil {
 		return nil, err
@@ -1038,7 +1098,7 @@ func (r *Remote) List(o *ListOptions) (rfs []*plumbing.Reference, err error) {
 
 	defer ioutil.CheckClose(s, &err)
 
-	ar, err := s.AdvertisedReferencesContext(context.TODO())
+	ar, err := s.AdvertisedReferencesContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1107,7 +1167,7 @@ func pushHashes(
 	allDelete bool,
 ) (*packp.ReportStatus, error) {
 
-	rd, wr := io.Pipe()
+	rd, wr := ioutil.Pipe()
 
 	config, err := s.Config()
 	if err != nil {

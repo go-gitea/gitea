@@ -6,7 +6,7 @@ import (
 )
 
 // Rust lexer.
-var Rust = internal.Register(MustNewLexer(
+var Rust = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Rust",
 		Aliases:   []string{"rust"},
@@ -14,7 +14,11 @@ var Rust = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/rust"},
 		EnsureNL:  true,
 	},
-	Rules{
+	rustRules,
+))
+
+func rustRules() Rules {
+	return Rules{
 		"root": {
 			{`#![^[\r\n].*$`, CommentPreproc, nil},
 			Default(Push("base")),
@@ -131,5 +135,5 @@ var Rust = internal.Register(MustNewLexer(
 			{`\);?`, CommentPreproc, Pop(1)},
 			{`[^")]+`, CommentPreproc, nil},
 		},
-	},
-))
+	}
+}
