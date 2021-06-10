@@ -58,7 +58,7 @@ func TestParseTreeEntries(t *testing.T) {
 	for _, testCase := range testCases {
 		entries, err := ParseTreeEntries([]byte(testCase.Input))
 		assert.NoError(t, err)
-		assert.EqualValues(t, len(testCase.Expected), len(entries))
+		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
 			assert.EqualValues(t, testCase.Expected[i].ID, entry.ID)
 			assert.EqualValues(t, testCase.Expected[i].name, entry.name)
