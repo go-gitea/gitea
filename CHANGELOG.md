@@ -7,7 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.14.3](https://github.com/go-gitea/gitea/releases/tag/v1.14.3) - 2021-06-10
 
 * API
-  * [API] Fix overly strict edit pr permissions (#15900) (#16081)
+  * Fix overly strict edit pr permissions (#15900) (#16081)
 * BUGFIXES
   * Fix language switch for install page (#16043) (#16128)
   * Fix bug on getIssueIDsByRepoID (#16119) (#16124)
@@ -21,8 +21,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix setting of SameSite on cookies (#15989) (#15991)
   * Remove branch URL before IssueRefURL (#15968) (#15970)
   * Fix layout of milestone view (#15927) (#15940)
-  * GitHub: migrate draft releases too (#15884) (#15888)
+  * GitHub Migration, migrate draft releases too (#15884) (#15888)
   * Close the gitrepo when deleting the repository (#15876) (#15887)
+  * Upgrade xorm to v1.1.0 (#15869) (#15885)
   * Fix blame row height alignment (#15863) (#15883)
   * Fix error message when saving generated LOCAL_ROOT_URL config (#15880) (#15882)
   * Backport Fix LFS commit finder not working (#15856) (#15874)
@@ -30,7 +31,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add timeout to writing to responses (#15831) (#15872)
   * Return go-get info on subdirs (#15642) (#15871)
   * Restore PAM user autocreation functionality (#15825) (#15867)
-  * fix truncate utf8 string (#15828) (#15854)
+  * Fix truncate utf8 string (#15828) (#15854)
   * Fix bound address/port for caddy's certmagic library (#15758) (#15848)
   * Upgrade unrolled/render to v1.1.1 (#15845) (#15846)
   * Queue manager FlushAll can loop rapidly - add delay (#15733) (#15840)
@@ -40,8 +41,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Move restore repo to internal router and invoke from command to avoid open the same db file or queues files (#15790) (#15816)
 * ENHANCEMENTS
   * Move sans-serif fallback font higher than emoji fonts (#15855) (#15892)
-* MISC
-  * Upgrade xorm to v1.1.0 (#15869) (#15885)
+* DOCKER
   * Only write config in environment-to-ini if there are changes (#15861) (#15868)
   * Only offer hostcertificates if they exist (#15849) (#15853)
 
