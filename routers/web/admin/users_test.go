@@ -175,9 +175,13 @@ func TestEditUserPost_VisibilityPrivate(t *testing.T) {
 	ctx.User = u
 
 	username := "user31"
+	email := "user31@example.com"
 
 	form := forms.AdminEditUserForm{
+		LoginType:  "local",
+		LoginName:  "user31",
 		UserName:   username,
+		Email:      email,
 		Visibility: api.VisibleTypePrivate,
 	}
 
