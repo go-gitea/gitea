@@ -158,7 +158,7 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
-	assert.False(t, u.Visibility == api.VisibleTypePublic)
+	assert.True(t, u.Visibility.IsPublic())
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
@@ -197,5 +197,5 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
-	assert.True(t, u.Visibility == api.VisibleTypePrivate)
+	assert.True(t, u.Visibility.IsPrivate())
 }
