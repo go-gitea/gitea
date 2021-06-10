@@ -75,7 +75,6 @@ func newLFSService() {
 			if len(LFS.RootURL) > 0 {
 				rootURL.Path = "/"
 				LFS.RootURL = rootURL.String()
-				log.Debug("Using custom LFS root URL: %s", LFS.RootURL)
 			}
 		}
 	}
