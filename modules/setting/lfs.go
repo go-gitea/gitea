@@ -6,6 +6,7 @@ package setting
 
 import (
 	"encoding/base64"
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
@@ -23,6 +24,7 @@ var LFS = struct {
 	HTTPAuthExpiry  time.Duration `ini:"LFS_HTTP_AUTH_EXPIRY"`
 	MaxFileSize     int64         `ini:"LFS_MAX_FILE_SIZE"`
 	LocksPagingNum  int           `ini:"LFS_LOCKS_PAGING_NUM"`
+	RootURL         string        `ini:"LFS_ROOT_URL"`
 
 	Storage
 }{}
@@ -65,6 +67,15 @@ func newLFSService() {
 				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 			})
 		}
+
+		_, parseErr := url.Parse(GetLFSRootURL())
+		if parseErr != nil {
+			log.Fatal("Failed to parse LFS root URL `%s`: %w", GetLFSRootURL(), parseErr)
+		} else {
+			if len(LFS.RootURL) > 0 {
+				log.Debug("Using custom LFS root URL: %s", LFS.RootURL)
+			}
+		}
 	}
 }
 
@@ -87,4 +98,13 @@ func CheckLFSVersion() {
 				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 		}
 	}
+}
+
+// GetLFSRootURL will return the root URL to be used for all LFS object links
+func GetLFSRootURL() string {
+	if len(LFS.RootURL) > 0 {
+		return LFS.RootURL
+	}
+
+	return AppURL
 }
