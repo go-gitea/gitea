@@ -885,7 +885,6 @@ func CreateUser(u *User) (err error) {
 	}
 
 	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
-	u.Visibility = setting.Service.DefaultUserVisibilityMode
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
