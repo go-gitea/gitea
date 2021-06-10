@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
@@ -117,60 +117,18 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	if ctx.Repo.Repository.DefaultBranch == branchName {
-		ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-		return
-	}
-
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	if isProtected {
-		ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
-		return
-	}
-
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
+	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+		switch {
+		case git.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		case errors.Is(err, repo_service.ErrBranchIsDefault):
+			ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+		case errors.Is(err, repo_service.ErrBranchIsProtected):
+			ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
+		default:
+			ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
 		}
 		return
-	}
-
-	c, err := branch.GetCommit()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-		return
-	}
-
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: true,
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
-		return
-	}
-
-	// Don't return error below this
-	if err := repo_service.PushUpdate(
-		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
-			OldCommitID:  c.ID.String(),
-			NewCommitID:  git.EmptySHA,
-			PusherID:     ctx.User.ID,
-			PusherName:   ctx.User.Name,
-			RepoUserName: ctx.Repo.Owner.Name,
-			RepoName:     ctx.Repo.Repository.Name,
-		}); err != nil {
-		log.Error("Update: %v", err)
-	}
-
-	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, c.ID.String(), ctx.User.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
 	}
 
 	ctx.Status(http.StatusNoContent)

@@ -158,13 +158,13 @@ func TestGiteaDownloadRepo(t *testing.T) {
 
 	issues, isEnd, err := downloader.GetIssues(1, 50)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 7, len(issues))
+	assert.Len(t, issues, 7)
 	assert.True(t, isEnd)
 	assert.EqualValues(t, "open", issues[0].State)
 
 	issues, isEnd, err = downloader.GetIssues(3, 2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(issues))
+	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
 
 	var (

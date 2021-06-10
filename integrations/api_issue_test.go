@@ -65,8 +65,8 @@ func TestAPICreateIssue(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
-	assert.Equal(t, apiIssue.Body, body)
-	assert.Equal(t, apiIssue.Title, title)
+	assert.Equal(t, body, apiIssue.Body)
+	assert.Equal(t, title, apiIssue.Title)
 
 	models.AssertExistsAndLoadBean(t, &models.Issue{
 		RepoID:     repoBefore.ID,
