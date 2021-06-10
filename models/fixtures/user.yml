@@ -537,7 +537,7 @@
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
-  hide_from_explore_page: true
+  visibility: 2
   avatar: avatar31
   avatar_email: user31@example.com
   num_repos: 0

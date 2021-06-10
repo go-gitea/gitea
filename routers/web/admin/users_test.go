@@ -122,7 +122,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
-func TestNewUserPost_HideFromExplorePageDefaultFalse(t *testing.T) {
+func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
@@ -157,10 +157,10 @@ func TestNewUserPost_HideFromExplorePageDefaultFalse(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
-	assert.False(t, u.HideFromExplorePage)
+	assert.False(t, u.Visibility == api.VisibleTypePublic)
 }
 
-func TestNewUserPost_HideFromExplorePageTrue(t *testing.T) {
+func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
@@ -176,14 +176,14 @@ func TestNewUserPost_HideFromExplorePageTrue(t *testing.T) {
 	email := "gitea@gitea.io"
 
 	form := forms.AdminCreateUserForm{
-		LoginType:           "local",
-		LoginName:           "local",
-		UserName:            username,
-		Email:               email,
-		Password:            "abc123ABC!=$",
-		SendNotify:          false,
-		MustChangePassword:  false,
-		HideFromExplorePage: true,
+		LoginType:          "local",
+		LoginName:          "local",
+		UserName:           username,
+		Email:              email,
+		Password:           "abc123ABC!=$",
+		SendNotify:         false,
+		MustChangePassword: false,
+		Visibility:         api.VisibleTypePrivate,
 	}
 
 	web.SetForm(ctx, &form)
@@ -196,5 +196,5 @@ func TestNewUserPost_HideFromExplorePageTrue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
-	assert.True(t, u.HideFromExplorePage)
+	assert.True(t, u.Visibility == api.VisibleTypePrivate)
 }

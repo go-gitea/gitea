@@ -59,10 +59,21 @@
 					</div>
 				{{end}}
 
-				<div class="inline field">
-					<div class="ui checkbox poping up" data-content="{{.i18n.Tr "admin.users.hide_from_explore_page_tooltip"}}" data-variation="very wide">
-						<label><strong>{{.i18n.Tr "admin.users.hide_from_explore_page"}}</strong></label>
-						<input name="hide_from_explore_page" type="checkbox" {{if .User.HideFromExplorePage}}checked{{end}}>
+				<div class="inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="inline required field"><label for="visibility">{{.i18n.Tr "admin.users.settings.visibility"}}</label></span>
+					<div class="inline-grouped-list">
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .DefaultUserVisibilityMode.IsPublic}}checked{{end}}/>
+							<label>{{.i18n.Tr "admin.users.settings.visibility.public"}}</label>
+						</div>
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if .DefaultUserVisibilityMode.IsLimited}}checked{{end}}/>
+							<label>{{.i18n.Tr "admin.users.settings.visibility.limited"}}</label>
+						</div>
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if .DefaultUserVisibilityMode.IsPrivate}}checked{{end}}/>
+							<label>{{.i18n.Tr "admin.users.settings.visibility.private"}}</label>
+						</div>
 					</div>
 				</div>
 

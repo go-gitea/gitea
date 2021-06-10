@@ -163,8 +163,6 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
-	// Users may don't want to appear on /explore/users page.
-	HideFromExplorePage bool `xorm:"NOT NULL DEFAULT false"`
 }
 
 // SearchOrganizationsOptions options to filter organizations
@@ -887,6 +885,7 @@ func CreateUser(u *User) (err error) {
 	}
 
 	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.Visibility = setting.Service.DefaultUserVisibilityMode
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
@@ -1582,10 +1581,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
+	// If visibility filtered
 	if len(opts.Visible) > 0 {
 		cond = cond.And(builder.In("visibility", opts.Visible))
-	} else {
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.Actor != nil {
@@ -1598,22 +1596,27 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
 
-		var accessCond builder.Cond
-		if !opts.Actor.IsRestricted {
-			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-		} else {
-			// restricted users only see orgs they are a member of
-			accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
-		}
-		cond = cond.And(accessCond)
-
+		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
-			cond = cond.And(builder.Eq{"hide_from_explore_page": false}.Or(builder.Eq{"id": opts.Actor.ID}))
+			// Force visiblity for privacy
+			var accessCond builder.Cond
+			if !opts.Actor.IsRestricted {
+				accessCond = builder.Or(
+					builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+					builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			} else {
+				// restricted users only see orgs they are a member of
+				accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+			}
+			// Don't forget about self
+			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
+			cond = cond.And(accessCond)
 		}
+
 	} else {
-		cond = cond.And(builder.Eq{"hide_from_explore_page": false})
+		// Force visiblity for privacy
+		// Not logged in - only public users
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.UID > 0 {

@@ -66,21 +66,24 @@ func CreateUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
+
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+
 	u := &models.User{
-		Name:                form.Username,
-		FullName:            form.FullName,
-		Email:               form.Email,
-		Passwd:              form.Password,
-		MustChangePassword:  true,
-		IsActive:            true,
-		LoginType:           models.LoginPlain,
-		HideFromExplorePage: false,
+		Name:               form.Username,
+		FullName:           form.FullName,
+		Email:              form.Email,
+		Passwd:             form.Password,
+		MustChangePassword: true,
+		IsActive:           true,
+		LoginType:          models.LoginPlain,
+		Visibility:         visibility,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
-	}
-	if form.HideFromExplorePage != nil {
-		u.HideFromExplorePage = *form.HideFromExplorePage
 	}
 
 	parseLoginSource(ctx, u, form.SourceID, form.LoginName)
@@ -160,6 +163,12 @@ func EditUser(ctx *context.APIContext) {
 		return
 	}
 
+	visibility := api.VisibleTypePublic
+	if form.Visibility != "" {
+		visibility = api.VisibilityModes[form.Visibility]
+	}
+	u.Visibility = visibility
+
 	if len(form.Password) != 0 {
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
@@ -233,9 +242,6 @@ func EditUser(ctx *context.APIContext) {
 	}
 	if form.Restricted != nil {
 		u.IsRestricted = *form.Restricted
-	}
-	if form.HideFromExplorePage != nil {
-		u.HideFromExplorePage = *form.HideFromExplorePage
 	}
 
 	if err := models.UpdateUser(u); err != nil {

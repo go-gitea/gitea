@@ -51,6 +51,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
 	ctx.Data["login_type"] = "0-0"
 
@@ -71,6 +72,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
 	sources, err := models.LoginSources()
 	if err != nil {
@@ -87,11 +89,12 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	u := &models.User{
-		Name:      form.UserName,
-		Email:     form.Email,
-		Passwd:    form.Password,
-		IsActive:  true,
-		LoginType: models.LoginPlain,
+		Name:       form.UserName,
+		Email:      form.Email,
+		Passwd:     form.Password,
+		IsActive:   true,
+		LoginType:  models.LoginPlain,
+		Visibility: form.Visibility,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -127,8 +130,6 @@ func NewUserPost(ctx *context.Context) {
 		}
 		u.MustChangePassword = form.MustChangePassword
 	}
-
-	u.HideFromExplorePage = form.HideFromExplorePage
 
 	if err := models.CreateUser(u); err != nil {
 		switch {
@@ -315,7 +316,8 @@ func EditUserPost(ctx *context.Context) {
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
-	u.HideFromExplorePage = form.HideFromExplorePage
+
+	u.Visibility = form.Visibility
 
 	// skip self Prohibit Login
 	if ctx.User.ID == u.ID {

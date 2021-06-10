@@ -53,10 +53,11 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
 	}
+
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
-		result.HideFromExplorePage = user.HideFromExplorePage
+		result.Visibility = user.Visibility.String()
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive

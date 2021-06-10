@@ -61,18 +61,29 @@
 						</div>
 					</div>
 
+				<div class="inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="inline required field"><label for="visibility">{{.i18n.Tr "user.settings.visibility"}}</label></span>
+					<div class="inline-grouped-list">
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if .SignedUser.Visibility.IsPublic}}checked{{end}}/>
+							<label>{{.i18n.Tr "user.settings.visibility.public"}}</label>
+						</div>
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if .SignedUser.Visibility.IsLimited}}checked{{end}}/>
+							<label>{{.i18n.Tr "user.settings.visibility.limited"}}</label>
+						</div>
+						<div class="ui radio checkbox">
+							<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if .SignedUser.Visibility.IsPrivate}}checked{{end}}/>
+							<label>{{.i18n.Tr "user.settings.visibility.private"}}</label>
+						</div>
+					</div>
+				</div>
+
 				<div class="field">
 					<label for="keep-activity-private">{{.i18n.Tr "settings.privacy"}}</label>
 					<div class="ui checkbox" id="keep-activity-private">
 						<label class="poping up" data-content="{{.i18n.Tr "settings.keep_activity_private_popup"}}"><strong>{{.i18n.Tr "settings.keep_activity_private"}}</strong></label>
 						<input name="keep_activity_private" type="checkbox" {{if .SignedUser.KeepActivityPrivate}}checked{{end}}>
-					</div>
-				</div>
-				<div class="field">
-					<!-- continue of privacy settings -->
-					<div class="ui checkbox" id="hide_from_explore_page">
-						<label class="poping up" data-content="{{.i18n.Tr "settings.hide_from_explore_page_popup"}}"><strong>{{.i18n.Tr "settings.hide_from_explore_page"}}</strong></label>
-						<input name="hide_from_explore_page" type="checkbox" {{if .SignedUser.HideFromExplorePage}}checked{{end}}>
 					</div>
 				</div>
 				<div class="field">
