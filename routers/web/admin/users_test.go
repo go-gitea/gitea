@@ -158,13 +158,14 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
+	// As default user visibility
 	assert.True(t, u.Visibility.IsPublic())
 }
 
-func TestNewUserPost_VisibilityPrivate(t *testing.T) {
+func TestEditUserPost_VisibilityPrivate(t *testing.T) {
 
 	models.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "admin/users/new")
+	ctx := test.MockContext(t, "admin/users/edit")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
@@ -173,22 +174,15 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 
 	ctx.User = u
 
-	username := "gitea"
-	email := "gitea@gitea.io"
+	username := "user31"
 
-	form := forms.AdminCreateUserForm{
-		LoginType:          "local",
-		LoginName:          "local",
-		UserName:           username,
-		Email:              email,
-		Password:           "abc123ABC!=$",
-		SendNotify:         false,
-		MustChangePassword: false,
-		Visibility:         api.VisibleTypePrivate,
+	form := forms.AdminEditUserForm{
+		UserName:   username,
+		Visibility: api.VisibleTypePrivate,
 	}
 
 	web.SetForm(ctx, &form)
-	NewUserPost(ctx)
+	EditUserPost(ctx)
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
@@ -196,6 +190,5 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
-	assert.Equal(t, email, u.Email)
 	assert.True(t, u.Visibility.IsPrivate())
 }
