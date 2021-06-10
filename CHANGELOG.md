@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Fix language switch for install page (#16043) (#16128)
   * Fix bug on getIssueIDsByRepoID (#16119) (#16124)
+  * Set self-adjusting deadline for connection writing (#16068) (#16123)
   * Fix http path bug (#16117) (#16120)
   * Fix data URI scramble (#16098) (#16118)
   * Merge all deleteBranch as one function and also fix bug when delete branch don't close related PRs (#16067) (#16097)
