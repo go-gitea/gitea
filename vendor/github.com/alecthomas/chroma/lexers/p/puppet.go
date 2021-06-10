@@ -6,14 +6,18 @@ import (
 )
 
 // Puppet lexer.
-var Puppet = internal.Register(MustNewLexer(
+var Puppet = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Puppet",
 		Aliases:   []string{"puppet"},
 		Filenames: []string{"*.pp"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	puppetRules,
+))
+
+func puppetRules() Rules {
+	return Rules{
 		"root": {
 			Include("comments"),
 			Include("keywords"),
@@ -52,5 +56,5 @@ var Puppet = internal.Register(MustNewLexer(
 			{`"([^"])*"`, LiteralString, nil},
 			{`'(\\'|[^'])*'`, LiteralString, nil},
 		},
-	},
-))
+	}
+}

@@ -6,14 +6,18 @@ import (
 )
 
 // Lighttpd Configuration File lexer.
-var Lighttpd = internal.Register(MustNewLexer(
+var Lighttpd = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Lighttpd configuration file",
 		Aliases:   []string{"lighty", "lighttpd"},
 		Filenames: []string{},
 		MimeTypes: []string{"text/x-lighttpd-conf"},
 	},
-	Rules{
+	lighttpdRules,
+))
+
+func lighttpdRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*\n`, CommentSingle, nil},
 			{`/\S*`, Name, nil},
@@ -26,5 +30,5 @@ var Lighttpd = internal.Register(MustNewLexer(
 			{`"([^"\\]*(?:\\.[^"\\]*)*)"`, LiteralStringDouble, nil},
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

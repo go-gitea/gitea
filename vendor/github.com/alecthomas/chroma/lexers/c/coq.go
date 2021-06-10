@@ -6,14 +6,18 @@ import (
 )
 
 // Coq lexer.
-var Coq = internal.Register(MustNewLexer(
+var Coq = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Coq",
 		Aliases:   []string{"coq"},
 		Filenames: []string{"*.v"},
 		MimeTypes: []string{"text/x-coq"},
 	},
-	Rules{
+	coqRules,
+))
+
+func coqRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`false|true|\(\)|\[\]`, NameBuiltinPseudo, nil},
@@ -59,5 +63,5 @@ var Coq = internal.Register(MustNewLexer(
 			{`[a-z][a-z0-9_\']*`, Name, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}
