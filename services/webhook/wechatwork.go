@@ -68,7 +68,6 @@ func (f *WechatworkPayload) Create(p *api.CreatePayload) (api.Payloader, error) 
 // Delete implements PayloadConvertor Delete method
 func (f *WechatworkPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
-
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
@@ -102,7 +101,6 @@ func (f *WechatworkPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
-
 		text += fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
 			message, authorName)
 
