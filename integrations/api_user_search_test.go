@@ -76,7 +76,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
 		assert.NotEmpty(t, user.Email)
-		assert.True(t, user.Visibility == structs.VisibleTypePrivate.String())
+		assert.True(t, user.Visibility == api.VisibleTypePrivate.String())
 	}
 }
 
