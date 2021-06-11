@@ -28,7 +28,7 @@ func TestUser_ToUser(t *testing.T) {
 
 	apiUser = toUser(user1, false, false)
 	assert.False(t, apiUser.IsAdmin)
-	assert.False(t, apiUser.Visibility == 0)
+	assert.True(t, apiUser.Visibility == 0)
 
 	user31 := models.AssertExistsAndLoadBean(t, &models.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate}).(*models.User)
 
