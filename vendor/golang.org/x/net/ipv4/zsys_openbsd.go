@@ -4,10 +4,6 @@
 package ipv4
 
 const (
-	sysIP_RECVDSTADDR = 0x7
-	sysIP_RECVIF      = 0x1e
-	sysIP_RECVTTL     = 0x1f
-
 	sizeofIPMreq = 0x8
 )
 

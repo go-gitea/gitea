@@ -64,7 +64,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 			contributions += int(hm.Contributions)
 		}
 		assert.NoError(t, err)
-		assert.Equal(t, len(actions), contributions, "invalid action count: did the test data became too old?")
+		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
 		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
 
 		// Test JSON rendering

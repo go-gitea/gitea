@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// enumerates all database mapping way
 const (
 	TWOSIDES = iota + 1
 	ONLYTODB

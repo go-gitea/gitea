@@ -91,6 +91,10 @@ var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (S
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
 		tag = string(sf.Tag)
 	}
+	return parseTags(key, tag)
+}
+
+func parseTags(key string, tag string) (StructTags, error) {
 	var st StructTags
 	if tag == "-" {
 		st.Skip = true
@@ -116,4 +120,20 @@ var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (S
 	st.Name = key
 
 	return st, nil
+}
+
+// JSONFallbackStructTagParser has the same behavior as DefaultStructTagParser
+// but will also fallback to parsing the json tag instead on a field where the
+// bson tag isn't available.
+var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
+	key := strings.ToLower(sf.Name)
+	tag, ok := sf.Tag.Lookup("bson")
+	if !ok {
+		tag, ok = sf.Tag.Lookup("json")
+	}
+	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
+		tag = string(sf.Tag)
+	}
+
+	return parseTags(key, tag)
 }

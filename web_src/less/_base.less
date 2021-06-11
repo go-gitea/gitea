@@ -96,14 +96,14 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
-  --color-light: #00000004;
+  --color-light: #00000006;
   --color-light-border: #0000001d;
   --color-hover: #0000000f;
   --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
-  --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000010;
+  --color-markup-table-row: #00000008;
+  --color-markup-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
   --color-shadow: #00000030;
@@ -111,13 +111,17 @@
   --color-expand-button: #d8efff;
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
+  --color-project-board-bg: var(--color-secondary-light-4);
+  --color-caret: var(--color-text-dark);
+  --color-reaction-bg: #0000000a;
+  --color-reaction-active-bg: var(--color-primary-alpha-20);
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
 }
 
 :root * {
-  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", var(--fonts-emoji), sans-serif;
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
 }
 
 textarea {
@@ -160,14 +164,19 @@ table {
   border-collapse: collapse;
 }
 
-/* firefox scroll bars */
+details summary {
+  cursor: pointer;
+}
+
+details summary > * {
+  display: inline;
+}
 
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
+  caret-color: var(--color-caret);
 }
-
-/* webkit scrollbars */
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -185,6 +194,10 @@ table {
 }
 ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+.CodeMirror-cursor {
+  border-color: var(--color-caret) !important;
 }
 
 ::selection,
@@ -442,12 +455,32 @@ a.muted:hover,
   color: var(--color-text);
 }
 
+.ui.cards > .card .meta > a:not(.ui),
+.ui.card .meta > a:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+.ui.cards > .card .meta > a:not(.ui):hover,
+.ui.card .meta > a:not(.ui):hover {
+  color: var(--color-text);
+}
+
 .ui.cards a.card:hover,
 .ui.link.cards .card:not(.icon):hover,
 a.ui.card:hover,
 .ui.link.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra {
+  color: var(--color-text);
+  border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.comments .comment .text {
+  margin: 0;
 }
 
 .ui.comments .comment .text,
@@ -533,6 +566,19 @@ a.ui.card:hover,
 
 .ui.divided.list > .item {
   border-color: var(--color-secondary);
+}
+
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
 }
 
 .dont-break-out {
@@ -644,8 +690,14 @@ a.ui.card:hover,
   height: auto;
 }
 
-.ui.loading.segment::before {
+.ui.loading.segment::before,
+.ui.loading.form::before {
   background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: .35;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -1118,12 +1170,6 @@ footer {
     padding: 0 .5rem;
     max-width: calc(100vw - 1rem) !important;
 
-    .fa {
-      width: 16px;
-      text-align: center;
-      color: var(--color-primary);
-    }
-
     .links > * {
       border-left: 1px solid var(--color-secondary);
       padding-left: 8px;
@@ -1479,6 +1525,7 @@ a.ui.label:hover {
 .blame .code-inner {
   white-space: pre;
   word-break: normal;
+  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
 }
 
 .lines-commit {
@@ -1498,6 +1545,8 @@ a.ui.label:hover {
     display: block;
     user-select: none;
     padding: 0 0 0 10px;
+    line-height: 20px;
+    box-sizing: content-box;
 
     .blame-data {
       display: flex;
@@ -1508,7 +1557,6 @@ a.ui.label:hover {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        line-height: 20px;
       }
 
       .blame-time,
@@ -1521,6 +1569,8 @@ a.ui.label:hover {
   .ui.avatar.image {
     height: 18px;
     width: 18px;
+    display: block;
+    margin-top: 1px;
   }
 }
 
@@ -1530,20 +1580,8 @@ a.ui.label:hover {
     border-bottom: 1px solid var(--color-secondary);
   }
 }
-.code-view {
-  overflow: auto;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &.has-context-menu {
-    overflow: visible;
-    overflow-x: visible;
-    overflow-y: visible;
-  }
-
-  table {
-    width: 100%;
-  }
+.code-view table {
+  width: 100%;
 }
 
 .octicon-tiny {
@@ -1560,8 +1598,16 @@ a.ui.label:hover {
   box-shadow: none !important;
 }
 
+.ui.button:focus,
 .ui.button:hover {
   background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
   color: var(--color-text);
 }
 
@@ -1575,6 +1621,14 @@ a.ui.label:hover {
 
 .ui.buttons .button + .button {
   border-left: none;
+}
+
+.two-toggle-buttons .button:not(.active):first-of-type {
+  border-right: none;
+}
+
+.two-toggle-buttons .button.active:last-of-type {
+  border-left: 1px solid var(--color-light-border);
 }
 
 .ui.labeled.button.disabled > .button,
@@ -1604,6 +1658,11 @@ a.ui.label:hover {
 
 .ui.labeled.button > .label {
   border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
 }
 
 .ui.blue.button,
@@ -1731,11 +1790,6 @@ a.ui.basic.label:hover {
 
 .ui.popup .ui.label {
   margin-bottom: .4em;
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra {
-  color: var(--color-text);
 }
 
 .color-icon {

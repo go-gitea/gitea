@@ -13,6 +13,12 @@ import (
 
 // GenerateRepository generates a repository from a template
 func GenerateRepository(doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+	if !doer.IsAdmin && !owner.CanCreateRepo() {
+		return nil, models.ErrReachLimitOfRepo{
+			Limit: owner.MaxRepoCreation,
+		}
+	}
+
 	var generateRepo *models.Repository
 	if err = models.WithTx(func(ctx models.DBContext) error {
 		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)

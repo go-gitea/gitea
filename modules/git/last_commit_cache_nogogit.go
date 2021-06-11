@@ -7,6 +7,8 @@
 package git
 
 import (
+	"bufio"
+	"context"
 	"path"
 )
 
@@ -34,7 +36,7 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, 
 }
 
 // Get get the last commit information by commit id and entry path
-func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
+func (c *LastCommitCache) Get(ref, entryPath string, wr WriteCloserError, rd *bufio.Reader) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
 		log("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
@@ -46,7 +48,10 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := c.repo.getCommit(id)
+		if _, err := wr.Write([]byte(vs + "\n")); err != nil {
+			return nil, err
+		}
+		commit, err := c.repo.getCommitFromBatchReader(rd, id)
 		if err != nil {
 			return nil, err
 		}
@@ -57,11 +62,11 @@ func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 }
 
 // CacheCommit will cache the commit from the gitRepository
-func (c *LastCommitCache) CacheCommit(commit *Commit) error {
-	return c.recursiveCache(commit, &commit.Tree, "", 1)
+func (c *LastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
+	return c.recursiveCache(ctx, commit, &commit.Tree, "", 1)
 }
 
-func (c *LastCommitCache) recursiveCache(commit *Commit, tree *Tree, treePath string, level int) error {
+func (c *LastCommitCache) recursiveCache(ctx context.Context, commit *Commit, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -78,7 +83,7 @@ func (c *LastCommitCache) recursiveCache(commit *Commit, tree *Tree, treePath st
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(commit, treePath, entryPaths)
+	commits, err := GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
 	if err != nil {
 		return err
 	}
@@ -93,7 +98,7 @@ func (c *LastCommitCache) recursiveCache(commit *Commit, tree *Tree, treePath st
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(commit, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(ctx, commit, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}

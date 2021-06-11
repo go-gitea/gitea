@@ -245,6 +245,11 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
+- `SCHEDULE` 所接受的格式
+   - 完整 crontab 控制, 例如 `* * * * * ?`
+   - 描述符, 例如 `@midnight`, `@every 1h30m` ...
+   - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
@@ -297,12 +302,14 @@ test01.xls: application/vnd.ms-excel; charset=binary
 ```ini
 [markup.asciidoc]
 ENABLED = false
+NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
 - ENABLED: 是否启用，默认为false。
+- NEED\_POSTPROCESS: **true** 设置为 true 则会替换渲染文件中的内部链接和Commit ID 等。
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。

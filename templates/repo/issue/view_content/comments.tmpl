@@ -13,7 +13,7 @@
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
-			<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
+			<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				{{avatar .Poster}}
@@ -64,7 +64,7 @@
 					</div>
 				</div>
 				<div class="ui attached segment comment-body">
-					<div class="render-content markdown">
+					<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 						{{if .RenderedContent}}
 							{{.RenderedContent|Str2html}}
 						{{else}}
@@ -442,7 +442,7 @@
 						</span>
 					</div>
 					<div class="ui attached segment comment-body">
-						<div class="render-content markdown">
+						<div class="render-content markup">
 							{{if .RenderedContent}}
 								{{.RenderedContent|Str2html}}
 							{{else}}
@@ -508,11 +508,11 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}} py-3">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}} p-3">
 									<div class="ui comments mb-0">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
-											<div class="comment code-comment" id="{{.HashTag}}">
+											<div class="comment code-comment pb-4" id="{{.HashTag}}">
 												<div class="content">
 													<div class="header comment-header">
 														<div class="comment-header-left df ac">
@@ -552,7 +552,7 @@
 														</div>
 													</div>
 													<div class="text comment-content">
-														<div class="render-content markdown">
+														<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 														{{if .RenderedContent}}
 															{{.RenderedContent|Str2html}}
 														{{else}}
@@ -572,21 +572,33 @@
 											</div>
 										{{end}}
 									</div>
-									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
-
-									{{if and $.CanMarkConversation $isNotPending}}
-										<button class="ui tiny button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation" >
+									<div class="df ac fw mt-3 mb-2 mx-3">
+										<div class="f1">
 											{{if $resolved}}
-												{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
-											{{else}}
-												{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
+												<div class="ui grey text">
+													{{svg "octicon-check" 16 "mr-2"}}
+													<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+												</div>
 											{{end}}
-										</button>
-									{{end}}
-
-									{{if $resolved}}
-										<span class="ui grey text"><b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}</span>
-									{{end}}
+										</div>
+										<div>
+											{{if and $.CanMarkConversation $isNotPending}}
+												<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
+													{{if $resolved}}
+														{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
+													{{else}}
+														{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
+													{{end}}
+												</button>
+											{{end}}
+											{{if and $.SignedUserID (not $.Repository.IsArchived)}}
+												<button class="comment-form-reply ui green tiny labeled icon button ml-2 mr-0">
+													{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.i18n.Tr "repo.diff.comment.reply"}}
+												</button>
+											{{end}}
+										</div>
+									</div>
+									{{template "repo/diff/comment_form_datahandler" dict "hidden" true "reply" (index $comms 0).ReviewID "root" $ "comment" (index $comms 0)}}
 								</div>
 							</div>
 					{{end}}
@@ -739,7 +751,7 @@
 							</span>
 						</div>
 						<div class="ui attached segment">
-							<div class="render-content markdown">
+							<div class="render-content markup">
 								{{if .RenderedContent}}
 									{{.RenderedContent|Str2html}}
 								{{else}}

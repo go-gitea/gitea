@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -31,10 +32,17 @@ func TestRender_StandardLinks(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected, expectedWiki string) {
-		buffer := RenderString(input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		bufferWiki := RenderWiki([]byte(input), setting.AppSubURL, nil)
-		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(bufferWiki))
+
+		buffer, err = RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+			IsWiki:    true,
+		}, input)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
 	googleRendered := `<p><a href="https://google.com/" rel="nofollow">https://google.com/</a></p>`
@@ -74,7 +82,10 @@ func TestRender_Images(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -155,9 +166,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
 <ul>
-<li class="task-list-item"><input type="checkbox" disabled=""/>unchecked</li>
-<li class="task-list-item"><input type="checkbox" disabled="" checked=""/>checked</li>
-<li class="task-list-item"><input type="checkbox" disabled=""/>still unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>
@@ -258,10 +269,18 @@ Here is a simple footnote,[^1] and here is a longer one.[^bignote]
 }
 
 func TestTotal_RenderWiki(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "wiki/"), util.URLJoin(AppSubURL, "wiki", "raw/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderWiki([]byte(sameCases[i]), AppSubURL, localMetas)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+			Metas:     localMetas,
+			IsWiki:    true,
+		}, sameCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
 	}
 
@@ -279,40 +298,56 @@ func TestTotal_RenderWiki(t *testing.T) {
 	}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderWiki([]byte(testCases[i]), AppSubURL, nil)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+			IsWiki:    true,
+		}, testCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestTotal_RenderString(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
 	answers := testAnswers(util.URLJoin(AppSubURL, "src", "master/"), util.URLJoin(AppSubURL, "raw", "master/"))
 
 	for i := 0; i < len(sameCases); i++ {
-		line := RenderString(sameCases[i], util.URLJoin(AppSubURL, "src", "master/"), localMetas)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: util.URLJoin(AppSubURL, "src", "master/"),
+			Metas:     localMetas,
+		}, sameCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, answers[i], line)
 	}
 
 	testCases := []string{}
 
 	for i := 0; i < len(testCases); i += 2 {
-		line := RenderString(testCases[i], AppSubURL, nil)
+		line, err := RenderString(&markup.RenderContext{
+			URLPrefix: AppSubURL,
+		}, testCases[i])
+		assert.NoError(t, err)
 		assert.Equal(t, testCases[i+1], line)
 	}
 }
 
 func TestRender_RenderParagraphs(t *testing.T) {
 	test := func(t *testing.T, str string, cnt int) {
-		unix := []byte(str)
-		res := string(RenderRaw(unix, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		res, err := RenderRawString(&markup.RenderContext{}, str)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for unix should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
-		mac := []byte(strings.ReplaceAll(str, "\n", "\r"))
-		res = string(RenderRaw(mac, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		mac := strings.ReplaceAll(str, "\n", "\r")
+		res, err = RenderRawString(&markup.RenderContext{}, mac)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for mac should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 
-		dos := []byte(strings.ReplaceAll(str, "\n", "\r\n"))
-		res = string(RenderRaw(dos, "", false))
-		assert.Equal(t, strings.Count(res, "<p"), cnt, "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
+		dos := strings.ReplaceAll(str, "\n", "\r\n")
+		res, err = RenderRawString(&markup.RenderContext{}, dos)
+		assert.NoError(t, err)
+		assert.Equal(t, cnt, strings.Count(res, "<p"), "Rendered result for windows should have %d paragraph(s) but has %d:\n%s\n", cnt, strings.Count(res, "<p"), res)
 	}
 
 	test(t, "\nOne\nTwo\nThree", 1)
@@ -337,7 +372,8 @@ func TestMarkdownRenderRaw(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		_ = RenderRaw(testcase, "", false)
+		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
+		assert.NoError(t, err)
 	}
 }
 
@@ -348,7 +384,8 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
 <a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
 `
-	res := string(RenderRaw([]byte(testcase), "", false))
+	res, err := RenderRawString(&markup.RenderContext{}, testcase)
+	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
 
 }

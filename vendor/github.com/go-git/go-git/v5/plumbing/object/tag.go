@@ -8,7 +8,7 @@ import (
 	stdioutil "io/ioutil"
 	"strings"
 
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/storer"
@@ -304,7 +304,7 @@ func (t *Tag) Verify(armoredKeyRing string) (*openpgp.Entity, error) {
 		return nil, err
 	}
 
-	return openpgp.CheckArmoredDetachedSignature(keyring, er, signature)
+	return openpgp.CheckArmoredDetachedSignature(keyring, er, signature, nil)
 }
 
 // TagIter provides an iterator for a set of tags.

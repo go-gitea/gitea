@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -23,7 +24,10 @@ func TestRender_StandardLinks(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil, false)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
@@ -40,7 +44,10 @@ func TestRender_Images(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	test := func(input, expected string) {
-		buffer := RenderString(input, setting.AppSubURL, nil, false)
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
@@ -1178,8 +1179,13 @@ func findCodeComments(e Engine, opts FindCommentsOptions, issue *Issue, currentU
 			return nil, err
 		}
 
-		comment.RenderedContent = string(markdown.Render([]byte(comment.Content), issue.Repo.Link(),
-			issue.Repo.ComposeMetas()))
+		var err error
+		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			URLPrefix: issue.Repo.Link(),
+			Metas:     issue.Repo.ComposeMetas(),
+		}, comment.Content); err != nil {
+			return nil, err
+		}
 	}
 	return comments[:n], nil
 }

@@ -15,12 +15,12 @@ trigger:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:16
     commands:
       - make node_modules
 
   - name: lint-frontend
-    image: node:14
+    image: node:16
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -58,7 +58,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    image: node:14
+    image: node:16
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -71,13 +71,13 @@ steps:
     depends_on: [lint-backend]
 
   - name: test-frontend
-    image: node:14
+    image: node:16
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:14
+    image: node:16
     commands:
       - make frontend
     depends_on: [test-frontend]
@@ -153,7 +153,7 @@ services:
       MYSQL_DATABASE: test
 
   - name: mysql8
-    image: mysql:8.0
+    image: mysql:8
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
@@ -277,7 +277,7 @@ steps:
       - test-mysql
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -294,7 +294,7 @@ steps:
       - generate-coverage
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -319,7 +319,7 @@ trigger:
 services:
   - name: pgsql
     pull: default
-    image: postgres:9.5
+    image: postgres:10
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
@@ -383,7 +383,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -414,6 +414,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
@@ -443,7 +444,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -461,6 +462,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated licenses and gitignores "
       remote: "git@github.com:go-gitea/gitea.git"
@@ -482,7 +484,7 @@ workspace:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
@@ -501,7 +503,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -528,7 +530,7 @@ steps:
     image: plugins/s3:1
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
@@ -545,16 +547,16 @@ steps:
       event:
         - push
 
-  - name: release-master
+  - name: release-main
     image: plugins/s3:1
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
-      target: /gitea/master
+      target: /gitea/main
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: aws_access_key_id
@@ -562,7 +564,7 @@ steps:
         from_secret: aws_secret_access_key
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -597,7 +599,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -624,7 +626,7 @@ steps:
     image: plugins/s3:1
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
@@ -683,7 +685,7 @@ steps:
         from_secret: netlify_token
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -701,7 +703,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -798,7 +800,7 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -886,7 +888,7 @@ steps:
 
 trigger:
   ref:
-  - refs/heads/master
+  - refs/heads/main
   - "refs/tags/**"
   event:
     exclude:
@@ -909,7 +911,7 @@ clone:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push

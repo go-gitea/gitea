@@ -7,6 +7,7 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -216,10 +217,10 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 			continue
 		}
 		refName := string(refNameBytes)
-		if refName[0:5] == "tag: " {
-			refName = refName[5:]
-		} else if refName[0:8] == "HEAD -> " {
-			refName = refName[8:]
+		if strings.HasPrefix(refName, "tag: ") {
+			refName = strings.TrimPrefix(refName, "tag: ")
+		} else if strings.HasPrefix(refName, "HEAD -> ") {
+			refName = strings.TrimPrefix(refName, "HEAD -> ")
 		}
 		refs = append(refs, git.Reference{
 			Name: refName,

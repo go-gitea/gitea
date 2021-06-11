@@ -3,7 +3,7 @@
 {{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.Lang }}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor }}
-		<span class="avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
+		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
 		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 			{{avatar .Poster}}
@@ -51,7 +51,7 @@
 			</div>
 		</div>
 		<div class="ui attached segment comment-body">
-			<div class="render-content markdown">
+			<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 			{{if .RenderedContent}}
 				{{.RenderedContent|Str2html}}
 			{{else}}

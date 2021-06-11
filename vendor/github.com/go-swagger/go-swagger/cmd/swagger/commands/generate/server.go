@@ -22,8 +22,9 @@ import (
 )
 
 type serverOptions struct {
-	ServerPackage string `long:"server-package" short:"s" description:"the package to save the server specific code" default:"restapi"`
-	MainTarget    string `long:"main-package" short:"" description:"the location of the generated main. Defaults to cmd/{name}-server" default:""`
+	ServerPackage         string `long:"server-package" short:"s" description:"the package to save the server specific code" default:"restapi"`
+	MainTarget            string `long:"main-package" short:"" description:"the location of the generated main. Defaults to cmd/{name}-server" default:""`
+	ImplementationPackage string `long:"implementation-package" short:"" description:"the location of the backend implementation of the server, which will be autowired with api" default:""`
 }
 
 func (cs serverOptions) apply(opts *generator.GenOpts) {
@@ -82,6 +83,8 @@ func (s Server) apply(opts *generator.GenOpts) {
 
 	opts.Name = s.Name
 	opts.MainPackage = s.MainTarget
+
+	opts.ImplementationPackage = s.ImplementationPackage
 }
 
 func (s *Server) generate(opts *generator.GenOpts) error {

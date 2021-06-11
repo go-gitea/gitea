@@ -33,9 +33,9 @@
 		{{if not .ReadmeInList}}
 		<div class="file-header-right file-actions df ac">
 			{{if .HasSourceRenderedToggle}}
-				<div class="ui compact icon buttons">
-					<a href="{{$.Link}}?display=source" class="ui tiny basic button poping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</a>
-					<a href="{{$.Link}}" class="ui tiny basic button poping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</a>
+				<div class="ui compact icon buttons two-toggle-buttons">
+					<a href="{{$.Link}}?display=source" class="ui mini basic button poping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code" 15}}</a>
+					<a href="{{$.Link}}" class="ui mini basic button poping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
 			<div class="ui buttons mr-2">
@@ -50,7 +50,7 @@
 			</div>
 			{{if .Repository.CanEnableEditor}}
 				{{if .CanEditFile}}
-					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up"  data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
+					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
 				{{else}}
 					<span class="btn-octicon poping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span>
 				{{end}}
@@ -64,7 +64,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} {{if ne "csv" .MarkupType}}markdown{{end}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextSource}}code-view{{end}}">
+		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
@@ -82,7 +82,7 @@
 							<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
-						<iframe width="100%" height="600px" src="{{StaticUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+						<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
 					{{else}}
 						<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 					{{end}}
@@ -111,15 +111,17 @@
 						{{end}}
 					</tbody>
 				</table>
-				<div class="code-view-menu-list ui fluid popup transition hidden">
-					<div class="ui column relaxed equal height">
-						<div class="column">
-							<div class="ui link list">
-								<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+					{{if $.Permission.CanRead $.UnitTypeIssues}}
+						<div class="code-line-menu ui fluid popup transition hidden">
+							<div class="ui column relaxed equal height">
+								<div class="column">
+									<div class="ui link list">
+										<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+									</div>
+								</div>
 							</div>
 						</div>
-					</div>
-				</div>
+					{{end}}
 				{{end}}
 			{{end}}
 		</div>

@@ -22,10 +22,8 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -76,9 +74,6 @@ const (
 )
 
 var (
-	// ErrEmailNotExist e-mail does not exist error
-	ErrEmailNotExist = errors.New("E-mail does not exist")
-
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
@@ -302,7 +297,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return setting.AppSubURL + "/org/" + u.Name + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard/"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -315,6 +310,11 @@ func (u *User) HomeLink() string {
 // HTMLURL returns the user or organization's full link.
 func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
+}
+
+// OrganisationLink returns the organization sub page link.
+func (u *User) OrganisationLink() string {
+	return setting.AppSubURL + "/org/" + u.Name
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
@@ -742,7 +742,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return generate.GetRandomString(10)
+	return util.RandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -772,7 +772,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = append([]string{
+	reservedUsernames = []string{
 		".",
 		"..",
 		".well-known",
@@ -786,6 +786,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"favicon.ico",
 		"ghost",
 		"help",
 		"install",
@@ -804,10 +805,11 @@ var (
 		"repo",
 		"robots.txt",
 		"search",
+		"serviceworker.js",
 		"stars",
 		"template",
 		"user",
-	}, public.KnownPublicEntries...)
+	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -871,15 +873,6 @@ func CreateUser(u *User) (err error) {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	isExist, err = sess.
-		Where("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
-	}
-
 	if err = ValidateEmail(u.Email); err != nil {
 		return err
 	}
@@ -907,6 +900,17 @@ func CreateUser(u *User) (err error) {
 	u.Theme = setting.UI.DefaultTheme
 
 	if _, err = sess.Insert(u); err != nil {
+		return err
+	}
+
+	// insert email address
+	if _, err := sess.Insert(&EmailAddress{
+		UID:         u.ID,
+		Email:       u.Email,
+		LowerEmail:  strings.ToLower(u.Email),
+		IsActivated: u.IsActive,
+		IsPrimary:   true,
+	}); err != nil {
 		return err
 	}
 

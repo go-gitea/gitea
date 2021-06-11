@@ -116,7 +116,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		checkUnit = models.UnitTypePullRequests
 	}
 
-	langMap := make(map[string][]string)
+	langMap := make(map[string][]*models.User)
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
@@ -138,7 +138,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 			continue
 		}
 
-		langMap[user.Language] = append(langMap[user.Language], user.Email)
+		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 
 	for lang, receivers := range langMap {
@@ -146,7 +146,11 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
 		// starting condition will need to be changed slightly
 		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
-			SendAsyncs(composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments"))
+			msgs, err := composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments")
+			if err != nil {
+				return err
+			}
+			SendAsyncs(msgs)
 			receivers = receivers[:i]
 		}
 	}
@@ -157,12 +161,18 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	content := issue.Content
+	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
+		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
+		opType == models.ActionMergePullRequest {
+		content = ""
+	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
-			Content:    issue.Content,
+			Content:    content,
 			Comment:    nil,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)

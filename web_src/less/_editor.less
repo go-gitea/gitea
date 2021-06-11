@@ -4,10 +4,6 @@
   border-color: var(--color-secondary);
   font: 14px var(--fonts-monospace);
 
-  .CodeMirror-cursor {
-    border-left: 1px solid var(--color-input-text);
-  }
-
   &.cm-s-default {
     border-radius: 3px;
     padding: 0 !important;
@@ -57,6 +53,10 @@
 
 .editor-toolbar button.active {
   background: var(--color-active);
+}
+
+.editor-statusbar {
+  color: var(--color-text-light);
 }
 
 .editor-loading {

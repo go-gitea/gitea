@@ -21,7 +21,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
 		assert.NoError(t, team.GetRepositories(&models.SearchTeamOptions{}), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
-		assert.Equal(t, len(repoIds), len(team.Repos), "%s: repo count", team.Name)
+		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
 				assert.True(t, team.HasRepository(rid), "%s: HasRepository(%d) %d", rid, i)

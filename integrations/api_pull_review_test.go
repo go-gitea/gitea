@@ -37,15 +37,15 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 8, reviews[3].ID)
 	assert.EqualValues(t, "APPROVED", reviews[3].State)
 	assert.EqualValues(t, 0, reviews[3].CodeCommentsCount)
-	assert.EqualValues(t, true, reviews[3].Stale)
-	assert.EqualValues(t, false, reviews[3].Official)
+	assert.True(t, reviews[3].Stale)
+	assert.False(t, reviews[3].Official)
 
 	assert.EqualValues(t, 10, reviews[5].ID)
 	assert.EqualValues(t, "REQUEST_CHANGES", reviews[5].State)
 	assert.EqualValues(t, 1, reviews[5].CodeCommentsCount)
 	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
-	assert.EqualValues(t, false, reviews[5].Stale)
-	assert.EqualValues(t, true, reviews[5].Official)
+	assert.False(t, reviews[5].Stale)
+	assert.True(t, reviews[5].Official)
 
 	// test GetPullReview
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID, token)
@@ -118,14 +118,14 @@ func TestAPIPullReview(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
-	assert.EqualValues(t, true, review.Dismissed)
+	assert.True(t, review.Dismissed)
 
 	// test dismiss review
 	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/undismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &review)
 	assert.EqualValues(t, 6, review.ID)
-	assert.EqualValues(t, false, review.Dismissed)
+	assert.False(t, review.Dismissed)
 
 	// test DeletePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
@@ -151,15 +151,15 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 11, reviews[0].ID)
 	assert.EqualValues(t, "REQUEST_REVIEW", reviews[0].State)
 	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
-	assert.EqualValues(t, false, reviews[0].Stale)
-	assert.EqualValues(t, true, reviews[0].Official)
+	assert.False(t, reviews[0].Stale)
+	assert.True(t, reviews[0].Official)
 	assert.EqualValues(t, "test_team", reviews[0].ReviewerTeam.Name)
 
 	assert.EqualValues(t, 12, reviews[1].ID)
 	assert.EqualValues(t, "REQUEST_REVIEW", reviews[1].State)
 	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
-	assert.EqualValues(t, false, reviews[1].Stale)
-	assert.EqualValues(t, true, reviews[1].Official)
+	assert.False(t, reviews[1].Stale)
+	assert.True(t, reviews[1].Official)
 	assert.EqualValues(t, 1, reviews[1].Reviewer.ID)
 }
 

@@ -578,7 +578,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsTemplate = *opts.Template
 	}
 
-	if ctx.Repo.GitRepo == nil {
+	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
 		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
 		if err != nil {
@@ -589,13 +589,13 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	}
 
 	// Default branch only updated if changed and exist or the repository is empty
-	if opts.DefaultBranch != nil &&
-		repo.DefaultBranch != *opts.DefaultBranch &&
-		(ctx.Repo.Repository.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
-		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
-			if !git.IsErrUnsupportedVersion(err) {
-				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
-				return err
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
+		if !repo.IsEmpty {
+			if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+				if !git.IsErrUnsupportedVersion(err) {
+					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+					return err
+				}
 			}
 		}
 		repo.DefaultBranch = *opts.DefaultBranch
@@ -887,6 +887,10 @@ func Delete(ctx *context.APIContext) {
 	} else if !canDelete {
 		ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
 		return
+	}
+
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
 	}
 
 	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {

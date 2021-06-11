@@ -522,14 +522,24 @@ var (
 )
 
 // EmacsLisp lexer.
-var EmacsLisp = internal.Register(TypeRemappingLexer(MustNewLexer(
+var EmacsLisp = internal.Register(TypeRemappingLexer(MustNewLazyLexer(
 	&Config{
 		Name:      "EmacsLisp",
 		Aliases:   []string{"emacs", "elisp", "emacs-lisp"},
 		Filenames: []string{"*.el"},
 		MimeTypes: []string{"text/x-elisp", "application/x-elisp"},
 	},
-	Rules{
+	emacsLispRules,
+), TypeMapping{
+	{NameVariable, NameFunction, emacsBuiltinFunction},
+	{NameVariable, NameBuiltin, emacsSpecialForms},
+	{NameVariable, NameException, emacsErrorKeywords},
+	{NameVariable, NameBuiltin, append(emacsBuiltinFunctionHighlighted, emacsMacros...)},
+	{NameVariable, KeywordPseudo, emacsLambdaListKeywords},
+}))
+
+func emacsLispRules() Rules {
+	return Rules{
 		"root": {
 			Default(Push("body")),
 		},
@@ -572,11 +582,5 @@ var EmacsLisp = internal.Register(TypeRemappingLexer(MustNewLexer(
 			{`\\\n`, LiteralString, nil},
 			{`"`, LiteralString, Pop(1)},
 		},
-	},
-), TypeMapping{
-	{NameVariable, NameFunction, emacsBuiltinFunction},
-	{NameVariable, NameBuiltin, emacsSpecialForms},
-	{NameVariable, NameException, emacsErrorKeywords},
-	{NameVariable, NameBuiltin, append(emacsBuiltinFunctionHighlighted, emacsMacros...)},
-	{NameVariable, KeywordPseudo, emacsLambdaListKeywords},
-}))
+	}
+}

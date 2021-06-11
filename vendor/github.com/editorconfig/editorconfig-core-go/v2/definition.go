@@ -121,7 +121,7 @@ func (d *Definition) merge(md *Definition) {
 }
 
 // InsertToIniFile writes the definition into a ini file.
-func (d *Definition) InsertToIniFile(iniFile *ini.File) { // nolint: funlen,gocognit
+func (d *Definition) InsertToIniFile(iniFile *ini.File) { // nolint: funlen,gocognit,cyclop
 	iniSec := iniFile.Section(d.Selector)
 
 	for k, v := range d.Raw {
