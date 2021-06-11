@@ -1666,6 +1666,10 @@ $.fn.getCursorPosition = function () {
 };
 
 function setCommentSimpleMDE($editArea) {
+  if ($editArea.length === 0) {
+    return null;
+  }
+
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
