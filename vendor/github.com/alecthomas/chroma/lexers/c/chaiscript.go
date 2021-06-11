@@ -6,7 +6,7 @@ import (
 )
 
 // Chaiscript lexer.
-var Chaiscript = internal.Register(MustNewLexer(
+var Chaiscript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "ChaiScript",
 		Aliases:   []string{"chai", "chaiscript"},
@@ -14,7 +14,11 @@ var Chaiscript = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-chaiscript", "application/x-chaiscript"},
 		DotAll:    true,
 	},
-	Rules{
+	chaiscriptRules,
+))
+
+func chaiscriptRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`//.*?\n`, CommentSingle, nil},
@@ -59,5 +63,5 @@ var Chaiscript = internal.Register(MustNewLexer(
 			{`[^\\"$]+`, LiteralStringDouble, nil},
 			{`"`, LiteralStringDouble, Pop(1)},
 		},
-	},
-))
+	}
+}

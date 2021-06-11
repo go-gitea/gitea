@@ -6,14 +6,18 @@ import (
 )
 
 // Awk lexer.
-var Awk = internal.Register(MustNewLexer(
+var Awk = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Awk",
 		Aliases:   []string{"awk", "gawk", "mawk", "nawk"},
 		Filenames: []string{"*.awk"},
 		MimeTypes: []string{"application/x-awk"},
 	},
-	Rules{
+	awkRules,
+))
+
+func awkRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`#.*$`, CommentSingle, nil},
@@ -44,5 +48,5 @@ var Awk = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, LiteralStringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

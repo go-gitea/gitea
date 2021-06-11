@@ -6,14 +6,18 @@ import (
 )
 
 // Tcsh lexer.
-var Tcsh = internal.Register(MustNewLexer(
+var Tcsh = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Tcsh",
 		Aliases:   []string{"tcsh", "csh"},
 		Filenames: []string{"*.tcsh", "*.csh"},
 		MimeTypes: []string{"application/x-csh"},
 	},
-	Rules{
+	tcshRules,
+))
+
+func tcshRules() Rules {
+	return Rules{
 		"root": {
 			Include("basic"),
 			{`\$\(`, Keyword, Push("paren")},
@@ -55,5 +59,5 @@ var Tcsh = internal.Register(MustNewLexer(
 			{"`", LiteralStringBacktick, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

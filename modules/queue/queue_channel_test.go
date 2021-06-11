@@ -36,7 +36,7 @@ func TestChannelQueue(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	assert.Equal(t, queue.(*ChannelQueue).WorkerPool.boostWorkers, 5)
+	assert.Equal(t, 5, queue.(*ChannelQueue).WorkerPool.boostWorkers)
 
 	go queue.Run(nilFn, nilFn)
 

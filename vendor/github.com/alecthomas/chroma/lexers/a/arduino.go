@@ -6,7 +6,7 @@ import (
 )
 
 // Arduino lexer.
-var Arduino = internal.Register(MustNewLexer(
+var Arduino = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Arduino",
 		Aliases:   []string{"arduino"},
@@ -14,7 +14,11 @@ var Arduino = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-arduino"},
 		EnsureNL:  true,
 	},
-	Rules{
+	arduinoRules,
+))
+
+func arduinoRules() Rules {
+	return Rules{
 		"statements": {
 			{Words(``, `\b`, `catch`, `const_cast`, `delete`, `dynamic_cast`, `explicit`, `export`, `friend`, `mutable`, `namespace`, `new`, `operator`, `private`, `protected`, `public`, `reinterpret_cast`, `restrict`, `static_cast`, `template`, `this`, `throw`, `throws`, `try`, `typeid`, `typename`, `using`, `virtual`, `constexpr`, `nullptr`, `decltype`, `thread_local`, `alignas`, `alignof`, `static_assert`, `noexcept`, `override`, `final`), Keyword, nil},
 			{`char(16_t|32_t)\b`, KeywordType, nil},
@@ -106,5 +110,5 @@ var Arduino = internal.Register(MustNewLexer(
 			{`^\s*#endif.*?(?<!\\)\n`, CommentPreproc, Pop(1)},
 			{`.*?\n`, Comment, nil},
 		},
-	},
-))
+	}
+}

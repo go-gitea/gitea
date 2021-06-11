@@ -6,14 +6,18 @@ import (
 )
 
 // Newspeak lexer.
-var Newspeak = internal.Register(MustNewLexer(
+var Newspeak = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Newspeak",
 		Aliases:   []string{"newspeak"},
 		Filenames: []string{"*.ns2"},
 		MimeTypes: []string{"text/x-newspeak"},
 	},
-	Rules{
+	newspeakRules,
+))
+
+func newspeakRules() Rules {
+	return Rules{
 		"root": {
 			{`\b(Newsqueak2)\b`, KeywordDeclaration, nil},
 			{`'[^']*'`, LiteralString, nil},
@@ -51,5 +55,5 @@ var Newspeak = internal.Register(MustNewLexer(
 			{`\s+`, Text, nil},
 			{`"[^"]*"`, Comment, nil},
 		},
-	},
-))
+	}
+}
