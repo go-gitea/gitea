@@ -69,7 +69,7 @@ func UpdatePushMirror(m *PushMirror) error {
 
 // DeletePushMirrorByID deletes a push-mirrors by ID
 func DeletePushMirrorByID(ID int64) error {
-	_, err := x.Delete(&PushMirror{ID: ID})
+	_, err := x.ID(ID).Delete(&PushMirror{})
 	return err
 }
 
@@ -81,8 +81,8 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 
 // GetPushMirrorByID returns push-mirror information.
 func GetPushMirrorByID(ID int64) (*PushMirror, error) {
-	m := &PushMirror{ID: ID}
-	has, err := x.Get(m)
+	m := &PushMirror{}
+	has, err := x.ID(ID).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
