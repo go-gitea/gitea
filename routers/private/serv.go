@@ -162,7 +162,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 		// We can shortcut at this point if the repo is a mirror
 		if mode > models.AccessModeRead && repo.IsMirror {
-			ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
+			ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
 			})
@@ -174,7 +174,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	key, err := models.GetPublicKeyByID(keyID)
 	if err != nil {
 		if models.IsErrKeyNotExist(err) {
-			ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
+			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Cannot find key: %d", keyID),
 			})
@@ -212,7 +212,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		deployKey, err = models.GetDeployKeyByRepo(key.ID, repo.ID)
 		if err != nil {
 			if models.IsErrDeployKeyNotExist(err) {
-				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
+				ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("Public (Deploy) Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
 				})
