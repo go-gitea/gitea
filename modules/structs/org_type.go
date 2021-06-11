@@ -47,9 +47,6 @@ func (vt VisibleType) String() string {
 			return k
 		}
 	}
-	if vt == 0 {
-		return "public"
-	}
 	return ""
 }
 

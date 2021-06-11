@@ -7,7 +7,6 @@ package convert
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -50,6 +49,15 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Website:     user.Website,
 		Description: user.Description,
 	}
+
+	result.Visibility = 0
+	if user.Visibility.IsLimited() {
+		result.Visibility = 1
+	}
+	if user.Visibility.IsPrivate() {
+		result.Visibility = 2
+	}
+
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
@@ -58,7 +66,6 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
-		result.Visibility = user.Visibility
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive

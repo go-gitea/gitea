@@ -13040,7 +13040,13 @@
           "x-go-name": "Username"
         },
         "visibility": {
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
           "x-go-name": "Visibility"
         }
       },
@@ -13852,7 +13858,13 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
+          "enum": [
+            "public",
+            "limited",
+            "private"
+          ],
           "x-go-name": "Visibility"
         },
         "website": {
@@ -16330,8 +16342,9 @@
           "x-go-name": "Restricted"
         },
         "visibility": {
-          "description": "User visibility level option",
-          "type": "string",
+          "description": "User visibility level option: public(0) - default, limited(1), private(2)",
+          "type": "integer",
+          "format": "int",
           "x-go-name": "Visibility"
         },
         "website": {
