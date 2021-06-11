@@ -6,14 +6,18 @@ import (
 )
 
 // Org mode lexer.
-var Org = internal.Register(MustNewLexer(
+var Org = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Org Mode",
 		Aliases:   []string{"org", "orgmode"},
 		Filenames: []string{"*.org"},
 		MimeTypes: []string{"text/org"}, // https://lists.gnu.org/r/emacs-orgmode/2017-09/msg00087.html
 	},
-	Rules{
+	orgRules,
+))
+
+func orgRules() Rules {
+	return Rules{
 		"root": {
 			{`^# .*$`, Comment, nil},
 			// Headings
@@ -45,7 +49,8 @@ var Org = internal.Register(MustNewLexer(
 			// - Comment Blocks
 			{`(?i)^( *#\+begin_comment *\n)([\w\W]*?)(^ *#\+end_comment *$)`, ByGroups(Comment, Comment, Comment), nil},
 			// - Src Blocks
-			{`(?i)^( *#\+begin_src )([^ \n]+)(.*?\n)([\w\W]*?)(^ *#\+end_src *$)`,
+			{
+				`(?i)^( *#\+begin_src )([^ \n]+)(.*?\n)([\w\W]*?)(^ *#\+end_src *$)`,
 				UsingByGroup(
 					internal.Get,
 					2, 4,
@@ -54,7 +59,8 @@ var Org = internal.Register(MustNewLexer(
 				nil,
 			},
 			// - Export Blocks
-			{`(?i)^( *#\+begin_export )(\w+)( *\n)([\w\W]*?)(^ *#\+end_export *$)`,
+			{
+				`(?i)^( *#\+begin_export )(\w+)( *\n)([\w\W]*?)(^ *#\+end_export *$)`,
 				UsingByGroup(
 					internal.Get,
 					2, 4,
@@ -98,5 +104,5 @@ var Org = internal.Register(MustNewLexer(
 			// Any other text
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

@@ -8,7 +8,7 @@ import (
 )
 
 // HTML lexer.
-var HTML = internal.Register(MustNewLexer(
+var HTML = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "HTML",
 		Aliases:         []string{"html"},
@@ -18,7 +18,11 @@ var HTML = internal.Register(MustNewLexer(
 		DotAll:          true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	htmlRules,
+))
+
+func htmlRules() Rules {
+	return Rules{
 		"root": {
 			{`[^<&]+`, Text, nil},
 			{`&\S*?;`, NameEntity, nil},
@@ -55,5 +59,5 @@ var HTML = internal.Register(MustNewLexer(
 			{`'.*?'`, LiteralString, Pop(1)},
 			{`[^\s>]+`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

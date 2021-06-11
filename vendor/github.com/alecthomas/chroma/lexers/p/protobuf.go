@@ -6,14 +6,18 @@ import (
 )
 
 // ProtocolBuffer lexer.
-var ProtocolBuffer = internal.Register(MustNewLexer(
+var ProtocolBuffer = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Protocol Buffer",
 		Aliases:   []string{"protobuf", "proto"},
 		Filenames: []string{"*.proto"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	protocolBufferRules,
+))
+
+func protocolBufferRules() Rules {
+	return Rules{
 		"root": {
 			{`[ \t]+`, Text, nil},
 			{`[,;{}\[\]()<>]`, Punctuation, nil},
@@ -49,5 +53,5 @@ var ProtocolBuffer = internal.Register(MustNewLexer(
 			{`[a-zA-Z_]\w*`, Name, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

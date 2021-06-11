@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 const (
@@ -90,6 +92,9 @@ type Options struct {
 	XMLContentType string
 	// If IsDevelopment is set to true, this will recompile the templates on every request. Default is false.
 	IsDevelopment bool
+	// If UseMutexLock is set to true, the standard `sync.RWMutex` lock will be used instead of the lock free implementation. Default is false.
+	// Note that when `IsDevelopment` is true, the standard `sync.RWMutex` lock is always used. Lock free is only a production feature.
+	UseMutexLock bool
 	// Unescape HTML characters "&<>" to their original values. Default is false.
 	UnEscapeHTML bool
 	// Streams JSON responses instead of marshalling prior to sending. Default is false.
@@ -103,7 +108,6 @@ type Options struct {
 	// Enables using partials without the current filename suffix which allows use of the same template in multiple files. e.g {{ partial "carosuel" }} inside the home template will match carosel-home or carosel.
 	// ***NOTE*** - This option should be named RenderPartialsWithoutSuffix as that is what it does. "Prefix" is a typo. Maintaining the existing name for backwards compatibility.
 	RenderPartialsWithoutPrefix bool
-
 	// BufferPool to use when rendering HTML templates. If none is supplied
 	// defaults to SizedBufferPool of size 32 with 512KiB buffers.
 	BufferPool GenericBufferPool
@@ -120,11 +124,13 @@ type HTMLOptions struct {
 // Render is a service that provides functions for easily writing JSON, XML,
 // binary data, and HTML templates out to a HTTP Response.
 type Render struct {
+	lock rwLock
+
 	// Customize Secure with an Options struct.
 	opt             Options
 	templates       *template.Template
-	templatesLk     sync.RWMutex
 	compiledCharset string
+	hasWatcher      bool
 }
 
 // New constructs a new Render instance with the supplied options.
@@ -134,12 +140,10 @@ func New(options ...Options) *Render {
 		o = options[0]
 	}
 
-	r := Render{
-		opt: o,
-	}
+	r := Render{opt: o}
 
 	r.prepareOptions()
-	r.compileTemplates()
+	r.CompileTemplates()
 
 	return &r
 }
@@ -149,10 +153,9 @@ func (r *Render) prepareOptions() {
 	if len(r.opt.Charset) == 0 {
 		r.opt.Charset = defaultCharset
 	}
-	if r.opt.DisableCharset == false {
+	if !r.opt.DisableCharset {
 		r.compiledCharset = "; charset=" + r.opt.Charset
 	}
-
 	if len(r.opt.Directory) == 0 {
 		r.opt.Directory = "templates"
 	}
@@ -181,16 +184,21 @@ func (r *Render) prepareOptions() {
 		r.opt.XMLContentType = ContentXML
 	}
 	if r.opt.BufferPool == nil {
-		// 32 buffers of size 512KiB each
-		r.opt.BufferPool = NewSizedBufferPool(32, 1<<19)
+		r.opt.BufferPool = NewSizedBufferPool(32, 1<<19) // 32 buffers of size 512KiB each
+	}
+	if r.opt.IsDevelopment || r.opt.UseMutexLock {
+		r.lock = &sync.RWMutex{}
+	} else {
+		r.lock = &emptyLock{}
 	}
 }
 
-func (r *Render) compileTemplates() {
+func (r *Render) CompileTemplates() {
 	if r.opt.Asset == nil || r.opt.AssetNames == nil {
 		r.compileTemplatesFromDir()
 		return
 	}
+
 	r.compileTemplatesFromAsset()
 }
 
@@ -199,12 +207,24 @@ func (r *Render) compileTemplatesFromDir() {
 	tmpTemplates := template.New(dir)
 	tmpTemplates.Delims(r.opt.Delims.Left, r.opt.Delims.Right)
 
+	var watcher *fsnotify.Watcher
+	if r.opt.IsDevelopment {
+		var err error
+		watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			log.Printf("Unable to create new watcher for template files. Templates will be recompiled on every render. Error: %v\n", err)
+		}
+	}
+
 	// Walk the supplied directory and compile any files that match our extension list.
-	r.opt.FileSystem.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	_ = r.opt.FileSystem.Walk(dir, func(path string, info os.FileInfo, _ error) error {
 		// Fix same-extension-dirs bug: some dir might be named to: "users.tmpl", "local.html".
 		// These dirs should be excluded as they are not valid golang templates, but files under
 		// them should be treat as normal.
 		// If is a dir, return immediately (dir is not a valid golang template).
+		if info != nil && watcher != nil {
+			_ = watcher.Add(path)
+		}
 		if info == nil || info.IsDir() {
 			return nil
 		}
@@ -215,7 +235,7 @@ func (r *Render) compileTemplatesFromDir() {
 		}
 
 		ext := ""
-		if strings.Index(rel, ".") != -1 {
+		if strings.Contains(rel, ".") {
 			ext = filepath.Ext(rel)
 		}
 
@@ -242,9 +262,25 @@ func (r *Render) compileTemplatesFromDir() {
 		return nil
 	})
 
-	r.templatesLk.Lock()
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.templates = tmpTemplates
-	r.templatesLk.Unlock()
+	if r.hasWatcher = watcher != nil; r.hasWatcher {
+		go func() {
+			select {
+			case _, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+			case _, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+			}
+			watcher.Close()
+			r.CompileTemplates()
+		}()
+	}
 }
 
 func (r *Render) compileTemplatesFromAsset() {
@@ -263,13 +299,12 @@ func (r *Render) compileTemplatesFromAsset() {
 		}
 
 		ext := ""
-		if strings.Index(rel, ".") != -1 {
+		if strings.Contains(rel, ".") {
 			ext = "." + strings.Join(strings.Split(rel, ".")[1:], ".")
 		}
 
 		for _, extension := range r.opt.Extensions {
 			if ext == extension {
-
 				buf, err := r.opt.Asset(path)
 				if err != nil {
 					panic(err)
@@ -289,28 +324,29 @@ func (r *Render) compileTemplatesFromAsset() {
 			}
 		}
 	}
-
-	r.templatesLk.Lock()
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	r.templates = tmpTemplates
-	r.templatesLk.Unlock()
 }
 
 // TemplateLookup is a wrapper around template.Lookup and returns
 // the template with the given name that is associated with t, or nil
 // if there is no such template.
 func (r *Render) TemplateLookup(t string) *template.Template {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
 	return r.templates.Lookup(t)
 }
 
-func (r *Render) execute(name string, binding interface{}) (*bytes.Buffer, error) {
+func (r *Render) execute(templates *template.Template, name string, binding interface{}) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
-	return buf, r.templates.ExecuteTemplate(buf, name, binding)
+	return buf, templates.ExecuteTemplate(buf, name, binding)
 }
 
-func (r *Render) layoutFuncs(name string, binding interface{}) template.FuncMap {
+func (r *Render) layoutFuncs(templates *template.Template, name string, binding interface{}) template.FuncMap {
 	return template.FuncMap{
 		"yield": func() (template.HTML, error) {
-			buf, err := r.execute(name, binding)
+			buf, err := r.execute(templates, name, binding)
 			// Return safe HTML here since we are rendering our own template.
 			return template.HTML(buf.String()), err
 		},
@@ -318,13 +354,13 @@ func (r *Render) layoutFuncs(name string, binding interface{}) template.FuncMap 
 			return name, nil
 		},
 		"block": func(partialName string) (template.HTML, error) {
-			log.Print("Render's `block` implementation is now depericated. Use `partial` as a drop in replacement.")
+			log.Println("Render's `block` implementation is now depericated. Use `partial` as a drop in replacement.")
 			fullPartialName := fmt.Sprintf("%s-%s", partialName, name)
-			if r.TemplateLookup(fullPartialName) == nil && r.opt.RenderPartialsWithoutPrefix {
+			if templates.Lookup(fullPartialName) == nil && r.opt.RenderPartialsWithoutPrefix {
 				fullPartialName = partialName
 			}
-			if r.opt.RequireBlocks || r.TemplateLookup(fullPartialName) != nil {
-				buf, err := r.execute(fullPartialName, binding)
+			if r.opt.RequireBlocks || templates.Lookup(fullPartialName) != nil {
+				buf, err := r.execute(templates, fullPartialName, binding)
 				// Return safe HTML here since we are rendering our own template.
 				return template.HTML(buf.String()), err
 			}
@@ -332,11 +368,11 @@ func (r *Render) layoutFuncs(name string, binding interface{}) template.FuncMap 
 		},
 		"partial": func(partialName string) (template.HTML, error) {
 			fullPartialName := fmt.Sprintf("%s-%s", partialName, name)
-			if r.TemplateLookup(fullPartialName) == nil && r.opt.RenderPartialsWithoutPrefix {
+			if templates.Lookup(fullPartialName) == nil && r.opt.RenderPartialsWithoutPrefix {
 				fullPartialName = partialName
 			}
-			if r.opt.RequirePartials || r.TemplateLookup(fullPartialName) != nil {
-				buf, err := r.execute(fullPartialName, binding)
+			if r.opt.RequirePartials || templates.Lookup(fullPartialName) != nil {
+				buf, err := r.execute(templates, fullPartialName, binding)
 				// Return safe HTML here since we are rendering our own template.
 				return template.HTML(buf.String()), err
 			}
@@ -397,19 +433,20 @@ func (r *Render) Data(w io.Writer, status int, v []byte) error {
 
 // HTML builds up the response from the specified template and bindings.
 func (r *Render) HTML(w io.Writer, status int, name string, binding interface{}, htmlOpt ...HTMLOptions) error {
-
 	// If we are in development mode, recompile the templates on every HTML request.
-	if r.opt.IsDevelopment {
-		r.compileTemplates()
+	r.lock.RLock() // rlock here because we're reading the hasWatcher
+	if r.opt.IsDevelopment && !r.hasWatcher {
+		r.lock.RUnlock() // runlock here because CompileTemplates will lock
+		r.CompileTemplates()
+		r.lock.RLock()
 	}
-
-	r.templatesLk.RLock()
-	defer r.templatesLk.RUnlock()
+	templates := r.templates
+	r.lock.RUnlock()
 
 	opt := r.prepareHTMLOptions(htmlOpt)
-	if tpl := r.templates.Lookup(name); tpl != nil {
+	if tpl := templates.Lookup(name); tpl != nil {
 		if len(opt.Layout) > 0 {
-			tpl.Funcs(r.layoutFuncs(name, binding))
+			tpl.Funcs(r.layoutFuncs(templates, name, binding))
 			name = opt.Layout
 		}
 
@@ -426,7 +463,7 @@ func (r *Render) HTML(w io.Writer, status int, name string, binding interface{},
 	h := HTML{
 		Head:      head,
 		Name:      name,
-		Templates: r.templates,
+		Templates: templates,
 		bp:        r.opt.BufferPool,
 	}
 

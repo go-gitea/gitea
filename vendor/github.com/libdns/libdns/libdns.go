@@ -99,6 +99,9 @@ type Record struct {
 	Name  string // partially-qualified (relative to zone)
 	Value string
 	TTL   time.Duration
+
+	// type-dependent record fields
+	Priority int // used by MX, SRV, and URI records
 }
 
 // RelativeName makes fqdn relative to zone. For example, for a FQDN of
