@@ -1379,6 +1379,13 @@ function initPullRequestReview() {
     $simplemde.codemirror.focus();
     assingMenuAttributes(form.find('.menu'));
   });
+
+  const $reviewBox = $('.review-box');
+  if ($reviewBox.length === 1) {
+    setCommentSimpleMDE($reviewBox.find('textarea'));
+    initImagePaste($reviewBox);
+  }
+
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
