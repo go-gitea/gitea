@@ -58,11 +58,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
-		v := user.Visibility.String()
-		if v == "" {
-			v = setting.Service.DefaultUserVisibility
-		}
-		result.Visibility = v
+		result.Visibility = user.Visibility
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
