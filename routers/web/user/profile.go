@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/org"
+	"code.gitea.io/gitea/routers/web/rss"
 
 	"github.com/gorilla/feeds"
 )
@@ -336,13 +337,13 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User) {
 
 	now := time.Now()
 	feed := &feeds.Feed{
-		Title:       ctxUser.FullName,
+		Title:       ctx.Tr("home.profile_of", ctxUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
 		Description: ctxUser.Description,
 		Created:     now,
 	}
 
-	feed.Items = feedActionsToFeedItems(actions)
+	feed.Items = rss.FeedActionsToFeedItems(ctx, actions)
 
 	//atom, err := feed.ToAtom()
 	if rss, err := feed.ToRss(); err != nil {
@@ -351,21 +352,6 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User) {
 		ctx.PlainText(http.StatusOK, []byte(rss))
 	}
 
-}
-
-func feedActionsToFeedItems(actions []*models.Action) (items []*feeds.Item) {
-	for i := range actions {
-		actions[i].LoadActUser()
-
-		items = append(items, &feeds.Item{
-			Title:       string(actions[i].GetOpType()),
-			Link:        &feeds.Link{Href: actions[i].GetCommentLink(), Rel: actions[i].ActUser.AvatarLink()},
-			Description: "A discussion on controlled parallelism in golang",
-			Author:      &feeds.Author{Name: actions[i].ActUser.FullName, Email: actions[i].ActUser.GetEmail()},
-			Created:     actions[i].CreatedUnix.AsTime(),
-		})
-	}
-	return
 }
 
 // Action response for follow/unfollow user request
