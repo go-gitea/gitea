@@ -100,7 +100,7 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
 	return x.
-		Where("last_update + (interval / ?) <= ?", time.Second, time.Now().Unix()).
-		And("interval != 0").
+		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
+		And("`interval` != 0").
 		Iterate(new(PushMirror), f)
 }
