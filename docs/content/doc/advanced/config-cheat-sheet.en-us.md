@@ -237,6 +237,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `unix`.
+- `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to 0 to
+   disable all timeouts.)
+- `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.
 
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
@@ -260,6 +263,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
+- `SSH_PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the SSH connections. (Set to
+  0 to disable all timeouts.)
+- `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.

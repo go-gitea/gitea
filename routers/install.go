@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -61,6 +62,8 @@ func InstallInit(next http.Handler) http.Handler {
 				"DbOptions":     setting.SupportedDatabases,
 				"i18n":          locale,
 				"Language":      locale.Language(),
+				"Lang":          locale.Language(),
+				"AllLangs":      translation.AllLangs(),
 				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 				"TmplLoadTimes": func() string {
@@ -68,6 +71,12 @@ func InstallInit(next http.Handler) http.Handler {
 				},
 				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
 			},
+		}
+		for _, lang := range translation.AllLangs() {
+			if lang.Lang == locale.Language() {
+				ctx.Data["LangName"] = lang.Name
+				break
+			}
 		}
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
