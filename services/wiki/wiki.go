@@ -43,6 +43,12 @@ func NormalizeWikiName(name string) string {
 	return strings.ReplaceAll(name, "-", " ")
 }
 
+// NameToUnescapedFilename converts a wiki name to its corresponding filename without url query escape.
+func NameToUnescapedFilename(name string) string {
+	name = strings.ReplaceAll(name, " ", "-")
+	return name + ".md"
+}
+
 // NameToFilename converts a wiki name to its corresponding filename.
 func NameToFilename(name string) string {
 	name = strings.ReplaceAll(name, " ", "-")
@@ -79,6 +85,19 @@ func InitWiki(repo *models.Repository) error {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil
+}
+
+func checkFileExistence(gitRepo *git.Repository, filePath string) (bool, error) {
+	filesInIndex, err := gitRepo.LsFiles(filePath)
+	if err != nil {
+		log.Error("%v", err)
+		return false, err
+	}
+	if util.IsStringInSlice(filePath, filesInIndex) {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // updateWikiPage adds a new page to the repository wiki.
@@ -133,27 +152,40 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 	}
 
-	newWikiPath := NameToFilename(newWikiName)
+	newWikiPath := NameToUnescapedFilename(newWikiName)
+	isWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
+	if err != nil {
+		return err
+	}
+	if !isWikiExist {
+		newWikiPath = NameToFilename(newWikiName)
+	}
+
 	if isNew {
-		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
+		isNewWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
 		if err != nil {
-			log.Error("%v", err)
 			return err
 		}
-		if util.IsStringInSlice(newWikiPath, filesInIndex) {
+		if isNewWikiExist {
 			return models.ErrWikiAlreadyExist{
 				Title: newWikiPath,
 			}
 		}
 	} else {
-		oldWikiPath := NameToFilename(oldWikiName)
-		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
+		oldWikiPath := NameToUnescapedFilename(oldWikiName)
+		isOldWikiExist, err := checkFileExistence(gitRepo, oldWikiPath)
 		if err != nil {
-			log.Error("%v", err)
 			return err
 		}
+		if !isOldWikiExist {
+			oldWikiPath = NameToFilename(oldWikiName)
+			isOldWikiExist, err = checkFileExistence(gitRepo, oldWikiPath)
+			if err != nil {
+				return err
+			}
+		}
 
-		if util.IsStringInSlice(oldWikiPath, filesInIndex) {
+		if isOldWikiExist {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
 				log.Error("%v", err)
