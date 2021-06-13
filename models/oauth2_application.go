@@ -394,7 +394,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
+// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
