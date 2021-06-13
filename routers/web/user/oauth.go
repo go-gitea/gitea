@@ -187,9 +187,16 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 		}
 		err = app.LoadUser()
 		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				return nil, &AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot find user",
+				}
+			}
+			log.Error("Error loading user: %v", err)
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
-				ErrorDescription: "cannot find user",
+				ErrorDescription: "server error",
 			}
 		}
 
