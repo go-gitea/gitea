@@ -570,17 +570,10 @@ type OIDCToken struct {
 
 	// Scope profile
 	Name              string             `json:"name,omitempty"`
-	FamilyName        string             `json:"family_name,omitempty"`
-	GivenName         string             `json:"given_name,omitempty"`
-	MiddleName        string             `json:"middle_name,omitempty"`
-	Nickname          string             `json:"nickname,omitempty"`
 	PreferredUsername string             `json:"preferred_username,omitempty"`
 	Profile           string             `json:"profile,omitempty"`
 	Picture           string             `json:"picture,omitempty"`
 	Website           string             `json:"website,omitempty"`
-	Gender            string             `json:"gender,omitempty"`
-	Birthdate         string             `json:"birthdate,omitempty"`
-	ZoneInfo          string             `json:"zoneinfo,omitempty"`
 	Locale            string             `json:"locale,omitempty"`
 	UpdatedAt         timeutil.TimeStamp `json:"updated_at,omitempty"`
 
