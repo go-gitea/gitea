@@ -220,6 +220,8 @@ type mssql struct {
 
 func (db *mssql) Init(uri *URI) error {
 	db.quoter = mssqlQuoter
+	db.defaultChar = "CHAR"
+	db.defaultVarchar = "VARCHAR"
 	return db.Base.Init(db, uri)
 }
 
@@ -282,7 +284,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.TimeStampz:
 		res = "DATETIMEOFFSET"
 		c.Length = 7
-	case schemas.MediumInt:
+	case schemas.MediumInt, schemas.UnsignedInt:
 		res = schemas.Int
 	case schemas.Text, schemas.MediumText, schemas.TinyText, schemas.LongText, schemas.Json:
 		res = db.defaultVarchar + "(MAX)"
@@ -294,7 +296,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 	case schemas.TinyInt:
 		res = schemas.TinyInt
 		c.Length = 0
-	case schemas.BigInt:
+	case schemas.BigInt, schemas.UnsignedBigInt:
 		res = schemas.BigInt
 		c.Length = 0
 	case schemas.NVarchar:
@@ -366,6 +368,11 @@ func (db *mssql) DropTableSQL(tableName string) (string, bool) {
 	return fmt.Sprintf("IF EXISTS (SELECT * FROM sysobjects WHERE id = "+
 		"object_id(N'%s') and OBJECTPROPERTY(id, N'IsUserTable') = 1) "+
 		"DROP TABLE \"%s\"", tableName, tableName), true
+}
+
+func (db *mssql) ModifyColumnSQL(tableName string, col *schemas.Column) string {
+	s, _ := ColumnString(db.dialect, col, false)
+	return fmt.Sprintf("ALTER TABLE %s ALTER COLUMN %s", tableName, s)
 }
 
 func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
@@ -533,7 +540,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 
 		colName = strings.Trim(colName, "` ")
 		var isRegular bool
-		if strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName) {
+		if (strings.HasPrefix(indexName, "IDX_"+tableName) || strings.HasPrefix(indexName, "UQE_"+tableName)) && len(indexName) > (5+len(tableName)) {
 			indexName = indexName[5+len(tableName):]
 			isRegular = true
 		}

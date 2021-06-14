@@ -72,15 +72,21 @@ involves moving files to their correct locations and restoring a database dump.
 Example:
 
 ```sh
-apt-get install gitea
-unzip gitea-dump-1482906742.zip
-cd gitea-dump-1482906742
-mv custom/conf/app.ini /etc/gitea/conf/app.ini # or mv app.ini /etc/gitea/conf/app.ini
-unzip gitea-repo.zip
-mv gitea-repo/* /var/lib/gitea/repositories/
-chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea/repositories/
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+mv data/conf/app.ini /etc/gitea/conf/app.ini
+mv data/* /var/lib/gitea/data/
+mv log/* /var/lib/gitea/log/
+mv repos/* /var/lib/gitea/repositories/
+chown -R gitea:gitea /etc/gitea/conf/app.ini /var/lib/gitea
+
+# mysql
 mysql --default-character-set=utf8mb4 -u$USER -p$PASS $DATABASE <gitea-db.sql
-# or  sqlite3 $DATABASE_PATH <gitea-db.sql
+# sqlite3
+sqlite3 $DATABASE_PATH <gitea-db.sql
+# postgres
+psql -U $USER -d $DATABASE < gitea-db.sql
+
 service gitea restart
 ```
 

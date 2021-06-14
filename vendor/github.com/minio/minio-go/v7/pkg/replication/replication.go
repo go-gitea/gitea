@@ -195,6 +195,14 @@ func (c *Config) AddRule(opts Options) error {
 		},
 		DeleteMarkerReplication: DeleteMarkerReplication{Status: dmStatus},
 		DeleteReplication:       DeleteReplication{Status: vDeleteStatus},
+		// MinIO enables replica metadata syncing by default in the case of bi-directional replication to allow
+		// automatic failover as the expectation in this case is that replica and source should be identical.
+		// However AWS leaves this configurable https://docs.aws.amazon.com/AmazonS3/latest/dev/replication-for-metadata-changes.html
+		SourceSelectionCriteria: SourceSelectionCriteria{
+			ReplicaModifications: ReplicaModifications{
+				Status: Enabled,
+			},
+		},
 	}
 
 	// validate rule after overlaying priority for pre-existing rule being disabled.
@@ -378,6 +386,7 @@ type Rule struct {
 	DeleteReplication       DeleteReplication       `xml:"DeleteReplication"`
 	Destination             Destination             `xml:"Destination"`
 	Filter                  Filter                  `xml:"Filter" json:"Filter"`
+	SourceSelectionCriteria SourceSelectionCriteria `xml:"SourceSelectionCriteria" json:"SourceSelectionCriteria"`
 }
 
 // Validate validates the rule for correctness
@@ -394,6 +403,10 @@ func (r Rule) Validate() error {
 
 	if r.Priority < 0 && r.Status == Enabled {
 		return fmt.Errorf("Priority must be set for the rule")
+	}
+
+	if err := r.validateStatus(); err != nil {
+		return err
 	}
 
 	return nil
@@ -568,4 +581,30 @@ type DeleteReplication struct {
 // IsEmpty returns true if DeleteReplication is not set
 func (d DeleteReplication) IsEmpty() bool {
 	return len(d.Status) == 0
+}
+
+// ReplicaModifications specifies if replica modification sync is enabled
+type ReplicaModifications struct {
+	Status Status `xml:"Status" json:"Status"`
+}
+
+// SourceSelectionCriteria - specifies additional source selection criteria in ReplicationConfiguration.
+type SourceSelectionCriteria struct {
+	ReplicaModifications ReplicaModifications `xml:"ReplicaModifications" json:"ReplicaModifications"`
+}
+
+// IsValid - checks whether SourceSelectionCriteria is valid or not.
+func (s SourceSelectionCriteria) IsValid() bool {
+	return s.ReplicaModifications.Status == Enabled || s.ReplicaModifications.Status == Disabled
+}
+
+// Validate source selection criteria
+func (s SourceSelectionCriteria) Validate() error {
+	if (s == SourceSelectionCriteria{}) {
+		return nil
+	}
+	if !s.IsValid() {
+		return fmt.Errorf("Invalid ReplicaModification status")
+	}
+	return nil
 }

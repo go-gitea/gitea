@@ -147,7 +147,7 @@ func (opts PutObjectOptions) Header() (header http.Header) {
 		header.Set(amzBucketReplicationStatus, string(opts.Internal.ReplicationStatus))
 	}
 	if !opts.Internal.SourceMTime.IsZero() {
-		header.Set(minIOBucketSourceMTime, opts.Internal.SourceMTime.Format(time.RFC3339))
+		header.Set(minIOBucketSourceMTime, opts.Internal.SourceMTime.Format(time.RFC3339Nano))
 	}
 	if opts.Internal.SourceETag != "" {
 		header.Set(minIOBucketSourceETag, opts.Internal.SourceETag)

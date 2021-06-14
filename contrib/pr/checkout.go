@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -114,11 +113,9 @@ func runPR() {
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
-	c := routes.NewChi()
-	c.Mount("/", routes.NormalRoutes())
-	routes.DelegateToMacaron(c)
+	c := routers.NormalRoutes()
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

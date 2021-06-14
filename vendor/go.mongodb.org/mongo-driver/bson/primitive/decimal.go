@@ -10,6 +10,7 @@
 package primitive
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -204,6 +205,54 @@ func (d Decimal128) IsInf() int {
 		return 1
 	}
 	return -1
+}
+
+// IsZero returns true if d is the empty Decimal128.
+func (d Decimal128) IsZero() bool {
+	return d.h == 0 && d.l == 0
+}
+
+// MarshalJSON returns Decimal128 as a string.
+func (d Decimal128) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON creates a primitive.Decimal128 from a JSON string, an extended JSON $numberDecimal value, or the string
+// "null". If b is a JSON string or extended JSON value, d will have the value of that string, and if b is "null", d will
+// be unchanged.
+func (d *Decimal128) UnmarshalJSON(b []byte) error {
+	// Ignore "null" to keep parity with the standard library. Decoding a JSON null into a non-pointer Decimal128 field
+	// will leave the field unchanged. For pointer values, encoding/json will set the pointer to nil and will not
+	// enter the UnmarshalJSON hook.
+	if string(b) == "null" {
+		return nil
+	}
+
+	var res interface{}
+	err := json.Unmarshal(b, &res)
+	if err != nil {
+		return err
+	}
+	str, ok := res.(string)
+
+	// Extended JSON
+	if !ok {
+		m, ok := res.(map[string]interface{})
+		if !ok {
+			return errors.New("not an extended JSON Decimal128: expected document")
+		}
+		d128, ok := m["$numberDecimal"]
+		if !ok {
+			return errors.New("not an extended JSON Decimal128: expected key $numberDecimal")
+		}
+		str, ok = d128.(string)
+		if !ok {
+			return errors.New("not an extended JSON Decimal128: expected decimal to be string")
+		}
+	}
+
+	*d, err = ParseDecimal128(str)
+	return err
 }
 
 func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {

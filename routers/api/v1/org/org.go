@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -27,9 +29,9 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
-	maxResults := len(orgs)
 
-	orgs = utils.PaginateUserSlice(orgs, listOptions.Page, listOptions.PageSize)
+	maxResults := len(orgs)
+	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
@@ -149,7 +151,7 @@ func GetAll(ctx *context.APIContext) {
 }
 
 // Create api for create organization
-func Create(ctx *context.APIContext, form api.CreateOrgOption) {
+func Create(ctx *context.APIContext) {
 	// swagger:operation POST /orgs organization orgCreate
 	// ---
 	// summary: Create an organization
@@ -169,7 +171,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.User.CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
@@ -231,7 +233,7 @@ func Get(ctx *context.APIContext) {
 }
 
 // Edit change an organization's information
-func Edit(ctx *context.APIContext, form api.EditOrgOption) {
+func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /orgs/{org} organization orgEdit
 	// ---
 	// summary: Edit an organization
@@ -253,7 +255,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-
+	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
 	org.Description = form.Description

@@ -1,14 +1,15 @@
 language: go
 
 go:
-  - "1.10.x"
-  - "1.11.x"
+  - "1.13.x"
+  - "1.14.x"
+  - "1.15.x"
 
 before_script:
-  - go get -u github.com/golang/lint/golint
+  - go get -u golang.org/x/lint/golint
 
 script:
   - go vet
   - golint -set_exit_status
   - go build
-  - go test
+  - go test -race

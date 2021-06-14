@@ -43,7 +43,7 @@ type SearchResultLanguages struct {
 type Indexer interface {
 	Index(repo *models.Repository, sha string, changes *repoChanges) error
 	Delete(repoID int64) error
-	Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error)
+	Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error)
 	Close()
 }
 
@@ -115,7 +115,13 @@ func Init() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	graceful.GetManager().RunAtTerminate(ctx, func() {
+	graceful.GetManager().RunAtTerminate(func() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		cancel()
 		log.Debug("Closing repository indexer")
 		indexer.Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())

@@ -176,13 +176,13 @@ func (ci *copyin) resploop() {
 
 func (ci *copyin) setBad() {
 	ci.Lock()
-	ci.cn.bad = true
+	ci.cn.setBad()
 	ci.Unlock()
 }
 
 func (ci *copyin) isBad() bool {
 	ci.Lock()
-	b := ci.cn.bad
+	b := ci.cn.getBad()
 	ci.Unlock()
 	return b
 }

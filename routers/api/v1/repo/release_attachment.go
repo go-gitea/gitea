@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -168,7 +169,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Get uploaded file from request
-	file, header, err := ctx.GetFile("attachment")
+	file, header, err := ctx.Req.FormFile("attachment")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFile", err)
 		return
@@ -208,7 +209,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 }
 
 // EditReleaseAttachment updates the given attachment
-func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptions) {
+func EditReleaseAttachment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/releases/{id}/assets/{attachment_id} repository repoEditReleaseAttachment
 	// ---
 	// summary: Edit a release attachment
@@ -246,6 +247,8 @@ func EditReleaseAttachment(ctx *context.APIContext, form api.EditAttachmentOptio
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+
+	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")

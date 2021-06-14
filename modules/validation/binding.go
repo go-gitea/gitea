@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"gitea.com/macaron/binding"
+	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"
 )
 

@@ -7,6 +7,7 @@ package timeutil
 import (
 	"fmt"
 	"html/template"
+	"math"
 	"strings"
 	"time"
 
@@ -25,7 +26,11 @@ const (
 	Year   = 12 * Month
 )
 
-func computeTimeDiff(diff int64, lang string) (int64, string) {
+func round(s float64) int64 {
+	return int64(math.Round(s))
+}
+
+func computeTimeDiffFloor(diff int64, lang string) (int64, string) {
 	diffStr := ""
 	switch {
 	case diff <= 0:
@@ -83,6 +88,94 @@ func computeTimeDiff(diff int64, lang string) (int64, string) {
 	return diff, diffStr
 }
 
+func computeTimeDiff(diff int64, lang string) (int64, string) {
+	diffStr := ""
+	switch {
+	case diff <= 0:
+		diff = 0
+		diffStr = i18n.Tr(lang, "tool.now")
+	case diff < 2:
+		diff = 0
+		diffStr = i18n.Tr(lang, "tool.1s")
+	case diff < 1*Minute:
+		diffStr = i18n.Tr(lang, "tool.seconds", diff)
+		diff = 0
+
+	case diff < Minute+Minute/2:
+		diff -= 1 * Minute
+		diffStr = i18n.Tr(lang, "tool.1m")
+	case diff < 1*Hour:
+		minutes := round(float64(diff) / Minute)
+		if minutes > 1 {
+			diffStr = i18n.Tr(lang, "tool.minutes", minutes)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1m")
+		}
+		diff -= diff / Minute * Minute
+
+	case diff < Hour+Hour/2:
+		diff -= 1 * Hour
+		diffStr = i18n.Tr(lang, "tool.1h")
+	case diff < 1*Day:
+		hours := round(float64(diff) / Hour)
+		if hours > 1 {
+			diffStr = i18n.Tr(lang, "tool.hours", hours)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1h")
+		}
+		diff -= diff / Hour * Hour
+
+	case diff < Day+Day/2:
+		diff -= 1 * Day
+		diffStr = i18n.Tr(lang, "tool.1d")
+	case diff < 1*Week:
+		days := round(float64(diff) / Day)
+		if days > 1 {
+			diffStr = i18n.Tr(lang, "tool.days", days)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1d")
+		}
+		diff -= diff / Day * Day
+
+	case diff < Week+Week/2:
+		diff -= 1 * Week
+		diffStr = i18n.Tr(lang, "tool.1w")
+	case diff < 1*Month:
+		weeks := round(float64(diff) / Week)
+		if weeks > 1 {
+			diffStr = i18n.Tr(lang, "tool.weeks", weeks)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1w")
+		}
+		diff -= diff / Week * Week
+
+	case diff < 1*Month+Month/2:
+		diff -= 1 * Month
+		diffStr = i18n.Tr(lang, "tool.1mon")
+	case diff < 1*Year:
+		months := round(float64(diff) / Month)
+		if months > 1 {
+			diffStr = i18n.Tr(lang, "tool.months", months)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1mon")
+		}
+		diff -= diff / Month * Month
+
+	case diff < Year+Year/2:
+		diff -= 1 * Year
+		diffStr = i18n.Tr(lang, "tool.1y")
+	default:
+		years := round(float64(diff) / Year)
+		if years > 1 {
+			diffStr = i18n.Tr(lang, "tool.years", years)
+		} else {
+			diffStr = i18n.Tr(lang, "tool.1y")
+		}
+		diff -= (diff / Year) * Year
+	}
+	return diff, diffStr
+}
+
 // MinutesToFriendly returns a user friendly string with number of minutes
 // converted to hours and minutes.
 func MinutesToFriendly(minutes int, lang string) string {
@@ -111,7 +204,7 @@ func timeSincePro(then, now time.Time, lang string) string {
 			break
 		}
 
-		diff, diffStr = computeTimeDiff(diff, lang)
+		diff, diffStr = computeTimeDiffFloor(diff, lang)
 		timeStr += ", " + diffStr
 	}
 	return strings.TrimPrefix(timeStr, ", ")

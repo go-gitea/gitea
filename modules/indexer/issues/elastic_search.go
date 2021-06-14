@@ -205,7 +205,7 @@ func (b *ElasticSearchIndexer) Search(keyword string, repoIDs []int64, limit, st
 	searchResult, err := b.client.Search().
 		Index(b.indexerName).
 		Query(query).
-		Sort("id", true).
+		Sort("_score", false).
 		From(start).Size(limit).
 		Do(context.Background())
 	if err != nil {

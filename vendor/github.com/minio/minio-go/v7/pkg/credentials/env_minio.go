@@ -22,10 +22,12 @@ import "os"
 // A EnvMinio retrieves credentials from the environment variables of the
 // running process. EnvMinioironment credentials never expire.
 //
-// EnvMinioironment variables used:
+// Environment variables used:
 //
 // * Access Key ID:     MINIO_ACCESS_KEY.
 // * Secret Access Key: MINIO_SECRET_KEY.
+// * Access Key ID:     MINIO_ROOT_USER.
+// * Secret Access Key: MINIO_ROOT_PASSWORD.
 type EnvMinio struct {
 	retrieved bool
 }
@@ -40,12 +42,16 @@ func NewEnvMinio() *Credentials {
 func (e *EnvMinio) Retrieve() (Value, error) {
 	e.retrieved = false
 
-	id := os.Getenv("MINIO_ACCESS_KEY")
-	secret := os.Getenv("MINIO_SECRET_KEY")
+	id := os.Getenv("MINIO_ROOT_USER")
+	secret := os.Getenv("MINIO_ROOT_PASSWORD")
 
 	signerType := SignatureV4
 	if id == "" || secret == "" {
-		signerType = SignatureAnonymous
+		id = os.Getenv("MINIO_ACCESS_KEY")
+		secret = os.Getenv("MINIO_SECRET_KEY")
+		if id == "" || secret == "" {
+			signerType = SignatureAnonymous
+		}
 	}
 
 	e.retrieved = true

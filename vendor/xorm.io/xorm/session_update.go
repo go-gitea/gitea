@@ -273,8 +273,15 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 					k = ct.Elem().Kind()
 				}
 				if k == reflect.Struct {
+					var refTable = session.statement.RefTable
+					if refTable == nil {
+						refTable, err = session.engine.TableInfo(condiBean[0])
+						if err != nil {
+							return 0, err
+						}
+					}
 					var err error
-					autoCond, err = session.statement.BuildConds(session.statement.RefTable, condiBean[0], true, true, false, true, false)
+					autoCond, err = session.statement.BuildConds(refTable, condiBean[0], true, true, false, true, false)
 					if err != nil {
 						return 0, err
 					}

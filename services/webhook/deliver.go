@@ -141,6 +141,10 @@ func Deliver(t *models.HookTask) error {
 		}
 	}()
 
+	if setting.DisableWebhooks {
+		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
+	}
+
 	resp, err := webhookHTTPClient.Do(req)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
@@ -267,14 +271,10 @@ func InitDeliverHooks() {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Proxy:           webhookProxy(),
 			Dial: func(netw, addr string) (net.Conn, error) {
-				conn, err := net.DialTimeout(netw, addr, timeout)
-				if err != nil {
-					return nil, err
-				}
-
-				return conn, conn.SetDeadline(time.Now().Add(timeout))
+				return net.DialTimeout(netw, addr, timeout) // dial timeout
 			},
 		},
+		Timeout: timeout, // request timeout
 	}
 
 	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)

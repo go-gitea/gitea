@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -206,7 +207,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 // runSync returns true if sync finished without error.
-func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -229,18 +230,14 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
 		if sanitizeErr != nil {
 			log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
-			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
-			return nil, false
 		}
-		stdoutMessage, err := sanitizeOutput(stdout, repoPath)
-		if err != nil {
+		stdoutMessage, sanitizeErr := sanitizeOutput(stdout, repoPath)
+		if sanitizeErr != nil {
 			log.Error("sanitizeOutput failed: %v", sanitizeErr)
-			log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
-			return nil, false
 		}
 
 		log.Error("Failed to update mirror repository %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
-		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", repoPath, stderrMessage)
+		desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", m.Repo.FullName(), stderrMessage)
 		if err = models.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -253,13 +250,21 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 		log.Error("OpenRepository: %v", err)
 		return nil, false
 	}
+	defer gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
 	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
-		gitRepo.Close()
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
-	gitRepo.Close()
+
+	if m.LFS && setting.LFS.StartServer {
+		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
+		readAddress(m)
+		ep := lfs.DetermineEndpoint(m.Address, m.LFSEndpoint)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep); err != nil {
+			log.Error("Failed to synchronize LFS objects for repository: %v", err)
+		}
+	}
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
 	if err := m.Repo.UpdateSize(models.DefaultDBContext()); err != nil {
@@ -277,21 +282,17 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 			stderr := stderrBuilder.String()
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
-			stderrMessage, sanitizeErr := sanitizeOutput(stderr, repoPath)
+			stderrMessage, sanitizeErr := sanitizeOutput(stderr, wikiPath)
 			if sanitizeErr != nil {
 				log.Error("sanitizeOutput failed on stderr: %v", sanitizeErr)
-				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderr, err)
-				return nil, false
 			}
-			stdoutMessage, err := sanitizeOutput(stdout, repoPath)
-			if err != nil {
+			stdoutMessage, sanitizeErr := sanitizeOutput(stdout, wikiPath)
+			if sanitizeErr != nil {
 				log.Error("sanitizeOutput failed: %v", sanitizeErr)
-				log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdout, stderrMessage, err)
-				return nil, false
 			}
 
 			log.Error("Failed to update mirror repository wiki %v:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
-			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", wikiPath, stderrMessage)
+			desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", m.Repo.FullName(), stderrMessage)
 			if err = models.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
@@ -301,7 +302,7 @@ func runSync(m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, err := repo_module.GetBranches(m.Repo)
+	branches, _, err := repo_module.GetBranches(m.Repo, 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -378,12 +379,12 @@ func SyncMirrors(ctx context.Context) {
 			mirrorQueue.Close()
 			return
 		case repoID := <-mirrorQueue.Queue():
-			syncMirror(repoID)
+			syncMirror(ctx, repoID)
 		}
 	}
 }
 
-func syncMirror(repoID string) {
+func syncMirror(ctx context.Context, repoID string) {
 	log.Trace("SyncMirrors [repo_id: %v]", repoID)
 	defer func() {
 		err := recover()
@@ -403,7 +404,7 @@ func syncMirror(repoID string) {
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
-	results, ok := runSync(m)
+	results, ok := runSync(ctx, m)
 	if !ok {
 		return
 	}

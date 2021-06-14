@@ -6,9 +6,11 @@
 package log
 
 import (
-	"encoding/json"
+	"fmt"
 	"io"
 	"net"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 type connWriter struct {
@@ -104,9 +106,10 @@ func NewConn() LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *ConnLogger) Init(jsonconfig string) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&connWriter{
 		ReconnectOnMsg: log.ReconnectOnMsg,

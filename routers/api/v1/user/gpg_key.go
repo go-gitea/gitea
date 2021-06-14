@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -133,7 +134,7 @@ type swaggerUserCurrentPostGPGKey struct {
 }
 
 //CreateGPGKey create a GPG key belonging to the authenticated user
-func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
+func CreateGPGKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/gpg_keys user userCurrentPostGPGKey
 	// ---
 	// summary: Create a GPG key
@@ -149,7 +150,8 @@ func CreateGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	CreateUserGPGKey(ctx, form, ctx.User.ID)
+	form := web.GetForm(ctx).(*api.CreateGPGKeyOption)
+	CreateUserGPGKey(ctx, *form, ctx.User.ID)
 }
 
 //DeleteGPGKey remove a GPG key belonging to the authenticated user

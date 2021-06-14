@@ -1,7 +1,26 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
-import "time"
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+	"time"
+)
 
 // TodosService handles communication with the todos related methods of
 // the Gitlab API.
@@ -135,7 +154,7 @@ type ListTodosOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/todos.html#get-a-list-of-todos
 func (s *TodosService) ListTodos(opt *ListTodosOptions, options ...RequestOptionFunc) ([]*Todo, *Response, error) {
-	req, err := s.client.NewRequest("GET", "todos", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "todos", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -155,7 +174,7 @@ func (s *TodosService) ListTodos(opt *ListTodosOptions, options ...RequestOption
 func (s *TodosService) MarkTodoAsDone(id int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("todos/%d/mark_as_done", id)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +186,7 @@ func (s *TodosService) MarkTodoAsDone(id int, options ...RequestOptionFunc) (*Re
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/todos.html#mark-all-todos-as-done
 func (s *TodosService) MarkAllTodosAsDone(options ...RequestOptionFunc) (*Response, error) {
-	req, err := s.client.NewRequest("POST", "todos/mark_as_done", nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, "todos/mark_as_done", nil, options)
 	if err != nil {
 		return nil, err
 	}

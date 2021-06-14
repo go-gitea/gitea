@@ -45,11 +45,6 @@ type Attribute struct {
 	Value interface{}
 }
 
-var attrNameIDS = []byte("#")
-var attrNameID = []byte("id")
-var attrNameClassS = []byte(".")
-var attrNameClass = []byte("class")
-
 // A Node interface defines basic AST node functionalities.
 type Node interface {
 	// Type returns a type of this node.
@@ -116,6 +111,11 @@ type Node interface {
 	// tail of the children.
 	InsertAfter(self, v1, insertee Node)
 
+	// OwnerDocument returns this node's owner document.
+	// If this node is not a child of the Document node, OwnerDocument
+	// returns nil.
+	OwnerDocument() *Document
+
 	// Dump dumps an AST tree structure to stdout.
 	// This function completely aimed for debugging.
 	// level is a indent level. Implementer should indent informations with
@@ -169,7 +169,7 @@ type Node interface {
 	RemoveAttributes()
 }
 
-// A BaseNode struct implements the Node interface.
+// A BaseNode struct implements the Node interface partialliy.
 type BaseNode struct {
 	firstChild Node
 	lastChild  Node
@@ -356,6 +356,22 @@ func (n *BaseNode) InsertBefore(self, v1, insertee Node) {
 		c.SetPreviousSibling(insertee)
 		insertee.SetParent(self)
 	}
+}
+
+// OwnerDocument implements Node.OwnerDocument
+func (n *BaseNode) OwnerDocument() *Document {
+	d := n.Parent()
+	for {
+		p := d.Parent()
+		if p == nil {
+			if v, ok := d.(*Document); ok {
+				return v
+			}
+			break
+		}
+		d = p
+	}
+	return nil
 }
 
 // Text implements Node.Text  .

@@ -25,14 +25,14 @@ environment:
 apps:
   gitea:
     command: gitea
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, removable-media]
   web:
     command: gitea web
     daemon: simple
-    plugs: [network, network-bind]
+    plugs: [network, network-bind, removable-media]
   dump:
     command: gitea dump
-    plugs: [home]
+    plugs: [home, removable-media]
   version:
     command: gitea --version
   sqlite:

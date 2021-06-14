@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/blevesearch/bleve"
-	"github.com/blevesearch/bleve/document"
-	"github.com/blevesearch/bleve/mapping"
+	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/mapping"
+	index "github.com/blevesearch/bleve_index_api"
 )
 
 // ShardedIndex an index that is built onto of multiple underlying bleve
@@ -91,7 +91,7 @@ func (s *shardedIndex) Delete(id string) error {
 	return s.indices[hash(id, len(s.indices))].Delete(id)
 }
 
-func (s *shardedIndex) Document(id string) (*document.Document, error) {
+func (s *shardedIndex) Document(id string) (index.Document, error) {
 	return s.indices[hash(id, len(s.indices))].Document(id)
 }
 

@@ -40,6 +40,14 @@ type UpdateExistingConfig struct {
 	UpdateExisting bool
 }
 
+// CleanupHookTaskConfig represents a cron task with settings to cleanup hook_task
+type CleanupHookTaskConfig struct {
+	BaseConfig
+	CleanupType  string
+	OlderThan    time.Duration
+	NumberToKeep int
+}
+
 // GetSchedule returns the schedule for the base config
 func (b *BaseConfig) GetSchedule() string {
 	return b.Schedule

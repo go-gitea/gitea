@@ -8,6 +8,8 @@ package git
 import (
 	"bytes"
 	"container/list"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 )
@@ -19,31 +21,7 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	stdout, err := NewCommand("rev-list", "-n", "1", TagPrefix+name).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "unknown revision or path") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	return strings.TrimSpace(stdout), nil
-}
-
-// ConvertToSHA1 returns a Hash object from a potential ID string
-func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) != 40 {
-		var err error
-		actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
-		if err != nil {
-			if strings.Contains(err.Error(), "unknown revision or path") ||
-				strings.Contains(err.Error(), "fatal: Needed a single revision") {
-				return SHA1{}, ErrNotExist{commitID, ""}
-			}
-			return SHA1{}, err
-		}
-		commitID = actualCommitID
-	}
-	return NewIDFromString(commitID)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // GetCommit returns commit object of by ID string.
@@ -109,6 +87,9 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 
 // CommitsRangeSize the default commits range size
 var CommitsRangeSize = 50
+
+// BranchesRangeSize the default branches range size
+var BranchesRangeSize = 20
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
@@ -225,8 +206,38 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 
 // CommitsByFileAndRange return the commits according revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	stdout, err := NewCommand("log", revision, "--follow", "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
+	skip := (page - 1) * CommitsRangeSize
+
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+	go func() {
+		stderr := strings.Builder{}
+		err := NewCommand("log", revision, "--follow",
+			"--max-count="+strconv.Itoa(CommitsRangeSize*page),
+			prettyLogFormat, "--", file).
+			RunInDirPipeline(repo.Path, stdoutWriter, &stderr)
+		if err != nil {
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+		} else {
+			_ = stdoutWriter.Close()
+		}
+	}()
+
+	if skip > 0 {
+		_, err := io.CopyN(ioutil.Discard, stdoutReader, int64(skip*41))
+		if err != nil {
+			if err == io.EOF {
+				return list.New(), nil
+			}
+			_ = stdoutReader.CloseWithError(err)
+			return nil, err
+		}
+	}
+
+	stdout, err := ioutil.ReadAll(stdoutReader)
 	if err != nil {
 		return nil, err
 	}
@@ -416,4 +427,13 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.Lis
 	}
 
 	return commits
+}
+
+// IsCommitInBranch check if the commit is on the branch
+func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
+	stdout, err := NewCommand("branch", "--contains", commitID, branch).RunInDir(repo.Path)
+	if err != nil {
+		return false, err
+	}
+	return len(stdout) > 0, err
 }

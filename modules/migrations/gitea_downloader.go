@@ -69,6 +69,7 @@ func (f *GiteaDownloaderFactory) GitServiceType() structs.GitServiceType {
 
 // GiteaDownloader implements a Downloader interface to get repository information's
 type GiteaDownloader struct {
+	base.NullDownloader
 	ctx        context.Context
 	client     *gitea_sdk.Client
 	repoOwner  string
@@ -95,7 +96,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	path := strings.Split(repoPath, "/")
 
 	paginationSupport := true
-	if err := giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
+	if err = giteaClient.CheckServerVersionConstraint(">=1.12"); err != nil {
 		paginationSupport = false
 	}
 
@@ -526,13 +527,6 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			}
 			headSHA = pr.Head.Sha
 			headRef = pr.Head.Ref
-			if headSHA == "" {
-				headCommit, _, err := g.client.GetSingleCommit(g.repoOwner, g.repoName, url.PathEscape(pr.Head.Ref))
-				if err != nil {
-					return nil, false, fmt.Errorf("error while resolving head git ref: %s for pull #%d. Error: %v", pr.Head.Ref, pr.Index, err)
-				}
-				headSHA = headCommit.SHA
-			}
 		}
 
 		var mergeCommitSHA string

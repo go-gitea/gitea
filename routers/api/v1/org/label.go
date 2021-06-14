@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -52,7 +53,7 @@ func ListLabels(ctx *context.APIContext) {
 }
 
 // CreateLabel create a label for a repository
-func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
+func CreateLabel(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/labels organization orgCreateLabel
 	// ---
 	// summary: Create a label for an organization
@@ -75,7 +76,7 @@ func CreateLabel(ctx *context.APIContext, form api.CreateLabelOption) {
 	//     "$ref": "#/responses/Label"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateLabelOption)
 	form.Color = strings.Trim(form.Color, " ")
 	if len(form.Color) == 6 {
 		form.Color = "#" + form.Color
@@ -144,7 +145,7 @@ func GetLabel(ctx *context.APIContext) {
 }
 
 // EditLabel modify a label for an Organization
-func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
+func EditLabel(ctx *context.APIContext) {
 	// swagger:operation PATCH /orgs/{org}/labels/{id} organization orgEditLabel
 	// ---
 	// summary: Update a label
@@ -173,7 +174,7 @@ func EditLabel(ctx *context.APIContext, form api.EditLabelOption) {
 	//     "$ref": "#/responses/Label"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.EditLabelOption)
 	label, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrOrgLabelNotExist(err) {

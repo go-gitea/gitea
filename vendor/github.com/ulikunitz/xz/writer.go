@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package xz
 
 import (
 	"errors"
+	"fmt"
 	"hash"
 	"io"
 
@@ -190,6 +191,9 @@ func (c WriterConfig) NewWriter(xz io.Writer) (w *Writer, err error) {
 		return nil, err
 	}
 	data, err := w.h.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("w.h.MarshalBinary(): error %w", err)
+	}
 	if _, err = xz.Write(data); err != nil {
 		return nil, err
 	}

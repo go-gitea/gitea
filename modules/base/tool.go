@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,6 +19,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -203,19 +203,19 @@ func EllipsisString(str string, length int) string {
 	if length <= 3 {
 		return "..."
 	}
-	if len(str) <= length {
+	if utf8.RuneCountInString(str) <= length {
 		return str
 	}
-	return str[:length-3] + "..."
+	return string([]rune(str)[:length-3]) + "..."
 }
 
 // TruncateString returns a truncated string with given limit,
 // it returns input string if length is not reached limit.
 func TruncateString(str string, limit int) string {
-	if len(str) < limit {
+	if utf8.RuneCountInString(str) < limit {
 		return str
 	}
-	return str[:limit]
+	return string([]rune(str)[:limit])
 }
 
 // StringsToInt64s converts a slice of string to a slice of int64.
@@ -260,37 +260,9 @@ func Int64sContains(intsSlice []int64, a int64) bool {
 }
 
 // IsLetter reports whether the rune is a letter (category L).
-// https://github.com/golang/go/blob/master/src/go/scanner/scanner.go#L257
+// https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
-}
-
-// IsTextFile returns true if file content format is plain text or empty.
-func IsTextFile(data []byte) bool {
-	if len(data) == 0 {
-		return true
-	}
-	return strings.Contains(http.DetectContentType(data), "text/")
-}
-
-// IsImageFile detects if data is an image format
-func IsImageFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "image/")
-}
-
-// IsPDFFile detects if data is a pdf format
-func IsPDFFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "application/pdf")
-}
-
-// IsVideoFile detects if data is an video format
-func IsVideoFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "video/")
-}
-
-// IsAudioFile detects if data is an video format
-func IsAudioFile(data []byte) bool {
-	return strings.Contains(http.DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories

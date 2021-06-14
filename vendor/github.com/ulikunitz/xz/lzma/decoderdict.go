@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -126,10 +126,3 @@ func (d *decoderDict) Available() int { return d.buf.Available() }
 
 // Read reads data from the buffer contained in the decoder dictionary.
 func (d *decoderDict) Read(p []byte) (n int, err error) { return d.buf.Read(p) }
-
-// Buffered returns the number of bytes currently buffered in the
-// decoder dictionary.
-func (d *decoderDict) buffered() int { return d.buf.Buffered() }
-
-// Peek gets data from the buffer without advancing the rear index.
-func (d *decoderDict) peek(p []byte) (n int, err error) { return d.buf.Peek(p) }

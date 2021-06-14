@@ -4,7 +4,11 @@
 
 package queue
 
-import "github.com/go-redis/redis/v7"
+import (
+	"context"
+
+	"github.com/go-redis/redis/v8"
+)
 
 // RedisUniqueQueueType is the type for redis queue
 const RedisUniqueQueueType Type = "unique-redis"
@@ -55,7 +59,7 @@ func NewRedisUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, 
 	return queue, nil
 }
 
-var _ (UniqueByteFIFO) = &RedisUniqueByteFIFO{}
+var _ UniqueByteFIFO = &RedisUniqueByteFIFO{}
 
 // RedisUniqueByteFIFO represents a UniqueByteFIFO formed from a redisClient
 type RedisUniqueByteFIFO struct {
@@ -85,8 +89,8 @@ func NewRedisUniqueByteFIFO(config RedisUniqueByteFIFOConfiguration) (*RedisUniq
 }
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
-func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
-	added, err := fifo.client.SAdd(fifo.setName, data).Result()
+func (fifo *RedisUniqueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
+	added, err := fifo.client.SAdd(ctx, fifo.setName, data).Result()
 	if err != nil {
 		return err
 	}
@@ -98,12 +102,12 @@ func (fifo *RedisUniqueByteFIFO) PushFunc(data []byte, fn func() error) error {
 			return err
 		}
 	}
-	return fifo.client.RPush(fifo.queueName, data).Err()
+	return fifo.client.RPush(ctx, fifo.queueName, data).Err()
 }
 
 // Pop pops data from the start of the fifo
-func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
-	data, err := fifo.client.LPop(fifo.queueName).Bytes()
+func (fifo *RedisUniqueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
+	data, err := fifo.client.LPop(ctx, fifo.queueName).Bytes()
 	if err != nil && err != redis.Nil {
 		return data, err
 	}
@@ -112,13 +116,13 @@ func (fifo *RedisUniqueByteFIFO) Pop() ([]byte, error) {
 		return data, nil
 	}
 
-	err = fifo.client.SRem(fifo.setName, data).Err()
+	err = fifo.client.SRem(ctx, fifo.setName, data).Err()
 	return data, err
 }
 
 // Has returns whether the fifo contains this data
-func (fifo *RedisUniqueByteFIFO) Has(data []byte) (bool, error) {
-	return fifo.client.SIsMember(fifo.setName, data).Result()
+func (fifo *RedisUniqueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
+	return fifo.client.SIsMember(ctx, fifo.setName, data).Result()
 }
 
 func init() {

@@ -169,6 +169,7 @@ func (session *Session) db() *core.DB {
 	return session.engine.db
 }
 
+// Engine returns session Engine
 func (session *Session) Engine() *Engine {
 	return session.engine
 }
@@ -503,7 +504,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 		fieldType := fieldValue.Type()
 		hasAssigned := false
 
-		if col.SQLType.IsJson() {
+		if col.IsJSON {
 			var bs []byte
 			if rawValueType.Kind() == reflect.String {
 				bs = []byte(vv.String())
@@ -683,7 +684,7 @@ func (session *Session) slice2Bean(scanResults []interface{}, fields []string, b
 					session.engine.logger.Errorf("sql.Sanner error: %v", err)
 					hasAssigned = false
 				}
-			} else if col.SQLType.IsJson() {
+			} else if col.IsJSON {
 				if rawValueType.Kind() == reflect.String {
 					hasAssigned = true
 					x := reflect.New(fieldType)
@@ -895,7 +896,7 @@ func (session *Session) incrVersionFieldValue(fieldValue *reflect.Value) {
 	}
 }
 
-// ContextHook sets the context on this session
+// Context sets the context on this session
 func (session *Session) Context(ctx context.Context) *Session {
 	session.ctx = ctx
 	return session

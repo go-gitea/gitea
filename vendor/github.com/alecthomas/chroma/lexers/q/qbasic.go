@@ -6,14 +6,18 @@ import (
 )
 
 // Qbasic lexer.
-var Qbasic = internal.Register(MustNewLexer(
+var Qbasic = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "QBasic",
 		Aliases:   []string{"qbasic", "basic"},
 		Filenames: []string{"*.BAS", "*.bas"},
 		MimeTypes: []string{"text/basic"},
 	},
-	Rules{
+	qbasicRules,
+))
+
+func qbasicRules() Rules {
+	return Rules{
 		"root": {
 			{`\n+`, Text, nil},
 			{`\s+`, TextWhitespace, nil},
@@ -63,5 +67,5 @@ var Qbasic = internal.Register(MustNewLexer(
 		"keywords": {
 			{`\b(ACCESS|ALIAS|ANY|APPEND|AS|BASE|BINARY|BYVAL|CASE|CDECL|DOUBLE|ELSE|ELSEIF|ENDIF|INTEGER|IS|LIST|LOCAL|LONG|LOOP|MOD|NEXT|OFF|ON|OUTPUT|RANDOM|SIGNAL|SINGLE|STEP|STRING|THEN|TO|UNTIL|USING|WEND)\b`, Keyword, nil},
 		},
-	},
-))
+	}
+}

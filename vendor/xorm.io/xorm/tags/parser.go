@@ -21,9 +21,11 @@ import (
 )
 
 var (
+	// ErrUnsupportedType represents an unsupported type error
 	ErrUnsupportedType = errors.New("Unsupported type")
 )
 
+// Parser represents a parser for xorm tag
 type Parser struct {
 	identifier   string
 	dialect      dialects.Dialect
@@ -34,6 +36,7 @@ type Parser struct {
 	tableCache   sync.Map // map[reflect.Type]*schemas.Table
 }
 
+// NewParser creates a tag parser
 func NewParser(identifier string, dialect dialects.Dialect, tableMapper, columnMapper names.Mapper, cacherMgr *caches.Manager) *Parser {
 	return &Parser{
 		identifier:   identifier,
@@ -45,24 +48,35 @@ func NewParser(identifier string, dialect dialects.Dialect, tableMapper, columnM
 	}
 }
 
+// GetTableMapper returns table mapper
 func (parser *Parser) GetTableMapper() names.Mapper {
 	return parser.tableMapper
 }
 
+// SetTableMapper sets table mapper
 func (parser *Parser) SetTableMapper(mapper names.Mapper) {
 	parser.ClearCaches()
 	parser.tableMapper = mapper
 }
 
+// GetColumnMapper returns column mapper
 func (parser *Parser) GetColumnMapper() names.Mapper {
 	return parser.columnMapper
 }
 
+// SetColumnMapper sets column mapper
 func (parser *Parser) SetColumnMapper(mapper names.Mapper) {
 	parser.ClearCaches()
 	parser.columnMapper = mapper
 }
 
+// SetIdentifier sets tag identifier
+func (parser *Parser) SetIdentifier(identifier string) {
+	parser.ClearCaches()
+	parser.identifier = identifier
+}
+
+// ParseWithCache parse a struct with cache
 func (parser *Parser) ParseWithCache(v reflect.Value) (*schemas.Table, error) {
 	t := v.Type()
 	tableI, ok := parser.tableCache.Load(t)
@@ -253,7 +267,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 					addIndex(indexName, table, col, indexType)
 				}
 			}
-		} else {
+		} else if fieldValue.CanSet() {
 			var sqlType schemas.SQLType
 			if fieldValue.CanAddr() {
 				if _, ok := fieldValue.Addr().Interface().(convert.Conversion); ok {
@@ -272,6 +286,8 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 			if fieldType.Kind() == reflect.Int64 && (strings.ToUpper(col.FieldName) == "ID" || strings.HasSuffix(strings.ToUpper(col.FieldName), ".ID")) {
 				idFieldColName = col.Name
 			}
+		} else {
+			continue
 		}
 		if col.IsAutoIncrement {
 			col.Nullable = false

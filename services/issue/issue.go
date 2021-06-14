@@ -29,6 +29,12 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 	}
 
 	notification.NotifyNewIssue(issue, mentions)
+	if len(issue.Labels) > 0 {
+		notification.NotifyIssueChangeLabels(issue.Poster, issue, issue.Labels, nil)
+	}
+	if issue.Milestone != nil {
+		notification.NotifyIssueChangeMilestone(issue.Poster, issue, 0)
+	}
 
 	return nil
 }

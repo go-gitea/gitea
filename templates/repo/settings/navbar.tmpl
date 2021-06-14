@@ -11,9 +11,11 @@
 				{{.i18n.Tr "repo.settings.branches"}}
 			</a>
 		{{end}}
-		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
-			{{.i18n.Tr "repo.settings.hooks"}}
-		</a>
+		{{if not DisableWebhooks}}
+			<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks">
+				{{.i18n.Tr "repo.settings.hooks"}}
+			</a>
+		{{end}}
 		{{if .SignedUser.CanEditGitHook}}
 			<a class="{{if .PageIsSettingsGitHooks}}active{{end}} item" href="{{.RepoLink}}/settings/hooks/git">
 				{{.i18n.Tr "repo.settings.githooks"}}

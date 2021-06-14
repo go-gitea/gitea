@@ -92,6 +92,6 @@ func TestBleveIndexAndSearch(t *testing.T) {
 		for _, hit := range res.Hits {
 			ids = append(ids, hit.ID)
 		}
-		assert.EqualValues(t, kw.IDs, ids)
+		assert.ElementsMatch(t, kw.IDs, ids)
 	}
 }

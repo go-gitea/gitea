@@ -1,7 +1,7 @@
 package rupture
 
 import (
-	"github.com/blevesearch/bleve"
+	"github.com/blevesearch/bleve/v2"
 )
 
 // FlushingBatch is a batch of operations that automatically flushes to the

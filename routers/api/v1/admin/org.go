@@ -13,12 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
 // CreateOrg api for create organization
-func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
+func CreateOrg(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/orgs admin adminCreateOrg
 	// ---
 	// summary: Create an organization
@@ -43,7 +44,7 @@ func CreateOrg(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	u := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return

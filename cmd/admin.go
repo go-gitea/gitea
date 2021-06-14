@@ -21,6 +21,7 @@ import (
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/urfave/cli"
 )
@@ -349,12 +350,11 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if user.Salt, err = models.GetUserSalt(); err != nil {
+	if err = user.SetPassword(c.String("password")); err != nil {
 		return err
 	}
-	user.HashPassword(c.String("password"))
 
-	if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -490,6 +490,10 @@ func runDeleteUser(c *cli.Context) error {
 		return err
 	}
 
+	if err := storage.Init(); err != nil {
+		return err
+	}
+
 	var err error
 	var user *models.User
 	if c.IsSet("email") {
@@ -513,7 +517,7 @@ func runDeleteUser(c *cli.Context) error {
 	return models.DeleteUser(user)
 }
 
-func runRepoSyncReleases(c *cli.Context) error {
+func runRepoSyncReleases(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -579,14 +583,14 @@ func getReleaseCount(id int64) (int64, error) {
 	)
 }
 
-func runRegenerateHooks(c *cli.Context) error {
+func runRegenerateHooks(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
 	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
-func runRegenerateKeys(c *cli.Context) error {
+func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}

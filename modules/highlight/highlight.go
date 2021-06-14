@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -66,14 +67,17 @@ func Code(fileName, code string) string {
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
 
+	var lexer chroma.Lexer
 	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		//change file name to one with mapped extension so we look that up instead
-		fileName = "mapped." + val
+		//use mapped value to find lexer
+		lexer = lexers.Get(val)
 	}
 
-	lexer := lexers.Match(fileName)
 	if lexer == nil {
-		lexer = lexers.Fallback
+		lexer = lexers.Match(fileName)
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
 	}
 
 	iterator, err := lexer.Tokenise(nil, string(code))
@@ -114,17 +118,20 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
 
+	var lexer chroma.Lexer
 	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		fileName = "test." + val
+		lexer = lexers.Get(val)
 	}
 
-	language := analyze.GetCodeLanguage(fileName, code)
-
-	lexer := lexers.Get(language)
 	if lexer == nil {
-		lexer = lexers.Match(fileName)
+		language := analyze.GetCodeLanguage(fileName, code)
+
+		lexer = lexers.Get(language)
 		if lexer == nil {
-			lexer = lexers.Fallback
+			lexer = lexers.Match(fileName)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
 		}
 	}
 

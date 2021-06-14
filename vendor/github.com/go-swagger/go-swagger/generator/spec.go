@@ -119,7 +119,7 @@ func (g *GenOpts) printFlattenOpts() {
 	log.Printf("preprocessing spec with option:  %s", preprocessingOption)
 }
 
-//findSwaggerSpec fetches a default swagger spec if none is provided
+// findSwaggerSpec fetches a default swagger spec if none is provided
 func findSwaggerSpec(nm string) (string, error) {
 	specs := []string{"swagger.json", "swagger.yml", "swagger.yaml"}
 	if nm != "" {
@@ -168,7 +168,7 @@ func WithAutoXOrder(specPath string) string {
 			for i, prop := range props {
 				if pSlice, ok := prop.Value.(yaml.MapSlice); ok {
 					isObject := false
-					xOrderIndex := -1 //Find if x-order already exists
+					xOrderIndex := -1 // find if x-order already exists
 
 					for i, v := range pSlice {
 						if v.Key == "type" && v.Value == object {
@@ -180,7 +180,7 @@ func WithAutoXOrder(specPath string) string {
 						}
 					}
 
-					if xOrderIndex > -1 { //Override existing x-order
+					if xOrderIndex > -1 { // override existing x-order
 						pSlice[xOrderIndex] = yaml.MapItem{Key: xOrder, Value: i}
 					} else { // append new x-order
 						pSlice = append(pSlice, yaml.MapItem{Key: xOrder, Value: i})

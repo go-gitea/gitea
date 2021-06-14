@@ -2,6 +2,7 @@ package testfixtures
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -160,6 +161,7 @@ func convertValue(value interface{}) interface{} {
 		if utf8.Valid(v) {
 			return string(v)
 		}
+		return "0x" + hex.EncodeToString(value.([]byte))
 	}
 	return value
 }

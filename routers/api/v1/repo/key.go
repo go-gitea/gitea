@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -185,7 +186,7 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 }
 
 // CreateDeployKey create deploy key for a repository
-func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreateDeployKey(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/keys repository repoCreateKey
 	// ---
 	// summary: Add a key to a repository
@@ -214,6 +215,7 @@ func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
 		HandleCheckKeyStringError(ctx, err)

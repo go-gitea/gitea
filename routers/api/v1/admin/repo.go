@@ -7,12 +7,13 @@ package admin
 import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/user"
 )
 
 // CreateRepo api for creating a repository
-func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
+func CreateRepo(ctx *context.APIContext) {
 	// swagger:operation POST /admin/users/{username}/repos admin adminCreateRepo
 	// ---
 	// summary: Create a repository on behalf of a user
@@ -41,11 +42,11 @@ func CreateRepo(ctx *context.APIContext, form api.CreateRepoOption) {
 	//     "$ref": "#/responses/error"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateRepoOption)
 	owner := user.GetUserByParams(ctx)
 	if ctx.Written() {
 		return
 	}
 
-	repo.CreateUserRepo(ctx, owner, form)
+	repo.CreateUserRepo(ctx, owner, *form)
 }

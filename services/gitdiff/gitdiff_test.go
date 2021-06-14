@@ -6,7 +6,6 @@
 package gitdiff
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -15,7 +14,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -23,7 +24,7 @@ import (
 
 func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
 	if s1 != string(s2) {
-		t.Errorf("%s should be equal %s", s2, s1)
+		t.Errorf("Did not receive expected results:\nExpected: %s\nActual:   %s", s1, s2)
 	}
 }
 
@@ -61,7 +62,7 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">)</span>"},
 	}, DiffLineDel))
 
-	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">language</span></span><span class=\"removed-code\"><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"nx\">"},
 		{Type: dmp.DiffDelete, Text: "language</span><span "},
 		{Type: dmp.DiffEqual, Text: "c"},
@@ -69,14 +70,14 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
 	}, DiffLineDel))
 
-	assertEqual(t, "<span class=\"added-code\">language</span></span><span class=\"added-code\"><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"added-code\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffInsert, Text: "language</span><span "},
 		{Type: dmp.DiffEqual, Text: "c"},
 		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
 		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"></span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
 		{Type: dmp.DiffInsert, Text: "<span"},
 		{Type: dmp.DiffEqual, Text: " "},
@@ -85,14 +86,14 @@ func TestDiffToHTML(t *testing.T) {
 		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins</span>&#39;", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "sh &#3"},
 		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
 		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
 		{Type: dmp.DiffEqual, Text: ";"},
 	}, DiffLineAdd))
 
-	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=</span><span class=\"added-code\">&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
 		{Type: dmp.DiffInsert, Text: "4 class=&#"},
 		{Type: dmp.DiffEqual, Text: "3"},
@@ -208,6 +209,66 @@ rename to a b/a a/file b/b file
 			filename:    "a b/a a/file b/b file",
 		},
 		{
+			name: "ambiguous deleted",
+			gitdiff: `diff --git a/b b/b b/b b/b
+deleted file mode 100644
+index 92e798b..0000000
+--- a/b b/b` + "\t" + `
++++ /dev/null
+@@ -1 +0,0 @@
+-b b/b
+`,
+			oldFilename: "b b/b",
+			filename:    "b b/b",
+			addition:    0,
+			deletion:    1,
+		},
+		{
+			name: "ambiguous addition",
+			gitdiff: `diff --git a/b b/b b/b b/b
+new file mode 100644
+index 0000000..92e798b
+--- /dev/null
++++ b/b b/b` + "\t" + `
+@@ -0,0 +1 @@
++b b/b
+`,
+			oldFilename: "b b/b",
+			filename:    "b b/b",
+			addition:    1,
+			deletion:    0,
+		},
+		{
+			name: "rename",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b b/b
+rename to b
+`,
+			oldFilename: "b b/b b/b b/b b/b",
+			filename:    "b",
+		},
+		{
+			name: "ambiguous 1",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b b/b
+rename to b
+`,
+			oldFilename: "b b/b b/b b/b b/b",
+			filename:    "b",
+		},
+		{
+			name: "ambiguous 2",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b
+rename to b b/b
+`,
+			oldFilename: "b b/b b/b b/b",
+			filename:    "b b/b",
+		},
+		{
 			name: "minuses-and-pluses",
 			gitdiff: `diff --git a/minuses-and-pluses b/minuses-and-pluses
 index 6961180..9ba1a00 100644
@@ -234,32 +295,33 @@ index 6961180..9ba1a00 100644
 		t.Run(testcase.name, func(t *testing.T) {
 			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
 			if (err != nil) != testcase.wantErr {
-				t.Errorf("ParsePatch() error = %v, wantErr %v", err, testcase.wantErr)
+				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
-			gotMarshaled, _ := json.MarshalIndent(got, "  ", "  ")
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
+			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
-				t.Errorf("ParsePath() did not receive 1 file:\n%s", string(gotMarshaled))
+				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
 			}
 			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath() does not have correct totalAddition %d, wanted %d", got.TotalAddition, testcase.addition)
+				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
 			}
 			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath() did not have correct totalDeletion %d, wanted %d", got.TotalDeletion, testcase.deletion)
+				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
-				t.Errorf("ParsePath() does not have correct file addition %d, wanted %d", file.Addition, testcase.addition)
+				t.Errorf("ParsePath(%q) does not have correct file addition %d, wanted %d", testcase.name, file.Addition, testcase.addition)
 			}
 			if file.Deletion != testcase.deletion {
-				t.Errorf("ParsePath() did not have correct file deletion %d, wanted %d", file.Deletion, testcase.deletion)
+				t.Errorf("ParsePath(%q) did not have correct file deletion %d, wanted %d", testcase.name, file.Deletion, testcase.deletion)
 			}
 			if file.OldName != testcase.oldFilename {
-				t.Errorf("ParsePath() did not have correct OldName %s, wanted %s", file.OldName, testcase.oldFilename)
+				t.Errorf("ParsePath(%q) did not have correct OldName %q, wanted %q", testcase.name, file.OldName, testcase.oldFilename)
 			}
 			if file.Name != testcase.filename {
-				t.Errorf("ParsePath() did not have correct Name %s, wanted %s", file.Name, testcase.filename)
+				t.Errorf("ParsePath(%q) did not have correct Name %q, wanted %q", testcase.name, file.Name, testcase.filename)
 			}
 		})
 	}
@@ -461,4 +523,15 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
 		}
 	}
+}
+
+func TestDiffToHTML_14231(t *testing.T) {
+	setting.Cfg = ini.Empty()
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "		run()\n"), highlight.Code("main.v", "		run(db)\n"), true)
+	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
+
+	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>`
+	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
+
+	assertEqual(t, expected, output)
 }

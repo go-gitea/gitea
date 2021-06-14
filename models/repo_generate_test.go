@@ -25,7 +25,7 @@ text/*.txt
 
 func TestGiteaTemplate(t *testing.T) {
 	gt := GiteaTemplate{Content: giteaTemplate}
-	assert.Equal(t, len(gt.Globs()), 3)
+	assert.Len(t, gt.Globs(), 3)
 
 	tt := []struct {
 		Path  string

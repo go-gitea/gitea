@@ -21,7 +21,7 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 		MATRIX
 	)
 
-	var hookTaskTypes = map[int]string{
+	hookTaskTypes := map[int]string{
 		GITEA:    "gitea",
 		GOGS:     "gogs",
 		SLACK:    "slack",
@@ -34,7 +34,7 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 	}
 
 	type HookTask struct {
-		Typ string `xorm:"char(16) index"`
+		Typ string `xorm:"VARCHAR(16) index"`
 	}
 	if err := x.Sync2(new(HookTask)); err != nil {
 		return err

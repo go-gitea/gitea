@@ -86,7 +86,7 @@ func (statement *Statement) Value2Interface(col *schemas.Column, fieldValue refl
 			return t.Float64, nil
 		}
 
-		if !col.SQLType.IsJson() {
+		if !col.IsJSON {
 			// !<winxxp>! 增加支持driver.Valuer接口的结构，如sql.NullString
 			if v, ok := fieldValue.Interface().(driver.Valuer); ok {
 				return v.Value()

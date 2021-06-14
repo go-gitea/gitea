@@ -20,6 +20,9 @@ const (
 	// SeparatorCharacter separates path segments.
 	SeparatorCharacter = '/'
 
+	// PathParamCharacter indicates a RESTCONF path param
+	PathParamCharacter = '='
+
 	// MaxSize is max size of records and internal slice.
 	MaxSize = (1 << 22) - 1
 )
@@ -426,8 +429,9 @@ func makeRecords(srcs []Record) (statics, params []*record) {
 	termChar := string(TerminationCharacter)
 	paramPrefix := string(SeparatorCharacter) + string(ParamCharacter)
 	wildcardPrefix := string(SeparatorCharacter) + string(WildcardCharacter)
+	restconfPrefix := string(PathParamCharacter) + string(ParamCharacter)
 	for _, r := range srcs {
-		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) {
+		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) ||strings.Contains(r.Key, restconfPrefix){
 			r.Key += termChar
 			params = append(params, &record{Record: r})
 		} else {

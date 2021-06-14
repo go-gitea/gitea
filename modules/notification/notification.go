@@ -108,6 +108,13 @@ func NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, com
 	}
 }
 
+// NotifyPullRevieweDismiss notifies when a review was dismissed by repo admin
+func NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	for _, notifier := range notifiers {
+		notifier.NotifyPullRevieweDismiss(doer, review, comment)
+	}
+}
+
 // NotifyUpdateComment notifies update comment to notifiers
 func NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
 	for _, notifier := range notifiers {
@@ -281,5 +288,12 @@ func NotifySyncCreateRef(pusher *models.User, repo *models.Repository, refType, 
 func NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncDeleteRef(pusher, repo, refType, refFullName)
+	}
+}
+
+// NotifyRepoPendingTransfer notifies creation of pending transfer to notifiers
+func NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepoPendingTransfer(doer, newOwner, repo)
 	}
 }

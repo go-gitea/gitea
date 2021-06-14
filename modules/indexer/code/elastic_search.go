@@ -5,28 +5,35 @@
 package code
 
 import (
+	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/olivere/elastic/v7"
 )
 
 const (
 	esRepoIndexerLatestVersion = 1
+	// multi-match-types, currently only 2 types are used
+	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
+	esMultiMatchTypeBestFields   = "best_fields"
+	esMultiMatchTypePhrasePrefix = "phrase_prefix"
 )
 
 var (
@@ -168,28 +175,42 @@ func (b *ElasticSearchIndexer) init() (bool, error) {
 	return exists, nil
 }
 
-func (b *ElasticSearchIndexer) addUpdate(sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
+func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, sha string, update fileUpdate, repo *models.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return nil, err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return nil, err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return nil, fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return nil, err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
 	if err != nil {
 		return nil, err
-	} else if !base.IsTextFile(fileContents) {
+	}
+
+	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	if err != nil {
+		return nil, err
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil, nil
 	}
@@ -220,14 +241,21 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 // Index will save the index data
 func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
-	for _, update := range changes.Updates {
-		updateReqs, err := b.addUpdate(sha, update, repo)
-		if err != nil {
-			return err
+	if len(changes.Updates) > 0 {
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			updateReqs, err := b.addUpdate(batchWriter, batchReader, sha, update, repo)
+			if err != nil {
+				return err
+			}
+			if len(updateReqs) > 0 {
+				reqs = append(reqs, updateReqs...)
+			}
 		}
-		if len(updateReqs) > 0 {
-			reqs = append(reqs, updateReqs...)
-		}
+		cancel()
 	}
 
 	for _, filename := range changes.RemovedFilenames {
@@ -290,6 +318,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		repoID, fileName := parseIndexerID(hit.Id)
 		var res = make(map[string]interface{})
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}
@@ -330,8 +359,13 @@ func extractAggs(searchResult *elastic.SearchResult) []*SearchResultLanguages {
 }
 
 // Search searches for codes and language stats by given conditions.
-func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int) (int64, []*SearchResult, []*SearchResultLanguages, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "content")
+func (b *ElasticSearchIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+	searchType := esMultiMatchTypeBestFields
+	if isMatch {
+		searchType = esMultiMatchTypePhrasePrefix
+	}
+
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "content").Type(searchType)
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {

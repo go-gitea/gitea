@@ -8,7 +8,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// A BaseInline struct implements the Node interface.
+// A BaseInline struct implements the Node interface partialliy.
 type BaseInline struct {
 	BaseNode
 }

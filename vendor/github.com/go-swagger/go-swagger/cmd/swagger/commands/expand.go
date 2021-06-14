@@ -47,11 +47,12 @@ func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string
 	var err error
 	asJSON := format == "json"
 
-	if pretty && asJSON {
+	switch {
+	case pretty && asJSON:
 		b, err = json.MarshalIndent(swspec, "", "  ")
-	} else if asJSON {
+	case asJSON:
 		b, err = json.Marshal(swspec)
-	} else {
+	default:
 		// marshals as YAML
 		b, err = json.Marshal(swspec)
 		if err == nil {
@@ -62,12 +63,15 @@ func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string
 			b, err = yaml.Marshal(d)
 		}
 	}
+
 	if err != nil {
 		return err
 	}
+
 	if output == "" {
 		fmt.Println(string(b))
 		return nil
 	}
+
 	return ioutil.WriteFile(output, b, 0644) // #nosec
 }

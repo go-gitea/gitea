@@ -28,16 +28,16 @@ func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 	return redirect.RedirectRepoID, nil
 }
 
-// NewRepoRedirect create a new repo redirect
-func NewRepoRedirect(ctx DBContext, ownerID, repoID int64, oldRepoName, newRepoName string) error {
+// newRepoRedirect create a new repo redirect
+func newRepoRedirect(e Engine, ownerID, repoID int64, oldRepoName, newRepoName string) error {
 	oldRepoName = strings.ToLower(oldRepoName)
 	newRepoName = strings.ToLower(newRepoName)
 
-	if err := deleteRepoRedirect(ctx.e, ownerID, newRepoName); err != nil {
+	if err := deleteRepoRedirect(e, ownerID, newRepoName); err != nil {
 		return err
 	}
 
-	if _, err := ctx.e.Insert(&RepoRedirect{
+	if _, err := e.Insert(&RepoRedirect{
 		OwnerID:        ownerID,
 		LowerName:      oldRepoName,
 		RedirectRepoID: repoID,

@@ -15,7 +15,9 @@ package sqlite3
 // This code should improve performance on windows because
 // without the presence of usleep SQLite waits 1 second.
 //
-// Source: https://stackoverflow.com/questions/5801813/c-usleep-is-obsolete-workarounds-for-windows-mingw?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+// Source:  https://github.com/php/php-src/blob/PHP-5.0/win32/time.c
+// License: https://github.com/php/php-src/blob/PHP-5.0/LICENSE
+// Details: https://stackoverflow.com/questions/5801813/c-usleep-is-obsolete-workarounds-for-windows-mingw?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
 
 /*
 #include <windows.h>

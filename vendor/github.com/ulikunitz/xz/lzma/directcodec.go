@@ -1,23 +1,12 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package lzma
 
-import "fmt"
-
 // directCodec allows the encoding and decoding of values with a fixed number
 // of bits. The number of bits must be in the range [1,32].
 type directCodec byte
-
-// makeDirectCodec creates a directCodec. The function panics if the number of
-// bits is not in the range [1,32].
-func makeDirectCodec(bits int) directCodec {
-	if !(1 <= bits && bits <= 32) {
-		panic(fmt.Errorf("bits=%d out of range", bits))
-	}
-	return directCodec(bits)
-}
 
 // Bits returns the number of bits supported by this codec.
 func (dc directCodec) Bits() int {

@@ -12,9 +12,6 @@ import (
 )
 
 var (
-	// ErrNotSupported returns the error not supported
-	ErrNotSupported = errors.New("not supported")
-
 	// ErrRepoNotCreated returns the error that repository not created
 	ErrRepoNotCreated = errors.New("repository is not created yet")
 )

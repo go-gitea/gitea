@@ -107,7 +107,7 @@ func (c Client) removeObject(ctx context.Context, bucketName, objectName string,
 		headers.Set(minIOBucketReplicationDeleteMarker, "true")
 	}
 	if !opts.Internal.ReplicationMTime.IsZero() {
-		headers.Set(minIOBucketSourceMTime, opts.Internal.ReplicationMTime.Format(time.RFC3339))
+		headers.Set(minIOBucketSourceMTime, opts.Internal.ReplicationMTime.Format(time.RFC3339Nano))
 	}
 	if !opts.Internal.ReplicationStatus.Empty() {
 		headers.Set(amzBucketReplicationStatus, string(opts.Internal.ReplicationStatus))

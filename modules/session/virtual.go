@@ -5,16 +5,15 @@
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
 
-	"gitea.com/macaron/session"
-	couchbase "gitea.com/macaron/session/couchbase"
-	memcache "gitea.com/macaron/session/memcache"
-	mysql "gitea.com/macaron/session/mysql"
-	nodb "gitea.com/macaron/session/nodb"
-	postgres "gitea.com/macaron/session/postgres"
+	"gitea.com/go-chi/session"
+	couchbase "gitea.com/go-chi/session/couchbase"
+	memcache "gitea.com/go-chi/session/memcache"
+	mysql "gitea.com/go-chi/session/mysql"
+	postgres "gitea.com/go-chi/session/postgres"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // VirtualSessionProvider represents a shadowed session provider implementation.
@@ -26,6 +25,7 @@ type VirtualSessionProvider struct {
 // Init initializes the cookie session provider with given root path.
 func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	var opts session.Options
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), &opts); err != nil {
 		return err
 	}
@@ -40,6 +40,8 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &session.FileProvider{}
 	case "redis":
 		o.provider = &RedisProvider{}
+	case "db":
+		o.provider = &DBProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":
@@ -48,8 +50,6 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &couchbase.CouchbaseProvider{}
 	case "memcache":
 		o.provider = &memcache.MemcacheProvider{}
-	case "nodb":
-		o.provider = &nodb.NodbProvider{}
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}

@@ -162,6 +162,8 @@ func TestRepository_AddWikiPage(t *testing.T) {
 }
 
 func TestRepository_EditWikiPage(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)

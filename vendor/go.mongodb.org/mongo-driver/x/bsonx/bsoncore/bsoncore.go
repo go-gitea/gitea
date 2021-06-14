@@ -30,24 +30,35 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// EmptyDocumentLength is the length of a document that has been started/ended but has no elements.
-const EmptyDocumentLength = 5
+const (
+	// EmptyDocumentLength is the length of a document that has been started/ended but has no elements.
+	EmptyDocumentLength = 5
+	// nullTerminator is a string version of the 0 byte that is appended at the end of cstrings.
+	nullTerminator       = string(byte(0))
+	invalidKeyPanicMsg   = "BSON element keys cannot contain null bytes"
+	invalidRegexPanicMsg = "BSON regex values cannot contain null bytes"
+)
 
 // AppendType will append t to dst and return the extended buffer.
 func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }
 
 // AppendKey will append key to dst and return the extended buffer.
-func AppendKey(dst []byte, key string) []byte { return append(dst, key+string(0x00)...) }
+func AppendKey(dst []byte, key string) []byte { return append(dst, key+nullTerminator...) }
 
 // AppendHeader will append Type t and key to dst and return the extended
 // buffer.
 func AppendHeader(dst []byte, t bsontype.Type, key string) []byte {
+	if !isValidCString(key) {
+		panic(invalidKeyPanicMsg)
+	}
+
 	dst = AppendType(dst, t)
 	dst = append(dst, key...)
 	return append(dst, 0x00)
@@ -427,7 +438,11 @@ func AppendNullElement(dst []byte, key string) []byte { return AppendHeader(dst,
 
 // AppendRegex will append pattern and options to dst and return the extended buffer.
 func AppendRegex(dst []byte, pattern, options string) []byte {
-	return append(dst, pattern+string(0x00)+options+string(0x00)...)
+	if !isValidCString(pattern) || !isValidCString(options) {
+		panic(invalidRegexPanicMsg)
+	}
+
+	return append(dst, pattern+nullTerminator+options+nullTerminator...)
 }
 
 // AppendRegexElement will append a BSON regex element using key, pattern, and
@@ -815,7 +830,7 @@ func readstring(src []byte) (string, []byte, bool) {
 	if !ok {
 		return "", src, false
 	}
-	if len(src[4:]) < int(l) {
+	if len(src[4:]) < int(l) || l == 0 {
 		return "", src, false
 	}
 
@@ -840,4 +855,8 @@ func appendBinarySubtype2(dst []byte, subtype byte, b []byte) []byte {
 	dst = append(dst, subtype)
 	dst = appendLength(dst, int32(len(b)))
 	return append(dst, b...)
+}
+
+func isValidCString(cs string) bool {
+	return !strings.ContainsRune(cs, '\x00')
 }

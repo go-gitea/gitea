@@ -15,6 +15,7 @@
 package validate
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -133,6 +134,27 @@ func MaxLength(path, in, data string, maxLength int64) *errors.Validation {
 		return errors.TooLong(path, in, maxLength, data)
 	}
 	return nil
+}
+
+// ReadOnly validates an interface for readonly
+func ReadOnly(ctx context.Context, path, in string, data interface{}) *errors.Validation {
+
+	// read only is only validated when operationType is request
+	if op := extractOperationType(ctx); op != request {
+		return nil
+	}
+
+	// data must be of zero value of its type
+	val := reflect.ValueOf(data)
+	if val.IsValid() {
+		if reflect.DeepEqual(reflect.Zero(val.Type()).Interface(), val.Interface()) {
+			return nil
+		}
+	} else {
+		return nil
+	}
+
+	return errors.ReadOnly(path, in, data)
 }
 
 // Required validates an interface for requiredness

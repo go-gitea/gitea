@@ -507,3 +507,21 @@
   avatar_email: user29@example.com
   num_repos: 0
   is_active: true
+
+
+-
+  id: 30
+  lower_name: user30
+  name: user30
+  full_name: User Thirty
+  email: user30@example.com
+  passwd_hash_algo: argon2
+  passwd: a3d5fcd92bae586c2e3dbe72daea7a0d27833a8d0227aa1704f4bbd775c1f3b03535b76dd93b0d4d8d22a519dca47df1547b # password
+  type: 0 # individual
+  salt: ZogKvWdyEx
+  is_admin: false
+  is_restricted: true
+  avatar: avatar29
+  avatar_email: user30@example.com
+  num_repos: 2
+  is_active: true

@@ -14,7 +14,9 @@ but it can be used as a secondary step to compressors (like Snappy) that does no
 
 ## News
 
- * Mar 2018: First implementation released. Consider this beta software for now.
+This is used as part of the [zstandard](https://github.com/klauspost/compress/tree/master/zstd#zstd) compression and decompression package.
+
+This ensures that most functionality is well tested.
 
 # Usage
 

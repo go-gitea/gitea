@@ -1,6 +1,6 @@
 # otp: One Time Password utilities Go / Golang
 
-[![GoDoc](https://godoc.org/github.com/pquerna/otp?status.svg)](https://godoc.org/github.com/pquerna/otp) [![Build Status](https://travis-ci.org/pquerna/otp.svg?branch=master)](https://travis-ci.org/pquerna/otp)
+[![PkgGoDev](https://pkg.go.dev/badge/github.com/pquerna/otp)](https://pkg.go.dev/github.com/pquerna/otp) [![Build Status](https://travis-ci.org/pquerna/otp.svg?branch=master)](https://travis-ci.org/pquerna/otp)
 
 # Why One Time Passwords?
 

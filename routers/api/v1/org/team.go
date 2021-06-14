@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -131,7 +132,7 @@ func GetTeam(ctx *context.APIContext) {
 }
 
 // CreateTeam api for create a team
-func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
+func CreateTeam(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/teams organization orgCreateTeam
 	// ---
 	// summary: Create a team
@@ -154,7 +155,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 	//     "$ref": "#/responses/Team"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateTeamOption)
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
@@ -190,7 +191,7 @@ func CreateTeam(ctx *context.APIContext, form api.CreateTeamOption) {
 }
 
 // EditTeam api for edit a team
-func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
+func EditTeam(ctx *context.APIContext) {
 	// swagger:operation PATCH /teams/{id} organization orgEditTeam
 	// ---
 	// summary: Edit a team
@@ -211,6 +212,8 @@ func EditTeam(ctx *context.APIContext, form api.EditTeamOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+
+	form := web.GetForm(ctx).(*api.EditTeamOption)
 
 	team := ctx.Org.Team
 	if err := team.GetUnits(); err != nil {
@@ -334,7 +337,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
+		members[i] = convert.ToUser(member, ctx.User)
 	}
 	ctx.JSON(http.StatusOK, members)
 }
@@ -377,7 +380,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // AddTeamMember api for add a member to a team
@@ -657,7 +660,7 @@ func SearchTeam(ctx *context.APIContext) {
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
+		IncludeDesc: ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc"),
 		ListOptions: listOptions,
 	}
 

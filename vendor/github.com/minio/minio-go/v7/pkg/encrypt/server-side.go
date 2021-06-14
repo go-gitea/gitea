@@ -34,7 +34,7 @@ const (
 	// sseKmsKeyID is the AWS SSE-KMS key id.
 	sseKmsKeyID = sseGenericHeader + "-Aws-Kms-Key-Id"
 	// sseEncryptionContext is the AWS SSE-KMS Encryption Context data.
-	sseEncryptionContext = sseGenericHeader + "-Encryption-Context"
+	sseEncryptionContext = sseGenericHeader + "-Context"
 
 	// sseCustomerAlgorithm is the AWS SSE-C algorithm HTTP header key.
 	sseCustomerAlgorithm = sseGenericHeader + "-Customer-Algorithm"

@@ -58,15 +58,6 @@ For documentation about each of the variables available, refer to the
 - `HOMEDRIVE`: Main drive path used to access the home directory (C:)
 - `HOMEPATH`: Home relative path in the given home drive path
 
-## Macaron (framework used by Gitea)
-
-- `HOST`: Host Macaron will listen on
-- `PORT`: Port Macaron will listen on
-- `MACARON_ENV`: global variable to provide special functionality for development environments
-  vs. production environments. If MACARON_ENV is set to "" or "development", then templates will
-  be recompiled on every request. For more performance, set the MACARON_ENV environment variable
-  to "production".
-
 ## Miscellaneous
 
 - `SKIP_MINWINSVC`: If set to 1, do not run as a service on Windows.
