@@ -6,14 +6,18 @@ import (
 )
 
 // Terraform lexer.
-var Terraform = internal.Register(MustNewLexer(
+var Terraform = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Terraform",
 		Aliases:   []string{"terraform", "tf"},
 		Filenames: []string{"*.tf"},
 		MimeTypes: []string{"application/x-tf", "application/x-terraform"},
 	},
-	Rules{
+	terraformRules,
+))
+
+func terraformRules() Rules {
+	return Rules{
 		"root": {
 			{`[\[\](),.{}]`, Punctuation, nil},
 			{`-?[0-9]+`, LiteralNumber, nil},
@@ -56,5 +60,5 @@ var Terraform = internal.Register(MustNewLexer(
 			{`\}`, LiteralStringInterpol, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

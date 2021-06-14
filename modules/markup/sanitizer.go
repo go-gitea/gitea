@@ -43,10 +43,12 @@ func ReplaceSanitizer() {
 
 	// Checkboxes
 	sanitizer.policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
-	sanitizer.policy.AllowAttrs("checked", "disabled").OnElements("input")
+	sanitizer.policy.AllowAttrs("checked", "disabled", "data-source-position").OnElements("input")
 
 	// Custom URL-Schemes
-	sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+	if len(setting.Markdown.CustomURLSchemes) > 0 {
+		sanitizer.policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
+	}
 
 	// Allow keyword markup
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
@@ -68,6 +70,10 @@ func ReplaceSanitizer() {
 
 	// Allow icons, emojis, and chroma syntax on span
 	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
+
+	// Allow data tables
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`data-table`)).OnElements("table")
+	sanitizer.policy.AllowAttrs("class").Matching(regexp.MustCompile(`line-num`)).OnElements("th", "td")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",
@@ -124,14 +130,4 @@ func Sanitize(s string) string {
 func SanitizeReader(r io.Reader) *bytes.Buffer {
 	NewSanitizer()
 	return sanitizer.policy.SanitizeReader(r)
-}
-
-// SanitizeBytes takes a []byte slice that contains a HTML fragment or document and applies policy whitelist.
-func SanitizeBytes(b []byte) []byte {
-	if len(b) == 0 {
-		// nothing to sanitize
-		return b
-	}
-	NewSanitizer()
-	return sanitizer.policy.SanitizeBytes(b)
 }

@@ -14,11 +14,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -203,17 +203,37 @@ func (ctx *APIContext) CheckForOTP() {
 		if models.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
-		ctx.Context.Error(500)
+		ctx.Context.Error(http.StatusInternalServerError)
 		return
 	}
 	ok, err := twofa.ValidateTOTP(otpHeader)
 	if err != nil {
-		ctx.Context.Error(500)
+		ctx.Context.Error(http.StatusInternalServerError)
 		return
 	}
 	if !ok {
 		ctx.Context.Error(401)
 		return
+	}
+}
+
+// APIAuth converts auth.Auth as a middleware
+func APIAuth(authMethod auth.Auth) func(*APIContext) {
+	return func(ctx *APIContext) {
+		// Get user from session if logged in.
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+		}
 	}
 }
 
@@ -250,20 +270,6 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-			}
-
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
@@ -288,7 +294,7 @@ func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
 				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 				gitRepo, err := git.OpenRepository(repoPath)
 				if err != nil {
-					ctx.Error(500, "RepoRef Invalid repo "+repoPath, err)
+					ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 					return
 				}
 				ctx.Repo.GitRepo = gitRepo
@@ -324,7 +330,7 @@ func (ctx *APIContext) NotFound(objs ...interface{}) {
 		}
 	}
 
-	ctx.JSON(404, map[string]interface{}{
+	ctx.JSON(http.StatusNotFound, map[string]interface{}{
 		"message":           message,
 		"documentation_url": setting.API.SwaggerURL,
 		"errors":            errors,

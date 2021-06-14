@@ -77,6 +77,7 @@ func convertArg(arg interface{}, convertFunc func(string) string) string {
 
 const insertSelectPlaceHolder = true
 
+// WriteArg writes an arg
 func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
 	case *builder.Builder:
@@ -116,6 +117,7 @@ func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) er
 	return nil
 }
 
+// WriteArgs writes args
 func (statement *Statement) WriteArgs(w *builder.BytesWriter, args []interface{}) error {
 	for i, arg := range args {
 		if err := statement.WriteArg(w, arg); err != nil {

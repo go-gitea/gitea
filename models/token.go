@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
 )
@@ -40,7 +40,7 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	salt, err := generate.GetRandomString(10)
+	salt, err := util.RandomString(10)
 	if err != nil {
 		return err
 	}

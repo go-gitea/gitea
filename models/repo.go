@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -746,7 +747,7 @@ func (repo *Repository) updateSize(e Engine) error {
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
@@ -862,7 +863,10 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		URLPrefix: repo.HTMLURL(),
+		Metas:     repo.ComposeMetas(),
+	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
@@ -1346,6 +1350,26 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
+// UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
+func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+	if ownerID == 0 {
+		return nil
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+		OwnerName: ownerName,
+	}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // UpdateRepositoryUpdatedTime updates a repository's updated time
 func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 	_, err := x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
@@ -1451,23 +1475,26 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Watch{RepoID: repoID},
-		&Star{RepoID: repoID},
-		&Mirror{RepoID: repoID},
-		&Milestone{RepoID: repoID},
-		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
-		&RepoUnit{RepoID: repoID},
-		&RepoRedirect{RedirectRepoID: repoID},
-		&Webhook{RepoID: repoID},
-		&HookTask{RepoID: repoID},
-		&Notification{RepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&RepoIndexerStatus{RepoID: repoID},
-		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&CommitStatus{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&HookTask{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
+		&Milestone{RepoID: repoID},
+		&Mirror{RepoID: repoID},
+		&Notification{RepoID: repoID},
+		&ProtectedBranch{RepoID: repoID},
+		&PullRequest{BaseRepoID: repoID},
+		&Release{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
+		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
+		&Watch{RepoID: repoID},
+		&Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1483,7 +1510,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	// Delete issue index
+	if err := deleteResouceIndex(sess, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -1531,7 +1559,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}

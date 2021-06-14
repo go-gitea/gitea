@@ -16,12 +16,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -176,9 +176,9 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
 	}
 
@@ -211,7 +211,7 @@ func (b *BleveIndexer) addUpdate(batchWriter *io.PipeWriter, batchReader *bufio.
 	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}

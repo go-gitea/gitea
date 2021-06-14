@@ -72,9 +72,9 @@ func TestIsCommitInBranch(t *testing.T) {
 
 	result, err := bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
 	assert.NoError(t, err)
-	assert.Equal(t, true, result)
+	assert.True(t, result)
 
 	result, err = bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
 	assert.NoError(t, err)
-	assert.Equal(t, false, result)
+	assert.False(t, result)
 }

@@ -71,7 +71,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -84,6 +83,8 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
 	"gitea.com/go-chi/session"
@@ -538,7 +539,7 @@ func bind(obj interface{}) http.HandlerFunc {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.Error(422, "validationError", errs[0].Error())
+			ctx.Error(http.StatusUnprocessableEntity, "validationError", errs[0].Error())
 			return
 		}
 		web.SetForm(ctx, theObj)
@@ -557,6 +558,7 @@ func Routes() *web.Route {
 		Gclifetime:     setting.SessionConfig.Gclifetime,
 		Maxlifetime:    setting.SessionConfig.Maxlifetime,
 		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
 		Domain:         setting.SessionConfig.Domain,
 	}))
 	m.Use(securityHeaders())
@@ -572,9 +574,8 @@ func Routes() *web.Route {
 	}
 	m.Use(context.APIContexter())
 
-	if setting.EnableAccessLog {
-		m.Use(context.AccessLogger())
-	}
+	// Get user from session if logged in.
+	m.Use(context.APIAuth(auth.NewGroup(auth.Methods()...)))
 
 	m.Use(context.ToggleAPI(&context.ToggleOptions{
 		SignInRequired: setting.Service.RequireSignInView,
@@ -716,7 +717,7 @@ func Routes() *web.Route {
 			m.Group("/{username}/{reponame}", func() {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
-					Patch(reqToken(), reqAdmin(), context.RepoRefForAPI, bind(api.EditRepoOption{}), repo.Edit)
+					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -892,12 +893,12 @@ func Routes() *web.Route {
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
-							Patch(reqToken(), reqRepoWriter(models.UnitTypePullRequests), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
+							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
 						m.Get(".diff", repo.DownloadPullDiff)
 						m.Get(".patch", repo.DownloadPullPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
-							Post(reqToken(), mustNotBeArchived, bind(auth.MergePullRequestForm{}), repo.MergePullRequest)
+							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {
 							m.Combo("").
 								Get(repo.ListPullReviews).

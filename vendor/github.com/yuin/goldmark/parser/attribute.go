@@ -129,6 +129,11 @@ func parseAttribute(reader text.Reader) (Attribute, bool) {
 	if !ok {
 		return Attribute{}, false
 	}
+	if bytes.Equal(name, attrNameClass) {
+		if _, ok = value.([]byte); !ok {
+			return Attribute{}, false
+		}
+	}
 	return Attribute{Name: name, Value: value}, true
 }
 

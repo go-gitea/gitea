@@ -110,5 +110,5 @@ func newRepoAvatarService() {
 	RepoAvatar.Storage = getStorage("repo-avatars", storageType, repoAvatarSec)
 
 	RepoAvatar.Fallback = sec.Key("REPOSITORY_AVATAR_FALLBACK").MustString("none")
-	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/img/repo_default.png")
+	RepoAvatar.FallbackImage = sec.Key("REPOSITORY_AVATAR_FALLBACK_IMAGE").MustString("/assets/img/repo_default.png")
 }

@@ -17,7 +17,7 @@ package vellum
 import (
 	"io"
 
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 // FST is an in-memory representation of a finite state transducer,

@@ -178,59 +178,74 @@ Here are a few tips on how to get used to Elastic:
 
 - Metrics Aggregations
   - [x] Avg
+  - [ ] Boxplot (X-pack)
   - [x] Cardinality
   - [x] Extended Stats
   - [x] Geo Bounds
   - [x] Geo Centroid
+  - [x] Matrix stats
   - [x] Max
+  - [x] Median absolute deviation
   - [x] Min
-  - [x] Percentiles
   - [x] Percentile Ranks
+  - [x] Percentiles
+  - [ ] Rate (X-pack)
   - [ ] Scripted Metric
   - [x] Stats
+  - [ ] String stats (X-pack)
   - [x] Sum
+  - [ ] T-test (X-pack)
   - [x] Top Hits
+  - [ ] Top metrics (X-pack)
   - [x] Value Count
+  - [x] Weighted avg
 - Bucket Aggregations
   - [x] Adjacency Matrix
-  - [x] Children
   - [x] Auto-interval Date Histogram
+  - [x] Children
+  - [x] Composite
   - [x] Date Histogram
   - [x] Date Range
   - [x] Diversified Sampler
   - [x] Filter
   - [x] Filters
   - [x] Geo Distance
-  - [ ] GeoHash Grid
+  - [x] Geohash Grid
+  - [x] Geotile grid
   - [x] Global
   - [x] Histogram
   - [x] IP Range
   - [x] Missing
   - [x] Nested
+  - [ ] Parent
   - [x] Range
+  - [ ] Rare terms
   - [x] Reverse Nested
   - [x] Sampler
   - [x] Significant Terms
   - [x] Significant Text
   - [x] Terms
-  - [x] Composite
+  - [ ] Variable width histogram
 - Pipeline Aggregations
   - [x] Avg Bucket
-  - [x] Derivative
-  - [x] Max Bucket
-  - [x] Min Bucket
-  - [x] Sum Bucket
-  - [x] Stats Bucket
-  - [ ] Extended Stats Bucket
-  - [x] Percentiles Bucket
-  - [x] Moving Average
-  - [x] Cumulative Sum
   - [x] Bucket Script
   - [x] Bucket Selector
   - [x] Bucket Sort
+  - [ ] Cumulative cardinality (X-pack)
+  - [x] Cumulative Sum
+  - [x] Derivative
+  - [ ] Extended Stats Bucket
+  - [ ] Inference bucket (X-pack)
+  - [x] Max Bucket
+  - [x] Min Bucket
+  - [x] Moving Average
+  - [x] Moving function
+  - [ ] Moving percentiles (X-pack)
+  - [ ] Normalize (X-pack)
+  - [x] Percentiles Bucket
   - [x] Serial Differencing
-- [x] Matrix Aggregations
-  - [x] Matrix Stats
+  - [x] Stats Bucket
+  - [x] Sum Bucket
 - [x] Aggregation Metadata
 
 ### Indices APIs

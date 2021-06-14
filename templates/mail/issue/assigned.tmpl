@@ -11,11 +11,11 @@
 <body>
 	<p>@{{.Doer.Name}} assigned you to the {{if .IsPull}}pull request{{else}}issue{{end}} <a href="{{.Link}}">#{{.Issue.Index}}</a> in repository {{.Repo}}.</p>
 	<div class="footer">
-	    <p>
-	        ---
-	        <br>
-	        <a href="{{.Link}}">View it on {{AppName}}</a>.
-	    </p>
+		<p>
+			---
+			<br>
+			<a href="{{.Link}}">View it on {{AppName}}</a>.
+		</p>
 	</div>
 </body>
 </html>

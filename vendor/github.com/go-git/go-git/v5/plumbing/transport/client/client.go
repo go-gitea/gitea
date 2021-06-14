@@ -3,7 +3,10 @@
 package client
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	gohttp "net/http"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/file"
@@ -21,6 +24,14 @@ var Protocols = map[string]transport.Transport{
 	"file":  file.DefaultClient,
 }
 
+var insecureClient = http.NewClient(&gohttp.Client{
+	Transport: &gohttp.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	},
+})
+
 // InstallProtocol adds or modifies an existing protocol.
 func InstallProtocol(scheme string, c transport.Transport) {
 	if c == nil {
@@ -35,6 +46,31 @@ func InstallProtocol(scheme string, c transport.Transport) {
 // http://, https://, ssh:// and file://.
 // See `InstallProtocol` to add or modify protocols.
 func NewClient(endpoint *transport.Endpoint) (transport.Transport, error) {
+	return getTransport(endpoint)
+}
+
+func getTransport(endpoint *transport.Endpoint) (transport.Transport, error) {
+	if endpoint.Protocol == "https" {
+		if endpoint.InsecureSkipTLS {
+			return insecureClient, nil
+		}
+
+		if len(endpoint.CaBundle) != 0 {
+			rootCAs, _ := x509.SystemCertPool()
+			if rootCAs == nil {
+				rootCAs = x509.NewCertPool()
+			}
+			rootCAs.AppendCertsFromPEM(endpoint.CaBundle)
+			return http.NewClient(&gohttp.Client{
+				Transport: &gohttp.Transport{
+					TLSClientConfig: &tls.Config{
+						RootCAs: rootCAs,
+					},
+				},
+			}), nil
+		}
+	}
+
 	f, ok := Protocols[endpoint.Protocol]
 	if !ok {
 		return nil, fmt.Errorf("unsupported scheme %q", endpoint.Protocol)
@@ -43,6 +79,5 @@ func NewClient(endpoint *transport.Endpoint) (transport.Transport, error) {
 	if f == nil {
 		return nil, fmt.Errorf("malformed client for scheme %q, client is defined as nil", endpoint.Protocol)
 	}
-
 	return f, nil
 }

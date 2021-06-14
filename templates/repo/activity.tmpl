@@ -93,7 +93,7 @@
 			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui attached segment horizontal segments">
 					<div class="ui attached segment text">
-					    {{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
+						{{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n") .Activity.Code.AuthorCount }}</strong>
 						{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n") }}
 						<strong>{{.i18n.Tr (TrN .i18n.Lang .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n") .Activity.Code.CommitCount }}</strong>

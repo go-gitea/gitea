@@ -7,12 +7,14 @@ package repository
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -120,6 +122,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
+
+		if opts.LFS {
+			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep); err != nil {
+				log.Error("Failed to store missing LFS objects for repository: %v", err)
+			}
+		}
 	}
 
 	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
@@ -132,6 +141,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			LFS:            opts.LFS,
+		}
+		if opts.LFS {
+			mirrorModel.LFSEndpoint = opts.LFSEndpoint
 		}
 
 		if opts.MirrorInterval != "" {
@@ -299,4 +312,77 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 	}
 
 	return models.SaveOrUpdateTag(repo, &rel)
+}
+
+// StoreMissingLfsObjectsInRepository downloads missing LFS objects
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL) error {
+	client := lfs.NewClient(endpoint)
+	contentStore := lfs.NewContentStore()
+
+	pointerChan := make(chan lfs.PointerBlob)
+	errChan := make(chan error, 1)
+	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
+
+	err := func() error {
+		for pointerBlob := range pointerChan {
+			meta, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			if err != nil {
+				return fmt.Errorf("StoreMissingLfsObjectsInRepository models.NewLFSMetaObject: %w", err)
+			}
+			if meta.Existing {
+				continue
+			}
+
+			log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] not present in repository %s", pointerBlob.Oid, repo.FullName())
+
+			err = func() error {
+				exist, err := contentStore.Exists(pointerBlob.Pointer)
+				if err != nil {
+					return fmt.Errorf("StoreMissingLfsObjectsInRepository contentStore.Exists: %w", err)
+				}
+				if !exist {
+					if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+						log.Info("LFS OID[%s] download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Oid, setting.LFS.MaxFileSize, pointerBlob.Size)
+						return nil
+					}
+
+					stream, err := client.Download(ctx, pointerBlob.Oid, pointerBlob.Size)
+					if err != nil {
+						return fmt.Errorf("StoreMissingLfsObjectsInRepository: LFS OID[%s] failed to download: %w", pointerBlob.Oid, err)
+					}
+					defer stream.Close()
+
+					if err := contentStore.Put(pointerBlob.Pointer, stream); err != nil {
+						return fmt.Errorf("StoreMissingLfsObjectsInRepository LFS OID[%s] contentStore.Put: %w", pointerBlob.Oid, err)
+					}
+				} else {
+					log.Trace("StoreMissingLfsObjectsInRepository: LFS OID[%s] already present in content store", pointerBlob.Oid)
+				}
+				return nil
+			}()
+			if err != nil {
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(meta.Oid); err2 != nil {
+					log.Error("StoreMissingLfsObjectsInRepository RemoveLFSMetaObjectByOid[Oid: %s]: %w", meta.Oid, err2)
+				}
+
+				select {
+				case <-ctx.Done():
+					return nil
+				default:
+				}
+				return err
+			}
+		}
+		return nil
+	}()
+	if err != nil {
+		return err
+	}
+
+	err, has := <-errChan
+	if has {
+		return err
+	}
+
+	return nil
 }

@@ -212,12 +212,21 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
 	}
-
-	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (#%d) from %s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("LoadBaseRepo: %v", err)
+		return ""
 	}
 
-	return fmt.Sprintf("Merge pull request '%s' (#%d) from %s:%s into %s", pr.Issue.Title, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
+	issueReference := "#"
+	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+		issueReference = "!"
+	}
+
+	if pr.BaseRepoID == pr.HeadRepoID {
+		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch)
+	}
+
+	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch)
 }
 
 // ReviewCount represents a count of Reviews
@@ -406,7 +415,8 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
-	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
+	// We need to save all of the data used to compute this merge as it may have already been changed by TestPatch. FIXME: need to set some state to prevent TestPatch from running whilst we are merging.
+	if _, err := sess.Where("id = ?", pr.ID).Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix").Update(pr); err != nil {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
@@ -417,34 +427,23 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	idx, err := GetNextResourceIndex("issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %v", err)
 	}
-	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	issue.Index = idx
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = newIssue(sess, pull.Poster, NewIssueOptions{
+	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
-		Issue:       pull,
+		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
@@ -455,10 +454,9 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
-	pr.Index = pull.Index
+	pr.Index = issue.Index
 	pr.BaseRepo = repo
-
-	pr.IssueID = pull.ID
+	pr.IssueID = issue.ID
 	if _, err = sess.Insert(pr); err != nil {
 		return fmt.Errorf("insert pull repo: %v", err)
 	}

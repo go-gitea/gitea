@@ -120,6 +120,9 @@ It aims to represent the contract of your API with a language agnostic descripti
 		case "markdown":
 			cmd.ShortDescription = "generate a markdown representation from the swagger spec"
 			cmd.LongDescription = cmd.ShortDescription
+		case "cli":
+			cmd.ShortDescription = "generate a command line client tool from the swagger spec"
+			cmd.LongDescription = cmd.ShortDescription
 		}
 	}
 

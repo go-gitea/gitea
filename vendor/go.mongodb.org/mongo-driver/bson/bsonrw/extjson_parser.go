@@ -7,9 +7,12 @@
 package bsonrw
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
@@ -66,6 +69,7 @@ type extJSONParser struct {
 	maxDepth  int
 
 	emptyObject bool
+	relaxedUUID bool
 }
 
 // newExtJSONParser returns a new extended JSON parser, ready to to begin
@@ -118,6 +122,12 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 				return bsontype.EmbeddedDocument, nil
 			}
 			t = wrapperKeyBSONType(ejp.k)
+
+			// if $uuid is encountered, parse as binary subtype 4
+			if ejp.k == "$uuid" {
+				ejp.relaxedUUID = true
+				t = bsontype.Binary
+			}
 
 			switch t {
 			case bsontype.JavaScript:
@@ -273,6 +283,64 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 
 		ejp.advanceState()
 		if t == bsontype.Binary && ejp.s == jpsSawValue {
+			// convert relaxed $uuid format
+			if ejp.relaxedUUID {
+				defer func() { ejp.relaxedUUID = false }()
+				uuid, err := ejp.v.parseSymbol()
+				if err != nil {
+					return nil, err
+				}
+
+				// RFC 4122 defines the length of a UUID as 36 and the hyphens in a UUID as appearing
+				// in the 8th, 13th, 18th, and 23rd characters.
+				//
+				// See https://tools.ietf.org/html/rfc4122#section-3
+				valid := len(uuid) == 36 &&
+					string(uuid[8]) == "-" &&
+					string(uuid[13]) == "-" &&
+					string(uuid[18]) == "-" &&
+					string(uuid[23]) == "-"
+				if !valid {
+					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding length and hyphens")
+				}
+
+				// remove hyphens
+				uuidNoHyphens := strings.Replace(uuid, "-", "", -1)
+				if len(uuidNoHyphens) != 32 {
+					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding length and hyphens")
+				}
+
+				// convert hex to bytes
+				bytes, err := hex.DecodeString(uuidNoHyphens)
+				if err != nil {
+					return nil, fmt.Errorf("$uuid value does not follow RFC 4122 format regarding hex bytes: %v", err)
+				}
+
+				ejp.advanceState()
+				if ejp.s != jpsSawEndObject {
+					return nil, invalidJSONErrorForType("$uuid and value and then }", bsontype.Binary)
+				}
+
+				base64 := &extJSONValue{
+					t: bsontype.String,
+					v: base64.StdEncoding.EncodeToString(bytes),
+				}
+				subType := &extJSONValue{
+					t: bsontype.String,
+					v: "04",
+				}
+
+				v = &extJSONValue{
+					t: bsontype.EmbeddedDocument,
+					v: &extJSONObject{
+						keys:   []string{"base64", "subType"},
+						values: []*extJSONValue{base64, subType},
+					},
+				}
+
+				break
+			}
+
 			// convert legacy $binary format
 			base64 := ejp.v
 
