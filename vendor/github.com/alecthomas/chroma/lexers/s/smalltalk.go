@@ -6,14 +6,18 @@ import (
 )
 
 // Smalltalk lexer.
-var Smalltalk = internal.Register(MustNewLexer(
+var Smalltalk = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Smalltalk",
 		Aliases:   []string{"smalltalk", "squeak", "st"},
 		Filenames: []string{"*.st"},
 		MimeTypes: []string{"text/x-smalltalk"},
 	},
-	Rules{
+	smalltalkRules,
+))
+
+func smalltalkRules() Rules {
+	return Rules{
 		"root": {
 			{`(<)(\w+:)(.*?)(>)`, ByGroups(Text, Keyword, Text, Text), nil},
 			Include("squeak fileout"),
@@ -95,5 +99,5 @@ var Smalltalk = internal.Register(MustNewLexer(
 			{`(!\n)(\].*)(! !)$`, ByGroups(Keyword, Text, Keyword), nil},
 			{`! !$`, Keyword, nil},
 		},
-	},
-))
+	}
+}

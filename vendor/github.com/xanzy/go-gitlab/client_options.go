@@ -40,12 +40,28 @@ func WithCustomBackoff(backoff retryablehttp.Backoff) ClientOptionFunc {
 	}
 }
 
+// WithCustomLogger can be used to configure a custom retryablehttp leveled logger
+func WithCustomLeveledLogger(leveledLogger retryablehttp.LeveledLogger) ClientOptionFunc {
+	return func(c *Client) error {
+		c.client.Logger = leveledLogger
+		return nil
+	}
+}
+
 // WithCustomLimiter injects a custom rate limiter to the client.
 func WithCustomLimiter(limiter RateLimiter) ClientOptionFunc {
 	return func(c *Client) error {
 		c.configureLimiterOnce.Do(func() {
 			c.limiter = limiter
 		})
+		return nil
+	}
+}
+
+// WithCustomLogger can be used to configure a custom retryablehttp logger
+func WithCustomLogger(logger retryablehttp.Logger) ClientOptionFunc {
+	return func(c *Client) error {
+		c.client.Logger = logger
 		return nil
 	}
 }

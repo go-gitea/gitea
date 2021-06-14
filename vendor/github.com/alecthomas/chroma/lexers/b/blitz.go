@@ -6,7 +6,7 @@ import (
 )
 
 // Blitzbasic lexer.
-var Blitzbasic = internal.Register(MustNewLexer(
+var Blitzbasic = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "BlitzBasic",
 		Aliases:         []string{"blitzbasic", "b3d", "bplus"},
@@ -14,7 +14,11 @@ var Blitzbasic = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-bb"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	blitzbasicRules,
+))
+
+func blitzbasicRules() Rules {
+	return Rules{
 		"root": {
 			{`[ \t]+`, Text, nil},
 			{`;.*?\n`, CommentSingle, nil},
@@ -44,5 +48,5 @@ var Blitzbasic = internal.Register(MustNewLexer(
 			{`"C?`, LiteralStringDouble, Pop(1)},
 			{`[^"]+`, LiteralStringDouble, nil},
 		},
-	},
-))
+	}
+}
