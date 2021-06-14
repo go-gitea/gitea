@@ -432,11 +432,11 @@ func queryUserOrgIDs(uid int64) *builder.Builder {
 		Where(builder.Eq{"team_user.uid": uid})
 }
 
-// SimpleOrg represents a simple orgnization with only needed columns
-type SimpleOrg = User
+// MinimalOrg represents a simple orgnization with only needed columns
+type MinimalOrg = User
 
 // GetUserOrgsList returns one user's all orgs list
-func GetUserOrgsList(uid int64) ([]*SimpleOrg, error) {
+func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
 	var orgs = make([]*SimpleOrg, 0, 20)
 	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
 		Table("user").
