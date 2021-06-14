@@ -55,7 +55,9 @@ func (c *Conn) sendMsg(m *Message, flags int) error {
 	vs := make([]iovec, len(m.Buffers))
 	var sa []byte
 	if m.Addr != nil {
-		sa = marshalInetAddr(m.Addr)
+		var a [sizeofSockaddrInet6]byte
+		n := marshalInetAddr(m.Addr, a[:])
+		sa = a[:n]
 	}
 	h.pack(vs, m.Buffers, m.OOB, sa)
 	var operr error

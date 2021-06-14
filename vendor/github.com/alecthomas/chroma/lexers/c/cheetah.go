@@ -7,14 +7,18 @@ import (
 )
 
 // Cheetah lexer.
-var Cheetah = internal.Register(MustNewLexer(
+var Cheetah = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Cheetah",
 		Aliases:   []string{"cheetah", "spitfire"},
 		Filenames: []string{"*.tmpl", "*.spt"},
 		MimeTypes: []string{"application/x-cheetah", "application/x-spitfire"},
 	},
-	Rules{
+	cheetahRules,
+))
+
+func cheetahRules() Rules {
+	return Rules{
 		"root": {
 			{`(##[^\n]*)$`, ByGroups(Comment), nil},
 			{`#[*](.|\n)*?[*]#`, Comment, nil},
@@ -33,5 +37,5 @@ var Cheetah = internal.Register(MustNewLexer(
             `, Other, nil},
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

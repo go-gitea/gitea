@@ -6,14 +6,18 @@ import (
 )
 
 // Lua lexer.
-var Lua = internal.Register(MustNewLexer(
+var Lua = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Lua",
 		Aliases:   []string{"lua"},
 		Filenames: []string{"*.lua", "*.wlua"},
 		MimeTypes: []string{"text/x-lua", "application/x-lua"},
 	},
-	Rules{
+	luaRules,
+))
+
+func luaRules() Rules {
+	return Rules{
 		"root": {
 			{`#!.*`, CommentPreproc, nil},
 			Default(Push("base")),
@@ -71,5 +75,5 @@ var Lua = internal.Register(MustNewLexer(
 			{`"`, LiteralStringDouble, Pop(1)},
 			{`[^\\"]+`, LiteralStringDouble, nil},
 		},
-	},
-))
+	}
+}

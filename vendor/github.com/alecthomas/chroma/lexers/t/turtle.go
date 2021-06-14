@@ -6,7 +6,7 @@ import (
 )
 
 // Turtle lexer.
-var Turtle = internal.Register(MustNewLexer(
+var Turtle = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Turtle",
 		Aliases:         []string{"turtle"},
@@ -15,7 +15,11 @@ var Turtle = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	turtleRules,
+))
+
+func turtleRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, TextWhitespace, nil},
 			{"(@base|BASE)(\\s+)(<[^<>\"{}|^`\\\\\\x00-\\x20]*>)(\\s*)(\\.?)", ByGroups(Keyword, TextWhitespace, NameVariable, TextWhitespace, Punctuation), nil},
@@ -63,5 +67,5 @@ var Turtle = internal.Register(MustNewLexer(
 			{`(\^\^)((?:[a-z][\w-]*)?\:)([a-z][\w-]*)`, ByGroups(Operator, GenericEmph, GenericEmph), Pop(2)},
 			Default(Pop(2)),
 		},
-	},
-))
+	}
+}

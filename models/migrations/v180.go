@@ -5,42 +5,70 @@
 package migrations
 
 import (
-	"fmt"
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
-	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-func renameTaskErrorsToMessage(x *xorm.Engine) error {
-	type Task struct {
-		Errors string `xorm:"TEXT"` // if task failed, saved the error reason
-		Type   int
-		Status int `xorm:"index"`
-	}
+func deleteMigrationCredentials(x *xorm.Engine) (err error) {
+	const batchSize = 100
+
+	// only match migration tasks, that are not pending or running
+	cond := builder.Eq{
+		"type": structs.TaskTypeMigrateRepo,
+	}.And(builder.Gte{
+		"status": structs.TaskStatusStopped,
+	})
 
 	sess := x.NewSession()
 	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
+
+	for start := 0; ; start += batchSize {
+		tasks := make([]*models.Task, 0, batchSize)
+		if err = sess.Limit(batchSize, start).Where(cond, 0).Find(&tasks); err != nil {
+			return
+		}
+		if len(tasks) == 0 {
+			break
+		}
+		if err = sess.Begin(); err != nil {
+			return
+		}
+		for _, t := range tasks {
+			if t.PayloadContent, err = removeCredentials(t.PayloadContent); err != nil {
+				return
+			}
+			if _, err = sess.ID(t.ID).Cols("payload_content").Update(t); err != nil {
+				return
+			}
+		}
+		if err = sess.Commit(); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func removeCredentials(payload string) (string, error) {
+	var opts base.MigrateOptions
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal([]byte(payload), &opts)
+	if err != nil {
+		return "", err
 	}
 
-	if err := sess.Sync2(new(Task)); err != nil {
-		return fmt.Errorf("error on Sync2: %v", err)
-	}
+	opts.AuthPassword = ""
+	opts.AuthToken = ""
+	opts.CloneAddr = util.SanitizeURLCredentials(opts.CloneAddr, true)
 
-	switch {
-	case setting.Database.UseMySQL:
-		if _, err := sess.Exec("ALTER TABLE `task` CHANGE errors message text"); err != nil {
-			return err
-		}
-	case setting.Database.UseMSSQL:
-		if _, err := sess.Exec("sp_rename 'task.errors', 'message', 'COLUMN'"); err != nil {
-			return err
-		}
-	default:
-		if _, err := sess.Exec("ALTER TABLE `task` RENAME COLUMN errors TO message"); err != nil {
-			return err
-		}
+	confBytes, err := json.Marshal(opts)
+	if err != nil {
+		return "", err
 	}
-	return sess.Commit()
+	return string(confBytes), nil
 }

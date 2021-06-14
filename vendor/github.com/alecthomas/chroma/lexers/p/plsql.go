@@ -6,7 +6,7 @@ import (
 )
 
 // Pl/Pgsql lexer.
-var PLpgSQL = internal.Register(MustNewLexer(
+var PLpgSQL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "PL/pgSQL",
 		Aliases:         []string{"plpgsql"},
@@ -15,13 +15,17 @@ var PLpgSQL = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	plpgSQLRules,
+))
+
+func plpgSQLRules() Rules {
+	return Rules{
 		"root": {
 			{`\%[a-z]\w*\b`, NameBuiltin, nil},
 			{`:=`, Operator, nil},
 			{`\<\<[a-z]\w*\>\>`, NameLabel, nil},
 			{`\#[a-z]\w*\b`, KeywordPseudo, nil},
-			{`\s+`, Text, nil},
+			{`\s+`, TextWhitespace, nil},
 			{`--.*\n?`, CommentSingle, nil},
 			{`/\*`, CommentMultiline, Push("multiline-comments")},
 			{`(bigint|bigserial|bit|bit\s+varying|bool|boolean|box|bytea|char|character|character\s+varying|cidr|circle|date|decimal|double\s+precision|float4|float8|inet|int|int2|int4|int8|integer|interval|json|jsonb|line|lseg|macaddr|money|numeric|path|pg_lsn|point|polygon|real|serial|serial2|serial4|serial8|smallint|smallserial|text|time|timestamp|timestamptz|timetz|tsquery|tsvector|txid_snapshot|uuid|varbit|varchar|with\s+time\s+zone|without\s+time\s+zone|xml|anyarray|anyelement|anyenum|anynonarray|anyrange|cstring|fdw_handler|internal|language_handler|opaque|record|void)\b`, NameBuiltin, nil},
@@ -54,5 +58,5 @@ var PLpgSQL = internal.Register(MustNewLexer(
 			{`""`, LiteralStringName, nil},
 			{`"`, LiteralStringName, Pop(1)},
 		},
-	},
-))
+	}
+}
