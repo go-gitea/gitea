@@ -6,7 +6,7 @@ import (
 )
 
 // Applescript lexer.
-var Applescript = internal.Register(MustNewLexer(
+var Applescript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "AppleScript",
 		Aliases:   []string{"applescript"},
@@ -14,7 +14,11 @@ var Applescript = internal.Register(MustNewLexer(
 		MimeTypes: []string{},
 		DotAll:    true,
 	},
-	Rules{
+	applescriptRules,
+))
+
+func applescriptRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`¬\n`, LiteralStringEscape, nil},
@@ -51,5 +55,5 @@ var Applescript = internal.Register(MustNewLexer(
 			{`[^*(]+`, CommentMultiline, nil},
 			{`[*(]`, CommentMultiline, nil},
 		},
-	},
-))
+	}
+}

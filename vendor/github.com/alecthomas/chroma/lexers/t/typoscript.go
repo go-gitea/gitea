@@ -6,7 +6,7 @@ import (
 )
 
 // Typoscript lexer.
-var Typoscript = internal.Register(MustNewLexer(
+var Typoscript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TypoScript",
 		Aliases:   []string{"typoscript"},
@@ -15,7 +15,11 @@ var Typoscript = internal.Register(MustNewLexer(
 		DotAll:    true,
 		Priority:  0.1,
 	},
-	Rules{
+	typoscriptRules,
+))
+
+func typoscriptRules() Rules {
+	return Rules{
 		"root": {
 			Include("comment"),
 			Include("constant"),
@@ -78,18 +82,22 @@ var Typoscript = internal.Register(MustNewLexer(
 		"other": {
 			{`[\w"\-!/&;]+`, Text, nil},
 		},
-	},
-))
+	}
+}
 
 // TypoScriptCSSData lexer.
-var TypoScriptCSSData = internal.Register(MustNewLexer(
+var TypoScriptCSSData = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TypoScriptCssData",
 		Aliases:   []string{"typoscriptcssdata"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	typoScriptCSSDataRules,
+))
+
+func typoScriptCSSDataRules() Rules {
+	return Rules{
 		"root": {
 			{`(.*)(###\w+###)(.*)`, ByGroups(LiteralString, NameConstant, LiteralString), nil},
 			{`(\{)(\$)((?:[\w\-]+\.)*)([\w\-]+)(\})`, ByGroups(LiteralStringSymbol, Operator, NameConstant, NameConstant, LiteralStringSymbol), nil},
@@ -100,18 +108,22 @@ var TypoScriptCSSData = internal.Register(MustNewLexer(
 			{`[<>,:=.*%+|]`, LiteralString, nil},
 			{`[\w"\-!/&;(){}]+`, LiteralString, nil},
 		},
-	},
-))
+	}
+}
 
 // TypoScriptHTMLData lexer.
-var TypoScriptHTMLData = internal.Register(MustNewLexer(
+var TypoScriptHTMLData = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TypoScriptHtmlData",
 		Aliases:   []string{"typoscripthtmldata"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	typoScriptHTMLDataRules,
+))
+
+func typoScriptHTMLDataRules() Rules {
+	return Rules{
 		"root": {
 			{`(INCLUDE_TYPOSCRIPT)`, NameClass, nil},
 			{`(EXT|FILE|LLL):[^}\n"]*`, LiteralString, nil},
@@ -122,5 +134,5 @@ var TypoScriptHTMLData = internal.Register(MustNewLexer(
 			{`[<>,:=.*%+|]`, LiteralString, nil},
 			{`[\w"\-!/&;(){}#]+`, LiteralString, nil},
 		},
-	},
-))
+	}
+}

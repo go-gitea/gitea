@@ -314,6 +314,8 @@ var migrations = []Migration{
 	// v181 -> v182
 	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
 	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
 	NewMigration("Create protected tag table", createProtectedTagTable),
 }
 

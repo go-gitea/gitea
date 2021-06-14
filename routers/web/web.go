@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
 	userSetting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
@@ -148,6 +149,9 @@ func Routes() *web.Route {
 
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	common = append(common, context.Contexter())
+
+	// Get user from session if logged in.
+	common = append(common, context.Auth(auth.NewGroup(auth.Methods()...)))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
