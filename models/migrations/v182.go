@@ -16,6 +16,7 @@ func addIssueResourceIndexTable(x *xorm.Engine) error {
 
 	sess := x.NewSession()
 	defer sess.Close()
+
 	if err := sess.Begin(); err != nil {
 		return err
 	}
