@@ -2,28 +2,24 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package mirror
+package integrations
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
-}
-
-func TestRelease_MirrorDelete(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+func TestMirrorPull(t *testing.T) {
+	defer prepareTestEnv(t)()
 
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -76,7 +72,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	err = mirror.GetMirror()
 	assert.NoError(t, err)
 
-	_, ok := runSync(ctx, mirror.Mirror)
+	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
 	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
@@ -87,7 +83,7 @@ func TestRelease_MirrorDelete(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(release.ID, user, true))
 
-	_, ok = runSync(ctx, mirror.Mirror)
+	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
 	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
