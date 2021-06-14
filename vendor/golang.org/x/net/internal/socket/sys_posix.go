@@ -17,22 +17,24 @@ import (
 	"time"
 )
 
-func marshalInetAddr(a net.Addr) []byte {
+// marshalInetAddr writes a in sockaddr format into the buffer b.
+// The buffer must be sufficiently large (sizeofSockaddrInet4/6).
+// Returns the number of bytes written.
+func marshalInetAddr(a net.Addr, b []byte) int {
 	switch a := a.(type) {
 	case *net.TCPAddr:
-		return marshalSockaddr(a.IP, a.Port, a.Zone)
+		return marshalSockaddr(a.IP, a.Port, a.Zone, b)
 	case *net.UDPAddr:
-		return marshalSockaddr(a.IP, a.Port, a.Zone)
+		return marshalSockaddr(a.IP, a.Port, a.Zone, b)
 	case *net.IPAddr:
-		return marshalSockaddr(a.IP, 0, a.Zone)
+		return marshalSockaddr(a.IP, 0, a.Zone, b)
 	default:
-		return nil
+		return 0
 	}
 }
 
-func marshalSockaddr(ip net.IP, port int, zone string) []byte {
+func marshalSockaddr(ip net.IP, port int, zone string, b []byte) int {
 	if ip4 := ip.To4(); ip4 != nil {
-		b := make([]byte, sizeofSockaddrInet4)
 		switch runtime.GOOS {
 		case "android", "illumos", "linux", "solaris", "windows":
 			NativeEndian.PutUint16(b[:2], uint16(sysAF_INET))
@@ -42,10 +44,9 @@ func marshalSockaddr(ip net.IP, port int, zone string) []byte {
 		}
 		binary.BigEndian.PutUint16(b[2:4], uint16(port))
 		copy(b[4:8], ip4)
-		return b
+		return sizeofSockaddrInet4
 	}
 	if ip6 := ip.To16(); ip6 != nil && ip.To4() == nil {
-		b := make([]byte, sizeofSockaddrInet6)
 		switch runtime.GOOS {
 		case "android", "illumos", "linux", "solaris", "windows":
 			NativeEndian.PutUint16(b[:2], uint16(sysAF_INET6))
@@ -58,9 +59,9 @@ func marshalSockaddr(ip net.IP, port int, zone string) []byte {
 		if zone != "" {
 			NativeEndian.PutUint32(b[24:28], uint32(zoneCache.index(zone)))
 		}
-		return b
+		return sizeofSockaddrInet6
 	}
-	return nil
+	return 0
 }
 
 func parseInetAddr(b []byte, network string) (net.Addr, error) {

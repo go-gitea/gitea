@@ -54,7 +54,6 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.Us
 
 func (m *mailNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	var actionType models.ActionType
-	issue.Content = ""
 	if issue.IsPull {
 		if isClosed {
 			actionType = models.ActionClosePullRequest
@@ -124,7 +123,6 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 		log.Error("pr.LoadIssue: %v", err)
 		return
 	}
-	pr.Issue.Content = ""
 	if err := mailer.MailParticipants(pr.Issue, doer, models.ActionMergePullRequest, nil); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
@@ -151,8 +149,6 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *models.User, pr *model
 	if err := comment.LoadPushCommits(); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
-	comment.Content = ""
-
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment, nil)
 }
 

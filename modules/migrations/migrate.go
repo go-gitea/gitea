@@ -184,7 +184,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		return err
 	}
 
-	log.Trace("migrating git data")
+	log.Trace("migrating git data from %s", repo.CloneURL)
 	if err = uploader.CreateRepo(repo, opts); err != nil {
 		return err
 	}

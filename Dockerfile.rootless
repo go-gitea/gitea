@@ -60,6 +60,8 @@ USER git:git
 ENV GITEA_WORK_DIR /var/lib/gitea
 ENV GITEA_CUSTOM /var/lib/gitea/custom
 ENV GITEA_TEMP /tmp/gitea
+ENV TMPDIR /tmp/gitea
+
 #TODO add to docs the ability to define the ini to load (usefull to test and revert a config)
 ENV GITEA_APP_INI /etc/gitea/app.ini
 ENV HOME "/var/lib/gitea/git"

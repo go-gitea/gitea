@@ -195,7 +195,7 @@ func TestAPIEditUser(t *testing.T) {
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 
 	user2 := models.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
-	assert.Equal(t, false, user2.IsRestricted)
+	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
 		// required
@@ -206,5 +206,5 @@ func TestAPIEditUser(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 	user2 = models.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
-	assert.Equal(t, true, user2.IsRestricted)
+	assert.True(t, user2.IsRestricted)
 }

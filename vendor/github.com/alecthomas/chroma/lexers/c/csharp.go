@@ -6,7 +6,7 @@ import (
 )
 
 // CSharp lexer.
-var CSharp = internal.Register(MustNewLexer(
+var CSharp = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "C#",
 		Aliases:   []string{"csharp", "c#"},
@@ -15,7 +15,11 @@ var CSharp = internal.Register(MustNewLexer(
 		DotAll:    true,
 		EnsureNL:  true,
 	},
-	Rules{
+	cSharpRules,
+))
+
+func cSharpRules() Rules {
+	return Rules{
 		"root": {
 			{`^\s*\[.*?\]`, NameAttribute, nil},
 			{`[^\S\n]+`, Text, nil},
@@ -29,7 +33,7 @@ var CSharp = internal.Register(MustNewLexer(
 			{`\$@?"(""|[^"])*"`, LiteralString, nil},
 			{`"(\\\\|\\"|[^"\n])*["\n]`, LiteralString, nil},
 			{`'\\.'|'[^\\]'`, LiteralStringChar, nil},
-			{`[0-9](\.[0-9]*)?([eE][+-][0-9]+)?[flFLdD]?|0[xX][0-9a-fA-F]+[Ll]?`, LiteralNumber, nil},
+			{`0[xX][0-9a-fA-F]+[Ll]?|[0-9_](\.[0-9]*)?([eE][+-]?[0-9]+)?[flFLdD]?`, LiteralNumber, nil},
 			{`#[ \t]*(if|endif|else|elif|define|undef|line|error|warning|region|endregion|pragma)\b.*?\n`, CommentPreproc, nil},
 			{`\b(extern)(\s+)(alias)\b`, ByGroups(Keyword, Text, Keyword), nil},
 			{`(abstract|as|async|await|base|break|by|case|catch|checked|const|continue|default|delegate|do|else|enum|event|explicit|extern|false|finally|fixed|for|foreach|goto|if|implicit|in|interface|internal|is|let|lock|new|null|on|operator|out|override|params|private|protected|public|readonly|ref|return|sealed|sizeof|stackalloc|static|switch|this|throw|true|try|typeof|unchecked|unsafe|virtual|void|while|get|set|new|partial|yield|add|remove|value|alias|ascending|descending|from|group|into|orderby|select|thenby|where|join|equals)\b`, Keyword, nil},
@@ -47,5 +51,5 @@ var CSharp = internal.Register(MustNewLexer(
 			{`(?=\()`, Text, Pop(1)},
 			{`(@?[_a-zA-Z]\w*|\.)+`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

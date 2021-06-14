@@ -88,7 +88,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 25, len(topics.TopicNames))
+	assert.Len(t, topics.TopicNames, 25)
 
 	// Test writing more topics than allowed
 	newTopics = append(newTopics, "t26")
@@ -115,7 +115,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 0, len(topics.TopicNames))
+	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)

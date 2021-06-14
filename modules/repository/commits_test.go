@@ -51,7 +51,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, len(payloadCommits))
+	assert.Len(t, payloadCommits, 3)
 
 	assert.Equal(t, "69554a6", payloadCommits[0].ID)
 	assert.Equal(t, "not signed commit", payloadCommits[0].Message)
