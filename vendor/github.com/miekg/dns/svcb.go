@@ -321,7 +321,7 @@ func (s *SVCBAlpn) pack() ([]byte, error) {
 	// Liberally estimate the size of an alpn as 10 octets
 	b := make([]byte, 0, 10*len(s.Alpn))
 	for _, e := range s.Alpn {
-		if len(e) == 0 {
+		if e == "" {
 			return nil, errors.New("dns: svcbalpn: empty alpn-id")
 		}
 		if len(e) > 255 {
@@ -390,7 +390,7 @@ func (*SVCBNoDefaultAlpn) unpack(b []byte) error {
 }
 
 func (*SVCBNoDefaultAlpn) parse(b string) error {
-	if len(b) != 0 {
+	if b != "" {
 		return errors.New("dns: svcbnodefaultalpn: no_default_alpn must have no value")
 	}
 	return nil
@@ -511,8 +511,13 @@ func (s *SVCBIPv4Hint) parse(b string) error {
 }
 
 func (s *SVCBIPv4Hint) copy() SVCBKeyValue {
+	hint := make([]net.IP, len(s.Hint))
+	for i, ip := range s.Hint {
+		hint[i] = copyIP(ip)
+	}
+
 	return &SVCBIPv4Hint{
-		append([]net.IP(nil), s.Hint...),
+		Hint: hint,
 	}
 }
 
@@ -629,8 +634,13 @@ func (s *SVCBIPv6Hint) parse(b string) error {
 }
 
 func (s *SVCBIPv6Hint) copy() SVCBKeyValue {
+	hint := make([]net.IP, len(s.Hint))
+	for i, ip := range s.Hint {
+		hint[i] = copyIP(ip)
+	}
+
 	return &SVCBIPv6Hint{
-		append([]net.IP(nil), s.Hint...),
+		Hint: hint,
 	}
 }
 

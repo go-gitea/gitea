@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var YAML = internal.Register(MustNewLexer(
+var YAML = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "YAML",
 		Aliases:   []string{"yaml"},
 		Filenames: []string{"*.yaml", "*.yml"},
 		MimeTypes: []string{"text/x-yaml"},
 	},
-	Rules{
+	yamlRules,
+))
+
+func yamlRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`^---`, NameNamespace, nil},
@@ -50,5 +54,5 @@ var YAML = internal.Register(MustNewLexer(
 			{`\s+`, Whitespace, nil},
 			{`\n+`, Whitespace, nil},
 		},
-	},
-))
+	}
+}
