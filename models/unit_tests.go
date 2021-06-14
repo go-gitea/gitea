@@ -103,7 +103,7 @@ func CreateTestEngine(fixturesDir string) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return err
 	}
 	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {

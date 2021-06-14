@@ -5,20 +5,38 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+func addIssueResourceIndexTable(x *xorm.Engine) error {
+	type ResourceIndex struct {
+		GroupID  int64 `xorm:"index unique(s)"`
+		MaxIndex int64 `xorm:"index unique(s)"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
+		return err
 	}
-	return nil
+
+	if err := sess.Table("issue_index").Sync2(new(ResourceIndex)); err != nil {
+		return err
+	}
+
+	// Remove data we're goint to rebuild
+	if _, err := sess.Table("issue_index").Where("1=1").Delete(&ResourceIndex{}); err != nil {
+		return err
+	}
+
+	// Create current data for all repositories with issues and PRs
+	if _, err := sess.Exec("INSERT INTO issue_index (group_id, max_index) " +
+		"SELECT max_data.repo_id, max_data.max_index " +
+		"FROM ( SELECT issue.repo_id AS repo_id, max(issue.`index`) AS max_index " +
+		"FROM issue GROUP BY issue.repo_id) AS max_data"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
