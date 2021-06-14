@@ -161,12 +161,18 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	content := issue.Content
+	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
+		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
+		opType == models.ActionMergePullRequest {
+		content = ""
+	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
-			Content:    issue.Content,
+			Content:    content,
 			Comment:    nil,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)

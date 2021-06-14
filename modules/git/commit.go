@@ -11,13 +11,7 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"io"
-	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -79,70 +73,6 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 // 0 if this is the root commit,  otherwise 1,2, etc.
 func (c *Commit) ParentCount() int {
 	return len(c.Parents)
-}
-
-func isImageFile(data []byte) (string, bool) {
-	contentType := http.DetectContentType(data)
-	if strings.Contains(contentType, "image/") {
-		return contentType, true
-	}
-	return contentType, false
-}
-
-// IsImageFile is a file image type
-func (c *Commit) IsImageFile(name string) bool {
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return false
-	}
-
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return false
-	}
-	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
-	buf = buf[:n]
-	_, isImage := isImageFile(buf)
-	return isImage
-}
-
-// ImageMetaData represents metadata of an image file
-type ImageMetaData struct {
-	ColorModel color.Model
-	Width      int
-	Height     int
-	ByteSize   int64
-}
-
-// ImageInfo returns information about the dimensions of an image
-func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
-	if !c.IsImageFile(name) {
-		return nil, nil
-	}
-
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return nil, err
-	}
-	reader, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	config, _, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata := ImageMetaData{
-		ColorModel: config.ColorModel,
-		Width:      config.Width,
-		Height:     config.Height,
-		ByteSize:   blob.Size(),
-	}
-	return &metadata, nil
 }
 
 // GetCommitByPath return the commit of relative path object.
