@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"golang.org/x/crypto/openpgp"
 )
 
 // SubmoduleRescursivity defines how depth will affect any submodule recursive
@@ -393,7 +393,7 @@ var (
 	ErrMissingAuthor = errors.New("author field is required")
 )
 
-// AddOptions describes how a add operation should be performed
+// AddOptions describes how an `add` operation should be performed
 type AddOptions struct {
 	// All equivalent to `git add -A`, update the index not only where the
 	// working tree has a file matching `Path` but also where the index already
@@ -401,7 +401,7 @@ type AddOptions struct {
 	// working tree.  If no `Path` nor `Glob` is given when `All` option is
 	// used, all files in the entire working tree are updated.
 	All bool
-	// Path is the exact filepath to a the file or directory to be added.
+	// Path is the exact filepath to the file or directory to be added.
 	Path string
 	// Glob adds all paths, matching pattern, to the index. If pattern matches a
 	// directory path, all directory contents are added to the index recursively.

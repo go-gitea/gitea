@@ -6,7 +6,7 @@ import (
 )
 
 // Django/Jinja lexer.
-var DjangoJinja = internal.Register(MustNewLexer(
+var DjangoJinja = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Django/Jinja",
 		Aliases:   []string{"django", "jinja"},
@@ -14,7 +14,11 @@ var DjangoJinja = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-django-templating", "application/x-jinja"},
 		DotAll:    true,
 	},
-	Rules{
+	djangoJinjaRules,
+))
+
+func djangoJinjaRules() Rules {
+	return Rules{
 		"root": {
 			{`[^{]+`, Other, nil},
 			{`\{\{`, CommentPreproc, Push("var")},
@@ -49,5 +53,5 @@ var DjangoJinja = internal.Register(MustNewLexer(
 			Include("varnames"),
 			{`.`, Punctuation, nil},
 		},
-	},
-))
+	}
+}

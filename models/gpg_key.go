@@ -400,7 +400,7 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 		}
 		email := strings.ToLower(strings.TrimSpace(ident.UserId.Email))
 		for _, e := range userEmails {
-			if e.Email == email {
+			if e.LowerEmail == email {
 				emails = append(emails, e)
 				break
 			}

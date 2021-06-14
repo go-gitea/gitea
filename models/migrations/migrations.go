@@ -312,6 +312,10 @@ var migrations = []Migration{
 	// v180 -> v181
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
 	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v185
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
 }
 

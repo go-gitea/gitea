@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	stdioutil "io/ioutil"
 	"os"
 	"path"
@@ -14,8 +13,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
-
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/internal/revision"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -25,12 +26,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage"
 	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
 	"github.com/go-git/go-git/v5/utils/ioutil"
 	"github.com/imdario/mergo"
-	"golang.org/x/crypto/openpgp"
-
-	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-billy/v5/osfs"
 )
 
 // GitDirName this is a special folder where all the git stuff is.
@@ -190,10 +188,6 @@ func Open(s storage.Storer, worktree billy.Filesystem) (*Repository, error) {
 // Clone a repository into the given Storer and worktree Filesystem with the
 // given options, if worktree is nil a bare repository is created. If the given
 // storer is not empty ErrRepositoryAlreadyExists is returned.
-//
-// The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
-// transport operations.
 func Clone(s storage.Storer, worktree billy.Filesystem, o *CloneOptions) (*Repository, error) {
 	return CloneContext(context.Background(), s, worktree, o)
 }
@@ -203,7 +197,7 @@ func Clone(s storage.Storer, worktree billy.Filesystem, o *CloneOptions) (*Repos
 // given storer is not empty ErrRepositoryAlreadyExists is returned.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func CloneContext(
 	ctx context.Context, s storage.Storer, worktree billy.Filesystem, o *CloneOptions,
@@ -279,17 +273,18 @@ func dotGitToOSFilesystems(path string, detect bool) (dot, wt billy.Filesystem, 
 		return nil, nil, err
 	}
 
-	pathinfo, err := os.Stat(path)
-	if !os.IsNotExist(err) {
-		if !pathinfo.IsDir() && detect {
-			path = filepath.Dir(path)
-		}
-	}
-
 	var fs billy.Filesystem
 	var fi os.FileInfo
 	for {
 		fs = osfs.New(path)
+
+		pathinfo, err := fs.Stat("/")
+		if !os.IsNotExist(err) {
+			if !pathinfo.IsDir() && detect {
+				fs = osfs.New(filepath.Dir(path))
+			}
+		}
+
 		fi, err = fs.Stat(GitDirName)
 		if err == nil {
 			// no error; stop
@@ -398,7 +393,7 @@ func PlainClone(path string, isBare bool, o *CloneOptions) (*Repository, error) 
 // ErrRepositoryAlreadyExists is returned.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 //
 // TODO(mcuadros): move isBare to CloneOptions in v5
@@ -433,7 +428,7 @@ func newRepository(s storage.Storer, worktree billy.Filesystem) *Repository {
 }
 
 func checkIfCleanupIsNeeded(path string) (cleanup bool, cleanParent bool, err error) {
-	fi, err := os.Stat(path)
+	fi, err := osfs.Default.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return true, true, nil
@@ -446,20 +441,13 @@ func checkIfCleanupIsNeeded(path string) (cleanup bool, cleanParent bool, err er
 		return false, false, fmt.Errorf("path is not a directory: %s", path)
 	}
 
-	f, err := os.Open(path)
+	files, err := osfs.Default.ReadDir(path)
 	if err != nil {
 		return false, false, err
 	}
 
-	defer ioutil.CheckClose(f, &err)
-
-	_, err = f.Readdirnames(1)
-	if err == io.EOF {
+	if len(files) == 0 {
 		return true, false, nil
-	}
-
-	if err != nil {
-		return false, false, err
 	}
 
 	return false, false, nil
@@ -467,23 +455,16 @@ func checkIfCleanupIsNeeded(path string) (cleanup bool, cleanParent bool, err er
 
 func cleanUpDir(path string, all bool) error {
 	if all {
-		return os.RemoveAll(path)
+		return util.RemoveAll(osfs.Default, path)
 	}
 
-	f, err := os.Open(path)
+	files, err := osfs.Default.ReadDir(path)
 	if err != nil {
 		return err
 	}
 
-	defer ioutil.CheckClose(f, &err)
-
-	names, err := f.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-
-	for _, name := range names {
-		if err := os.RemoveAll(filepath.Join(path, name)); err != nil {
+	for _, fi := range files {
+		if err := util.RemoveAll(osfs.Default, osfs.Default.Join(path, fi.Name())); err != nil {
 			return err
 		}
 	}
@@ -894,11 +875,13 @@ func (r *Repository) clone(ctx context.Context, o *CloneOptions) error {
 			Name:  branchName,
 			Merge: branchRef,
 		}
+
 		if o.RemoteName == "" {
 			b.Remote = "origin"
 		} else {
 			b.Remote = o.RemoteName
 		}
+
 		if err := r.CreateBranch(b); err != nil {
 			return err
 		}
@@ -1101,7 +1084,7 @@ func (r *Repository) Fetch(o *FetchOptions) error {
 // no changes to be fetched, or an error.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (r *Repository) FetchContext(ctx context.Context, o *FetchOptions) error {
 	if err := o.Validate(); err != nil {
@@ -1128,7 +1111,7 @@ func (r *Repository) Push(o *PushOptions) error {
 // FetchOptions.RemoteName.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (r *Repository) PushContext(ctx context.Context, o *PushOptions) error {
 	if err := o.Validate(); err != nil {
