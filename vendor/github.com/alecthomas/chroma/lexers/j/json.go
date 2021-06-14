@@ -6,7 +6,7 @@ import (
 )
 
 // JSON lexer.
-var JSON = internal.Register(MustNewLexer(
+var JSON = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:         "JSON",
 		Aliases:      []string{"json"},
@@ -15,7 +15,11 @@ var JSON = internal.Register(MustNewLexer(
 		NotMultiline: true,
 		DotAll:       true,
 	},
-	Rules{
+	jsonRules,
+))
+
+func jsonRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\s+`, Text, nil},
 		},
@@ -51,5 +55,5 @@ var JSON = internal.Register(MustNewLexer(
 		"root": {
 			Include("value"),
 		},
-	},
-))
+	}
+}

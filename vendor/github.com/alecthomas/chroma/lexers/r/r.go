@@ -6,14 +6,18 @@ import (
 )
 
 // R/S lexer.
-var R = internal.Register(MustNewLexer(
+var R = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "R",
 		Aliases:   []string{"splus", "s", "r"},
 		Filenames: []string{"*.S", "*.R", "*.r", ".Rhistory", ".Rprofile", ".Renviron"},
 		MimeTypes: []string{"text/S-plus", "text/S", "text/x-r-source", "text/x-r", "text/x-R", "text/x-r-history", "text/x-r-profile"},
 	},
-	Rules{
+	rRules,
+))
+
+func rRules() Rules {
+	return Rules{
 		"comments": {
 			{`#.*$`, CommentSingle, nil},
 		},
@@ -62,5 +66,5 @@ var R = internal.Register(MustNewLexer(
 		"string_dquote": {
 			{`([^"\\]|\\.)*"`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}
