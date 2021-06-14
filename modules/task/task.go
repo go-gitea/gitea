@@ -74,7 +74,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 	if err != nil {
 		return nil, err
 	}
-	opts.CloneAddr = util.SanitizeURLCredentials(opts.CloneAddr, true)
+	opts.CloneAddr = util.NewStringURLSanitizer(opts.CloneAddr, true).Replace(opts.CloneAddr)
 	opts.AuthPasswordEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AuthPassword)
 	if err != nil {
 		return nil, err
