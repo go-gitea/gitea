@@ -64,7 +64,7 @@ func removeCredentials(payload string) (string, error) {
 
 	opts.AuthPassword = ""
 	opts.AuthToken = ""
-	opts.CloneAddr = util.SanitizeURLCredentials(opts.CloneAddr, true)
+	opts.CloneAddr = util.NewStringURLSanitizer(opts.CloneAddr, true).Replace(opts.CloneAddr)
 
 	confBytes, err := json.Marshal(opts)
 	if err != nil {
