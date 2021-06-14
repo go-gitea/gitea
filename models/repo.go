@@ -1510,6 +1510,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	// Delete issue index
+	if err := deleteResouceIndex(sess, "issue_index", repoID); err != nil {
+		return err
+	}
+
 	if repo.IsFork {
 		if _, err := sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
