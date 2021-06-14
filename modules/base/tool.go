@@ -12,10 +12,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -29,15 +27,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 )
-
-// Use at most this many bytes to determine Content Type.
-const sniffLen = 512
-
-// SVGMimeType MIME type of SVG images.
-const SVGMimeType = "image/svg+xml"
-
-var svgTagRegex = regexp.MustCompile(`(?si)\A\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
-var svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
 
 // EncodeMD5 encodes string to md5 hex value.
 func EncodeMD5(str string) string {
@@ -274,63 +263,6 @@ func Int64sContains(intsSlice []int64, a int64) bool {
 // https://github.com/golang/go/blob/c3b4918/src/go/scanner/scanner.go#L342
 func IsLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch >= 0x80 && unicode.IsLetter(ch)
-}
-
-// DetectContentType extends http.DetectContentType with more content types.
-func DetectContentType(data []byte) string {
-	ct := http.DetectContentType(data)
-
-	if len(data) > sniffLen {
-		data = data[:sniffLen]
-	}
-
-	if setting.UI.SVG.Enabled &&
-		((strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")) && svgTagRegex.Match(data) ||
-			strings.Contains(ct, "text/xml") && svgTagInXMLRegex.Match(data)) {
-
-		// SVG is unsupported.  https://github.com/golang/go/issues/15888
-		return SVGMimeType
-	}
-	return ct
-}
-
-// IsRepresentableAsText returns true if file content can be represented as
-// plain text or is empty.
-func IsRepresentableAsText(data []byte) bool {
-	return IsTextFile(data) || IsSVGImageFile(data)
-}
-
-// IsTextFile returns true if file content format is plain text or empty.
-func IsTextFile(data []byte) bool {
-	if len(data) == 0 {
-		return true
-	}
-	return strings.Contains(DetectContentType(data), "text/")
-}
-
-// IsImageFile detects if data is an image format
-func IsImageFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), "image/")
-}
-
-// IsSVGImageFile detects if data is an SVG image format
-func IsSVGImageFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), SVGMimeType)
-}
-
-// IsPDFFile detects if data is a pdf format
-func IsPDFFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), "application/pdf")
-}
-
-// IsVideoFile detects if data is an video format
-func IsVideoFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), "video/")
-}
-
-// IsAudioFile detects if data is an video format
-func IsAudioFile(data []byte) bool {
-	return strings.Contains(DetectContentType(data), "audio/")
 }
 
 // EntryIcon returns the octicon class for displaying files/directories

@@ -31,7 +31,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/klauspost/cpuid"
+	"github.com/klauspost/cpuid/v2"
 	"go.uber.org/zap"
 	"golang.org/x/net/idna"
 )
@@ -289,7 +289,7 @@ func namesFromCSR(csr *x509.CertificateRequest) []string {
 //
 // See https://github.com/mholt/caddy/issues/1674
 func preferredDefaultCipherSuites() []uint16 {
-	if cpuid.CPU.AesNi() {
+	if cpuid.CPU.Supports(cpuid.AESNI) {
 		return defaultCiphersPreferAES
 	}
 	return defaultCiphersPreferChaCha

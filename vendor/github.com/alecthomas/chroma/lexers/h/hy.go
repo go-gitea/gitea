@@ -6,14 +6,18 @@ import (
 )
 
 // Hy lexer.
-var Hy = internal.Register(MustNewLexer(
+var Hy = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Hy",
 		Aliases:   []string{"hylang"},
 		Filenames: []string{"*.hy"},
 		MimeTypes: []string{"text/x-hy", "application/x-hy"},
 	},
-	Rules{
+	hyRules,
+))
+
+func hyRules() Rules {
+	return Rules{
 		"root": {
 			{`;.*$`, CommentSingle, nil},
 			{`[,\s]+`, Text, nil},
@@ -47,5 +51,5 @@ var Hy = internal.Register(MustNewLexer(
 			{`(?<!\.)(self|None|Ellipsis|NotImplemented|False|True|cls)\b`, NameBuiltinPseudo, nil},
 			{Words(`(?<!\.)`, `\b`, `ArithmeticError`, `AssertionError`, `AttributeError`, `BaseException`, `DeprecationWarning`, `EOFError`, `EnvironmentError`, `Exception`, `FloatingPointError`, `FutureWarning`, `GeneratorExit`, `IOError`, `ImportError`, `ImportWarning`, `IndentationError`, `IndexError`, `KeyError`, `KeyboardInterrupt`, `LookupError`, `MemoryError`, `NameError`, `NotImplemented`, `NotImplementedError`, `OSError`, `OverflowError`, `OverflowWarning`, `PendingDeprecationWarning`, `ReferenceError`, `RuntimeError`, `RuntimeWarning`, `StandardError`, `StopIteration`, `SyntaxError`, `SyntaxWarning`, `SystemError`, `SystemExit`, `TabError`, `TypeError`, `UnboundLocalError`, `UnicodeDecodeError`, `UnicodeEncodeError`, `UnicodeError`, `UnicodeTranslateError`, `UnicodeWarning`, `UserWarning`, `ValueError`, `VMSError`, `Warning`, `WindowsError`, `ZeroDivisionError`), NameException, nil},
 		},
-	},
-))
+	}
+}

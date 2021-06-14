@@ -30,7 +30,7 @@ func TestFileLoggerFails(t *testing.T) {
 
 	fileLogger := NewFileLogger()
 	//realFileLogger, ok := fileLogger.(*FileLogger)
-	//assert.Equal(t, true, ok)
+	//assert.True(t, ok)
 
 	// Fail if there is bad json
 	err = fileLogger.Init("{")
@@ -161,7 +161,7 @@ func TestCompressFileLogger(t *testing.T) {
 
 	fileLogger := NewFileLogger()
 	realFileLogger, ok := fileLogger.(*FileLogger)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 
 	location, _ := time.LoadLocation("EST")
 

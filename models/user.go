@@ -75,9 +75,6 @@ const (
 )
 
 var (
-	// ErrEmailNotExist e-mail does not exist error
-	ErrEmailNotExist = errors.New("E-mail does not exist")
-
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
@@ -933,15 +930,6 @@ func CreateUser(ctx context.Context, u *User) (err error) {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	isExist, err = sess.
-		Where("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
-	}
-
 	if err = ValidateEmail(u.Email); err != nil {
 		return err
 	}
@@ -969,6 +957,17 @@ func CreateUser(ctx context.Context, u *User) (err error) {
 	u.Theme = setting.UI.DefaultTheme
 
 	if _, err = sess.Insert(u); err != nil {
+		return err
+	}
+
+	// insert email address
+	if _, err := sess.Insert(&EmailAddress{
+		UID:         u.ID,
+		Email:       u.Email,
+		LowerEmail:  strings.ToLower(u.Email),
+		IsActivated: u.IsActive,
+		IsPrimary:   true,
+	}); err != nil {
 		return err
 	}
 
