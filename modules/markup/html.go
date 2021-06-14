@@ -901,38 +901,54 @@ func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
 
 // emojiShortCodeProcessor for rendering text like :smile: into emoji
 func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
-	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
-
-	alias := node.Data[m[0]:m[1]]
-	alias = strings.ReplaceAll(alias, ":", "")
-	converted := emoji.FromAlias(alias)
-	if converted == nil {
-		// check if this is a custom reaction
-		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
-		if strings.Contains(s, alias) {
-			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+	start := 0
+	for node != nil && start < len(node.Data) {
+		m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
+		if m == nil {
 			return
 		}
-		return
-	}
 
-	replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+		start = m[1]
+
+		alias := node.Data[m[0]:m[1]]
+		alias = strings.ReplaceAll(alias, ":", "")
+		converted := emoji.FromAlias(alias)
+		if converted == nil {
+			// check if this is a custom reaction
+			s := strings.Join(setting.UI.Reactions, " ") + "gitea"
+			if strings.Contains(s, alias) {
+				replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+				node = node.NextSibling.NextSibling
+				start = 0
+				continue
+			}
+			continue
+		}
+
+		replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+		node = node.NextSibling.NextSibling
+		start = 0
+	}
 }
 
 // emoji processor to match emoji and add emoji class
 func emojiProcessor(ctx *RenderContext, node *html.Node) {
-	m := emoji.FindEmojiSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
+	start := 0
+	for node != nil && start < len(node.Data) {
+		m := emoji.FindEmojiSubmatchIndex(node.Data[start:])
+		if m == nil {
+			return
+		}
 
-	codepoint := node.Data[m[0]:m[1]]
-	val := emoji.FromCode(codepoint)
-	if val != nil {
-		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+		start = m[1]
+
+		codepoint := node.Data[m[0]:m[1]]
+		val := emoji.FromCode(codepoint)
+		if val != nil {
+			replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+			node = node.NextSibling.NextSibling
+			start = 0
+		}
 	}
 }
 
