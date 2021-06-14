@@ -394,7 +394,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
+// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
@@ -567,6 +567,19 @@ func (token *OAuth2Token) SignToken() (string, error) {
 type OIDCToken struct {
 	jwt.StandardClaims
 	Nonce string `json:"nonce,omitempty"`
+
+	// Scope profile
+	Name              string             `json:"name,omitempty"`
+	PreferredUsername string             `json:"preferred_username,omitempty"`
+	Profile           string             `json:"profile,omitempty"`
+	Picture           string             `json:"picture,omitempty"`
+	Website           string             `json:"website,omitempty"`
+	Locale            string             `json:"locale,omitempty"`
+	UpdatedAt         timeutil.TimeStamp `json:"updated_at,omitempty"`
+
+	// Scope email
+	Email         string `json:"email,omitempty"`
+	EmailVerified bool   `json:"email_verified,omitempty"`
 }
 
 // SignToken signs an id_token with the (symmetric) client secret key
