@@ -41,6 +41,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add missing error to Doctor log (#15813) (#15824)
   * Move restore repo to internal router and invoke from command to avoid open the same db file or queues files (#15790) (#15816)
 * ENHANCEMENTS
+  * Removable media support to snap package (#16136) (#16138)
   * Move sans-serif fallback font higher than emoji fonts (#15855) (#15892)
 * DOCKER
   * Only write config in environment-to-ini if there are changes (#15861) (#15868)
