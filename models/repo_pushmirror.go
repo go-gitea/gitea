@@ -29,7 +29,7 @@ type PushMirror struct {
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-	LastError      string
+	LastError      string             `xorm:"text"`
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.

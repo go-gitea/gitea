@@ -22,7 +22,7 @@ func createPushMirrorTable(x *xorm.Engine) error {
 		Interval       time.Duration
 		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-		LastError      string
+		LastError      string             `xorm:"text"`
 	}
 
 	sess := x.NewSession()
