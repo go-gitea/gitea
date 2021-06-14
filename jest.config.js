@@ -1,8 +1,9 @@
 export default {
   setupFilesAfterEnv: ['jest-extended'],
   testTimeout: 20000,
+  rootDir: 'web_src',
   testMatch: [
-    '**/web_src/**/*.test.js',
+    '<rootDir>/**/*.test.js',
   ],
   transform: {},
   verbose: false,

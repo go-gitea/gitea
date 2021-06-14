@@ -45,7 +45,7 @@ const (
 	BOOL
 	// INT64 is a 64-bit signed integral Type Value.
 	INT64
-	// UINT32 is a 32-bit unsigned integral Type Value.
+	// FLOAT64 is a 64-bit floating point Type Value.
 	FLOAT64
 	// STRING is a string Type Value.
 	STRING

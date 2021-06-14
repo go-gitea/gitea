@@ -6,14 +6,18 @@ import (
 )
 
 // Pacmanconf lexer.
-var Pacmanconf = internal.Register(MustNewLexer(
+var Pacmanconf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "PacmanConf",
 		Aliases:   []string{"pacmanconf"},
 		Filenames: []string{"pacman.conf"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	pacmanconfRules,
+))
+
+func pacmanconfRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*$`, CommentSingle, nil},
 			{`^\s*\[.*?\]\s*$`, Keyword, nil},
@@ -22,5 +26,5 @@ var Pacmanconf = internal.Register(MustNewLexer(
 			{Words(``, `\b`, `$repo`, `$arch`, `%o`, `%u`), NameVariable, nil},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

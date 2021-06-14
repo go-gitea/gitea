@@ -44,7 +44,7 @@ const DefaultAvatarSize = -1
 const DefaultAvatarPixelSize = 28
 
 // AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
-const AvatarRenderedSizeFactor = 2
+const AvatarRenderedSizeFactor = 4
 
 // HashEmail hashes email address to MD5 string.
 // https://en.gravatar.com/site/implement/hash/

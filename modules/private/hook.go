@@ -60,6 +60,12 @@ type HookOptions struct {
 	IsWiki                          bool
 }
 
+// SSHLogOption ssh log options
+type SSHLogOption struct {
+	IsError bool
+	Message string
+}
+
 // HookPostReceiveResult represents an individual result from PostReceive
 type HookPostReceiveResult struct {
 	Results      []HookPostReceiveBranchResult
@@ -185,6 +191,30 @@ func SetDefaultBranch(ownerName, repoName, branch string) error {
 	resp, err := req.Response()
 	if err != nil {
 		return fmt.Errorf("Unable to contact gitea: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
+	}
+	return nil
+}
+
+// SSHLog sends ssh error log response
+func SSHLog(isErr bool, msg string) error {
+	reqURL := setting.LocalURL + "api/internal/ssh/log"
+	req := newInternalRequest(reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+
+	jsonBytes, _ := json.Marshal(&SSHLogOption{
+		IsError: isErr,
+		Message: msg,
+	})
+	req.Body(jsonBytes)
+
+	req.SetTimeout(60*time.Second, 60*time.Second)
+	resp, err := req.Response()
+	if err != nil {
+		return fmt.Errorf("unable to contact gitea: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

@@ -5,6 +5,8 @@
 package queue
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/lunny/levelqueue"
@@ -37,6 +39,7 @@ func NewLevelQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue, error)
 	if len(config.ConnectionString) == 0 {
 		config.ConnectionString = config.DataDir
 	}
+	config.WaitOnEmpty = true
 
 	byteFIFO, err := NewLevelQueueByteFIFO(config.ConnectionString, config.QueueName)
 	if err != nil {
@@ -82,7 +85,7 @@ func NewLevelQueueByteFIFO(connection, prefix string) (*LevelQueueByteFIFO, erro
 }
 
 // PushFunc will push data into the fifo
-func (fifo *LevelQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (fifo *LevelQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
 	if fn != nil {
 		if err := fn(); err != nil {
 			return err
@@ -92,7 +95,7 @@ func (fifo *LevelQueueByteFIFO) PushFunc(data []byte, fn func() error) error {
 }
 
 // Pop pops data from the start of the fifo
-func (fifo *LevelQueueByteFIFO) Pop() ([]byte, error) {
+func (fifo *LevelQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
 	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
@@ -108,7 +111,7 @@ func (fifo *LevelQueueByteFIFO) Close() error {
 }
 
 // Len returns the length of the fifo
-func (fifo *LevelQueueByteFIFO) Len() int64 {
+func (fifo *LevelQueueByteFIFO) Len(ctx context.Context) int64 {
 	return fifo.internal.Len()
 }
 

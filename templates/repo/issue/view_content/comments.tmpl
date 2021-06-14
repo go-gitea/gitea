@@ -13,7 +13,7 @@
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
-			<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
+			<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				{{avatar .Poster}}
@@ -64,7 +64,7 @@
 					</div>
 				</div>
 				<div class="ui attached segment comment-body">
-					<div class="render-content markup">
+					<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 						{{if .RenderedContent}}
 							{{.RenderedContent|Str2html}}
 						{{else}}
@@ -552,7 +552,7 @@
 														</div>
 													</div>
 													<div class="text comment-content">
-														<div class="render-content markup">
+														<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 														{{if .RenderedContent}}
 															{{.RenderedContent|Str2html}}
 														{{else}}

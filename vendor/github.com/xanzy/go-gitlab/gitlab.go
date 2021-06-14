@@ -122,6 +122,7 @@ type Client struct {
 	GitIgnoreTemplates    *GitIgnoreTemplatesService
 	GroupBadges           *GroupBadgesService
 	GroupCluster          *GroupClustersService
+	GroupImportExport     *GroupImportExportService
 	GroupIssueBoards      *GroupIssueBoardsService
 	GroupLabels           *GroupLabelsService
 	GroupMembers          *GroupMembersService
@@ -140,6 +141,7 @@ type Client struct {
 	Labels                *LabelsService
 	License               *LicenseService
 	LicenseTemplates      *LicenseTemplatesService
+	ManagedLicenses       *ManagedLicensesService
 	MergeRequestApprovals *MergeRequestApprovalsService
 	MergeRequests         *MergeRequestsService
 	Milestones            *MilestonesService
@@ -293,6 +295,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GitIgnoreTemplates = &GitIgnoreTemplatesService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
+	c.GroupImportExport = &GroupImportExportService{client: c}
 	c.GroupIssueBoards = &GroupIssueBoardsService{client: c}
 	c.GroupLabels = &GroupLabelsService{client: c}
 	c.GroupMembers = &GroupMembersService{client: c}
@@ -311,6 +314,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Labels = &LabelsService{client: c}
 	c.License = &LicenseService{client: c}
 	c.LicenseTemplates = &LicenseTemplatesService{client: c}
+	c.ManagedLicenses = &ManagedLicensesService{client: c}
 	c.MergeRequestApprovals = &MergeRequestApprovalsService{client: c}
 	c.MergeRequests = &MergeRequestsService{client: c, timeStats: timeStats}
 	c.Milestones = &MilestonesService{client: c}
