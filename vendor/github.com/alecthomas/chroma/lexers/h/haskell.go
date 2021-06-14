@@ -6,14 +6,18 @@ import (
 )
 
 // Haskell lexer.
-var Haskell = internal.Register(MustNewLexer(
+var Haskell = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Haskell",
 		Aliases:   []string{"haskell", "hs"},
 		Filenames: []string{"*.hs"},
 		MimeTypes: []string{"text/x-haskell"},
 	},
-	Rules{
+	haskellRules,
+))
+
+func haskellRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`--(?![!#$%&*+./<=>?@^|_~:\\]).*?$`, CommentSingle, nil},
@@ -95,5 +99,5 @@ var Haskell = internal.Register(MustNewLexer(
 			{`\d+`, LiteralStringEscape, Pop(1)},
 			{`\s+\\`, LiteralStringEscape, Pop(1)},
 		},
-	},
-))
+	}
+}

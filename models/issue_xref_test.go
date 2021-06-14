@@ -125,12 +125,27 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
 	r := AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
 	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
-	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: ispull}
+
+	idx, err := GetNextResourceIndex("issue_index", r.ID)
+	assert.NoError(t, err)
+	i := &Issue{
+		RepoID:   r.ID,
+		PosterID: d.ID,
+		Poster:   d,
+		Title:    title,
+		Content:  content,
+		IsPull:   ispull,
+		Index:    idx,
+	}
 
 	sess := x.NewSession()
 	defer sess.Close()
+
 	assert.NoError(t, sess.Begin())
-	_, err := sess.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").Where("repo_id=?", repo).Insert(i)
+	err = newIssue(sess, d, NewIssueOptions{
+		Repo:  r,
+		Issue: i,
+	})
 	assert.NoError(t, err)
 	i, err = getIssueByID(sess, i.ID)
 	assert.NoError(t, err)

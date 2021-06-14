@@ -233,7 +233,7 @@ func (s *session) handleAdvRefDecodeError(err error) error {
 // UploadPack performs a request to the server to fetch a packfile. A reader is
 // returned with the packfile content. The reader must be closed after reading.
 func (s *session) UploadPack(ctx context.Context, req *packp.UploadPackRequest) (*packp.UploadPackResponse, error) {
-	if req.IsEmpty() {
+	if req.IsEmpty() && len(req.Shallows) == 0 {
 		return nil, transport.ErrEmptyUploadPackRequest
 	}
 

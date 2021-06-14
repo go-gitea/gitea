@@ -311,6 +311,10 @@ var migrations = []Migration{
 	NewMigration("Convert avatar url to text", convertAvatarURLToText),
 	// v180 -> v181
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
 }
 
 // GetCurrentDBVersion returns the current db version

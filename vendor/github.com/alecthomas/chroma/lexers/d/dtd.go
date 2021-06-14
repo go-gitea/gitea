@@ -6,7 +6,7 @@ import (
 )
 
 // Dtd lexer.
-var Dtd = internal.Register(MustNewLexer(
+var Dtd = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "DTD",
 		Aliases:   []string{"dtd"},
@@ -14,7 +14,11 @@ var Dtd = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/xml-dtd"},
 		DotAll:    true,
 	},
-	Rules{
+	dtdRules,
+))
+
+func dtdRules() Rules {
+	return Rules{
 		"root": {
 			Include("common"),
 			{`(<!ELEMENT)(\s+)(\S+)`, ByGroups(Keyword, Text, NameTag), Push("element")},
@@ -65,5 +69,5 @@ var Dtd = internal.Register(MustNewLexer(
 			{`[^>\s|()?+*,]+`, NameAttribute, nil},
 			{`>`, Keyword, Pop(1)},
 		},
-	},
-))
+	}
+}
