@@ -437,7 +437,7 @@ type MinimalOrg = User
 
 // GetUserOrgsList returns one user's all orgs list
 func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
-	var orgs = make([]*SimpleOrg, 0, 20)
+	var orgs = make([]*MinimalOrg, 0, 20)
 	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
 		Table("user").
 		In("id", queryUserOrgIDs(uid)).
