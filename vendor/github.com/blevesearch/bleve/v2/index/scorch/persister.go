@@ -93,7 +93,6 @@ func (s *Scorch) persisterLoop() {
 	po, err := s.parsePersisterOptions()
 	if err != nil {
 		s.fireAsyncError(fmt.Errorf("persisterOptions json parsing err: %v", err))
-		s.asyncTasks.Done()
 		return
 	}
 

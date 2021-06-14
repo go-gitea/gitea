@@ -6,7 +6,7 @@ import (
 )
 
 // Solidity lexer.
-var Solidity = internal.Register(MustNewLexer(
+var Solidity = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Solidity",
 		Aliases:   []string{"sol", "solidity"},
@@ -14,7 +14,11 @@ var Solidity = internal.Register(MustNewLexer(
 		MimeTypes: []string{},
 		DotAll:    true,
 	},
-	Rules{
+	solidityRules,
+))
+
+func solidityRules() Rules {
+	return Rules{
 		"assembly": {
 			Include("comments"),
 			Include("numbers"),
@@ -106,5 +110,5 @@ var Solidity = internal.Register(MustNewLexer(
 			{`(addmod|ecrecover|keccak256|mulmod|ripemd160|sha256|sha3)\b`, NameFunction, nil},
 			{`[a-zA-Z_]\w*`, Name, nil},
 		},
-	},
-))
+	}
+}
