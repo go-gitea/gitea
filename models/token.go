@@ -58,7 +58,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 		return nil, ErrAccessTokenEmpty{}
 	}
 	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
-	if len(token) < 40 {
+	if len(token) != 40 {
 		return nil, ErrAccessTokenNotExist{token}
 	}
 	for _, x := range []byte(token) {
