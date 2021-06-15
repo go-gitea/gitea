@@ -265,11 +265,11 @@ func (s *Style) Get(ttype TokenType) StyleEntry {
 
 func (s *Style) get(ttype TokenType) StyleEntry {
 	out := s.entries[ttype]
-	if out.IsZero() && s.synthesisable(ttype) {
-		out = s.synthesise(ttype)
-	}
 	if out.IsZero() && s.parent != nil {
 		return s.parent.get(ttype)
+	}
+	if out.IsZero() && s.synthesisable(ttype) {
+		out = s.synthesise(ttype)
 	}
 	return out
 }

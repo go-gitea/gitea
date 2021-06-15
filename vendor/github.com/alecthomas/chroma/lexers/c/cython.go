@@ -6,14 +6,18 @@ import (
 )
 
 // Cython lexer.
-var Cython = internal.Register(MustNewLexer(
+var Cython = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Cython",
 		Aliases:   []string{"cython", "pyx", "pyrex"},
 		Filenames: []string{"*.pyx", "*.pxd", "*.pxi"},
 		MimeTypes: []string{"text/x-cython", "application/x-cython"},
 	},
-	Rules{
+	cythonRules,
+))
+
+func cythonRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`^(\s*)("""(?:.|\n)*?""")`, ByGroups(Text, LiteralStringDoc), nil},
@@ -131,5 +135,5 @@ var Cython = internal.Register(MustNewLexer(
 			Include("strings"),
 			Include("nl"),
 		},
-	},
-))
+	}
+}
