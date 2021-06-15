@@ -3960,12 +3960,12 @@ $(document).on('click', '.oauth-login-image', () => {
   }, 5000);
 });
 
-// once-button is the button which can be clicked only one time
-$(document).on('click', '.button.once-button', function () {
+// loading-button this logic used to prevent push one form more than one time
+$(document).on('click', '.button.loading-button', function () {
   const $btn = $(this);
   $btn.addClass('loading');
 });
 
-$(document).on('click', '.button.once-button.loading', (e) => {
+$(document).on('click', '.button.loading-button.loading', (e) => {
   e.preventDefault();
 });
