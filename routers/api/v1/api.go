@@ -941,7 +941,7 @@ func Routes() *web.Route {
 					m.Get("/refs/*", repo.GetGitRefs)
 					m.Get("/trees/{sha}", context.RepoRefForAPI, repo.GetTree)
 					m.Get("/blobs/{sha}", context.RepoRefForAPI, repo.GetBlob)
-					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetTag)
+					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)

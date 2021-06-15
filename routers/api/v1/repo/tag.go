@@ -64,9 +64,9 @@ func ListTags(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiTags)
 }
 
-// GetTag get the tag of a repository.
-func GetTag(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/tags/{sha} repository GetTag
+// GetAnnotatedTag get the tag of a repository.
+func GetAnnotatedTag(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/tags/{sha} repository GetAnnotatedTag
 	// ---
 	// summary: Gets the tag object of an annotated tag (not lightweight tags)
 	// produces:
@@ -100,11 +100,11 @@ func GetTag(ctx *context.APIContext) {
 	}
 
 	if tag, err := ctx.Repo.GitRepo.GetAnnotatedTag(sha); err != nil {
-		ctx.Error(http.StatusBadRequest, "GetTag", err)
+		ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 	} else {
 		commit, err := tag.Commit()
 		if err != nil {
-			ctx.Error(http.StatusBadRequest, "GetTag", err)
+			ctx.Error(http.StatusBadRequest, "GetAnnotatedTag", err)
 		}
 		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
 	}
