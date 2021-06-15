@@ -219,5 +219,5 @@ func CreateTag(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))
+	ctx.JSON(http.StatusCreated, convert.ToTag(ctx.Repo.Repository, tag))
 }
