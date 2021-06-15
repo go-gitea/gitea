@@ -3959,3 +3959,14 @@ $(document).on('click', '.oauth-login-image', () => {
     oauthNav.show();
   }, 5000);
 });
+
+// once-button is the button which can be clicked only one time
+$(document).on('click', '.button.once-button', function () {
+  const $btn = $(this);
+  $btn.addClass('loading clicked');
+});
+
+$(document).on('click', '.button.once-button.clicked', (e) => {
+  e.preventDefault();
+  return false;
+});
