@@ -30,3 +30,11 @@ type AnnotatedTagObject struct {
 	URL  string `json:"url"`
 	SHA  string `json:"sha"`
 }
+
+// CreateTagOption options when creating a tag
+type CreateTagOption struct {
+	// required: true
+	TagName string `json:"tag_name" binding:"Required"`
+	Message string `json:"message"`
+	Target  string `json:"target"`
+}

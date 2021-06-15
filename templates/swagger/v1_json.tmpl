@@ -8934,6 +8934,50 @@
             "$ref": "#/responses/TagList"
           }
         }
+      },
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a new git tag in a repository",
+        "operationId": "repoCreateTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateTagOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/AnnotatedTag"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          }
+        }
       }
     },
     "/repos/{owner}/{repo}/tags/{tag}": {
@@ -12940,6 +12984,28 @@
         "target_url": {
           "type": "string",
           "x-go-name": "TargetURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateTagOption": {
+      "description": "CreateTagOption options when creating a tag",
+      "type": "object",
+      "required": [
+        "tag_name"
+      ],
+      "properties": {
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "tag_name": {
+          "type": "string",
+          "x-go-name": "TagName"
+        },
+        "target": {
+          "type": "string",
+          "x-go-name": "Target"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17101,7 +17167,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/PullReviewRequestOptions"
+        "$ref": "#/definitions/CreateTagOption"
       }
     },
     "redirect": {
