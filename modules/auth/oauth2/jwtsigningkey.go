@@ -45,6 +45,7 @@ type JWTSigningKey interface {
 	SignKey() interface{}
 	VerifyKey() interface{}
 	ToJWK() (map[string]string, error)
+	PreProcessToken(*jwt.Token)
 }
 
 type hmacSingingKey struct {
@@ -75,9 +76,25 @@ func (key hmacSingingKey) ToJWK() (map[string]string, error) {
 	}, nil
 }
 
+func (key hmacSingingKey) PreProcessToken(*jwt.Token) {}
+
 type rsaSingingKey struct {
 	signingMethod jwt.SigningMethod
 	key           *rsa.PrivateKey
+	id            string
+}
+
+func newRSASingingKey(signingMethod jwt.SigningMethod, key *rsa.PrivateKey) (rsaSingingKey, error) {
+	kid, err := createPublicKeyFingerprint(key.Public().(*rsa.PublicKey))
+	if err != nil {
+		return rsaSingingKey{}, err
+	}
+
+	return rsaSingingKey{
+		signingMethod,
+		key,
+		base64.RawURLEncoding.EncodeToString(kid),
+	}, nil
 }
 
 func (key rsaSingingKey) IsSymmetric() bool {
@@ -99,23 +116,36 @@ func (key rsaSingingKey) VerifyKey() interface{} {
 func (key rsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*rsa.PublicKey)
 
-	kid, err := createPublicKeyFingerprint(pubKey)
-	if err != nil {
-		return nil, err
-	}
-
 	return map[string]string{
 		"kty": "RSA",
 		"alg": key.SigningMethod().Alg(),
-		"kid": base64.RawURLEncoding.EncodeToString(kid),
+		"kid": key.id,
 		"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pubKey.E)).Bytes()),
 		"n":   base64.RawURLEncoding.EncodeToString(pubKey.N.Bytes()),
 	}, nil
 }
 
+func (key rsaSingingKey) PreProcessToken(token *jwt.Token) {
+	token.Header["kid"] = key.id
+}
+
 type ecdsaSingingKey struct {
 	signingMethod jwt.SigningMethod
 	key           *ecdsa.PrivateKey
+	id            string
+}
+
+func newECDSASingingKey(signingMethod jwt.SigningMethod, key *ecdsa.PrivateKey) (ecdsaSingingKey, error) {
+	kid, err := createPublicKeyFingerprint(key.Public().(*ecdsa.PublicKey))
+	if err != nil {
+		return ecdsaSingingKey{}, err
+	}
+
+	return ecdsaSingingKey{
+		signingMethod,
+		key,
+		base64.RawURLEncoding.EncodeToString(kid),
+	}, nil
 }
 
 func (key ecdsaSingingKey) IsSymmetric() bool {
@@ -137,19 +167,18 @@ func (key ecdsaSingingKey) VerifyKey() interface{} {
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
 
-	kid, err := createPublicKeyFingerprint(pubKey)
-	if err != nil {
-		return nil, err
-	}
-
 	return map[string]string{
 		"kty": "EC",
 		"alg": key.SigningMethod().Alg(),
-		"kid": base64.RawURLEncoding.EncodeToString(kid),
+		"kid": key.id,
 		"crv": pubKey.Params().Name,
 		"x":   base64.RawURLEncoding.EncodeToString(pubKey.X.Bytes()),
 		"y":   base64.RawURLEncoding.EncodeToString(pubKey.Y.Bytes()),
 	}, nil
+}
+
+func (key ecdsaSingingKey) PreProcessToken(token *jwt.Token) {
+	token.Header["kid"] = key.id
 }
 
 // createPublicKeyFingerprint creates a fingerprint of the given key.
@@ -199,13 +228,13 @@ func CreateJWTSingingKey(algorithm string, key interface{}) (JWTSigningKey, erro
 		if !ok {
 			return nil, jwt.ErrInvalidKeyType
 		}
-		return ecdsaSingingKey{signingMethod, privateKey}, nil
+		return newECDSASingingKey(signingMethod, privateKey)
 	case *jwt.SigningMethodRSA:
 		privateKey, ok := key.(*rsa.PrivateKey)
 		if !ok {
 			return nil, jwt.ErrInvalidKeyType
 		}
-		return rsaSingingKey{signingMethod, privateKey}, nil
+		return newRSASingingKey(signingMethod, privateKey)
 	default:
 		secret, ok := key.([]byte)
 		if !ok {
