@@ -313,6 +313,10 @@ var migrations = []Migration{
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
 	// v181 -> v182
 	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
 }
 
 // GetCurrentDBVersion returns the current db version
