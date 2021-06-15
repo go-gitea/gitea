@@ -110,11 +110,11 @@ func GetAnnotatedTag(ctx *context.APIContext) {
 	}
 }
 
-// DeleteTag delete a specific tag of in a repository by name
-func DeleteTag(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/tags/{tag} repository repoDeleteTag
+// GetTag get the tag of a repository
+func GetTag(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/tags/{tag} repository repoGetTag
 	// ---
-	// summary: Delete a repository's tag by name
+	// summary: Get the tag of a repository by tag name
 	// produces:
 	// - application/json
 	// parameters:
@@ -130,37 +130,22 @@ func DeleteTag(ctx *context.APIContext) {
 	//   required: true
 	// - name: tag
 	//   in: path
-	//   description: name of tag to delete
+	//   description: name of tag
 	//   type: string
 	//   required: true
 	// responses:
-	//   "204":
+	//   "200":
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	//   "409":
-	//     "$ref": "#/responses/conflict"
+	tagName := ctx.Params("tag")
 
-	tag, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
-			ctx.NotFound()
-			return
-		}
-		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		ctx.NotFound(tagName)
 		return
 	}
-
-	if !tag.IsTag {
-		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
-		return
-	}
-
-	if err = releaseservice.DeleteReleaseByID(tag.ID, ctx.User, true); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
-	}
-
-	ctx.Status(http.StatusNoContent)
+	ctx.JSON(http.StatusOK, convert.ToTag(ctx.Repo.Repository, tag))
 }
 
 // CreateTag create a new git tag in a repository
@@ -220,4 +205,57 @@ func CreateTag(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusCreated, convert.ToTag(ctx.Repo.Repository, tag))
+}
+
+// DeleteTag delete a specific tag of in a repository by name
+func DeleteTag(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/tags/{tag} repository repoDeleteTag
+	// ---
+	// summary: Delete a repository's tag by name
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: tag
+	//   in: path
+	//   description: name of tag to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+
+	tag, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		return
+	}
+
+	if !tag.IsTag {
+		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
+		return
+	}
+
+	if err = releaseservice.DeleteReleaseByID(tag.ID, ctx.User, true); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

@@ -51,6 +51,20 @@ func TestAPIRepoTags(t *testing.T) {
 			assert.EqualValues(t, newTag.Commit.SHA, tag.Commit.SHA)
 		}
 	}
+
+	// get created tag
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	var tag *api.Tag
+	DecodeJSON(t, resp, &tag)
+	assert.EqualValues(t, newTag, tag)
+
+	// delete tag
+	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
+	resp = session.MakeRequest(t, delReq, http.StatusNoContent)
+
+	// check if it's gone
+	resp = session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func createNewTagUsingAPI(t *testing.T, session *TestSession, token string, ownerName, repoName, name, target, msg string) *api.Tag {
