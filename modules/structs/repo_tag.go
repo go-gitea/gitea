@@ -7,6 +7,7 @@ package structs
 // Tag represents a repository tag
 type Tag struct {
 	Name       string      `json:"name"`
+	Message    string      `json:"message"`
 	ID         string      `json:"id"`
 	Commit     *CommitMeta `json:"commit"`
 	ZipballURL string      `json:"zipball_url"`
