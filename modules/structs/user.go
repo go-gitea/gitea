@@ -66,7 +66,7 @@ type UserSettings struct {
 	Language      string `json:"language"`
 	Theme         string `json:"theme"`
 	DiffViewStyle string `json:"diff_view_style"`
-	// Piracy
+	// Privacy
 	HideEmail    bool `json:"hide_email"`
 	HideActivity bool `json:"hide_activity"`
 }
@@ -81,7 +81,7 @@ type UserSettingsOptions struct {
 	Language      *string `json:"language"`
 	Theme         *string `json:"theme"`
 	DiffViewStyle *string `json:"diff_view_style"`
-	// Piracy
+	// Privacy
 	HideEmail    *bool `json:"hide_email"`
 	HideActivity *bool `json:"hide_activity"`
 }
