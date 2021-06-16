@@ -44,7 +44,7 @@ type User struct {
 	// the user's description
 	Description string `json:"description"`
 	// User visibility level option: public(0) - default, limited(1), private(2)
-	Visibility int `json:"visibility"`
+	Visibility string `json:"visibility"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

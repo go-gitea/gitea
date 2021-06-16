@@ -27,7 +27,7 @@ var VisibilityModes = map[string]VisibleType{
 
 // IsPublic returns true if VisibleType is public
 func (vt VisibleType) IsPublic() bool {
-	return vt == VisibleTypePublic || vt == 0
+	return vt == VisibleTypePublic
 }
 
 // IsLimited returns true if VisibleType is limited
