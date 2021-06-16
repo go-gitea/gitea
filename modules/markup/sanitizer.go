@@ -65,9 +65,6 @@ func createDefaultPolicy() *bluemonday.Policy {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)
 	}
 
-	// Allow keyword markup
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^` + keywordClass + `$`)).OnElements("span")
-
 	// Allow classes for anchors
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`ref-issue`)).OnElements("a")
 
@@ -83,8 +80,8 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow classes for emojis
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
 
-	// Allow icons, emojis, and chroma syntax on span
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$`)).OnElements("span")
+	// Allow icons, emojis, chroma syntax and keyword markup on span
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
 
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{"abbr", "accept", "accept-charset",

@@ -423,6 +423,7 @@ Extensions
 - [goldmark-emoji](https://github.com/yuin/goldmark-emoji): An emoji
   extension for the goldmark Markdown parser.
 - [goldmark-mathjax](https://github.com/litao91/goldmark-mathjax): Mathjax support for the goldmark markdown parser
+- [goldmark-pdf](https://github.com/stephenafamo/goldmark-pdf): A PDF renderer that can be passed to `goldmark.WithRenderer()`.
 
 goldmark internal(for extension developers)
 ----------------------------------------------

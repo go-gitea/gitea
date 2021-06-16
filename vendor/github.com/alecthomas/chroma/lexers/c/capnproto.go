@@ -6,14 +6,18 @@ import (
 )
 
 // Cap'N'Proto Proto lexer.
-var CapNProto = internal.Register(MustNewLexer(
+var CapNProto = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Cap'n Proto",
 		Aliases:   []string{"capnp"},
 		Filenames: []string{"*.capnp"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	capNProtoRules,
+))
+
+func capNProtoRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*?$`, CommentSingle, nil},
 			{`@[0-9a-zA-Z]*`, NameDecorator, nil},
@@ -57,5 +61,5 @@ var CapNProto = internal.Register(MustNewLexer(
 			{`[])]`, NameAttribute, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

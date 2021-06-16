@@ -6,7 +6,7 @@ import (
 )
 
 // Bibtex lexer.
-var Bibtex = internal.Register(MustNewLexer(
+var Bibtex = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "BibTeX",
 		Aliases:         []string{"bib", "bibtex"},
@@ -15,7 +15,11 @@ var Bibtex = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	bibtexRules,
+))
+
+func bibtexRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`@comment`, Comment, nil},
@@ -72,5 +76,5 @@ var Bibtex = internal.Register(MustNewLexer(
 		"whitespace": {
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

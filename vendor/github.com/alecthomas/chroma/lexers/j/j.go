@@ -6,14 +6,18 @@ import (
 )
 
 // J lexer.
-var J = internal.Register(MustNewLexer(
+var J = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "J",
 		Aliases:   []string{"j"},
 		Filenames: []string{"*.ijs"},
 		MimeTypes: []string{"text/x-j"},
 	},
-	Rules{
+	jRules,
+))
+
+func jRules() Rules {
+	return Rules{
 		"root": {
 			{`#!.*$`, CommentPreproc, nil},
 			{`NB\..*`, CommentSingle, nil},
@@ -69,5 +73,5 @@ var J = internal.Register(MustNewLexer(
 			{`''`, LiteralString, nil},
 			{`'`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -29,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
@@ -605,6 +605,28 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
+// Auth converts auth.Auth as a middleware
+func Auth(authMethod auth.Auth) func(*Context) {
+	return func(ctx *Context) {
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+
+			// ensure the session uid is deleted
+			_ = ctx.Session.Delete("uid")
+		}
+	}
+}
+
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -688,24 +710,6 @@ func Contexter() func(next http.Handler) http.Handler {
 					ctx.ServerError("ParseMultipartForm", err)
 					return
 				}
-			}
-
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-
-				// ensure the session uid is deleted
-				_ = ctx.Session.Delete("uid")
 			}
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
