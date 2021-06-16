@@ -42,6 +42,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded
 	//   type: string
+	// - name: milestones
+	//   in: query
+	//   description: comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded
+	//   type: string
 	// - name: q
 	//   in: query
 	//   description: search string
@@ -164,6 +168,12 @@ func SearchIssues(ctx *context.APIContext) {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
+	milestones := strings.TrimSpace(ctx.Query("milestones"))
+	var includedMilestones []string
+	if len(milestones) > 0 {
+		includedMilestones = strings.Split(milestones, ",")
+	}
+
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
 	limit := ctx.QueryInt("limit")
@@ -175,7 +185,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
-	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 {
+	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
 				Page:     ctx.QueryInt("page"),
@@ -185,6 +195,7 @@ func SearchIssues(ctx *context.APIContext) {
 			IsClosed:           isClosed,
 			IssueIDs:           issueIDs,
 			IncludedLabelNames: includedLabelNames,
+			IncludeMilestones:  includedMilestones,
 			SortType:           "priorityrepo",
 			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
 			IsPull:             isPull,
