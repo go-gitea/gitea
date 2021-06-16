@@ -98,6 +98,7 @@ func NewQueueService() {
 	Queue.QueueLength = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
+	defaultType := sec.Key("TYPE").String()
 	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
 	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
@@ -141,6 +142,16 @@ func NewQueueService() {
 	}
 	if _, ok := sectionMap["CONN_STR"]; !ok {
 		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
+	}
+
+	// Default the last_commit_queue to use the level queue
+	section = Cfg.Section("queue.issue_indexer")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["TYPE"]; !ok && defaultType == "" {
+		_, _ = section.NewKey("TYPE", "level")
 	}
 
 	// Handle the old mailer configuration
