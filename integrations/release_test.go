@@ -200,12 +200,12 @@ func TestViewTagsList(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, rsp.Body)
 	tags := htmlDoc.Find(".tag-list tr")
-	assert.Equal(t, 2, tags.Length())
+	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
 	tags.Each(func(i int, s *goquery.Selection) {
 		tagNames = append(tagNames, s.Find(".tag a.df.ac").Text())
 	})
 
-	assert.EqualValues(t, []string{"delete-tag", "v1.1"}, tagNames)
+	assert.EqualValues(t, []string{"v1.0", "delete-tag", "v1.1"}, tagNames)
 }
