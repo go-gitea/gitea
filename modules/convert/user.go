@@ -50,13 +50,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Description: user.Description,
 	}
 
-	result.Visibility = 0
-	if user.Visibility.IsLimited() {
-		result.Visibility = 1
-	}
-	if user.Visibility.IsPrivate() {
-		result.Visibility = 2
-	}
+	result.Visibility = user.Visibility.String()
 
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
