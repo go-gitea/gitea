@@ -142,7 +142,6 @@ type Webhook struct {
 	OrgID           int64 `xorm:"INDEX"`
 	IsSystemWebhook bool
 	URL             string `xorm:"url TEXT"`
-	Signature       string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
 	ContentType     HookContentType
 	Secret          string `xorm:"TEXT"`
