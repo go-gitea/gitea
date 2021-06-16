@@ -76,9 +76,6 @@ type MatrixPayloadSafe struct {
 	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
 
-// SetSecret sets the Matrix secret
-func (m *MatrixPayloadUnsafe) SetSecret(_ string) {}
-
 // JSONPayload Marshals the MatrixPayloadUnsafe to json
 func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary

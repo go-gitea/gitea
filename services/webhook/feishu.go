@@ -35,9 +35,6 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 	}
 }
 
-// SetSecret sets the Feishu secret
-func (f *FeishuPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the FeishuPayload to json
 func (f *FeishuPayload) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary

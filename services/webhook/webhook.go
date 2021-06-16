@@ -158,7 +158,6 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, event models.Hoo
 			return fmt.Errorf("create payload for %s[%s]: %v", w.Type, event, err)
 		}
 	} else {
-		p.SetSecret(w.Secret)
 		payloader = p
 	}
 
