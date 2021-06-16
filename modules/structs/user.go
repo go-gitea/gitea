@@ -43,7 +43,7 @@ type User struct {
 	Website string `json:"website"`
 	// the user's description
 	Description string `json:"description"`
-	// User visibility level option: public(0) - default, limited(1), private(2)
+	// User visibility level option: public (default), limited, private
 	Visibility string `json:"visibility"`
 }
 
