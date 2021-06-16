@@ -48,7 +48,6 @@ type User struct {
 	Followers    int `json:"followers_count"`
 	Following    int `json:"following_count"`
 	StarredRepos int `json:"starred_repos_count"`
-	PublicRepos  int `json:"public_repos_count"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility

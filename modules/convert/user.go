@@ -52,7 +52,6 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Followers:    user.NumFollowers,
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
-		PublicRepos:  int(models.CountUserRepositories(user.ID, false)),
 	}
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
