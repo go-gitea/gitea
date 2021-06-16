@@ -182,10 +182,12 @@ func Pull(repoPath string, opts PullRemoteOptions) error {
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote string
-	Branch string
-	Force  bool
-	Env    []string
+	Remote  string
+	Branch  string
+	Force   bool
+	Mirror  bool
+	Env     []string
+	Timeout time.Duration
 }
 
 // Push pushs local commits to given remote branch.
@@ -194,10 +196,20 @@ func Push(repoPath string, opts PushOptions) error {
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
-	cmd.AddArguments("--", opts.Remote, opts.Branch)
+	if opts.Mirror {
+		cmd.AddArguments("--mirror")
+	}
+	cmd.AddArguments("--", opts.Remote)
+	if len(opts.Branch) > 0 {
+		cmd.AddArguments(opts.Branch)
+	}
 	var outbuf, errbuf strings.Builder
 
-	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, -1, repoPath, &outbuf, &errbuf)
+	if opts.Timeout == 0 {
+		opts.Timeout = -1
+	}
+
+	err := cmd.RunInDirTimeoutEnvPipeline(opts.Env, opts.Timeout, repoPath, &outbuf, &errbuf)
 	if err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return &ErrPushOutOfDate{

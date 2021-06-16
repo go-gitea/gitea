@@ -38,7 +38,6 @@ import (
 
 const (
 	tplCommentPrefix = `# gitea public key`
-	tplCommand       = "%s --config=%s serv key-%d"
 	tplPublicKey     = tplCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty %s` + "\n"
 
 	authorizedPrincipalsFile = "authorized_principals"
@@ -88,7 +87,16 @@ func (key *PublicKey) OmitEmail() string {
 
 // AuthorizedString returns formatted public key string for authorized_keys file.
 func (key *PublicKey) AuthorizedString() string {
-	return fmt.Sprintf(tplPublicKey, util.ShellEscape(fmt.Sprintf(tplCommand, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf), key.ID)), key.Content)
+	sb := &strings.Builder{}
+	_ = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sb, map[string]interface{}{
+		"AppPath":     util.ShellEscape(setting.AppPath),
+		"AppWorkPath": util.ShellEscape(setting.AppWorkPath),
+		"CustomConf":  util.ShellEscape(setting.CustomConf),
+		"CustomPath":  util.ShellEscape(setting.CustomPath),
+		"Key":         key,
+	})
+
+	return fmt.Sprintf(tplPublicKey, util.ShellEscape(sb.String()), key.Content)
 }
 
 func extractTypeFromBase64Key(key string) (string, error) {
