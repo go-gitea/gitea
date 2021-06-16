@@ -1377,7 +1377,7 @@ function initPullRequestReview() {
     }
     $textarea.focus();
     $simplemde.codemirror.focus();
-    assingMenuAttributes(form.find('.menu'));
+    assignMenuAttributes(form.find('.menu'));
   });
 
   const $reviewBox = $('.review-box');
@@ -1435,7 +1435,7 @@ function initPullRequestReview() {
       const data = await $.get($(this).data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
-      assingMenuAttributes(commentCloud.find('.menu'));
+      assignMenuAttributes(commentCloud.find('.menu'));
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
@@ -1448,7 +1448,7 @@ function initPullRequestReview() {
   });
 }
 
-function assingMenuAttributes(menu) {
+function assignMenuAttributes(menu) {
   const id = Math.floor(Math.random() * Math.floor(1000000));
   menu.attr('data-write', menu.attr('data-write') + id);
   menu.attr('data-preview', menu.attr('data-preview') + id);
