@@ -56,6 +56,8 @@ func (u User) MarshalJSON() ([]byte, error) {
 	}{shadow(u), u.UserName})
 }
 
+// UserSettingsOptions represents user settings
+// swagger:model
 type UserSettings struct {
 	FullName      string `json:"full_name"`
 	Website       string `json:"website"`
@@ -69,6 +71,8 @@ type UserSettings struct {
 	HideActivity bool `json:"hide_activity"`
 }
 
+// UserSettingsOptions represents options to change user settings
+// swagger:model
 type UserSettingsOptions struct {
 	FullName      *string `json:"full_name" binding:"MaxSize(100)"`
 	Website       *string `json:"website" binding:"OmitEmpty;ValidUrl;MaxSize(255)"`
