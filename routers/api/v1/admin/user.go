@@ -67,11 +67,6 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
 
-	visibility := api.VisibleTypePublic
-	if form.Visibility != "" {
-		visibility = api.VisibilityModes[form.Visibility]
-	}
-
 	u := &models.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
@@ -80,7 +75,6 @@ func CreateUser(ctx *context.APIContext) {
 		MustChangePassword: true,
 		IsActive:           true,
 		LoginType:          models.LoginPlain,
-		Visibility:         visibility,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword
@@ -104,7 +98,15 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
-	if err := models.CreateUser(u); err != nil {
+
+	var overwriteDefault *models.CreateUserOverwriteOptions
+	if form.Visibility != "" {
+		overwriteDefault = &models.CreateUserOverwriteOptions{
+			Visibility: api.VisibilityModes[form.Visibility],
+		}
+	}
+
+	if err := models.CreateUser(u, overwriteDefault); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||

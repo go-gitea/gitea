@@ -849,8 +849,13 @@ func IsUsableUsername(name string) error {
 	return isUsableName(reservedUsernames, reservedUserPatterns, name)
 }
 
+// CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
+type CreateUserOverwriteOptions struct {
+	Visibility structs.VisibleType
+}
+
 // CreateUser creates record of a new user.
-func CreateUser(u *User) (err error) {
+func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
 	}
@@ -884,8 +889,6 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
-
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
 	if u.Rands, err = GetUserSalt(); err != nil {
@@ -894,10 +897,18 @@ func CreateUser(u *User) (err error) {
 	if err = u.SetPassword(u.Passwd); err != nil {
 		return err
 	}
+
+	// set system defaults
+	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.Visibility = setting.Service.DefaultUserVisibilityMode
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
 	u.MaxRepoCreation = -1
 	u.Theme = setting.UI.DefaultTheme
+	// overwrite defaults if set
+	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
+		u.Visibility = overwriteDefault[0].Visibility
+	}
 
 	if _, err = sess.Insert(u); err != nil {
 		return err
