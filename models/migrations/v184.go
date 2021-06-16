@@ -19,11 +19,11 @@ func dropWebhookColumns(x *xorm.Engine) error {
 	}
 
 	type HookTask struct {
-		Typ         models.HookType `xorm:"VARCHAR(16) index"`
-		URL         string          `xorm:"TEXT"`
-		Signature   string          `xorm:"TEXT"`
-		HTTPMethod  string          `xorm:"http_method"`
-		ContentType models.HookContentType
+		Typ         string `xorm:"VARCHAR(16) index"`
+		URL         string `xorm:"TEXT"`
+		Signature   string `xorm:"TEXT"`
+		HTTPMethod  string `xorm:"http_method"`
+		ContentType int
 		IsSSL       bool
 	}
 	if err := x.Sync2(new(HookTask)); err != nil {
