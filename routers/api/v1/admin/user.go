@@ -216,8 +216,8 @@ func EditUser(ctx *context.APIContext) {
 	if form.Active != nil {
 		u.IsActive = *form.Active
 	}
-	if form.Visibility != nil {
-		u.Visibility = api.VisibilityModes[*form.Visibility]
+	if len(form.Visibility) != 0 {
+		u.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
 		u.IsAdmin = *form.Admin
