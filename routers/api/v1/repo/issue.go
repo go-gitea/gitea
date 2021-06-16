@@ -437,19 +437,22 @@ func ListIssues(ctx *context.APIContext) {
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 	userName := ctx.Query(queryName)
-	if len(userName) != 0 {
-		user, err := models.GetUserByName(userName)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.NotFound(err)
-				return 0
-			}
-			ctx.InternalServerError(err)
-			return 0
-		}
-		return user.ID
+	if len(userName) == 0 {
+		return 0
 	}
-	return 0
+
+	user, err := models.GetUserByName(userName)
+	if models.IsErrUserNotExist(err) {
+		ctx.NotFound(err)
+		return 0
+	}
+
+	if err != nil {
+		ctx.InternalServerError(err)
+		return 0
+	}
+
+	return user.ID
 }
 
 // GetIssue get an issue of a repository
