@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -173,6 +174,8 @@ type FindReleasesOptions struct {
 	ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
+	IsPreRelease  util.OptionalBool
+	IsDraft       util.OptionalBool
 	TagNames      []string
 }
 
@@ -188,6 +191,12 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	}
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
+	}
+	if !opts.IsPreRelease.IsNone() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.IsTrue()})
+	}
+	if !opts.IsDraft.IsNone() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
 	}
 	return cond
 }

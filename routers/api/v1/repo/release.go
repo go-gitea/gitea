@@ -83,6 +83,14 @@ func ListReleases(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: draft
+	//   in: query
+	//   description: filter (exclude / include) drafts, if you dont have repo write access none will show
+	//   type: boolean
+	// - name: pre-release
+	//   in: query
+	//   description: filter (exclude / include) pre-releases
+	//   type: boolean
 	// - name: per_page
 	//   in: query
 	//   description: page size of results, deprecated - use limit
@@ -100,7 +108,7 @@ func ListReleases(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 	listOptions := utils.GetListOptions(ctx)
-	if ctx.QueryInt("per_page") != 0 {
+	if listOptions.PageSize == 0 && ctx.QueryInt("per_page") != 0 {
 		listOptions.PageSize = ctx.QueryInt("per_page")
 	}
 
@@ -108,6 +116,8 @@ func ListReleases(ctx *context.APIContext) {
 		ListOptions:   listOptions,
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
+		IsDraft:       ctx.QueryOptionalBool("draft"),
+		IsPreRelease:  ctx.QueryOptionalBool("pre-release"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
