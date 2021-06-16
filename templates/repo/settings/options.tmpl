@@ -70,80 +70,165 @@
 
 		</div>
 
-		{{if .Repository.IsMirror}}
+		{{if or .Repository.IsMirror (not .DisabledMirrors)}}
 			<h4 class="ui top attached header">
 				{{.i18n.Tr "repo.settings.mirror_settings"}}
 			</h4>
 			<div class="ui attached segment">
-				<form class="ui form" method="post">
-					{{.CsrfTokenHtml}}
-					<input type="hidden" name="action" value="mirror">
-					<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
-						<label>{{.i18n.Tr "repo.mirror_prune"}}</label>
-						<div class="ui checkbox">
-							<input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
-						</div>
-					</div>
-					<div class="inline field {{if .Err_Interval}}error{{end}}">
-						<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
-						<input id="interval" name="interval" value="{{.MirrorInterval}}">
-					</div>
-					<div class="field {{if .Err_MirrorAddress}}error{{end}}">
-						<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
-						<input id="mirror_address" name="mirror_address" value="{{MirrorFullAddress .Mirror}}" required>
-						<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
-					</div>
-					<details class="ui optional field" {{if .Err_Auth}}open{{else if (MirrorUserName .Mirror)}}open{{end}}>
-						<summary class="p-2">
-							{{.i18n.Tr "repo.need_auth"}}
-						</summary>
-						<div class="p-2">
-							<div class="inline field {{if .Err_Auth}}error{{end}}">
-								<label for="mirror_username">{{.i18n.Tr "username"}}</label>
-								<input id="mirror_username" name="mirror_username" value="{{MirrorUserName .Mirror}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
-							</div>
-							<input class="fake" type="password">
-							<div class="inline field {{if .Err_Auth}}error{{end}}">
-								<label for="mirror_password">{{.i18n.Tr "password"}}</label>
-								<input id="mirror_password" name="mirror_password" type="password" value="{{MirrorPassword .Mirror}}" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
-							</div>
-						</div>
-					</details>
-
-					{{if .LFSStartServer}}
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.mirror_lfs"}}</label>
-						<div class="ui checkbox">
-							<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .Mirror.LFS}}checked{{end}}>
-							<label>{{.i18n.Tr "repo.mirror_lfs_desc"}}</label>
-						</div>
-					</div>
-					<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
-						<label for="mirror_lfs_endpoint">{{.i18n.Tr "repo.mirror_lfs_endpoint"}}</label>
-						<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}" placeholder="{{.i18n.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
-						<p class="help">{{.i18n.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
-					</div>
+				{{$.i18n.Tr "repo.settings.mirror_settings.docs" | Safe}}
+				<table class="ui table">
+					{{if or .Repository.IsMirror .Repository.PushMirrors}}
+					<thead>
+						<tr>
+							<th style="width:40%">{{$.i18n.Tr "repo.settings.mirror_settings.mirrored_repository"}}</th>
+							<th>{{$.i18n.Tr "repo.settings.mirror_settings.direction"}}</th>
+							<th>{{$.i18n.Tr "repo.settings.mirror_settings.last_update"}}</th>
+							<th></th>
+						</tr>
+					</thead>
 					{{end}}
+					{{if .Repository.IsMirror}}
+					<tbody>
+						<tr>
+							<td>{{(MirrorRemoteAddress .Mirror).Address}}</td>
+							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
+							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
+							<td class="right aligned">
+								<form method="post" style="display: inline-block">
+									{{.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="mirror-sync">
+									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+								</form>
+							</td>
+						</tr>
+						<tr>
+							<td colspan="4">
+								<form class="ui form" method="post">
+									{{.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="mirror">
+									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
+										<label>{{.i18n.Tr "repo.mirror_prune"}}</label>
+										<div class="ui checkbox">
+									<input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
+										</div>
+									</div>
+									<div class="inline field {{if .Err_Interval}}error{{end}}">
+										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+										<input id="interval" name="interval" value="{{.MirrorInterval}}">
+									</div>
+									{{$address := MirrorRemoteAddress .Mirror}}
+									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
+										<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
+										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
+										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
+									</div>
+									<details class="ui optional field" {{if or .Err_Auth $address.Username}}open{{end}}>
+										<summary class="p-2">
+											{{.i18n.Tr "repo.need_auth"}}
+										</summary>
+										<div class="p-2">
+											<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<label for="mirror_username">{{.i18n.Tr "username"}}</label>
+												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
+											</div>
+											<input class="fake" type="password">
+											<div class="inline field {{if .Err_Auth}}error{{end}}">
+												<label for="mirror_password">{{.i18n.Tr "password"}}</label>
+												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.i18n.Tr "repo.mirror_password_placeholder"}}{{else}}{{.i18n.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
+											</div>
+											<p class="help">{{.i18n.Tr "repo.mirror_password_help"}}</p>
+										</div>
+									</details>
 
-					<div class="field">
-						<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
-					</div>
-				</form>
-
-				<div class="ui divider"></div>
-
-				<form class="ui form" method="post">
-					{{.CsrfTokenHtml}}
-					<input type="hidden" name="action" value="mirror-sync">
-					<div class="inline field">
-						<label>{{.i18n.Tr "repo.mirror_last_synced"}}</label>
-						<span>{{.Mirror.UpdatedUnix.AsTime}}</span>
-					</div>
-					<div class="field">
-						<button class="ui blue button">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
-					</div>
-				</form>
+									{{if .LFSStartServer}}
+									<div class="inline field">
+										<label>{{.i18n.Tr "repo.mirror_lfs"}}</label>
+										<div class="ui checkbox">
+											<input id="mirror_lfs" name="mirror_lfs" type="checkbox" {{if .Mirror.LFS}}checked{{end}}>
+											<label>{{.i18n.Tr "repo.mirror_lfs_desc"}}</label>
+										</div>
+									</div>
+									<div class="field {{if .Err_LFSEndpoint}}error{{end}}">
+										<label for="mirror_lfs_endpoint">{{.i18n.Tr "repo.mirror_lfs_endpoint"}}</label>
+										<input id="mirror_lfs_endpoint" name="mirror_lfs_endpoint" value="{{.Mirror.LFSEndpoint}}" placeholder="{{.i18n.Tr "repo.migrate_options_lfs_endpoint.placeholder"}}">
+										<p class="help">{{.i18n.Tr "repo.mirror_lfs_endpoint_desc" "https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md#server-discovery" | Str2html}}</p>
+									</div>
+									{{end}}
+									<div class="field">
+										<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+									</div>
+								</form>
+							</td>
+						</tr>
+					</tbody>
+					<thead><tr><th colspan="4"></th></tr></thead>
+					{{end}}
+					<tbody>
+						{{range .Repository.PushMirrors}}
+						<tr>
+							{{$address := MirrorRemoteAddress .}}
+							<td>{{$address.Address}}</td>
+							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
+							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
+							<td class="right aligned">
+								<form method="post" style="display: inline-block">
+									{{$.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="push-mirror-remove">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<button class="ui basic red tiny button inline text-thin">{{$.i18n.Tr "remove"}}</button>
+								</form>
+								<form method="post" style="display: inline-block">
+									{{$.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="push-mirror-sync">
+									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
+									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+								</form>
+							</td>
+						</tr>
+						{{else}}
+						<tr>
+							<td>{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
+						</tr>
+						{{end}}
+						<tr>
+							<td colspan="4">
+								<form class="ui form" method="post">
+									{{.CsrfTokenHtml}}
+									<input type="hidden" name="action" value="push-mirror-add">
+									<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
+										<label for="push_mirror_address">{{.i18n.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
+										<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
+										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
+									</div>
+									<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+										<summary class="p-2">
+											{{.i18n.Tr "repo.need_auth"}}
+										</summary>
+										<div class="p-2">
+											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+												<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
+												<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+											</div>
+											<input class="fake" type="password">
+											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+												<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
+												<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+											</div>
+										</div>
+									</details>
+									<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
+										<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+										<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
+									</div>
+									<div class="field">
+										<button class="ui green button">{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+									</div>
+								</form>
+							</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
 		{{end}}
 
@@ -648,7 +733,8 @@
 		<div class="content">
 			<div class="ui warning message text left">
 				{{.i18n.Tr "repo.settings.transfer_notices_1"}} <br>
-				{{.i18n.Tr "repo.settings.transfer_notices_2"}}
+				{{.i18n.Tr "repo.settings.transfer_notices_2"}} <br>
+				{{.i18n.Tr "repo.settings.transfer_notices_3"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}

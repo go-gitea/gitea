@@ -33,12 +33,12 @@ func TestAPIRepoTeams(t *testing.T) {
 	DecodeJSON(t, res, &teams)
 	if assert.Len(t, teams, 2) {
 		assert.EqualValues(t, "Owners", teams[0].Name)
-		assert.EqualValues(t, false, teams[0].CanCreateOrgRepo)
+		assert.False(t, teams[0].CanCreateOrgRepo)
 		assert.EqualValues(t, []string{"repo.code", "repo.issues", "repo.pulls", "repo.releases", "repo.wiki", "repo.ext_wiki", "repo.ext_issues"}, teams[0].Units)
 		assert.EqualValues(t, "owner", teams[0].Permission)
 
 		assert.EqualValues(t, "test_team", teams[1].Name)
-		assert.EqualValues(t, false, teams[1].CanCreateOrgRepo)
+		assert.False(t, teams[1].CanCreateOrgRepo)
 		assert.EqualValues(t, []string{"repo.issues"}, teams[1].Units)
 		assert.EqualValues(t, "write", teams[1].Permission)
 	}

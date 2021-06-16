@@ -6,7 +6,6 @@ package lfs
 
 import (
 	"net/url"
-
 	"testing"
 
 	"github.com/stretchr/testify/assert"

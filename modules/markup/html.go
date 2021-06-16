@@ -364,24 +364,19 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 	case html.ElementNode:
 		if node.Data == "img" {
-			attrs := node.Attr
-			for idx, attr := range attrs {
+			for _, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
-				link := []byte(attr.Val)
-				if len(link) > 0 && !IsLink(link) {
+				if len(attr.Val) > 0 && !isLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
 					prefix := ctx.URLPrefix
 					if ctx.IsWiki {
 						prefix = util.URLJoin(prefix, "wiki", "raw")
 					}
 					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-					lnk := string(link)
-					lnk = util.URLJoin(prefix, lnk)
-					link = []byte(lnk)
+					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
-				node.Attr[idx].Val = string(link)
 			}
 		} else if node.Data == "a" {
 			visitText = false
