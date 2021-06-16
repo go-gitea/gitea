@@ -317,6 +317,8 @@ var migrations = []Migration{
 	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
 	// v183 -> v184
 	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
 }
 
 // GetCurrentDBVersion returns the current db version
