@@ -25,6 +25,7 @@ func ToUser(user, doer *models.User) *api.User {
 	return toUser(user, signed, authed)
 }
 
+// ToUsers convert list of models.User to list of api.User
 func ToUsers(doer *models.User, users []*models.User) []*api.User {
 	result := make([]*api.User, len(users))
 	for i := range users {
