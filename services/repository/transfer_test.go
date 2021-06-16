@@ -52,3 +52,24 @@ func TestTransferOwnership(t *testing.T) {
 
 	models.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
 }
+
+func TestStartRepositoryTransferSetPermission(t *testing.T) {
+	assert.NoError(t, models.PrepareTestDatabase())
+
+	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+	recipient := models.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo.Owner = models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	hasAccess, err := models.HasAccess(recipient.ID, repo)
+	assert.NoError(t, err)
+	assert.False(t, hasAccess)
+
+	assert.NoError(t, StartRepositoryTransfer(doer, recipient, repo, nil))
+
+	hasAccess, err = models.HasAccess(recipient.ID, repo)
+	assert.NoError(t, err)
+	assert.True(t, hasAccess)
+
+	models.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
+}

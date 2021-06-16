@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -49,6 +51,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
@@ -167,10 +171,9 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		oldUsername := mirror_service.Username(ctx.Repo.Mirror)
-		oldPassword := mirror_service.Password(ctx.Repo.Mirror)
-		if form.MirrorPassword == "" && form.MirrorUsername == oldUsername {
-			form.MirrorPassword = oldPassword
+		u, _ := git.GetRemoteAddress(ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
+			form.MirrorPassword, _ = u.User.Password()
 		}
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
@@ -224,6 +227,92 @@ func SettingsPost(ctx *context.Context) {
 		mirror_service.StartToMirror(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-sync":
+		m, err := selectPushMirrorByForm(form, repo)
+		if err != nil {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		mirror_service.AddPushMirrorToQueue(m.ID)
+
+		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-remove":
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		m, err := selectPushMirrorByForm(form, repo)
+		if err != nil {
+			ctx.NotFound("", nil)
+			return
+		}
+
+		if err = mirror_service.RemovePushMirrorRemote(m); err != nil {
+			ctx.ServerError("RemovePushMirrorRemote", err)
+			return
+		}
+
+		if err = models.DeletePushMirrorByID(m.ID); err != nil {
+			ctx.ServerError("DeletePushMirrorByID", err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(repo.Link() + "/settings")
+
+	case "push-mirror-add":
+		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
+		// as an error on the UI for this action
+		ctx.Data["Err_RepoName"] = nil
+
+		interval, err := time.ParseDuration(form.PushMirrorInterval)
+		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
+			ctx.Data["Err_PushMirrorInterval"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
+			return
+		}
+
+		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
+		if err == nil {
+			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+		}
+		if err != nil {
+			ctx.Data["Err_PushMirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
+			return
+		}
+
+		remoteSuffix, err := util.RandomString(10)
+		if err != nil {
+			ctx.ServerError("RandomString", err)
+			return
+		}
+
+		m := &models.PushMirror{
+			RepoID:     repo.ID,
+			Repo:       repo,
+			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			Interval:   interval,
+		}
+		if err := models.InsertPushMirror(m); err != nil {
+			ctx.ServerError("InsertPushMirror", err)
+			return
+		}
+
+		if err := mirror_service.AddPushMirrorRemote(m, address); err != nil {
+			if err := models.DeletePushMirrorByID(m.ID); err != nil {
+				log.Error("DeletePushMirrorByID %v", err)
+			}
+			ctx.ServerError("AddPushMirrorRemote", err)
+			return
+		}
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "advanced":
@@ -1050,4 +1139,23 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+}
+
+func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *models.Repository) (*models.PushMirror, error) {
+	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = repo.LoadPushMirrors(); err != nil {
+		return nil, err
+	}
+
+	for _, m := range repo.PushMirrors {
+		if m.ID == id {
+			return m, nil
+		}
+	}
+
+	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 }
