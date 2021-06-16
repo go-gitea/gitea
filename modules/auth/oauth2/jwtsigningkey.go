@@ -48,35 +48,35 @@ type JWTSigningKey interface {
 	PreProcessToken(*jwt.Token)
 }
 
-type hmacSingingKey struct {
+type hmacSigningKey struct {
 	signingMethod jwt.SigningMethod
 	secret        []byte
 }
 
-func (key hmacSingingKey) IsSymmetric() bool {
+func (key hmacSigningKey) IsSymmetric() bool {
 	return true
 }
 
-func (key hmacSingingKey) SigningMethod() jwt.SigningMethod {
+func (key hmacSigningKey) SigningMethod() jwt.SigningMethod {
 	return key.signingMethod
 }
 
-func (key hmacSingingKey) SignKey() interface{} {
+func (key hmacSigningKey) SignKey() interface{} {
 	return key.secret
 }
 
-func (key hmacSingingKey) VerifyKey() interface{} {
+func (key hmacSigningKey) VerifyKey() interface{} {
 	return key.secret
 }
 
-func (key hmacSingingKey) ToJWK() (map[string]string, error) {
+func (key hmacSigningKey) ToJWK() (map[string]string, error) {
 	return map[string]string{
 		"kty": "oct",
 		"alg": key.SigningMethod().Alg(),
 	}, nil
 }
 
-func (key hmacSingingKey) PreProcessToken(*jwt.Token) {}
+func (key hmacSigningKey) PreProcessToken(*jwt.Token) {}
 
 type rsaSingingKey struct {
 	signingMethod jwt.SigningMethod
@@ -240,7 +240,7 @@ func CreateJWTSingingKey(algorithm string, key interface{}) (JWTSigningKey, erro
 		if !ok {
 			return nil, jwt.ErrInvalidKeyType
 		}
-		return hmacSingingKey{signingMethod, secret}, nil
+		return hmacSigningKey{signingMethod, secret}, nil
 	}
 }
 
