@@ -7,14 +7,18 @@ import (
 )
 
 // Mako lexer.
-var Mako = internal.Register(MustNewLexer(
+var Mako = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Mako",
 		Aliases:   []string{"mako"},
 		Filenames: []string{"*.mao"},
 		MimeTypes: []string{"application/x-mako"},
 	},
-	Rules{
+	makoRules,
+))
+
+func makoRules() Rules {
+	return Rules{
 		"root": {
 			{`(\s*)(%)(\s*end(?:\w+))(\n|\Z)`, ByGroups(Text, CommentPreproc, Keyword, Other), nil},
 			{`(\s*)(%)([^\n]*)(\n|\Z)`, ByGroups(Text, CommentPreproc, Using(Python), Other), nil},
@@ -56,5 +60,5 @@ var Mako = internal.Register(MustNewLexer(
 			{`'.*?'`, LiteralString, Pop(1)},
 			{`[^\s>]+`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

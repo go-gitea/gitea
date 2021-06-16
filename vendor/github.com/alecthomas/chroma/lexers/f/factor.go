@@ -6,14 +6,18 @@ import (
 )
 
 // Factor lexer.
-var Factor = internal.Register(MustNewLexer(
+var Factor = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Factor",
 		Aliases:   []string{"factor"},
 		Filenames: []string{"*.factor"},
 		MimeTypes: []string{"text/x-factor"},
 	},
-	Rules{
+	factorRules,
+))
+
+func factorRules() Rules {
+	return Rules{
 		"root": {
 			{`#!.*$`, CommentPreproc, nil},
 			Default(Push("base")),
@@ -111,5 +115,5 @@ var Factor = internal.Register(MustNewLexer(
 			{`;\s`, Keyword, Pop(1)},
 			{`\S+`, NameFunction, nil},
 		},
-	},
-))
+	}
+}

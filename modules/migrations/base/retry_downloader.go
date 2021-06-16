@@ -31,6 +31,27 @@ func NewRetryDownloader(ctx context.Context, downloader Downloader, retryTimes, 
 	}
 }
 
+func (d *RetryDownloader) retry(work func() error) error {
+	var (
+		times = d.RetryTimes
+		err   error
+	)
+	for ; times > 0; times-- {
+		if err = work(); err == nil {
+			return nil
+		}
+		if IsErrNotSupported(err) {
+			return err
+		}
+		select {
+		case <-d.ctx.Done():
+			return d.ctx.Err()
+		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
+		}
+	}
+	return err
+}
+
 // SetContext set context
 func (d *RetryDownloader) SetContext(ctx context.Context) {
 	d.ctx = ctx
@@ -40,208 +61,136 @@ func (d *RetryDownloader) SetContext(ctx context.Context) {
 // GetRepoInfo returns a repository information with retry
 func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 	var (
-		times = d.RetryTimes
-		repo  *Repository
-		err   error
+		repo *Repository
+		err  error
 	)
-	for ; times > 0; times-- {
-		if repo, err = d.Downloader.GetRepoInfo(); err == nil {
-			return repo, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		repo, err = d.Downloader.GetRepoInfo()
+		return err
+	})
+
+	return repo, err
 }
 
 // GetTopics returns a repository's topics with retry
 func (d *RetryDownloader) GetTopics() ([]string, error) {
 	var (
-		times  = d.RetryTimes
 		topics []string
 		err    error
 	)
-	for ; times > 0; times-- {
-		if topics, err = d.Downloader.GetTopics(); err == nil {
-			return topics, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		topics, err = d.Downloader.GetTopics()
+		return err
+	})
+
+	return topics, err
 }
 
 // GetMilestones returns a repository's milestones with retry
 func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 	var (
-		times      = d.RetryTimes
 		milestones []*Milestone
 		err        error
 	)
-	for ; times > 0; times-- {
-		if milestones, err = d.Downloader.GetMilestones(); err == nil {
-			return milestones, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		milestones, err = d.Downloader.GetMilestones()
+		return err
+	})
+
+	return milestones, err
 }
 
 // GetReleases returns a repository's releases with retry
 func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 	var (
-		times    = d.RetryTimes
 		releases []*Release
 		err      error
 	)
-	for ; times > 0; times-- {
-		if releases, err = d.Downloader.GetReleases(); err == nil {
-			return releases, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		releases, err = d.Downloader.GetReleases()
+		return err
+	})
+
+	return releases, err
 }
 
 // GetLabels returns a repository's labels with retry
 func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 	var (
-		times  = d.RetryTimes
 		labels []*Label
 		err    error
 	)
-	for ; times > 0; times-- {
-		if labels, err = d.Downloader.GetLabels(); err == nil {
-			return labels, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		labels, err = d.Downloader.GetLabels()
+		return err
+	})
+
+	return labels, err
 }
 
 // GetIssues returns a repository's issues with retry
 func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 	var (
-		times  = d.RetryTimes
 		issues []*Issue
 		isEnd  bool
 		err    error
 	)
-	for ; times > 0; times-- {
-		if issues, isEnd, err = d.Downloader.GetIssues(page, perPage); err == nil {
-			return issues, isEnd, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, false, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, false, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, false, err
+
+	err = d.retry(func() error {
+		issues, isEnd, err = d.Downloader.GetIssues(page, perPage)
+		return err
+	})
+
+	return issues, isEnd, err
 }
 
 // GetComments returns a repository's comments with retry
 func (d *RetryDownloader) GetComments(issueNumber int64) ([]*Comment, error) {
 	var (
-		times    = d.RetryTimes
 		comments []*Comment
 		err      error
 	)
-	for ; times > 0; times-- {
-		if comments, err = d.Downloader.GetComments(issueNumber); err == nil {
-			return comments, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		comments, err = d.Downloader.GetComments(issueNumber)
+		return err
+	})
+
+	return comments, err
 }
 
 // GetPullRequests returns a repository's pull requests with retry
 func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
 	var (
-		times = d.RetryTimes
 		prs   []*PullRequest
 		err   error
 		isEnd bool
 	)
-	for ; times > 0; times-- {
-		if prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage); err == nil {
-			return prs, isEnd, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, false, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, false, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, false, err
+
+	err = d.retry(func() error {
+		prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage)
+		return err
+	})
+
+	return prs, isEnd, err
 }
 
 // GetReviews returns pull requests reviews
 func (d *RetryDownloader) GetReviews(pullRequestNumber int64) ([]*Review, error) {
 	var (
-		times   = d.RetryTimes
 		reviews []*Review
 		err     error
 	)
-	for ; times > 0; times-- {
-		if reviews, err = d.Downloader.GetReviews(pullRequestNumber); err == nil {
-			return reviews, nil
-		}
-		if IsErrNotSupported(err) {
-			return nil, err
-		}
-		select {
-		case <-d.ctx.Done():
-			return nil, d.ctx.Err()
-		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
-		}
-	}
-	return nil, err
+
+	err = d.retry(func() error {
+		reviews, err = d.Downloader.GetReviews(pullRequestNumber)
+		return err
+	})
+
+	return reviews, err
 }

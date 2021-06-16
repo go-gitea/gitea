@@ -14,6 +14,7 @@ Programming language detector and toolbox to ignore binary or vendored files. _e
     - [Go](#go)
     - [Java bindings](#java-bindings)
     - [Python bindings](#python-bindings)
+    - [Rust bindings](#rust-bindings)
 - [Divergences from linguist](#divergences-from-linguist)
 - [Benchmarks](#benchmarks)
 - [Why Enry?](#why-enry)
@@ -148,6 +149,11 @@ Generated Python bindings using a C shared library and cffi are WIP under [src-d
 A library is going to be published on pypi as [enry](https://pypi.org/project/enry/) for
 macOS and linux platforms. Windows support is planned under [src-d/enry#150](https://github.com/src-d/enry/issues/150).
 
+### Rust bindings
+
+Generated Rust bindings using a C static library are available at https://github.com/go-enry/rs-enry.
+
+
 ## Divergences from Linguist
 
 The `enry` library is based on the data from `github/linguist` version **v7.13.0**.
@@ -169,9 +175,6 @@ Parsing [linguist/samples](https://github.com/github/linguist/tree/master/sample
 - As of [Linguist v5.3.2](https://github.com/github/linguist/releases/tag/v5.3.2) it is using [flex-based scanner in C for tokenization](https://github.com/github/linguist/pull/3846). Enry still uses [extract_token](https://github.com/github/linguist/pull/3846/files#diff-d5179df0b71620e3fac4535cd1368d15L60) regex-based algorithm. See [#193](https://github.com/src-d/enry/issues/193).
 
 - Bayesian classifier can't distinguish "SQL" from "PLpgSQL. See [#194](https://github.com/src-d/enry/issues/194).
-
-- Detection of [generated files](https://github.com/github/linguist/blob/bf95666fc15e49d556f2def4d0a85338423c25f3/lib/linguist/generated.rb#L53) is not supported yet.
-  (Thus they are not excluded from CLI output). See [#213](https://github.com/src-d/enry/issues/213).
 
 - Overriding languages and types though `.gitattributes` is not yet supported. See [#18](https://github.com/src-d/enry/issues/18).
 

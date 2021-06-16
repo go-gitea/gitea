@@ -40,3 +40,8 @@ TEXT ·asmRdtscpAsm(SB), 7, $0
 	MOVL CX, ecx+8(FP)
 	MOVL DX, edx+12(FP)
 	RET
+
+// func asmDarwinHasAVX512() bool
+TEXT ·asmDarwinHasAVX512(SB), 7, $0
+	MOVL $0, eax+0(FP)
+	RET
