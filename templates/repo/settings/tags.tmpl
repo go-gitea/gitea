@@ -31,7 +31,7 @@
 								<div class="whitelist field">
 									<label>{{.i18n.Tr "repo.settings.tags.protection.allowed.users"}}</label>
 									<div class="ui multiple search selection dropdown">
-										<input type="hidden" name="whitelist_users" value="{{.whitelist_users}}">
+										<input type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
 										<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 										<div class="menu">
 											{{range .Users}}
@@ -47,7 +47,7 @@
 									<div class="whitelist field">
 										<label>{{.i18n.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
 										<div class="ui multiple search selection dropdown">
-											<input type="hidden" name="whitelist_teams" value="{{.whitelist_teams}}">
+											<input type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
 											<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 											<div class="menu">
 												{{range .Teams}}
@@ -85,15 +85,15 @@
 									<tr>
 										<td><pre>{{.NamePattern}}</pre></td>
 										<td>
-											{{if or .WhitelistUserIDs (and $.Owner.IsOrganization .WhitelistTeamIDs)}}
-												{{$userIDs := .WhitelistUserIDs}}
+											{{if or .AllowlistUserIDs (and $.Owner.IsOrganization .AllowlistTeamIDs)}}
+												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
 													{{if contain $userIDs .ID }}
 														<a class="ui basic image label" href="{{.HomeLink}}">{{avatar . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
-													{{$teamIDs := .WhitelistTeamIDs}}
+													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
 														{{if contain $teamIDs .ID }}
 															<a class="ui basic image label" href="{{$.Owner.OrganisationLink}}/teams/{{.LowerName}}">{{.Name}}</a>

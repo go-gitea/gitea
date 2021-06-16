@@ -45,11 +45,11 @@ func NewProtectedTagPost(ctx *context.Context) {
 		NamePattern: strings.TrimSpace(form.NamePattern),
 	}
 
-	if strings.TrimSpace(form.WhitelistUsers) != "" {
-		pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
+	if strings.TrimSpace(form.AllowlistUsers) != "" {
+		pt.AllowlistUserIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistUsers, ","))
 	}
-	if strings.TrimSpace(form.WhitelistTeams) != "" {
-		pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
+	if strings.TrimSpace(form.AllowlistTeams) != "" {
+		pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 	}
 
 	if err := models.InsertProtectedTag(pt); err != nil {
@@ -75,8 +75,8 @@ func EditProtectedTag(ctx *context.Context) {
 	}
 
 	ctx.Data["name_pattern"] = pt.NamePattern
-	ctx.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(pt.WhitelistUserIDs), ",")
-	ctx.Data["whitelist_teams"] = strings.Join(base.Int64sToStrings(pt.WhitelistTeamIDs), ",")
+	ctx.Data["allowlist_users"] = strings.Join(base.Int64sToStrings(pt.AllowlistUserIDs), ",")
+	ctx.Data["allowlist_teams"] = strings.Join(base.Int64sToStrings(pt.AllowlistTeamIDs), ",")
 
 	ctx.HTML(http.StatusOK, tplTags)
 }
@@ -102,8 +102,8 @@ func EditProtectedTagPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ProtectTagForm)
 
 	pt.NamePattern = strings.TrimSpace(form.NamePattern)
-	pt.WhitelistUserIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistUsers, ","))
-	pt.WhitelistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.WhitelistTeams, ","))
+	pt.AllowlistUserIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistUsers, ","))
+	pt.AllowlistTeamIDs, _ = base.StringsToInt64s(strings.Split(form.AllowlistTeams, ","))
 
 	if err := models.UpdateProtectedTag(pt); err != nil {
 		ctx.ServerError("UpdateProtectedTag", err)

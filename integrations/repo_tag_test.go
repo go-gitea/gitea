@@ -37,7 +37,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 		err = models.InsertProtectedTag(&models.ProtectedTag{
 			RepoID:           repo.ID,
 			NamePattern:      "v-1.1",
-			WhitelistUserIDs: []int64{repo.OwnerID},
+			AllowlistUserIDs: []int64{repo.OwnerID},
 		})
 		assert.NoError(t, err)
 

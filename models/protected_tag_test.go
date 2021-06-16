@@ -19,7 +19,7 @@ func TestIsUserAllowed(t *testing.T) {
 	assert.False(t, allowed)
 
 	pt = &ProtectedTag{
-		WhitelistUserIDs: []int64{1},
+		AllowlistUserIDs: []int64{1},
 	}
 	allowed, err = pt.IsUserAllowed(1)
 	assert.NoError(t, err)
@@ -30,7 +30,7 @@ func TestIsUserAllowed(t *testing.T) {
 	assert.False(t, allowed)
 
 	pt = &ProtectedTag{
-		WhitelistTeamIDs: []int64{1},
+		AllowlistTeamIDs: []int64{1},
 	}
 	allowed, err = pt.IsUserAllowed(1)
 	assert.NoError(t, err)
@@ -41,8 +41,8 @@ func TestIsUserAllowed(t *testing.T) {
 	assert.True(t, allowed)
 
 	pt = &ProtectedTag{
-		WhitelistUserIDs: []int64{1},
-		WhitelistTeamIDs: []int64{1},
+		AllowlistUserIDs: []int64{1},
+		AllowlistTeamIDs: []int64{1},
 	}
 	allowed, err = pt.IsUserAllowed(1)
 	assert.NoError(t, err)
@@ -120,11 +120,11 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 		protectedTags := []*ProtectedTag{
 			{
 				NamePattern:      `*gitea`,
-				WhitelistUserIDs: []int64{1},
+				AllowlistUserIDs: []int64{1},
 			},
 			{
 				NamePattern:      `v-*`,
-				WhitelistUserIDs: []int64{2},
+				AllowlistUserIDs: []int64{2},
 			},
 			{
 				NamePattern: "release",
@@ -142,11 +142,11 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 		protectedTags := []*ProtectedTag{
 			{
 				NamePattern:      `/gitea\z/`,
-				WhitelistUserIDs: []int64{1},
+				AllowlistUserIDs: []int64{1},
 			},
 			{
 				NamePattern:      `/\Av-/`,
-				WhitelistUserIDs: []int64{2},
+				AllowlistUserIDs: []int64{2},
 			},
 			{
 				NamePattern: "/release/",

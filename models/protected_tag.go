@@ -21,8 +21,8 @@ type ProtectedTag struct {
 	NamePattern      string
 	RegexPattern     *regexp.Regexp `xorm:"-"`
 	GlobPattern      glob.Glob      `xorm:"-"`
-	WhitelistUserIDs []int64        `xorm:"JSON TEXT"`
-	WhitelistTeamIDs []int64        `xorm:"JSON TEXT"`
+	AllowlistUserIDs []int64        `xorm:"JSON TEXT"`
+	AllowlistTeamIDs []int64        `xorm:"JSON TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -63,15 +63,15 @@ func (pt *ProtectedTag) EnsureCompiledPattern() error {
 
 // IsUserAllowed returns true if the user is allowed to modify the tag
 func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
-	if base.Int64sContains(pt.WhitelistUserIDs, userID) {
+	if base.Int64sContains(pt.AllowlistUserIDs, userID) {
 		return true, nil
 	}
 
-	if len(pt.WhitelistTeamIDs) == 0 {
+	if len(pt.AllowlistTeamIDs) == 0 {
 		return false, nil
 	}
 
-	in, err := IsUserInTeams(userID, pt.WhitelistTeamIDs)
+	in, err := IsUserInTeams(userID, pt.AllowlistTeamIDs)
 	if err != nil {
 		return false, err
 	}

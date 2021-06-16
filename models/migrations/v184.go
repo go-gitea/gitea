@@ -15,8 +15,8 @@ func createProtectedTagTable(x *xorm.Engine) error {
 		ID               int64 `xorm:"pk autoincr"`
 		RepoID           int64
 		NamePattern      string
-		WhitelistUserIDs []int64 `xorm:"JSON TEXT"`
-		WhitelistTeamIDs []int64 `xorm:"JSON TEXT"`
+		AllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		AllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
