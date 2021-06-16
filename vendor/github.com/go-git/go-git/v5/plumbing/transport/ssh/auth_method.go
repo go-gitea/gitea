@@ -1,8 +1,6 @@
 package ssh
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -13,7 +11,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/xanzy/ssh-agent"
+	sshagent "github.com/xanzy/ssh-agent"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/knownhosts"
 )
@@ -121,27 +119,15 @@ type PublicKeys struct {
 // NewPublicKeys returns a PublicKeys from a PEM encoded private key. An
 // encryption password should be given if the pemBytes contains a password
 // encrypted PEM block otherwise password should be empty. It supports RSA
-// (PKCS#1), DSA (OpenSSL), and ECDSA private keys.
+// (PKCS#1), PKCS#8, DSA (OpenSSL), and ECDSA private keys.
 func NewPublicKeys(user string, pemBytes []byte, password string) (*PublicKeys, error) {
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		return nil, errors.New("invalid PEM data")
-	}
-	if x509.IsEncryptedPEMBlock(block) {
-		key, err := x509.DecryptPEMBlock(block, []byte(password))
-		if err != nil {
-			return nil, err
-		}
-
-		block = &pem.Block{Type: block.Type, Bytes: key}
-		pemBytes = pem.EncodeToMemory(block)
-	}
-
 	signer, err := ssh.ParsePrivateKey(pemBytes)
+	if _, ok := err.(*ssh.PassphraseMissingError); ok {
+		signer, err = ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(password))
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	return &PublicKeys{User: user, Signer: signer}, nil
 }
 

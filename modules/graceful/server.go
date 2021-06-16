@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var (
@@ -26,10 +27,11 @@ var (
 	DefaultWriteTimeOut time.Duration
 	// DefaultMaxHeaderBytes default max header bytes
 	DefaultMaxHeaderBytes int
+	// PerWriteWriteTimeout timeout for writes
+	PerWriteWriteTimeout = 30 * time.Second
+	// PerWriteWriteTimeoutKbTime is a timeout taking account of how much there is to be written
+	PerWriteWriteTimeoutKbTime = 10 * time.Second
 )
-
-// PerWriteWriteTimeout timeout for writes
-const PerWriteWriteTimeout = 5 * time.Second
 
 func init() {
 	DefaultMaxHeaderBytes = 0 // use http.DefaultMaxHeaderBytes - which currently is 1 << 20 (1MB)
@@ -40,14 +42,16 @@ type ServeFunction = func(net.Listener) error
 
 // Server represents our graceful server
 type Server struct {
-	network     string
-	address     string
-	listener    net.Listener
-	wg          sync.WaitGroup
-	state       state
-	lock        *sync.RWMutex
-	BeforeBegin func(network, address string)
-	OnShutdown  func()
+	network              string
+	address              string
+	listener             net.Listener
+	wg                   sync.WaitGroup
+	state                state
+	lock                 *sync.RWMutex
+	BeforeBegin          func(network, address string)
+	OnShutdown           func()
+	PerWriteTimeout      time.Duration
+	PerWritePerKbTimeout time.Duration
 }
 
 // NewServer creates a server on network at provided address
@@ -58,11 +62,13 @@ func NewServer(network, address, name string) *Server {
 		log.Info("Starting new %s server: %s:%s on PID: %d", name, network, address, os.Getpid())
 	}
 	srv := &Server{
-		wg:      sync.WaitGroup{},
-		state:   stateInit,
-		lock:    &sync.RWMutex{},
-		network: network,
-		address: address,
+		wg:                   sync.WaitGroup{},
+		state:                stateInit,
+		lock:                 &sync.RWMutex{},
+		network:              network,
+		address:              address,
+		PerWriteTimeout:      setting.PerWriteTimeout,
+		PerWritePerKbTimeout: setting.PerWritePerKbTimeout,
 	}
 
 	srv.BeforeBegin = func(network, addr string) {
@@ -224,9 +230,11 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 	closed := int32(0)
 
 	c = wrappedConn{
-		Conn:   c,
-		server: wl.server,
-		closed: &closed,
+		Conn:                 c,
+		server:               wl.server,
+		closed:               &closed,
+		perWriteTimeout:      wl.server.PerWriteTimeout,
+		perWritePerKbTimeout: wl.server.PerWritePerKbTimeout,
 	}
 
 	wl.server.wg.Add(1)
@@ -249,13 +257,23 @@ func (wl *wrappedListener) File() (*os.File, error) {
 
 type wrappedConn struct {
 	net.Conn
-	server *Server
-	closed *int32
+	server               *Server
+	closed               *int32
+	deadline             time.Time
+	perWriteTimeout      time.Duration
+	perWritePerKbTimeout time.Duration
 }
 
 func (w wrappedConn) Write(p []byte) (n int, err error) {
-	if PerWriteWriteTimeout > 0 {
-		_ = w.Conn.SetWriteDeadline(time.Now().Add(PerWriteWriteTimeout))
+	if w.perWriteTimeout > 0 {
+		minTimeout := time.Duration(len(p)/1024) * w.perWritePerKbTimeout
+		minDeadline := time.Now().Add(minTimeout).Add(w.perWriteTimeout)
+
+		w.deadline = w.deadline.Add(minTimeout)
+		if minDeadline.After(w.deadline) {
+			w.deadline = minDeadline
+		}
+		_ = w.Conn.SetWriteDeadline(w.deadline)
 	}
 	return w.Conn.Write(p)
 }

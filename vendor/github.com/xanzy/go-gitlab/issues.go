@@ -580,6 +580,33 @@ func (s *IssuesService) UnsubscribeFromIssue(pid interface{}, issue int, options
 	return i, resp, err
 }
 
+// CreateTodo creates a todo for the current user for an issue.
+// If there already exists a todo for the user on that issue, status code
+// 304 is returned.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/issues.html#create-a-to-do-item
+func (s *IssuesService) CreateTodo(pid interface{}, issue int, options ...RequestOptionFunc) (*Todo, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/issues/%d/todo", pathEscape(project), issue)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t := new(Todo)
+	resp, err := s.client.Do(req, t)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return t, resp, err
+}
+
 // ListMergeRequestsClosingIssueOptions represents the available
 // ListMergeRequestsClosingIssue() options.
 //
