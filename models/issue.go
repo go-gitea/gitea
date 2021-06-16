@@ -1127,9 +1127,18 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 		sess.Desc("issue.priority")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
-		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
+		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+			OrderBy("CASE " +
+				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
+				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"ELSE issue.deadline_unix END ASC")
 	case "farduedate":
-		sess.Desc("issue.deadline_unix")
+		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+			OrderBy("CASE " +
+				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"ELSE issue.deadline_unix END DESC")
 	case "priorityrepo":
 		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
 	default:
