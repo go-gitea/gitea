@@ -163,12 +163,6 @@ func EditUser(ctx *context.APIContext) {
 		return
 	}
 
-	visibility := api.VisibleTypePublic
-	if form.Visibility != "" {
-		visibility = api.VisibilityModes[form.Visibility]
-	}
-	u.Visibility = visibility
-
 	if len(form.Password) != 0 {
 		if !password.IsComplexEnough(form.Password) {
 			err := errors.New("PasswordComplexity")
@@ -221,6 +215,9 @@ func EditUser(ctx *context.APIContext) {
 	}
 	if form.Active != nil {
 		u.IsActive = *form.Active
+	}
+	if form.Visibility != nil {
+		u.Visibility = api.VisibilityModes[*form.Visibility]
 	}
 	if form.Admin != nil {
 		u.IsAdmin = *form.Admin
