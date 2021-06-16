@@ -56,7 +56,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 	}{shadow(u), u.UserName})
 }
 
-// UserSettingsOptions represents user settings
+// UserSettings represents user settings
 // swagger:model
 type UserSettings struct {
 	FullName      string `json:"full_name"`
