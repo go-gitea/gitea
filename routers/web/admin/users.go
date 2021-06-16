@@ -89,12 +89,11 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	u := &models.User{
-		Name:       form.UserName,
-		Email:      form.Email,
-		Passwd:     form.Password,
-		IsActive:   true,
-		LoginType:  models.LoginPlain,
-		Visibility: form.Visibility,
+		Name:      form.UserName,
+		Email:     form.Email,
+		Passwd:    form.Password,
+		IsActive:  true,
+		LoginType: models.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -131,7 +130,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := models.CreateUser(u); err != nil {
+	if err := models.CreateUser(u, &models.CreateUserOverwriteOptions{Visibility: form.Visibility}); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
