@@ -215,6 +215,11 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 	return rels, sess.Find(&rels)
 }
 
+// CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
+func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
+	return x.Where(opts.toConds(repoID)).Count(new(Release))
+}
+
 // GetLatestReleaseByRepoID returns the latest release for a repository
 func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
 	cond := builder.NewCond().
