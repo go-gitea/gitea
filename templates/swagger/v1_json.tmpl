@@ -646,6 +646,22 @@
             "in": "query"
           },
           {
+            "type": "array",
+            "items": {
+              "enum": [
+                "issue",
+                "pull",
+                "commit",
+                "repository"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "filter notifications by subject type",
+            "name": "subject-type",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -6803,6 +6819,22 @@
             "collectionFormat": "multi",
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
             "name": "status-types",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "issue",
+                "pull",
+                "commit",
+                "repository"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "filter notifications by subject type",
+            "name": "subject-type",
             "in": "query"
           },
           {
