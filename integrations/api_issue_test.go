@@ -222,6 +222,20 @@ func TestAPISearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
+
+	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 1)
+
+	query = url.Values{"milestones": {"milestone1,milestone3"}, "state": {"all"}}
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
 }
 
 func TestAPISearchIssuesWithLabels(t *testing.T) {

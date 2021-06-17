@@ -746,6 +746,8 @@ func Routes() *web.Route {
 						Put(reqAdmin(), bind(api.AddCollaboratorOption{}), repo.AddCollaborator).
 						Delete(reqAdmin(), repo.DeleteCollaborator)
 				}, reqToken())
+				m.Get("/assignees", reqToken(), reqAnyRepoReader(), repo.GetAssignees)
+				m.Get("/reviewers", reqToken(), reqAnyRepoReader(), repo.GetReviewers)
 				m.Group("/teams", func() {
 					m.Get("", reqAnyRepoReader(), repo.ListTeams)
 					m.Combo("/{team}").Get(reqAnyRepoReader(), repo.IsTeam).
