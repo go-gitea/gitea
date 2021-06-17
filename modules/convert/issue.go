@@ -213,7 +213,7 @@ func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCac
 			}
 		}
 
-		if org := orgCache[label.RepoID]; org != nil {
+		if org := orgCache[label.OrgID]; org != nil {
 			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, org.Name, label.ID)
 		}
 	}
