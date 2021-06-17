@@ -105,7 +105,7 @@
 											{{end}}
 										</td>
 										<td class="right aligned">
-											<a class="ui tiny blue button" href="{{$.Link}}/{{.ID}}">{{$.i18n.Tr "edit"}}</a>
+											<a class="ui tiny blue button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{$.i18n.Tr "edit"}}</a>
 											<form class="dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}" />
