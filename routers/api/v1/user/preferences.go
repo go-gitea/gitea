@@ -9,23 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 )
-
-func user2UserSettings(user *models.User) api.UserSettings {
-	return api.UserSettings{
-		FullName:      user.FullName,
-		Website:       user.Website,
-		Location:      user.Location,
-		Language:      user.Language,
-		Description:   user.Description,
-		Theme:         user.Theme,
-		HideEmail:     user.KeepEmailPrivate,
-		HideActivity:  user.KeepActivityPrivate,
-		DiffViewStyle: user.DiffViewStyle,
-	}
-}
 
 // GetUserSettings returns user settings
 func GetUserSettings(ctx *context.APIContext) {
@@ -37,7 +24,7 @@ func GetUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
-	ctx.JSON(http.StatusOK, user2UserSettings(ctx.User))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.User))
 }
 
 // UpdateUserSettings returns user settings
@@ -92,5 +79,5 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, user2UserSettings(ctx.User))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.User))
 }
