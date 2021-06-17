@@ -646,6 +646,22 @@
             "in": "query"
           },
           {
+            "type": "array",
+            "items": {
+              "enum": [
+                "issue",
+                "pull",
+                "commit",
+                "repository"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "filter notifications by subject type",
+            "name": "subject-type",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
@@ -1858,6 +1874,12 @@
             "type": "string",
             "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
             "name": "labels",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded",
+            "name": "milestones",
             "in": "query"
           },
           {
@@ -4216,6 +4238,38 @@
             "type": "string",
             "description": "comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded",
             "name": "milestones",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) created to",
+            "name": "created_by",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) assigned to",
+            "name": "assigned_by",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) mentioning to",
+            "name": "mentioned_by",
             "in": "query"
           },
           {
@@ -6803,6 +6857,22 @@
             "collectionFormat": "multi",
             "description": "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread \u0026 pinned",
             "name": "status-types",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "issue",
+                "pull",
+                "commit",
+                "repository"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "filter notifications by subject type",
+            "name": "subject-type",
             "in": "query"
           },
           {
@@ -16329,6 +16399,17 @@
           "format": "email",
           "x-go-name": "Email"
         },
+        "followers_count": {
+          "description": "user counts",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Followers"
+        },
+        "following_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Following"
+        },
         "full_name": {
           "description": "the user's full name",
           "type": "string",
@@ -16374,6 +16455,11 @@
           "description": "Is user restricted",
           "type": "boolean",
           "x-go-name": "Restricted"
+        },
+        "starred_repos_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StarredRepos"
         },
         "website": {
           "description": "the user's website",

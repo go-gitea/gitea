@@ -318,6 +318,8 @@ var migrations = []Migration{
 	// v183 -> v184
 	NewMigration("Create PushMirror table", createPushMirrorTable),
 	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
 }
 
