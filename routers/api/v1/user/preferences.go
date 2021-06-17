@@ -42,7 +42,7 @@ func GetUserSettings(ctx *context.APIContext) {
 
 // UpdateUserSettings returns user settings
 func UpdateUserSettings(ctx *context.APIContext) {
-	// swagger:operation PATCH /user/preferences user getUserSettings
+	// swagger:operation PATCH /user/preferences user updateUserSettings
 	// ---
 	// summary: Update user settings
 	// parameters:
