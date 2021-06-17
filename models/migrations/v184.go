@@ -5,22 +5,43 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"fmt"
+
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-func createProtectedTagTable(x *xorm.Engine) error {
-	type ProtectedTag struct {
-		ID               int64 `xorm:"pk autoincr"`
-		RepoID           int64
-		NamePattern      string
-		AllowlistUserIDs []int64 `xorm:"JSON TEXT"`
-		AllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func renameTaskErrorsToMessage(x *xorm.Engine) error {
+	type Task struct {
+		Errors string `xorm:"TEXT"` // if task failed, saved the error reason
+		Type   int
+		Status int `xorm:"index"`
 	}
 
-	return x.Sync2(new(ProtectedTag))
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := sess.Sync2(new(Task)); err != nil {
+		return fmt.Errorf("error on Sync2: %v", err)
+	}
+
+	switch {
+	case setting.Database.UseMySQL:
+		if _, err := sess.Exec("ALTER TABLE `task` CHANGE errors message text"); err != nil {
+			return err
+		}
+	case setting.Database.UseMSSQL:
+		if _, err := sess.Exec("sp_rename 'task.errors', 'message', 'COLUMN'"); err != nil {
+			return err
+		}
+	default:
+		if _, err := sess.Exec("ALTER TABLE `task` RENAME COLUMN errors TO message"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
