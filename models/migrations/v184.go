@@ -5,29 +5,18 @@
 package migrations
 
 import (
+	"fmt"
+
+	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
-func dropWebhookColumns(x *xorm.Engine) error {
-	// Make sure the columns exist before dropping them
-	type Webhook struct {
-		Signature string `xorm:"TEXT"`
-		IsSSL     bool   `xorm:"is_ssl"`
-	}
-	if err := x.Sync2(new(Webhook)); err != nil {
-		return err
-	}
-
-	type HookTask struct {
-		Typ         string `xorm:"VARCHAR(16) index"`
-		URL         string `xorm:"TEXT"`
-		Signature   string `xorm:"TEXT"`
-		HTTPMethod  string `xorm:"http_method"`
-		ContentType int
-		IsSSL       bool
-	}
-	if err := x.Sync2(new(HookTask)); err != nil {
-		return err
+func renameTaskErrorsToMessage(x *xorm.Engine) error {
+	type Task struct {
+		Errors string `xorm:"TEXT"` // if task failed, saved the error reason
+		Type   int
+		Status int `xorm:"index"`
 	}
 
 	sess := x.NewSession()
@@ -35,12 +24,24 @@ func dropWebhookColumns(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := dropTableColumns(sess, "webhook", "signature", "is_ssl"); err != nil {
-		return err
-	}
-	if err := dropTableColumns(sess, "hook_task", "typ", "url", "signature", "http_method", "content_type", "is_ssl"); err != nil {
-		return err
+
+	if err := sess.Sync2(new(Task)); err != nil {
+		return fmt.Errorf("error on Sync2: %v", err)
 	}
 
+	switch {
+	case setting.Database.UseMySQL:
+		if _, err := sess.Exec("ALTER TABLE `task` CHANGE errors message text"); err != nil {
+			return err
+		}
+	case setting.Database.UseMSSQL:
+		if _, err := sess.Exec("sp_rename 'task.errors', 'message', 'COLUMN'"); err != nil {
+			return err
+		}
+	default:
+		if _, err := sess.Exec("ALTER TABLE `task` RENAME COLUMN errors TO message"); err != nil {
+			return err
+		}
+	}
 	return sess.Commit()
 }
