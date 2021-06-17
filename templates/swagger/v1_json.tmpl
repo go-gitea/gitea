@@ -630,7 +630,7 @@
         "operationId": "notifyGetList",
         "parameters": [
           {
-            "type": "string",
+            "type": "boolean",
             "description": "If true, show notifications marked as read. Default value is false",
             "name": "all",
             "in": "query"
@@ -2273,6 +2273,39 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/assignees": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Return all users that have write access and can be assigned to issues",
+        "operationId": "repoGetAssignees",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
           }
         }
       }
@@ -6844,7 +6877,7 @@
             "required": true
           },
           {
-            "type": "string",
+            "type": "boolean",
             "description": "If true, show notifications marked as read. Default value is false",
             "name": "all",
             "in": "query"
@@ -8625,6 +8658,39 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Attachment"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/reviewers": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Return all users that can be requested to review in this repo",
+        "operationId": "repoGetReviewers",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserList"
           }
         }
       }

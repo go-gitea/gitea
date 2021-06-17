@@ -65,7 +65,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	// - name: all
 	//   in: query
 	//   description: If true, show notifications marked as read. Default value is false
-	//   type: string
+	//   type: boolean
 	// - name: status-types
 	//   in: query
 	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread & pinned"
