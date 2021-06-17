@@ -49,14 +49,14 @@ type ObjectResponse struct {
 	Error   *ObjectError     `json:"error,omitempty"`
 }
 
-// Link provides a structure used to build a hypermedia representation of an HTTP link.
+// Link provides a structure with informations about how to access a object.
 type Link struct {
 	Href      string            `json:"href"`
 	Header    map[string]string `json:"header,omitempty"`
 	ExpiresAt *time.Time        `json:"expires_at,omitempty"`
 }
 
-// ObjectError defines the JSON structure returned to the client in case of an error
+// ObjectError defines the JSON structure returned to the client in case of an error.
 type ObjectError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
