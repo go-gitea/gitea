@@ -425,3 +425,19 @@ func TestIssue16020(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, data, string(res))
 }
+
+func BenchmarkEmojiPostprocess(b *testing.B) {
+	data := "🥰 "
+	for len(data) < 1<<16 {
+		data += data
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := PostProcess(
+			[]byte(data),
+			"https://example.com",
+			localMetas,
+			false)
+		assert.NoError(b, err)
+	}
+}
