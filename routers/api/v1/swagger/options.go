@@ -160,5 +160,8 @@ type swaggerParameterBodies struct {
 	PullReviewRequestOptions api.PullReviewRequestOptions
 
 	// in:body
+	CreateTagOption api.CreateTagOption
+
+	// in:body
 	UserSettingsOptions api.UserSettingsOptions
 }
