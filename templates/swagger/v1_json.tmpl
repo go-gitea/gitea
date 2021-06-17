@@ -4235,6 +4235,38 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "name": "before",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) created to",
+            "name": "created_by",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) assigned to",
+            "name": "assigned_by",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter (issues / pulls) mentioning to",
+            "name": "mentioned_by",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
