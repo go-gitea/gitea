@@ -199,8 +199,7 @@ func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCac
 		if repo := repoCache[label.RepoID]; repo != nil {
 			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
 		}
-	}
-	if label.BelongsToOrg() {
+	} else { // BelongsToOrg
 		if orgCache == nil {
 			orgCache = make(map[int64]*models.User)
 		}
