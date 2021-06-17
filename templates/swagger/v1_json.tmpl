@@ -8077,6 +8077,18 @@
             "required": true
           },
           {
+            "type": "boolean",
+            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
+            "name": "draft",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (exclude / include) pre-releases",
+            "name": "pre-release",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page size of results, deprecated - use limit",
             "name": "per_page",
