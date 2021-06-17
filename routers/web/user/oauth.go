@@ -185,6 +185,21 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 				ErrorDescription: "cannot find application",
 			}
 		}
+		err = app.LoadUser()
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				return nil, &AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "cannot find user",
+				}
+			}
+			log.Error("Error loading user: %v", err)
+			return nil, &AccessTokenError{
+				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+				ErrorDescription: "server error",
+			}
+		}
+
 		idToken := &models.OIDCToken{
 			StandardClaims: jwt.StandardClaims{
 				ExpiresAt: expirationDate.AsTime().Unix(),
@@ -194,6 +209,20 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, clientSecret string) (*Ac
 			},
 			Nonce: grant.Nonce,
 		}
+		if grant.ScopeContains("profile") {
+			idToken.Name = app.User.FullName
+			idToken.PreferredUsername = app.User.Name
+			idToken.Profile = app.User.HTMLURL()
+			idToken.Picture = app.User.AvatarLink()
+			idToken.Website = app.User.Website
+			idToken.Locale = app.User.Language
+			idToken.UpdatedAt = app.User.UpdatedUnix
+		}
+		if grant.ScopeContains("email") {
+			idToken.Email = app.User.Email
+			idToken.EmailVerified = app.User.IsActive
+		}
+
 		signedIDToken, err = idToken.SignToken(clientSecret)
 		if err != nil {
 			return nil, &AccessTokenError{

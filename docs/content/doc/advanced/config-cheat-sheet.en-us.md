@@ -252,6 +252,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `unix`.
+- `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to 0 to
+   disable all timeouts.)
+- `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.
 
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
@@ -268,6 +271,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_AUTHORIZED_PRINCIPALS_ALLOW`: **off** or **username, email**: \[off, username, email, anything\]: Specify the principals values that users are allowed to use as principal. When set to `anything` no checks are done on the principal string. When set to `off` authorized principal are not allowed to be set.
 - `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true if `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
+- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}**: Set the template for the command to passed on authorized keys. Possible keys are: AppPath, AppWorkPath, CustomConf, CustomPath, Key - where Key is a `models.PublicKey` and the others are strings which are shellquoted.
 - `SSH_SERVER_CIPHERS`: **aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_KEY_EXCHANGES`: **diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
@@ -275,6 +279,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
+- `SSH_PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the SSH connections. (Set to
+  0 to disable all timeouts.)
+- `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
@@ -350,10 +357,10 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
-- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
-- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. (Previously this was `indexers/issues.queue`.)
-- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`.
-- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
@@ -364,7 +371,7 @@ relation to port exhaustion.
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
-- `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
+- `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
 
