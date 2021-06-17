@@ -100,7 +100,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 
 	if !isReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID); err != nil {
+		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err
 		}
 	}
@@ -215,7 +215,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
+func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
@@ -240,7 +240,7 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		}
 	}
 
-	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale)
+	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
 	if err != nil {
 		return nil, nil, err
 	}
