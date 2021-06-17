@@ -1190,3 +1190,9 @@ func NewServices() {
 	newProject()
 	newMimeTypeMap()
 }
+
+// NewServicesForInstall initializes the services for install
+func NewServicesForInstall() {
+	newService()
+	newMailService()
+}
