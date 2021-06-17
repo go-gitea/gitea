@@ -61,13 +61,18 @@
 									</div>
 								{{end}}
 								<div class="field">
+									{{if .PageIsEditProtectedTag}}
 									<button class="ui green button">
-										{{if .PageIsEditProtectedTag}}
-											{{$.i18n.Tr "save"}}
-										{{else}}
-											{{$.i18n.Tr "repo.settings.tags.protection.create"}}
-										{{end}}
+										{{$.i18n.Tr "save"}}
 									</button>
+									<a class="ui blue button" href="{{$.RepoLink}}/settings/tags">
+										{{$.i18n.Tr "cancel"}}
+									</a>
+									{{else}}
+									<button class="ui green button">
+										{{$.i18n.Tr "repo.settings.tags.protection.create"}}
+									</button>
+									{{end}}
 								</div>
 							</form>
 						</div>
