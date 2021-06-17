@@ -16,7 +16,7 @@ import (
 
 // GetUserSettings returns user settings
 func GetUserSettings(ctx *context.APIContext) {
-	// swagger:operation GET /user/preferences user getUserSettings
+	// swagger:operation GET /user/settings user getUserSettings
 	// ---
 	// summary: Get user settings
 	// produces:
@@ -29,7 +29,7 @@ func GetUserSettings(ctx *context.APIContext) {
 
 // UpdateUserSettings returns user settings
 func UpdateUserSettings(ctx *context.APIContext) {
-	// swagger:operation PATCH /user/preferences user updateUserSettings
+	// swagger:operation PATCH /user/settings user updateUserSettings
 	// ---
 	// summary: Update user settings
 	// parameters:

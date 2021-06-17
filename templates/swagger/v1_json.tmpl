@@ -10736,47 +10736,6 @@
         }
       }
     },
-    "/user/preferences": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "user"
-        ],
-        "summary": "Get user settings",
-        "operationId": "getUserSettings",
-        "responses": {
-          "200": {
-            "$ref": "#/responses/UserSettings"
-          }
-        }
-      },
-      "patch": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "user"
-        ],
-        "summary": "Update user settings",
-        "operationId": "updateUserSettings",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/UserSettingsOptions"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/UserSettings"
-          }
-        }
-      }
-    },
     "/user/repos": {
       "get": {
         "produces": [
@@ -10838,6 +10797,47 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/user/settings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get user settings",
+        "operationId": "getUserSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update user settings",
+        "operationId": "updateUserSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserSettingsOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
           }
         }
       }
