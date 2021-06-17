@@ -1878,6 +1878,12 @@
           },
           {
             "type": "string",
+            "description": "comma separated list of milestone names. Fetch only issues that have any of this milestones. Non existent are discarded",
+            "name": "milestones",
+            "in": "query"
+          },
+          {
+            "type": "string",
             "description": "search string",
             "name": "q",
             "in": "query"
@@ -8069,6 +8075,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
+            "name": "draft",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter (exclude / include) pre-releases",
+            "name": "pre-release",
+            "in": "query"
           },
           {
             "type": "integer",
@@ -16339,6 +16357,17 @@
           "format": "email",
           "x-go-name": "Email"
         },
+        "followers_count": {
+          "description": "user counts",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Followers"
+        },
+        "following_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Following"
+        },
         "full_name": {
           "description": "the user's full name",
           "type": "string",
@@ -16384,6 +16413,11 @@
           "description": "Is user restricted",
           "type": "boolean",
           "x-go-name": "Restricted"
+        },
+        "starred_repos_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "StarredRepos"
         },
         "website": {
           "description": "the user's website",
