@@ -997,7 +997,9 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	start := 0
 	next := node.NextSibling
-	cache := make(map[string]bool)
+	if ctx.ShaExistCache == nil {
+		ctx.ShaExistCache = make(map[string]bool)
+	}
 	for node != nil && node != next && start < len(node.Data) {
 		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
@@ -1017,7 +1019,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// a commit in the repository before making it a link.
 
 		// check cache first
-		exist, inCache := cache[hash]
+		exist, inCache := ctx.ShaExistCache[hash]
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
@@ -1033,7 +1035,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 
 			exist = ctx.GitRepo.IsObjectExist(hash)
-			cache[hash] = exist
+			ctx.ShaExistCache[hash] = exist
 		}
 
 		if !exist {

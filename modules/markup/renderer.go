@@ -36,20 +36,25 @@ func Init() {
 
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx         context.Context
-	Filename    string
-	Type        string
-	IsWiki      bool
-	URLPrefix   string
-	Metas       map[string]string
-	DefaultLink string
-	GitRepo     *git.Repository
-	cancelFn    func()
+	Ctx           context.Context
+	Filename      string
+	Type          string
+	IsWiki        bool
+	URLPrefix     string
+	Metas         map[string]string
+	DefaultLink   string
+	GitRepo       *git.Repository
+	ShaExistCache map[string]bool
+	cancelFn      func()
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
 func (ctx *RenderContext) Cancel() {
-	if ctx == nil || ctx.cancelFn == nil {
+	if ctx == nil {
+		return
+	}
+	ctx.ShaExistCache = map[string]bool{}
+	if ctx.cancelFn == nil {
 		return
 	}
 	ctx.cancelFn()
