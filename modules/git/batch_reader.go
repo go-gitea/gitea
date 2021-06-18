@@ -212,63 +212,6 @@ func To40ByteSHA(sha, out []byte) []byte {
 	return out
 }
 
-// ParseTreeLineSkipMode reads an entry from a tree in a cat-file --batch stream
-// This simply skips the mode - saving a substantial amount of time and carefully avoids allocations - except where fnameBuf is too small.
-// It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
-//
-// Each line is composed of:
-// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <20-byte SHA>
-//
-// We don't attempt to convert the 20-byte SHA to 40-byte SHA to save a lot of time
-func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sha []byte, n int, err error) {
-	var readBytes []byte
-	// Skip the Mode
-	readBytes, err = rd.ReadSlice('\x00') // NB: DOES NOT ALLOCATE SIMPLY RETURNS SLICE WITHIN READER BUFFER
-	if err != nil {
-		return
-	}
-	idx := bytes.IndexByte(readBytes, ' ')
-	if idx < 0 {
-		log("missing space in readBytes: %s", readBytes)
-		err = &ErrNotExist{}
-		return
-	}
-	n += idx + 1
-	readBytes = readBytes[idx+1:]
-
-	// Deal with the fname
-	copy(fnameBuf, readBytes)
-	if len(fnameBuf) > len(readBytes) {
-		fnameBuf = fnameBuf[:len(readBytes)] // cut the buf the correct size
-	} else {
-		fnameBuf = append(fnameBuf, readBytes[len(fnameBuf):]...) // extend the buf and copy in the missing bits
-	}
-	for err == bufio.ErrBufferFull { // Then we need to read more
-		readBytes, err = rd.ReadSlice('\x00')
-		fnameBuf = append(fnameBuf, readBytes...) // there is little point attempting to avoid allocations here so just extend
-	}
-	n += len(fnameBuf)
-	if err != nil {
-		return
-	}
-	fnameBuf = fnameBuf[:len(fnameBuf)-1] // Drop the terminal NUL
-	fname = fnameBuf                      // set the returnable fname to the slice
-
-	// Now deal with the 20-byte SHA
-	idx = 0
-	for idx < 20 {
-		read := 0
-		read, err = rd.Read(shaBuf[idx:20])
-		n += read
-		if err != nil {
-			return
-		}
-		idx += read
-	}
-	sha = shaBuf
-	return
-}
-
 // ParseTreeLine reads an entry from a tree in a cat-file --batch stream
 // This carefully avoids allocations - except where fnameBuf is too small.
 // It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
