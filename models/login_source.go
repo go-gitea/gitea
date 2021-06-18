@@ -376,6 +376,13 @@ func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
 // ActiveLoginSources returns all active sources of the specified type
 func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
+	if loginType < 0 {
+		if err := x.Where("is_actived = ?", true).Find(&sources); err != nil {
+			return nil, err
+		}
+		return sources, nil
+	}
+
 	if err := x.Where("is_actived = ? and type = ?", true, loginType).Find(&sources); err != nil {
 		return nil, err
 	}
@@ -740,124 +747,4 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 		IsActive:    true,
 	}
 	return user, CreateUser(user)
-}
-
-// ExternalUserLogin attempts a login using external source types.
-func ExternalUserLogin(user *User, login, password string, source *LoginSource) (*User, error) {
-	if !source.IsActived {
-		return nil, ErrLoginSourceNotActived
-	}
-
-	var err error
-	switch source.Type {
-	case LoginLDAP, LoginDLDAP:
-		user, err = LoginViaLDAP(user, login, password, source)
-	case LoginSMTP:
-		user, err = LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*SMTPConfig))
-	case LoginPAM:
-		user, err = LoginViaPAM(user, login, password, source.ID, source.Cfg.(*PAMConfig))
-	default:
-		return nil, ErrUnsupportedLoginType
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-	// user could be hint to resend confirm email.
-	if user.ProhibitLogin {
-		return nil, ErrUserProhibitLogin{user.ID, user.Name}
-	}
-
-	return user, nil
-}
-
-// UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*User, error) {
-	var user *User
-	if strings.Contains(username, "@") {
-		user = &User{Email: strings.ToLower(strings.TrimSpace(username))}
-		// check same email
-		cnt, err := x.Count(user)
-		if err != nil {
-			return nil, err
-		}
-		if cnt > 1 {
-			return nil, ErrEmailAlreadyUsed{
-				Email: user.Email,
-			}
-		}
-	} else {
-		trimmedUsername := strings.TrimSpace(username)
-		if len(trimmedUsername) == 0 {
-			return nil, ErrUserNotExist{0, username, 0}
-		}
-
-		user = &User{LowerName: strings.ToLower(trimmedUsername)}
-	}
-
-	hasUser, err := x.Get(user)
-	if err != nil {
-		return nil, err
-	}
-
-	if hasUser {
-		switch user.LoginType {
-		case LoginNoType, LoginPlain, LoginOAuth2:
-			if user.IsPasswordSet() && user.ValidatePassword(password) {
-
-				// Update password hash if server password hash algorithm have changed
-				if user.PasswdHashAlgo != setting.PasswordHashAlgo {
-					if err = user.SetPassword(password); err != nil {
-						return nil, err
-					}
-					if err = UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
-						return nil, err
-					}
-				}
-
-				// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-				// user could be hint to resend confirm email.
-				if user.ProhibitLogin {
-					return nil, ErrUserProhibitLogin{user.ID, user.Name}
-				}
-
-				return user, nil
-			}
-
-			return nil, ErrUserNotExist{user.ID, user.Name, 0}
-
-		default:
-			var source LoginSource
-			hasSource, err := x.ID(user.LoginSource).Get(&source)
-			if err != nil {
-				return nil, err
-			} else if !hasSource {
-				return nil, ErrLoginSourceNotExist{user.LoginSource}
-			}
-
-			return ExternalUserLogin(user, user.LoginName, password, &source)
-		}
-	}
-
-	sources := make([]*LoginSource, 0, 5)
-	if err = x.Where("is_actived = ?", true).Find(&sources); err != nil {
-		return nil, err
-	}
-
-	for _, source := range sources {
-		if source.IsOAuth2() || source.IsSSPI() {
-			// don't try to authenticate against OAuth2 and SSPI sources here
-			continue
-		}
-		authUser, err := ExternalUserLogin(nil, username, password, source)
-		if err == nil {
-			return authUser, nil
-		}
-
-		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
-	}
-
-	return nil, ErrUserNotExist{user.ID, user.Name, 0}
 }

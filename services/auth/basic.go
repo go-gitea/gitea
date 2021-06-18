@@ -116,7 +116,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
-	u, err := models.UserSignIn(uname, passwd)
+	u, err := UserSignIn(uname, passwd)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
