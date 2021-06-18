@@ -76,5 +76,5 @@ func TestSlackPullRequestPayload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, pl)
 
-	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#2 Fix bug> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+	assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Pull request opened: <http://localhost:3000/test/repo/pulls/12|#12 Fix bug> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 }
