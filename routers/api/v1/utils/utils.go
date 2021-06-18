@@ -55,7 +55,7 @@ func parseTime(value string) (int64, error) {
 // prepareQueryArg unescape and trim a query arg
 func prepareQueryArg(ctx *context.APIContext, name string) (value string, err error) {
 	value, err = url.PathUnescape(ctx.Query(name))
-	value = strings.Trim(value, " ")
+	value = strings.TrimSpace(value)
 	return
 }
 
@@ -65,23 +65,4 @@ func GetListOptions(ctx *context.APIContext) models.ListOptions {
 		Page:     ctx.QueryInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
 	}
-}
-
-// PaginateUserSlice cut a slice of Users as per pagination options
-// TODO: make it generic
-func PaginateUserSlice(items []*models.User, page, pageSize int) []*models.User {
-	if page != 0 {
-		page--
-	}
-
-	if page*pageSize >= len(items) {
-		return items[len(items):]
-	}
-
-	items = items[page*pageSize:]
-
-	if len(items) > pageSize {
-		return items[:pageSize]
-	}
-	return items
 }

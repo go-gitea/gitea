@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/cache"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"github.com/unknwon/com"
 )
 
@@ -28,7 +29,7 @@ type RedisCacher struct {
 func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	key = c.prefix + key
 	if expire == 0 {
-		if err := c.c.Set(key, com.ToStr(val), 0).Err(); err != nil {
+		if err := c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), 0).Err(); err != nil {
 			return err
 		}
 	} else {
@@ -36,7 +37,7 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 		if err != nil {
 			return err
 		}
-		if err = c.c.Set(key, com.ToStr(val), dur).Err(); err != nil {
+		if err = c.c.Set(graceful.GetManager().HammerContext(), key, com.ToStr(val), dur).Err(); err != nil {
 			return err
 		}
 	}
@@ -44,12 +45,12 @@ func (c *RedisCacher) Put(key string, val interface{}, expire int64) error {
 	if c.occupyMode {
 		return nil
 	}
-	return c.c.HSet(c.hsetName, key, "0").Err()
+	return c.c.HSet(graceful.GetManager().HammerContext(), c.hsetName, key, "0").Err()
 }
 
 // Get gets cached value by given key.
 func (c *RedisCacher) Get(key string) interface{} {
-	val, err := c.c.Get(c.prefix + key).Result()
+	val, err := c.c.Get(graceful.GetManager().HammerContext(), c.prefix+key).Result()
 	if err != nil {
 		return nil
 	}
@@ -59,14 +60,14 @@ func (c *RedisCacher) Get(key string) interface{} {
 // Delete deletes cached value by given key.
 func (c *RedisCacher) Delete(key string) error {
 	key = c.prefix + key
-	if err := c.c.Del(key).Err(); err != nil {
+	if err := c.c.Del(graceful.GetManager().HammerContext(), key).Err(); err != nil {
 		return err
 	}
 
 	if c.occupyMode {
 		return nil
 	}
-	return c.c.HDel(c.hsetName, key).Err()
+	return c.c.HDel(graceful.GetManager().HammerContext(), c.hsetName, key).Err()
 }
 
 // Incr increases cached int-type value by given key as a counter.
@@ -74,7 +75,7 @@ func (c *RedisCacher) Incr(key string) error {
 	if !c.IsExist(key) {
 		return fmt.Errorf("key '%s' not exist", key)
 	}
-	return c.c.Incr(c.prefix + key).Err()
+	return c.c.Incr(graceful.GetManager().HammerContext(), c.prefix+key).Err()
 }
 
 // Decr decreases cached int-type value by given key as a counter.
@@ -82,17 +83,17 @@ func (c *RedisCacher) Decr(key string) error {
 	if !c.IsExist(key) {
 		return fmt.Errorf("key '%s' not exist", key)
 	}
-	return c.c.Decr(c.prefix + key).Err()
+	return c.c.Decr(graceful.GetManager().HammerContext(), c.prefix+key).Err()
 }
 
 // IsExist returns true if cached value exists.
 func (c *RedisCacher) IsExist(key string) bool {
-	if c.c.Exists(c.prefix+key).Val() == 1 {
+	if c.c.Exists(graceful.GetManager().HammerContext(), c.prefix+key).Val() == 1 {
 		return true
 	}
 
 	if !c.occupyMode {
-		c.c.HDel(c.hsetName, c.prefix+key)
+		c.c.HDel(graceful.GetManager().HammerContext(), c.hsetName, c.prefix+key)
 	}
 	return false
 }
@@ -100,17 +101,17 @@ func (c *RedisCacher) IsExist(key string) bool {
 // Flush deletes all cached data.
 func (c *RedisCacher) Flush() error {
 	if c.occupyMode {
-		return c.c.FlushDB().Err()
+		return c.c.FlushDB(graceful.GetManager().HammerContext()).Err()
 	}
 
-	keys, err := c.c.HKeys(c.hsetName).Result()
+	keys, err := c.c.HKeys(graceful.GetManager().HammerContext(), c.hsetName).Result()
 	if err != nil {
 		return err
 	}
-	if err = c.c.Del(keys...).Err(); err != nil {
+	if err = c.c.Del(graceful.GetManager().HammerContext(), keys...).Err(); err != nil {
 		return err
 	}
-	return c.c.Del(c.hsetName).Err()
+	return c.c.Del(graceful.GetManager().HammerContext(), c.hsetName).Err()
 }
 
 // StartAndGC starts GC routine based on config string settings.
@@ -132,7 +133,7 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 		}
 	}
 
-	return c.c.Ping().Err()
+	return c.c.Ping(graceful.GetManager().HammerContext()).Err()
 }
 
 func init() {

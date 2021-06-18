@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package gitlab
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 // ApplicationsService handles communication with administrables applications
 // of the Gitlab API.
@@ -51,7 +54,7 @@ type CreateApplicationOptions struct {
 //
 // Gitlab API docs : https://docs.gitlab.com/ce/api/applications.html#create-an-application
 func (s *ApplicationsService) CreateApplication(opt *CreateApplicationOptions, options ...RequestOptionFunc) (*Application, *Response, error) {
-	req, err := s.client.NewRequest("POST", "applications", opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, "applications", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -73,7 +76,7 @@ type ListApplicationsOptions ListOptions
 //
 // Gitlab API docs : https://docs.gitlab.com/ce/api/applications.html#list-all-applications
 func (s *ApplicationsService) ListApplications(opt *ListApplicationsOptions, options ...RequestOptionFunc) ([]*Application, *Response, error) {
-	req, err := s.client.NewRequest("GET", "applications", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "applications", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +97,7 @@ func (s *ApplicationsService) ListApplications(opt *ListApplicationsOptions, opt
 func (s *ApplicationsService) DeleteApplication(application int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("applications/%d", application)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

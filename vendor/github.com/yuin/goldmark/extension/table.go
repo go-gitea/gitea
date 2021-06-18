@@ -18,8 +18,9 @@ import (
 var escapedPipeCellListKey = parser.NewContextKey()
 
 type escapedPipeCell struct {
-	Cell *ast.TableCell
-	Pos  []int
+	Cell        *ast.TableCell
+	Pos         []int
+	Transformed bool
 }
 
 // TableCellAlignMethod indicates how are table cells aligned in HTML format.indicates how are table cells aligned in HTML format.
@@ -216,7 +217,7 @@ func (b *tableParagraphTransformer) parseRow(segment text.Segment, alignments []
 					break
 				} else if hasBacktick {
 					if escapedCell == nil {
-						escapedCell = &escapedPipeCell{node, []int{}}
+						escapedCell = &escapedPipeCell{node, []int{}, false}
 						escapedList := pc.ComputeIfAbsent(escapedPipeCellListKey,
 							func() interface{} {
 								return []*escapedPipeCell{}
@@ -288,22 +289,34 @@ func (a *tableASTTransformer) Transform(node *gast.Document, reader text.Reader,
 	}
 	pc.Set(escapedPipeCellListKey, nil)
 	for _, v := range lst.([]*escapedPipeCell) {
+		if v.Transformed {
+			continue
+		}
 		_ = gast.Walk(v.Cell, func(n gast.Node, entering bool) (gast.WalkStatus, error) {
-			if n.Kind() != gast.KindCodeSpan {
+			if !entering || n.Kind() != gast.KindCodeSpan {
 				return gast.WalkContinue, nil
 			}
-			c := n.FirstChild()
-			for c != nil {
+
+			for c := n.FirstChild(); c != nil; {
 				next := c.NextSibling()
-				if c.Kind() == gast.KindText {
-					t := c.(*gast.Text)
+				if c.Kind() != gast.KindText {
+					c = next
+					continue
+				}
+				parent := c.Parent()
+				ts := &c.(*gast.Text).Segment
+				n := c
+				for _, v := range lst.([]*escapedPipeCell) {
 					for _, pos := range v.Pos {
-						if t.Segment.Start <= pos && t.Segment.Stop > pos {
-							n1 := gast.NewRawTextSegment(t.Segment.WithStop(pos))
-							n2 := gast.NewRawTextSegment(t.Segment.WithStart(pos + 1))
-							n.InsertAfter(n, c, n1)
-							n.InsertAfter(n, n1, n2)
-							n.RemoveChild(n, c)
+						if ts.Start <= pos && pos < ts.Stop {
+							segment := n.(*gast.Text).Segment
+							n1 := gast.NewRawTextSegment(segment.WithStop(pos))
+							n2 := gast.NewRawTextSegment(segment.WithStart(pos + 1))
+							parent.InsertAfter(parent, n, n1)
+							parent.InsertAfter(parent, n1, n2)
+							parent.RemoveChild(parent, n)
+							n = n2
+							v.Transformed = true
 						}
 					}
 				}

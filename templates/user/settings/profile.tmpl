@@ -15,8 +15,8 @@
 						<span class="text red hide" id="name-change-prompt"> {{.i18n.Tr "settings.change_username_prompt"}}</span>
 						<span class="text red hide" id="name-change-redirect-prompt"> {{.i18n.Tr "settings.change_username_redirect_prompt"}}</span>
 					</label>
-					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if not .SignedUser.IsLocal}}disabled{{end}}>
-					{{if not .SignedUser.IsLocal}}
+					<input id="username" name="name" value="{{.SignedUser.Name}}" data-name="{{.SignedUser.Name}}" autofocus required {{if or (not .SignedUser.IsLocal) .IsReverseProxy}}disabled{{end}}>
+					{{if or (not .SignedUser.IsLocal) .IsReverseProxy}}
 					<p class="help text blue">{{$.i18n.Tr "settings.password_username_disabled"}}</p>
 					{{end}}
 				</div>

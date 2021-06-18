@@ -10,12 +10,14 @@ import (
 	"time"
 )
 
+// NullTime defines a customize type NullTime
 type NullTime time.Time
 
 var (
 	_ driver.Valuer = NullTime{}
 )
 
+// Scan implements driver.Valuer
 func (ns *NullTime) Scan(value interface{}) error {
 	if value == nil {
 		return nil
@@ -58,9 +60,11 @@ func convertTime(dest *NullTime, src interface{}) error {
 	return nil
 }
 
+// EmptyScanner represents an empty scanner
 type EmptyScanner struct {
 }
 
+// Scan implements
 func (EmptyScanner) Scan(src interface{}) error {
 	return nil
 }

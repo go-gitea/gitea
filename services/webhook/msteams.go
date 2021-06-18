@@ -5,13 +5,13 @@
 package webhook
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -60,6 +60,7 @@ func (m *MSTeamsPayload) SetSecret(_ string) {}
 
 // JSONPayload Marshals the MSTeamsPayload to json
 func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err

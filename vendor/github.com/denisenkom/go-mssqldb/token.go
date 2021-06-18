@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
+	"io/ioutil"
 	"strconv"
-	"strings"
 )
 
-//go:generate stringer -type token
+//go:generate go run golang.org/x/tools/cmd/stringer -type token
 
 type token byte
 
@@ -29,6 +28,7 @@ const (
 	tokenNbcRow        token = 210 // 0xd2
 	tokenEnvChange     token = 227 // 0xE3
 	tokenSSPI          token = 237 // 0xED
+	tokenFedAuthInfo   token = 238 // 0xEE
 	tokenDone          token = 253 // 0xFD
 	tokenDoneProc      token = 254
 	tokenDoneInProc    token = 255
@@ -70,6 +70,11 @@ const (
 	envRouting               = 20
 )
 
+const (
+	fedAuthInfoSTSURL = 0x01
+	fedAuthInfoSPN    = 0x02
+)
+
 // COLMETADATA flags
 // https://msdn.microsoft.com/en-us/library/dd357363.aspx
 const (
@@ -104,26 +109,6 @@ func (d doneStruct) getError() Error {
 }
 
 type doneInProcStruct doneStruct
-
-var doneFlags2str = map[uint16]string{
-	doneFinal:    "final",
-	doneMore:     "more",
-	doneError:    "error",
-	doneInxact:   "inxact",
-	doneCount:    "count",
-	doneAttn:     "attn",
-	doneSrvError: "srverror",
-}
-
-func doneFlags2Str(flags uint16) string {
-	strs := make([]string, 0, len(doneFlags2str))
-	for flag, tag := range doneFlags2str {
-		if flags&flag != 0 {
-			strs = append(strs, tag)
-		}
-	}
-	return strings.Join(strs, "|")
-}
 
 // ENVCHANGE stream
 // http://msdn.microsoft.com/en-us/library/dd303449.aspx
@@ -380,9 +365,8 @@ func processEnvChg(sess *tdsSession) {
 		default:
 			// ignore rest of records because we don't know how to skip those
 			sess.log.Printf("WARN: Unknown ENVCHANGE record detected with type id = %d\n", envtype)
-			break
+			return
 		}
-
 	}
 }
 
@@ -425,6 +409,78 @@ func parseSSPIMsg(r *tdsBuffer) sspiMsg {
 	return sspiMsg(buf)
 }
 
+type fedAuthInfoStruct struct {
+	STSURL    string
+	ServerSPN string
+}
+
+type fedAuthInfoOpt struct {
+	fedAuthInfoID          byte
+	dataLength, dataOffset uint32
+}
+
+func parseFedAuthInfo(r *tdsBuffer) fedAuthInfoStruct {
+	size := r.uint32()
+
+	var STSURL, SPN string
+	var err error
+
+	// Each fedAuthInfoOpt is one byte to indicate the info ID,
+	// then a four byte offset and a four byte length.
+	count := r.uint32()
+	offset := uint32(4)
+	opts := make([]fedAuthInfoOpt, count)
+
+	for i := uint32(0); i < count; i++ {
+		fedAuthInfoID := r.byte()
+		dataLength := r.uint32()
+		dataOffset := r.uint32()
+		offset += 1 + 4 + 4
+
+		opts[i] = fedAuthInfoOpt{
+			fedAuthInfoID: fedAuthInfoID,
+			dataLength:    dataLength,
+			dataOffset:    dataOffset,
+		}
+	}
+
+	data := make([]byte, size-offset)
+	r.ReadFull(data)
+
+	for i := uint32(0); i < count; i++ {
+		if opts[i].dataOffset < offset {
+			badStreamPanicf("Fed auth info opt stated data offset %d is before data begins in packet at %d",
+				opts[i].dataOffset, offset)
+			// returns via panic
+		}
+
+		if opts[i].dataOffset+opts[i].dataLength > size {
+			badStreamPanicf("Fed auth info opt stated data length %d added to stated offset exceeds size of packet %d",
+				opts[i].dataOffset+opts[i].dataLength, size)
+			// returns via panic
+		}
+
+		optData := data[opts[i].dataOffset-offset : opts[i].dataOffset-offset+opts[i].dataLength]
+		switch opts[i].fedAuthInfoID {
+		case fedAuthInfoSTSURL:
+			STSURL, err = ucs22str(optData)
+		case fedAuthInfoSPN:
+			SPN, err = ucs22str(optData)
+		default:
+			err = fmt.Errorf("Unexpected fed auth info opt ID %d", int(opts[i].fedAuthInfoID))
+		}
+
+		if err != nil {
+			badStreamPanic(err)
+		}
+	}
+
+	return fedAuthInfoStruct{
+		STSURL:    STSURL,
+		ServerSPN: SPN,
+	}
+}
+
 type loginAckStruct struct {
 	Interface  uint8
 	TDSVersion uint32
@@ -449,19 +505,43 @@ func parseLoginAck(r *tdsBuffer) loginAckStruct {
 }
 
 // https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/2eb82f8e-11f0-46dc-b42d-27302fa4701a
-func parseFeatureExtAck(r *tdsBuffer) {
-	// at most 1 featureAck per feature in featureExt
-	// go-mssqldb will add at most 1 feature, the spec defines 7 different features
-	for i := 0; i < 8; i++ {
-		featureID := r.byte() // FeatureID
-		if featureID == 0xff {
-			return
+type fedAuthAckStruct struct {
+	Nonce     []byte
+	Signature []byte
+}
+
+func parseFeatureExtAck(r *tdsBuffer) map[byte]interface{} {
+	ack := map[byte]interface{}{}
+
+	for feature := r.byte(); feature != featExtTERMINATOR; feature = r.byte() {
+		length := r.uint32()
+
+		switch feature {
+		case featExtFEDAUTH:
+			// In theory we need to know the federated authentication library to
+			// know how to parse, but the alternatives provide compatible structures.
+			fedAuthAck := fedAuthAckStruct{}
+			if length >= 32 {
+				fedAuthAck.Nonce = make([]byte, 32)
+				r.ReadFull(fedAuthAck.Nonce)
+				length -= 32
+			}
+			if length >= 32 {
+				fedAuthAck.Signature = make([]byte, 32)
+				r.ReadFull(fedAuthAck.Signature)
+				length -= 32
+			}
+			ack[feature] = fedAuthAck
+
 		}
-		size := r.uint32() // FeatureAckDataLen
-		d := make([]byte, size)
-		r.ReadFull(d)
+
+		// Skip unprocessed bytes
+		if length > 0 {
+			io.CopyN(ioutil.Discard, r, int64(length))
+		}
 	}
-	panic("parsed more than 7 featureAck's, protocol implementation error?")
+
+	return ack
 }
 
 // http://msdn.microsoft.com/en-us/library/dd357363.aspx
@@ -579,7 +659,7 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 	}
 	var columns []columnStruct
 	errs := make([]Error, 0, 5)
-	for {
+	for tokens := 0; ; tokens += 1 {
 		token := token(sess.buf.byte())
 		if sess.logFlags&logDebug != 0 {
 			sess.log.Printf("got token %v", token)
@@ -588,6 +668,9 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 		case tokenSSPI:
 			ch <- parseSSPIMsg(sess.buf)
 			return
+		case tokenFedAuthInfo:
+			ch <- parseFedAuthInfo(sess.buf)
+			return
 		case tokenReturnStatus:
 			returnStatus := parseReturnStatus(sess.buf)
 			ch <- returnStatus
@@ -595,7 +678,8 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 			loginAck := parseLoginAck(sess.buf)
 			ch <- loginAck
 		case tokenFeatureExtAck:
-			parseFeatureExtAck(sess.buf)
+			featureExtAck := parseFeatureExtAck(sess.buf)
+			ch <- featureExtAck
 		case tokenOrder:
 			order := parseOrder(sess.buf)
 			ch <- order
@@ -670,158 +754,137 @@ func processSingleResponse(sess *tdsSession, ch chan tokenStruct, outs map[strin
 	}
 }
 
-type parseRespIter byte
-
-const (
-	parseRespIterContinue parseRespIter = iota // Continue parsing current token.
-	parseRespIterNext                          // Fetch the next token.
-	parseRespIterDone                          // Done with parsing the response.
-)
-
-type parseRespState byte
-
-const (
-	parseRespStateNormal  parseRespState = iota // Normal response state.
-	parseRespStateCancel                        // Query is canceled, wait for server to confirm.
-	parseRespStateClosing                       // Waiting for tokens to come through.
-)
-
-type parseResp struct {
-	sess        *tdsSession
-	ctxDone     <-chan struct{}
-	state       parseRespState
-	cancelError error
+type tokenProcessor struct {
+	tokChan    chan tokenStruct
+	ctx        context.Context
+	sess       *tdsSession
+	outs       map[string]interface{}
+	lastRow    []interface{}
+	rowCount   int64
+	firstError error
 }
 
-func (ts *parseResp) sendAttention(ch chan tokenStruct) parseRespIter {
-	if err := sendAttention(ts.sess.buf); err != nil {
-		ts.dlogf("failed to send attention signal %v", err)
-		ch <- err
-		return parseRespIterDone
-	}
-	ts.state = parseRespStateCancel
-	return parseRespIterContinue
-}
-
-func (ts *parseResp) dlog(msg string) {
-	// logging from goroutine is disabled to prevent
-	// data race detection from firing
-	// The race is probably happening when
-	// test logger changes between tests.
-	/*if ts.sess.logFlags&logDebug != 0 {
-		ts.sess.log.Println(msg)
-	}*/
-}
-func (ts *parseResp) dlogf(f string, v ...interface{}) {
-	/*if ts.sess.logFlags&logDebug != 0 {
-		ts.sess.log.Printf(f, v...)
-	}*/
-}
-
-func (ts *parseResp) iter(ctx context.Context, ch chan tokenStruct, tokChan chan tokenStruct) parseRespIter {
-	switch ts.state {
-	default:
-		panic("unknown state")
-	case parseRespStateNormal:
-		select {
-		case tok, ok := <-tokChan:
-			if !ok {
-				ts.dlog("response finished")
-				return parseRespIterDone
-			}
-			if err, ok := tok.(net.Error); ok && err.Timeout() {
-				ts.cancelError = err
-				ts.dlog("got timeout error, sending attention signal to server")
-				return ts.sendAttention(ch)
-			}
-			// Pass the token along.
-			ch <- tok
-			return parseRespIterContinue
-
-		case <-ts.ctxDone:
-			ts.ctxDone = nil
-			ts.dlog("got cancel message, sending attention signal to server")
-			return ts.sendAttention(ch)
-		}
-	case parseRespStateCancel: // Read all responses until a DONE or error is received.Auth
-		select {
-		case tok, ok := <-tokChan:
-			if !ok {
-				ts.dlog("response finished but waiting for attention ack")
-				return parseRespIterNext
-			}
-			switch tok := tok.(type) {
-			default:
-				// Ignore all other tokens while waiting.
-				// The TDS spec says other tokens may arrive after an attention
-				// signal is sent. Ignore these tokens and continue looking for
-				// a DONE with attention confirm mark.
-			case doneStruct:
-				if tok.Status&doneAttn != 0 {
-					ts.dlog("got cancellation confirmation from server")
-					if ts.cancelError != nil {
-						ch <- ts.cancelError
-						ts.cancelError = nil
-					} else {
-						ch <- ctx.Err()
-					}
-					return parseRespIterDone
-				}
-
-			// If an error happens during cancel, pass it along and just stop.
-			// We are uncertain to receive more tokens.
-			case error:
-				ch <- tok
-				ts.state = parseRespStateClosing
-			}
-			return parseRespIterContinue
-		case <-ts.ctxDone:
-			ts.ctxDone = nil
-			ts.state = parseRespStateClosing
-			return parseRespIterContinue
-		}
-	case parseRespStateClosing: // Wait for current token chan to close.
-		if _, ok := <-tokChan; !ok {
-			ts.dlog("response finished")
-			return parseRespIterDone
-		}
-		return parseRespIterContinue
-	}
-}
-
-func processResponse(ctx context.Context, sess *tdsSession, ch chan tokenStruct, outs map[string]interface{}) {
-	ts := &parseResp{
+func startReading(sess *tdsSession, ctx context.Context, outs map[string]interface{}) *tokenProcessor {
+	tokChan := make(chan tokenStruct, 5)
+	go processSingleResponse(sess, tokChan, outs)
+	return &tokenProcessor{
+		tokChan: tokChan,
+		ctx:     ctx,
 		sess:    sess,
-		ctxDone: ctx.Done(),
+		outs:    outs,
 	}
-	defer func() {
-		// Ensure any remaining error is piped through
-		// or the query may look like it executed when it actually failed.
-		if ts.cancelError != nil {
-			ch <- ts.cancelError
-			ts.cancelError = nil
-		}
-		close(ch)
-	}()
+}
 
-	// Loop over multiple responses.
+func (t *tokenProcessor) iterateResponse() error {
 	for {
-		ts.dlog("initiating response reading")
+		tok, err := t.nextToken()
+		if err == nil {
+			if tok == nil {
+				return t.firstError
+			} else {
+				switch token := tok.(type) {
+				case []columnStruct:
+					t.sess.columns = token
+				case []interface{}:
+					t.lastRow = token
+				case doneInProcStruct:
+					if token.Status&doneCount != 0 {
+						t.rowCount += int64(token.RowCount)
+					}
+				case doneStruct:
+					if token.Status&doneCount != 0 {
+						t.rowCount += int64(token.RowCount)
+					}
+					if token.isError() && t.firstError == nil {
+						t.firstError = token.getError()
+					}
+				case ReturnStatus:
+					t.sess.setReturnStatus(token)
+					/*case error:
+					if resultError == nil {
+						resultError = token
+					}*/
+				}
+			}
+		} else {
+			return err
+		}
+	}
+}
 
-		tokChan := make(chan tokenStruct)
-		go processSingleResponse(sess, tokChan, outs)
+func (t tokenProcessor) nextToken() (tokenStruct, error) {
+	// we do this separate non-blocking check on token channel to
+	// prioritize it over cancellation channel
+	select {
+	case tok, more := <-t.tokChan:
+		err, more := tok.(error)
+		if more {
+			// this is an error and not a token
+			return nil, err
+		} else {
+			return tok, nil
+		}
+	default:
+		// there are no tokens on the channel, will need to wait
+	}
 
-		// Loop over multiple tokens in response.
-	tokensLoop:
-		for {
-			switch ts.iter(ctx, ch, tokChan) {
-			case parseRespIterContinue:
-				// Nothing, continue to next token.
-			case parseRespIterNext:
-				break tokensLoop
-			case parseRespIterDone:
-				return
+	select {
+	case tok, more := <-t.tokChan:
+		if more {
+			err, ok := tok.(error)
+			if ok {
+				// this is an error and not a token
+				return nil, err
+			} else {
+				return tok, nil
+			}
+		} else {
+			// completed reading response
+			return nil, nil
+		}
+	case <-t.ctx.Done():
+		if err := sendAttention(t.sess.buf); err != nil {
+			// unable to send attention, current connection is bad
+			// notify caller and close channel
+			return nil, err
+		}
+
+		// now the server should send cancellation confirmation
+		// it is possible that we already received full response
+		// just before we sent cancellation request
+		// in this case current response would not contain confirmation
+		// and we would need to read one more response
+
+		// first lets finish reading current response and look
+		// for confirmation in it
+		if readCancelConfirmation(t.tokChan) {
+			// we got confirmation in current response
+			return nil, t.ctx.Err()
+		}
+		// we did not get cancellation confirmation in the current response
+		// read one more response, it must be there
+		t.tokChan = make(chan tokenStruct, 5)
+		go processSingleResponse(t.sess, t.tokChan, t.outs)
+		if readCancelConfirmation(t.tokChan) {
+			return nil, t.ctx.Err()
+		}
+		// we did not get cancellation confirmation, something is not
+		// right, this connection is not usable anymore
+		return nil, errors.New("did not get cancellation confirmation from the server")
+	}
+}
+
+func readCancelConfirmation(tokChan chan tokenStruct) bool {
+	for tok := range tokChan {
+		switch tok := tok.(type) {
+		default:
+		// just skip token
+		case doneStruct:
+			if tok.Status&doneAttn != 0 {
+				// got cancellation confirmation, exit
+				return true
 			}
 		}
 	}
+	return false
 }

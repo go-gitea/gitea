@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -24,13 +24,6 @@ import (
 type ReaderConfig struct {
 	DictCap      int
 	SingleStream bool
-}
-
-// fill replaces all zero values with their default values.
-func (c *ReaderConfig) fill() {
-	if c.DictCap == 0 {
-		c.DictCap = 8 * 1024 * 1024
-	}
 }
 
 // Verify checks the reader parameters for Validity. Zero values will be
@@ -165,22 +158,16 @@ func (c ReaderConfig) newStreamReader(xz io.Reader) (r *streamReader, err error)
 	return r, nil
 }
 
-// errIndex indicates an error with the xz file index.
-var errIndex = errors.New("xz: error in xz file index")
-
 // readTail reads the index body and the xz footer.
 func (r *streamReader) readTail() error {
-	index, n, err := readIndexBody(r.xz)
+	index, n, err := readIndexBody(r.xz, len(r.index))
 	if err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}
 		return err
 	}
-	if len(index) != len(r.index) {
-		return fmt.Errorf("xz: index length is %d; want %d",
-			len(index), len(r.index))
-	}
+
 	for i, rec := range r.index {
 		if rec != index[i] {
 			return fmt.Errorf("xz: record %d is %v; want %v",
@@ -265,7 +252,6 @@ type blockReader struct {
 	n         int64
 	hash      hash.Hash
 	r         io.Reader
-	err       error
 }
 
 // newBlockReader creates a new block reader.
@@ -314,10 +300,6 @@ func (br *blockReader) unpaddedSize() int64 {
 func (br *blockReader) record() record {
 	return record{br.unpaddedSize(), br.uncompressedSize()}
 }
-
-// errBlockSize indicates that the size of the block in the block header
-// is wrong.
-var errBlockSize = errors.New("xz: wrong uncompressed size for block")
 
 // Read reads data from the block.
 func (br *blockReader) Read(p []byte) (n int, err error) {

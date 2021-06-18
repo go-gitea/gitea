@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -122,11 +122,4 @@ const (
 const (
 	minLP = 0
 	maxLP = 4
-)
-
-// minState and maxState define a range for the state values stored in
-// the State values.
-const (
-	minState = 0
-	maxState = 11
 )

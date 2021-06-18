@@ -234,3 +234,36 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	pr.Issue.Title = "[wip] " + original
 	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
 }
+
+func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", pr.GetDefaultMergeMessage())
+
+	pr.BaseRepoID = 1
+	pr.HeadRepoID = 2
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
+}
+
+func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	externalTracker := RepoUnit{
+		Type: UnitTypeExternalTracker,
+		Config: &ExternalTrackerConfig{
+			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
+		},
+	}
+	baseRepo := &Repository{Name: "testRepo", ID: 1}
+	baseRepo.Owner = &User{Name: "testOwner"}
+	baseRepo.Units = []*RepoUnit{&externalTracker}
+
+	pr := AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)
+
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", pr.GetDefaultMergeMessage())
+
+	pr.BaseRepoID = 1
+	pr.HeadRepoID = 2
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
+}

@@ -39,3 +39,5 @@ linters:
     - nestif
     - godot
     - errorlint
+    - paralleltest
+    - tparallel

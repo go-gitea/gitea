@@ -130,7 +130,7 @@
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
-							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><span class="text red" title="{{$.i18n.Tr "remove"}}">{{svg "octicon-trashcan"}}</span></a>
+							<a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Workers}}"><span class="text red" title="{{$.i18n.Tr "remove"}}">{{svg "octicon-trash"}}</span></a>
 						</td>
 					</tr>
 					{{else}}

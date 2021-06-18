@@ -1,0 +1,105 @@
+.image-diff-container {
+  text-align: center;
+  padding: 30px 0;
+
+  img {
+    border: 1px solid var(--color-primary-light-7);
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC) right bottom var(--color-primary-light-7);
+  }
+
+  .before-container {
+    border: 1px solid var(--color-red);
+    display: block;
+  }
+
+  .after-container {
+    border: 1px solid var(--color-green);
+    display: block;
+  }
+
+  .diff-side-by-side {
+    .side {
+      display: inline-block;
+      line-height: 0;
+      vertical-align: top;
+
+      .side-header {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .diff-swipe {
+    margin: auto;
+
+    .swipe-frame {
+      position: absolute;
+
+      .before-container {
+        position: absolute;
+      }
+
+      .swipe-container {
+        position: absolute;
+        right: 0;
+        display: block;
+        border-left: 2px solid var(--color-secondary-dark-8);
+        height: 100%;
+        overflow: hidden;
+
+        .after-container {
+          position: absolute;
+          right: 0;
+        }
+      }
+
+      .swipe-bar {
+        z-index: 100;
+        position: absolute;
+        height: 100%;
+        top: 0;
+        left: 0;
+
+        .handle {
+          background: var(--color-secondary-dark-8);
+          left: -5px;
+          height: 12px;
+          width: 12px;
+          position: absolute;
+          transform: rotate(45deg);
+          box-sizing: border-box;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          cursor: pointer;
+        }
+
+        .top-handle {
+          top: -12px;
+        }
+
+        .bottom-handle {
+          bottom: -14px;
+        }
+      }
+    }
+  }
+
+  .diff-overlay {
+    margin: 0 auto;
+
+    .overlay-frame {
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .before-container,
+    .after-container {
+      position: absolute;
+    }
+
+    input {
+      width: 300px;
+    }
+  }
+}

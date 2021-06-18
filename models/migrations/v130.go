@@ -5,15 +5,13 @@
 package migrations
 
 import (
-	"encoding/json"
-
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 )
 
 func expandWebhooks(x *xorm.Engine) error {
-
 	type HookEvents struct {
 		Create               bool `json:"create"`
 		Delete               bool `json:"delete"`
@@ -58,7 +56,7 @@ func expandWebhooks(x *xorm.Engine) error {
 		if err := sess.Begin(); err != nil {
 			return err
 		}
-		var results = make([]Webhook, 0, batchSize)
+		results := make([]Webhook, 0, batchSize)
 		err := x.OrderBy("id").
 			Limit(batchSize, last).
 			Find(&results)
@@ -72,6 +70,7 @@ func expandWebhooks(x *xorm.Engine) error {
 
 		for _, res := range results {
 			var events HookEvent
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(res.Events), &events); err != nil {
 				return err
 			}

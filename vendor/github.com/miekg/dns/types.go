@@ -81,6 +81,9 @@ const (
 	TypeCDNSKEY    uint16 = 60
 	TypeOPENPGPKEY uint16 = 61
 	TypeCSYNC      uint16 = 62
+	TypeZONEMD     uint16 = 63
+	TypeSVCB       uint16 = 64
+	TypeHTTPS      uint16 = 65
 	TypeSPF        uint16 = 99
 	TypeUINFO      uint16 = 100
 	TypeUID        uint16 = 101
@@ -146,6 +149,17 @@ const (
 	OpcodeStatus = 2
 	OpcodeNotify = 4
 	OpcodeUpdate = 5
+)
+
+// Used in ZONEMD https://tools.ietf.org/html/rfc8976
+
+const (
+	// ZoneMD Accepted Schemes
+	ZoneMDSchemeSimple = 1
+
+	// ZoneMD Hash Algorithms
+	ZoneMDHashAlgSHA384 = 1
+	ZoneMDHashAlgSHA512 = 2
 )
 
 // Header is the wire format for the DNS packet header.
@@ -243,8 +257,8 @@ type ANY struct {
 
 func (rr *ANY) String() string { return rr.Hdr.String() }
 
-func (rr *ANY) parse(c *zlexer, origin string) *ParseError {
-	panic("dns: internal error: parse should never be called on ANY")
+func (*ANY) parse(c *zlexer, origin string) *ParseError {
+	return &ParseError{err: "ANY records do not have a presentation format"}
 }
 
 // NULL RR. See RFC 1035.
@@ -258,8 +272,8 @@ func (rr *NULL) String() string {
 	return ";" + rr.Hdr.String() + rr.Data
 }
 
-func (rr *NULL) parse(c *zlexer, origin string) *ParseError {
-	panic("dns: internal error: parse should never be called on NULL")
+func (*NULL) parse(c *zlexer, origin string) *ParseError {
+	return &ParseError{err: "NULL records do not have a presentation format"}
 }
 
 // CNAME RR. See RFC 1034.
@@ -1359,6 +1373,23 @@ func (rr *CSYNC) len(off int, compression map[string]struct{}) int {
 	return l
 }
 
+// ZONEMD RR, from draft-ietf-dnsop-dns-zone-digest
+type ZONEMD struct {
+	Hdr    RR_Header
+	Serial uint32
+	Scheme uint8
+	Hash   uint8
+	Digest string `dns:"hex"`
+}
+
+func (rr *ZONEMD) String() string {
+	return rr.Hdr.String() +
+		strconv.Itoa(int(rr.Serial)) +
+		" " + strconv.Itoa(int(rr.Scheme)) +
+		" " + strconv.Itoa(int(rr.Hash)) +
+		" " + rr.Digest
+}
+
 // APL RR. See RFC 3123.
 type APL struct {
 	Hdr      RR_Header
@@ -1470,7 +1501,7 @@ func StringToTime(s string) (uint32, error) {
 
 // saltToString converts a NSECX salt to uppercase and returns "-" when it is empty.
 func saltToString(s string) string {
-	if len(s) == 0 {
+	if s == "" {
 		return "-"
 	}
 	return strings.ToUpper(s)

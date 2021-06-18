@@ -31,5 +31,13 @@ func TestAPITeamUser(t *testing.T) {
 	user2.Created = user2.Created.In(time.Local)
 	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
-	assert.Equal(t, convert.ToUser(user, true, false), user2)
+	expectedUser := convert.ToUser(user, user)
+
+	// test time via unix timestamp
+	assert.EqualValues(t, expectedUser.LastLogin.Unix(), user2.LastLogin.Unix())
+	assert.EqualValues(t, expectedUser.Created.Unix(), user2.Created.Unix())
+	expectedUser.LastLogin = user2.LastLogin
+	expectedUser.Created = user2.Created
+
+	assert.Equal(t, expectedUser, user2)
 }

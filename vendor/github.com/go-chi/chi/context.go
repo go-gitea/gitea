@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // URLParam returns the url parameter from a http.Request object.
@@ -144,32 +143,6 @@ type RouteParams struct {
 func (s *RouteParams) Add(key, value string) {
 	s.Keys = append(s.Keys, key)
 	s.Values = append(s.Values, value)
-}
-
-// directContext provides direct access to the routing *Context object,
-// while implementing the context.Context interface, thereby allowing
-// us to saving 1 allocation during routing.
-type directContext Context
-
-var _ context.Context = (*directContext)(nil)
-
-func (d *directContext) Deadline() (deadline time.Time, ok bool) {
-	return d.parentCtx.Deadline()
-}
-
-func (d *directContext) Done() <-chan struct{} {
-	return d.parentCtx.Done()
-}
-
-func (d *directContext) Err() error {
-	return d.parentCtx.Err()
-}
-
-func (d *directContext) Value(key interface{}) interface{} {
-	if key == RouteCtxKey {
-		return (*Context)(d)
-	}
-	return d.parentCtx.Value(key)
 }
 
 // contextKey is a value for use with context.WithValue. It's used as

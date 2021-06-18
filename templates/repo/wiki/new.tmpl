@@ -16,12 +16,14 @@
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
 			</div>
-			<div class="ui top attached tabular menu previewtabs">
+			<div class="ui top attached tabular menu previewtabs" data-write="write" data-preview="preview">
 				<a class="active item" data-tab="write">{{.i18n.Tr "write"}}</a>
-				<a class="item" data-tab="preview">{{.i18n.Tr "preview"}}</a>
+				<a class="item" data-tab="preview" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 			</div>
-			<div class="field">
-				<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
+			<div class="field content" data-loading="{{.i18n.Tr "loading"}}">
+				<div class="ui bottom active tab" data-tab="write">
+					<textarea class="js-quick-submit" id="edit_area" name="content" data-id="wiki-{{.title}}" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}" required>{{if .PageIsWikiEdit}}{{.content}}{{else}}{{.i18n.Tr "repo.wiki.welcome"}}{{end}}</textarea>
+				</div>
 			</div>
 			<div class="field">
 				<input name="message" placeholder="{{.i18n.Tr "repo.wiki.default_commit_message"}}">

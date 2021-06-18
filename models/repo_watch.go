@@ -312,6 +312,6 @@ func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 }
 
 // WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
-func WatchIfAuto(userID int64, repoID int64, isWrite bool) error {
+func WatchIfAuto(userID, repoID int64, isWrite bool) error {
 	return watchIfAuto(x, userID, repoID, isWrite)
 }

@@ -28,7 +28,6 @@
 	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
 		<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
-		<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 	</div>
 	<div class="binddnrequired {{if (eq .type 2)}}required{{end}} field">
 		<label for="user_base">{{.i18n.Tr "admin.auths.user_base"}}</label>
@@ -68,8 +67,8 @@
 		<input id="attribute_mail" name="attribute_mail" value="{{.attribute_mail}}" placeholder="e.g. mail">
 	</div>
 	<div class="field">
-	    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-	    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
+		<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+		<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">

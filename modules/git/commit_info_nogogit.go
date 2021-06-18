@@ -9,6 +9,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -18,7 +19,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -31,13 +32,13 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	var revs map[string]*Commit
 	if cache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, cache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
 			sort.Strings(unHitPaths)
-			commits, err := GetLastCommitForPaths(commit, treePath, unHitPaths)
+			commits, err := GetLastCommitForPaths(ctx, commit, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -53,7 +54,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 		sort.Strings(entryPaths)
 		revs = map[string]*Commit{}
 		var foundCommits []*Commit
-		foundCommits, err = GetLastCommitForPaths(commit, treePath, entryPaths)
+		foundCommits, err = GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
 		for i, found := range foundCommits {
 			revs[entryPaths[i]] = found
 		}
@@ -101,11 +102,14 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	return commitsInfo, treeCommit, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+	wr, rd, cancel := cache.repo.CatFileBatch()
+	defer cancel()
+
 	var unHitEntryPaths []string
 	var results = make(map[string]*Commit)
 	for _, p := range paths {
-		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
+		lastCommit, err := cache.Get(commitID, path.Join(treePath, p), wr, rd)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,7 +125,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) ([]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
 
 	// We'll do this by using rev-list to provide us with parent commits in order
@@ -133,7 +137,7 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
+		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).SetParentContext(ctx).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
 		if err != nil {
 			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -141,29 +145,8 @@ func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*
 		}
 	}()
 
-	// We feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
-	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	defer func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(commit.repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
-		if err != nil {
-			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = revListWriter.Close()
-		}
-	}()
-
-	// For simplicities sake we'll us a buffered reader
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
+	defer cancel()
 
 	mapsize := 4096
 	if len(paths) > mapsize {
@@ -220,6 +203,11 @@ revListLoop:
 
 	treeReadingLoop:
 		for {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
 				return nil, err
@@ -255,6 +243,10 @@ revListLoop:
 					// FIXME: is there any order to the way strings are emitted from cat-file?
 					// if there is - then we could skip once we've passed all of our data
 				}
+				if _, err := batchReader.Discard(1); err != nil {
+					return nil, err
+				}
+
 				break treeReadingLoop
 			}
 
@@ -299,6 +291,9 @@ revListLoop:
 					return nil, err
 				}
 			}
+			if _, err := batchReader.Discard(1); err != nil {
+				return nil, err
+			}
 
 			// if we haven't found a treeID for the target directory our search is over
 			if len(treeID) == 0 {
@@ -321,7 +316,7 @@ revListLoop:
 					commits[0] = string(commitID)
 				}
 			}
-			treeID = to40ByteSHA(treeID)
+			treeID = To40ByteSHA(treeID, treeID)
 			_, err = batchStdinWriter.Write(treeID)
 			if err != nil {
 				return nil, err
@@ -331,6 +326,9 @@ revListLoop:
 				return nil, err
 			}
 		}
+	}
+	if scan.Err() != nil {
+		return nil, scan.Err()
 	}
 
 	commitsMap := make(map[string]*Commit, len(commits))
@@ -361,6 +359,9 @@ revListLoop:
 		}
 		c, err = CommitFromReader(commit.repo, MustIDFromString(string(commitID)), io.LimitReader(batchReader, int64(size)))
 		if err != nil {
+			return nil, err
+		}
+		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
 		commitCommits[i] = c
