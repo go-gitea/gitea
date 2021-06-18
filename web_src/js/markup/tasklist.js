@@ -14,7 +14,10 @@ export function initMarkupTasklist() {
     const checkboxes = el.querySelectorAll(`.task-list-item input[type=checkbox]`);
 
     for (const checkbox of checkboxes) {
-      if (checkbox.dataset.editable) return;
+      if (checkbox.dataset.editable) {
+        return;
+      }
+
       checkbox.dataset.editable = 'true';
       checkbox.addEventListener('input', async () => {
         const checkboxCharacter = checkbox.checked ? 'x' : ' ';
@@ -22,8 +25,15 @@ export function initMarkupTasklist() {
 
         const rawContent = container.querySelector('.raw-content');
         const oldContent = rawContent.textContent;
-        const newContent = oldContent.substring(0, position) + checkboxCharacter + oldContent.substring(position + 1);
-        if (newContent === oldContent) return;
+
+        const encoder = new TextEncoder();
+        const buffer = encoder.encode(oldContent);
+        buffer.set(encoder.encode(checkboxCharacter), position);
+        const newContent = new TextDecoder().decode(buffer);
+
+        if (newContent === oldContent) {
+          return;
+        }
 
         // Prevent further inputs until the request is done. This does not use the
         // `disabled` attribute because it causes the border to flash on click.

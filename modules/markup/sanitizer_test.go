@@ -49,7 +49,6 @@ func Test_Sanitizer(t *testing.T) {
 
 	for i := 0; i < len(testCases); i += 2 {
 		assert.Equal(t, testCases[i+1], Sanitize(testCases[i]))
-		assert.Equal(t, testCases[i+1], string(SanitizeBytes([]byte(testCases[i]))))
 	}
 }
 

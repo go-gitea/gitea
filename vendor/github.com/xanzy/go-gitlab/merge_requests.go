@@ -100,6 +100,7 @@ type MergeRequest struct {
 	RebaseInProgress     bool   `json:"rebase_in_progress"`
 	ApprovalsBeforeMerge int    `json:"approvals_before_merge"`
 	Reference            string `json:"reference"`
+	FirstContribution    bool   `json:"first_contribution"`
 	TaskCompletionStatus struct {
 		Count          int `json:"count"`
 		CompletedCount int `json:"completed_count"`

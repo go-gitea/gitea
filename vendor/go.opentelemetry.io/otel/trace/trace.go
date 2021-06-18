@@ -30,13 +30,7 @@ import (
 const (
 	// FlagsSampled is a bitmask with the sampled bit set. A SpanContext
 	// with the sampling bit set means the span is sampled.
-	FlagsSampled = byte(0x01)
-	// FlagsDeferred is a bitmask with the deferred bit set. A SpanContext
-	// with the deferred bit set means the sampling decision has been
-	// defered to the receiver.
-	FlagsDeferred = byte(0x02)
-	// FlagsDebug is a bitmask with the debug bit set.
-	FlagsDebug = byte(0x04)
+	FlagsSampled = TraceFlags(0x01)
 
 	errInvalidHexID errorConst = "trace-id and span-id can only contain [0-9a-f] characters, all lowercase"
 
@@ -319,12 +313,40 @@ func isTraceStateKeyValueValid(kv attribute.KeyValue) bool {
 		valueFormatRegExp.MatchString(kv.Value.Emit())
 }
 
+// TraceFlags contains flags that can be set on a SpanContext
+type TraceFlags byte //nolint:golint
+
+// IsSampled returns if the sampling bit is set in the TraceFlags.
+func (tf TraceFlags) IsSampled() bool {
+	return tf&FlagsSampled == FlagsSampled
+}
+
+// WithSampled sets the sampling bit in a new copy of the TraceFlags.
+func (tf TraceFlags) WithSampled(sampled bool) TraceFlags {
+	if sampled {
+		return tf | FlagsSampled
+	}
+
+	return tf &^ FlagsSampled
+}
+
+// MarshalJSON implements a custom marshal function to encode TraceFlags
+// as a hex string.
+func (tf TraceFlags) MarshalJSON() ([]byte, error) {
+	return json.Marshal(tf.String())
+}
+
+// String returns the hex string representation form of TraceFlags
+func (tf TraceFlags) String() string {
+	return hex.EncodeToString([]byte{byte(tf)}[:])
+}
+
 // SpanContextConfig contains mutable fields usable for constructing
 // an immutable SpanContext.
 type SpanContextConfig struct {
 	TraceID    TraceID
 	SpanID     SpanID
-	TraceFlags byte
+	TraceFlags TraceFlags
 	TraceState TraceState
 	Remote     bool
 }
@@ -345,7 +367,7 @@ func NewSpanContext(config SpanContextConfig) SpanContext {
 type SpanContext struct {
 	traceID    TraceID
 	spanID     SpanID
-	traceFlags byte
+	traceFlags TraceFlags
 	traceState TraceState
 	remote     bool
 }
@@ -415,12 +437,17 @@ func (sc SpanContext) WithSpanID(spanID SpanID) SpanContext {
 }
 
 // TraceFlags returns the flags from the SpanContext.
-func (sc SpanContext) TraceFlags() byte {
+func (sc SpanContext) TraceFlags() TraceFlags {
 	return sc.traceFlags
 }
 
+// IsSampled returns if the sampling bit is set in the SpanContext's TraceFlags.
+func (sc SpanContext) IsSampled() bool {
+	return sc.traceFlags.IsSampled()
+}
+
 // WithTraceFlags returns a new SpanContext with the TraceFlags replaced.
-func (sc SpanContext) WithTraceFlags(flags byte) SpanContext {
+func (sc SpanContext) WithTraceFlags(flags TraceFlags) SpanContext {
 	return SpanContext{
 		traceID:    sc.traceID,
 		spanID:     sc.spanID,
@@ -428,21 +455,6 @@ func (sc SpanContext) WithTraceFlags(flags byte) SpanContext {
 		traceState: sc.traceState,
 		remote:     sc.remote,
 	}
-}
-
-// IsDeferred returns if the deferred bit is set in the trace flags.
-func (sc SpanContext) IsDeferred() bool {
-	return sc.traceFlags&FlagsDeferred == FlagsDeferred
-}
-
-// IsDebug returns if the debug bit is set in the trace flags.
-func (sc SpanContext) IsDebug() bool {
-	return sc.traceFlags&FlagsDebug == FlagsDebug
-}
-
-// IsSampled returns if the sampling bit is set in the trace flags.
-func (sc SpanContext) IsSampled() bool {
-	return sc.traceFlags&FlagsSampled == FlagsSampled
 }
 
 // TraceState returns the TraceState from the SpanContext.
@@ -481,48 +493,6 @@ func (sc SpanContext) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type traceContextKeyType int
-
-const (
-	currentSpanKey traceContextKeyType = iota
-	remoteContextKey
-)
-
-// ContextWithSpan returns a copy of parent with span set to current.
-func ContextWithSpan(parent context.Context, span Span) context.Context {
-	return context.WithValue(parent, currentSpanKey, span)
-}
-
-// SpanFromContext returns the current span from ctx, or noop span if none set.
-func SpanFromContext(ctx context.Context) Span {
-	if span, ok := ctx.Value(currentSpanKey).(Span); ok {
-		return span
-	}
-	return noopSpan{}
-}
-
-// SpanContextFromContext returns the current SpanContext from ctx, or an empty SpanContext if none set.
-func SpanContextFromContext(ctx context.Context) SpanContext {
-	if span := SpanFromContext(ctx); span != nil {
-		return span.SpanContext()
-	}
-	return SpanContext{}
-}
-
-// ContextWithRemoteSpanContext returns a copy of parent with a remote set as
-// the remote span context.
-func ContextWithRemoteSpanContext(parent context.Context, remote SpanContext) context.Context {
-	return context.WithValue(parent, remoteContextKey, remote.WithRemote(true))
-}
-
-// RemoteSpanContextFromContext returns the remote span context from ctx.
-func RemoteSpanContextFromContext(ctx context.Context) SpanContext {
-	if sc, ok := ctx.Value(remoteContextKey).(SpanContext); ok {
-		return sc
-	}
-	return SpanContext{}
-}
-
 // Span is the individual component of a trace. It represents a single named
 // and timed operation of a workflow that is traced. A Tracer is used to
 // create a Span and it is then up to the operation the Span represents to
@@ -545,7 +515,10 @@ type Span interface {
 	// true if the Span is active and events can be recorded.
 	IsRecording() bool
 
-	// RecordError records an error as a Span event.
+	// RecordError will record err as an exception span event for this span. An
+	// additional call toSetStatus is required if the Status of the Span should
+	// be set to Error, this method does not change the Span status. If this
+	// span is not being recorded or err is nil than this method does nothing.
 	RecordError(err error, options ...EventOption)
 
 	// SpanContext returns the SpanContext of the Span. The returned
@@ -574,6 +547,10 @@ type Event struct {
 	// Attributes describe the aspects of the event.
 	Attributes []attribute.KeyValue
 
+	// DroppedAttributeCount is the number of attributes that were not
+	// recorded due to configured limits being reached.
+	DroppedAttributeCount int
+
 	// Time at which this event was recorded.
 	Time time.Time
 }
@@ -594,8 +571,15 @@ type Event struct {
 //      form. A Link is used to keep reference to the original SpanContext and
 //      track the relationship.
 type Link struct {
+	// SpanContext of the linked Span.
 	SpanContext
+
+	// Attributes describe the aspects of the link.
 	Attributes []attribute.KeyValue
+
+	// DroppedAttributeCount is the number of attributes that were not
+	// recorded due to configured limits being reached.
+	DroppedAttributeCount int
 }
 
 // SpanKind is the role a Span plays in a Trace.

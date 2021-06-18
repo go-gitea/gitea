@@ -71,33 +71,33 @@ func TestFollowLink(t *testing.T) {
 	// should be able to dereference to target
 	target, err := lnk.FollowLink()
 	assert.NoError(t, err)
-	assert.Equal(t, target.Name(), "hello")
+	assert.Equal(t, "hello", target.Name())
 	assert.False(t, target.IsLink())
-	assert.Equal(t, target.ID.String(), "b14df6442ea5a1b382985a6549b85d435376c351")
+	assert.Equal(t, "b14df6442ea5a1b382985a6549b85d435376c351", target.ID.String())
 
 	// should error when called on normal file
 	target, err = commit.Tree.GetTreeEntryByPath("file1.txt")
 	assert.NoError(t, err)
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "file1.txt: not a symlink")
+	assert.EqualError(t, err, "file1.txt: not a symlink")
 
 	// should error for broken links
 	target, err = commit.Tree.GetTreeEntryByPath("foo/broken_link")
 	assert.NoError(t, err)
 	assert.True(t, target.IsLink())
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "broken_link: broken link")
+	assert.EqualError(t, err, "broken_link: broken link")
 
 	// should error for external links
 	target, err = commit.Tree.GetTreeEntryByPath("foo/outside_repo")
 	assert.NoError(t, err)
 	assert.True(t, target.IsLink())
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "outside_repo: points outside of repo")
+	assert.EqualError(t, err, "outside_repo: points outside of repo")
 
 	// testing fix for short link bug
 	target, err = commit.Tree.GetTreeEntryByPath("foo/link_short")
 	assert.NoError(t, err)
 	_, err = target.FollowLink()
-	assert.Equal(t, err.Error(), "link_short: broken link")
+	assert.EqualError(t, err, "link_short: broken link")
 }
