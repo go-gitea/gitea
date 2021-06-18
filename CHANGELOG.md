@@ -6,9 +6,16 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.14.3](https://github.com/go-gitea/gitea/releases/tag/v1.14.3) - 2021-06-10
 
+* SECURITY
+  * Encrypt migration credentials at rest (#15895) (#16187)
 * API
+  * Repository object only count releases as releases (#16184) (#16190)
+  * EditOrg respect RepoAdminChangeTeamAccess option (#16184) (#16190)
   * Fix overly strict edit pr permissions (#15900) (#16081)
 * BUGFIXES
+  * Run processors on whole of text (#16155) (#16185)
+  * Class `issue-keyword` is being incorrectly stripped off spans (#16163) (#16172)
+  * Only check access tokens if they are likely to be tokens (#16164) (#16171)
   * Fix language switch for install page (#16043) (#16128)
   * Fix bug on getIssueIDsByRepoID (#16119) (#16124)
   * Set self-adjusting deadline for connection writing (#16068) (#16123)
