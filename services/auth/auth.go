@@ -27,7 +27,7 @@ import (
 //
 // The Session plugin is expected to be executed second, in order to skip authentication
 // for users that have already signed in.
-var authMethods = []Auth{
+var authMethods = []Method{
 	&OAuth2{},
 	&Basic{},
 	&Session{},
@@ -40,12 +40,12 @@ var (
 )
 
 // Methods returns the instances of all registered methods
-func Methods() []Auth {
+func Methods() []Method {
 	return authMethods
 }
 
 // Register adds the specified instance to the list of available methods
-func Register(method Auth) {
+func Register(method Method) {
 	authMethods = append(authMethods, method)
 }
 

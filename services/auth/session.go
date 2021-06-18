@@ -13,7 +13,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &Session{}
+	_ Method = &Session{}
 )
 
 // Session checks if there is a user uid stored in the session and returns the user

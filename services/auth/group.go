@@ -12,16 +12,16 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &Group{}
+	_ Method = &Group{}
 )
 
 // Group implements the Auth interface with serval Auth.
 type Group struct {
-	methods []Auth
+	methods []Method
 }
 
 // NewGroup creates a new auth group
-func NewGroup(methods ...Auth) *Group {
+func NewGroup(methods ...Method) *Group {
 	return &Group{
 		methods: methods,
 	}

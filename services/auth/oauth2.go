@@ -18,7 +18,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &OAuth2{}
+	_ Method = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token

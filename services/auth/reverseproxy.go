@@ -19,7 +19,7 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &ReverseProxy{}
+	_ Method = &ReverseProxy{}
 )
 
 // ReverseProxy implements the Auth interface, but actually relies on

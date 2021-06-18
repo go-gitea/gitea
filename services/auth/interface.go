@@ -18,8 +18,8 @@ type DataStore middleware.DataStore
 // SessionStore represents a session store
 type SessionStore session.Store
 
-// Auth represents an authentication method (plugin) for HTTP requests.
-type Auth interface {
+// Method represents an authentication method (plugin) for HTTP requests.
+type Method interface {
 	Name() string
 
 	// Init should be called exactly once before using any of the other methods,
