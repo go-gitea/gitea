@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/auth/smtp"
 	"code.gitea.io/gitea/services/forms"
 
 	"xorm.io/xorm/convert"
@@ -94,7 +95,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["is_sync_enabled"] = true
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 
@@ -218,7 +219,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["CurrentSecurityProtocol"] = models.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 
@@ -297,7 +298,7 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
-	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 
@@ -322,7 +323,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["SMTPAuths"] = models.SMTPAuths
+	ctx.Data["SMTPAuths"] = smtp.Authenticators
 	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
 	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
 

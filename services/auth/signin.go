@@ -10,6 +10,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/auth/ldap"
+	"code.gitea.io/gitea/services/auth/pam"
+	"code.gitea.io/gitea/services/auth/smtp"
 )
 
 // UserSignIn validates user name and password.
@@ -110,11 +113,11 @@ func ExternalUserLogin(user *models.User, login, password string, source *models
 	var err error
 	switch source.Type {
 	case models.LoginLDAP, models.LoginDLDAP:
-		user, err = models.LoginViaLDAP(user, login, password, source)
+		user, err = ldap.Login(user, login, password, source)
 	case models.LoginSMTP:
-		user, err = models.LoginViaSMTP(user, login, password, source.ID, source.Cfg.(*models.SMTPConfig))
+		user, err = smtp.Login(user, login, password, source.ID, source.Cfg.(*models.SMTPConfig))
 	case models.LoginPAM:
-		user, err = models.LoginViaPAM(user, login, password, source.ID, source.Cfg.(*models.PAMConfig))
+		user, err = pam.Login(user, login, password, source.ID, source.Cfg.(*models.PAMConfig))
 	default:
 		return nil, models.ErrUnsupportedLoginType
 	}

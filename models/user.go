@@ -1658,8 +1658,8 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	return sshKeysNeedUpdate, nil
 }
 
-// addLdapSSHPublicKeys add a users public keys. Returns true if there are changes.
-func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
+// AddLdapSSHPublicKeys add a users public keys. Returns true if there are changes.
+func AddLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -1696,8 +1696,8 @@ func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) boo
 	return sshKeysNeedUpdate
 }
 
-// synchronizeLdapSSHPublicKeys updates a users public keys. Returns true if there are changes.
-func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
+// SynchronizeLdapSSHPublicKeys updates a users public keys. Returns true if there are changes.
+func SynchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
@@ -1739,7 +1739,7 @@ func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []str
 			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
 		}
 	}
-	if addLdapSSHPublicKeys(usr, s, newLdapSSHKeys) {
+	if AddLdapSSHPublicKeys(usr, s, newLdapSSHKeys) {
 		sshKeysNeedUpdate = true
 	}
 
@@ -1854,7 +1854,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 					}
 				}
 
-				fullName := composeFullName(su.Name, su.Surname, su.Username)
+				fullName := ComposeFullName(su.Name, su.Surname, su.Username)
 				// If no existing user found, create one
 				if usr == nil {
 					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
@@ -1878,7 +1878,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 						log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
 					} else if isAttributeSSHPublicKeySet {
 						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
-						if addLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
+						if AddLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
 							sshKeysNeedUpdate = true
 						}
 					}
@@ -1886,7 +1886,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 					existingUsers = append(existingUsers, usr.ID)
 
 					// Synchronize SSH Public Key if that attribute is set
-					if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
+					if isAttributeSSHPublicKeySet && SynchronizeLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
 						sshKeysNeedUpdate = true
 					}
 
