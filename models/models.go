@@ -135,6 +135,7 @@ func init() {
 		new(Session),
 		new(RepoTransfer),
 		new(IssueIndex),
+		new(PushMirror),
 	)
 
 	gonicNames := []string{"SSL", "UID"}

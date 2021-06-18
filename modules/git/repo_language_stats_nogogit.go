@@ -84,10 +84,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			}
 
 			sizeToRead := size
-			discard := int64(0)
+			discard := int64(1)
 			if size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = size - fileSizeLimit
+				discard = size - fileSizeLimit + 1
 			}
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
