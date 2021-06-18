@@ -109,7 +109,7 @@ when creating a repository. The possible values are:
 - `always`: Always sign
 
 Options other than `never` and `always` can be combined as a comma
-separated list.
+separated list. The commit will be signed if all selected options are true.
 
 ### `WIKI`
 
@@ -123,7 +123,7 @@ The possible values are:
 - `always`: Always sign
 
 Options other than `never` and `always` can be combined as a comma
-separated list.
+separated list. The commit will be signed if all selected options are true.
 
 ### `CRUD_ACTIONS`
 
@@ -137,7 +137,7 @@ editor or API CRUD actions. The possible values are:
 - `always`: Always sign
 
 Options other than `never` and `always` can be combined as a comma
-separated list.
+separated list. The change will be signed if all selected options are true.
 
 ### `MERGES`
 
@@ -154,7 +154,7 @@ The possible options are:
 - `always`: Always sign
 
 Options other than `never` and `always` can be combined as a comma
-separated list.
+separated list. The merge will be signed if all selected options are true.
 
 ## Obtaining the Public Key of the Signing Key
 

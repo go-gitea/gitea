@@ -8,7 +8,7 @@ import (
 )
 
 // Docker lexer.
-var Docker = internal.Register(MustNewLexer(
+var Docker = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Docker",
 		Aliases:         []string{"docker", "dockerfile"},
@@ -16,7 +16,11 @@ var Docker = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-dockerfile-config"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	dockerRules,
+))
+
+func dockerRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*`, Comment, nil},
 			{`(ONBUILD)((?:\s*\\?\s*))`, ByGroups(Keyword, Using(b.Bash)), nil},
@@ -27,5 +31,5 @@ var Docker = internal.Register(MustNewLexer(
 			{`((?:RUN|CMD|ENTRYPOINT|ENV|ARG|LABEL|ADD|COPY))`, Keyword, nil},
 			{`(.*\\\n)*.+`, Using(b.Bash), nil},
 		},
-	},
-))
+	}
+}

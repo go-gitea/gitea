@@ -43,7 +43,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	sizes := make(map[string]int64)
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if f.Size == 0 || enry.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
+		if f.Size == 0 || analyze.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
 			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
 			return nil
 		}

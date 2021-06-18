@@ -60,6 +60,7 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 		MirrorsDisabled:      setting.Repository.DisableMirrors,
 		HTTPGitDisabled:      setting.Repository.DisableHTTPGit,
 		MigrationsDisabled:   setting.Repository.DisableMigrations,
+		StarsDisabled:        setting.Repository.DisableStars,
 		TimeTrackingDisabled: !setting.Service.EnableTimetracking,
 		LFSDisabled:          !setting.LFS.StartServer,
 	})

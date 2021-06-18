@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -21,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -580,7 +580,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {
@@ -721,7 +721,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
+	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {

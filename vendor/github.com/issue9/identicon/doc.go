@@ -1,8 +1,6 @@
-// Copyright 2015 by caixw, All rights reserved.
-// Use of this source code is governed by a MIT
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
-// Package identicon 一个基于 hash 值生成随机图像的包。
+// Package identicon 一个基于 hash 值生成随机图像的包
 //
 // identicon 并没有统一的标准，一般用于在用户注册时，
 // 取用户的邮箱或是访问 IP 等数据(也可以是其它任何数据)，

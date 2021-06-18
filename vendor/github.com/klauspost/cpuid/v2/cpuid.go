@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -209,6 +210,7 @@ var cpuid func(op uint32) (eax, ebx, ecx, edx uint32)
 var cpuidex func(op, op2 uint32) (eax, ebx, ecx, edx uint32)
 var xgetbv func(index uint32) (eax, edx uint32)
 var rdtscpAsm func() (eax, ebx, ecx, edx uint32)
+var darwinHasAVX512 = func() bool { return false }
 
 // CPU contains information about the CPU as detected on startup,
 // or when Detect last was called.
@@ -922,7 +924,11 @@ func support() flagSet {
 			// Verify that XCR0[7:5] = ‘111b’ (OPMASK state, upper 256-bit of ZMM0-ZMM15 and
 			// ZMM16-ZMM31 state are enabled by OS)
 			/// and that XCR0[2:1] = ‘11b’ (XMM state and YMM state are enabled by OS).
-			if (eax>>5)&7 == 7 && (eax>>1)&3 == 3 {
+			hasAVX512 := (eax>>5)&7 == 7 && (eax>>1)&3 == 3
+			if runtime.GOOS == "darwin" {
+				hasAVX512 = fs.inSet(AVX) && darwinHasAVX512()
+			}
+			if hasAVX512 {
 				fs.setIf(ebx&(1<<16) != 0, AVX512F)
 				fs.setIf(ebx&(1<<17) != 0, AVX512DQ)
 				fs.setIf(ebx&(1<<21) != 0, AVX512IFMA)

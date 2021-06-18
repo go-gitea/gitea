@@ -6,14 +6,18 @@ import (
 )
 
 // Mathematica lexer.
-var Mathematica = internal.Register(MustNewLexer(
+var Mathematica = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Mathematica",
 		Aliases:   []string{"mathematica", "mma", "nb"},
 		Filenames: []string{"*.nb", "*.cdf", "*.nbp", "*.ma"},
 		MimeTypes: []string{"application/mathematica", "application/vnd.wolfram.mathematica", "application/vnd.wolfram.mathematica.package", "application/vnd.wolfram.cdf"},
 	},
-	Rules{
+	mathematicaRules,
+))
+
+func mathematicaRules() Rules {
+	return Rules{
 		"root": {
 			{`(?s)\(\*.*?\*\)`, Comment, nil},
 			{"([a-zA-Z]+[A-Za-z0-9]*`)", NameNamespace, nil},
@@ -28,5 +32,5 @@ var Mathematica = internal.Register(MustNewLexer(
 			{`".*?"`, LiteralString, nil},
 			{`\s+`, TextWhitespace, nil},
 		},
-	},
-))
+	}
+}

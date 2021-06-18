@@ -33,7 +33,7 @@ func FnmatchCase(pattern, name string) (bool, error) {
 	return r.MatchString(name), nil
 }
 
-func translate(pattern string) string { // nolint: funlen,gocognit,gocyclo
+func translate(pattern string) string { // nolint: funlen,gocognit,gocyclo,cyclop
 	index := 0
 	pat := []rune(pattern)
 	length := len(pat)

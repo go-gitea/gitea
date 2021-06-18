@@ -222,6 +222,36 @@ func (err ErrEmailInvalid) Error() string {
 	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
 }
 
+// ErrEmailAddressNotExist email address not exist
+type ErrEmailAddressNotExist struct {
+	Email string
+}
+
+// IsErrEmailAddressNotExist checks if an error is an ErrEmailAddressNotExist
+func IsErrEmailAddressNotExist(err error) bool {
+	_, ok := err.(ErrEmailAddressNotExist)
+	return ok
+}
+
+func (err ErrEmailAddressNotExist) Error() string {
+	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
+}
+
+// ErrPrimaryEmailCannotDelete primary email address cannot be deleted
+type ErrPrimaryEmailCannotDelete struct {
+	Email string
+}
+
+// IsErrPrimaryEmailCannotDelete checks if an error is an ErrPrimaryEmailCannotDelete
+func IsErrPrimaryEmailCannotDelete(err error) bool {
+	_, ok := err.(ErrPrimaryEmailCannotDelete)
+	return ok
+}
+
+func (err ErrPrimaryEmailCannotDelete) Error() string {
+	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
+}
+
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string

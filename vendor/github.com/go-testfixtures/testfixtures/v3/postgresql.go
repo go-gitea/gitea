@@ -66,7 +66,7 @@ func (*postgreSQL) databaseName(q queryable) (string, error) {
 func (h *postgreSQL) tableNames(q queryable) ([]string, error) {
 	var tables []string
 
-	sql := `
+	const sql = `
 	        SELECT pg_namespace.nspname || '.' || pg_class.relname
 		FROM pg_class
 		INNER JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
@@ -126,7 +126,7 @@ func (h *postgreSQL) getSequences(q queryable) ([]string, error) {
 func (*postgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, error) {
 	var constraints []pgConstraint
 
-	sql := `
+	const sql = `
 		SELECT table_schema || '.' || table_name, constraint_name
 		FROM information_schema.table_constraints
 		WHERE constraint_type = 'FOREIGN KEY'
@@ -156,7 +156,7 @@ func (*postgreSQL) getNonDeferrableConstraints(q queryable) ([]pgConstraint, err
 func (h *postgreSQL) getConstraints(q queryable) ([]pgConstraint, error) {
 	var constraints []pgConstraint
 
-	sql := `
+	const sql = `
 		SELECT conrelid::regclass AS table_from, conname, pg_get_constraintdef(pg_constraint.oid)
 		FROM pg_constraint
 		INNER JOIN pg_namespace ON pg_namespace.oid = pg_constraint.connamespace
@@ -192,29 +192,29 @@ func (h *postgreSQL) getConstraints(q queryable) ([]pgConstraint, error) {
 func (h *postgreSQL) dropAndRecreateConstraints(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
 		// Re-create constraints again after load
-		var sql string
+		var b strings.Builder
 		for _, constraint := range h.constraints {
-			sql += fmt.Sprintf(
+			b.WriteString(fmt.Sprintf(
 				"ALTER TABLE %s ADD CONSTRAINT %s %s;",
 				h.quoteKeyword(constraint.tableName),
 				h.quoteKeyword(constraint.constraintName),
 				constraint.definition,
-			)
+			))
 		}
-		if _, err2 := db.Exec(sql); err2 != nil && err == nil {
+		if _, err2 := db.Exec(b.String()); err2 != nil && err == nil {
 			err = err2
 		}
 	}()
 
-	var sql string
+	var b strings.Builder
 	for _, constraint := range h.constraints {
-		sql += fmt.Sprintf(
+		b.WriteString(fmt.Sprintf(
 			"ALTER TABLE %s DROP CONSTRAINT %s;",
 			h.quoteKeyword(constraint.tableName),
 			h.quoteKeyword(constraint.constraintName),
-		)
+		))
 	}
-	if _, err := db.Exec(sql); err != nil {
+	if _, err := db.Exec(b.String()); err != nil {
 		return err
 	}
 
@@ -233,12 +233,11 @@ func (h *postgreSQL) dropAndRecreateConstraints(db *sql.DB, loadFn loadFunction)
 
 func (h *postgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
-		// re-enable triggers after load
-		var sql string
+		var b strings.Builder
 		for _, table := range h.tables {
-			sql += fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL;", h.quoteKeyword(table))
+			b.WriteString(fmt.Sprintf("ALTER TABLE %s ENABLE TRIGGER ALL;", h.quoteKeyword(table)))
 		}
-		if _, err2 := db.Exec(sql); err2 != nil && err == nil {
+		if _, err2 := db.Exec(b.String()); err2 != nil && err == nil {
 			err = err2
 		}
 	}()
@@ -248,11 +247,11 @@ func (h *postgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error
 		return err
 	}
 
-	var sql string
+	var b strings.Builder
 	for _, table := range h.tables {
-		sql += fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL;", h.quoteKeyword(table))
+		b.WriteString(fmt.Sprintf("ALTER TABLE %s DISABLE TRIGGER ALL;", h.quoteKeyword(table)))
 	}
-	if _, err = tx.Exec(sql); err != nil {
+	if _, err = tx.Exec(b.String()); err != nil {
 		return err
 	}
 
@@ -267,20 +266,20 @@ func (h *postgreSQL) disableTriggers(db *sql.DB, loadFn loadFunction) (err error
 func (h *postgreSQL) makeConstraintsDeferrable(db *sql.DB, loadFn loadFunction) (err error) {
 	defer func() {
 		// ensure constraint being not deferrable again after load
-		var sql string
+		var b strings.Builder
 		for _, constraint := range h.nonDeferrableConstraints {
-			sql += fmt.Sprintf("ALTER TABLE %s ALTER CONSTRAINT %s NOT DEFERRABLE;", h.quoteKeyword(constraint.tableName), h.quoteKeyword(constraint.constraintName))
+			b.WriteString(fmt.Sprintf("ALTER TABLE %s ALTER CONSTRAINT %s NOT DEFERRABLE;", h.quoteKeyword(constraint.tableName), h.quoteKeyword(constraint.constraintName)))
 		}
-		if _, err2 := db.Exec(sql); err2 != nil && err == nil {
+		if _, err2 := db.Exec(b.String()); err2 != nil && err == nil {
 			err = err2
 		}
 	}()
 
-	var sql string
+	var b strings.Builder
 	for _, constraint := range h.nonDeferrableConstraints {
-		sql += fmt.Sprintf("ALTER TABLE %s ALTER CONSTRAINT %s DEFERRABLE;", h.quoteKeyword(constraint.tableName), h.quoteKeyword(constraint.constraintName))
+		b.WriteString(fmt.Sprintf("ALTER TABLE %s ALTER CONSTRAINT %s DEFERRABLE;", h.quoteKeyword(constraint.tableName), h.quoteKeyword(constraint.constraintName)))
 	}
-	if _, err := db.Exec(sql); err != nil {
+	if _, err := db.Exec(b.String()); err != nil {
 		return err
 	}
 

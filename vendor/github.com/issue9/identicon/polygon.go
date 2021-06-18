@@ -1,27 +1,24 @@
-// Copyright 2015 by caixw, All rights reserved.
-// Use of this source code is governed by a MIT
-// license that can be found in the LICENSE file.
+// SPDX-License-Identifier: MIT
 
 package identicon
 
 var (
-	// 4个元素分别表示 cos(0),cos(90),cos(180),cos(270)
-	cos = []float64{1, 0, -1, 0}
+	// 4 个元素分别表示 cos(0),cos(90),cos(180),cos(270)
+	cos = []int{1, 0, -1, 0}
 
-	// 4个元素分别表示 sin(0),sin(90),sin(180),sin(270)
-	sin = []float64{0, 1, 0, -1}
+	// 4 个元素分别表示 sin(0),sin(90),sin(180),sin(270)
+	sin = []int{0, 1, 0, -1}
 )
 
 // 将 points 中的所有点，以 x,y 为原点旋转 angle 个角度。
 // angle 取值只能是 [0,1,2,3]，分别表示 [0，90，180，270]
-func rotate(points []float64, x, y float64, angle int) {
+func rotate(points []int, x, y int, angle int) {
 	if angle < 0 || angle > 3 {
 		panic("rotate:参数angle必须0,1,2,3三值之一")
 	}
 
 	for i := 0; i < len(points); i += 2 {
-		px := points[i] - x
-		py := points[i+1] - y
+		px, py := points[i]-x, points[i+1]-y
 		points[i] = px*cos[angle] - py*sin[angle] + x
 		points[i+1] = px*sin[angle] + py*cos[angle] + y
 	}
@@ -30,7 +27,7 @@ func rotate(points []float64, x, y float64, angle int) {
 // 判断某个点是否在多边形之内，不包含构成多边形的线和点
 // x,y 需要判断的点坐标
 // points 组成多边形的所顶点，每两个元素表示一点顶点，其中最后一个顶点必须与第一个顶点相同。
-func pointInPolygon(x float64, y float64, points []float64) bool {
+func pointInPolygon(x, y int, points []int) bool {
 	if len(points) < 8 { // 只有2个以上的点，才能组成闭合多边形
 		return false
 	}
@@ -55,8 +52,7 @@ func pointInPolygon(x float64, y float64, points []float64) bool {
 			continue
 		}
 
-		mul := (x1-x)*(y2-y) - (x2-x)*(y1-y)
-		if mul > 0 {
+		if mul := (x1-x)*(y2-y) - (x2-x)*(y1-y); mul >= 0 {
 			r++
 		} else if mul < 0 {
 			r--

@@ -21,7 +21,7 @@ import (
 type WorkerPool struct {
 	lock               sync.Mutex
 	baseCtx            context.Context
-	cancel             context.CancelFunc
+	baseCtxCancel      context.CancelFunc
 	cond               *sync.Cond
 	qid                int64
 	maxNumberOfWorkers int
@@ -52,7 +52,7 @@ func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPo
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
-		cancel:             cancel,
+		baseCtxCancel:      cancel,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		handle:             handle,
@@ -70,12 +70,38 @@ func (p *WorkerPool) Push(data Data) {
 	atomic.AddInt64(&p.numInQueue, 1)
 	p.lock.Lock()
 	if p.blockTimeout > 0 && p.boostTimeout > 0 && (p.numberOfWorkers <= p.maxNumberOfWorkers || p.maxNumberOfWorkers < 0) {
-		p.lock.Unlock()
+		if p.numberOfWorkers == 0 {
+			p.zeroBoost()
+		} else {
+			p.lock.Unlock()
+		}
 		p.pushBoost(data)
 	} else {
 		p.lock.Unlock()
 		p.dataChan <- data
 	}
+}
+
+func (p *WorkerPool) zeroBoost() {
+	ctx, cancel := context.WithTimeout(p.baseCtx, p.boostTimeout)
+	mq := GetManager().GetManagedQueue(p.qid)
+	boost := p.boostWorkers
+	if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
+		boost = p.maxNumberOfWorkers - p.numberOfWorkers
+	}
+	if mq != nil {
+		log.Warn("WorkerPool: %d (for %s) has zero workers - adding %d temporary workers for %s", p.qid, mq.Name, boost, p.boostTimeout)
+
+		start := time.Now()
+		pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), cancel, false)
+		cancel = func() {
+			mq.RemoveWorkers(pid)
+		}
+	} else {
+		log.Warn("WorkerPool: %d has zero workers - adding %d temporary workers for %s", p.qid, p.boostWorkers, p.boostTimeout)
+	}
+	p.lock.Unlock()
+	p.addWorkers(ctx, cancel, boost)
 }
 
 func (p *WorkerPool) pushBoost(data Data) {
@@ -102,7 +128,7 @@ func (p *WorkerPool) pushBoost(data Data) {
 				return
 			}
 			p.blockTimeout *= 2
-			ctx, cancel := context.WithCancel(p.baseCtx)
+			boostCtx, boostCtxCancel := context.WithCancel(p.baseCtx)
 			mq := GetManager().GetManagedQueue(p.qid)
 			boost := p.boostWorkers
 			if (boost+p.numberOfWorkers) > p.maxNumberOfWorkers && p.maxNumberOfWorkers >= 0 {
@@ -112,24 +138,24 @@ func (p *WorkerPool) pushBoost(data Data) {
 				log.Warn("WorkerPool: %d (for %s) Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, mq.Name, ourTimeout, boost, p.boostTimeout, p.blockTimeout)
 
 				start := time.Now()
-				pid := mq.RegisterWorkers(boost, start, false, start, cancel, false)
+				pid := mq.RegisterWorkers(boost, start, true, start.Add(p.boostTimeout), boostCtxCancel, false)
 				go func() {
-					<-ctx.Done()
+					<-boostCtx.Done()
 					mq.RemoveWorkers(pid)
-					cancel()
+					boostCtxCancel()
 				}()
 			} else {
 				log.Warn("WorkerPool: %d Channel blocked for %v - adding %d temporary workers for %s, block timeout now %v", p.qid, ourTimeout, p.boostWorkers, p.boostTimeout, p.blockTimeout)
 			}
 			go func() {
 				<-time.After(p.boostTimeout)
-				cancel()
+				boostCtxCancel()
 				p.lock.Lock()
 				p.blockTimeout /= 2
 				p.lock.Unlock()
 			}()
 			p.lock.Unlock()
-			p.addWorkers(ctx, boost)
+			p.addWorkers(boostCtx, boostCtxCancel, boost)
 			p.dataChan <- data
 		}
 	}
@@ -205,28 +231,25 @@ func (p *WorkerPool) commonRegisterWorkers(number int, timeout time.Duration, is
 	mq := GetManager().GetManagedQueue(p.qid)
 	if mq != nil {
 		pid := mq.RegisterWorkers(number, start, hasTimeout, end, cancel, isFlusher)
-		go func() {
-			<-ctx.Done()
-			mq.RemoveWorkers(pid)
-			cancel()
-		}()
 		log.Trace("WorkerPool: %d (for %s) adding %d workers with group id: %d", p.qid, mq.Name, number, pid)
-	} else {
-		log.Trace("WorkerPool: %d adding %d workers (no group id)", p.qid, number)
-
+		return ctx, func() {
+			mq.RemoveWorkers(pid)
+		}
 	}
+	log.Trace("WorkerPool: %d adding %d workers (no group id)", p.qid, number)
+
 	return ctx, cancel
 }
 
 // AddWorkers adds workers to the pool - this allows the number of workers to go above the limit
 func (p *WorkerPool) AddWorkers(number int, timeout time.Duration) context.CancelFunc {
 	ctx, cancel := p.commonRegisterWorkers(number, timeout, false)
-	p.addWorkers(ctx, number)
+	p.addWorkers(ctx, cancel, number)
 	return cancel
 }
 
 // addWorkers adds workers to the pool
-func (p *WorkerPool) addWorkers(ctx context.Context, number int) {
+func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, number int) {
 	for i := 0; i < number; i++ {
 		p.lock.Lock()
 		if p.cond == nil {
@@ -241,11 +264,13 @@ func (p *WorkerPool) addWorkers(ctx context.Context, number int) {
 			p.numberOfWorkers--
 			if p.numberOfWorkers == 0 {
 				p.cond.Broadcast()
+				cancel()
 			} else if p.numberOfWorkers < 0 {
 				// numberOfWorkers can't go negative but...
 				log.Warn("Number of Workers < 0 for QID %d - this shouldn't happen", p.qid)
 				p.numberOfWorkers = 0
 				p.cond.Broadcast()
+				cancel()
 			}
 			p.lock.Unlock()
 		}()

@@ -125,8 +125,10 @@ func HTTPS(domainNames []string, mux http.Handler) error {
 		WriteTimeout:      5 * time.Second,
 		IdleTimeout:       5 * time.Second,
 	}
-	if am, ok := cfg.Issuer.(*ACMEManager); ok {
-		httpServer.Handler = am.HTTPChallengeHandler(http.HandlerFunc(httpRedirectHandler))
+	if len(cfg.Issuers) > 0 {
+		if am, ok := cfg.Issuers[0].(*ACMEManager); ok {
+			httpServer.Handler = am.HTTPChallengeHandler(http.HandlerFunc(httpRedirectHandler))
+		}
 	}
 	httpsServer := &http.Server{
 		ReadHeaderTimeout: 10 * time.Second,
@@ -425,9 +427,11 @@ func (cr *CertificateResource) NamesKey() string {
 
 // Default contains the package defaults for the
 // various Config fields. This is used as a template
-// when creating your own Configs with New(), and it
-// is also used as the Config by all the high-level
-// functions in this package.
+// when creating your own Configs with New() or
+// NewDefault(), and it is also used as the Config
+// by all the high-level functions in this package
+// that abstract away most configuration (HTTPS(),
+// TLS(), Listen(), etc).
 //
 // The fields of this value will be used for Config
 // fields which are unset. Feel free to modify these
@@ -436,8 +440,10 @@ func (cr *CertificateResource) NamesKey() string {
 // obtained by calling New() (if you have your own
 // certificate cache) or NewDefault() (if you only
 // need a single config and want to use the default
-// cache). This is the only Config which can access
-// the default certificate cache.
+// cache).
+//
+// Even if the Issuers or Storage fields are not set,
+// defaults will be applied in the call to New().
 var Default = Config{
 	RenewalWindowRatio: DefaultRenewalWindowRatio,
 	Storage:            defaultFileStorage,
@@ -459,12 +465,12 @@ const (
 // are set to; otherwise ACME challenges will fail.
 var (
 	// HTTPPort is the port on which to serve HTTP
-	// and, by extension, the HTTP challenge (unless
+	// and, as such, the HTTP challenge (unless
 	// Default.AltHTTPPort is set).
 	HTTPPort = 80
 
 	// HTTPSPort is the port on which to serve HTTPS
-	// and, by extension, the TLS-ALPN challenge
+	// and, as such, the TLS-ALPN challenge
 	// (unless Default.AltTLSALPNPort is set).
 	HTTPSPort = 443
 )
