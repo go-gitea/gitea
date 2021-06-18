@@ -369,6 +369,15 @@ func reqOrgMembership() func(ctx *context.APIContext) {
 			return
 		}
 
+		if ctx.User == nil {
+			if ctx.Org.Organization != nil {
+				ctx.Error(http.StatusForbidden, "", "Must be an organization member")
+			} else {
+				ctx.NotFound()
+			}
+			return
+		}
+
 		if isMember, err := models.IsOrganizationMember(orgID, ctx.User.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrganizationMember", err)
 			return
