@@ -8,6 +8,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Encrypt migration credentials at rest (#15895) (#16187)
+  * Only check access tokens if they are likely to be tokens (#16164) (#16171)
+  * Add missing SameSite settings for the i_like_gitea cookie (#16037) (#16039)
+  * Fix setting of SameSite on cookies (#15989) (#15991)
 * API
   * Repository object only count releases as releases (#16184) (#16190)
   * EditOrg respect RepoAdminChangeTeamAccess option (#16184) (#16190)
@@ -15,7 +18,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Run processors on whole of text (#16155) (#16185)
   * Class `issue-keyword` is being incorrectly stripped off spans (#16163) (#16172)
-  * Only check access tokens if they are likely to be tokens (#16164) (#16171)
   * Fix language switch for install page (#16043) (#16128)
   * Fix bug on getIssueIDsByRepoID (#16119) (#16124)
   * Set self-adjusting deadline for connection writing (#16068) (#16123)
@@ -24,9 +26,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Merge all deleteBranch as one function and also fix bug when delete branch don't close related PRs (#16067) (#16097)
   * git migration: don't prompt interactively for clone credentials (#15902) (#16082)
   * Fix case change in ownernames (#16045) (#16050)
-  * Add missing SameSite settings for the i_like_gitea cookie (#16037) (#16039)
   * Don't manipulate input params in email notification (#16011) (#16033)
-  * Fix setting of SameSite on cookies (#15989) (#15991)
   * Remove branch URL before IssueRefURL (#15968) (#15970)
   * Fix layout of milestone view (#15927) (#15940)
   * GitHub Migration, migrate draft releases too (#15884) (#15888)
