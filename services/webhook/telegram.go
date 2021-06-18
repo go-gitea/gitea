@@ -204,7 +204,7 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
-		Message: text + "\n",
+		Message: text,
 	}, nil
 }
 
