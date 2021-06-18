@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -73,18 +72,13 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
-	results := make([]*api.User, len(users))
-	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
-	}
-
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
 	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
-		"data": results,
+		"data": convert.ToUsers(ctx.User, users),
 	})
 }
 
@@ -112,7 +106,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User != nil && (ctx.User.ID == u.ID || ctx.User.IsAdmin)))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // GetAuthenticatedUser get current user's information
@@ -126,7 +120,7 @@ func GetAuthenticatedUser(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/User"
 
-	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.IsSigned, ctx.User != nil))
+	ctx.JSON(http.StatusOK, convert.ToUser(ctx.User, ctx.User))
 }
 
 // GetUserHeatmapData is the handler to get a users heatmap

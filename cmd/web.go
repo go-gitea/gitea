@@ -16,9 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers/install"
 
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli/v2"
@@ -66,7 +65,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, context2.ClearHandler(handler))
+	var err = runHTTP("tcp", source, "HTTP Redirector", context2.ClearHandler(handler))
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
@@ -91,7 +90,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
+	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {
@@ -104,7 +103,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := routes.InstallRoutes()
+		c := install.Routes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -137,7 +136,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routes.NormalRoutes()
+	c := routers.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
@@ -154,19 +153,6 @@ func setPort(port string) error {
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
-		// Save LOCAL_ROOT_URL if port changed
-		cfg := ini.Empty()
-		isFile, err := util.IsFile(setting.CustomConf)
-		if err != nil {
-			log.Fatal("Unable to check if %s is a file", err)
-		}
-		if isFile {
-			// Keeps custom settings if there is already something.
-			if err := cfg.Append(setting.CustomConf); err != nil {
-				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-			}
-		}
-
 		defaultLocalURL := string(setting.Protocol) + "://"
 		if setting.HTTPAddr == "0.0.0.0" {
 			defaultLocalURL += "localhost"
@@ -175,10 +161,10 @@ func setPort(port string) error {
 		}
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
-		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := cfg.SaveTo(setting.CustomConf); err != nil {
-			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
-		}
+		// Save LOCAL_ROOT_URL if port changed
+		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		})
 	}
 	return nil
 }
@@ -200,7 +186,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("tcp", listenAddr, "Web", context2.ClearHandler(m))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
 			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
@@ -213,22 +199,22 @@ func listen(m http.Handler, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, "FCGI Web", context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("unix", listenAddr, "Web", context2.ClearHandler(m))
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("unix", listenAddr, "Web", context2.ClearHandler(m))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}

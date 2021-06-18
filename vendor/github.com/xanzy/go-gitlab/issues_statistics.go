@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -75,7 +76,7 @@ type GetIssuesStatisticsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issues_statistics.html#get-issues-statistics
 func (s *IssuesStatisticsService) GetIssuesStatistics(opt *GetIssuesStatisticsOptions, options ...RequestOptionFunc) (*IssuesStatistics, *Response, error) {
-	req, err := s.client.NewRequest("GET", "issues_statistics", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "issues_statistics", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,7 +98,7 @@ func (s *IssuesStatisticsService) GetIssuesStatistics(opt *GetIssuesStatisticsOp
 type GetGroupIssuesStatisticsOptions struct {
 	Labels           Labels     `url:"labels,omitempty" json:"labels,omitempty"`
 	IIDs             []int      `url:"iids,omitempty" json:"iids,omitempty"`
-	Milestone        *Milestone `url:"milestone,omitempty" json:"milestone,omitempty"`
+	Milestone        *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
 	Scope            *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID         *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AuthorUsername   *string    `url:"author_username,omitempty" json:"author_username,omitempty"`
@@ -123,7 +124,7 @@ func (s *IssuesStatisticsService) GetGroupIssuesStatistics(gid interface{}, opt 
 	}
 	u := fmt.Sprintf("groups/%s/issues_statistics", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,7 +172,7 @@ func (s *IssuesStatisticsService) GetProjectIssuesStatistics(pid interface{}, op
 	}
 	u := fmt.Sprintf("projects/%s/issues_statistics", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

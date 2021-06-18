@@ -112,7 +112,7 @@ func (e *bestFastEncoder) Encode(blk *blockEnc, src []byte) {
 	// Override src
 	src = e.hist
 	sLimit := int32(len(src)) - inputMargin
-	const kSearchStrength = 12
+	const kSearchStrength = 10
 
 	// nextEmit is where in src the next emitLiteral should start from.
 	nextEmit := s
@@ -132,7 +132,7 @@ func (e *bestFastEncoder) Encode(blk *blockEnc, src []byte) {
 	}
 	_ = addLiterals
 
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -186,9 +186,11 @@ encodeLoop:
 			best = bestOf(best, matchAt(s-offset1+1, s+1, uint32(cv>>8), 1))
 			best = bestOf(best, matchAt(s-offset2+1, s+1, uint32(cv>>8), 2))
 			best = bestOf(best, matchAt(s-offset3+1, s+1, uint32(cv>>8), 3))
-			best = bestOf(best, matchAt(s-offset1+3, s+3, uint32(cv>>24), 1))
-			best = bestOf(best, matchAt(s-offset2+3, s+3, uint32(cv>>24), 2))
-			best = bestOf(best, matchAt(s-offset3+3, s+3, uint32(cv>>24), 3))
+			if best.length > 0 {
+				best = bestOf(best, matchAt(s-offset1+3, s+3, uint32(cv>>24), 1))
+				best = bestOf(best, matchAt(s-offset2+3, s+3, uint32(cv>>24), 2))
+				best = bestOf(best, matchAt(s-offset3+3, s+3, uint32(cv>>24), 3))
+			}
 		}
 		// Load next and check...
 		e.longTable[nextHashL] = prevEntry{offset: s + e.cur, prev: candidateL.offset}
@@ -218,6 +220,20 @@ encodeLoop:
 			best = bestOf(best, matchAt(candidateL.prev-e.cur, s, uint32(cv), -1))
 			best = bestOf(best, matchAt(candidateL2.offset-e.cur, s+1, uint32(cv2), -1))
 			best = bestOf(best, matchAt(candidateL2.prev-e.cur, s+1, uint32(cv2), -1))
+
+			// See if we can find a better match by checking where the current best ends.
+			// Use that offset to see if we can find a better full match.
+			if sAt := best.s + best.length; sAt < sLimit {
+				nextHashL := hash8(load6432(src, sAt), bestLongTableBits)
+				candidateEnd := e.longTable[nextHashL]
+				if pos := candidateEnd.offset - e.cur - best.length; pos >= 0 {
+					bestEnd := bestOf(best, matchAt(pos, best.s, load3232(src, best.s), -1))
+					if pos := candidateEnd.prev - e.cur - best.length; pos >= 0 {
+						bestEnd = bestOf(bestEnd, matchAt(pos, best.s, load3232(src, best.s), -1))
+					}
+					best = bestEnd
+				}
+			}
 		}
 
 		// We have a match, we can store the forward value
@@ -258,7 +274,7 @@ encodeLoop:
 
 			nextEmit = s
 			if s >= sLimit {
-				if debug {
+				if debugEncoder {
 					println("repeat ended", s, best.length)
 
 				}
@@ -396,7 +412,7 @@ encodeLoop:
 	blk.recentOffsets[0] = uint32(offset1)
 	blk.recentOffsets[1] = uint32(offset2)
 	blk.recentOffsets[2] = uint32(offset3)
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 }
@@ -405,6 +421,7 @@ encodeLoop:
 // Most notable difference is that src will not be copied for history and
 // we do not need to check for max match length.
 func (e *bestFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
+	e.ensureHist(len(src))
 	e.Encode(blk, src)
 }
 

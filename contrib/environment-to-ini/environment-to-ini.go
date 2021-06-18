@@ -115,6 +115,8 @@ func runEnvironmentToIni(c *cli.Context) error {
 	}
 	cfg.NameMapper = ini.SnackCase
 
+	changed := false
+
 	prefix := c.String("prefix") + "__"
 
 	for _, kv := range os.Environ() {
@@ -148,15 +150,21 @@ func runEnvironmentToIni(c *cli.Context) error {
 				continue
 			}
 		}
+		oldValue := key.Value()
+		if !changed && oldValue != value {
+			changed = true
+		}
 		key.SetValue(value)
 	}
 	destination := c.String("out")
 	if len(destination) == 0 {
 		destination = setting.CustomConf
 	}
-	err = cfg.SaveTo(destination)
-	if err != nil {
-		return err
+	if destination != setting.CustomConf || changed {
+		err = cfg.SaveTo(destination)
+		if err != nil {
+			return err
+		}
 	}
 	if c.Bool("clear") {
 		for _, kv := range os.Environ() {
@@ -229,5 +237,6 @@ func DecodeSectionKey(encoded string) (string, string) {
 	} else {
 		key += remaining
 	}
+	section = strings.ToLower(section)
 	return section, key
 }

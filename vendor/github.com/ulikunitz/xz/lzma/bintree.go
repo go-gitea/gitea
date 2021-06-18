@@ -1,14 +1,11 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package lzma
 
 import (
-	"bufio"
 	"errors"
-	"fmt"
-	"io"
 	"unicode"
 )
 
@@ -349,6 +346,7 @@ func dumpX(x uint32) string {
 	return string(a)
 }
 
+/*
 // dumpNode writes a representation of the node v into the io.Writer.
 func (t *binTree) dumpNode(w io.Writer, v uint32, indent int) {
 	if v == null {
@@ -377,6 +375,7 @@ func (t *binTree) dump(w io.Writer) error {
 	t.dumpNode(bw, t.root, 0)
 	return bw.Flush()
 }
+*/
 
 func (t *binTree) distance(v uint32) int {
 	dist := int(t.front) - int(v)

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -28,9 +29,9 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
-	maxResults := len(orgs)
 
-	orgs = utils.PaginateUserSlice(orgs, listOptions.Page, listOptions.PageSize)
+	maxResults := len(orgs)
+	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
 
 	apiOrgs := make([]*api.Organization, len(orgs))
 	for i := range orgs {
@@ -263,7 +264,13 @@ func Edit(ctx *context.APIContext) {
 	if form.Visibility != "" {
 		org.Visibility = api.VisibilityModes[form.Visibility]
 	}
-	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location", "visibility"); err != nil {
+	if form.RepoAdminChangeTeamAccess != nil {
+		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
+	}
+	if err := models.UpdateUserCols(org,
+		"full_name", "description", "website", "location",
+		"visibility", "repo_admin_change_team_access",
+	); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
 		return
 	}

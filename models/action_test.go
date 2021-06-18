@@ -26,7 +26,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
 	owner := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	action := &Action{RepoID: repo.ID}
-	setting.AppSubURL = "/suburl/"
+	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
 }

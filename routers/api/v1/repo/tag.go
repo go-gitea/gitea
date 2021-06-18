@@ -5,12 +5,17 @@
 package repo
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	releaseservice "code.gitea.io/gitea/services/release"
 )
 
 // ListTags list all the tags of a repository
@@ -103,4 +108,116 @@ func GetTag(ctx *context.APIContext) {
 		}
 		ctx.JSON(http.StatusOK, convert.ToAnnotatedTag(ctx.Repo.Repository, tag, commit))
 	}
+}
+
+// DeleteTag delete a specific tag of in a repository by name
+func DeleteTag(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/tags/{tag} repository repoDeleteTag
+	// ---
+	// summary: Delete a repository's tag by name
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: tag
+	//   in: path
+	//   description: name of tag to delete
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+
+	tag, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	if err != nil {
+		if models.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		return
+	}
+
+	if !tag.IsTag {
+		ctx.Error(http.StatusConflict, "IsTag", errors.New("a tag attached to a release cannot be deleted directly"))
+		return
+	}
+
+	if err = releaseservice.DeleteReleaseByID(tag.ID, ctx.User, true); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// CreateTag create a new git tag in a repository
+func CreateTag(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/tags repository repoCreateTag
+	// ---
+	// summary: Create a new git tag in a repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateTagOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/AnnotatedTag"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	form := web.GetForm(ctx).(*api.CreateTagOption)
+
+	// If target is not provided use default branch
+	if len(form.Target) == 0 {
+		form.Target = ctx.Repo.Repository.DefaultBranch
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetCommit(form.Target)
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "target not found", fmt.Errorf("target not found: %v", err))
+		return
+	}
+
+	if err := releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, commit.ID.String(), form.TagName, form.Message); err != nil {
+		if models.IsErrTagAlreadyExists(err) {
+			ctx.Error(http.StatusConflict, "tag exist", err)
+			return
+		}
+		ctx.InternalServerError(err)
+		return
+	}
+
+	tag, err := ctx.Repo.GitRepo.GetTag(form.TagName)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusCreated, convert.ToTag(ctx.Repo.Repository, tag))
 }

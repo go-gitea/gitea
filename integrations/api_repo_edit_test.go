@@ -130,11 +130,14 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 
 func TestAPIRepoEdit(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		bFalse, bTrue := false, true
+
 		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
 		user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
 		user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
 		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
 		repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
+		repo15 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository) // empty repo
 		repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 
 		// Get user2's token
@@ -286,9 +289,8 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Test making a repo public that is private
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.True(t, repo16.IsPrivate)
-		private := false
 		repoEditOption = &api.EditRepoOption{
-			Private: &private,
+			Private: &bFalse,
 		}
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
@@ -296,9 +298,22 @@ func TestAPIRepoEdit(t *testing.T) {
 		repo16 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
-		private = true
-		repoEditOption.Private = &private
+		repoEditOption.Private = &bTrue
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		_ = session.MakeRequest(t, req, http.StatusOK)
+
+		// Test to change empty repo
+		assert.False(t, repo15.IsArchived)
+		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo15.Name, token2)
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			Archived: &bTrue,
+		})
+		_ = session.MakeRequest(t, req, http.StatusOK)
+		repo15 = models.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository)
+		assert.True(t, repo15.IsArchived)
+		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
+			Archived: &bFalse,
+		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test using org repo "user3/repo3" where user2 is a collaborator

@@ -27,7 +27,7 @@
 
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.create_new_repo_command"}}</h3>
-								<div class="markdown">
+								<div class="markup">
 									<pre><code>touch README.md
 git init
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
@@ -41,7 +41,7 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
-								<div class="markdown">
+								<div class="markup">
 									<pre><code>git remote add origin <span class="clone-url">{{if $.DisableSSH}}{{$.CloneLink.HTTPS}}{{else}}{{$.CloneLink.SSH}}{{end}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>

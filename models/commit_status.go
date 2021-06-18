@@ -176,12 +176,11 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 		return nil, err
 	}
 
-	var contexts = make([]string, 0, len(ids))
+	contexts := make([]string, 0, len(ids))
 	if len(ids) == 0 {
 		return contexts, nil
 	}
 	return contexts, x.Select("context").Table("commit_status").In("id", ids).Find(&contexts)
-
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus

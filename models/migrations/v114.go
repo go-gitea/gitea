@@ -11,7 +11,6 @@ import (
 )
 
 func sanitizeOriginalURL(x *xorm.Engine) error {
-
 	type Repository struct {
 		ID          int64
 		OriginalURL string `xorm:"VARCHAR(2048)"`
@@ -20,7 +19,7 @@ func sanitizeOriginalURL(x *xorm.Engine) error {
 	var last int
 	const batchSize = 50
 	for {
-		var results = make([]Repository, 0, batchSize)
+		results := make([]Repository, 0, batchSize)
 		err := x.Where("original_url <> '' AND original_url IS NOT NULL").
 			And("original_service_type = 0 OR original_service_type IS NULL").
 			OrderBy("id").

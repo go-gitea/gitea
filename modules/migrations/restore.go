@@ -53,8 +53,7 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
 }
 
-// GetRepoInfo returns a repository information
-func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 	p := filepath.Join(r.baseDir, "repo.yml")
 	bs, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -63,6 +62,15 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 
 	var opts = make(map[string]string)
 	err = yaml.Unmarshal(bs, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// GetRepoInfo returns a repository information
+func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+	opts, err := r.getRepoOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +83,7 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 		IsPrivate:     isPrivate,
 		Description:   opts["description"],
 		OriginalURL:   opts["original_url"],
-		CloneURL:      opts["clone_addr"],
+		CloneURL:      filepath.Join(r.baseDir, "git"),
 		DefaultBranch: opts["default_branch"],
 	}, nil
 }
@@ -147,7 +155,9 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	}
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
-			*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			if asset.DownloadURL != nil {
+				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			}
 		}
 	}
 	return releases, nil

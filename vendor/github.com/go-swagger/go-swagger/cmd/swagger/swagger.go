@@ -19,15 +19,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/loads/fmts"
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands"
 	flags "github.com/jessevdk/go-flags"
 )
-
-func init() {
-	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
-}
 
 var opts struct {
 	// General options applicable to all commands
@@ -125,6 +119,9 @@ It aims to represent the contract of your API with a language agnostic descripti
 			cmd.LongDescription = cmd.ShortDescription
 		case "markdown":
 			cmd.ShortDescription = "generate a markdown representation from the swagger spec"
+			cmd.LongDescription = cmd.ShortDescription
+		case "cli":
+			cmd.ShortDescription = "generate a command line client tool from the swagger spec"
 			cmd.LongDescription = cmd.ShortDescription
 		}
 	}

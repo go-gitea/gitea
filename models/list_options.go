@@ -16,13 +16,13 @@ type ListOptions struct {
 	Page     int // start from 1
 }
 
-func (opts ListOptions) getPaginatedSession() *xorm.Session {
+func (opts *ListOptions) getPaginatedSession() *xorm.Session {
 	opts.setDefaultValues()
 
 	return x.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
-func (opts ListOptions) setSessionPagination(sess *xorm.Session) *xorm.Session {
+func (opts *ListOptions) setSessionPagination(sess *xorm.Session) *xorm.Session {
 	opts.setDefaultValues()
 
 	if opts.PageSize <= 0 {
@@ -31,21 +31,21 @@ func (opts ListOptions) setSessionPagination(sess *xorm.Session) *xorm.Session {
 	return sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
-func (opts ListOptions) setEnginePagination(e Engine) Engine {
+func (opts *ListOptions) setEnginePagination(e Engine) Engine {
 	opts.setDefaultValues()
 
 	return e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
 // GetStartEnd returns the start and end of the ListOptions
-func (opts ListOptions) GetStartEnd() (start, end int) {
+func (opts *ListOptions) GetStartEnd() (start, end int) {
 	opts.setDefaultValues()
 	start = (opts.Page - 1) * opts.PageSize
 	end = start + opts.Page
 	return
 }
 
-func (opts ListOptions) setDefaultValues() {
+func (opts *ListOptions) setDefaultValues() {
 	if opts.PageSize <= 0 {
 		opts.PageSize = setting.API.DefaultPagingNum
 	}
