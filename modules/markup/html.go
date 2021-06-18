@@ -997,6 +997,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	start := 0
 	next := node.NextSibling
+	cache := make(map[string]bool)
 	for node != nil && node != next && start < len(node.Data) {
 		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
@@ -1015,20 +1016,27 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
 
-		if ctx.GitRepo == nil {
-			var err error
-			ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
-			if err != nil {
-				log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
-				return
+		// check cache first
+		exist, inCache := cache[hash]
+		if !inCache {
+			if ctx.GitRepo == nil {
+				var err error
+				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				if err != nil {
+					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					return
+				}
+				ctx.AddCancel(func() {
+					ctx.GitRepo.Close()
+					ctx.GitRepo = nil
+				})
 			}
-			ctx.AddCancel(func() {
-				ctx.GitRepo.Close()
-				ctx.GitRepo = nil
-			})
+
+			exist = ctx.GitRepo.IsObjectExist(hash)
+			cache[hash] = exist
 		}
 
-		if !ctx.GitRepo.IsObjectExist(hash) {
+		if !exist {
 			start = m[3]
 			continue
 		}
