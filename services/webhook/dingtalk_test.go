@@ -89,6 +89,17 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
 		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*DingtalkPayload).ActionCard.SingleURL)
+
+		p.Action = api.HookIssueClosed
+		pl, err = d.Issue(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*DingtalkPayload).ActionCard.SingleURL)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -119,6 +130,21 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view pull request", pl.(*DingtalkPayload).ActionCard.SingleTitle)
 		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.(*DingtalkPayload).ActionCard.SingleURL)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+
+		d := new(DingtalkPayload)
+		pl, err := d.IssueComment(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view issue comment", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", pl.(*DingtalkPayload).ActionCard.SingleURL)
 	})
 
 	t.Run("Review", func(t *testing.T) {

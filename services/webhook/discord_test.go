@@ -105,6 +105,20 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
 		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+
+		p.Action = api.HookIssueClosed
+		pl, err = d.Issue(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "[test/repo] Issue closed: #2 crash", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Empty(t, pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -138,6 +152,24 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Pull request opened: #12 Fix bug", pl.(*DiscordPayload).Embeds[0].Title)
 		assert.Equal(t, "fixes bug #2", pl.(*DiscordPayload).Embeds[0].Description)
 		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.(*DiscordPayload).Embeds[0].URL)
+		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
+		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
+		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+
+		d := new(DiscordPayload)
+		pl, err := d.IssueComment(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DiscordPayload{}, pl)
+
+		assert.Len(t, pl.(*DiscordPayload).Embeds, 1)
+		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug", pl.(*DiscordPayload).Embeds[0].Title)
+		assert.Equal(t, "changes requested", pl.(*DiscordPayload).Embeds[0].Description)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", pl.(*DiscordPayload).Embeds[0].URL)
 		assert.Equal(t, p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.Name)
 		assert.Equal(t, setting.AppURL+p.Sender.UserName, pl.(*DiscordPayload).Embeds[0].Author.URL)
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)

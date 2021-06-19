@@ -139,7 +139,7 @@ func (t *TelegramPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
 	return &TelegramPayload{
-		Message: text + "\n\n" + attachmentText,
+		Message: strings.TrimSpace(text + "\n\n" + attachmentText),
 	}, nil
 }
 

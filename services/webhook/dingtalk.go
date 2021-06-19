@@ -147,7 +147,7 @@ func (d *DingtalkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	return &DingtalkPayload{
 		MsgType: "actionCard",
 		ActionCard: dingtalk.ActionCard{
-			Text: text + "\r\n\r\n" + attachmentText,
+			Text: strings.TrimSpace(text + "\r\n\r\n" + attachmentText),
 			//Markdown:    "# " + title + "\n" + text,
 			Title:       issueTitle,
 			HideAvatar:  "0",

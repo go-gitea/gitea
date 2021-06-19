@@ -30,7 +30,7 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 		Content: struct {
 			Text string `json:"text"`
 		}{
-			Text: text,
+			Text: strings.TrimSpace(text),
 		},
 	}
 }

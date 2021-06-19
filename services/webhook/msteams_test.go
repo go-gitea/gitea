@@ -159,6 +159,31 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
 		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+
+		p.Action = api.HookIssueClosed
+		pl, err = d.Issue(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Issue closed: #2 crash", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "[test/repo] Issue closed: #2 crash", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Empty(t, pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 2)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else if fact.Name == "Issue #:" {
+				assert.Equal(t, "2", fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -217,6 +242,35 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
 		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
 		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+
+		d := new(MSTeamsPayload)
+		pl, err := d.IssueComment(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &MSTeamsPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug", pl.(*MSTeamsPayload).Title)
+		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug", pl.(*MSTeamsPayload).Summary)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections, 1)
+		assert.Equal(t, "user1", pl.(*MSTeamsPayload).Sections[0].ActivitySubtitle)
+		assert.Equal(t, "changes requested", pl.(*MSTeamsPayload).Sections[0].Text)
+		assert.Len(t, pl.(*MSTeamsPayload).Sections[0].Facts, 2)
+		for _, fact := range pl.(*MSTeamsPayload).Sections[0].Facts {
+			if fact.Name == "Repository:" {
+				assert.Equal(t, p.Repository.FullName, fact.Value)
+			} else if fact.Name == "Issue #:" {
+				assert.Equal(t, "12", fact.Value)
+			} else {
+				t.Fail()
+			}
+		}
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction, 1)
+		assert.Len(t, pl.(*MSTeamsPayload).PotentialAction[0].Targets, 1)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 
 	t.Run("Review", func(t *testing.T) {

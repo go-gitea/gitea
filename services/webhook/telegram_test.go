@@ -74,6 +74,14 @@ func TestTelegramPayload(t *testing.T) {
 		require.IsType(t, &TelegramPayload{}, pl)
 
 		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Issue opened: <a href=\"http://localhost:3000/test/repo/issues/2\">#2 crash</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\n\nissue body", pl.(*TelegramPayload).Message)
+
+		p.Action = api.HookIssueClosed
+		pl, err = d.Issue(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Issue closed: <a href="http://localhost:3000/test/repo/issues/2">#2 crash</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -98,6 +106,18 @@ func TestTelegramPayload(t *testing.T) {
 		require.IsType(t, &TelegramPayload{}, pl)
 
 		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] Pull request opened: <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nfixes bug #2", pl.(*TelegramPayload).Message)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+
+		d := new(TelegramPayload)
+		pl, err := d.IssueComment(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &TelegramPayload{}, pl)
+
+		assert.Equal(t, "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] New comment on pull request <a href=\"http://localhost:3000/test/repo/pulls/12\">#12 Fix bug</a> by <a href=\"https://try.gitea.io/user1\">user1</a>\nchanges requested", pl.(*TelegramPayload).Message)
 	})
 
 	t.Run("Review", func(t *testing.T) {

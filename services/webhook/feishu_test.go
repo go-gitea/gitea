@@ -74,6 +74,14 @@ func TestFeishuPayload(t *testing.T) {
 		require.IsType(t, &FeishuPayload{}, pl)
 
 		assert.Equal(t, "#2 crash\r\n[test/repo] Issue opened: #2 crash by user1\r\n\r\nissue body", pl.(*FeishuPayload).Content.Text)
+
+		p.Action = api.HookIssueClosed
+		pl, err = d.Issue(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &FeishuPayload{}, pl)
+
+		assert.Equal(t, "#2 crash\r\n[test/repo] Issue closed: #2 crash by user1", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -98,6 +106,18 @@ func TestFeishuPayload(t *testing.T) {
 		require.IsType(t, &FeishuPayload{}, pl)
 
 		assert.Equal(t, "#12 Fix bug\r\n[test/repo] Pull request opened: #12 Fix bug by user1\r\n\r\nfixes bug #2", pl.(*FeishuPayload).Content.Text)
+	})
+
+	t.Run("PullRequestComment", func(t *testing.T) {
+		p := pullRequestCommentTestPayload()
+
+		d := new(FeishuPayload)
+		pl, err := d.IssueComment(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &FeishuPayload{}, pl)
+
+		assert.Equal(t, "#12 Fix bug\r\n[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.(*FeishuPayload).Content.Text)
 	})
 
 	t.Run("Review", func(t *testing.T) {
