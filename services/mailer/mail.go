@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -67,8 +68,10 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
 		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
-		"i18n":              locale,
 		"Language":          locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var content bytes.Buffer
@@ -104,8 +107,10 @@ func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
-		"i18n":            locale,
 		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var content bytes.Buffer
@@ -129,8 +134,10 @@ func SendRegisterNotifyMail(u *models.User) {
 	data := map[string]interface{}{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
-		"i18n":        locale,
 		"Language":    locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var content bytes.Buffer
@@ -157,8 +164,10 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 		"Subject":  subject,
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
-		"i18n":     locale,
 		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var content bytes.Buffer
@@ -239,8 +248,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ActionType":      actType,
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
-		"i18n":            locale,
 		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var mailSubject bytes.Buffer
