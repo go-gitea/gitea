@@ -6,7 +6,7 @@ import (
 )
 
 // VHDL lexer.
-var VHDL = internal.Register(MustNewLexer(
+var VHDL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "VHDL",
 		Aliases:         []string{"vhdl"},
@@ -14,7 +14,11 @@ var VHDL = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-vhdl"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	vhdlRules,
+))
+
+func vhdlRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -62,5 +66,5 @@ var VHDL = internal.Register(MustNewLexer(
 			{`O"[0-7_]+"`, LiteralNumberOct, nil},
 			{`B"[01_]+"`, LiteralNumberBin, nil},
 		},
-	},
-))
+	}
+}

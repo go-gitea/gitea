@@ -61,8 +61,8 @@ func TestMetas(t *testing.T) {
 	metas = repo.ComposeMetas()
 	assert.Contains(t, metas, "org")
 	assert.Contains(t, metas, "teams")
-	assert.Equal(t, metas["org"], "user3")
-	assert.Equal(t, metas["teams"], ",owners,team1,")
+	assert.Equal(t, "user3", metas["org"])
+	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
 
 func TestGetRepositoryCount(t *testing.T) {
@@ -111,7 +111,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	_, err = x.ID(3).Get(&act)
 
 	assert.NoError(t, err)
-	assert.Equal(t, true, act.IsPrivate)
+	assert.True(t, act.IsPrivate)
 }
 
 func TestGetUserFork(t *testing.T) {
@@ -199,13 +199,13 @@ func TestRepoGetReviewers(t *testing.T) {
 
 	reviewers, err := repo1.GetReviewers(2, 2)
 	assert.NoError(t, err)
-	assert.Equal(t, 4, len(reviewers))
+	assert.Len(t, reviewers, 4)
 
 	// test private repo
 	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	reviewers, err = repo2.GetReviewers(2, 2)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(reviewers))
+	assert.Empty(t, reviewers)
 }
 
 func TestRepoGetReviewerTeams(t *testing.T) {
@@ -219,5 +219,5 @@ func TestRepoGetReviewerTeams(t *testing.T) {
 	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	teams, err = repo3.GetReviewerTeams()
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(teams))
+	assert.Len(t, teams, 2)
 }

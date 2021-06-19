@@ -573,11 +573,13 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
 
-	stringBuilder.WriteString(pr.Issue.Content)
-	if stringBuilder.Len() > 0 {
-		stringBuilder.WriteRune('\n')
-		if !commitMessageTrailersPattern.MatchString(pr.Issue.Content) {
+	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		stringBuilder.WriteString(pr.Issue.Content)
+		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
+		  if !commitMessageTrailersPattern.MatchString(pr.Issue.Content) {
+			  stringBuilder.WriteRune('\n')
+      }
 		}
 	}
 
@@ -585,6 +587,32 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
+
+		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+			if maxSize < 0 || stringBuilder.Len() < maxSize {
+				var toWrite []byte
+				if element == list.Back() {
+					toWrite = []byte(strings.TrimPrefix(commit.CommitMessage, pr.Issue.Title))
+				} else {
+					toWrite = []byte(commit.CommitMessage)
+				}
+
+				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
+					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+				}
+				if _, err := stringBuilder.Write(toWrite); err != nil {
+					log.Error("Unable to write commit message Error: %v", err)
+					return ""
+				}
+
+				if _, err := stringBuilder.WriteRune('\n'); err != nil {
+					log.Error("Unable to write commit message Error: %v", err)
+					return ""
+				}
+			}
+		}
+
 		authorString := commit.Author.String()
 		if !authorsMap[authorString] && authorString != posterSig {
 			authors = append(authors, authorString)

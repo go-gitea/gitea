@@ -37,9 +37,10 @@ type ReleasesService struct {
 type Release struct {
 	TagName         string     `json:"tag_name"`
 	Name            string     `json:"name"`
-	Description     string     `json:"description,omitempty"`
-	DescriptionHTML string     `json:"description_html,omitempty"`
-	CreatedAt       *time.Time `json:"created_at,omitempty"`
+	Description     string     `json:"description"`
+	DescriptionHTML string     `json:"description_html"`
+	CreatedAt       *time.Time `json:"created_at"`
+	ReleasedAt      *time.Time `json:"released_at"`
 	Author          struct {
 		ID        int    `json:"id"`
 		Name      string `json:"name"`

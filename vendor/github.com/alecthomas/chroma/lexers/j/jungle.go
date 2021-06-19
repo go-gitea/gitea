@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var Jungle = internal.Register(MustNewLexer(
+var Jungle = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Jungle",
 		Aliases:   []string{"jungle"},
 		Filenames: []string{"*.jungle"},
 		MimeTypes: []string{"text/x-jungle"},
 	},
-	Rules{
+	jungleRules,
+))
+
+func jungleRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 			{`\n`, Text, nil},
@@ -46,5 +50,5 @@ var Jungle = internal.Register(MustNewLexer(
 			{`[a-zA-Z_]\w*`, Name, nil},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}
