@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -36,4 +37,14 @@ type Method interface {
 	// in the authentication data (username or email).
 	// Returns nil if verification fails.
 	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
+}
+
+// Authenticator represents a source of authentication
+type Authenticator interface {
+	Authenticate(user *models.User, login, password string, source *models.LoginSource) (*models.User, error)
+}
+
+// SynchronizableSource represents a source that can synchronize users
+type SynchronizableSource interface {
+	Sync(ctx context.Context, updateExisting bool, source *models.LoginSource) error
 }

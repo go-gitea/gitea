@@ -27,6 +27,18 @@ const (
 	SecurityProtocolStartTLS
 )
 
+// String returns the name of the SecurityProtocol
+func (s SecurityProtocol) String() string {
+	return SecurityProtocolNames[s]
+}
+
+// SecurityProtocolNames contains the name of SecurityProtocol values.
+var SecurityProtocolNames = map[SecurityProtocol]string{
+	SecurityProtocolUnencrypted: "Unencrypted",
+	SecurityProtocolLDAPS:       "LDAPS",
+	SecurityProtocolStartTLS:    "StartTLS",
+}
+
 // Source Basic LDAP authentication service
 type Source struct {
 	Name                  string // canonical name (ie. corporate.ad)

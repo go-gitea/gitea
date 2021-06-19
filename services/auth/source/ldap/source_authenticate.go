@@ -11,23 +11,16 @@ import (
 	"code.gitea.io/gitea/models"
 )
 
-// .____     ________      _____ __________
-// |    |    \______ \    /  _  \\______   \
-// |    |     |    |  \  /  /_\  \|     ___/
-// |    |___  |    `   \/    |    \    |
-// |_______ \/_______  /\____|__  /____|
-//         \/        \/         \/
-
-// Login queries if login/password is valid against the LDAP directory pool,
+// Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func Login(user *models.User, login, password string, source *models.LoginSource) (*models.User, error) {
-	sr := source.Cfg.(*models.LDAPConfig).SearchEntry(login, password, source.Type == models.LoginDLDAP)
+func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
+	sr := source.SearchEntry(login, password, loginSource.Type == models.LoginDLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, models.ErrUserNotExist{Name: login}
 	}
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
 	if isExist, err := models.IsUserExist(0, sr.Username); err != nil {
@@ -41,12 +34,12 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 		}
 		if user != nil && !user.ProhibitLogin {
 			cols := make([]string, 0)
-			if len(source.LDAP().AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
+			if len(source.AdminFilter) > 0 && user.IsAdmin != sr.IsAdmin {
 				// Change existing admin flag only if AdminFilter option is set
 				user.IsAdmin = sr.IsAdmin
 				cols = append(cols, "is_admin")
 			}
-			if !user.IsAdmin && len(source.LDAP().RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
+			if !user.IsAdmin && len(source.RestrictedFilter) > 0 && user.IsRestricted != sr.IsRestricted {
 				// Change existing restricted flag only if RestrictedFilter option is set
 				user.IsRestricted = sr.IsRestricted
 				cols = append(cols, "is_restricted")
@@ -61,7 +54,7 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, loginSource, sr.SSHPublicKey) {
 			return user, models.RewriteAllPublicKeys()
 		}
 
@@ -82,8 +75,8 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
-		LoginType:    source.Type,
-		LoginSource:  source.ID,
+		LoginType:    loginSource.Type,
+		LoginSource:  loginSource.ID,
 		LoginName:    login,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
@@ -92,7 +85,7 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 
 	err := models.CreateUser(user)
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source, sr.SSHPublicKey) {
+	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, loginSource, sr.SSHPublicKey) {
 		err = models.RewriteAllPublicKeys()
 	}
 

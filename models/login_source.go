@@ -6,16 +6,12 @@
 package models
 
 import (
-	"fmt"
+	"reflect"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -36,6 +32,11 @@ const (
 	LoginSSPI             // 7
 )
 
+// String returns the string name of the LoginType
+func (typ LoginType) String() string {
+	return LoginNames[typ]
+}
+
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
 	LoginLDAP:   "LDAP (via BindDN)",
@@ -46,141 +47,42 @@ var LoginNames = map[LoginType]string{
 	LoginSSPI:   "SPNEGO with SSPI",
 }
 
-// SecurityProtocolNames contains the name of SecurityProtocol values.
-var SecurityProtocolNames = map[ldap.SecurityProtocol]string{
-	ldap.SecurityProtocolUnencrypted: "Unencrypted",
-	ldap.SecurityProtocolLDAPS:       "LDAPS",
-	ldap.SecurityProtocolStartTLS:    "StartTLS",
+// LoginConfig represents login config as far as the db is concerned
+type LoginConfig interface {
+	convert.Conversion
 }
 
-// Ensure structs implemented interface.
-var (
-	_ convert.Conversion = &LDAPConfig{}
-	_ convert.Conversion = &SMTPConfig{}
-	_ convert.Conversion = &PAMConfig{}
-	_ convert.Conversion = &OAuth2Config{}
-	_ convert.Conversion = &SSPIConfig{}
-)
-
-// LDAPConfig holds configuration for LDAP login source.
-type LDAPConfig struct {
-	*ldap.Source
+// SkipVerifiable configurations provide a IsSkipVerify to check if SkipVerify is set
+type SkipVerifiable interface {
+	IsSkipVerify() bool
 }
 
-// FromDB fills up a LDAPConfig from serialized format.
-func (cfg *LDAPConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(bs, &cfg)
-	if err != nil {
-		return err
-	}
-	if cfg.BindPasswordEncrypt != "" {
-		cfg.BindPassword, err = secret.DecryptSecret(setting.SecretKey, cfg.BindPasswordEncrypt)
-		cfg.BindPasswordEncrypt = ""
-	}
-	return err
+// HasTLSer configurations provide a HasTLS to check if TLS can be enabled
+type HasTLSer interface {
+	HasTLS() bool
 }
 
-// ToDB exports a LDAPConfig to a serialized format.
-func (cfg *LDAPConfig) ToDB() ([]byte, error) {
-	var err error
-	cfg.BindPasswordEncrypt, err = secret.EncryptSecret(setting.SecretKey, cfg.BindPassword)
-	if err != nil {
-		return nil, err
-	}
-	cfg.BindPassword = ""
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(cfg)
+// UseTLSer configurations provide a HasTLS to check if TLS is enabled
+type UseTLSer interface {
+	UseTLS() bool
 }
 
-// SecurityProtocolName returns the name of configured security
-// protocol.
-func (cfg *LDAPConfig) SecurityProtocolName() string {
-	return SecurityProtocolNames[cfg.SecurityProtocol]
+// SSHKeyProvider configurations provide ProvidesSSHKeys to check if they provide SSHKeys
+type SSHKeyProvider interface {
+	ProvidesSSHKeys() bool
 }
 
-// SMTPConfig holds configuration for the SMTP login source.
-type SMTPConfig struct {
-	Auth           string
-	Host           string
-	Port           int
-	AllowedDomains string `xorm:"TEXT"`
-	TLS            bool
-	SkipVerify     bool
+// RegisterableSource configurations provide RegisterSource which needs to be run on creation
+type RegisterableSource interface {
+	RegisterSource(*LoginSource) error
 }
 
-// FromDB fills up an SMTPConfig from serialized format.
-func (cfg *SMTPConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
+// RegisterLoginTypeConfig register a config for a provided type
+func RegisterLoginTypeConfig(typ LoginType, config LoginConfig) {
+	registeredLoginConfigs[typ] = config
 }
 
-// ToDB exports an SMTPConfig to a serialized format.
-func (cfg *SMTPConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(cfg)
-}
-
-// PAMConfig holds configuration for the PAM login source.
-type PAMConfig struct {
-	ServiceName string // pam service (e.g. system-auth)
-	EmailDomain string
-}
-
-// FromDB fills up a PAMConfig from serialized format.
-func (cfg *PAMConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, &cfg)
-}
-
-// ToDB exports a PAMConfig to a serialized format.
-func (cfg *PAMConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(cfg)
-}
-
-// OAuth2Config holds configuration for the OAuth2 login source.
-type OAuth2Config struct {
-	Provider                      string
-	ClientID                      string
-	ClientSecret                  string
-	OpenIDConnectAutoDiscoveryURL string
-	CustomURLMapping              *oauth2.CustomURLMapping
-	IconURL                       string
-}
-
-// FromDB fills up an OAuth2Config from serialized format.
-func (cfg *OAuth2Config) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
-}
-
-// ToDB exports an SMTPConfig to a serialized format.
-func (cfg *OAuth2Config) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(cfg)
-}
-
-// SSPIConfig holds configuration for SSPI single sign-on.
-type SSPIConfig struct {
-	AutoCreateUsers      bool
-	AutoActivateUsers    bool
-	StripDomainNames     bool
-	SeparatorReplacement string
-	DefaultLanguage      string
-}
-
-// FromDB fills up an SSPIConfig from serialized format.
-func (cfg *SSPIConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
-}
-
-// ToDB exports an SSPIConfig to a serialized format.
-func (cfg *SSPIConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(cfg)
-}
+var registeredLoginConfigs = map[LoginType]LoginConfig{}
 
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
@@ -211,19 +113,11 @@ func Cell2Int64(val xorm.Cell) int64 {
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
-		switch LoginType(Cell2Int64(val)) {
-		case LoginLDAP, LoginDLDAP:
-			source.Cfg = new(LDAPConfig)
-		case LoginSMTP:
-			source.Cfg = new(SMTPConfig)
-		case LoginPAM:
-			source.Cfg = new(PAMConfig)
-		case LoginOAuth2:
-			source.Cfg = new(OAuth2Config)
-		case LoginSSPI:
-			source.Cfg = new(SSPIConfig)
-		default:
-			panic(fmt.Sprintf("unrecognized login source type: %v", *val))
+		typ := LoginType(Cell2Int64(val))
+		exemplar, ok := registeredLoginConfigs[typ]
+		if ok {
+			source.Cfg = reflect.New(reflect.TypeOf(exemplar)).Interface().(convert.Conversion)
+			return
 		}
 	}
 }
@@ -265,59 +159,21 @@ func (source *LoginSource) IsSSPI() bool {
 
 // HasTLS returns true of this source supports TLS.
 func (source *LoginSource) HasTLS() bool {
-	return ((source.IsLDAP() || source.IsDLDAP()) &&
-		source.LDAP().SecurityProtocol > ldap.SecurityProtocolUnencrypted) ||
-		source.IsSMTP()
+	hasTLSer, ok := source.Cfg.(HasTLSer)
+	return ok && hasTLSer.HasTLS()
 }
 
 // UseTLS returns true of this source is configured to use TLS.
 func (source *LoginSource) UseTLS() bool {
-	switch source.Type {
-	case LoginLDAP, LoginDLDAP:
-		return source.LDAP().SecurityProtocol != ldap.SecurityProtocolUnencrypted
-	case LoginSMTP:
-		return source.SMTP().TLS
-	}
-
-	return false
+	useTLSer, ok := source.Cfg.(UseTLSer)
+	return ok && useTLSer.UseTLS()
 }
 
 // SkipVerify returns true if this source is configured to skip SSL
 // verification.
 func (source *LoginSource) SkipVerify() bool {
-	switch source.Type {
-	case LoginLDAP, LoginDLDAP:
-		return source.LDAP().SkipVerify
-	case LoginSMTP:
-		return source.SMTP().SkipVerify
-	}
-
-	return false
-}
-
-// LDAP returns LDAPConfig for this source, if of LDAP type.
-func (source *LoginSource) LDAP() *LDAPConfig {
-	return source.Cfg.(*LDAPConfig)
-}
-
-// SMTP returns SMTPConfig for this source, if of SMTP type.
-func (source *LoginSource) SMTP() *SMTPConfig {
-	return source.Cfg.(*SMTPConfig)
-}
-
-// PAM returns PAMConfig for this source, if of PAM type.
-func (source *LoginSource) PAM() *PAMConfig {
-	return source.Cfg.(*PAMConfig)
-}
-
-// OAuth2 returns OAuth2Config for this source, if of OAuth2 type.
-func (source *LoginSource) OAuth2() *OAuth2Config {
-	return source.Cfg.(*OAuth2Config)
-}
-
-// SSPI returns SSPIConfig for this source, if of SSPI type.
-func (source *LoginSource) SSPI() *SSPIConfig {
-	return source.Cfg.(*SSPIConfig)
+	skipVerifiable, ok := source.Cfg.(SkipVerifiable)
+	return ok && skipVerifiable.IsSkipVerify()
 }
 
 // CreateLoginSource inserts a LoginSource in the DB if not already
@@ -335,16 +191,24 @@ func CreateLoginSource(source *LoginSource) error {
 	}
 
 	_, err = x.Insert(source)
-	if err == nil && source.IsOAuth2() && source.IsActived {
-		oAuth2Config := source.OAuth2()
-		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
-		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-		if err != nil {
-			// remove the LoginSource in case of errors while registering OAuth2 providers
-			if _, err := x.Delete(source); err != nil {
-				log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
-			}
-			return err
+	if err != nil {
+		return err
+	}
+
+	if !source.IsActived {
+		return nil
+	}
+
+	registerableSource, ok := source.Cfg.(RegisterableSource)
+	if !ok {
+		return nil
+	}
+
+	err = registerableSource.RegisterSource(source)
+	if err != nil {
+		// remove the LoginSource in case of errors while registering configuration
+		if _, err := x.Delete(source); err != nil {
+			log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
@@ -419,16 +283,24 @@ func UpdateSource(source *LoginSource) error {
 	}
 
 	_, err := x.ID(source.ID).AllCols().Update(source)
-	if err == nil && source.IsOAuth2() && source.IsActived {
-		oAuth2Config := source.OAuth2()
-		err = oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
-		err = wrapOpenIDConnectInitializeError(err, source.Name, oAuth2Config)
-		if err != nil {
-			// restore original values since we cannot update the provider it self
-			if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
-				log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
-			}
-			return err
+	if err != nil {
+		return err
+	}
+
+	if !source.IsActived {
+		return nil
+	}
+
+	registerableSource, ok := source.Cfg.(RegisterableSource)
+	if !ok {
+		return nil
+	}
+
+	err = registerableSource.RegisterSource(source)
+	if err != nil {
+		// restore original values since we cannot update the provider it self
+		if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err

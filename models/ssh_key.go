@@ -278,11 +278,7 @@ keyloop:
 			}
 		}
 
-		ldapSource := source.LDAP()
-		if ldapSource != nil &&
-			source.IsSyncEnabled &&
-			(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
-			len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+		if sshKeyProvider, ok := source.Cfg.(SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 			// Disable setting SSH keys for this user
 			externals[i] = true
 		}
@@ -307,11 +303,7 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 		}
 		return false, err
 	}
-	ldapSource := source.LDAP()
-	if ldapSource != nil &&
-		source.IsSyncEnabled &&
-		(source.Type == LoginLDAP || source.Type == LoginDLDAP) &&
-		len(strings.TrimSpace(ldapSource.AttributeSSHPublicKey)) > 0 {
+	if sshKeyProvider, ok := source.Cfg.(SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 		// Disable setting SSH keys for this user
 		return true, nil
 	}

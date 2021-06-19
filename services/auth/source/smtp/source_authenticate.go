@@ -14,36 +14,29 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//   _________   __________________________
-//  /   _____/  /     \__    ___/\______   \
-//  \_____  \  /  \ /  \|    |    |     ___/
-//  /        \/    Y    \    |    |    |
-// /_______  /\____|__  /____|    |____|
-//         \/         \/
-
-// Login queries if login/password is valid against the SMTP,
-// and create a local user if success when enabled.
-func Login(user *models.User, login, password string, sourceID int64, cfg *models.SMTPConfig) (*models.User, error) {
+// Authenticate queries if the provided login/password is authenticates against the SMTP server
+// Users will be autoregistered as required
+func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
 	// Verify allowed domains.
-	if len(cfg.AllowedDomains) > 0 {
+	if len(source.AllowedDomains) > 0 {
 		idx := strings.Index(login, "@")
 		if idx == -1 {
 			return nil, models.ErrUserNotExist{Name: login}
-		} else if !util.IsStringInSlice(login[idx+1:], strings.Split(cfg.AllowedDomains, ","), true) {
+		} else if !util.IsStringInSlice(login[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
 			return nil, models.ErrUserNotExist{Name: login}
 		}
 	}
 
 	var auth smtp.Auth
-	if cfg.Auth == PlainAuthentication {
-		auth = smtp.PlainAuth("", login, password, cfg.Host)
-	} else if cfg.Auth == LoginAuthentication {
+	if source.Auth == PlainAuthentication {
+		auth = smtp.PlainAuth("", login, password, source.Host)
+	} else if source.Auth == LoginAuthentication {
 		auth = &loginAuthenticator{login, password}
 	} else {
 		return nil, errors.New("Unsupported SMTP auth type")
 	}
 
-	if err := Authenticate(auth, cfg); err != nil {
+	if err := Authenticate(auth, source); err != nil {
 		// Check standard error format first,
 		// then fallback to worse case.
 		tperr, ok := err.(*textproto.Error)
@@ -70,7 +63,7 @@ func Login(user *models.User, login, password string, sourceID int64, cfg *model
 		Email:       login,
 		Passwd:      password,
 		LoginType:   models.LoginSMTP,
-		LoginSource: sourceID,
+		LoginSource: loginSource.ID,
 		LoginName:   login,
 		IsActive:    true,
 	}

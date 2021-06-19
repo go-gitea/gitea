@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/auth/source/ldap"
 )
 
 // SyncExternalUsers is used to synchronize users with external authorization source
@@ -33,8 +32,8 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 		default:
 		}
 
-		if s.IsLDAP() {
-			err := ldap.Sync(ctx, updateExisting, s)
+		if syncable, ok := s.Cfg.(SynchronizableSource); ok {
+			err := syncable.Sync(ctx, updateExisting, s)
 			if err != nil {
 				return err
 			}

@@ -13,18 +13,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// .____     ________      _____ __________
-// |    |    \______ \    /  _  \\______   \
-// |    |     |    |  \  /  /_\  \|     ___/
-// |    |___  |    `   \/    |    \    |
-// |_______ \/_______  /\____|__  /____|
-//         \/        \/         \/
-
-func Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error {
+// Sync causes this ldap source to synchronize its users with the db
+func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
 
 	var existingUsers []int64
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
@@ -40,14 +34,14 @@ func Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error
 	default:
 	}
 
-	sr, err := s.LDAP().SearchEntries()
+	sr, err := source.SearchEntries()
 	if err != nil {
 		log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
 		return nil
 	}
 
 	if len(sr) == 0 {
-		if !s.LDAP().AllowDeactivateAll {
+		if !source.AllowDeactivateAll {
 			log.Error("LDAP search found no entries but did not report an error. Refusing to deactivate all users")
 			return nil
 		}
@@ -122,8 +116,8 @@ func Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error
 			}
 
 			// Check if user data has changed
-			if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-				(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
+			if (len(source.AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
+				(len(source.RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
 				!strings.EqualFold(usr.Email, su.Mail) ||
 				usr.FullName != fullName ||
 				!usr.IsActive {
@@ -133,11 +127,11 @@ func Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error
 				usr.FullName = fullName
 				usr.Email = su.Mail
 				// Change existing admin flag only if AdminFilter option is set
-				if len(s.LDAP().AdminFilter) > 0 {
+				if len(source.AdminFilter) > 0 {
 					usr.IsAdmin = su.IsAdmin
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
-				if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
+				if !usr.IsAdmin && len(source.RestrictedFilter) > 0 {
 					usr.IsRestricted = su.IsRestricted
 				}
 				usr.IsActive = true

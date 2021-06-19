@@ -5,8 +5,6 @@
 package models
 
 import (
-	"sort"
-
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -103,33 +101,6 @@ func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
 	return loginSource, nil
 }
 
-// GetActiveOAuth2Providers returns the map of configured active OAuth2 providers
-// key is used as technical name (like in the callbackURL)
-// values to display
-func GetActiveOAuth2Providers() ([]string, map[string]OAuth2Provider, error) {
-	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
-
-	loginSources, err := GetActiveOAuth2ProviderLoginSources()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var orderedKeys []string
-	providers := make(map[string]OAuth2Provider)
-	for _, source := range loginSources {
-		prov := OAuth2Providers[source.OAuth2().Provider]
-		if source.OAuth2().IconURL != "" {
-			prov.Image = source.OAuth2().IconURL
-		}
-		providers[source.Name] = prov
-		orderedKeys = append(orderedKeys, source.Name)
-	}
-
-	sort.Strings(orderedKeys)
-
-	return orderedKeys, providers, nil
-}
-
 // InitOAuth2 initialize the OAuth2 lib and register all active OAuth2 providers in the library
 func InitOAuth2() error {
 	if err := oauth2.InitSigningKey(); err != nil {
@@ -151,8 +122,11 @@ func ResetOAuth2() error {
 func initOAuth2LoginSources() error {
 	loginSources, _ := GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
-		oAuth2Config := source.OAuth2()
-		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
+		registerableSource, ok := source.Cfg.(RegisterableSource)
+		if !ok {
+			continue
+		}
+		err := registerableSource.RegisterSource(source)
 		if err != nil {
 			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
 			source.IsActived = false
@@ -163,13 +137,4 @@ func initOAuth2LoginSources() error {
 		}
 	}
 	return nil
-}
-
-// wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2
-// inside oauth2: import cycle not allowed models -> modules/auth/oauth2 -> models
-func wrapOpenIDConnectInitializeError(err error, providerName string, oAuth2Config *OAuth2Config) error {
-	if err != nil && "openidConnect" == oAuth2Config.Provider {
-		err = ErrOpenIDConnectInitialize{ProviderName: providerName, OpenIDConnectAutoDiscoveryURL: oAuth2Config.OpenIDConnectAutoDiscoveryURL, Cause: err}
-	}
-	return err
 }

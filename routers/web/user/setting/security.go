@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
 const (
@@ -92,7 +93,7 @@ func loadSecurityData(ctx *context.Context) {
 		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 			if loginSource.IsOAuth2() {
-				providerTechnicalName := loginSource.OAuth2().Provider
+				providerTechnicalName := loginSource.Cfg.(*oauth2.Source).Provider
 				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
 			} else {
 				providerDisplayName = loginSource.Name

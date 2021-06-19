@@ -50,8 +50,8 @@ const (
 var Authenticators = []string{PlainAuthentication, LoginAuthentication}
 
 // Authenticate performs an SMTP authentication.
-func Authenticate(a smtp.Auth, cfg *models.SMTPConfig) error {
-	c, err := smtp.Dial(fmt.Sprintf("%s:%d", cfg.Host, cfg.Port))
+func Authenticate(a smtp.Auth, source *Source) error {
+	c, err := smtp.Dial(fmt.Sprintf("%s:%d", source.Host, source.Port))
 	if err != nil {
 		return err
 	}
@@ -61,11 +61,11 @@ func Authenticate(a smtp.Auth, cfg *models.SMTPConfig) error {
 		return err
 	}
 
-	if cfg.TLS {
+	if source.TLS {
 		if ok, _ := c.Extension("STARTTLS"); ok {
 			if err = c.StartTLS(&tls.Config{
-				InsecureSkipVerify: cfg.SkipVerify,
-				ServerName:         cfg.Host,
+				InsecureSkipVerify: source.SkipVerify,
+				ServerName:         source.Host,
 			}); err != nil {
 				return err
 			}

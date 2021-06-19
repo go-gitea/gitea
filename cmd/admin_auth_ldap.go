@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/ldap"
+	ldapService "code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/urfave/cli"
 )
@@ -180,7 +181,7 @@ func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) {
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
-func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
+func parseLdapConfig(c *cli.Context, config *ldapService.Source) error {
 	if c.IsSet("name") {
 		config.Source.Name = c.String("name")
 	}
@@ -251,7 +252,7 @@ func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
 // findLdapSecurityProtocolByName finds security protocol by its name ignoring case.
 // It returns the value of the security protocol and if it was found.
 func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
-	for i, n := range models.SecurityProtocolNames {
+	for i, n := range ldap.SecurityProtocolNames {
 		if strings.EqualFold(name, n) {
 			return i, true
 		}
@@ -291,7 +292,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 	loginSource := &models.LoginSource{
 		Type:      models.LoginLDAP,
 		IsActived: true, // active by default
-		Cfg: &models.LDAPConfig{
+		Cfg: &ldapService.Source{
 			Source: &ldap.Source{
 				Enabled: true, // always true
 			},
@@ -299,7 +300,7 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldapService.Source)); err != nil {
 		return err
 	}
 
@@ -318,7 +319,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldapService.Source)); err != nil {
 		return err
 	}
 
@@ -338,7 +339,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	loginSource := &models.LoginSource{
 		Type:      models.LoginDLDAP,
 		IsActived: true, // active by default
-		Cfg: &models.LDAPConfig{
+		Cfg: &ldapService.Source{
 			Source: &ldap.Source{
 				Enabled: true, // always true
 			},
@@ -346,7 +347,7 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldapService.Source)); err != nil {
 		return err
 	}
 
@@ -365,7 +366,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldapService.Source)); err != nil {
 		return err
 	}
 

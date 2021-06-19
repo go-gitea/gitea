@@ -43,6 +43,7 @@ const (
 
 var sshOpLocker sync.Mutex
 
+// AuthorizedStringForKey creates the authorized keys string appropriate for the provided key
 func AuthorizedStringForKey(key *PublicKey) string {
 	sb := &strings.Builder{}
 	_ = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sb, map[string]interface{}{

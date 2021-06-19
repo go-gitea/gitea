@@ -15,17 +15,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// __________  _____      _____
-// \______   \/  _  \    /     \
-//  |     ___/  /_\  \  /  \ /  \
-//  |    |  /    |    \/    Y    \
-//  |____|  \____|__  /\____|__  /
-//                  \/         \/
-
-// Login queries if login/password is valid against the PAM,
+// Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func Login(user *models.User, login, password string, sourceID int64, cfg *models.PAMConfig) (*models.User, error) {
-	pamLogin, err := pam.Auth(cfg.ServiceName, login, password)
+func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
+	pamLogin, err := pam.Auth(source.ServiceName, login, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
 			return nil, models.ErrUserNotExist{Name: login}
@@ -45,8 +38,8 @@ func Login(user *models.User, login, password string, sourceID int64, cfg *model
 		username = pamLogin[:idx]
 	}
 	if models.ValidateEmail(email) != nil {
-		if cfg.EmailDomain != "" {
-			email = fmt.Sprintf("%s@%s", username, cfg.EmailDomain)
+		if source.EmailDomain != "" {
+			email = fmt.Sprintf("%s@%s", username, source.EmailDomain)
 		} else {
 			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
 		}
@@ -61,7 +54,7 @@ func Login(user *models.User, login, password string, sourceID int64, cfg *model
 		Email:       email,
 		Passwd:      password,
 		LoginType:   models.LoginPAM,
-		LoginSource: sourceID,
+		LoginSource: loginSource.ID,
 		LoginName:   login, // This is what the user typed in
 		IsActive:    true,
 	}
