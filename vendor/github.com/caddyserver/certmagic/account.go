@@ -28,6 +28,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/mholt/acmez/acme"
 )
@@ -185,9 +186,14 @@ func (am *ACMEManager) saveAccount(ca string, account acme.Account) error {
 func (am *ACMEManager) getEmail(allowPrompts bool) error {
 	leEmail := am.Email
 
-	// First try package default email
+	// First try package default email, or a discovered email address
 	if leEmail == "" {
-		leEmail = DefaultACME.Email // TODO: racey with line 122 (or whichever line assigns to DefaultACME.Email below)
+		leEmail = DefaultACME.Email
+	}
+	if leEmail == "" {
+		discoveredEmailMu.Lock()
+		leEmail = discoveredEmail
+		discoveredEmailMu.Unlock()
 	}
 
 	// Then try to get most recent user email from storage
@@ -210,8 +216,13 @@ func (am *ACMEManager) getEmail(allowPrompts bool) error {
 
 	// save the email for later and ensure it is consistent
 	// for repeated use; then update cfg with the email
-	DefaultACME.Email = strings.TrimSpace(strings.ToLower(leEmail)) // TODO: this is racey with line 99
-	am.Email = DefaultACME.Email
+	leEmail = strings.TrimSpace(strings.ToLower(leEmail))
+	discoveredEmailMu.Lock()
+	if discoveredEmail == "" {
+		discoveredEmail = leEmail
+	}
+	discoveredEmailMu.Unlock()
+	am.Email = leEmail
 
 	return nil
 }
@@ -385,6 +396,14 @@ func getPrimaryContact(account acme.Account) string {
 	}
 	return primaryContact
 }
+
+// When an email address is not explicitly specified, we can remember
+// the last one we discovered to avoid having to ask again later.
+// (We used to store this in DefaultACME.Email but it was racey; see #127)
+var (
+	discoveredEmail   string
+	discoveredEmailMu sync.Mutex
+)
 
 // agreementTestURL is set during tests to skip requiring
 // setting up an entire ACME CA endpoint.

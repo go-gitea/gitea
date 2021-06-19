@@ -6,14 +6,18 @@ import (
 )
 
 // CSS lexer.
-var CSS = internal.Register(MustNewLexer(
+var CSS = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "CSS",
 		Aliases:   []string{"css"},
 		Filenames: []string{"*.css"},
 		MimeTypes: []string{"text/css"},
 	},
-	Rules{
+	cssRules,
+))
+
+func cssRules() Rules {
+	return Rules{
 		"root": {
 			Include("basics"),
 		},
@@ -38,6 +42,18 @@ var CSS = internal.Register(MustNewLexer(
 		"atcontent": {
 			Include("basics"),
 			{`\}`, Punctuation, Pop(2)},
+		},
+		"atparenthesis": {
+			Include("common-values"),
+			{`/\*(?:.|\n)*?\*/`, Comment, nil},
+			Include("numeric-values"),
+			{`[*+/-]`, Operator, nil},
+			{`[,]`, Punctuation, nil},
+			{`"(\\\\|\\"|[^"])*"`, LiteralStringDouble, nil},
+			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
+			{`[a-zA-Z_-]\w*`, Name, nil},
+			{`\(`, Punctuation, Push("atparenthesis")},
+			{`\)`, Punctuation, Pop(1)},
 		},
 		"content": {
 			{`\s+`, Text, nil},
@@ -73,6 +89,7 @@ var CSS = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, LiteralStringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 			{`[a-zA-Z_-]\w*`, Name, nil},
+			{`\(`, Punctuation, Push("atparenthesis")},
 			{`\)`, Punctuation, Pop(1)},
 		},
 		"common-values": {
@@ -100,5 +117,5 @@ var CSS = internal.Register(MustNewLexer(
 			{`%`, KeywordType, nil},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

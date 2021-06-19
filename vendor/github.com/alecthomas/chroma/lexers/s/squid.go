@@ -6,7 +6,7 @@ import (
 )
 
 // Squidconf lexer.
-var Squidconf = internal.Register(MustNewLexer(
+var Squidconf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "SquidConf",
 		Aliases:         []string{"squidconf", "squid.conf", "squid"},
@@ -15,7 +15,11 @@ var Squidconf = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	squidconfRules,
+))
+
+func squidconfRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, TextWhitespace, nil},
 			{`#`, Comment, Push("comment")},
@@ -34,5 +38,5 @@ var Squidconf = internal.Register(MustNewLexer(
 			{`.+`, Comment, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

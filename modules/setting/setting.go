@@ -20,6 +20,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
@@ -117,48 +118,57 @@ var (
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
+	PerWriteTimeout      = 30 * time.Second
+	PerWritePerKbTimeout = 10 * time.Second
 	StaticURLPrefix      string
 	AbsoluteAssetURL     string
 
 	SSH = struct {
-		Disabled                       bool              `ini:"DISABLE_SSH"`
-		StartBuiltinServer             bool              `ini:"START_SSH_SERVER"`
-		BuiltinServerUser              string            `ini:"BUILTIN_SSH_SERVER_USER"`
-		Domain                         string            `ini:"SSH_DOMAIN"`
-		Port                           int               `ini:"SSH_PORT"`
-		ListenHost                     string            `ini:"SSH_LISTEN_HOST"`
-		ListenPort                     int               `ini:"SSH_LISTEN_PORT"`
-		RootPath                       string            `ini:"SSH_ROOT_PATH"`
-		ServerCiphers                  []string          `ini:"SSH_SERVER_CIPHERS"`
-		ServerKeyExchanges             []string          `ini:"SSH_SERVER_KEY_EXCHANGES"`
-		ServerMACs                     []string          `ini:"SSH_SERVER_MACS"`
-		ServerHostKeys                 []string          `ini:"SSH_SERVER_HOST_KEYS"`
-		KeyTestPath                    string            `ini:"SSH_KEY_TEST_PATH"`
-		KeygenPath                     string            `ini:"SSH_KEYGEN_PATH"`
-		AuthorizedKeysBackup           bool              `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
-		AuthorizedPrincipalsBackup     bool              `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
-		MinimumKeySizeCheck            bool              `ini:"-"`
-		MinimumKeySizes                map[string]int    `ini:"-"`
-		CreateAuthorizedKeysFile       bool              `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
-		CreateAuthorizedPrincipalsFile bool              `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
-		ExposeAnonymous                bool              `ini:"SSH_EXPOSE_ANONYMOUS"`
-		AuthorizedPrincipalsAllow      []string          `ini:"SSH_AUTHORIZED_PRINCIPALS_ALLOW"`
-		AuthorizedPrincipalsEnabled    bool              `ini:"-"`
-		TrustedUserCAKeys              []string          `ini:"SSH_TRUSTED_USER_CA_KEYS"`
-		TrustedUserCAKeysFile          string            `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
-		TrustedUserCAKeysParsed        []gossh.PublicKey `ini:"-"`
+		Disabled                              bool               `ini:"DISABLE_SSH"`
+		StartBuiltinServer                    bool               `ini:"START_SSH_SERVER"`
+		BuiltinServerUser                     string             `ini:"BUILTIN_SSH_SERVER_USER"`
+		Domain                                string             `ini:"SSH_DOMAIN"`
+		Port                                  int                `ini:"SSH_PORT"`
+		ListenHost                            string             `ini:"SSH_LISTEN_HOST"`
+		ListenPort                            int                `ini:"SSH_LISTEN_PORT"`
+		RootPath                              string             `ini:"SSH_ROOT_PATH"`
+		ServerCiphers                         []string           `ini:"SSH_SERVER_CIPHERS"`
+		ServerKeyExchanges                    []string           `ini:"SSH_SERVER_KEY_EXCHANGES"`
+		ServerMACs                            []string           `ini:"SSH_SERVER_MACS"`
+		ServerHostKeys                        []string           `ini:"SSH_SERVER_HOST_KEYS"`
+		KeyTestPath                           string             `ini:"SSH_KEY_TEST_PATH"`
+		KeygenPath                            string             `ini:"SSH_KEYGEN_PATH"`
+		AuthorizedKeysBackup                  bool               `ini:"SSH_AUTHORIZED_KEYS_BACKUP"`
+		AuthorizedPrincipalsBackup            bool               `ini:"SSH_AUTHORIZED_PRINCIPALS_BACKUP"`
+		AuthorizedKeysCommandTemplate         string             `ini:"SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE"`
+		AuthorizedKeysCommandTemplateTemplate *template.Template `ini:"-"`
+		MinimumKeySizeCheck                   bool               `ini:"-"`
+		MinimumKeySizes                       map[string]int     `ini:"-"`
+		CreateAuthorizedKeysFile              bool               `ini:"SSH_CREATE_AUTHORIZED_KEYS_FILE"`
+		CreateAuthorizedPrincipalsFile        bool               `ini:"SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE"`
+		ExposeAnonymous                       bool               `ini:"SSH_EXPOSE_ANONYMOUS"`
+		AuthorizedPrincipalsAllow             []string           `ini:"SSH_AUTHORIZED_PRINCIPALS_ALLOW"`
+		AuthorizedPrincipalsEnabled           bool               `ini:"-"`
+		TrustedUserCAKeys                     []string           `ini:"SSH_TRUSTED_USER_CA_KEYS"`
+		TrustedUserCAKeysFile                 string             `ini:"SSH_TRUSTED_USER_CA_KEYS_FILENAME"`
+		TrustedUserCAKeysParsed               []gossh.PublicKey  `ini:"-"`
+		PerWriteTimeout                       time.Duration      `ini:"SSH_PER_WRITE_TIMEOUT"`
+		PerWritePerKbTimeout                  time.Duration      `ini:"SSH_PER_WRITE_PER_KB_TIMEOUT"`
 	}{
-		Disabled:            false,
-		StartBuiltinServer:  false,
-		Domain:              "",
-		Port:                22,
-		ServerCiphers:       []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
-		ServerKeyExchanges:  []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
-		ServerMACs:          []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
-		KeygenPath:          "ssh-keygen",
-		MinimumKeySizeCheck: true,
-		MinimumKeySizes:     map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
-		ServerHostKeys:      []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+		Disabled:                      false,
+		StartBuiltinServer:            false,
+		Domain:                        "",
+		Port:                          22,
+		ServerCiphers:                 []string{"aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "arcfour256", "arcfour128"},
+		ServerKeyExchanges:            []string{"diffie-hellman-group1-sha1", "diffie-hellman-group14-sha1", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "curve25519-sha256@libssh.org"},
+		ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1", "hmac-sha1-96"},
+		KeygenPath:                    "ssh-keygen",
+		MinimumKeySizeCheck:           true,
+		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
+		AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
+		PerWriteTimeout:               PerWriteTimeout,
+		PerWritePerKbTimeout:          PerWritePerKbTimeout,
 	}
 
 	// Security settings
@@ -361,14 +371,17 @@ var (
 		AccessTokenExpirationTime  int64
 		RefreshTokenExpirationTime int64
 		InvalidateRefreshTokens    bool
-		JWTSecretBytes             []byte `ini:"-"`
+		JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
 		JWTSecretBase64            string `ini:"JWT_SECRET"`
+		JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
 		MaxTokenLength             int
 	}{
 		Enable:                     true,
 		AccessTokenExpirationTime:  3600,
 		RefreshTokenExpirationTime: 730,
 		InvalidateRefreshTokens:    false,
+		JWTSigningAlgorithm:        "RS256",
+		JWTSigningPrivateKeyFile:   "jwt/private.pem",
 		MaxTokenLength:             math.MaxInt16,
 	}
 
@@ -612,6 +625,8 @@ func NewContext() {
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
+	PerWriteTimeout = sec.Key("PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	PerWritePerKbTimeout = sec.Key("PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	defaultAppURL := string(Protocol) + "://" + Domain
 	if (Protocol == HTTP && HTTPPort != "80") || (Protocol == HTTPS && HTTPPort != "443") {
@@ -777,27 +792,20 @@ func NewContext() {
 	}
 
 	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
+	SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandTemplate)
+
+	SSH.AuthorizedKeysCommandTemplateTemplate = template.Must(template.New("").Parse(SSH.AuthorizedKeysCommandTemplate))
+
+	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
 
 	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 		return
 	}
 
-	if OAuth2.Enable {
-		OAuth2.JWTSecretBytes = make([]byte, 32)
-		n, err := base64.RawURLEncoding.Decode(OAuth2.JWTSecretBytes, []byte(OAuth2.JWTSecretBase64))
-
-		if err != nil || n != 32 {
-			OAuth2.JWTSecretBase64, err = generate.NewJwtSecret()
-			if err != nil {
-				log.Fatal("error generating JWT secret: %v", err)
-				return
-			}
-
-			CreateOrAppendToCustomConf(func(cfg *ini.File) {
-				cfg.Section("oauth2").Key("JWT_SECRET").SetValue(OAuth2.JWTSecretBase64)
-			})
-		}
+	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(CustomPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
 	sec = Cfg.Section("admin")
@@ -1171,4 +1179,10 @@ func NewServices() {
 	NewQueueService()
 	newProject()
 	newMimeTypeMap()
+}
+
+// NewServicesForInstall initializes the services for install
+func NewServicesForInstall() {
+	newService()
+	newMailService()
 }
