@@ -19,7 +19,8 @@ func createTestPayload() *api.CreatePayload {
 			FullName: "test/repo",
 		},
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 	}
 }
@@ -34,7 +35,8 @@ func deleteTestPayload() *api.DeletePayload {
 			FullName: "test/repo",
 		},
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 	}
 }
@@ -52,7 +54,8 @@ func forkTestPayload() *api.ForkPayload {
 			FullName: "test/repo",
 		},
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 	}
 }
@@ -87,10 +90,12 @@ func pushTestPayload() *api.PushPayload {
 			FullName: "test/repo",
 		},
 		Pusher: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 	}
 }
@@ -99,7 +104,8 @@ func issueTestPayload() *api.IssuePayload {
 	return &api.IssuePayload{
 		Index: 2,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -121,7 +127,8 @@ func issueCommentTestPayload() *api.IssueCommentPayload {
 	return &api.IssueCommentPayload{
 		Action: api.HookIssueCommentCreated,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -148,7 +155,8 @@ func pullRequestCommentTestPayload() *api.IssueCommentPayload {
 	return &api.IssueCommentPayload{
 		Action: api.HookIssueCommentCreated,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -176,7 +184,8 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 	return &api.ReleasePayload{
 		Action: api.HookReleasePublished,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -187,6 +196,7 @@ func pullReleaseTestPayload() *api.ReleasePayload {
 			TagName: "v1.0",
 			Target:  "master",
 			Title:   "First stable release",
+			Note:    "Note of first stable release",
 			URL:     "http://localhost:3000/api/v1/repos/test/repo/releases/2",
 		},
 	}
@@ -197,7 +207,8 @@ func pullRequestTestPayload() *api.PullRequestPayload {
 		Action: api.HookIssueOpened,
 		Index:  12,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
@@ -223,7 +234,8 @@ func repositoryTestPayload() *api.RepositoryPayload {
 	return &api.RepositoryPayload{
 		Action: api.HookRepoCreated,
 		Sender: &api.User{
-			UserName: "user1",
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
 		},
 		Repository: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
