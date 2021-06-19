@@ -70,9 +70,6 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/web.go
-      linters:
-        - dupl
     - path: routers/api/v1/repo/issue_subscription.go
       linters:
         - dupl
@@ -114,3 +111,4 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+

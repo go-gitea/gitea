@@ -19,12 +19,12 @@
 
 #define minMatch	$4
 
-// func decodeBlock(dst, src []byte) int
-TEXT ·decodeBlock(SB), NOFRAME|NOSPLIT, $-4-28
-	MOVW dst_base +0(FP), dst
-	MOVW dst_len  +4(FP), dstend
-	MOVW src_base+12(FP), src
-	MOVW src_len +16(FP), srcend
+// func decodeBlockNodict(dst, src []byte) int
+TEXT ·decodeBlockNodict(SB), NOFRAME+NOSPLIT, $-4-28
+	MOVW dst_base  +0(FP), dst
+	MOVW dst_len   +4(FP), dstend
+	MOVW src_base +12(FP), src
+	MOVW src_len  +16(FP), srcend
 
 	CMP $0, srcend
 	BEQ shortSrc

@@ -6,14 +6,18 @@ import (
 )
 
 // Nginx Configuration File lexer.
-var Nginx = internal.Register(MustNewLexer(
+var Nginx = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Nginx configuration file",
 		Aliases:   []string{"nginx"},
 		Filenames: []string{"nginx.conf"},
 		MimeTypes: []string{"text/x-nginx-conf"},
 	},
-	Rules{
+	nginxRules,
+))
+
+func nginxRules() Rules {
+	return Rules{
 		"root": {
 			{`(include)(\s+)([^\s;]+)`, ByGroups(Keyword, Text, Name), nil},
 			{`[^\s;#]+`, Keyword, Push("stmt")},
@@ -43,5 +47,5 @@ var Nginx = internal.Register(MustNewLexer(
 			{`\s+`, Text, nil},
 			{`[$;]`, Text, nil},
 		},
-	},
-))
+	}
+}

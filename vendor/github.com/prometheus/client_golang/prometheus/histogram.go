@@ -47,7 +47,12 @@ type Histogram interface {
 	Metric
 	Collector
 
-	// Observe adds a single observation to the histogram.
+	// Observe adds a single observation to the histogram. Observations are
+	// usually positive or zero. Negative observations are accepted but
+	// prevent current versions of Prometheus from properly detecting
+	// counter resets in the sum of observations. See
+	// https://prometheus.io/docs/practices/histograms/#count-and-sum-of-observations
+	// for details.
 	Observe(float64)
 }
 

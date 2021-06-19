@@ -6,7 +6,7 @@ import (
 )
 
 // Crystal lexer.
-var Crystal = internal.Register(MustNewLexer(
+var Crystal = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Crystal",
 		Aliases:   []string{"cr", "crystal"},
@@ -14,7 +14,11 @@ var Crystal = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-crystal"},
 		DotAll:    true,
 	},
-	Rules{
+	crystalRules,
+))
+
+func crystalRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*?$`, CommentSingle, nil},
 			{Words(``, `\b`, `abstract`, `asm`, `as`, `begin`, `break`, `case`, `do`, `else`, `elsif`, `end`, `ensure`, `extend`, `ifdef`, `if`, `include`, `instance_sizeof`, `next`, `of`, `pointerof`, `private`, `protected`, `rescue`, `return`, `require`, `sizeof`, `super`, `then`, `typeof`, `unless`, `until`, `when`, `while`, `with`, `yield`), Keyword, nil},
@@ -258,5 +262,5 @@ var Crystal = internal.Register(MustNewLexer(
 			{`[\\#<>]`, LiteralStringRegex, nil},
 			{`[^\\#<>]+`, LiteralStringRegex, nil},
 		},
-	},
-))
+	}
+}

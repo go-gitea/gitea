@@ -8,14 +8,18 @@ import (
 // nolint
 
 // Scheme lexer.
-var SchemeLang = internal.Register(MustNewLexer(
+var SchemeLang = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Scheme",
 		Aliases:   []string{"scheme", "scm"},
 		Filenames: []string{"*.scm", "*.ss"},
 		MimeTypes: []string{"text/x-scheme", "application/x-scheme"},
 	},
-	Rules{
+	schemeLangRules,
+))
+
+func schemeLangRules() Rules {
+	return Rules{
 		"root": {
 			{`;.*$`, CommentSingle, nil},
 			{`#\|`, CommentMultiline, Push("multiline-comment")},
@@ -49,5 +53,5 @@ var SchemeLang = internal.Register(MustNewLexer(
 			{`\)`, Comment, Pop(1)},
 			{`[^()]+`, Comment, nil},
 		},
-	},
-))
+	}
+}
