@@ -635,8 +635,8 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 	return keys, sess.Find(&keys)
 }
 
-// ListPublicLdapSSHKeys returns a list of synchronized public ldap ssh keys belongs to given user and login source.
-func ListPublicLdapSSHKeys(uid, loginSourceID int64) ([]*PublicKey, error) {
+// ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
+func ListPublicKeysBySource(uid, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
 	return keys, x.
 		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).

@@ -61,7 +61,7 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && models.SynchronizeLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source, sr.SSHPublicKey) {
 			return user, models.RewriteAllPublicKeys()
 		}
 
@@ -80,7 +80,7 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 	user = &models.User{
 		LowerName:    strings.ToLower(sr.Username),
 		Name:         sr.Username,
-		FullName:     models.ComposeFullName(sr.Name, sr.Surname, sr.Username),
+		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
 		LoginType:    source.Type,
 		LoginSource:  source.ID,
@@ -92,7 +92,7 @@ func Login(user *models.User, login, password string, source *models.LoginSource
 
 	err := models.CreateUser(user)
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddLdapSSHPublicKeys(user, source, sr.SSHPublicKey) {
+	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source, sr.SSHPublicKey) {
 		err = models.RewriteAllPublicKeys()
 	}
 

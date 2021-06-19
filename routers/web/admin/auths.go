@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/services/auth/smtp"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/forms"
 
 	"xorm.io/xorm/convert"

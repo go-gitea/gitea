@@ -463,17 +463,3 @@ func CountLoginSources() int64 {
 	count, _ := x.Count(new(LoginSource))
 	return count
 }
-
-// ComposeFullName composes a firstname surname or username
-func ComposeFullName(firstname, surname, username string) string {
-	switch {
-	case len(firstname) == 0 && len(surname) == 0:
-		return username
-	case len(firstname) == 0:
-		return surname
-	case len(surname) == 0:
-		return firstname
-	default:
-		return firstname + " " + surname
-	}
-}
