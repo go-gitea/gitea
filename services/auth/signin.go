@@ -10,9 +10,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/services/auth/ldap"
-	"code.gitea.io/gitea/services/auth/pam"
-	"code.gitea.io/gitea/services/auth/smtp"
+	"code.gitea.io/gitea/services/auth/source/ldap"
+	"code.gitea.io/gitea/services/auth/source/pam"
+	"code.gitea.io/gitea/services/auth/source/smtp"
 )
 
 // UserSignIn validates user name and password.
