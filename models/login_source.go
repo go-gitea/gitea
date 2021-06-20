@@ -78,11 +78,22 @@ type RegisterableSource interface {
 }
 
 // RegisterLoginTypeConfig register a config for a provided type
-func RegisterLoginTypeConfig(typ LoginType, config LoginConfig) {
-	registeredLoginConfigs[typ] = config
+func RegisterLoginTypeConfig(typ LoginType, exemplar LoginConfig) {
+	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
+		// Pointer:
+		registeredLoginConfigs[typ] = func() LoginConfig {
+			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(LoginConfig)
+		}
+		return
+	}
+
+	// Not a Pointer
+	registeredLoginConfigs[typ] = func() LoginConfig {
+		return reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(LoginConfig)
+	}
 }
 
-var registeredLoginConfigs = map[LoginType]LoginConfig{}
+var registeredLoginConfigs = map[LoginType]func() LoginConfig{}
 
 // LoginSource represents an external way for authorizing users.
 type LoginSource struct {
@@ -114,19 +125,11 @@ func Cell2Int64(val xorm.Cell) int64 {
 func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
 		typ := LoginType(Cell2Int64(val))
-		exemplar, ok := registeredLoginConfigs[typ]
+		constructor, ok := registeredLoginConfigs[typ]
 		if !ok {
 			return
 		}
-
-		if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
-			// Pointer:
-			source.Cfg = reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(convert.Conversion)
-			return
-		}
-
-		// Not pointer:
-		source.Cfg = reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(convert.Conversion)
+		source.Cfg = constructor()
 	}
 }
 
