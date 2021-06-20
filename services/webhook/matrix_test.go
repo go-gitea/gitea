@@ -170,6 +170,19 @@ func TestMatrixPayload(t *testing.T) {
 	})
 }
 
+func TestMatrixJSONPayload(t *testing.T) {
+	p := pushTestPayload()
+
+	pl, err := new(MatrixPayloadUnsafe).Push(p)
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	require.IsType(t, &MatrixPayloadUnsafe{}, pl)
+
+	json, err := pl.JSONPayload()
+	require.NoError(t, err)
+	assert.NotEmpty(t, json)
+}
+
 func TestMatrixHookRequest(t *testing.T) {
 	h := &models.HookTask{
 		PayloadContent: `{

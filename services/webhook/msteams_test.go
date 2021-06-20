@@ -359,3 +359,16 @@ func TestMSTeamsPayload(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", pl.(*MSTeamsPayload).PotentialAction[0].Targets[0].URI)
 	})
 }
+
+func TestMSTeamsJSONPayload(t *testing.T) {
+	p := pushTestPayload()
+
+	pl, err := new(MSTeamsPayload).Push(p)
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	require.IsType(t, &MSTeamsPayload{}, pl)
+
+	json, err := pl.JSONPayload()
+	require.NoError(t, err)
+	assert.NotEmpty(t, json)
+}

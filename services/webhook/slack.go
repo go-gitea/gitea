@@ -119,7 +119,7 @@ func (s *SlackPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	repoLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("[%s:%s] %s deleted by %s", repoLink, refName, p.RefType, p.Sender.UserName)
-	
+
 	return s.createPayload(text, nil), nil
 }
 
@@ -128,7 +128,7 @@ func (s *SlackPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	baseLink := SlackLinkFormatter(p.Forkee.HTMLURL, p.Forkee.FullName)
 	forkLink := SlackLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	text := fmt.Sprintf("%s is forked to %s", baseLink, forkLink)
-	
+
 	return s.createPayload(text, nil), nil
 }
 

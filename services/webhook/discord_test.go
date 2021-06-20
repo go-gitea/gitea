@@ -230,3 +230,16 @@ func TestDiscordPayload(t *testing.T) {
 		assert.Equal(t, p.Sender.AvatarURL, pl.(*DiscordPayload).Embeds[0].Author.IconURL)
 	})
 }
+
+func TestDiscordJSONPayload(t *testing.T) {
+	p := pushTestPayload()
+
+	pl, err := new(DiscordPayload).Push(p)
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	require.IsType(t, &DiscordPayload{}, pl)
+
+	json, err := pl.JSONPayload()
+	require.NoError(t, err)
+	assert.NotEmpty(t, json)
+}

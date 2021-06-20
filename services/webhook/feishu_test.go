@@ -157,3 +157,16 @@ func TestFeishuPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*FeishuPayload).Content.Text)
 	})
 }
+
+func TestFeishuJSONPayload(t *testing.T) {
+	p := pushTestPayload()
+
+	pl, err := new(FeishuPayload).Push(p)
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	require.IsType(t, &FeishuPayload{}, pl)
+
+	json, err := pl.JSONPayload()
+	require.NoError(t, err)
+	assert.NotEmpty(t, json)
+}

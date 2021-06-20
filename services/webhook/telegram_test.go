@@ -157,3 +157,16 @@ func TestTelegramPayload(t *testing.T) {
 		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/src/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
 	})
 }
+
+func TestTelegramJSONPayload(t *testing.T) {
+	p := pushTestPayload()
+
+	pl, err := new(TelegramPayload).Push(p)
+	require.NoError(t, err)
+	require.NotNil(t, pl)
+	require.IsType(t, &TelegramPayload{}, pl)
+
+	json, err := pl.JSONPayload()
+	require.NoError(t, err)
+	assert.NotEmpty(t, json)
+}
