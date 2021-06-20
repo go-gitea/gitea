@@ -135,7 +135,7 @@ func GetTag(ctx *context.APIContext) {
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	tagName := ctx.Params("tag")
@@ -172,7 +172,7 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateTagOption"
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/AnnotatedTag"
+	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	//   "409":
