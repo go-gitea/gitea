@@ -9,12 +9,18 @@
 </head>
 
 <body>
-	<p>@{{.Doer.Name}} assigned you to the {{if .IsPull}}pull request{{else}}issue{{end}} <a href="{{.Link}}">#{{.Issue.Index}}</a> in repository {{.Repo}}.</p>
+	<p>
+		{{if .IsPull}}
+			{{.i18n.Tr "mail.issue_assigned.pull" .Doer.Name .Link .Issue.Index .Repo | Str2html}}
+		{{else}}
+			{{.i18n.Tr "mail.issue_assigned.issue" .Doer.Name .Link .Issue.Index .Repo | Str2html}}
+		{{end}}
+	</p>
 	<div class="footer">
 		<p>
 			---
 			<br>
-			<a href="{{.Link}}">View it on {{AppName}}</a>.
+			{{.i18n.Tr "mail.view_it_on_footer" .Link AppName | Str2html}}
 		</p>
 	</div>
 </body>
