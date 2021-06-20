@@ -62,7 +62,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 				return nil, models.ErrLoginSourceNotActived
 			}
 
-			authenticator, ok := source.Cfg.(Authenticator)
+			authenticator, ok := source.Cfg.(PasswordAuthenticator)
 			if !ok {
 				return nil, models.ErrUnsupportedLoginType
 
@@ -94,7 +94,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 			continue
 		}
 
-		authenticator, ok := source.Cfg.(Authenticator)
+		authenticator, ok := source.Cfg.(PasswordAuthenticator)
 		if !ok {
 			continue
 		}
