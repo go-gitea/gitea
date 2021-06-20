@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -75,6 +74,7 @@ type SSHKeyProvider interface {
 // RegisterableSource configurations provide RegisterSource which needs to be run on creation
 type RegisterableSource interface {
 	RegisterSource(*LoginSource) error
+	UnregisterSource(*LoginSource) error
 }
 
 // RegisterLoginTypeConfig register a config for a provided type
@@ -330,8 +330,10 @@ func DeleteSource(source *LoginSource) error {
 		return ErrLoginSourceInUse{source.ID}
 	}
 
-	if source.IsOAuth2() {
-		oauth2.RemoveProvider(source.Name)
+	if registerableSource, ok := source.Cfg.(RegisterableSource); ok {
+		if err := registerableSource.UnregisterSource(source); err != nil {
+			return err
+		}
 	}
 
 	_, err = x.ID(source.ID).Delete(new(LoginSource))
