@@ -116,7 +116,7 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 		typ := LoginType(Cell2Int64(val))
 		exemplar, ok := registeredLoginConfigs[typ]
 		if ok {
-			source.Cfg = reflect.New(reflect.TypeOf(exemplar)).Interface().(convert.Conversion)
+			source.Cfg = reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(convert.Conversion)
 			return
 		}
 	}
