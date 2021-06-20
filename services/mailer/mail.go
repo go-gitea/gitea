@@ -76,7 +76,6 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -115,7 +114,6 @@ func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -142,7 +140,6 @@ func SendRegisterNotifyMail(u *models.User) {
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -172,7 +169,6 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -255,7 +251,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	var mailSubject bytes.Buffer
-	// TODO: i18n templates?
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
@@ -271,7 +266,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
