@@ -7,6 +7,8 @@
 
 {{ $activate_url := printf "%suser/activate?code=%s" AppUrl .Code}}
 <body>
-	{{.i18n.Tr "mail.activate_account.body" .DisplayName .ActiveCodeLives $activate_url AppUrl AppName | Str2html}}
+	{{.i18n.Tr "mail.activate_account.body" .DisplayName .ActiveCodeLives $activate_url AppName | Str2html}}
+
+	{{.i18n.Tr "mail.footer" AppUrl AppName | Str2html}}
 </body>
 </html>

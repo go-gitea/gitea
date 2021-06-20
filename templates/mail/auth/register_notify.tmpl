@@ -7,5 +7,7 @@
 
 <body>
 	{{.i18n.Tr "mail.register_notify.body" .DisplayName .Username AppUrl AppName | Str2html}}
+
+	{{.i18n.Tr "mail.footer" AppUrl AppName | Str2html}}
 </body>
 </html>
