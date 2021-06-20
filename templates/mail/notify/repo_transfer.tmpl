@@ -7,7 +7,7 @@
 
 <body>
 	<p>{{.Subject}}.
-		To accept or reject it visit <a href="{{.Link}}">{{.Repo}}</a> or just ignore it.
+		{{.i18n.Tr "mail.repo.transfer.body" .Link .Repo | Str2html}}
 	<p>
 		---
 		<br>
