@@ -39,8 +39,8 @@ type Method interface {
 	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
 }
 
-// Authenticator represents a source of authentication
-type Authenticator interface {
+// PasswordAuthenticator represents a source of authentication
+type PasswordAuthenticator interface {
 	Authenticate(user *models.User, login, password string, source *models.LoginSource) (*models.User, error)
 }
 
