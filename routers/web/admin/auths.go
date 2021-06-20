@@ -11,7 +11,6 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
@@ -20,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	ldapService "code.gitea.io/gitea/services/auth/source/ldap"
+	"code.gitea.io/gitea/services/auth/source/ldap"
 	oauth2Service "code.gitea.io/gitea/services/auth/source/oauth2"
 	pamService "code.gitea.io/gitea/services/auth/source/pam"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -118,40 +117,38 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
 
-func parseLDAPConfig(form forms.AuthenticationForm) *ldapService.Source {
+func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 	var pageSize uint32
 	if form.UsePagedSearch {
 		pageSize = uint32(form.SearchPageSize)
 	}
-	return &ldapService.Source{
-		Source: &ldap.Source{
-			Name:                  form.Name,
-			Host:                  form.Host,
-			Port:                  form.Port,
-			SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
-			SkipVerify:            form.SkipVerify,
-			BindDN:                form.BindDN,
-			UserDN:                form.UserDN,
-			BindPassword:          form.BindPassword,
-			UserBase:              form.UserBase,
-			AttributeUsername:     form.AttributeUsername,
-			AttributeName:         form.AttributeName,
-			AttributeSurname:      form.AttributeSurname,
-			AttributeMail:         form.AttributeMail,
-			AttributesInBind:      form.AttributesInBind,
-			AttributeSSHPublicKey: form.AttributeSSHPublicKey,
-			SearchPageSize:        pageSize,
-			Filter:                form.Filter,
-			GroupsEnabled:         form.GroupsEnabled,
-			GroupDN:               form.GroupDN,
-			GroupFilter:           form.GroupFilter,
-			GroupMemberUID:        form.GroupMemberUID,
-			UserUID:               form.UserUID,
-			AdminFilter:           form.AdminFilter,
-			RestrictedFilter:      form.RestrictedFilter,
-			AllowDeactivateAll:    form.AllowDeactivateAll,
-			Enabled:               true,
-		},
+	return &ldap.Source{
+		Name:                  form.Name,
+		Host:                  form.Host,
+		Port:                  form.Port,
+		SecurityProtocol:      ldap.SecurityProtocol(form.SecurityProtocol),
+		SkipVerify:            form.SkipVerify,
+		BindDN:                form.BindDN,
+		UserDN:                form.UserDN,
+		BindPassword:          form.BindPassword,
+		UserBase:              form.UserBase,
+		AttributeUsername:     form.AttributeUsername,
+		AttributeName:         form.AttributeName,
+		AttributeSurname:      form.AttributeSurname,
+		AttributeMail:         form.AttributeMail,
+		AttributesInBind:      form.AttributesInBind,
+		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+		SearchPageSize:        pageSize,
+		Filter:                form.Filter,
+		GroupsEnabled:         form.GroupsEnabled,
+		GroupDN:               form.GroupDN,
+		GroupFilter:           form.GroupFilter,
+		GroupMemberUID:        form.GroupMemberUID,
+		UserUID:               form.UserUID,
+		AdminFilter:           form.AdminFilter,
+		RestrictedFilter:      form.RestrictedFilter,
+		AllowDeactivateAll:    form.AllowDeactivateAll,
+		Enabled:               true,
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/ldap"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	jsoniter "github.com/json-iterator/go"
@@ -21,15 +20,54 @@ import (
 // |_______ \/_______  /\____|__  /____|
 //         \/        \/         \/
 
-// Source holds configuration for LDAP login source.
+// Package ldap provide functions & structure to query a LDAP ldap directory
+// For now, it's mainly tested again an MS Active Directory service, see README.md for more information
+
+// Source Basic LDAP authentication service
 type Source struct {
-	*ldap.Source
+	Name                  string // canonical name (ie. corporate.ad)
+	Host                  string // LDAP host
+	Port                  int    // port number
+	SecurityProtocol      SecurityProtocol
+	SkipVerify            bool
+	BindDN                string // DN to bind with
+	BindPasswordEncrypt   string // Encrypted Bind BN password
+	BindPassword          string // Bind DN password
+	UserBase              string // Base search path for users
+	UserDN                string // Template for the DN of the user for simple auth
+	AttributeUsername     string // Username attribute
+	AttributeName         string // First name attribute
+	AttributeSurname      string // Surname attribute
+	AttributeMail         string // E-mail attribute
+	AttributesInBind      bool   // fetch attributes in bind context (not user)
+	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	SearchPageSize        uint32 // Search with paging page size
+	Filter                string // Query filter to validate entry
+	AdminFilter           string // Query filter to check if user is admin
+	RestrictedFilter      string // Query filter to check if user is restricted
+	Enabled               bool   // if this source is disabled
+	AllowDeactivateAll    bool   // Allow an empty search response to deactivate all users from this source
+	GroupsEnabled         bool   // if the group checking is enabled
+	GroupDN               string // Group Search Base
+	GroupFilter           string // Group Name Filter
+	GroupMemberUID        string // Group Attribute containing array of UserUID
+	UserUID               string // User Attribute listed in Group
+}
+
+// wrappedSource wraps the source to ensure that the FromDB/ToDB results are the same as previously
+type wrappedSource struct {
+	Source *Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(bs, &source)
+
+	wrapped := &wrappedSource{
+		Source: source,
+	}
+
+	err := json.Unmarshal(bs, &wrapped)
 	if err != nil {
 		return err
 	}
@@ -49,13 +87,16 @@ func (source *Source) ToDB() ([]byte, error) {
 	}
 	source.BindPassword = ""
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Marshal(source)
+	wrapped := &wrappedSource{
+		Source: source,
+	}
+	return json.Marshal(wrapped)
 }
 
 // SecurityProtocolName returns the name of configured security
 // protocol.
 func (source *Source) SecurityProtocolName() string {
-	return ldap.SecurityProtocolNames[source.SecurityProtocol]
+	return SecurityProtocolNames[source.SecurityProtocol]
 }
 
 // IsSkipVerify returns if SkipVerify is set
@@ -65,12 +106,12 @@ func (source *Source) IsSkipVerify() bool {
 
 // HasTLS returns if HasTLS
 func (source *Source) HasTLS() bool {
-	return source.SecurityProtocol > ldap.SecurityProtocolUnencrypted
+	return source.SecurityProtocol > SecurityProtocolUnencrypted
 }
 
 // UseTLS returns if UseTLS
 func (source *Source) UseTLS() bool {
-	return source.SecurityProtocol != ldap.SecurityProtocolUnencrypted
+	return source.SecurityProtocol != SecurityProtocolUnencrypted
 }
 
 // ProvidesSSHKeys returns if this source provides SSH Keys
