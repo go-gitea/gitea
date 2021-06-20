@@ -115,10 +115,18 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
 		typ := LoginType(Cell2Int64(val))
 		exemplar, ok := registeredLoginConfigs[typ]
-		if ok {
+		if !ok {
+			return
+		}
+
+		if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
+			// Pointer:
 			source.Cfg = reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(convert.Conversion)
 			return
 		}
+
+		// Not pointer:
+		source.Cfg = reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(convert.Conversion)
 	}
 }
 
