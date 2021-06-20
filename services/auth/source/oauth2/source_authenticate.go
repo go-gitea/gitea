@@ -12,8 +12,8 @@ import (
 	"github.com/markbates/goth/gothic"
 )
 
-// Authenticate takes a provided loginSource and the request/response pair to authenticate against the provider
-func (source *Source) Authenticate(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) error {
+// ProviderAuthenticate takes a provided loginSource and the request/response pair to authenticate against the provider
+func (source *Source) ProviderAuthenticate(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) error {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(ProviderHeaderKey, loginSource.Name)
 
