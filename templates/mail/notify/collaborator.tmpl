@@ -9,7 +9,7 @@
 </head>
 
 <body>
-	<p>You have been added as a collaborator of repository: <code>{{.RepoName}}</code></p>
+	{{.i18n.Tr "mail.repo.collaborator.added.body" .RepoName | Str2html}}
 	<div class="footer">
 		<p>
 			---
