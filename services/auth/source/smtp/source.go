@@ -25,6 +25,9 @@ type Source struct {
 	AllowedDomains string `xorm:"TEXT"`
 	TLS            bool
 	SkipVerify     bool
+
+	// reference to the loginSource
+	loginSource *models.LoginSource
 }
 
 // FromDB fills up an SMTPConfig from serialized format.
@@ -52,6 +55,11 @@ func (source *Source) HasTLS() bool {
 // UseTLS returns if TLS is set
 func (source *Source) UseTLS() bool {
 	return source.TLS
+}
+
+// SetLoginSource sets the related LoginSource
+func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+	source.loginSource = loginSource
 }
 
 func init() {

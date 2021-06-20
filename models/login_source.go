@@ -73,8 +73,13 @@ type SSHKeyProvider interface {
 
 // RegisterableSource configurations provide RegisterSource which needs to be run on creation
 type RegisterableSource interface {
-	RegisterSource(*LoginSource) error
-	UnregisterSource(*LoginSource) error
+	RegisterSource() error
+	UnregisterSource() error
+}
+
+// LoginSourceSettable configurations can have their loginSource set on them
+type LoginSourceSettable interface {
+	SetLoginSource(*LoginSource)
 }
 
 // RegisterLoginTypeConfig register a config for a provided type
@@ -130,6 +135,9 @@ func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
 			return
 		}
 		source.Cfg = constructor()
+		if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+			settable.SetLoginSource(source)
+		}
 	}
 }
 
@@ -215,7 +223,7 @@ func CreateLoginSource(source *LoginSource) error {
 		return nil
 	}
 
-	err = registerableSource.RegisterSource(source)
+	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the LoginSource in case of errors while registering configuration
 		if _, err := x.Delete(source); err != nil {
@@ -307,7 +315,7 @@ func UpdateSource(source *LoginSource) error {
 		return nil
 	}
 
-	err = registerableSource.RegisterSource(source)
+	err = registerableSource.RegisterSource()
 	if err != nil {
 		// restore original values since we cannot update the provider it self
 		if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
@@ -334,7 +342,7 @@ func DeleteSource(source *LoginSource) error {
 	}
 
 	if registerableSource, ok := source.Cfg.(RegisterableSource); ok {
-		if err := registerableSource.UnregisterSource(source); err != nil {
+		if err := registerableSource.UnregisterSource(); err != nil {
 			return err
 		}
 	}

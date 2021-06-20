@@ -13,8 +13,8 @@ import (
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
-	sr := source.SearchEntry(login, password, loginSource.Type == models.LoginDLDAP)
+func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
+	sr := source.SearchEntry(login, password, source.loginSource.Type == models.LoginDLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
 		return nil, models.ErrUserNotExist{Name: login}
@@ -54,7 +54,7 @@ func (source *Source) Authenticate(user *models.User, login, password string, lo
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, loginSource, sr.SSHPublicKey) {
+		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
 			return user, models.RewriteAllPublicKeys()
 		}
 
@@ -75,8 +75,8 @@ func (source *Source) Authenticate(user *models.User, login, password string, lo
 		Name:         sr.Username,
 		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
 		Email:        sr.Mail,
-		LoginType:    loginSource.Type,
-		LoginSource:  loginSource.ID,
+		LoginType:    source.loginSource.Type,
+		LoginSource:  source.loginSource.ID,
 		LoginName:    login,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
@@ -85,7 +85,7 @@ func (source *Source) Authenticate(user *models.User, login, password string, lo
 
 	err := models.CreateUser(user)
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, loginSource, sr.SSHPublicKey) {
+	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
 		err = models.RewriteAllPublicKeys()
 	}
 

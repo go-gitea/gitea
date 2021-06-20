@@ -21,6 +21,9 @@ import (
 type Source struct {
 	ServiceName string // pam service (e.g. system-auth)
 	EmailDomain string
+
+	// reference to the loginSource
+	loginSource *models.LoginSource
 }
 
 // FromDB fills up a PAMConfig from serialized format.
@@ -33,6 +36,11 @@ func (source *Source) FromDB(bs []byte) error {
 func (source *Source) ToDB() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(source)
+}
+
+// SetLoginSource sets the related LoginSource
+func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+	source.loginSource = loginSource
 }
 
 func init() {

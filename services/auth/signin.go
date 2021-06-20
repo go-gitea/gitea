@@ -68,7 +68,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 
 			}
 
-			user, err := authenticator.Authenticate(nil, username, password, source)
+			user, err := authenticator.Authenticate(nil, username, password)
 			if err != nil {
 				return nil, err
 			}
@@ -99,7 +99,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 			continue
 		}
 
-		authUser, err := authenticator.Authenticate(nil, username, password, source)
+		authUser, err := authenticator.Authenticate(nil, username, password)
 
 		if err == nil {
 			if !user.ProhibitLogin {

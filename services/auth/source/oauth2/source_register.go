@@ -9,14 +9,14 @@ import (
 )
 
 // RegisterSource causes an OAuth2 configuration to be registered
-func (source *Source) RegisterSource(loginSource *models.LoginSource) error {
-	err := RegisterProvider(loginSource.Name, source.Provider, source.ClientID, source.ClientSecret, source.OpenIDConnectAutoDiscoveryURL, source.CustomURLMapping)
-	return wrapOpenIDConnectInitializeError(err, loginSource.Name, source)
+func (source *Source) RegisterSource() error {
+	err := RegisterProvider(source.loginSource.Name, source.Provider, source.ClientID, source.ClientSecret, source.OpenIDConnectAutoDiscoveryURL, source.CustomURLMapping)
+	return wrapOpenIDConnectInitializeError(err, source.loginSource.Name, source)
 }
 
 // UnregisterSource causes an OAuth2 configuration to be unregistered
-func (source *Source) UnregisterSource(loginSource *models.LoginSource) error {
-	RemoveProvider(loginSource.Name)
+func (source *Source) UnregisterSource() error {
+	RemoveProvider(source.loginSource.Name)
 	return nil
 }
 

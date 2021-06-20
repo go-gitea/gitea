@@ -69,7 +69,7 @@ func initOAuth2LoginSources() error {
 		if !ok {
 			continue
 		}
-		err := oauth2Source.RegisterSource(source)
+		err := oauth2Source.RegisterSource()
 		if err != nil {
 			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
 			source.IsActived = false

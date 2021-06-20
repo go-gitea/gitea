@@ -41,10 +41,10 @@ type Method interface {
 
 // PasswordAuthenticator represents a source of authentication
 type PasswordAuthenticator interface {
-	Authenticate(user *models.User, login, password string, source *models.LoginSource) (*models.User, error)
+	Authenticate(user *models.User, login, password string) (*models.User, error)
 }
 
 // SynchronizableSource represents a source that can synchronize users
 type SynchronizableSource interface {
-	Sync(ctx context.Context, updateExisting bool, source *models.LoginSource) error
+	Sync(ctx context.Context, updateExisting bool) error
 }

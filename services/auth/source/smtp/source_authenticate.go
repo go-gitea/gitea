@@ -16,7 +16,7 @@ import (
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
 // Users will be autoregistered as required
-func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
+func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
 		idx := strings.Index(login, "@")
@@ -63,7 +63,7 @@ func (source *Source) Authenticate(user *models.User, login, password string, lo
 		Email:       login,
 		Passwd:      password,
 		LoginType:   models.LoginSMTP,
-		LoginSource: loginSource.ID,
+		LoginSource: source.loginSource.ID,
 		LoginName:   login,
 		IsActive:    true,
 	}

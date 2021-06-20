@@ -17,7 +17,7 @@ import (
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string, loginSource *models.LoginSource) (*models.User, error) {
+func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
 	pamLogin, err := pam.Auth(source.ServiceName, login, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
@@ -54,7 +54,7 @@ func (source *Source) Authenticate(user *models.User, login, password string, lo
 		Email:       email,
 		Passwd:      password,
 		LoginType:   models.LoginPAM,
-		LoginSource: loginSource.ID,
+		LoginSource: source.loginSource.ID,
 		LoginName:   login, // This is what the user typed in
 		IsActive:    true,
 	}

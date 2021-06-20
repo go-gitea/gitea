@@ -33,7 +33,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 		}
 
 		if syncable, ok := s.Cfg.(SynchronizableSource); ok {
-			err := syncable.Sync(ctx, updateExisting, s)
+			err := syncable.Sync(ctx, updateExisting)
 			if err != nil {
 				return err
 			}

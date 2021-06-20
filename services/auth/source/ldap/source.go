@@ -53,6 +53,9 @@ type Source struct {
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
 	UserUID               string // User Attribute listed in Group
+
+	// reference to the loginSource
+	loginSource *models.LoginSource
 }
 
 // wrappedSource wraps the source to ensure that the FromDB/ToDB results are the same as previously
@@ -118,6 +121,11 @@ func (source *Source) UseTLS() bool {
 // ProvidesSSHKeys returns if this source provides SSH Keys
 func (source *Source) ProvidesSSHKeys() bool {
 	return len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+}
+
+// SetLoginSource sets the related LoginSource
+func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+	source.loginSource = loginSource
 }
 
 func init() {

@@ -14,29 +14,29 @@ import (
 )
 
 // Sync causes this ldap source to synchronize its users with the db
-func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.LoginSource) error {
-	log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
+func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
+	log.Trace("Doing: SyncExternalUsers[%s]", source.loginSource.Name)
 
 	var existingUsers []int64
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
-	users, err := models.GetUsersBySource(s)
+	users, err := models.GetUsersBySource(source.loginSource)
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
 	}
 	select {
 	case <-ctx.Done():
-		log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
-		return models.ErrCancelledf("Before update of %s", s.Name)
+		log.Warn("SyncExternalUsers: Cancelled before update of %s", source.loginSource.Name)
+		return models.ErrCancelledf("Before update of %s", source.loginSource.Name)
 	default:
 	}
 
 	sr, err := source.SearchEntries()
 	if err != nil {
-		log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
+		log.Error("SyncExternalUsers LDAP source failure [%s], skipped", source.loginSource.Name)
 		return nil
 	}
 
@@ -51,7 +51,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 	for _, su := range sr {
 		select {
 		case <-ctx.Done():
-			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", s.Name)
+			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.loginSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
 				err = models.RewriteAllPublicKeys()
@@ -59,7 +59,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
 			}
-			return models.ErrCancelledf("During update of %s before completed update of users", s.Name)
+			return models.ErrCancelledf("During update of %s before completed update of users", source.loginSource.Name)
 		default:
 		}
 		if len(su.Username) == 0 {
@@ -82,14 +82,14 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
 		// If no existing user found, create one
 		if usr == nil {
-			log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
+			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.loginSource.Name, su.Username)
 
 			usr = &models.User{
 				LowerName:    strings.ToLower(su.Username),
 				Name:         su.Username,
 				FullName:     fullName,
-				LoginType:    s.Type,
-				LoginSource:  s.ID,
+				LoginType:    source.loginSource.Type,
+				LoginSource:  source.loginSource.ID,
 				LoginName:    su.Username,
 				Email:        su.Mail,
 				IsAdmin:      su.IsAdmin,
@@ -100,10 +100,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 			err = models.CreateUser(usr)
 
 			if err != nil {
-				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
+				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.loginSource.Name, su.Username, err)
 			} else if isAttributeSSHPublicKeySet {
-				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
-				if models.AddPublicKeysBySource(usr, s, su.SSHPublicKey) {
+				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.loginSource.Name, usr.Name)
+				if models.AddPublicKeysBySource(usr, source.loginSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
@@ -111,7 +111,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 			existingUsers = append(existingUsers, usr.ID)
 
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(usr, s, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(usr, source.loginSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -122,7 +122,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 				usr.FullName != fullName ||
 				!usr.IsActive {
 
-				log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
+				log.Trace("SyncExternalUsers[%s]: Updating user %s", source.loginSource.Name, usr.Name)
 
 				usr.FullName = fullName
 				usr.Email = su.Mail
@@ -138,7 +138,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 
 				err = models.UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
+					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
 			}
 		}
@@ -154,8 +154,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 
 	select {
 	case <-ctx.Done():
-		log.Warn("SyncExternalUsers: Cancelled during update of %s before delete users", s.Name)
-		return models.ErrCancelledf("During update of %s before delete users", s.Name)
+		log.Warn("SyncExternalUsers: Cancelled during update of %s before delete users", source.loginSource.Name)
+		return models.ErrCancelledf("During update of %s before delete users", source.loginSource.Name)
 	default:
 	}
 
@@ -170,12 +170,12 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool, s *models.L
 				}
 			}
 			if !found {
-				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
+				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.loginSource.Name, usr.Name)
 
 				usr.IsActive = false
 				err = models.UpdateUserCols(usr, "is_active")
 				if err != nil {
-					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
+					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
 			}
 		}
