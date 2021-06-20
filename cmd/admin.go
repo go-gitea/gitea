@@ -14,8 +14,7 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
-	oauth2Service "code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -599,7 +598,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	return models.RewriteAllPublicKeys()
 }
 
-func parseOAuth2Config(c *cli.Context) *oauth2Service.Source {
+func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -611,7 +610,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2Service.Source {
 	} else {
 		customURLMapping = nil
 	}
-	return &oauth2Service.Source{
+	return &oauth2.Source{
 		Provider:                      c.String("provider"),
 		ClientID:                      c.String("key"),
 		ClientSecret:                  c.String("secret"),
@@ -648,7 +647,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	oAuth2Config := source.Cfg.(*oauth2Service.Source)
+	oAuth2Config := source.Cfg.(*oauth2.Source)
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")

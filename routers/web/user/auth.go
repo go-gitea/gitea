@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -579,13 +578,13 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
+	if err = loginSource.Cfg.(*oauth2Service.Source).Authenticate(loginSource, ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = models.ResetOAuth2(); err != nil {
+			if err = oauth2Service.ResetOAuth2(); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
-			if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
+			if err = loginSource.Cfg.(*oauth2Service.Source).Authenticate(loginSource, ctx.Req, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
 			return
@@ -774,8 +773,7 @@ func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
 func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
-	gothUser, err := oauth2.ProviderCallback(loginSource.Name, request, response)
-
+	gothUser, err := loginSource.Cfg.(*oauth2Service.Source).ProviderCallback(loginSource, request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)

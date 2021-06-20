@@ -6,7 +6,7 @@ package oauth2
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
+
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -23,7 +23,7 @@ type Source struct {
 	ClientID                      string
 	ClientSecret                  string
 	OpenIDConnectAutoDiscoveryURL string
-	CustomURLMapping              *oauth2.CustomURLMapping
+	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
 }
 

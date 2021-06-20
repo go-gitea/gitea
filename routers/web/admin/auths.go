@@ -11,7 +11,6 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -20,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth/source/ldap"
-	oauth2Service "code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	pamService "code.gitea.io/gitea/services/auth/source/pam"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 	"code.gitea.io/gitea/services/auth/source/sspi"
@@ -99,8 +98,8 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+	ctx.Data["OAuth2Providers"] = oauth2.Providers
+	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
@@ -109,7 +108,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	for key := range models.OAuth2Providers {
+	for key := range oauth2.Providers {
 		ctx.Data["oauth2_provider"] = key
 		break
 	}
@@ -163,7 +162,7 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 	}
 }
 
-func parseOAuth2Config(form forms.AuthenticationForm) *oauth2Service.Source {
+func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if form.Oauth2UseCustomURL {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -175,7 +174,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2Service.Source {
 	} else {
 		customURLMapping = nil
 	}
-	return &oauth2Service.Source{
+	return &oauth2.Source{
 		Provider:                      form.Oauth2Provider,
 		ClientID:                      form.Oauth2Key,
 		ClientSecret:                  form.Oauth2Secret,
@@ -221,8 +220,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+	ctx.Data["OAuth2Providers"] = oauth2.Providers
+	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
@@ -300,8 +299,8 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+	ctx.Data["OAuth2Providers"] = oauth2.Providers
+	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -312,7 +311,7 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if source.IsOAuth2() {
-		ctx.Data["CurrentOAuth2Provider"] = models.OAuth2Providers[source.Cfg.(*oauth2Service.Source).Provider]
+		ctx.Data["CurrentOAuth2Provider"] = oauth2.Providers[source.Cfg.(*oauth2.Source).Provider]
 	}
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
@@ -325,8 +324,8 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = models.OAuth2Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = models.OAuth2DefaultCustomURLMappings
+	ctx.Data["OAuth2Providers"] = oauth2.Providers
+	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {

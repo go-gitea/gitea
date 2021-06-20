@@ -6,18 +6,17 @@ package oauth2
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 )
 
 // RegisterSource causes an OAuth2 configuration to be registered
 func (source *Source) RegisterSource(loginSource *models.LoginSource) error {
-	err := oauth2.RegisterProvider(loginSource.Name, source.Provider, source.ClientID, source.ClientSecret, source.OpenIDConnectAutoDiscoveryURL, source.CustomURLMapping)
+	err := RegisterProvider(loginSource.Name, source.Provider, source.ClientID, source.ClientSecret, source.OpenIDConnectAutoDiscoveryURL, source.CustomURLMapping)
 	return wrapOpenIDConnectInitializeError(err, loginSource.Name, source)
 }
 
 // UnregisterSource causes an OAuth2 configuration to be unregistered
 func (source *Source) UnregisterSource(loginSource *models.LoginSource) error {
-	oauth2.RemoveProvider(loginSource.Name)
+	RemoveProvider(loginSource.Name)
 	return nil
 }
 

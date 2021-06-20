@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
 // Ensure the struct implements the interface.
@@ -27,7 +28,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := models.ParseOAuth2Token(accessToken)
+	token, err := oauth2.ParseToken(accessToken)
 	if err != nil {
 		log.Trace("ParseOAuth2Token: %v", err)
 		return 0
@@ -36,7 +37,7 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
 		return 0
 	}
-	if token.Type != models.TypeAccessToken {
+	if token.Type != oauth2.TypeAccessToken {
 		return 0
 	}
 	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {

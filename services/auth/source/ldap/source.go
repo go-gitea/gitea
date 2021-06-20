@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+
 	jsoniter "github.com/json-iterator/go"
 )
 

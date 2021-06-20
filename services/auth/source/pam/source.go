@@ -6,6 +6,7 @@ package pam
 
 import (
 	"code.gitea.io/gitea/models"
+
 	jsoniter "github.com/json-iterator/go"
 )
 

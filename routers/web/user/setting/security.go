@@ -94,7 +94,7 @@ func loadSecurityData(ctx *context.Context) {
 			var providerDisplayName string
 			if loginSource.IsOAuth2() {
 				providerTechnicalName := loginSource.Cfg.(*oauth2.Source).Provider
-				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+				providerDisplayName = oauth2.Providers[providerTechnicalName].DisplayName
 			} else {
 				providerDisplayName = loginSource.Name
 			}
