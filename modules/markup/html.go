@@ -286,6 +286,7 @@ var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM
 var nulCleaner = strings.NewReplacer("\000", "")
 
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
+	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
 	rawHTML, err := ioutil.ReadAll(input)
 	if err != nil {
@@ -996,6 +997,9 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	start := 0
 	next := node.NextSibling
+	if ctx.ShaExistCache == nil {
+		ctx.ShaExistCache = make(map[string]bool)
+	}
 	for node != nil && node != next && start < len(node.Data) {
 		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
@@ -1013,10 +1017,28 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// as used by git and github for linking and thus we have to do similar.
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
-		if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.Metas["repoPath"]); err != nil {
-			if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
-				log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
+
+		// check cache first
+		exist, inCache := ctx.ShaExistCache[hash]
+		if !inCache {
+			if ctx.GitRepo == nil {
+				var err error
+				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				if err != nil {
+					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					return
+				}
+				ctx.AddCancel(func() {
+					ctx.GitRepo.Close()
+					ctx.GitRepo = nil
+				})
 			}
+
+			exist = ctx.GitRepo.IsObjectExist(hash)
+			ctx.ShaExistCache[hash] = exist
+		}
+
+		if !exist {
 			start = m[3]
 			continue
 		}
