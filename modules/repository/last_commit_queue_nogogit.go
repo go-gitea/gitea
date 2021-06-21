@@ -132,8 +132,8 @@ func (req *CommitCacheRequest) doTree(ctx context.Context, repo *git.Repository,
 		return nil, err
 	}
 
-	for i, entryCommit := range commits {
-		if err := lccache.Put(commit.ID.String(), path.Join(req.TreePath, entryPaths[i]), entryCommit.ID.String()); err != nil {
+	for pth, entryCommit := range commits {
+		if err := lccache.Put(commit.ID.String(), path.Join(req.TreePath, pth), entryCommit.ID.String()); err != nil {
 			return nil, err
 		}
 	}
