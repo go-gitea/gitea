@@ -285,6 +285,9 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
 	if id == 0 {
 		source.Cfg = registeredLoginConfigs[LoginNoType]()
+		// Set this source to active
+		// FIXME: allow disabling of db based password authentication in future
+		source.IsActived = true
 		return source, nil
 	}
 
