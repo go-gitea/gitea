@@ -33,7 +33,10 @@ var (
 	sspiAuth *websspi.Authenticator
 
 	// Ensure the struct implements the interface.
-	_ Method = &SSPI{}
+	_ Method        = &SSPI{}
+	_ Named         = &SSPI{}
+	_ Initializable = &SSPI{}
+	_ Freeable      = &SSPI{}
 )
 
 // SSPI implements the SingleSignOn interface and authenticates requests

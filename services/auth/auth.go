@@ -57,7 +57,12 @@ func Init() {
 	}
 	specialInit()
 	for _, method := range Methods() {
-		err := method.Init()
+		initalizable, ok := method.(Initializable)
+		if !ok {
+			continue
+		}
+
+		err := initalizable.Init()
 		if err != nil {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
@@ -68,7 +73,12 @@ func Init() {
 // to release necessary resources
 func Free() {
 	for _, method := range Methods() {
-		err := method.Free()
+		freeable, ok := method.(Freeable)
+		if !ok {
+			continue
+		}
+
+		err := freeable.Free()
 		if err != nil {
 			log.Error("Could not free '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}

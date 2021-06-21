@@ -20,6 +20,7 @@ import (
 // Ensure the struct implements the interface.
 var (
 	_ Method = &OAuth2{}
+	_ Named  = &OAuth2{}
 )
 
 // CheckOAuthAccessToken returns uid of user from oauth token
@@ -52,19 +53,9 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 type OAuth2 struct {
 }
 
-// Init does nothing as the OAuth2 implementation does not need to allocate any resources
-func (o *OAuth2) Init() error {
-	return nil
-}
-
 // Name represents the name of auth method
 func (o *OAuth2) Name() string {
 	return "oauth2"
-}
-
-// Free does nothing as the OAuth2 implementation does not have to release any resources
-func (o *OAuth2) Free() error {
-	return nil
 }
 
 // userIDFromToken returns the user id corresponding to the OAuth token.

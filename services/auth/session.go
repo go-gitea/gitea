@@ -21,19 +21,9 @@ var (
 type Session struct {
 }
 
-// Init does nothing as the Session implementation does not need to allocate any resources
-func (s *Session) Init() error {
-	return nil
-}
-
 // Name represents the name of auth method
 func (s *Session) Name() string {
 	return "session"
-}
-
-// Free does nothing as the Session implementation does not have to release any resources
-func (s *Session) Free() error {
-	return nil
 }
 
 // Verify checks if there is a user uid stored in the session and returns the user
