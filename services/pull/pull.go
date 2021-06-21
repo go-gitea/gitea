@@ -517,7 +517,7 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	return nil
 }
 
-var commitMessageTrailersPattern = regexp.MustCompile(`(^|.*\n\n)([\w-]+: [^\n]+)(\n[\w-]+: [^\n]+)*$`)
+var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+: [^\n]+\n*)+$`)
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
@@ -574,12 +574,13 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	stringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		stringBuilder.WriteString(pr.Issue.Content)
+		message := strings.TrimSpace(pr.Issue.Content)
+		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
-		  if !commitMessageTrailersPattern.MatchString(pr.Issue.Content) {
-			  stringBuilder.WriteRune('\n')
-      }
+			if !commitMessageTrailersPattern.MatchString(message) {
+				stringBuilder.WriteRune('\n')
+			}
 		}
 	}
 
