@@ -334,39 +334,36 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(res, nil)
+	node, err := html.Parse(res)
 	if err != nil {
 		return nil, &postProcessError{"invalid HTML", err}
 	}
 
-	for _, node := range nodes {
-		ctx.visitNode(node, true)
+	if node.Type == html.DocumentNode {
+		node = node.FirstChild
 	}
 
-	newNodes := make([]*html.Node, 0, len(nodes))
+	ctx.visitNode(node, true)
 
-	for _, node := range nodes {
-		if node.Data == "html" {
-			node = node.FirstChild
-			for node != nil && node.Data != "body" {
-				node = node.NextSibling
-			}
+	nodes := make([]*html.Node, 0, 5)
+
+	if node.Data == "html" {
+		node = node.FirstChild
+		for node != nil && node.Data != "body" {
+			node = node.NextSibling
 		}
-		if node == nil {
-			continue
-		}
+	}
+	if node != nil {
 		if node.Data == "body" {
 			child := node.FirstChild
 			for child != nil {
-				newNodes = append(newNodes, child)
+				nodes = append(nodes, child)
 				child = child.NextSibling
 			}
 		} else {
-			newNodes = append(newNodes, node)
+			nodes = append(nodes, node)
 		}
 	}
-
-	nodes = newNodes
 
 	// Create buffer in which the data will be placed again. We know that the
 	// length will be at least that of res; to spare a few alloc+copy, we
