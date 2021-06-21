@@ -1137,6 +1137,7 @@ func ViewIssue(ctx *context.Context) {
 	issue.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		GitRepo:   ctx.Repo.GitRepo,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1301,6 +1302,7 @@ func ViewIssue(ctx *context.Context) {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1376,6 +1378,7 @@ func ViewIssue(ctx *context.Context) {
 			comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1734,6 +1737,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Query("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		GitRepo:   ctx.Repo.GitRepo,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -2161,6 +2165,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Query("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		GitRepo:   ctx.Repo.GitRepo,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

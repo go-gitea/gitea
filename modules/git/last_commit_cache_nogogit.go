@@ -88,9 +88,8 @@ func (c *LastCommitCache) recursiveCache(ctx context.Context, commit *Commit, tr
 		return err
 	}
 
-	for i, entryCommit := range commits {
-		entry := entryPaths[i]
-		if err := c.Put(commit.ID.String(), path.Join(treePath, entryPaths[i]), entryCommit.ID.String()); err != nil {
+	for entry, entryCommit := range commits {
+		if err := c.Put(commit.ID.String(), path.Join(treePath, entry), entryCommit.ID.String()); err != nil {
 			return err
 		}
 		if entryMap[entry].IsDir() {

@@ -466,7 +466,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	repoName := "moveME"
-	repo := new(models.Repository)
+	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -475,12 +475,12 @@ func TestAPIRepoTransfer(t *testing.T) {
 		AutoInit:    true,
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	DecodeJSON(t, resp, apiRepo)
 
 	//start testing
 	for _, testCase := range testCases {
 		user = models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
-		repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+		repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 		session = loginUser(t, user.Name)
 		token = getTokenForLoggedInUser(t, session)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
@@ -491,7 +491,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	}
 
 	//cleanup
-	repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
 }
 
