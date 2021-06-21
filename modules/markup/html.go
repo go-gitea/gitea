@@ -380,8 +380,6 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
 			}
-		} else if node.Data == "a" {
-			visitText = false
 		} else if node.Data == "code" || node.Data == "pre" {
 			return
 		} else if node.Data == "i" {
