@@ -77,7 +77,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 		return user, nil
 	}
 
-	sources, err := models.ActiveLoginSources(-1)
+	sources, err := models.AllActiveLoginSources()
 	if err != nil {
 		return nil, err
 	}

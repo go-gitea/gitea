@@ -248,16 +248,18 @@ func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
 	return sources, nil
 }
 
+// AllActiveLoginSources returns all active sources
+func AllActiveLoginSources() ([]*LoginSource, error) {
+	sources := make([]*LoginSource, 0, 5)
+	if err := x.Where("is_actived = ?", true).Find(&sources); err != nil {
+		return nil, err
+	}
+	return sources, nil
+}
+
 // ActiveLoginSources returns all active sources of the specified type
 func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if loginType < 0 {
-		if err := x.Where("is_actived = ?", true).Find(&sources); err != nil {
-			return nil, err
-		}
-		return sources, nil
-	}
-
 	if err := x.Where("is_actived = ? and type = ?", true, loginType).Find(&sources); err != nil {
 		return nil, err
 	}
