@@ -6,6 +6,7 @@ package db
 
 import "code.gitea.io/gitea/models"
 
+// Source is a password authentication service
 type Source struct{}
 
 // FromDB fills up an OAuth2Config from serialized format.
