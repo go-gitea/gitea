@@ -105,5 +105,5 @@ func UserSignIn(username, password string) (*models.User, error) {
 		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
 	}
 
-	return nil, models.ErrUserNotExist{UID: user.ID, Name: user.Name}
+	return nil, models.ErrUserNotExist{Name: username}
 }
