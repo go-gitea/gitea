@@ -96,10 +96,10 @@ func UserSignIn(username, password string) (*models.User, error) {
 		authUser, err := authenticator.Authenticate(nil, username, password)
 
 		if err == nil {
-			if !user.ProhibitLogin {
+			if !authUser.ProhibitLogin {
 				return authUser, nil
 			}
-			err = models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+			err = models.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
 		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
