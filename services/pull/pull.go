@@ -517,7 +517,7 @@ func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
 	return nil
 }
 
-var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+: [^\n]+\n*)+$`)
+var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
 func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
