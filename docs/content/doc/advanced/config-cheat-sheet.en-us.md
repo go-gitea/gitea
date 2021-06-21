@@ -550,9 +550,9 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
 - `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
 - `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
-  - Using opportunistic TLS via STARTTLS on port 587 is recommended per RFC 6409.
+  - As per RFC 8314, if supported, Implicit TLS/SMTPS on port 465 is recommended, otherwise opportunistic TLS via STARTTLS on port 587 should be used.
 - `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port.
-  - Note, if the port ends with `465` SMTPS/SMTP over TLS will be used despite this setting.
+  - Note, if the port ends with `465` Implicit TLS/SMTPS/SMTP over TLS will be used despite this setting.
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
