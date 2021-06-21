@@ -281,6 +281,11 @@ func IsSSPIEnabled() bool {
 // GetLoginSourceByID returns login source by given ID.
 func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	source := new(LoginSource)
+	if id == 0 {
+		source.Cfg = registeredLoginConfigs[LoginNoType]()
+		return source, nil
+	}
+
 	has, err := x.ID(id).Get(source)
 	if err != nil {
 		return nil, err
