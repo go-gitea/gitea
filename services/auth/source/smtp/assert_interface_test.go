@@ -10,6 +10,9 @@ import (
 	"code.gitea.io/gitea/services/auth/source/smtp"
 )
 
+// This test file exists to assert that our Source exposes the interfaces that we expect
+// It tightly binds the interfaces and implementation without breaking go import cycles
+
 type sourceInterface interface {
 	auth.PasswordAuthenticator
 	models.LoginConfig
