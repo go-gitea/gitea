@@ -9,9 +9,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/services/auth/source/db"
 
-	// Register the other sources
+	// Register the sources
+	_ "code.gitea.io/gitea/services/auth/source/db"
 	_ "code.gitea.io/gitea/services/auth/source/ldap"
 	_ "code.gitea.io/gitea/services/auth/source/oauth2"
 	_ "code.gitea.io/gitea/services/auth/source/pam"
@@ -49,38 +49,32 @@ func UserSignIn(username, password string) (*models.User, error) {
 	}
 
 	if hasUser {
-		switch user.LoginType {
-		case models.LoginNoType, models.LoginPlain, models.LoginOAuth2:
-			return db.Authenticate(user, user.Name, password)
-		default:
-			source, err := models.GetLoginSourceByID(user.LoginSource)
-			if err != nil {
-				return nil, err
-			}
-
-			if !source.IsActived {
-				return nil, models.ErrLoginSourceNotActived
-			}
-
-			authenticator, ok := source.Cfg.(PasswordAuthenticator)
-			if !ok {
-				return nil, models.ErrUnsupportedLoginType
-
-			}
-
-			user, err := authenticator.Authenticate(nil, username, password)
-			if err != nil {
-				return nil, err
-			}
-
-			// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
-			// user could be hint to resend confirm email.
-			if user.ProhibitLogin {
-				return nil, models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
-			}
-
-			return user, nil
+		source, err := models.GetLoginSourceByID(user.LoginSource)
+		if err != nil {
+			return nil, err
 		}
+
+		if !source.IsActived {
+			return nil, models.ErrLoginSourceNotActived
+		}
+
+		authenticator, ok := source.Cfg.(PasswordAuthenticator)
+		if !ok {
+			return nil, models.ErrUnsupportedLoginType
+		}
+
+		user, err := authenticator.Authenticate(user, username, password)
+		if err != nil {
+			return nil, err
+		}
+
+		// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
+		// user could be hint to resend confirm email.
+		if user.ProhibitLogin {
+			return nil, models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+		}
+
+		return user, nil
 	}
 
 	sources, err := models.ActiveLoginSources(-1)

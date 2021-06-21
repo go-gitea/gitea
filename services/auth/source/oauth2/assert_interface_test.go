@@ -6,6 +6,7 @@ package oauth2_test
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
@@ -13,6 +14,7 @@ type sourceInterface interface {
 	models.LoginConfig
 	models.LoginSourceSettable
 	models.RegisterableSource
+	auth.PasswordAuthenticator
 }
 
 var _ (sourceInterface) = &oauth2.Source{}

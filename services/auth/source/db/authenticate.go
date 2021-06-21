@@ -11,6 +11,10 @@ import (
 
 // Authenticate authenticates the provided user against the DB
 func Authenticate(user *models.User, login, password string) (*models.User, error) {
+	if user == nil {
+		return nil, models.ErrUserNotExist{Name: login}
+	}
+
 	if !user.IsPasswordSet() || !user.ValidatePassword(password) {
 		return nil, models.ErrUserNotExist{UID: user.ID, Name: user.Name}
 	}
