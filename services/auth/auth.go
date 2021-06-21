@@ -57,12 +57,12 @@ func Init() {
 	}
 	specialInit()
 	for _, method := range Methods() {
-		initalizable, ok := method.(Initializable)
+		initializable, ok := method.(Initializable)
 		if !ok {
 			continue
 		}
 
-		err := initalizable.Init()
+		err := initializable.Init()
 		if err != nil {
 			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
 		}
