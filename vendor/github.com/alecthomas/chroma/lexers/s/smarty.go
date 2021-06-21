@@ -7,7 +7,7 @@ import (
 )
 
 // Smarty lexer.
-var Smarty = internal.Register(MustNewLexer(
+var Smarty = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Smarty",
 		Aliases:   []string{"smarty"},
@@ -15,7 +15,11 @@ var Smarty = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-smarty"},
 		DotAll:    true,
 	},
-	Rules{
+	smartyRules,
+))
+
+func smartyRules() Rules {
+	return Rules{
 		"root": {
 			{`[^{]+`, Other, nil},
 			{`(\{)(\*.*?\*)(\})`, ByGroups(CommentPreproc, Comment, CommentPreproc), nil},
@@ -36,5 +40,5 @@ var Smarty = internal.Register(MustNewLexer(
 			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 			{`[a-zA-Z_]\w*`, NameAttribute, nil},
 		},
-	},
-))
+	}
+}

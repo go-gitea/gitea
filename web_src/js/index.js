@@ -202,6 +202,7 @@ function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
   $('#repo_migrating_failed_image').hide();
+  $('#repo_migrating_progress_message').hide();
   if (migrating) {
     const task = migrating.attr('task');
     if (typeof task === 'undefined') {
@@ -223,8 +224,12 @@ function initRepoStatusChecker() {
             $('#repo_migrating').hide();
             $('#repo_migrating_failed').show();
             $('#repo_migrating_failed_image').show();
-            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.message);
             return;
+          }
+          if (xhr.responseJSON.message) {
+            $('#repo_migrating_progress_message').show();
+            $('#repo_migrating_progress_message').text(xhr.responseJSON.message);
           }
           setTimeout(() => {
             initRepoStatusChecker();
@@ -327,11 +332,11 @@ function getPastedImages(e) {
   return files;
 }
 
-async function uploadFile(file) {
+async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const res = await fetch($('#dropzone').data('upload-url'), {
+  const res = await fetch(uploadUrl, {
     method: 'POST',
     headers: {'X-Csrf-Token': csrf},
     body: formData,
@@ -345,24 +350,33 @@ function reload() {
 
 function initImagePaste(target) {
   target.each(function () {
-    this.addEventListener('paste', async (e) => {
-      for (const img of getPastedImages(e)) {
-        const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(this, `![${name}]()`);
-        const data = await uploadFile(img);
-        replaceAndKeepCursor(this, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $('.files').append(input);
-      }
-    }, false);
+    const dropzone = this.querySelector('.dropzone');
+    if (!dropzone) {
+      return;
+    }
+    const uploadUrl = dropzone.dataset.uploadUrl;
+    const dropzoneFiles = dropzone.querySelector('.files');
+    for (const textarea of this.querySelectorAll('textarea')) {
+      textarea.addEventListener('paste', async (e) => {
+        for (const img of getPastedImages(e)) {
+          const name = img.name.substr(0, img.name.lastIndexOf('.'));
+          insertAtCursor(textarea, `![${name}]()`);
+          const data = await uploadFile(img, uploadUrl);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          dropzoneFiles.appendChild(input[0]);
+        }
+      }, false);
+    }
   });
 }
 
-function initSimpleMDEImagePaste(simplemde, files) {
+function initSimpleMDEImagePaste(simplemde, dropzone, files) {
+  const uploadUrl = dropzone.dataset.uploadUrl;
   simplemde.codemirror.on('paste', async (_, e) => {
     for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      const data = await uploadFile(img);
+      const data = await uploadFile(img, uploadUrl);
       const pos = simplemde.codemirror.getCursor();
       simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
@@ -381,7 +395,7 @@ function initCommentForm() {
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
-  initImagePaste($('.comment.form textarea'));
+  initImagePaste($('.comment.form'));
 
   // Listsubmit
   function initListSubmits(selector, outerSelector) {
@@ -993,8 +1007,7 @@ async function initRepository() {
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        const $files = $editContentZone.find('.comment-files');
-        if ($dropzone.length > 0) {
+        if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
           const filenameDict = {};
@@ -1020,7 +1033,7 @@ async function initRepository() {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-                $files.append(input);
+                $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
                 if (!(file.name in filenameDict)) {
@@ -1042,7 +1055,7 @@ async function initRepository() {
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
                   dz.removeAllFiles(true);
-                  $files.empty();
+                  $dropzone.find('.files').empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
@@ -1055,7 +1068,7 @@ async function initRepository() {
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
-                    $files.append(input);
+                    $dropzone.find('.files').append(input);
                   });
                 });
               });
@@ -1075,7 +1088,9 @@ async function initRepository() {
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
-        initSimpleMDEImagePaste($simplemde, $files);
+        if ($dropzone.length === 1) {
+          initSimpleMDEImagePaste($simplemde, $dropzone[0], $dropzone.find('.files'));
+        }
 
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
@@ -1087,7 +1102,7 @@ async function initRepository() {
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          const $attachments = $files.find('[name=files]').map(function () {
+          const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
             return $(this).val();
           }).get();
           $.post($editContentZone.data('update-url'), {
@@ -1367,8 +1382,15 @@ function initPullRequestReview() {
     }
     $textarea.focus();
     $simplemde.codemirror.focus();
-    assingMenuAttributes(form.find('.menu'));
+    assignMenuAttributes(form.find('.menu'));
   });
+
+  const $reviewBox = $('.review-box');
+  if ($reviewBox.length === 1) {
+    setCommentSimpleMDE($reviewBox.find('textarea'));
+    initImagePaste($reviewBox);
+  }
+
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
@@ -1418,7 +1440,7 @@ function initPullRequestReview() {
       const data = await $.get($(this).data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
-      assingMenuAttributes(commentCloud.find('.menu'));
+      assignMenuAttributes(commentCloud.find('.menu'));
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
@@ -1431,7 +1453,7 @@ function initPullRequestReview() {
   });
 }
 
-function assingMenuAttributes(menu) {
+function assignMenuAttributes(menu) {
   const id = Math.floor(Math.random() * Math.floor(1000000));
   menu.attr('data-write', menu.attr('data-write') + id);
   menu.attr('data-preview', menu.attr('data-preview') + id);
@@ -1656,6 +1678,10 @@ $.fn.getCursorPosition = function () {
 };
 
 function setCommentSimpleMDE($editArea) {
+  if ($editArea.length === 0) {
+    return null;
+  }
+
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
@@ -1827,7 +1853,8 @@ function initReleaseEditor() {
   const $files = $editor.parent().find('.files');
   const $simplemde = setCommentSimpleMDE($textarea);
   initCommentPreviewTab($editor);
-  initSimpleMDEImagePaste($simplemde, $files);
+  const dropzone = $editor.parent().find('.dropzone')[0];
+  initSimpleMDEImagePaste($simplemde, dropzone, $files);
 }
 
 function initOrganization() {
@@ -2610,11 +2637,10 @@ $(document).ready(async () => {
   initLinkAccountView();
 
   // Dropzone
-  const $dropzone = $('#dropzone');
-  if ($dropzone.length > 0) {
+  for (const el of document.querySelectorAll('.dropzone')) {
     const filenameDict = {};
-
-    await createDropzone('#dropzone', {
+    const $dropzone = $(el);
+    await createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
@@ -2633,7 +2659,7 @@ $(document).ready(async () => {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
+          $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
           if (file.name in filenameDict) {

@@ -1,4 +1,4 @@
-# Chroma — A general purpose syntax highlighter in pure Go [![Golang Documentation](https://godoc.org/github.com/alecthomas/chroma?status.svg)](https://godoc.org/github.com/alecthomas/chroma) [![CircleCI](https://img.shields.io/circleci/project/github/alecthomas/chroma.svg)](https://circleci.com/gh/alecthomas/chroma) [![Go Report Card](https://goreportcard.com/badge/github.com/alecthomas/chroma)](https://goreportcard.com/report/github.com/alecthomas/chroma) [![Slack chat](https://img.shields.io/static/v1?logo=slack&style=flat&label=slack&color=green&message=gophers)](https://gophers.slack.com/messages/CN9DS8YF3)
+# Chroma — A general purpose syntax highlighter in pure Go [![Golang Documentation](https://godoc.org/github.com/alecthomas/chroma?status.svg)](https://godoc.org/github.com/alecthomas/chroma) [![CircleCI](https://img.shields.io/circleci/project/github/alecthomas/chroma.svg)](https://circleci.com/gh/alecthomas/chroma) [![Go Report Card](https://goreportcard.com/badge/github.com/alecthomas/chroma)](https://goreportcard.com/report/github.com/alecthomas/chroma) [![Slack chat](https://img.shields.io/static/v1?logo=slack&style=flat&label=slack&color=green&message=gophers)](https://invite.slack.golangbridge.org/)
 
 > **NOTE:** As Chroma has just been released, its API is still in flux. That said, the high-level interface should not change significantly.
 
@@ -38,7 +38,7 @@ Prefix | Language
 A | ABAP, ABNF, ActionScript, ActionScript 3, Ada, Angular2, ANTLR, ApacheConf, APL, AppleScript, Arduino, Awk
 B | Ballerina, Base Makefile, Bash, Batchfile, BibTeX, BlitzBasic, BNF, Brainfuck
 C | C, C#, C++, Caddyfile, Caddyfile Directives, Cap'n Proto, Cassandra CQL, Ceylon, CFEngine3, cfstatement, ChaiScript, Cheetah, Clojure, CMake, COBOL, CoffeeScript, Common Lisp, Coq, Crystal, CSS, Cython
-D | D, Dart, Diff, Django/Jinja, Docker, DTD
+D | D, Dart, Diff, Django/Jinja, Docker, DTD, Dylan
 E | EBNF, Elixir, Elm, EmacsLisp, Erlang
 F | Factor, Fish, Forth, Fortran, FSharp
 G | GAS, GDScript, Genshi, Genshi HTML, Genshi Text, Gherkin, GLSL, Gnuplot, Go, Go HTML Template, Go Text Template, GraphQL, Groovy
@@ -216,7 +216,7 @@ python3 ~/Projects/chroma/_tools/pygments2chroma.py \
   && gofmt -s -w ~/Projects/chroma/lexers/*.go
 ```
 
-See notes in [pygments-lexers.go](https://github.com/alecthomas/chroma/blob/master/pygments-lexers.txt)
+See notes in [pygments-lexers.txt](https://github.com/alecthomas/chroma/blob/master/pygments-lexers.txt)
 for a list of lexers, and notes on some of the issues importing them.
 
 <a id="markdown-formatters" name="formatters"></a>

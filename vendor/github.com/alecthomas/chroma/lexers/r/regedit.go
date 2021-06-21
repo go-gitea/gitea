@@ -6,14 +6,18 @@ import (
 )
 
 // Reg lexer.
-var Reg = internal.Register(MustNewLexer(
+var Reg = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "reg",
 		Aliases:   []string{"registry"},
 		Filenames: []string{"*.reg"},
 		MimeTypes: []string{"text/x-windows-registry"},
 	},
-	Rules{
+	regRules,
+))
+
+func regRules() Rules {
+	return Rules{
 		"root": {
 			{`Windows Registry Editor.*`, Text, nil},
 			{`\s+`, Text, nil},
@@ -28,5 +32,5 @@ var Reg = internal.Register(MustNewLexer(
 			{`.+`, LiteralString, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

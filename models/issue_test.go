@@ -36,6 +36,14 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 	testSuccess(1, []int64{})
 }
 
+func Test_GetIssueIDsByRepoID(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	ids, err := GetIssueIDsByRepoID(1)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 5)
+}
+
 func TestIssueAPIURL(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
@@ -337,37 +345,45 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 	}
 }
 
-func testInsertIssue(t *testing.T, title, content string) {
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-
-	issue := Issue{
-		RepoID:   repo.ID,
-		PosterID: user.ID,
-		Title:    title,
-		Content:  content,
-	}
-	err := NewIssue(repo, &issue, nil, nil)
-	assert.NoError(t, err)
-
+func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Issue {
 	var newIssue Issue
-	has, err := x.ID(issue.ID).Get(&newIssue)
-	assert.NoError(t, err)
-	assert.True(t, has)
-	assert.EqualValues(t, issue.Title, newIssue.Title)
-	assert.EqualValues(t, issue.Content, newIssue.Content)
-	// there are 5 issues and max index is 5 on repository 1, so this one should 6
-	assert.EqualValues(t, 6, newIssue.Index)
+	t.Run(title, func(t *testing.T) {
+		repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
-	_, err = x.ID(issue.ID).Delete(new(Issue))
-	assert.NoError(t, err)
+		issue := Issue{
+			RepoID:   repo.ID,
+			PosterID: user.ID,
+			Title:    title,
+			Content:  content,
+		}
+		err := NewIssue(repo, &issue, nil, nil)
+		assert.NoError(t, err)
+
+		has, err := x.ID(issue.ID).Get(&newIssue)
+		assert.NoError(t, err)
+		assert.True(t, has)
+		assert.EqualValues(t, issue.Title, newIssue.Title)
+		assert.EqualValues(t, issue.Content, newIssue.Content)
+		if expectIndex > 0 {
+			assert.EqualValues(t, expectIndex, newIssue.Index)
+		}
+	})
+	return &newIssue
 }
 
 func TestIssue_InsertIssue(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	testInsertIssue(t, "my issue1", "special issue's comments?")
-	testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?")
+	// there are 5 issues and max index is 5 on repository 1, so this one should 6
+	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
+	_, err := x.ID(issue.ID).Delete(new(Issue))
+	assert.NoError(t, err)
+
+	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
+	_, err = x.ID(issue.ID).Delete(new(Issue))
+	assert.NoError(t, err)
+
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {

@@ -1,10 +1,7 @@
 # Render [![GoDoc](http://godoc.org/github.com/unrolled/render?status.svg)](http://godoc.org/github.com/unrolled/render) [![Test](https://github.com/unrolled/render/workflows/Test/badge.svg?branch=v1)](https://github.com/unrolled/render/actions)
 
 
-Render is a package that provides functionality for easily rendering JSON, XML, text, binary data, and HTML templates. This package is based on the [Martini](https://github.com/go-martini/martini) [render](https://github.com/martini-contrib/render) work.
-
-## Block Deprecation Notice
-Go 1.6 introduces a new [block](https://github.com/golang/go/blob/release-branch.go1.6/src/html/template/example_test.go#L128) action. This conflicts with Render's included `block` template function. To provide an easy migration path, a new function was created called `partial`. It is a duplicate of the old `block` function. It is advised that all users of the `block` function update their code to avoid any issues in the future. Previous to Go 1.6, Render's `block` functionality will continue to work but a message will be logged urging you to migrate to the new `partial` function.
+Render is a package that provides functionality for easily rendering JSON, XML, text, binary data, and HTML templates.
 
 ## Usage
 Render can be used with pretty much any web framework providing you can access the `http.ResponseWriter` from your handler. The rendering functions simply wraps Go's existing functionality for marshaling and rendering data.
@@ -23,7 +20,7 @@ import (
     "encoding/xml"
     "net/http"
 
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 type ExampleXml struct {
@@ -101,6 +98,7 @@ r := render.New(render.Options{
     PrefixXML: []byte("<?xml version='1.0' encoding='UTF-8'?>"), // Prefixes XML responses with the given bytes.
     HTMLContentType: "application/xhtml+xml", // Output XHTML content type instead of default "text/html".
     IsDevelopment: true, // Render will now recompile the templates on every HTML response.
+    UseMutexLock: true, // Overrides the default no lock implementation and uses the standard `sync.RWMutex` lock.
     UnEscapeHTML: true, // Replace ensure '&<>' are output correctly (JSON only).
     StreamingJSON: true, // Streams the JSON response via json.Encoder.
     RequirePartials: true, // Return an error if a template is missing a partial used in a layout.
@@ -139,10 +137,13 @@ r := render.New(render.Options{
     TextContentType: "text/plain",
     XMLContentType: "application/xhtml+xml",
     IsDevelopment: false,
+    UseMutexLock: false,
     UnEscapeHTML: false,
     StreamingJSON: false,
     RequirePartials: false,
     DisableHTTPErrorRendering: false,
+    RenderPartialsWithoutPrefix: false,
+    BufferPool: GenericBufferPool,
 })
 ~~~
 
@@ -171,7 +172,27 @@ admin/edit
 home
 ~~~
 
-You can also load templates from memory by providing the Asset and AssetNames options,
+Templates can be loaded from an `embed.FS`.
+
+~~~ go
+// ...
+
+//go:embed templates/*.html templates/*.tmpl
+var embeddedTemplates embed.FS
+
+// ...
+
+r := render.New(render.Options{
+    Directory: "templates",
+    FileSystem: &render.EmbedFileSystem{
+        FS: embeddedTemplates,
+    },
+    Extensions: []string{".html", ".tmpl"},
+})
+// ...
+~~~
+
+You can also load templates from memory by providing the `Asset` and `AssetNames` options,
 e.g. when generating an asset file using [go-bindata](https://github.com/jteeuwen/go-bindata).
 
 ### Layouts
@@ -243,7 +264,7 @@ import (
     "encoding/xml"
     "net/http"
 
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 type ExampleXml struct {
@@ -297,7 +318,7 @@ import (
     "encoding/xml"
     "net/http"
 
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 type ExampleXml struct {
@@ -376,7 +397,7 @@ import (
     "net/http"
 
     "github.com/labstack/echo"
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 type RenderWrapper struct { // We need to wrap the renderer because we need a different signature for echo.
@@ -398,7 +419,7 @@ func main() {
         return c.Render(http.StatusOK, "TemplateName", "TemplateData")
     })
 
-    e.Logger.Fatal(e.Start(":1323"))
+    e.Logger.Fatal(e.Start("127.0.0.1:8080"))
 }
 ~~~
 
@@ -411,7 +432,7 @@ import (
     "net/http"
 
     "github.com/gin-gonic/gin"
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 func main() {
@@ -425,7 +446,7 @@ func main() {
         r.JSON(c.Writer, http.StatusOK, map[string]string{"welcome": "This is rendered JSON!"})
     })
 
-    router.Run(":3000")
+    router.Run("127.0.0.1:8080")
 }
 ~~~
 
@@ -439,7 +460,7 @@ import (
 
     "github.com/zenazn/goji"
     "github.com/zenazn/goji/web"
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 func main() {
@@ -463,7 +484,7 @@ import (
     "net/http"
 
     "github.com/urfave/negroni"
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 func main() {
@@ -478,7 +499,7 @@ func main() {
 
     n := negroni.Classic()
     n.UseHandler(mux)
-    n.Run(":3000")
+    n.Run("127.0.0.1:8080")
 }
 ~~~
 
@@ -491,7 +512,7 @@ import (
     "net/http"
 
     "github.com/pilu/traffic"
-    "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+    "github.com/unrolled/render"
 )
 
 func main() {
@@ -504,6 +525,6 @@ func main() {
         r.JSON(w, http.StatusOK, map[string]string{"welcome": "This is rendered JSON!"})
     })
 
-    router.Run()
+    router.Run()  // Defaults to "127.0.0.1:3000".
 }
 ~~~

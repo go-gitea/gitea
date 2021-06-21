@@ -6,7 +6,7 @@ import (
 )
 
 // TransactSQL lexer.
-var TransactSQL = internal.Register(MustNewLexer(
+var TransactSQL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Transact-SQL",
 		Aliases:         []string{"tsql", "t-sql"},
@@ -14,7 +14,11 @@ var TransactSQL = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	transactSQLRules,
+))
+
+func transactSQLRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, TextWhitespace, nil},
 			{`--(?m).*?$\n?`, CommentSingle, nil},
@@ -56,5 +60,5 @@ var TransactSQL = internal.Register(MustNewLexer(
 			{`""`, LiteralStringName, nil},
 			{`"`, LiteralStringName, Pop(1)},
 		},
-	},
-))
+	}
+}
