@@ -309,6 +309,10 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 		return &postProcessError{"invalid HTML", err}
 	}
 
+	if node.Type == html.DocumentNode {
+		node = node.FirstChild
+	}
+
 	visitNode(ctx, procs, node, true)
 
 	newNodes := make([]*html.Node, 0, 5)
