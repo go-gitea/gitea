@@ -469,6 +469,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 		return -1, true
 	}
 
+	var needsBody = true
 	var reviewType models.ReviewType
 	switch event {
 	case api.ReviewStateApproved:
@@ -478,6 +479,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 			return -1, true
 		}
 		reviewType = models.ReviewTypeApprove
+		needsBody = false
 
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
@@ -489,13 +491,14 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 
 	case api.ReviewStateComment:
 		reviewType = models.ReviewTypeComment
+		needsBody = false
 	default:
 		reviewType = models.ReviewTypePending
 	}
 
-	// reject reviews with empty body if not approve type
-	if reviewType != models.ReviewTypeApprove && len(strings.TrimSpace(body)) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s need body", event))
+	// reject reviews with empty body if a body is required for this call
+	if needsBody && len(strings.TrimSpace(body)) == 0 {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s requires a body", event))
 		return -1, true
 	}
 
