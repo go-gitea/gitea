@@ -102,7 +102,11 @@ func UserSignIn(username, password string) (*models.User, error) {
 			err = models.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
-		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		if models.IsErrUserNotExist(err) {
+			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		} else {
+			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		}
 	}
 
 	return nil, models.ErrUserNotExist{Name: username}
