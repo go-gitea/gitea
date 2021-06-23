@@ -449,6 +449,9 @@
 								<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
+						{{if .Attachments}}
+							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
+						{{end}}
 					</div>
 				</div>
 			</div>
