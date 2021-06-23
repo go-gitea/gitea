@@ -647,8 +647,10 @@ func (issue *Issue) doChangeStatus(e *xorm.Session, doer *User, isMergePull bool
 	}
 
 	// Update issue count of milestone
-	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-		return nil, err
+	if issue.MilestoneID > 0 {
+		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := issue.updateClosedNum(e); err != nil {
@@ -907,7 +909,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -1100,6 +1102,7 @@ type IssuesOptions struct {
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
+	IncludeMilestones  []string
 	SortType           string
 	IssueIDs           []int64
 	UpdatedAfterUnix   int64
@@ -1240,6 +1243,13 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if len(opts.ExcludedLabelNames) > 0 {
 		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
+	}
+
+	if len(opts.IncludeMilestones) > 0 {
+		sess.In("issue.milestone_id",
+			builder.Select("id").
+				From("milestone").
+				Where(builder.In("name", opts.IncludeMilestones)))
 	}
 }
 

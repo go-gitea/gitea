@@ -5,22 +5,18 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func createProtectedTagTable(x *xorm.Engine) error {
-	type ProtectedTag struct {
-		ID               int64 `xorm:"pk autoincr"`
-		RepoID           int64
-		NamePattern      string
-		AllowlistUserIDs []int64 `xorm:"JSON TEXT"`
-		AllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func addRepoArchiver(x *xorm.Engine) error {
+	// RepoArchiver represents all archivers
+	type RepoArchiver struct {
+		ID          int64 `xorm:"pk autoincr"`
+		RepoID      int64 `xorm:"index unique(s)"`
+		Type        int   `xorm:"unique(s)"`
+		Status      int
+		CommitID    string `xorm:"VARCHAR(40) unique(s)"`
+		CreatedUnix int64  `xorm:"INDEX NOT NULL created"`
 	}
-
-	return x.Sync2(new(ProtectedTag))
+	return x.Sync2(new(RepoArchiver))
 }
