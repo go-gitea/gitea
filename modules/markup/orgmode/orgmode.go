@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/niklasfasching/go-org/org"
 )
@@ -49,12 +50,21 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			return ""
 		}
 
+		lexer := lexers.Get(lang)
+		if lexer == nil {
+			lexer = lexers.Analyse(source)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
+			lang = strings.ToLower(lexer.Config().Name)
+		}
+
 		// include language-x class as part of commonmark spec
 		if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
 			return ""
 		}
+		lexer = chroma.Coalesce(lexer)
 
-		lexer := lexers.Get(lang)
 		if _, err := w.WriteString(highlight.Code(lexer.Config().Filenames[0], source)); err != nil {
 			return ""
 		}
