@@ -36,7 +36,7 @@ func TestUserIsPublicMember(t *testing.T) {
 	}
 }
 
-func testUserIsPublicMember(t *testing.T, uid int64, orgID int64, expected bool) {
+func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsPublicMember(orgID))
@@ -62,7 +62,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 	}
 }
 
-func testIsUserOrgOwner(t *testing.T, uid int64, orgID int64, expected bool) {
+func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
@@ -338,7 +338,6 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
-
 	// Init settings
 	_ = setting.Admin
 
@@ -369,29 +368,32 @@ func TestCreateUser_Issue5882(t *testing.T) {
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
 
-	//ignore non existing
+	// ignore non existing
 	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 
-	//ignore non existing
+	// ignore non existing
 	IDs, err = GetUserIDsByNames([]string{"user1", "do_not_exist"}, false)
 	assert.Error(t, err)
 	assert.Equal(t, []int64(nil), IDs)
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
 	results, err := GetMaileableUsersByIDs([]int64{1, 4}, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(results))
+	assert.Len(t, results, 1)
 	if len(results) > 1 {
 		assert.Equal(t, results[0].ID, 1)
 	}
 
 	results, err = GetMaileableUsersByIDs([]int64{1, 4}, true)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(results))
+	assert.Len(t, results, 2)
 	if len(results) > 2 {
 		assert.Equal(t, results[0].ID, 1)
 		assert.Equal(t, results[1].ID, 4)
@@ -455,7 +457,7 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 		if err != nil {
 			continue
 		}
-		assert.Equal(t, kase.number, len(keys))
+		assert.Len(t, keys, kase.number)
 
 		for _, key := range keys {
 			assert.Contains(t, kase.keyContents, key.Content)

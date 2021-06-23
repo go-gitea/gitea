@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -22,6 +23,7 @@ var Service struct {
 	EmailDomainWhitelist                    []string
 	EmailDomainBlocklist                    []string
 	DisableRegistration                     bool
+	AllowOnlyInternalRegistration           bool
 	AllowOnlyExternalRegistration           bool
 	ShowRegistrationButton                  bool
 	ShowMilestonesDashboardPage             bool
@@ -59,6 +61,12 @@ var Service struct {
 	EnableOpenIDSignUp bool
 	OpenIDWhitelist    []*regexp.Regexp
 	OpenIDBlacklist    []*regexp.Regexp
+
+	// Explore page settings
+	Explore struct {
+		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
+		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
+	} `ini:"service.explore"`
 }
 
 func newService() {
@@ -66,7 +74,12 @@ func newService() {
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
 	Service.ResetPwdCodeLives = sec.Key("RESET_PASSWD_CODE_LIVE_MINUTES").MustInt(180)
 	Service.DisableRegistration = sec.Key("DISABLE_REGISTRATION").MustBool()
+	Service.AllowOnlyInternalRegistration = sec.Key("ALLOW_ONLY_INTERNAL_REGISTRATION").MustBool()
 	Service.AllowOnlyExternalRegistration = sec.Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").MustBool()
+	if Service.AllowOnlyExternalRegistration && Service.AllowOnlyInternalRegistration {
+		log.Warn("ALLOW_ONLY_INTERNAL_REGISTRATION and ALLOW_ONLY_EXTERNAL_REGISTRATION are true - disabling registration")
+		Service.DisableRegistration = true
+	}
 	if !sec.Key("REGISTER_EMAIL_CONFIRM").MustBool() {
 		Service.RegisterManualConfirm = sec.Key("REGISTER_MANUAL_CONFIRM").MustBool(false)
 	} else {
@@ -107,6 +120,10 @@ func newService() {
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
+
+	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
+		log.Fatal("Failed to map service.explore settings: %v", err)
+	}
 
 	sec = Cfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)

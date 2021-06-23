@@ -33,7 +33,7 @@ filesystem for full interoperability.
 * Support for compositional (union) file systems by combining multiple file systems acting as one
 * Specialized backends which modify existing filesystems (Read Only, Regexp filtered)
 * A set of utility functions ported from io, ioutil & hugo to be afero aware
-
+* Wrapper for go 1.16 filesystem abstraction `io/fs.FS`
 
 # Using Afero
 
@@ -94,6 +94,7 @@ AppFs.Open('/tmp/foo')
 File System Methods Available:
 ```go
 Chmod(name string, mode os.FileMode) : error
+Chown(name string, uid, gid int) : error
 Chtimes(name string, atime time.Time, mtime time.Time) : error
 Create(name string) : File, error
 Mkdir(name string, perm os.FileMode) : error

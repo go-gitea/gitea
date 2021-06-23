@@ -52,8 +52,8 @@ func RedirectSlashes(next http.Handler) http.Handler {
 			} else {
 				path = path[:len(path)-1]
 			}
-			redirectUrl := fmt.Sprintf("//%s%s", r.Host, path)
-			http.Redirect(w, r, redirectUrl, 301)
+			redirectURL := fmt.Sprintf("//%s%s", r.Host, path)
+			http.Redirect(w, r, redirectURL, 301)
 			return
 		}
 		next.ServeHTTP(w, r)

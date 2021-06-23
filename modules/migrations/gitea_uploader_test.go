@@ -47,7 +47,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		PullRequests: true,
 		Private:      true,
 		Mirror:       false,
-	})
+	}, nil)
 	assert.NoError(t, err)
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
@@ -59,18 +59,18 @@ func TestGiteaUploadRepo(t *testing.T) {
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(milestones))
+	assert.Len(t, milestones, 1)
 
 	milestones, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 0, len(milestones))
+	assert.Empty(t, milestones)
 
 	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 11, len(labels))
+	assert.Len(t, labels, 11)
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
@@ -80,7 +80,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		IncludeTags: true,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 8, len(releases))
+	assert.Len(t, releases, 8)
 
 	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
@@ -90,7 +90,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		IncludeTags: false,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(releases))
+	assert.Len(t, releases, 1)
 
 	issues, err := models.Issues(&models.IssuesOptions{
 		RepoIDs:  []int64{repo.ID},
@@ -98,16 +98,16 @@ func TestGiteaUploadRepo(t *testing.T) {
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 14, len(issues))
+	assert.Len(t, issues, 14)
 	assert.NoError(t, issues[0].LoadDiscussComments())
-	assert.EqualValues(t, 0, len(issues[0].Comments))
+	assert.Empty(t, issues[0].Comments)
 
 	pulls, _, err := models.PullRequests(repo.ID, &models.PullRequestsOptions{
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 34, len(pulls))
+	assert.Len(t, pulls, 34)
 	assert.NoError(t, pulls[0].LoadIssue())
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
-	assert.EqualValues(t, 2, len(pulls[0].Issue.Comments))
+	assert.Len(t, pulls[0].Issue.Comments, 2)
 }

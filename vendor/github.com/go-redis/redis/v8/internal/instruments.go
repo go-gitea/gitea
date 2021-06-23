@@ -3,8 +3,8 @@ package internal
 import (
 	"context"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/global"
 )
 
 var (
@@ -21,7 +21,7 @@ func init() {
 		}
 	}()
 
-	meter := metric.Must(otel.Meter("github.com/go-redis/redis"))
+	meter := metric.Must(global.Meter("github.com/go-redis/redis"))
 
 	WritesCounter = meter.NewInt64Counter("redis.writes",
 		metric.WithDescription("the number of writes initiated"),

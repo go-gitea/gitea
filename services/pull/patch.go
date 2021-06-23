@@ -80,7 +80,7 @@ func TestPatch(pr *models.PullRequest) error {
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflicts(pr, gitRepo, tmpBasePath); err != nil || conflicts {
+	if conflicts, err := checkConflicts(pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == models.PullRequestStatusEmpty {
 		return err
 	}
 
@@ -125,8 +125,9 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	// 1a. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
-		pr.Status = models.PullRequestStatusMergeable
+		pr.Status = models.PullRequestStatusEmpty
 		pr.ConflictedFiles = []string{}
+		pr.ChangedProtectedFiles = []string{}
 		return false, nil
 	}
 

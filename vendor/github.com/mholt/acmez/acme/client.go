@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package acme full implements the ACME protocol specification as
+// Package acme fully implements the ACME protocol specification as
 // described in RFC 8555: https://tools.ietf.org/html/rfc8555.
 //
 // It is designed to work smoothly in large-scale deployments with

@@ -6,7 +6,6 @@
 package gitdiff
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -209,6 +209,66 @@ rename to a b/a a/file b/b file
 			filename:    "a b/a a/file b/b file",
 		},
 		{
+			name: "ambiguous deleted",
+			gitdiff: `diff --git a/b b/b b/b b/b
+deleted file mode 100644
+index 92e798b..0000000
+--- a/b b/b` + "\t" + `
++++ /dev/null
+@@ -1 +0,0 @@
+-b b/b
+`,
+			oldFilename: "b b/b",
+			filename:    "b b/b",
+			addition:    0,
+			deletion:    1,
+		},
+		{
+			name: "ambiguous addition",
+			gitdiff: `diff --git a/b b/b b/b b/b
+new file mode 100644
+index 0000000..92e798b
+--- /dev/null
++++ b/b b/b` + "\t" + `
+@@ -0,0 +1 @@
++b b/b
+`,
+			oldFilename: "b b/b",
+			filename:    "b b/b",
+			addition:    1,
+			deletion:    0,
+		},
+		{
+			name: "rename",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b b/b
+rename to b
+`,
+			oldFilename: "b b/b b/b b/b b/b",
+			filename:    "b",
+		},
+		{
+			name: "ambiguous 1",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b b/b
+rename to b
+`,
+			oldFilename: "b b/b b/b b/b b/b",
+			filename:    "b",
+		},
+		{
+			name: "ambiguous 2",
+			gitdiff: `diff --git a/b b/b b/b b/b b/b b/b
+similarity index 100%
+rename from b b/b b/b b/b
+rename to b b/b
+`,
+			oldFilename: "b b/b b/b b/b",
+			filename:    "b b/b",
+		},
+		{
 			name: "minuses-and-pluses",
 			gitdiff: `diff --git a/minuses-and-pluses b/minuses-and-pluses
 index 6961180..9ba1a00 100644
@@ -235,32 +295,33 @@ index 6961180..9ba1a00 100644
 		t.Run(testcase.name, func(t *testing.T) {
 			got, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
 			if (err != nil) != testcase.wantErr {
-				t.Errorf("ParsePatch() error = %v, wantErr %v", err, testcase.wantErr)
+				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
-			gotMarshaled, _ := json.MarshalIndent(got, "  ", "  ")
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
+			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
-				t.Errorf("ParsePath() did not receive 1 file:\n%s", string(gotMarshaled))
+				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
 			}
 			if got.TotalAddition != testcase.addition {
-				t.Errorf("ParsePath() does not have correct totalAddition %d, wanted %d", got.TotalAddition, testcase.addition)
+				t.Errorf("ParsePath(%q) does not have correct totalAddition %d, wanted %d", testcase.name, got.TotalAddition, testcase.addition)
 			}
 			if got.TotalDeletion != testcase.deletion {
-				t.Errorf("ParsePath() did not have correct totalDeletion %d, wanted %d", got.TotalDeletion, testcase.deletion)
+				t.Errorf("ParsePath(%q) did not have correct totalDeletion %d, wanted %d", testcase.name, got.TotalDeletion, testcase.deletion)
 			}
 			file := got.Files[0]
 			if file.Addition != testcase.addition {
-				t.Errorf("ParsePath() does not have correct file addition %d, wanted %d", file.Addition, testcase.addition)
+				t.Errorf("ParsePath(%q) does not have correct file addition %d, wanted %d", testcase.name, file.Addition, testcase.addition)
 			}
 			if file.Deletion != testcase.deletion {
-				t.Errorf("ParsePath() did not have correct file deletion %d, wanted %d", file.Deletion, testcase.deletion)
+				t.Errorf("ParsePath(%q) did not have correct file deletion %d, wanted %d", testcase.name, file.Deletion, testcase.deletion)
 			}
 			if file.OldName != testcase.oldFilename {
-				t.Errorf("ParsePath() did not have correct OldName %s, wanted %s", file.OldName, testcase.oldFilename)
+				t.Errorf("ParsePath(%q) did not have correct OldName %q, wanted %q", testcase.name, file.OldName, testcase.oldFilename)
 			}
 			if file.Name != testcase.filename {
-				t.Errorf("ParsePath() did not have correct Name %s, wanted %s", file.Name, testcase.filename)
+				t.Errorf("ParsePath(%q) did not have correct Name %q, wanted %q", testcase.name, file.Name, testcase.filename)
 			}
 		})
 	}

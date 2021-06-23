@@ -14,13 +14,11 @@ build: off
 environment:
   GOPATH: c:\gopath
 
-stack: go 1.12
+stack: go 1.15
 
 test_script:
-  - echo "test disabled for now"
-  #- go test -v -timeout 20m ./...
-#artifacts:
-#  - path: '%GOPATH%\bin\*.exe'
+  - go test -v -timeout 20m ./...
+
 deploy: off
 
 notifications:

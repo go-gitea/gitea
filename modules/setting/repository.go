@@ -43,6 +43,7 @@ var (
 		PrefixArchiveFiles                      bool
 		DisableMirrors                          bool
 		DisableMigrations                       bool
+		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
@@ -77,6 +78,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -154,6 +156,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMirrors:                          false,
 		DisableMigrations:                       false,
+		DisableStars:                            false,
 		DefaultBranch:                           "master",
 
 		// Repository editor settings
@@ -197,6 +200,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -208,6 +212,7 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
+			PopulateSquashCommentWithCommitMessages:  false,
 		},
 
 		// Issue settings

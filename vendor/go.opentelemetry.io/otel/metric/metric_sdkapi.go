@@ -17,7 +17,7 @@ package metric // import "go.opentelemetry.io/otel/metric"
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/number"
 )
 
@@ -25,7 +25,7 @@ import (
 // implementation.
 type MeterImpl interface {
 	// RecordBatch atomically records a batch of measurements.
-	RecordBatch(ctx context.Context, labels []label.KeyValue, measurement ...Measurement)
+	RecordBatch(ctx context.Context, labels []attribute.KeyValue, measurement ...Measurement)
 
 	// NewSyncInstrument returns a newly constructed
 	// synchronous instrument implementation or an error, should
@@ -60,10 +60,10 @@ type SyncImpl interface {
 
 	// Bind creates an implementation-level bound instrument,
 	// binding a label set with this instrument implementation.
-	Bind(labels []label.KeyValue) BoundSyncImpl
+	Bind(labels []attribute.KeyValue) BoundSyncImpl
 
 	// RecordOne captures a single synchronous metric event.
-	RecordOne(ctx context.Context, number number.Number, labels []label.KeyValue)
+	RecordOne(ctx context.Context, number number.Number, labels []attribute.KeyValue)
 }
 
 // BoundSyncImpl is the implementation-level interface to a

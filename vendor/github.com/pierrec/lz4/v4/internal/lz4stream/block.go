@@ -67,8 +67,9 @@ func (b *Blocks) close(f *Frame, num int) error {
 		return err
 	}
 	if b.Blocks == nil {
-		// Not initialized yet.
-		return nil
+		err := b.err
+		b.err = nil
+		return err
 	}
 	c := make(chan *FrameDataBlock)
 	b.Blocks <- c
@@ -114,18 +115,23 @@ func (b *Blocks) initR(f *Frame, num int, src io.Reader) (chan []byte, error) {
 			block := NewFrameDataBlock(f)
 			cumx, err = block.Read(f, src, 0)
 			if err != nil {
+				block.Close(f)
 				break
 			}
 			// Recheck for an error as reading may be slow and uncompressing is expensive.
 			if b.ErrorR() != nil {
+				block.Close(f)
 				break
 			}
 			c := make(chan []byte)
 			blocks <- c
 			go func() {
-				data, err := block.Uncompress(f, size.Get(), false)
+				defer block.Close(f)
+				data, err := block.Uncompress(f, size.Get(), nil, false)
 				if err != nil {
 					b.closeR(err)
+					// Close the block channel to indicate an error.
+					close(c)
 				} else {
 					c <- data
 				}
@@ -146,12 +152,23 @@ func (b *Blocks) initR(f *Frame, num int, src io.Reader) (chan []byte, error) {
 	// on the returned channel.
 	go func(leg bool) {
 		defer close(blocks)
+		skipBlocks := false
 		for c := range blocks {
-			buf := <-c
+			buf, ok := <-c
+			if !ok {
+				// A closed channel indicates an error.
+				// All remaining channels should be discarded.
+				skipBlocks = true
+				continue
+			}
 			if buf == nil {
 				// Signal to end the loop.
 				close(c)
 				return
+			}
+			if skipBlocks {
+				// A previous error has occurred, skipping remaining channels.
+				continue
 			}
 			// Perform checksum now as the blocks are received in order.
 			if f.Descriptor.Flags.ContentChecksum() {
@@ -299,12 +316,12 @@ func (b *FrameDataBlock) Read(f *Frame, src io.Reader, cum uint32) (uint32, erro
 	return x, nil
 }
 
-func (b *FrameDataBlock) Uncompress(f *Frame, dst []byte, sum bool) ([]byte, error) {
+func (b *FrameDataBlock) Uncompress(f *Frame, dst, dict []byte, sum bool) ([]byte, error) {
 	if b.Size.Uncompressed() {
 		n := copy(dst, b.data)
 		dst = dst[:n]
 	} else {
-		n, err := lz4block.UncompressBlock(b.data, dst)
+		n, err := lz4block.UncompressBlock(b.data, dst, dict)
 		if err != nil {
 			return nil, err
 		}

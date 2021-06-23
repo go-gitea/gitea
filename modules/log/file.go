@@ -7,7 +7,6 @@ package log
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // FileLogger implements LoggerProvider.
@@ -101,8 +101,9 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), log); err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	if len(log.Filename) == 0 {
 		return errors.New("config must have filename")

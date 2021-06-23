@@ -24,6 +24,9 @@ type ListRepoGitHooksOptions struct {
 
 // ListRepoGitHooks list all the Git hooks of one repository
 func (c *Client) ListRepoGitHooks(user, repo string, opt ListRepoGitHooksOptions) ([]*GitHook, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	hooks := make([]*GitHook, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git?%s", user, repo, opt.getURLQuery().Encode()), nil, nil, &hooks)
@@ -32,6 +35,9 @@ func (c *Client) ListRepoGitHooks(user, repo string, opt ListRepoGitHooksOptions
 
 // GetRepoGitHook get a Git hook of a repository
 func (c *Client) GetRepoGitHook(user, repo, id string) (*GitHook, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &id); err != nil {
+		return nil, nil, err
+	}
 	h := new(GitHook)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil, h)
 	return h, resp, err
@@ -44,6 +50,9 @@ type EditGitHookOption struct {
 
 // EditRepoGitHook modify one Git hook of a repository
 func (c *Client) EditRepoGitHook(user, repo, id string, opt EditGitHookOption) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &id); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, err
@@ -54,6 +63,9 @@ func (c *Client) EditRepoGitHook(user, repo, id string, opt EditGitHookOption) (
 
 // DeleteRepoGitHook delete one Git hook from a repository
 func (c *Client) DeleteRepoGitHook(user, repo, id string) (*Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo, &id); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/hooks/git/%s", user, repo, id), nil, nil)
 	return resp, err
 }

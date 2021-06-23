@@ -70,7 +70,7 @@ loop:
 	// x := uint32(src[s] >> 2)
 	// switch
 	MOVW $60, R1
-	ADD  R4>>2, ZR, R4
+	LSRW $2, R4, R4
 	CMPW R4, R1
 	BLS  tagLit60Plus
 
@@ -111,13 +111,12 @@ doLit:
 	// is contiguous in memory and so it needs to leave enough source bytes to
 	// read the next tag without refilling buffers, but Go's Decode assumes
 	// contiguousness (the src argument is a []byte).
-	MOVD $16, R1
-	CMP  R1, R4
-	BGT  callMemmove
-	CMP  R1, R2
-	BLT  callMemmove
-	CMP  R1, R3
-	BLT  callMemmove
+	CMP $16, R4
+	BGT callMemmove
+	CMP $16, R2
+	BLT callMemmove
+	CMP $16, R3
+	BLT callMemmove
 
 	// !!! Implement the copy from src to dst as a 16-byte load and store.
 	// (Decode's documentation says that dst and src must not overlap.)
@@ -130,9 +129,8 @@ doLit:
 	// Note that on arm64, it is legal and cheap to issue unaligned 8-byte or
 	// 16-byte loads and stores. This technique probably wouldn't be as
 	// effective on architectures that are fussier about alignment.
-
-	VLD1 0(R6), [V0.B16]
-	VST1 [V0.B16], 0(R7)
+	LDP 0(R6), (R14, R15)
+	STP (R14, R15), 0(R7)
 
 	// d += length
 	// s += length
@@ -210,8 +208,7 @@ tagLit61:
 	B     doLit
 
 tagLit62Plus:
-	MOVW $62, R1
-	CMPW R1, R4
+	CMPW $62, R4
 	BHI  tagLit63
 
 	// case x == 62:
@@ -273,10 +270,9 @@ tagCopy:
 	// We have a copy tag. We assume that:
 	//	- R3 == src[s] & 0x03
 	//	- R4 == src[s]
-	MOVD $2, R1
-	CMP  R1, R3
-	BEQ  tagCopy2
-	BGT  tagCopy4
+	CMP $2, R3
+	BEQ tagCopy2
+	BGT tagCopy4
 
 	// case tagCopy1:
 	// s += 2
@@ -346,13 +342,11 @@ doCopy:
 	// }
 	// copy 16 bytes
 	// d += length
-	MOVD $16, R1
-	MOVD $8, R0
-	CMP  R1, R4
+	CMP  $16, R4
 	BGT  slowForwardCopy
-	CMP  R0, R5
+	CMP  $8, R5
 	BLT  slowForwardCopy
-	CMP  R1, R14
+	CMP  $16, R14
 	BLT  slowForwardCopy
 	MOVD 0(R15), R2
 	MOVD R2, 0(R7)
@@ -426,8 +420,7 @@ makeOffsetAtLeast8:
 	//   // The two previous lines together means that d-offset, and therefore
 	//   // R15, is unchanged.
 	// }
-	MOVD $8, R1
-	CMP  R1, R5
+	CMP  $8, R5
 	BGE  fixUpSlowForwardCopy
 	MOVD (R15), R3
 	MOVD R3, (R7)
@@ -477,9 +470,7 @@ verySlowForwardCopy:
 	ADD  $1, R15, R15
 	ADD  $1, R7, R7
 	SUB  $1, R4, R4
-	MOVD $0, R1
-	CMP  R1, R4
-	BNE  verySlowForwardCopy
+	CBNZ R4, verySlowForwardCopy
 	B    loop
 
 	// The code above handles copy tags.

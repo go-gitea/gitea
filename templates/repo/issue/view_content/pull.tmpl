@@ -13,7 +13,7 @@
 									{{avatar .User}}
 								</a>
 							{{end}}
-							<span class="text grey">
+							<span>
 								{{if .User}}
 									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
@@ -35,11 +35,11 @@
 						<div class="review-item-right">
 							{{if .Review.Stale}}
 								<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
-									<i class="octicon icon fa-hourglass-end"></i>
+									{{svg "octicon-hourglass" 16 "icon"}}
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
+								<a href="#" class="ui muted poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -73,7 +73,7 @@
 
 								{{if .CanChange }}
 									<a href="#" class="ui poping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
-										{{if .Checked}} {{svg "octicon-trashcan"}} {{else}} {{svg "octicon-sync"}} {{end}}
+										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
 								{{svg (printf "octicon-%s" .Review.Type.Icon)}}
@@ -118,6 +118,7 @@
 	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
+	{{- else if .Issue.PullRequest.IsEmpty}}grey
 	{{- else if .Issue.PullRequest.CanAutoMerge}}green
 	{{- else}}red{{end}}">{{svg "octicon-git-merge" 32}}</a>
 	<div class="content">
@@ -128,7 +129,11 @@
 				<div class="item text">
 					{{if .Issue.PullRequest.MergedCommitID}}
 						{{$link := printf "%s/commit/%s" $.Repository.HTMLURL .Issue.PullRequest.MergedCommitID}}
-						{{$.i18n.Tr "repo.pulls.merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+						{{if eq $.Issue.PullRequest.Status 3}}
+							{{$.i18n.Tr "repo.pulls.manually_merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+						{{else}}
+							{{$.i18n.Tr "repo.pulls.merged_as" $link (ShortSha .Issue.PullRequest.MergedCommitID) | Safe}}
+						{{end}}
 					{{else}}
 						{{$.i18n.Tr "repo.pulls.has_merged"}}
 					{{end}}
@@ -167,14 +172,28 @@
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
+				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" }}
+					</div>
+					<div>
+						{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
+							<button class="ui compact button">
+								{{$.i18n.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							</button>
+						{{end}}
+					</div>
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-sync"}}</i>
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
+				</div>
+			{{else if .Issue.PullRequest.IsEmpty}}
+				<div class="item">
+					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+					{{$.i18n.Tr "repo.pulls.is_empty"}}
 				</div>
 			{{else if .Issue.PullRequest.CanAutoMerge}}
 				{{if .IsBlockedByApprovals}}
@@ -350,6 +369,22 @@
 								</form>
 							</div>
 							{{end}}
+							{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
+								<div class="ui form manually-merged-fields" style="display: none">
+									<form action="{{.Link}}/merge" method="post">
+										{{.CsrfTokenHtml}}
+										<div class="field">
+											<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
+										</div>
+										<button class="ui red button" type="submit" name="do" value="manually-merged">
+											{{$.i18n.Tr "repo.pulls.merge_manually"}}
+										</button>
+										<button class="ui button merge-cancel">
+											{{$.i18n.Tr "cancel"}}
+										</button>
+									</form>
+								</div>
+							{{end}}
 							<div class="dib">
 								<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
 									<button class="ui button" data-do="{{.MergeStyle}}">
@@ -366,6 +401,9 @@
 										{{end}}
 										{{if eq .MergeStyle "squash"}}
 											{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
+										{{end}}
+										{{if eq .MergeStyle "manually-merged"}}
+											{{$.i18n.Tr "repo.pulls.merge_manually"}}
 										{{end}}
 										</span>
 									</button>
@@ -384,6 +422,9 @@
 												{{end}}
 												{{if $prUnit.PullRequestsConfig.AllowSquash}}
 												<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
+												{{end}}
+												{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
+												<div class="item{{if eq .MergeStyle "manually-merged"}} active selected{{end}}" data-do="manually-merged">{{$.i18n.Tr "repo.pulls.merge_manually"}}</div>
 												{{end}}
 											</div>
 										</div>
@@ -411,14 +452,14 @@
 								{{svg "octicon-x"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
 							</div>
-							<div class="item text grey">
+							<div class="item">
 								{{svg "octicon-info"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
 					{{else}}
 						<div class="ui divider"></div>
-						<div class="item text grey">
+						<div class="item">
 							{{svg "octicon-info"}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
@@ -471,7 +512,7 @@
 						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>
-					<div class="item text grey">
+					<div class="item">
 						{{svg "octicon-info"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
@@ -479,17 +520,45 @@
 			{{end}}
 
 			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
-				<div class="item text grey">
-					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-					{{if .UpdateAllowed}}
-						<form action="{{.Link}}/update" method="post" class="ui floating right">
-							{{.CsrfTokenHtml}}
-							<button class="ui compact button" data-do="update">
-								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-							</button>
-						</form>
-					{{end}}
+				<div class="item df ac sb">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+					</div>
+					<div>
+						{{if .UpdateAllowed}}
+							<form action="{{.Link}}/update" method="post">
+								{{.CsrfTokenHtml}}
+								<button class="ui compact button" data-do="update">
+									<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+								</button>
+							</form>
+						{{end}}
+					</div>
+				</div>
+			{{end}}
+
+			{{if $.StillCanManualMerge}}
+				<div class="ui divider"></div>
+				<div class="ui form manually-merged-fields" style="display: none">
+					<form action="{{.Link}}/merge" method="post">
+						{{.CsrfTokenHtml}}
+						<div class="field">
+							<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
+						</div>
+						<button class="ui red button" type="submit" name="do" value="manually-merged">
+							{{$.i18n.Tr "repo.pulls.merge_manually"}}
+						</button>
+						<button class="ui button merge-cancel">
+							{{$.i18n.Tr "cancel"}}
+						</button>
+					</form>
+				</div>
+
+				<div class="ui red buttons merge-button">
+					<button class="ui button" data-do="manually-merged">
+						{{$.i18n.Tr "repo.pulls.merge_manually"}}
+					</button>
 				</div>
 			{{end}}
 		</div>

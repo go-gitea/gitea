@@ -12,10 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8/internal"
 	"github.com/go-redis/redis/v8/internal/pool"
-	"go.opentelemetry.io/otel/label"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Limiter is the interface of a rate limiter or a circuit breaker.
@@ -292,20 +289,7 @@ func getUserPassword(u *url.URL) (string, string) {
 func newConnPool(opt *Options) *pool.ConnPool {
 	return pool.NewConnPool(&pool.Options{
 		Dialer: func(ctx context.Context) (net.Conn, error) {
-			var conn net.Conn
-			err := internal.WithSpan(ctx, "redis.dial", func(ctx context.Context, span trace.Span) error {
-				span.SetAttributes(
-					label.String("db.connection_string", opt.Addr),
-				)
-
-				var err error
-				conn, err = opt.Dialer(ctx, opt.Network, opt.Addr)
-				if err != nil {
-					_ = internal.RecordError(ctx, span, err)
-				}
-				return err
-			})
-			return conn, err
+			return opt.Dialer(ctx, opt.Network, opt.Addr)
 		},
 		PoolSize:           opt.PoolSize,
 		MinIdleConns:       opt.MinIdleConns,

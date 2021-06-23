@@ -15,6 +15,7 @@ os:
 
 arch:
   - amd64
+  - ppc64le
 
 dist: xenial
 
@@ -37,3 +38,6 @@ jobs:
 
 script:
   - go test -v -cover ./... || go test -v ./...
+matrix:
+ allowfailures:
+  go: 1.2.x

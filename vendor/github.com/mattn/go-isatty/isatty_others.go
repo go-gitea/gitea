@@ -1,4 +1,4 @@
-// +build appengine js nacl
+// +build appengine js nacl wasm
 
 package isatty
 

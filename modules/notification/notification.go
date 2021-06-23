@@ -290,3 +290,10 @@ func NotifySyncDeleteRef(pusher *models.User, repo *models.Repository, refType, 
 		notifier.NotifySyncDeleteRef(pusher, repo, refType, refFullName)
 	}
 }
+
+// NotifyRepoPendingTransfer notifies creation of pending transfer to notifiers
+func NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+	for _, notifier := range notifiers {
+		notifier.NotifyRepoPendingTransfer(doer, newOwner, repo)
+	}
+}

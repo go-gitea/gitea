@@ -67,113 +67,64 @@ var _LEVEL_MAP = map[string]Level{
 	"none":    NONE,
 }
 
+// cache logging enablement to improve runtime performance (reduces from multiple tests to a single test on each call)
+var (
+	cachedDebug   bool
+	cachedTrace   bool
+	cachedRequest bool
+	cachedInfo    bool
+	cachedWarn    bool
+	cachedError   bool
+	cachedSevere  bool
+	cachedFatal   bool
+)
+
+// maintain the cached logging state
+func cacheLoggingChange() {
+	cachedDebug = !skipLogging(DEBUG)
+	cachedTrace = !skipLogging(TRACE)
+	cachedRequest = !skipLogging(REQUEST)
+	cachedInfo = !skipLogging(INFO)
+	cachedWarn = !skipLogging(WARN)
+	cachedError = !skipLogging(ERROR)
+	cachedSevere = !skipLogging(SEVERE)
+	cachedFatal = !skipLogging(FATAL)
+}
+
 func ParseLevel(name string) (level Level, ok bool) {
 	level, ok = _LEVEL_MAP[strings.ToLower(name)]
 	return
 }
 
-/*
-
-Pair supports logging of key-value pairs.  Keys beginning with _ are
-reserved for the logger, e.g. _time, _level, _msg, and _rlevel. The
-Pair APIs are designed to avoid heap allocation and garbage
-collection.
-
-*/
-type Pairs []Pair
-type Pair struct {
-	Name  string
-	Value interface{}
-}
-
-/*
-
-Map allows key-value pairs to be specified using map literals or data
-structures. For example:
-
-Errorm(msg, Map{...})
-
-Map incurs heap allocation and garbage collection, so the Pair APIs
-should be preferred.
-
-*/
-type Map map[string]interface{}
-
 // Logger provides a common interface for logging libraries
 type Logger interface {
-	/*
-		These APIs write all the given pairs in addition to standard logger keys.
-	*/
-	Logp(level Level, msg string, kv ...Pair)
+	// Higher performance
+	Loga(level Level, f func() string)
+	Debuga(f func() string)
+	Tracea(f func() string)
+	Requesta(rlevel Level, f func() string)
+	Infoa(f func() string)
+	Warna(f func() string)
+	Errora(f func() string)
+	Severea(f func() string)
+	Fatala(f func() string)
 
-	Debugp(msg string, kv ...Pair)
-
-	Tracep(msg string, kv ...Pair)
-
-	Requestp(rlevel Level, msg string, kv ...Pair)
-
-	Infop(msg string, kv ...Pair)
-
-	Warnp(msg string, kv ...Pair)
-
-	Errorp(msg string, kv ...Pair)
-
-	Severep(msg string, kv ...Pair)
-
-	Fatalp(msg string, kv ...Pair)
-
-	/*
-		These APIs write the fields in the given kv Map in addition to standard logger keys.
-	*/
-	Logm(level Level, msg string, kv Map)
-
-	Debugm(msg string, kv Map)
-
-	Tracem(msg string, kv Map)
-
-	Requestm(rlevel Level, msg string, kv Map)
-
-	Infom(msg string, kv Map)
-
-	Warnm(msg string, kv Map)
-
-	Errorm(msg string, kv Map)
-
-	Severem(msg string, kv Map)
-
-	Fatalm(msg string, kv Map)
-
-	/*
-
-		These APIs only write _msg, _time, _level, and other logger keys. If
-		the msg contains other fields, use the Pair or Map APIs instead.
-
-	*/
+	// Printf style
 	Logf(level Level, fmt string, args ...interface{})
-
 	Debugf(fmt string, args ...interface{})
-
 	Tracef(fmt string, args ...interface{})
-
 	Requestf(rlevel Level, fmt string, args ...interface{})
-
 	Infof(fmt string, args ...interface{})
-
 	Warnf(fmt string, args ...interface{})
-
 	Errorf(fmt string, args ...interface{})
-
 	Severef(fmt string, args ...interface{})
-
 	Fatalf(fmt string, args ...interface{})
 
 	/*
 		These APIs control the logging level
 	*/
-
 	SetLevel(Level) // Set the logging level
-
-	Level() Level // Get the current logging level
+	Level() Level   // Get the current logging level
 }
 
 var logger Logger = nil
@@ -205,169 +156,96 @@ func SetLogger(newLogger Logger) {
 	} else {
 		curLevel = newLogger.Level()
 	}
+	cacheLoggingChange()
 }
 
-func Logp(level Level, msg string, kv ...Pair) {
+// we are using deferred unlocking here throughout as we have to do this
+// for the anonymous function variants even though it would be more efficient
+// to not do this for the printf style variants
+// anonymous function variants
+
+func Loga(level Level, f func() string) {
 	if skipLogging(level) {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Logp(level, msg, kv...)
+	logger.Loga(level, f)
 }
 
-func Debugp(msg string, kv ...Pair) {
-	if skipLogging(DEBUG) {
+func Debuga(f func() string) {
+	if !cachedDebug {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Debugp(msg, kv...)
+	logger.Debuga(f)
 }
 
-func Tracep(msg string, kv ...Pair) {
-	if skipLogging(TRACE) {
+func Tracea(f func() string) {
+	if !cachedTrace {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Tracep(msg, kv...)
+	logger.Tracea(f)
 }
 
-func Requestp(rlevel Level, msg string, kv ...Pair) {
-	if skipLogging(REQUEST) {
+func Requesta(rlevel Level, f func() string) {
+	if !cachedRequest {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Requestp(rlevel, msg, kv...)
+	logger.Requesta(rlevel, f)
 }
 
-func Infop(msg string, kv ...Pair) {
-	if skipLogging(INFO) {
+func Infoa(f func() string) {
+	if !cachedInfo {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Infop(msg, kv...)
+	logger.Infoa(f)
 }
 
-func Warnp(msg string, kv ...Pair) {
-	if skipLogging(WARN) {
+func Warna(f func() string) {
+	if !cachedWarn {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Warnp(msg, kv...)
+	logger.Warna(f)
 }
 
-func Errorp(msg string, kv ...Pair) {
-	if skipLogging(ERROR) {
+func Errora(f func() string) {
+	if !cachedError {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Errorp(msg, kv...)
+	logger.Errora(f)
 }
 
-func Severep(msg string, kv ...Pair) {
-	if skipLogging(SEVERE) {
+func Severea(f func() string) {
+	if !cachedSevere {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Severep(msg, kv...)
+	logger.Severea(f)
 }
 
-func Fatalp(msg string, kv ...Pair) {
-	if skipLogging(FATAL) {
+func Fatala(f func() string) {
+	if !cachedFatal {
 		return
 	}
 	loggerMutex.Lock()
 	defer loggerMutex.Unlock()
-	logger.Fatalp(msg, kv...)
+	logger.Fatala(f)
 }
 
-func Logm(level Level, msg string, kv Map) {
-	if skipLogging(level) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Logm(level, msg, kv)
-}
-
-func Debugm(msg string, kv Map) {
-	if skipLogging(DEBUG) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Debugm(msg, kv)
-}
-
-func Tracem(msg string, kv Map) {
-	if skipLogging(TRACE) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Tracem(msg, kv)
-}
-
-func Requestm(rlevel Level, msg string, kv Map) {
-	if skipLogging(REQUEST) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Requestm(rlevel, msg, kv)
-}
-
-func Infom(msg string, kv Map) {
-	if skipLogging(INFO) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Infom(msg, kv)
-}
-
-func Warnm(msg string, kv Map) {
-	if skipLogging(WARN) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Warnm(msg, kv)
-}
-
-func Errorm(msg string, kv Map) {
-	if skipLogging(ERROR) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Errorm(msg, kv)
-}
-
-func Severem(msg string, kv Map) {
-	if skipLogging(SEVERE) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Severem(msg, kv)
-}
-
-func Fatalm(msg string, kv Map) {
-	if skipLogging(FATAL) {
-		return
-	}
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-	logger.Fatalm(msg, kv)
-}
+// printf-style variants
 
 func Logf(level Level, fmt string, args ...interface{}) {
 	if skipLogging(level) {
@@ -379,7 +257,7 @@ func Logf(level Level, fmt string, args ...interface{}) {
 }
 
 func Debugf(fmt string, args ...interface{}) {
-	if skipLogging(DEBUG) {
+	if !cachedDebug {
 		return
 	}
 	loggerMutex.Lock()
@@ -388,7 +266,7 @@ func Debugf(fmt string, args ...interface{}) {
 }
 
 func Tracef(fmt string, args ...interface{}) {
-	if skipLogging(TRACE) {
+	if !cachedTrace {
 		return
 	}
 	loggerMutex.Lock()
@@ -397,7 +275,7 @@ func Tracef(fmt string, args ...interface{}) {
 }
 
 func Requestf(rlevel Level, fmt string, args ...interface{}) {
-	if skipLogging(REQUEST) {
+	if !cachedRequest {
 		return
 	}
 	loggerMutex.Lock()
@@ -406,7 +284,7 @@ func Requestf(rlevel Level, fmt string, args ...interface{}) {
 }
 
 func Infof(fmt string, args ...interface{}) {
-	if skipLogging(INFO) {
+	if !cachedInfo {
 		return
 	}
 	loggerMutex.Lock()
@@ -415,7 +293,7 @@ func Infof(fmt string, args ...interface{}) {
 }
 
 func Warnf(fmt string, args ...interface{}) {
-	if skipLogging(WARN) {
+	if !cachedWarn {
 		return
 	}
 	loggerMutex.Lock()
@@ -424,7 +302,7 @@ func Warnf(fmt string, args ...interface{}) {
 }
 
 func Errorf(fmt string, args ...interface{}) {
-	if skipLogging(ERROR) {
+	if !cachedError {
 		return
 	}
 	loggerMutex.Lock()
@@ -433,7 +311,7 @@ func Errorf(fmt string, args ...interface{}) {
 }
 
 func Severef(fmt string, args ...interface{}) {
-	if skipLogging(SEVERE) {
+	if !cachedSevere {
 		return
 	}
 	loggerMutex.Lock()
@@ -442,7 +320,7 @@ func Severef(fmt string, args ...interface{}) {
 }
 
 func Fatalf(fmt string, args ...interface{}) {
-	if skipLogging(FATAL) {
+	if !cachedFatal {
 		return
 	}
 	loggerMutex.Lock()
@@ -455,6 +333,7 @@ func SetLevel(level Level) {
 	defer loggerMutex.Unlock()
 	logger.SetLevel(level)
 	curLevel = level
+	cacheLoggingChange()
 }
 
 func LogLevel() Level {

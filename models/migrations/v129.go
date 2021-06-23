@@ -9,7 +9,6 @@ import (
 )
 
 func purgeUnusedDependencies(x *xorm.Engine) error {
-
 	if _, err := x.Exec("DELETE FROM issue_dependency WHERE issue_id NOT IN (SELECT id FROM issue)"); err != nil {
 		return err
 	}

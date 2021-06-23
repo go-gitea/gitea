@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -17,11 +18,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// ExchangeToken performs an oauth2 token exchange with the provided endpoint.
+// exchangeToken performs an oauth2 token exchange with the provided endpoint.
 // The first 4 fields are all mandatory.  headers can be used to pass additional
 // headers beyond the bare minimum required by the token exchange.  options can
 // be used to pass additional JSON-structured options to the remote server.
-func ExchangeToken(ctx context.Context, endpoint string, request *STSTokenExchangeRequest, authentication ClientAuthentication, headers http.Header, options map[string]interface{}) (*STSTokenExchangeResponse, error) {
+func exchangeToken(ctx context.Context, endpoint string, request *stsTokenExchangeRequest, authentication clientAuthentication, headers http.Header, options map[string]interface{}) (*stsTokenExchangeResponse, error) {
 
 	client := oauth2.NewClient(ctx, nil)
 
@@ -63,9 +64,12 @@ func ExchangeToken(ctx context.Context, endpoint string, request *STSTokenExchan
 	}
 	defer resp.Body.Close()
 
-	bodyJson := json.NewDecoder(io.LimitReader(resp.Body, 1<<20))
-	var stsResp STSTokenExchangeResponse
-	err = bodyJson.Decode(&stsResp)
+	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if c := resp.StatusCode; c < 200 || c > 299 {
+		return nil, fmt.Errorf("oauth2/google: status code %d: %s", c, body)
+	}
+	var stsResp stsTokenExchangeResponse
+	err = json.Unmarshal(body, &stsResp)
 	if err != nil {
 		return nil, fmt.Errorf("oauth2/google: failed to unmarshal response body from Secure Token Server: %v", err)
 
@@ -74,8 +78,8 @@ func ExchangeToken(ctx context.Context, endpoint string, request *STSTokenExchan
 	return &stsResp, nil
 }
 
-// STSTokenExchangeRequest contains fields necessary to make an oauth2 token exchange.
-type STSTokenExchangeRequest struct {
+// stsTokenExchangeRequest contains fields necessary to make an oauth2 token exchange.
+type stsTokenExchangeRequest struct {
 	ActingParty struct {
 		ActorToken     string
 		ActorTokenType string
@@ -89,8 +93,8 @@ type STSTokenExchangeRequest struct {
 	SubjectTokenType   string
 }
 
-// STSTokenExchangeResponse is used to decode the remote server response during an oauth2 token exchange.
-type STSTokenExchangeResponse struct {
+// stsTokenExchangeResponse is used to decode the remote server response during an oauth2 token exchange.
+type stsTokenExchangeResponse struct {
 	AccessToken     string `json:"access_token"`
 	IssuedTokenType string `json:"issued_token_type"`
 	TokenType       string `json:"token_type"`
