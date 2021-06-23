@@ -6,7 +6,7 @@ import (
 )
 
 // Batchfile lexer.
-var Batchfile = internal.Register(MustNewLexer(
+var Batchfile = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Batchfile",
 		Aliases:         []string{"bat", "batch", "dosbatch", "winbatch"},
@@ -14,7 +14,11 @@ var Batchfile = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"application/x-dos-batch"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	batchfileRules,
+))
+
+func batchfileRules() Rules {
+	return Rules{
 		"root": {
 			{`\)((?=\()|(?=\^?[\t\v\f\r ,;=\xa0]|[&<>|\n\x1a]))(?:(?:[^\n\x1a^]|\^[\n\x1a]?[\w\W])*)`, CommentSingle, nil},
 			{`(?=((?:(?<=^[^:])|^[^:]?)[\t\v\f\r ,;=\xa0]*)(:))`, Text, Push("follow")},
@@ -190,5 +194,5 @@ var Batchfile = internal.Register(MustNewLexer(
 			{`else(?=\^?[\t\v\f\r ,;=\xa0]|[&<>|\n\x1a])`, Keyword, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

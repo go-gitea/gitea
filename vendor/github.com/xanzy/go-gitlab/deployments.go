@@ -75,7 +75,7 @@ type ListProjectDeploymentsOptions struct {
 	OrderBy       *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
 	Sort          *string    `url:"sort,omitempty" json:"sort,omitempty"`
 	UpdatedAfter  *time.Time `url:"updated_after,omitempty" json:"updated_after,omitempty"`
-	UpdatedBefore *time.Time `url:"update_before,omitempty" json:"updated_before,omitempty"`
+	UpdatedBefore *time.Time `url:"updated_before,omitempty" json:"updated_before,omitempty"`
 	Environment   *string    `url:"environment,omitempty" json:"environment,omitempty"`
 	Status        *string    `url:"status,omitempty" json:"status,omitempty"`
 }

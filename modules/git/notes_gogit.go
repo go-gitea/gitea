@@ -7,13 +7,14 @@
 package git
 
 import (
+	"context"
 	"io/ioutil"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // GetNote retrieves the git-notes data for a given commit.
-func GetNote(repo *Repository, commitID string, note *Note) error {
+func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
 	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
 		return err
@@ -62,7 +63,7 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 		return err
 	}
 
-	lastCommits, err := GetLastCommitForPaths(commitNode, "", []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, commitNode, "", []string{path})
 	if err != nil {
 		return err
 	}

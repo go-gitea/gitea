@@ -83,7 +83,7 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 		IsPrivate:     isPrivate,
 		Description:   opts["description"],
 		OriginalURL:   opts["original_url"],
-		CloneURL:      opts["clone_addr"],
+		CloneURL:      filepath.Join(r.baseDir, "git"),
 		DefaultBranch: opts["default_branch"],
 	}, nil
 }
@@ -155,7 +155,9 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	}
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
-			*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			if asset.DownloadURL != nil {
+				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			}
 		}
 	}
 	return releases, nil

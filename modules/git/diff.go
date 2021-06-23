@@ -47,7 +47,7 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
-		return fmt.Errorf("GetCommit: %v", err)
+		return err
 	}
 	fileArgs := make([]string, 0)
 	if len(file) > 0 {

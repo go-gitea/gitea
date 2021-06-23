@@ -28,7 +28,7 @@
 </h4>
 
 {{if and .Commits (gt .CommitCount 0)}}
-    {{template "repo/commits_list" .}}
+	{{template "repo/commits_list" .}}
 {{end}}
 
 {{template "base/paginate" .}}

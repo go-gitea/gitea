@@ -9,16 +9,52 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strings"
 )
+
+// IsObjectExist returns true if given reference exists in the repository.
+func (repo *Repository) IsObjectExist(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(name + "\n"))
+	if err != nil {
+		log("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
+	sha, _, _, err := ReadBatchLine(rd)
+	return err == nil && bytes.HasPrefix(sha, []byte(strings.TrimSpace(name)))
+}
+
+// IsReferenceExist returns true if given reference exists in the repository.
+func (repo *Repository) IsReferenceExist(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(name + "\n"))
+	if err != nil {
+		log("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
+	_, _, _, err = ReadBatchLine(rd)
+	return err == nil
+}
 
 // IsBranchExist returns true if given branch exists in current repository.
 func (repo *Repository) IsBranchExist(name string) bool {
 	if name == "" {
 		return false
 	}
-	return IsReferenceExist(repo.Path, BranchPrefix+name)
+
+	return repo.IsReferenceExist(BranchPrefix + name)
 }
 
 // GetBranches returns branches from the repository, skipping skip initial branches and

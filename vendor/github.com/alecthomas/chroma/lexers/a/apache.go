@@ -6,7 +6,7 @@ import (
 )
 
 // Apacheconf lexer.
-var Apacheconf = internal.Register(MustNewLexer(
+var Apacheconf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "ApacheConf",
 		Aliases:         []string{"apacheconf", "aconf", "apache"},
@@ -14,7 +14,11 @@ var Apacheconf = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-apacheconf"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	apacheconfRules,
+))
+
+func apacheconfRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`(#.*?)$`, Comment, nil},
@@ -34,5 +38,5 @@ var Apacheconf = internal.Register(MustNewLexer(
 			{`"([^"\\]*(?:\\.[^"\\]*)*)"`, LiteralStringDouble, nil},
 			{`[^\s"\\]+`, Text, nil},
 		},
-	},
-))
+	}
+}

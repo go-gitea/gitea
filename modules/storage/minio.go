@@ -131,13 +131,13 @@ func (m *MinioStorage) Open(path string) (Object, error) {
 }
 
 // Save save a file to minio
-func (m *MinioStorage) Save(path string, r io.Reader) (int64, error) {
+func (m *MinioStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	uploadInfo, err := m.client.PutObject(
 		m.ctx,
 		m.bucket,
 		m.buildMinioPath(path),
 		r,
-		-1,
+		size,
 		minio.PutObjectOptions{ContentType: "application/octet-stream"},
 	)
 	if err != nil {
