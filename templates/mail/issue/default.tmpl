@@ -53,6 +53,8 @@
 			{{.i18n.Tr "mail.issue.action.review" .Doer.Name | Str2html}}
 		{{else if eq .ActionName "review_dismissed"}}
 			{{.i18n.Tr "mail.issue.action.review_dismissed" .Doer.Name .Comment.Review.Reviewer.Name | Str2html}}
+		{{else if eq .ActionName "ready_for_review"}}
+			{{.i18n.Tr "mail.issue.action.ready_for_review" .Doer.Name | Str2html}}
 		{{end}}
 
 		{{- if eq .Body ""}}
