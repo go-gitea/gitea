@@ -33,7 +33,7 @@
 				{{if eq .Comment.Commits.Len 1}}
 					{{.i18n.Tr "mail.issue.action.push_1" .Doer.Name .Comment.Issue.PullRequest.HeadBranch | Str2html}}
 				{{else}}
-					{{.i18n.Tr "mail.issue.action.push_1" .Doer.Name .Comment.Issue.PullRequest.HeadBranch .Comment.Commits.Len | Str2html}}
+					{{.i18n.Tr "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch .Comment.Commits.Len | Str2html}}
 				{{end}}
 			{{end}}
 		</p>
