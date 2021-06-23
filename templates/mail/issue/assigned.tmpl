@@ -8,12 +8,14 @@
 	<title>{{.Subject}}</title>
 </head>
 
+{{$repo_url := printf "<a href='%s'>%s</a>" .Release.Repo.HTMLURL .Release.Repo.FullName}}
+{{$link := printf "<a href='%s'>#%d</a>" .Link .Issue.Index}}
 <body>
 	<p>
 		{{if .IsPull}}
-			{{.i18n.Tr "mail.issue_assigned.pull" .Doer.Name .Link .Issue.Index .Repo | Str2html}}
+			{{.i18n.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url | Str2html}}
 		{{else}}
-			{{.i18n.Tr "mail.issue_assigned.issue" .Doer.Name .Link .Issue.Index .Repo | Str2html}}
+			{{.i18n.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url | Str2html}}
 		{{end}}
 	</p>
 	<div class="footer">
