@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/alecthomas/chroma"
@@ -39,6 +40,11 @@ func (Renderer) NeedPostProcess() bool { return true }
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
 	return []string{".org"}
+}
+
+// SanitizerRules implements markup.Renderer
+func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return []setting.MarkupSanitizerRule{}
 }
 
 // Render renders orgmode rawbytes to HTML

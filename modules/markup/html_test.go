@@ -112,7 +112,7 @@ func TestRender_links(t *testing.T) {
 
 	defaultCustom := setting.Markdown.CustomURLSchemes
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	ReplaceSanitizer()
+	InitializeSanitizer()
 	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	test(
@@ -192,7 +192,7 @@ func TestRender_links(t *testing.T) {
 
 	// Restore previous settings
 	setting.Markdown.CustomURLSchemes = defaultCustom
-	ReplaceSanitizer()
+	InitializeSanitizer()
 	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 

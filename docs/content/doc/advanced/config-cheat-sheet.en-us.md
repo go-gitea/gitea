@@ -907,13 +907,17 @@ Gitea supports customizing the sanitization policy for rendered HTML. The exampl
 ELEMENT = span
 ALLOW_ATTR = class
 REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
 ```
 
  - `ELEMENT`: The element this policy applies to. Must be non-empty.
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+ - `ALLOW_DATA_URI_IMAGES`: **false** Allow data uri images (`<img src="data:image/png;base64,..."/>`).
 
 Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
+To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
+If the rule is defined above the renderer ini section or the name does not match a renderer it is applied to every renderer.
 
 ## Time (`time`)
 
