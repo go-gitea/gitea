@@ -6,14 +6,18 @@ import (
 )
 
 // Elixir lexer.
-var Elixir = internal.Register(MustNewLexer(
+var Elixir = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Elixir",
 		Aliases:   []string{"elixir", "ex", "exs"},
 		Filenames: []string{"*.ex", "*.exs"},
 		MimeTypes: []string{"text/x-elixir"},
 	},
-	Rules{
+	elixirRules,
+))
+
+func elixirRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`#.*$`, CommentSingle, nil},
@@ -273,5 +277,5 @@ var Elixir = internal.Register(MustNewLexer(
 			{`\\.`, LiteralStringOther, nil},
 			{`'[a-zA-Z]*`, LiteralStringOther, Pop(1)},
 		},
-	},
-))
+	}
+}

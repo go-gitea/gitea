@@ -285,14 +285,14 @@ func ParAnd(parallelism int, bitmaps ...*Bitmap) *Bitmap {
 		for input := range inputChan {
 			c := input.containers[0].and(input.containers[1])
 			for _, next := range input.containers[2:] {
-				if c.getCardinality() == 0 {
+				if c.isEmpty() {
 					break
 				}
 				c = c.iand(next)
 			}
 
 			// Send a nil explicitly if the result of the intersection is an empty container
-			if c.getCardinality() == 0 {
+			if c.isEmpty() {
 				c = nil
 			}
 
@@ -357,7 +357,7 @@ func ParOr(parallelism int, bitmaps ...*Bitmap) *Bitmap {
 		return bitmaps[0]
 	}
 
-	keyRange := hKey - lKey + 1
+	keyRange := int(hKey) - int(lKey) + 1
 	if keyRange == 1 {
 		// revert to FastOr. Since the key range is 0
 		// no container-level aggregation parallelism is achievable

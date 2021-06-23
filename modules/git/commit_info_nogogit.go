@@ -7,18 +7,15 @@
 package git
 
 import (
-	"bufio"
-	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"math"
 	"path"
 	"sort"
-	"strings"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -31,32 +28,27 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	var revs map[string]*Commit
 	if cache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(ctx, commit.ID.String(), treePath, entryPaths, cache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
 			sort.Strings(unHitPaths)
-			commits, err := GetLastCommitForPaths(commit, treePath, unHitPaths)
+			commits, err := GetLastCommitForPaths(ctx, commit, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
 
-			for i, found := range commits {
-				if err := cache.Put(commit.ID.String(), path.Join(treePath, unHitPaths[i]), found.ID.String()); err != nil {
+			for pth, found := range commits {
+				if err := cache.Put(commit.ID.String(), path.Join(treePath, pth), found.ID.String()); err != nil {
 					return nil, nil, err
 				}
-				revs[unHitPaths[i]] = found
+				revs[pth] = found
 			}
 		}
 	} else {
 		sort.Strings(entryPaths)
-		revs = map[string]*Commit{}
-		var foundCommits []*Commit
-		foundCommits, err = GetLastCommitForPaths(commit, treePath, entryPaths)
-		for i, found := range foundCommits {
-			revs[entryPaths[i]] = found
-		}
+		revs, err = GetLastCommitForPaths(ctx, commit, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -85,6 +77,8 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 				subModuleFile := NewSubModuleFile(entryCommit, subModuleURL, entry.ID.String())
 				commitsInfo[i].SubModuleFile = subModuleFile
 			}
+		} else {
+			log("missing commit for %s", entry.Name())
 		}
 	}
 
@@ -101,7 +95,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	return commitsInfo, treeCommit, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
+func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	wr, rd, cancel := cache.repo.CatFileBatch()
 	defer cancel()
 
@@ -124,212 +118,24 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(commit *Commit, treePath string, paths []string) ([]*Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, commit *Commit, treePath string, paths []string) (map[string]*Commit, error) {
 	// We read backwards from the commit to obtain all of the commits
-
-	// We'll do this by using rev-list to provide us with parent commits in order
-	revListReader, revListWriter := io.Pipe()
-	defer func() {
-		_ = revListWriter.Close()
-		_ = revListReader.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("rev-list", "--format=%T", commit.ID.String()).RunInDirPipeline(commit.repo.Path, revListWriter, &stderr)
-		if err != nil {
-			_ = revListWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = revListWriter.Close()
-		}
-	}()
+	revs, err := WalkGitLog(ctx, commit.repo, commit, treePath, paths...)
+	if err != nil {
+		return nil, err
+	}
 
 	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
 	defer cancel()
 
-	mapsize := 4096
-	if len(paths) > mapsize {
-		mapsize = len(paths)
-	}
-
-	path2idx := make(map[string]int, mapsize)
-	for i, path := range paths {
-		path2idx[path] = i
-	}
-
-	fnameBuf := make([]byte, 4096)
-	modeBuf := make([]byte, 40)
-
-	allShaBuf := make([]byte, (len(paths)+1)*20)
-	shaBuf := make([]byte, 20)
-	tmpTreeID := make([]byte, 40)
-
-	// commits is the returnable commits matching the paths provided
-	commits := make([]string, len(paths))
-	// ids are the blob/tree ids for the paths
-	ids := make([][]byte, len(paths))
-
-	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
-	scan := bufio.NewScanner(revListReader)
-revListLoop:
-	for scan.Scan() {
-		// Get the next parent commit ID
-		commitID := scan.Text()
-		if !scan.Scan() {
-			break revListLoop
-		}
-		commitID = commitID[7:]
-		rootTreeID := scan.Text()
-
-		// push the tree to the cat-file --batch process
-		_, err := batchStdinWriter.Write([]byte(rootTreeID + "\n"))
-		if err != nil {
-			return nil, err
-		}
-
-		currentPath := ""
-
-		// OK if the target tree path is "" and the "" is in the paths just set this now
-		if treePath == "" && paths[0] == "" {
-			// If this is the first time we see this set the id appropriate for this paths to this tree and set the last commit to curCommit
-			if len(ids[0]) == 0 {
-				ids[0] = []byte(rootTreeID)
-				commits[0] = string(commitID)
-			} else if bytes.Equal(ids[0], []byte(rootTreeID)) {
-				commits[0] = string(commitID)
-			}
-		}
-
-	treeReadingLoop:
-		for {
-			_, _, size, err := ReadBatchLine(batchReader)
-			if err != nil {
-				return nil, err
-			}
-
-			// Handle trees
-
-			// n is counter for file position in the tree file
-			var n int64
-
-			// Two options: currentPath is the targetTreepath
-			if treePath == currentPath {
-				// We are in the right directory
-				// Parse each tree line in turn. (don't care about mode here.)
-				for n < size {
-					fname, sha, count, err := ParseTreeLineSkipMode(batchReader, fnameBuf, shaBuf)
-					shaBuf = sha
-					if err != nil {
-						return nil, err
-					}
-					n += int64(count)
-					idx, ok := path2idx[string(fname)]
-					if ok {
-						// Now if this is the first time round set the initial Blob(ish) SHA ID and the commit
-						if len(ids[idx]) == 0 {
-							copy(allShaBuf[20*(idx+1):20*(idx+2)], shaBuf)
-							ids[idx] = allShaBuf[20*(idx+1) : 20*(idx+2)]
-							commits[idx] = string(commitID)
-						} else if bytes.Equal(ids[idx], shaBuf) {
-							commits[idx] = string(commitID)
-						}
-					}
-					// FIXME: is there any order to the way strings are emitted from cat-file?
-					// if there is - then we could skip once we've passed all of our data
-				}
-				if _, err := batchReader.Discard(1); err != nil {
-					return nil, err
-				}
-
-				break treeReadingLoop
-			}
-
-			var treeID []byte
-
-			// We're in the wrong directory
-			// Find target directory in this directory
-			idx := len(currentPath)
-			if idx > 0 {
-				idx++
-			}
-			target := strings.SplitN(treePath[idx:], "/", 2)[0]
-
-			for n < size {
-				// Read each tree entry in turn
-				mode, fname, sha, count, err := ParseTreeLine(batchReader, modeBuf, fnameBuf, shaBuf)
-				if err != nil {
-					return nil, err
-				}
-				n += int64(count)
-
-				// if we have found the target directory
-				if bytes.Equal(fname, []byte(target)) && bytes.Equal(mode, []byte("40000")) {
-					copy(tmpTreeID, sha)
-					treeID = tmpTreeID
-					break
-				}
-			}
-
-			if n < size {
-				// Discard any remaining entries in the current tree
-				discard := size - n
-				for discard > math.MaxInt32 {
-					_, err := batchReader.Discard(math.MaxInt32)
-					if err != nil {
-						return nil, err
-					}
-					discard -= math.MaxInt32
-				}
-				_, err := batchReader.Discard(int(discard))
-				if err != nil {
-					return nil, err
-				}
-			}
-			if _, err := batchReader.Discard(1); err != nil {
-				return nil, err
-			}
-
-			// if we haven't found a treeID for the target directory our search is over
-			if len(treeID) == 0 {
-				break treeReadingLoop
-			}
-
-			// add the target to the current path
-			if idx > 0 {
-				currentPath += "/"
-			}
-			currentPath += target
-
-			// if we've now found the current path check its sha id and commit status
-			if treePath == currentPath && paths[0] == "" {
-				if len(ids[0]) == 0 {
-					copy(allShaBuf[0:20], treeID)
-					ids[0] = allShaBuf[0:20]
-					commits[0] = string(commitID)
-				} else if bytes.Equal(ids[0], treeID) {
-					commits[0] = string(commitID)
-				}
-			}
-			treeID = To40ByteSHA(treeID, treeID)
-			_, err = batchStdinWriter.Write(treeID)
-			if err != nil {
-				return nil, err
-			}
-			_, err = batchStdinWriter.Write([]byte("\n"))
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	commitsMap := make(map[string]*Commit, len(commits))
+	commitsMap := map[string]*Commit{}
 	commitsMap[commit.ID.String()] = commit
 
-	commitCommits := make([]*Commit, len(commits))
-	for i, commitID := range commits {
+	commitCommits := map[string]*Commit{}
+	for path, commitID := range revs {
 		c, ok := commitsMap[commitID]
 		if ok {
-			commitCommits[i] = c
+			commitCommits[path] = c
 			continue
 		}
 
@@ -355,8 +161,8 @@ revListLoop:
 		if _, err := batchReader.Discard(1); err != nil {
 			return nil, err
 		}
-		commitCommits[i] = c
+		commitCommits[path] = c
 	}
 
-	return commitCommits, scan.Err()
+	return commitCommits, nil
 }

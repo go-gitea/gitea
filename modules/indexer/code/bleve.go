@@ -16,12 +16,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -211,11 +211,14 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
