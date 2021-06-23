@@ -3657,7 +3657,7 @@
           "repository"
         ],
         "summary": "Gets the tag object of an annotated tag (not lightweight tags)",
-        "operationId": "GetTag",
+        "operationId": "GetAnnotatedTag",
         "parameters": [
           {
             "type": "string",
@@ -9117,7 +9117,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/AnnotatedTag"
+            "$ref": "#/responses/Tag"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -9129,6 +9129,47 @@
       }
     },
     "/repos/{owner}/{repo}/tags/{tag}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the tag of a repository by tag name",
+        "operationId": "repoGetTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of tag",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Tag"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
