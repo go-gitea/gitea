@@ -4,7 +4,7 @@ name: compliance
 
 platform:
   os: linux
-  arch: arm64
+  arch: amd64
 
 trigger:
   event:
@@ -27,7 +27,7 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -37,7 +37,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
     environment:
@@ -49,7 +49,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
