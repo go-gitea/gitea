@@ -9,6 +9,6 @@
 <body>
 	{{.i18n.Tr "mail.activate_account.body" .DisplayName .ActiveCodeLives $activate_url AppName | Str2html}}
 
-	{{.i18n.Tr "mail.footer" AppUrl AppName | Str2html}}
+	<p>© <a target="_blank" rel="noopener noreferrer" href="{{AppUrl}}">{{AppName}}</a></p>
 </body>
 </html>
