@@ -100,6 +100,38 @@ func checkFileExistence(gitRepo *git.Repository, filePath string) (bool, error) 
 	return false, nil
 }
 
+// prepareWikiFileName try to find a suitable file path with file name by the given raw wiki name.
+// return: existence, prepared file path with name, error
+func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string, error) {
+	// Pass in the raw unchanged name
+	// Add ".md" suffix if not there.
+	newWikiPath := NameToUnescapedFilename(wikiName)
+	// Look for this raw suffixed name within the stringslice - that works return true, rawSuffixed, nil
+	isWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
+	if err != nil {
+		return isWikiExist, newWikiPath, err
+	}
+
+	if isWikiExist {
+		return true, newWikiPath, nil
+	}
+
+	// If not normalize and look for that - if that works returns true, normalized path, nil
+	newWikiPath = NameToFilename(wikiName)
+	isWikiExist, err = checkFileExistence(gitRepo, newWikiPath)
+	if err != nil {
+		return isWikiExist, newWikiPath, err
+	}
+
+	if isWikiExist {
+		return true, newWikiPath, nil
+	}
+
+	// If not return false, raw suffixed, nil
+	// blumia: we prefer use the normalized path here to keep compatible with old version.
+	return false, newWikiPath, nil
+}
+
 // updateWikiPage adds a new page to the repository wiki.
 func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
@@ -152,34 +184,23 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 	}
 
-	newWikiPath := NameToUnescapedFilename(newWikiName)
-	isWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
+	isWikiExist, newWikiPath, err := prepareWikiFileName(gitRepo, newWikiName)
 	if err != nil {
 		return err
 	}
-	if !isWikiExist {
-		newWikiPath = NameToFilename(newWikiName)
-	}
 
 	if isNew {
-		isNewWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
-		if err != nil {
-			return err
-		}
-		if isNewWikiExist {
+		if isWikiExist {
 			return models.ErrWikiAlreadyExist{
 				Title: newWikiPath,
 			}
 		}
 	} else {
-		oldWikiPath := NameToUnescapedFilename(oldWikiName)
-		isOldWikiExist, err := checkFileExistence(gitRepo, oldWikiPath)
-		if err != nil {
-			return err
-		}
-		if !isOldWikiExist {
-			oldWikiPath = NameToFilename(oldWikiName)
-			isOldWikiExist, err = checkFileExistence(gitRepo, oldWikiPath)
+		// avoid check existence again if wiki name is not changed since gitRepo.LsFiles(...) is not free.
+		isOldWikiExist := true
+		oldWikiPath := newWikiPath
+		if oldWikiName != newWikiName {
+			isOldWikiExist, oldWikiPath, err = prepareWikiFileName(gitRepo, oldWikiName)
 			if err != nil {
 				return err
 			}
