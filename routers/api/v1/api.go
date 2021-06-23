@@ -649,6 +649,10 @@ func Routes() *web.Route {
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
+			m.Group("/settings", func() {
+				m.Get("", user.GetUserSettings)
+				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
+			}, reqToken())
 			m.Combo("/emails").Get(user.ListEmails).
 				Post(bind(api.CreateEmailOption{}), user.AddEmail).
 				Delete(bind(api.DeleteEmailOption{}), user.DeleteEmail)
