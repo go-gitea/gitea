@@ -39,7 +39,7 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.zip", tags[0].ZipballURL)
 	assert.Equal(t, setting.AppURL+"user2/repo1/archive/v1.1.tar.gz", tags[0].TarballURL)
 
-	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "awesome-tag", "", "nice!\nand some text")
+	newTag := createNewTagUsingAPI(t, session, token, user.Name, repoName, "gitea/22", "", "nice!\nand some text")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &tags)
 	assert.Len(t, tags, 2)

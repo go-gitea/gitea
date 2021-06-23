@@ -138,7 +138,7 @@ func GetTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	tagName := ctx.Params("tag")
+	tagName := ctx.Params("*")
 
 	tag, err := ctx.Repo.GitRepo.GetTag(tagName)
 	if err != nil {
@@ -237,8 +237,9 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
+	tagName := ctx.Params("*")
 
-	tag, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("tag"))
+	tag, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
 		if models.IsErrReleaseNotExist(err) {
 			ctx.NotFound()

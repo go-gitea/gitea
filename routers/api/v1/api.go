@@ -779,9 +779,9 @@ func Routes() *web.Route {
 				}, reqToken(), reqAdmin())
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
-					m.Get("/{tag}", repo.GetTag)
+					m.Get("/*", repo.GetTag)
 					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
-					m.Delete("/{tag}", repo.DeleteTag)
+					m.Delete("/*", repo.DeleteTag)
 				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
