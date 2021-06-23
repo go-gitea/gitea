@@ -179,7 +179,7 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
-		ProtectedBranchID:               prID,
+		PullRequestID:                   prID,
 		IsDeployKey:                     isDeployKey,
 	}
 
