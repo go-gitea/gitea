@@ -30,7 +30,7 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 		Content: struct {
 			Text string `json:"text"`
 		}{
-			Text: text,
+			Text: strings.TrimSpace(text),
 		},
 	}
 }
@@ -81,7 +81,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		commitDesc string
 	)
 
-	var text = fmt.Sprintf("[%s:%s] %s\n", p.Repo.FullName, branchName, commitDesc)
+	var text = fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
@@ -92,7 +92,7 @@ func (f *FeishuPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			text += "\r\n"
 		}
 	}
 
@@ -122,18 +122,13 @@ func (f *FeishuPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, e
 
 // Review implements PayloadConvertor Review method
 func (f *FeishuPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
-	var text, title string
-	switch p.Action {
-	case api.HookIssueSynchronized:
-		action, err := parseHookPullRequestEventType(event)
-		if err != nil {
-			return nil, err
-		}
-
-		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
-		text = p.Review.Content
-
+	action, err := parseHookPullRequestEventType(event)
+	if err != nil {
+		return nil, err
 	}
+
+	title := fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
+	text := p.Review.Content
 
 	return newFeishuTextPayload(title + "\r\n\r\n" + text), nil
 }
