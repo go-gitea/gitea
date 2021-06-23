@@ -9,7 +9,7 @@
 </head>
 
 <body>
-	{{.i18n.Tr "mail.repo.collaborator.added.body" .RepoName | Str2html}}
+	<p>{{.i18n.Tr "mail.repo.collaborator.added.text"}} <code>{{.RepoName}}</code></p>
 	<div class="footer">
 		<p>
 			---

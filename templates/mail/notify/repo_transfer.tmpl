@@ -5,9 +5,10 @@
 	<title>{{.Subject}}</title>
 </head>
 
+{{$url := printf "<a href='%[1]s'>%[2]s</a>" .Link .Repo}}
 <body>
 	<p>{{.Subject}}.
-		{{.i18n.Tr "mail.repo.transfer.body" .Link .Repo | Str2html}}
+		{{.i18n.Tr "mail.repo.transfer.body" $url | Str2html}}
 	<p>
 		---
 		<br>
