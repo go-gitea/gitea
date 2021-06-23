@@ -44,12 +44,31 @@ func isLoopbackIP(ip string) bool {
 // IsValidURL checks if URL is valid
 func IsValidURL(uri string) bool {
 	if u, err := url.ParseRequestURI(uri); err != nil ||
-		(u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "gopher") ||
+		(u.Scheme != "http" && u.Scheme != "https") ||
 		!validPort(portOnly(u.Host)) {
 		return false
 	}
 
 	return true
+}
+
+// IsValidSiteURL checks if URL is valid
+func IsValidSiteURL(uri string) bool {
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return false
+	}
+
+	if !validPort(portOnly(u.Host)) {
+		return false
+	}
+
+	for _, scheme := range setting.Service.ValidSiteURLSchemes {
+		if scheme == u.Scheme {
+			return true
+		}
+	}
+	return false
 }
 
 // IsAPIURL checks if URL is current Gitea instance API URL

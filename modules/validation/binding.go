@@ -52,6 +52,7 @@ func CheckGitRefAdditionalRulesValid(name string) bool {
 func AddBindingRules() {
 	addGitRefNameBindingRule()
 	addValidURLBindingRule()
+	addValidSiteURLBindingRule()
 	addGlobPatternRule()
 }
 
@@ -88,6 +89,24 @@ func addValidURLBindingRule() {
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 			if len(str) != 0 && !IsValidURL(str) {
+				errs.Add([]string{name}, binding.ERR_URL, "Url")
+				return false, errs
+			}
+
+			return true, errs
+		},
+	})
+}
+
+func addValidSiteURLBindingRule() {
+	// URL validation rule
+	binding.AddRule(&binding.Rule{
+		IsMatch: func(rule string) bool {
+			return strings.HasPrefix(rule, "ValidSiteUrl")
+		},
+		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
+			str := fmt.Sprintf("%v", val)
+			if len(str) != 0 && !IsValidSiteURL(str) {
 				errs.Add([]string{name}, binding.ERR_URL, "Url")
 				return false, errs
 			}
