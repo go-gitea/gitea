@@ -7,14 +7,18 @@ import (
 )
 
 // Myghty lexer.
-var Myghty = internal.Register(MustNewLexer(
+var Myghty = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Myghty",
 		Aliases:   []string{"myghty"},
 		Filenames: []string{"*.myt", "autodelegate"},
 		MimeTypes: []string{"application/x-myghty"},
 	},
-	Rules{
+	myghtyRules,
+))
+
+func myghtyRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`(<%(?:def|method))(\s*)(.*?)(>)(.*?)(</%\2\s*>)(?s)`, ByGroups(NameTag, Text, NameFunction, NameTag, UsingSelf("root"), NameTag), nil},
@@ -36,5 +40,5 @@ var Myghty = internal.Register(MustNewLexer(
                   \Z                 # end of string
                  )`, ByGroups(Other, Operator), nil},
 		},
-	},
-))
+	}
+}

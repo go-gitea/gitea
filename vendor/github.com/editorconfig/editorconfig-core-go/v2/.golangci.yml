@@ -1,11 +1,16 @@
 linters-settings:
   golint:
     min-confidence: 0.3
+  cyclop:
+    max-complexity: 15
+    package-average: 10
 
 linters:
   disable:
     - exhaustivestruct
     - gomnd
+    - interfacer
+    - maligned
   presets:
     - bugs
     - complexity

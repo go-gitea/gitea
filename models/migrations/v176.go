@@ -8,6 +8,9 @@ import (
 	"xorm.io/xorm"
 )
 
+// removeInvalidLabels looks through the database to look for comments and issue_labels
+// that refer to labels do not belong to the repository or organization that repository
+// that the issue is in
 func removeInvalidLabels(x *xorm.Engine) error {
 	type Comment struct {
 		ID      int64 `xorm:"pk autoincr"`
@@ -48,11 +51,11 @@ func removeInvalidLabels(x *xorm.Engine) error {
 		SELECT il_too.id FROM (
 			SELECT il_too_too.id
 				FROM issue_label AS il_too_too
-					INNER JOIN label ON il_too_too.id = label.id
+					INNER JOIN label ON il_too_too.label_id = label.id
 					INNER JOIN issue on issue.id = il_too_too.issue_id
 					INNER JOIN repository on repository.id = issue.repo_id
 				WHERE
-					issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
+					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`); err != nil {
 		return err
 	}
@@ -65,7 +68,7 @@ func removeInvalidLabels(x *xorm.Engine) error {
 					INNER JOIN issue on issue.id = com.issue_id
 					INNER JOIN repository on repository.id = issue.repo_id
 				WHERE
-					com.type = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
+					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
 	) AS il_too)`, 7); err != nil {
 		return err
 	}

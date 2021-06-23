@@ -31,6 +31,7 @@ func NewContextHook(ctx context.Context, sql string, args []interface{}) *Contex
 	}
 }
 
+// End finish the hook invokation
 func (c *ContextHook) End(ctx context.Context, result sql.Result, err error) {
 	c.Ctx = ctx
 	c.Result = result
@@ -38,19 +39,23 @@ func (c *ContextHook) End(ctx context.Context, result sql.Result, err error) {
 	c.ExecuteTime = time.Now().Sub(c.start)
 }
 
+// Hook represents a hook behaviour
 type Hook interface {
 	BeforeProcess(c *ContextHook) (context.Context, error)
 	AfterProcess(c *ContextHook) error
 }
 
+// Hooks implements Hook interface but contains multiple Hook
 type Hooks struct {
 	hooks []Hook
 }
 
+// AddHook adds a Hook
 func (h *Hooks) AddHook(hooks ...Hook) {
 	h.hooks = append(h.hooks, hooks...)
 }
 
+// BeforeProcess invoked before execute the process
 func (h *Hooks) BeforeProcess(c *ContextHook) (context.Context, error) {
 	ctx := c.Ctx
 	for _, h := range h.hooks {
@@ -63,6 +68,7 @@ func (h *Hooks) BeforeProcess(c *ContextHook) (context.Context, error) {
 	return ctx, nil
 }
 
+// AfterProcess invoked after exetue the process
 func (h *Hooks) AfterProcess(c *ContextHook) error {
 	firstErr := c.Err
 	for _, h := range h.hooks {

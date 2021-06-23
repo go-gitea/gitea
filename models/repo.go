@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -215,12 +216,13 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate   bool `xorm:"INDEX"`
+	IsEmpty     bool `xorm:"INDEX"`
+	IsArchived  bool `xorm:"INDEX"`
+	IsMirror    bool `xorm:"INDEX"`
+	*Mirror     `xorm:"-"`
+	PushMirrors []*PushMirror    `xorm:"-"`
+	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -254,7 +256,12 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return ""
+	}
+	u.User = nil
+	return u.String()
 }
 
 // ColorFormat returns a colored string to represent this repo
@@ -656,6 +663,12 @@ func (repo *Repository) GetMirror() (err error) {
 	return err
 }
 
+// LoadPushMirrors populates the repository push mirrors.
+func (repo *Repository) LoadPushMirrors() (err error) {
+	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
+	return err
+}
+
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
@@ -740,16 +753,13 @@ func (repo *Repository) updateSize(e Engine) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
 
-	repo.Size = size
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	repo.Size = size + lfsSize
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
@@ -865,7 +875,10 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		URLPrefix: repo.HTMLURL(),
+		Metas:     repo.ComposeMetas(),
+	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
@@ -1086,7 +1099,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: MergeStyleMerge},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1349,6 +1362,26 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 	return sess.Commit()
 }
 
+// UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
+func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+	if ownerID == 0 {
+		return nil
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+		OwnerName: ownerName,
+	}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // UpdateRepositoryUpdatedTime updates a repository's updated time
 func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 	_, err := x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
@@ -1454,23 +1487,27 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Watch{RepoID: repoID},
-		&Star{RepoID: repoID},
-		&Mirror{RepoID: repoID},
-		&Milestone{RepoID: repoID},
-		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
-		&RepoUnit{RepoID: repoID},
-		&RepoRedirect{RedirectRepoID: repoID},
-		&Webhook{RepoID: repoID},
-		&HookTask{RepoID: repoID},
-		&Notification{RepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&RepoIndexerStatus{RepoID: repoID},
-		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&CommitStatus{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&HookTask{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
+		&Milestone{RepoID: repoID},
+		&Mirror{RepoID: repoID},
+		&Notification{RepoID: repoID},
+		&ProtectedBranch{RepoID: repoID},
+		&PullRequest{BaseRepoID: repoID},
+		&PushMirror{RepoID: repoID},
+		&Release{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
+		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
+		&Watch{RepoID: repoID},
+		&Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1486,7 +1523,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	// Delete issue index
+	if err := deleteResouceIndex(sess, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -1534,7 +1572,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}

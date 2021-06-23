@@ -85,7 +85,7 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
 	attach.UUID = gouuid.New().String()
 
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
+	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file), -1)
 	if err != nil {
 		return nil, fmt.Errorf("Create: %v", err)
 	}
@@ -125,8 +125,8 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 }
 
 // GetAttachmentsByUUIDs returns attachment by given UUID list.
-func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
-	return getAttachmentsByUUIDs(x, uuids)
+func GetAttachmentsByUUIDs(ctx DBContext, uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(ctx.e, uuids)
 }
 
 func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
@@ -183,12 +183,12 @@ func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
 func DeleteAttachment(a *Attachment, remove bool) error {
-	_, err := DeleteAttachments([]*Attachment{a}, remove)
+	_, err := DeleteAttachments(DefaultDBContext(), []*Attachment{a}, remove)
 	return err
 }
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
-func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
+func DeleteAttachments(ctx DBContext, attachments []*Attachment, remove bool) (int, error) {
 	if len(attachments) == 0 {
 		return 0, nil
 	}
@@ -198,7 +198,7 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 		ids = append(ids, a.ID)
 	}
 
-	cnt, err := x.In("id", ids).NoAutoCondition().Delete(attachments[0])
+	cnt, err := ctx.e.In("id", ids).NoAutoCondition().Delete(attachments[0])
 	if err != nil {
 		return 0, err
 	}
@@ -220,7 +220,7 @@ func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(DefaultDBContext(), attachments, remove)
 }
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
@@ -230,12 +230,21 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(DefaultDBContext(), attachments, remove)
 }
 
 // UpdateAttachment updates the given attachment in database
 func UpdateAttachment(atta *Attachment) error {
 	return updateAttachment(x, atta)
+}
+
+// UpdateAttachmentByUUID Updates attachment via uuid
+func UpdateAttachmentByUUID(ctx DBContext, attach *Attachment, cols ...string) error {
+	if attach.UUID == "" {
+		return fmt.Errorf("Attachement uuid should not blank")
+	}
+	_, err := ctx.e.Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
+	return err
 }
 
 func updateAttachment(e Engine, atta *Attachment) error {

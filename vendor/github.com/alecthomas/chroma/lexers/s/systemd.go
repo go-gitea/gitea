@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var SYSTEMD = internal.Register(MustNewLexer(
+var SYSTEMD = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "SYSTEMD",
 		Aliases:   []string{"systemd"},
 		Filenames: []string{"*.service"},
 		MimeTypes: []string{"text/plain"},
 	},
-	Rules{
+	systemdRules,
+))
+
+func systemdRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`[;#].*`, Comment, nil},
@@ -24,5 +28,5 @@ var SYSTEMD = internal.Register(MustNewLexer(
 			{`(.*?)(\\\n)`, ByGroups(LiteralString, Text), nil},
 			{`(.*)`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

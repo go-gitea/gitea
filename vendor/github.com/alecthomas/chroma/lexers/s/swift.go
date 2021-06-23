@@ -6,14 +6,18 @@ import (
 )
 
 // Swift lexer.
-var Swift = internal.Register(MustNewLexer(
+var Swift = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Swift",
 		Aliases:   []string{"swift"},
 		Filenames: []string{"*.swift"},
 		MimeTypes: []string{"text/x-swift"},
 	},
-	Rules{
+	swiftRules,
+))
+
+func swiftRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -83,5 +87,5 @@ var Swift = internal.Register(MustNewLexer(
 			{`\)`, LiteralStringInterpol, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

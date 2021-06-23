@@ -17,11 +17,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/lfs"
 
 	"github.com/dgrijalva/jwt-go"
 	jsoniter "github.com/json-iterator/go"
@@ -79,6 +79,10 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.IsProd() {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
+	}
+
+	if len(logMessage) > 0 {
+		_ = private.SSHLog(true, fmt.Sprintf(logMessage+": ", args...))
 	}
 
 	os.Exit(1)

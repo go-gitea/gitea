@@ -6,7 +6,7 @@ import (
 )
 
 // Modula-2 lexer.
-var Modula2 = internal.Register(MustNewLexer(
+var Modula2 = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Modula-2",
 		Aliases:   []string{"modula2", "m2"},
@@ -14,7 +14,11 @@ var Modula2 = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-modula2"},
 		DotAll:    true,
 	},
-	Rules{
+	modula2Rules,
+))
+
+func modula2Rules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\n+`, Text, nil},
 			{`\s+`, Text, nil},
@@ -111,5 +115,5 @@ var Modula2 = internal.Register(MustNewLexer(
 			Include("unigraph_punctuation"),
 			Include("unigraph_operators"),
 		},
-	},
-))
+	}
+}

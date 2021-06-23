@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -32,7 +34,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
 	jsoniter "github.com/json-iterator/go"
@@ -58,6 +59,26 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 	}
 }
 
+type NilResponseHashSumRecorder struct {
+	httptest.ResponseRecorder
+	Hash   hash.Hash
+	Length int
+}
+
+func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
+	_, _ = n.Hash.Write(b)
+	n.Length += len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
+	return &NilResponseHashSumRecorder{
+		Hash:             fnv.New32(),
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	defer log.Close()
 
@@ -66,7 +87,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NormalRoutes()
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -284,6 +305,23 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 	return resp
 }
 
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
 const userPassword = "password"
 
 var loginSessionCache = make(map[string]*TestSession, 10)
@@ -419,6 +457,19 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
+	c.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	recorder := NewNilResponseHashSumRecorder()
 	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,

@@ -6,6 +6,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -117,17 +119,20 @@ func UpdateRelease(ctx DBContext, rel *Release) error {
 }
 
 // AddReleaseAttachments adds a release attachments
-func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+func AddReleaseAttachments(ctx DBContext, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
+	attachments, err := getAttachmentsByUUIDs(ctx.e, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
+		if attachments[i].ReleaseID != 0 {
+			return errors.New("release permission denied")
+		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = ctx.e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -169,6 +174,8 @@ type FindReleasesOptions struct {
 	ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
+	IsPreRelease  util.OptionalBool
+	IsDraft       util.OptionalBool
 	TagNames      []string
 }
 
@@ -185,6 +192,12 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
 	}
+	if !opts.IsPreRelease.IsNone() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.IsTrue()})
+	}
+	if !opts.IsDraft.IsNone() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	}
 	return cond
 }
 
@@ -200,6 +213,11 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 
 	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
+}
+
+// CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
+func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
+	return x.Where(opts.toConds(repoID)).Count(new(Release))
 }
 
 // GetLatestReleaseByRepoID returns the latest release for a repository
