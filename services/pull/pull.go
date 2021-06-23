@@ -432,11 +432,11 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
 			return err
 		} else if git.IsErrMoreThanOne(err) {
-			log.Info("Retrying to push with refs/heads/%s", pr.HeadBranch)
 			if prefixHeadBranch != "" {
-				log.Info("Can't push with refs/heads/%s", pr.HeadBranch)
+				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
 				return err
 			}
+			log.Info("Retrying to push with refs/heads/%s", pr.HeadBranch)
 			err = pushToBaseRepoHelper(pr, "refs/heads/")
 			return err
 		}
