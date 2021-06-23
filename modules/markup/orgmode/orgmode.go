@@ -51,7 +51,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		}
 
 		lexer := lexers.Get(lang)
-		if lexer == nil {
+		if lexer == nil && lang == "" {
 			lexer = lexers.Analyse(source)
 			if lexer == nil {
 				lexer = lexers.Fallback
@@ -59,14 +59,24 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			lang = strings.ToLower(lexer.Config().Name)
 		}
 
-		// include language-x class as part of commonmark spec
-		if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
-			return ""
-		}
-		lexer = chroma.Coalesce(lexer)
+		if lexer == nil {
+			// include language-x class as part of commonmark spec
+			if _, err := w.WriteString(`<code class="language-` + string(lang) + `">`); err != nil {
+				return ""
+			}
+			if _, err := w.WriteString(html.EscapeString(source)); err != nil {
+				return ""
+			}
+		} else {
+			// include language-x class as part of commonmark spec
+			if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
+				return ""
+			}
+			lexer = chroma.Coalesce(lexer)
 
-		if _, err := w.WriteString(highlight.Code(lexer.Config().Filenames[0], source)); err != nil {
-			return ""
+			if _, err := w.WriteString(highlight.Code(lexer.Config().Filenames[0], source)); err != nil {
+				return ""
+			}
 		}
 
 		if _, err := w.WriteString("</code></pre>"); err != nil {
