@@ -377,6 +377,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "merge"
 	case models.ActionPullReviewDismissed:
 		name = "review_dismissed"
+	case models.ActionPullRequestReadyForReview:
+		name = "ready_for_review"
 	default:
 		switch commentType {
 		case models.CommentTypeReview:
