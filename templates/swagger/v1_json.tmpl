@@ -10911,6 +10911,47 @@
         }
       }
     },
+    "/user/settings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get user settings",
+        "operationId": "getUserSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update user settings",
+        "operationId": "updateUserSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserSettingsOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
+          }
+        }
+      }
+    },
     "/user/starred": {
       "get": {
         "produces": [
@@ -16578,6 +16619,94 @@
       },
       "x-go-package": "code.gitea.io/gitea/models"
     },
+    "UserSettings": {
+      "description": "UserSettings represents user settings",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "diff_view_style": {
+          "type": "string",
+          "x-go-name": "DiffViewStyle"
+        },
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "hide_activity": {
+          "type": "boolean",
+          "x-go-name": "HideActivity"
+        },
+        "hide_email": {
+          "description": "Privacy",
+          "type": "boolean",
+          "x-go-name": "HideEmail"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "location": {
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "theme": {
+          "type": "string",
+          "x-go-name": "Theme"
+        },
+        "website": {
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UserSettingsOptions": {
+      "description": "UserSettingsOptions represents options to change user settings",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "diff_view_style": {
+          "type": "string",
+          "x-go-name": "DiffViewStyle"
+        },
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "hide_activity": {
+          "type": "boolean",
+          "x-go-name": "HideActivity"
+        },
+        "hide_email": {
+          "description": "Privacy",
+          "type": "boolean",
+          "x-go-name": "HideEmail"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "location": {
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "theme": {
+          "type": "string",
+          "x-go-name": "Theme"
+        },
+        "website": {
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
       "type": "object",
@@ -17281,6 +17410,15 @@
         }
       }
     },
+    "UserSettings": {
+      "description": "UserSettings",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/UserSettings"
+        }
+      }
+    },
     "WatchInfo": {
       "description": "WatchInfo",
       "schema": {
@@ -17335,7 +17473,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateTagOption"
+        "$ref": "#/definitions/UserSettingsOptions"
       }
     },
     "redirect": {
