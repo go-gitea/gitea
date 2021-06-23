@@ -4,7 +4,7 @@ import "strings"
 
 // An Iterator across tokens.
 //
-// nil will be returned at the end of the Token stream.
+// EOF will be returned at the end of the Token stream.
 //
 // If an error occurs within an Iterator, it may propagate this in a panic. Formatters should recover.
 type Iterator func() Token

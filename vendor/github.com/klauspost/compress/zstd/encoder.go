@@ -245,7 +245,7 @@ func (e *Encoder) nextBlock(final bool) error {
 	s.filling, s.current, s.previous = s.previous[:0], s.filling, s.current
 	s.wg.Add(1)
 	go func(src []byte) {
-		if debug {
+		if debugEncoder {
 			println("Adding block,", len(src), "bytes, final:", final)
 		}
 		defer func() {
@@ -290,7 +290,7 @@ func (e *Encoder) nextBlock(final bool) error {
 			}
 			switch err {
 			case errIncompressible:
-				if debug {
+				if debugEncoder {
 					println("Storing incompressible block as raw")
 				}
 				blk.encodeRaw(src)
@@ -313,7 +313,7 @@ func (e *Encoder) nextBlock(final bool) error {
 //
 // The Copy function uses ReaderFrom if available.
 func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
-	if debug {
+	if debugEncoder {
 		println("Using ReadFrom")
 	}
 
@@ -336,20 +336,20 @@ func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
 		switch err {
 		case io.EOF:
 			e.state.filling = e.state.filling[:len(e.state.filling)-len(src)]
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got EOF final block:", len(e.state.filling))
 			}
 			return n, nil
 		case nil:
 		default:
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got error:", err)
 			}
 			e.state.err = err
 			return n, err
 		}
 		if len(src) > 0 {
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got space left in source:", len(src))
 			}
 			continue
@@ -512,7 +512,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 
 		switch err {
 		case errIncompressible:
-			if debug {
+			if debugEncoder {
 				println("Storing incompressible block as raw")
 			}
 			dst = blk.encodeRawTo(dst, src)
@@ -548,7 +548,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 
 			switch err {
 			case errIncompressible:
-				if debug {
+				if debugEncoder {
 					println("Storing incompressible block as raw")
 				}
 				dst = blk.encodeRawTo(dst, todo)
