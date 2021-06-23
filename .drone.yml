@@ -216,6 +216,7 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+      RACE_ENABLED: true
 
   - name: unit-test-gogit
     pull: always
@@ -227,6 +228,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+      RACE_ENABLED: true
 
   - name: test-mysql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
