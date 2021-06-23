@@ -33,7 +33,7 @@ dockers:
   - docker.pkg.github.com/editorconfig/editorconfig-core-go/editorconfig:v{{ .Major }}.{{ .Minor }}
   goos: linux
   goarch: amd64
-  binaries:
+  ids:
   - editorconfig
   build_flag_templates:
   - "--pull"

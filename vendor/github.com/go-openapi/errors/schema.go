@@ -15,6 +15,7 @@
 package errors
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -117,6 +118,15 @@ func (c *CompositeError) Error() string {
 		return strings.Join(msgs, "\n")
 	}
 	return c.message
+}
+
+// MarshalJSON implements the JSON encoding interface
+func (c CompositeError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"code":    c.code,
+		"message": c.message,
+		"errors":  c.Errors,
+	})
 }
 
 // CompositeValidationError an error to wrap a bunch of other errors

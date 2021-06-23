@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -15,9 +14,10 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers"
 
 	"gitea.com/go-chi/session"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,10 +58,12 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		c = routes.NormalRoutes()
+		c = routers.NormalRoutes()
 	}()
 
 	var config session.Options
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(oldSessionConfig), &config)
 	assert.NoError(t, err)
 
@@ -82,7 +84,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	c = routes.NormalRoutes()
+	c = routers.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

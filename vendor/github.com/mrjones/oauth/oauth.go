@@ -806,19 +806,15 @@ func getBody(request *http.Request) ([]byte, error) {
 	return originalBody, nil
 }
 
-func parseBody(request *http.Request) (map[string]string, error) {
-	userParams := map[string]string{}
+func parseBody(request *http.Request) (map[string][]string, error) {
+	userParams := map[string][]string{}
 
 	// TODO(mrjones): factor parameter extraction into a separate method
 	if request.Header.Get("Content-Type") !=
 		"application/x-www-form-urlencoded" {
 		// Most of the time we get parameters from the query string:
 		for k, vs := range request.URL.Query() {
-			if len(vs) != 1 {
-				return nil, fmt.Errorf("Must have exactly one value per param")
-			}
-
-			userParams[k] = vs[0]
+			userParams[k] = vs
 		}
 	} else {
 		// x-www-form-urlencoded parameters come from the body instead:
@@ -833,24 +829,21 @@ func parseBody(request *http.Request) (map[string]string, error) {
 		}
 
 		for k, vs := range params {
-			if len(vs) != 1 {
-				return nil, fmt.Errorf("Must have exactly one value per param")
-			}
-
-			userParams[k] = vs[0]
+			userParams[k] = vs
 		}
 	}
 
 	return userParams, nil
 }
 
-func paramsToSortedPairs(params map[string]string) pairs {
+func paramsToSortedPairs(params map[string][]string) pairs {
 	// Sort parameters alphabetically
-	paramPairs := make(pairs, len(params))
-	i := 0
-	for key, value := range params {
-		paramPairs[i] = pair{key: key, value: value}
-		i++
+	paramPairs := pairs([]pair{})
+
+	for key, values := range params {
+		for _, value := range values {
+			paramPairs = append(paramPairs, pair{key: key, value: value})
+		}
 	}
 	sort.Sort(paramPairs)
 

@@ -27,6 +27,12 @@ type Hasher interface {
 	Close()
 }
 
+// StdlibHasher returns a Hasher that uses the stdlib for hashing.
+// Used hashers are stored in a pool for fast reuse.
+func StdlibHasher() Hasher {
+	return &md5Wrapper{Hash: md5Pool.New().(hash.Hash)}
+}
+
 // md5Wrapper is a wrapper around the builtin hasher.
 type md5Wrapper struct {
 	hash.Hash

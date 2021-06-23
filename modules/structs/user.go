@@ -5,8 +5,9 @@
 package structs
 
 import (
-	"encoding/json"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // User represents a user
@@ -30,12 +31,30 @@ type User struct {
 	LastLogin time.Time `json:"last_login,omitempty"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created,omitempty"`
+	// Is user restricted
+	Restricted bool `json:"restricted"`
+	// Is user active
+	IsActive bool `json:"active"`
+	// Is user login prohibited
+	ProhibitLogin bool `json:"prohibit_login"`
+	// the user's location
+	Location string `json:"location"`
+	// the user's website
+	Website string `json:"website"`
+	// the user's description
+	Description string `json:"description"`
+
+	// user counts
+	Followers    int `json:"followers_count"`
+	Following    int `json:"following_count"`
+	StarredRepos int `json:"starred_repos_count"`
 }
 
 // MarshalJSON implements the json.Marshaler interface for User, adding field(s) for backward compatibility
 func (u User) MarshalJSON() ([]byte, error) {
 	// Re-declaring User to avoid recursion
 	type shadow User
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(struct {
 		shadow
 		CompatUserName string `json:"username"`

@@ -16,25 +16,24 @@ var (
 	//
 	// May be altered with AddLoader().
 	loaders *loader
-
-	// Default loader. This expects json documents over local or http/https (no matching).
-	defaultLoader *loader
-
-	defaultMatcher DocMatcher
 )
 
 func init() {
-	defaultMatcher = func(_ string) bool { return true }
-
-	defaultLoader = &loader{
+	jsonLoader := &loader{
 		DocLoaderWithMatch: DocLoaderWithMatch{
-			Match: defaultMatcher,
-			Fn:    JSONDoc,
+			Match: func(pth string) bool {
+				return true
+			},
+			Fn: JSONDoc,
 		},
 	}
-	loaders = defaultLoader
 
-	AddLoader(swag.YAMLMatcher, swag.YAMLDoc)
+	loaders = jsonLoader.WithHead(&loader{
+		DocLoaderWithMatch: DocLoaderWithMatch{
+			Match: swag.YAMLMatcher,
+			Fn:    swag.YAMLDoc,
+		},
+	})
 
 	// sets the global default loader for go-openapi/spec
 	spec.PathLoader = loaders.Load
@@ -82,14 +81,14 @@ func (l *loader) WithNext(next *loader) *loader {
 
 // Load the raw document from path
 func (l *loader) Load(path string) (json.RawMessage, error) {
-	specURL, erp := url.Parse(path)
+	_, erp := url.Parse(path)
 	if erp != nil {
 		return nil, erp
 	}
 
 	var lastErr error = errors.New("no loader matched") // default error if no match was found
 	for ldr := l; ldr != nil; ldr = ldr.Next {
-		if ldr.Match != nil && !ldr.Match(specURL.Path) {
+		if ldr.Match != nil && !ldr.Match(path) {
 			continue
 		}
 
@@ -117,8 +116,6 @@ func JSONDoc(path string) (json.RawMessage, error) {
 // AddLoader for a document, executed before other previously set loaders.
 //
 // This sets the configuration at the package level.
-//
-// The default initial loader at the package level assumes a JSON document.
 //
 // NOTE:
 //  * this updates the default loader used by github.com/go-openapi/spec

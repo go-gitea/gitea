@@ -361,9 +361,96 @@ func IsUUID(str string) bool {
 	return rxUUID.MatchString(str)
 }
 
+// Byte to index table for O(1) lookups when unmarshaling.
+// We use 0xFF as sentinel value for invalid indexes.
+var ulidDec = [...]byte{
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x01,
+	0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
+	0x0F, 0x10, 0x11, 0xFF, 0x12, 0x13, 0xFF, 0x14, 0x15, 0xFF,
+	0x16, 0x17, 0x18, 0x19, 0x1A, 0xFF, 0x1B, 0x1C, 0x1D, 0x1E,
+	0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0A, 0x0B, 0x0C,
+	0x0D, 0x0E, 0x0F, 0x10, 0x11, 0xFF, 0x12, 0x13, 0xFF, 0x14,
+	0x15, 0xFF, 0x16, 0x17, 0x18, 0x19, 0x1A, 0xFF, 0x1B, 0x1C,
+	0x1D, 0x1E, 0x1F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+}
+
+// EncodedSize is the length of a text encoded ULID.
+const ulidEncodedSize = 26
+
+// IsULID checks if the string is a ULID.
+//
+// Implementation got from:
+//   https://github.com/oklog/ulid (Apache-2.0 License)
+//
+func IsULID(str string) bool {
+	// Check if a base32 encoded ULID is the right length.
+	if len(str) != ulidEncodedSize {
+		return false
+	}
+
+	// Check if all the characters in a base32 encoded ULID are part of the
+	// expected base32 character set.
+	if ulidDec[str[0]] == 0xFF ||
+		ulidDec[str[1]] == 0xFF ||
+		ulidDec[str[2]] == 0xFF ||
+		ulidDec[str[3]] == 0xFF ||
+		ulidDec[str[4]] == 0xFF ||
+		ulidDec[str[5]] == 0xFF ||
+		ulidDec[str[6]] == 0xFF ||
+		ulidDec[str[7]] == 0xFF ||
+		ulidDec[str[8]] == 0xFF ||
+		ulidDec[str[9]] == 0xFF ||
+		ulidDec[str[10]] == 0xFF ||
+		ulidDec[str[11]] == 0xFF ||
+		ulidDec[str[12]] == 0xFF ||
+		ulidDec[str[13]] == 0xFF ||
+		ulidDec[str[14]] == 0xFF ||
+		ulidDec[str[15]] == 0xFF ||
+		ulidDec[str[16]] == 0xFF ||
+		ulidDec[str[17]] == 0xFF ||
+		ulidDec[str[18]] == 0xFF ||
+		ulidDec[str[19]] == 0xFF ||
+		ulidDec[str[20]] == 0xFF ||
+		ulidDec[str[21]] == 0xFF ||
+		ulidDec[str[22]] == 0xFF ||
+		ulidDec[str[23]] == 0xFF ||
+		ulidDec[str[24]] == 0xFF ||
+		ulidDec[str[25]] == 0xFF {
+		return false
+	}
+
+	// Check if the first character in a base32 encoded ULID will overflow. This
+	// happens because the base32 representation encodes 130 bits, while the
+	// ULID is only 128 bits.
+	//
+	// See https://github.com/oklog/ulid/issues/9 for details.
+	if str[0] > '7' {
+		return false
+	}
+	return true
+}
+
 // IsCreditCard checks if the string is a credit card.
 func IsCreditCard(str string) bool {
-	sanitized := notNumberRegexp.ReplaceAllString(str, "")
+	sanitized := whiteSpacesAndMinus.ReplaceAllString(str, "")
 	if !rxCreditCard.MatchString(sanitized) {
 		return false
 	}
@@ -509,6 +596,27 @@ func IsFilePath(str string) (bool, int) {
 	return false, Unknown
 }
 
+//IsWinFilePath checks both relative & absolute paths in Windows
+func IsWinFilePath(str string) bool {
+	if rxARWinPath.MatchString(str) {
+		//check windows path limit see:
+		//  http://msdn.microsoft.com/en-us/library/aa365247(VS.85).aspx#maxpath
+		if len(str[3:]) > 32767 {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
+//IsUnixFilePath checks both relative & absolute paths in Unix
+func IsUnixFilePath(str string) bool {
+	if rxARUnixPath.MatchString(str) {
+		return true
+	}
+	return false
+}
+
 // IsDataURI checks if a string is base64 encoded data URI such as an image
 func IsDataURI(str string) bool {
 	dataURI := strings.Split(str, ",")
@@ -586,17 +694,39 @@ func IsHash(str string, algorithm string) bool {
 		len = "40"
 	} else if algo == "tiger192" {
 		len = "48"
-	} else if algo == "sha256" {
+	} else if algo == "sha3-224" {
+		len = "56"
+	} else if algo == "sha256" || algo == "sha3-256" {
 		len = "64"
-	} else if algo == "sha384" {
+	} else if algo == "sha384" || algo == "sha3-384" {
 		len = "96"
-	} else if algo == "sha512" {
+	} else if algo == "sha512" || algo == "sha3-512" {
 		len = "128"
 	} else {
 		return false
 	}
 
 	return Matches(str, "^[a-f0-9]{"+len+"}$")
+}
+
+// IsSHA3224 checks is a string is a SHA3-224 hash. Alias for `IsHash(str, "sha3-224")`
+func IsSHA3224(str string) bool {
+	return IsHash(str, "sha3-224")
+}
+
+// IsSHA3256 checks is a string is a SHA3-256 hash. Alias for `IsHash(str, "sha3-256")`
+func IsSHA3256(str string) bool {
+	return IsHash(str, "sha3-256")
+}
+
+// IsSHA3384 checks is a string is a SHA3-384 hash. Alias for `IsHash(str, "sha3-384")`
+func IsSHA3384(str string) bool {
+	return IsHash(str, "sha3-384")
+}
+
+// IsSHA3512 checks is a string is a SHA3-512 hash. Alias for `IsHash(str, "sha3-512")`
+func IsSHA3512(str string) bool {
+	return IsHash(str, "sha3-512")
 }
 
 // IsSHA512 checks is a string is a SHA512 hash. Alias for `IsHash(str, "sha512")`
@@ -817,6 +947,14 @@ func IsRsaPublicKey(str string, keylen int) bool {
 	}
 	bitlen := len(pubkey.N.Bytes()) * 8
 	return bitlen == int(keylen)
+}
+
+// IsRegex checks if a give string is a valid regex with RE2 syntax or not
+func IsRegex(str string) bool {
+	if _, err := regexp.Compile(str); err == nil {
+		return true
+	}
+	return false
 }
 
 func toJSONName(tag string) string {
@@ -1625,3 +1763,7 @@ func (sv stringValues) Len() int           { return len(sv) }
 func (sv stringValues) Swap(i, j int)      { sv[i], sv[j] = sv[j], sv[i] }
 func (sv stringValues) Less(i, j int) bool { return sv.get(i) < sv.get(j) }
 func (sv stringValues) get(i int) string   { return sv[i].String() }
+
+func IsE164(str string) bool {
+	return rxE164.MatchString(str)
+}

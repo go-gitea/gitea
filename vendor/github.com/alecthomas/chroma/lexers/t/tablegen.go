@@ -6,14 +6,18 @@ import (
 )
 
 // TableGen lexer.
-var Tablegen = internal.Register(MustNewLexer(
+var Tablegen = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TableGen",
 		Aliases:   []string{"tablegen"},
 		Filenames: []string{"*.td"},
 		MimeTypes: []string{"text/x-tablegen"},
 	},
-	Rules{
+	tablegenRules,
+))
+
+func tablegenRules() Rules {
+	return Rules{
 		"root": {
 			Include("macro"),
 			Include("whitespace"),
@@ -38,5 +42,5 @@ var Tablegen = internal.Register(MustNewLexer(
 		"keyword": {
 			{Words(``, `\b`, `bit`, `bits`, `class`, `code`, `dag`, `def`, `defm`, `field`, `foreach`, `in`, `int`, `let`, `list`, `multiclass`, `string`), Keyword, nil},
 		},
-	},
-))
+	}
+}

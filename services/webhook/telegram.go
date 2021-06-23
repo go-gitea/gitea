@@ -5,7 +5,6 @@
 package webhook
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -34,6 +34,7 @@ type (
 // GetTelegramHook returns telegram metadata
 func GetTelegramHook(w *models.Webhook) *TelegramMeta {
 	s := &TelegramMeta{}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
 	}
@@ -52,6 +53,7 @@ func (t *TelegramPayload) JSONPayload() ([]byte, error) {
 	t.ParseMode = "HTML"
 	t.DisableWebPreview = true
 	t.Message = markup.Sanitize(t.Message)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(t, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -66,9 +68,7 @@ func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
-	return &TelegramPayload{
-		Message: title,
-	}, nil
+	return createTelegramPayload(title), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -78,18 +78,14 @@ func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
-	return &TelegramPayload{
-		Message: title,
-	}, nil
+	return createTelegramPayload(title), nil
 }
 
 // Fork implements PayloadConvertor Fork method
 func (t *TelegramPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf(`%s is forked to <a href="%s">%s</a>`, p.Forkee.FullName, p.Repo.HTMLURL, p.Repo.FullName)
 
-	return &TelegramPayload{
-		Message: title,
-	}, nil
+	return createTelegramPayload(title), nil
 }
 
 // Push implements PayloadConvertor Push method
@@ -127,36 +123,28 @@ func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		}
 	}
 
-	return &TelegramPayload{
-		Message: title + "\n" + text,
-	}, nil
+	return createTelegramPayload(title + "\n" + text), nil
 }
 
 // Issue implements PayloadConvertor Issue method
 func (t *TelegramPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, _, attachmentText, _ := getIssuesPayloadInfo(p, htmlLinkFormatter, true)
 
-	return &TelegramPayload{
-		Message: text + "\n\n" + attachmentText,
-	}, nil
+	return createTelegramPayload(text + "\n\n" + attachmentText), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
 func (t *TelegramPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, _, _ := getIssueCommentPayloadInfo(p, htmlLinkFormatter, true)
 
-	return &TelegramPayload{
-		Message: text + "\n" + p.Comment.Body,
-	}, nil
+	return createTelegramPayload(text + "\n" + p.Comment.Body), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (t *TelegramPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
 	text, _, attachmentText, _ := getPullRequestPayloadInfo(p, htmlLinkFormatter, true)
 
-	return &TelegramPayload{
-		Message: text + "\n" + attachmentText,
-	}, nil
+	return createTelegramPayload(text + "\n" + attachmentText), nil
 }
 
 // Review implements PayloadConvertor Review method
@@ -171,12 +159,9 @@ func (t *TelegramPayload) Review(p *api.PullRequestPayload, event models.HookEve
 
 		text = fmt.Sprintf("[%s] Pull request review %s: #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		attachmentText = p.Review.Content
-
 	}
 
-	return &TelegramPayload{
-		Message: text + "\n" + attachmentText,
-	}, nil
+	return createTelegramPayload(text + "\n" + attachmentText), nil
 }
 
 // Repository implements PayloadConvertor Repository method
@@ -185,14 +170,10 @@ func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 	switch p.Action {
 	case api.HookRepoCreated:
 		title = fmt.Sprintf(`[<a href="%s">%s</a>] Repository created`, p.Repository.HTMLURL, p.Repository.FullName)
-		return &TelegramPayload{
-			Message: title,
-		}, nil
+		return createTelegramPayload(title), nil
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)
-		return &TelegramPayload{
-			Message: title,
-		}, nil
+		return createTelegramPayload(title), nil
 	}
 	return nil, nil
 }
@@ -201,12 +182,16 @@ func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)
 
-	return &TelegramPayload{
-		Message: text + "\n",
-	}, nil
+	return createTelegramPayload(text), nil
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
 func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)
+}
+
+func createTelegramPayload(message string) *TelegramPayload {
+	return &TelegramPayload{
+		Message: strings.TrimSpace(message),
+	}
 }

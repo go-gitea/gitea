@@ -70,7 +70,7 @@ IS_INPUT_FILE = true
 [markup.restructuredtext]
 ENABLED = true
 FILE_EXTENSIONS = .rst
-RENDER_COMMAND = rst2html.py
+RENDER_COMMAND = "timeout 30s pandoc +RTS -M512M -RTS -f rst"
 IS_INPUT_FILE = false
 ```
 
@@ -98,3 +98,36 @@ Once your configuration changes have been made, restart Gitea to have changes ta
 
 **Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
 there were significant problems with this method of configuration necessitating configuration through multiple sections.
+
+## Customizing CSS
+The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML. 
+
+And so you could write some CSS:
+```css
+.markup.XXXXX html {
+  font-size: 100%;
+  overflow-y: scroll;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+.markup.XXXXX body {
+  color: #444;
+  font-family: Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 1em;
+  margin: auto;
+  max-width: 42em;
+  background: #fefefe;
+}
+
+.markup.XXXXX p {
+  color: orangered;
+}
+```
+
+Add your stylesheet to your custom directory e.g `custom/public/css/my-style-XXXXX.css` and import it using a custom header file `custom/templates/custom/header.tmpl`:
+```html
+<link type="text/css" href="{{AppSubUrl}}/css/my-style-XXXXX.css" />
+```

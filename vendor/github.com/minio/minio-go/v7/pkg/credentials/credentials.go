@@ -133,6 +133,10 @@ func New(provider Provider) *Credentials {
 // If Credentials.Expire() was called the credentials Value will be force
 // expired, and the next call to Get() will cause them to be refreshed.
 func (c *Credentials) Get() (Value, error) {
+	if c == nil {
+		return Value{}, nil
+	}
+
 	c.Lock()
 	defer c.Unlock()
 

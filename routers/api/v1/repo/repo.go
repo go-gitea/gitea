@@ -556,6 +556,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if opts.Private != nil {
 		// Visibility of forked repository is forced sync with base repository.
 		if repo.IsFork {
+			if err := repo.GetBaseRepo(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "Unable to load base repository", err)
+				return err
+			}
 			*opts.Private = repo.BaseRepo.IsPrivate
 		}
 
@@ -574,12 +578,24 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.IsTemplate = *opts.Template
 	}
 
-	// Default branch only updated if changed and exist
-	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch) {
-		if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
-			if !git.IsErrUnsupportedVersion(err) {
-				ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
-				return err
+	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
+		var err error
+		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
+			return err
+		}
+		defer ctx.Repo.GitRepo.Close()
+	}
+
+	// Default branch only updated if changed and exist or the repository is empty
+	if opts.DefaultBranch != nil && repo.DefaultBranch != *opts.DefaultBranch && (repo.IsEmpty || ctx.Repo.GitRepo.IsBranchExist(*opts.DefaultBranch)) {
+		if !repo.IsEmpty {
+			if err := ctx.Repo.GitRepo.SetDefaultBranch(*opts.DefaultBranch); err != nil {
+				if !git.IsErrUnsupportedVersion(err) {
+					ctx.Error(http.StatusInternalServerError, "SetDefaultBranch", err)
+					return err
+				}
 			}
 		}
 		repo.DefaultBranch = *opts.DefaultBranch
@@ -713,6 +729,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebase:               true,
 					AllowRebaseMerge:          true,
 					AllowSquash:               true,
+					AllowManualMerge:          true,
+					AutodetectManualMerge:     false,
+					DefaultMergeStyle:         models.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -732,6 +751,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AllowSquash != nil {
 				config.AllowSquash = *opts.AllowSquash
+			}
+			if opts.AllowManualMerge != nil {
+				config.AllowManualMerge = *opts.AllowManualMerge
+			}
+			if opts.AutodetectManualMerge != nil {
+				config.AutodetectManualMerge = *opts.AutodetectManualMerge
+			}
+			if opts.DefaultMergeStyle != nil {
+				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)
 			}
 
 			units = append(units, models.RepoUnit{
@@ -859,6 +887,10 @@ func Delete(ctx *context.APIContext) {
 	} else if !canDelete {
 		ctx.Error(http.StatusForbidden, "", "Given user is not owner of organization.")
 		return
+	}
+
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
 	}
 
 	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {

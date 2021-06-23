@@ -13,6 +13,7 @@
 
     .issue-item-icon svg {
       margin-right: .75rem;
+      margin-top: 1px;
     }
 
     .issue-item-icons-right > * + * {
@@ -29,10 +30,11 @@
       font-size: 16px;
       min-width: 0;
       font-weight: 600;
+    }
 
-      > * {
-        vertical-align: middle;
-      }
+    .labels-list {
+      position: relative;
+      top: -1.5px;
     }
 
     .issue-item-bottom-row {
@@ -60,7 +62,7 @@
     }
 
     .desc {
-      color: #999999;
+      color: var(--color-text-light-2);
 
       a {
         color: inherit;
@@ -86,13 +88,13 @@
           width: 80px;
           height: 6px;
           display: inline-block;
-          background-color: #eeeeee;
+          background-color: var(--color-secondary);
           overflow: hidden;
           border-radius: 3px;
           vertical-align: 2px !important;
 
           .progress {
-            background-color: #cccccc;
+            background-color: var(--color-secondary-dark-3);
             display: block;
             height: 100%;
           }

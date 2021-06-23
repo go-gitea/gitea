@@ -10,9 +10,10 @@ PASSWD   = {{TEST_MYSQL8_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-mysql8/issues.bleve
+ISSUE_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/issues.bleve
+ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql8/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-mysql8/repos.bleve
+REPO_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/repos.bleve
 
 [queue.code_indexer]
 TYPE = immediate
@@ -24,8 +25,10 @@ TYPE = immediate
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-mysql8/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-mysql8
-LOCAL_WIKI_PATH = tmp/local-wiki-mysql8
+LOCAL_COPY_PATH = integrations/gitea-integration-mysql8/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = integrations/gitea-integration-mysql8/tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none
@@ -39,11 +42,14 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2204
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = data/lfs-mysql8
+LFS_CONTENT_PATH = integrations/gitea-integration-mysql8/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-mysql8/data
 BUILTIN_SSH_SERVER_USER = git
+
+[attachment]
+PATH = integrations/gitea-integration-mysql8/data/attachments
 
 [mailer]
 ENABLED = false
@@ -60,12 +66,14 @@ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
 NO_REPLY_ADDRESS                  = noreply.example.org
 
 [picture]
-DISABLE_GRAVATAR        = false
-ENABLE_FEDERATED_AVATAR = false
+DISABLE_GRAVATAR              = false
+ENABLE_FEDERATED_AVATAR       = false
+AVATAR_UPLOAD_PATH            = integrations/gitea-integration-mysql8/data/avatars
+REPOSITORY_AVATAR_UPLOAD_PATH = integrations/gitea-integration-mysql8/data/repo-avatars
 
 [session]
 PROVIDER = file
-PROVIDER_CONFIG = data/sessions-mysql8
+PROVIDER_CONFIG = integrations/gitea-integration-mysql8/data/sessions
 
 [log]
 MODE                 = test,file
@@ -80,10 +88,8 @@ COLORIZE             = true
 [log.file]
 LEVEL                = Debug
 
-
 [security]
 DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
-

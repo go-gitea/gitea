@@ -8,48 +8,54 @@ package git
 
 import (
 	"bufio"
+	"bytes"
 	"io"
-	"strconv"
-	"strings"
+	"io/ioutil"
+	"math"
 )
 
 // Blob represents a Git object.
 type Blob struct {
 	ID SHA1
 
-	gotSize  bool
-	size     int64
-	repoPath string
-	name     string
+	gotSize bool
+	size    int64
+	name    string
+	repo    *Repository
 }
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	stdoutReader, stdoutWriter := io.Pipe()
+	wr, rd, cancel := b.repo.CatFileBatch()
 
-	go func() {
-		stderr := &strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(b.repoPath, stdoutWriter, stderr, strings.NewReader(b.ID.String()+"\n"))
-		if err != nil {
-			err = ConcatenateError(err, stderr.String())
-			_ = stdoutWriter.CloseWithError(err)
-		} else {
-			_ = stdoutWriter.Close()
-		}
-	}()
-
-	bufReader := bufio.NewReader(stdoutReader)
-	_, _, size, err := ReadBatchLine(bufReader)
+	_, err := wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
-		stdoutReader.Close()
+		cancel()
 		return nil, err
 	}
+	_, _, size, err := ReadBatchLine(rd)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	b.gotSize = true
+	b.size = size
 
-	return &LimitedReaderCloser{
-		R: bufReader,
-		C: stdoutReader,
-		N: size,
+	if size < 4096 {
+		bs, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		if err != nil {
+			cancel()
+			return nil, err
+		}
+		_, err = rd.Discard(1)
+		return ioutil.NopCloser(bytes.NewReader(bs)), err
+	}
+
+	return &blobReader{
+		rd:     rd,
+		n:      size,
+		cancel: cancel,
 	}, nil
 }
 
@@ -59,18 +65,66 @@ func (b *Blob) Size() int64 {
 		return b.size
 	}
 
-	size, err := NewCommand("cat-file", "-s", b.ID.String()).RunInDir(b.repoPath)
+	wr, rd, cancel := b.repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repoPath, err)
+		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		return 0
+	}
+	_, _, b.size, err = ReadBatchLine(rd)
+	if err != nil {
+		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 
-	b.size, err = strconv.ParseInt(size[:len(size)-1], 10, 64)
-	if err != nil {
-		log("error whilst parsing size %s for %s in %s. Error: %v", size, b.ID.String(), b.repoPath, err)
-		return 0
-	}
 	b.gotSize = true
 
 	return b.size
+}
+
+type blobReader struct {
+	rd     *bufio.Reader
+	n      int64
+	cancel func()
+}
+
+func (b *blobReader) Read(p []byte) (n int, err error) {
+	if b.n <= 0 {
+		return 0, io.EOF
+	}
+	if int64(len(p)) > b.n {
+		p = p[0:b.n]
+	}
+	n, err = b.rd.Read(p)
+	b.n -= int64(n)
+	return
+}
+
+// Close implements io.Closer
+func (b *blobReader) Close() error {
+	if b.n > 0 {
+		for b.n > math.MaxInt32 {
+			n, err := b.rd.Discard(math.MaxInt32)
+			b.n -= int64(n)
+			if err != nil {
+				b.cancel()
+				return err
+			}
+			b.n -= math.MaxInt32
+		}
+		n, err := b.rd.Discard(int(b.n))
+		b.n -= int64(n)
+		if err != nil {
+			b.cancel()
+			return err
+		}
+	}
+	if b.n == 0 {
+		_, err := b.rd.Discard(1)
+		b.n--
+		b.cancel()
+		return err
+	}
+	return nil
 }

@@ -206,10 +206,5 @@ type XPackSecurityPutUserRequest struct {
 
 // XPackSecurityPutUserResponse is the response of XPackSecurityPutUserService.Do.
 type XPackSecurityPutUserResponse struct {
-	User XPackSecurityPutUser `json:"user"`
-}
-
-// XPackSecurityPutUser is the response containing the creation information
-type XPackSecurityPutUser struct {
 	Created bool `json:"created"`
 }

@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -54,19 +54,6 @@ func (lc *lengthCodec) init() {
 		lc.mid[i] = makeTreeCodec(3)
 	}
 	lc.high = makeTreeCodec(8)
-}
-
-// lBits gives the number of bits used for the encoding of the l value
-// provided to the range encoder.
-func lBits(l uint32) int {
-	switch {
-	case l < 8:
-		return 4
-	case l < 16:
-		return 5
-	default:
-		return 10
-	}
 }
 
 // Encode encodes the length offset. The length offset l can be compute by

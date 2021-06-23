@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
@@ -552,7 +555,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	if err := migrateRepository(downloader, uploader, opts); err != nil {
+	if err := migrateRepository(downloader, uploader, opts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -561,8 +564,42 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	return nil
 }
 
+func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
+	if len(units) == 0 {
+		opts.Wiki = true
+		opts.Issues = true
+		opts.Milestones = true
+		opts.Labels = true
+		opts.Releases = true
+		opts.Comments = true
+		opts.PullRequests = true
+		opts.ReleaseAssets = true
+	} else {
+		for _, unit := range units {
+			switch strings.ToLower(unit) {
+			case "wiki":
+				opts.Wiki = true
+			case "issues":
+				opts.Issues = true
+			case "milestones":
+				opts.Milestones = true
+			case "labels":
+				opts.Labels = true
+			case "releases":
+				opts.Releases = true
+			case "release_assets":
+				opts.ReleaseAssets = true
+			case "comments":
+				opts.Comments = true
+			case "pull_requests":
+				opts.PullRequests = true
+			}
+		}
+	}
+}
+
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string) error {
+func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string, units []string) error {
 	doer, err := models.GetAdminUser()
 	if err != nil {
 		return err
@@ -572,20 +609,22 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	if err != nil {
 		return err
 	}
-	if err = migrateRepository(downloader, uploader, base.MigrateOptions{
-		Wiki:          true,
-		Issues:        true,
-		Milestones:    true,
-		Labels:        true,
-		Releases:      true,
-		Comments:      true,
-		PullRequests:  true,
-		ReleaseAssets: true,
-	}); err != nil {
+	opts, err := downloader.getRepoOptions()
+	if err != nil {
+		return err
+	}
+	tp, _ := strconv.Atoi(opts["service_type"])
+
+	var migrateOpts = base.MigrateOptions{
+		GitServiceType: structs.GitServiceType(tp),
+	}
+	updateOptionsUnits(&migrateOpts, units)
+
+	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
 		return err
 	}
-	return nil
+	return updateMigrationPosterIDByGitService(ctx, structs.GitServiceType(tp))
 }

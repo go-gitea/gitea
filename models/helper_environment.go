@@ -74,5 +74,4 @@ func FullPushingEnvironment(author, committer *User, repo *Repository, repoName 
 	}
 
 	return environ
-
 }

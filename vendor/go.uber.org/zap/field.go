@@ -364,11 +364,17 @@ func Timep(key string, val *time.Time) Field {
 // expensive (relatively speaking); this function both makes an allocation and
 // takes about two microseconds.
 func Stack(key string) Field {
+	return StackSkip(key, 1) // skip Stack
+}
+
+// StackSkip constructs a field similarly to Stack, but also skips the given
+// number of frames from the top of the stacktrace.
+func StackSkip(key string, skip int) Field {
 	// Returning the stacktrace as a string costs an allocation, but saves us
 	// from expanding the zapcore.Field union struct to include a byte slice. Since
 	// taking a stacktrace is already so expensive (~10us), the extra allocation
 	// is okay.
-	return String(key, takeStacktrace())
+	return String(key, takeStacktrace(skip+1)) // skip StackSkip
 }
 
 // Duration constructs a field with the given key and value. The encoder
@@ -392,6 +398,16 @@ func Durationp(key string, val *time.Duration) Field {
 // MarshalLogObject method is called lazily.
 func Object(key string, val zapcore.ObjectMarshaler) Field {
 	return Field{Key: key, Type: zapcore.ObjectMarshalerType, Interface: val}
+}
+
+// Inline constructs a Field that is similar to Object, but it
+// will add the elements of the provided ObjectMarshaler to the
+// current namespace.
+func Inline(val zapcore.ObjectMarshaler) Field {
+	return zapcore.Field{
+		Type:      zapcore.InlineMarshalerType,
+		Interface: val,
+	}
 }
 
 // Any takes a key and an arbitrary value and chooses the best way to represent
