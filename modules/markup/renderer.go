@@ -81,6 +81,7 @@ type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
 	NeedPostProcess() bool
+	SanitizerRules() []setting.MarkupSanitizerRule
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -136,37 +137,32 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 		_ = pw.Close()
 	}()
 
-	if renderer.NeedPostProcess() {
-		pr2, pw2 := io.Pipe()
-		defer func() {
-			_ = pr2.Close()
-			_ = pw2.Close()
-		}()
+	pr2, pw2 := io.Pipe()
+	defer func() {
+		_ = pr2.Close()
+		_ = pw2.Close()
+	}()
 
-		wg.Add(1)
-		go func() {
-			buf := SanitizeReader(pr2)
-			_, err = io.Copy(output, buf)
-			_ = pr2.Close()
-			wg.Done()
-		}()
+	wg.Add(1)
+	go func() {
+		buf := SanitizeReader(pr2, renderer.Name())
+		_, err = io.Copy(output, buf)
+		_ = pr2.Close()
+		wg.Done()
+	}()
 
-		wg.Add(1)
-		go func() {
+	wg.Add(1)
+	go func() {
+		if renderer.NeedPostProcess() {
 			err = PostProcess(ctx, pr, pw2)
-			_ = pr.Close()
-			_ = pw2.Close()
-			wg.Done()
-		}()
-	} else {
-		wg.Add(1)
-		go func() {
-			buf := SanitizeReader(pr)
-			_, err = io.Copy(output, buf)
-			_ = pr.Close()
-			wg.Done()
-		}()
-	}
+		} else {
+			_, err = io.Copy(pw2, pr)
+		}
+		_ = pr.Close()
+		_ = pw2.Close()
+		wg.Done()
+	}()
+
 	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
 		return err1
 	}

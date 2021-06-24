@@ -8,6 +8,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"strings"
 )
@@ -33,32 +34,28 @@ func (a ArchiveType) String() string {
 	return "unknown"
 }
 
-// CreateArchiveOpts represents options for creating an archive
-type CreateArchiveOpts struct {
-	Format ArchiveType
-	Prefix bool
-}
-
 // CreateArchive create archive content to the target path
-func (c *Commit) CreateArchive(ctx context.Context, target string, opts CreateArchiveOpts) error {
-	if opts.Format.String() == "unknown" {
-		return fmt.Errorf("unknown format: %v", opts.Format)
+func (repo *Repository) CreateArchive(ctx context.Context, format ArchiveType, target io.Writer, usePrefix bool, commitID string) error {
+	if format.String() == "unknown" {
+		return fmt.Errorf("unknown format: %v", format)
 	}
 
 	args := []string{
 		"archive",
 	}
-	if opts.Prefix {
-		args = append(args, "--prefix="+filepath.Base(strings.TrimSuffix(c.repo.Path, ".git"))+"/")
+	if usePrefix {
+		args = append(args, "--prefix="+filepath.Base(strings.TrimSuffix(repo.Path, ".git"))+"/")
 	}
 
 	args = append(args,
-		"--format="+opts.Format.String(),
-		"-o",
-		target,
-		c.ID.String(),
+		"--format="+format.String(),
+		commitID,
 	)
 
-	_, err := NewCommandContext(ctx, args...).RunInDir(c.repo.Path)
-	return err
+	var stderr strings.Builder
+	err := NewCommandContext(ctx, args...).RunInDirPipeline(repo.Path, target, &stderr)
+	if err != nil {
+		return ConcatenateError(err, stderr.String())
+	}
+	return nil
 }
