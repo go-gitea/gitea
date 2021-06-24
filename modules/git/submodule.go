@@ -12,6 +12,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	gitea_log "code.gitea.io/gitea/modules/log"
 )
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
@@ -22,6 +24,7 @@ type SubModule struct {
 	URL  string
 }
 
+// SubModuleCommit submodule name and commit from a repository
 type SubModuleCommit struct {
 	Name   string
 	Commit string
@@ -128,6 +131,7 @@ func (sf *SubModuleFile) RefID() string {
 	return sf.refID
 }
 
+// GetSubmoduleCommits Returns a list of active submodules in the repository
 func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 	var submodules []SubModuleCommit
 
@@ -151,7 +155,7 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 		name = strings.TrimSpace(name)
 
 		if len(name) == 0 {
-			log("Submodule skipped because it has no name")
+			gitea_log.Info("Submodule skipped because it has no name")
 			continue
 		}
 
@@ -160,7 +164,7 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 
 		// If no commit was found for the module skip it
 		if err != nil {
-			log("Submodule %s skipped because it has no commit", name)
+			gitea_log.Info("Submodule %s skipped because it has no commit", name)
 			continue
 		}
 
@@ -171,14 +175,14 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 		fields := strings.Fields(commit)
 
 		if len(fields) == 0 {
-			log("Submodule %s skipped because it has no valid commit", name)
+			gitea_log.Info("Submodule %s skipped because it has no valid commit", name)
 			continue
 		}
 
 		commit = fields[0]
 
 		if len(commit) != 40 {
-			log("Submodule %s skipped due to malformed commit hash", name)
+			gitea_log.Info("Submodule %s skipped due to malformed commit hash", name)
 			continue
 		}
 
