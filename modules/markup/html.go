@@ -304,27 +304,26 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(res, nil)
+	node, err := html.Parse(res)
 	if err != nil {
 		return &postProcessError{"invalid HTML", err}
 	}
 
-	for _, node := range nodes {
-		visitNode(ctx, procs, node, true)
+	if node.Type == html.DocumentNode {
+		node = node.FirstChild
 	}
 
-	newNodes := make([]*html.Node, 0, len(nodes))
+	visitNode(ctx, procs, node, true)
 
-	for _, node := range nodes {
-		if node.Data == "html" {
-			node = node.FirstChild
-			for node != nil && node.Data != "body" {
-				node = node.NextSibling
-			}
+	newNodes := make([]*html.Node, 0, 5)
+
+	if node.Data == "html" {
+		node = node.FirstChild
+		for node != nil && node.Data != "body" {
+			node = node.NextSibling
 		}
-		if node == nil {
-			continue
-		}
+	}
+	if node != nil {
 		if node.Data == "body" {
 			child := node.FirstChild
 			for child != nil {

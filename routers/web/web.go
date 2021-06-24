@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/misc"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -888,7 +887,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Group("/archive", func() {
-			m.Get("/*", common.Download)
+			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 

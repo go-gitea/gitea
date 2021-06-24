@@ -76,3 +76,18 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	}
 	return result
 }
+
+// User2UserSettings return UserSettings based on a user
+func User2UserSettings(user *models.User) api.UserSettings {
+	return api.UserSettings{
+		FullName:      user.FullName,
+		Website:       user.Website,
+		Location:      user.Location,
+		Language:      user.Language,
+		Description:   user.Description,
+		Theme:         user.Theme,
+		HideEmail:     user.KeepEmailPrivate,
+		HideActivity:  user.KeepActivityPrivate,
+		DiffViewStyle: user.DiffViewStyle,
+	}
+}
