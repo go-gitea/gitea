@@ -896,8 +896,8 @@ func (*webhookNotifier) NotifyAddTeamMember(doer, org, member *models.User, team
 }
 
 func (*webhookNotifier) NotifyRemoveTeamMember(doer, org, member *models.User, team *models.Team) {
-	apiDoer := convert.ToUser(doer, false, false)
-	apiMember := convert.ToUser(member, false, false)
+	apiDoer := convert.ToUser(doer, doer)
+	apiMember := convert.ToUser(member, doer)
 	apiOrg := convert.ToOrganization(org)
 	apiTeam := convert.ToTeam(team)
 
