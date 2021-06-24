@@ -7,7 +7,6 @@ package common
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
-	"code.gitea.io/gitea/services/archiver"
 )
 
 // ServeBlob download a git.Blob
@@ -39,30 +37,6 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 	}()
 
 	return ServeData(ctx, ctx.Repo.TreePath, blob.Size(), dataRc)
-}
-
-// Download an archive of a repository
-func Download(ctx *context.Context) {
-	uri := ctx.Params("*")
-	aReq := archiver.DeriveRequestFrom(ctx, uri)
-
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
-
-	downloadName := ctx.Repo.Repository.Name + "-" + aReq.GetArchiveName()
-	complete := aReq.IsComplete()
-	if !complete {
-		aReq = archiver.ArchiveRepository(aReq)
-		complete = aReq.WaitForCompletion(ctx)
-	}
-
-	if complete {
-		ctx.ServeFile(aReq.GetArchivePath(), downloadName)
-	} else {
-		ctx.Error(http.StatusNotFound)
-	}
 }
 
 // ServeData download file from io.Reader
