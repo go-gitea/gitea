@@ -458,6 +458,11 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *ht
 	return request
 }
 
+func WithToken(req *http.Request, token string) *http.Request {
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	return req
+}
+
 func AddBasicAuthHeader(request *http.Request, username string) *http.Request {
 	request.SetBasicAuth(username, userPassword)
 	return request

@@ -173,7 +173,7 @@ func TestAPISearchIssues(t *testing.T) {
 
 	link, _ := url.Parse("/api/ui/repos/issues/search")
 	req := NewRequest(t, "GET", link.String())
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, WithToken(req, token), http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 10)
@@ -181,7 +181,7 @@ func TestAPISearchIssues(t *testing.T) {
 	query := url.Values{"token": {token}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 10)
 
@@ -191,7 +191,7 @@ func TestAPISearchIssues(t *testing.T) {
 	query.Add("before", before)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 8)
 	query.Del("since")
@@ -200,14 +200,14 @@ func TestAPISearchIssues(t *testing.T) {
 	query.Add("state", "closed")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
 	query.Set("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "15", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
@@ -215,28 +215,28 @@ func TestAPISearchIssues(t *testing.T) {
 	query.Add("limit", "20")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 15)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
 	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
 	query = url.Values{"milestones": {"milestone1,milestone3"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -262,11 +262,10 @@ func TestAPISearchIssues(t *testing.T) {
 	assert.Len(t, apiIssues, 2)
 }
 
-func TestAPISearchIssuesWithLabels(t *testing.T) {
+func TestUISearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session)
 
 	link, _ := url.Parse("/api/ui/repos/issues/search")
 	req := NewRequest(t, "GET", link.String())
@@ -277,7 +276,6 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	assert.Len(t, apiIssues, 10)
 
 	query := url.Values{}
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -321,6 +319,69 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+}
+
+func TestAPISearchIssuesWithLabels(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, session)
+
+	link, _ := url.Parse("/api/v1/repos/issues/search")
+	req := NewRequest(t, "GET", link.String())
+	resp := MakeRequest(t, WithToken(req, token), http.StatusOK)
+	var apiIssues []*api.Issue
+	DecodeJSON(t, resp, &apiIssues)
+
+	assert.Len(t, apiIssues, 10)
+
+	query := url.Values{}
+	query.Add("token", token)
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 10)
+
+	query.Add("labels", "label1")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// multiple labels
+	query.Set("labels", "label1,label2")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// an org label
+	query.Set("labels", "orglabel4")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 1)
+
+	// org and repo label
+	query.Set("labels", "label2,orglabel4")
+	query.Add("state", "all")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 2)
+
+	// org and repo label which share the same issue
+	query.Set("labels", "label1,orglabel4")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String())
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
