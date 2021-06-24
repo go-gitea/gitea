@@ -199,9 +199,6 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 		return nil, ConcatenateError(err, stderr.String())
 	}
 
-	if stdout.Len() > 0 {
-		log.Debug("stdout:\n%s", stdout.Bytes()[:1024])
-	}
 	return stdout.Bytes(), nil
 }
 
