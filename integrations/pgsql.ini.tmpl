@@ -11,9 +11,10 @@ SCHEMA   = {{TEST_PGSQL_SCHEMA}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/indexers-pgsql/issues.bleve
+ISSUE_INDEXER_PATH = integrations/gitea-integration-pgsql/indexers/issues.bleve
+ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-pgsql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = integrations/indexers-pgsql/repos.bleve
+REPO_INDEXER_PATH = integrations/gitea-integration-pgsql/indexers/repos.bleve
 
 [queue.code_indexer]
 TYPE = immediate
@@ -25,8 +26,10 @@ TYPE = immediate
 ROOT = {{REPO_TEST_DIR}}integrations/gitea-integration-pgsql/gitea-repositories
 
 [repository.local]
-LOCAL_COPY_PATH = tmp/local-repo-pgsql
-LOCAL_WIKI_PATH = tmp/local-wiki-pgsql
+LOCAL_COPY_PATH = integrations/gitea-integration-pgsql/tmp/local-repo
+
+[repository.upload]
+TEMP_PATH = integrations/gitea-integration-pgsql/tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none
@@ -40,14 +43,14 @@ SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2202
 START_SSH_SERVER = true
 LFS_START_SERVER = true
-LFS_CONTENT_PATH = integrations/gitea-integration-pgsql/data/lfs-pgsql
+LFS_CONTENT_PATH = integrations/gitea-integration-pgsql/data/lfs
 OFFLINE_MODE     = false
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
 APP_DATA_PATH    = integrations/gitea-integration-pgsql/data
 BUILTIN_SSH_SERVER_USER = git
 
 [attachment]
-PATH = integrations/gitea-integration-pgsql/data
+PATH = integrations/gitea-integration-pgsql/data/attachments
 
 [mailer]
 ENABLED = true

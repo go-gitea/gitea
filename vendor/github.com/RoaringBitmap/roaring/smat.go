@@ -63,7 +63,7 @@ import (
 	"sort"
 
 	"github.com/mschoch/smat"
-	"github.com/willf/bitset"
+	"github.com/bits-and-blooms/bitset"
 )
 
 // fuzz test using state machine driven by byte stream.

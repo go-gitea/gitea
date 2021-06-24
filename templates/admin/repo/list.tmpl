@@ -7,7 +7,7 @@
 			{{.i18n.Tr "admin.repos.repo_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
 			<div class="ui right">
 				<a class="ui blue tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.i18n.Tr "admin.repos.unadopted"}}</a>
-            </div>
+			</div>
 		</h4>
 		<div class="ui attached segment">
 			{{template "admin/repo/search" .}}
@@ -52,8 +52,30 @@
 							</td>
 							<td>
 								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
-								{{if .IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+								{{if .IsArchived}}
+									<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsTemplate}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+										{{end}}
+									{{end}}
+								{{else}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+										{{end}}
+									{{end}}
+								{{end}}
+								{{if .IsFork}}
+									{{svg "octicon-repo-forked"}}
+								{{else if .IsMirror}}
+									{{svg "octicon-mirror"}}
 								{{end}}
 							</td>
 							<td>{{.NumWatches}}</td>
@@ -62,7 +84,7 @@
 							<td>{{.NumIssues}}</td>
 							<td>{{SizeFmt .Size}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trashcan"}}</a></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/delete?page={{$.Page.Paginater.Current}}&sort={{$.SortType}}" data-id="{{.ID}}" data-name="{{.Name}}">{{svg "octicon-trash"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>
@@ -75,7 +97,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "repo.settings.delete"}}
 	</div>
 	<div class="content">

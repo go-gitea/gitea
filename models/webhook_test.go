@@ -64,7 +64,8 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.Equal(t, []string{"create", "delete", "fork", "push",
+	assert.Equal(t, []string{
+		"create", "delete", "fork", "push",
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
@@ -168,7 +169,6 @@ func TestGetWebhooksByOrgID(t *testing.T) {
 		assert.Equal(t, int64(3), hooks[0].ID)
 		assert.True(t, hooks[0].IsActive)
 	}
-
 }
 
 func TestUpdateWebhook(t *testing.T) {

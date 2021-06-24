@@ -347,7 +347,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 	}
 	members := make([]*api.User, len(team.Members))
 	for i, member := range team.Members {
-		members[i] = convert.ToUser(member, ctx.IsSigned, ctx.User.IsAdmin)
+		members[i] = convert.ToUser(member, ctx.User)
 	}
 	ctx.JSON(http.StatusOK, members)
 }
@@ -390,7 +390,7 @@ func GetTeamMember(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // AddTeamMember api for add a member to a team
@@ -700,7 +700,7 @@ func SearchTeam(ctx *context.APIContext) {
 		UserID:      ctx.User.ID,
 		Keyword:     strings.TrimSpace(ctx.Query("q")),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: (ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc")),
+		IncludeDesc: ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc"),
 		ListOptions: listOptions,
 	}
 

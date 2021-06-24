@@ -102,8 +102,8 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		return nil, nil, err
 	}
 
-	var ids = make([]int64, len(ous))
-	var idsIsPublic = make(map[int64]bool, len(ous))
+	ids := make([]int64, len(ous))
+	idsIsPublic := make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
 		idsIsPublic[ou.UID] = ou.IsPublic
@@ -205,7 +205,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
 	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
@@ -425,6 +425,25 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
+// queryUserOrgIDs returns a condition to return user's organization id
+func queryUserOrgIDs(uid int64) *builder.Builder {
+	return builder.Select("team.org_id").
+		From("team_user").InnerJoin("team", "team.id = team_user.team_id").
+		Where(builder.Eq{"team_user.uid": uid})
+}
+
+// MinimalOrg represents a simple orgnization with only needed columns
+type MinimalOrg = User
+
+// GetUserOrgsList returns one user's all orgs list
+func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
+	var orgs = make([]*MinimalOrg, 0, 20)
+	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
+		Table("user").
+		In("id", queryUserOrgIDs(uid)).
+		Find(&orgs)
+}
+
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
@@ -437,11 +456,11 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 }
 
 // HasOrgVisible tells if the given user can see the given org
-func HasOrgVisible(org *User, user *User) bool {
+func HasOrgVisible(org, user *User) bool {
 	return hasOrgVisible(x, org, user)
 }
 
-func hasOrgVisible(e Engine, org *User, user *User) bool {
+func hasOrgVisible(e Engine, org, user *User) bool {
 	// Not SignedUser
 	if user == nil {
 		return org.Visibility == structs.VisibleTypePublic
@@ -813,7 +832,7 @@ func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if env.team != nil {
 		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
 	} else {

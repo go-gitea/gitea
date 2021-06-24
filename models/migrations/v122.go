@@ -9,7 +9,6 @@ import (
 )
 
 func addRequireSignedCommits(x *xorm.Engine) error {
-
 	type ProtectedBranch struct {
 		RequireSignedCommits bool `xorm:"NOT NULL DEFAULT false"`
 	}

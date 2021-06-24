@@ -6,7 +6,7 @@ import (
 )
 
 // Stylus lexer.
-var Stylus = internal.Register(MustNewLexer(
+var Stylus = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Stylus",
 		Aliases:         []string{"stylus"},
@@ -14,7 +14,11 @@ var Stylus = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-styl"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	stylusRules,
+))
+
+func stylusRules() Rules {
+	return Rules{
 		// "root": {
 		// },
 		"root": {
@@ -58,5 +62,5 @@ var Stylus = internal.Register(MustNewLexer(
 			{Words(`\b`, `\b`, `absolute`, `alias`, `all`, `all-petite-caps`, `all-scroll`, `all-small-caps`, `allow-end`, `alpha`, `alternate`, `alternate-reverse`, `always`, `armenian`, `auto`, `avoid`, `avoid-column`, `avoid-page`, `backwards`, `balance`, `baseline`, `below`, `blink`, `block`, `bold`, `bolder`, `border-box`, `both`, `bottom`, `box-decoration`, `break-word`, `capitalize`, `cell`, `center`, `circle`, `clip`, `clone`, `close-quote`, `col-resize`, `collapse`, `color`, `color-burn`, `color-dodge`, `column`, `column-reverse`, `compact`, `condensed`, `contain`, `container`, `content-box`, `context-menu`, `copy`, `cover`, `crisp-edges`, `crosshair`, `currentColor`, `cursive`, `darken`, `dashed`, `decimal`, `decimal-leading-zero`, `default`, `descendants`, `difference`, `digits`, `disc`, `distribute`, `dot`, `dotted`, `double`, `double-circle`, `e-resize`, `each-line`, `ease`, `ease-in`, `ease-in-out`, `ease-out`, `edges`, `ellipsis`, `end`, `ew-resize`, `exclusion`, `expanded`, `extra-condensed`, `extra-expanded`, `fantasy`, `fill`, `fill-box`, `filled`, `first`, `fixed`, `flat`, `flex`, `flex-end`, `flex-start`, `flip`, `force-end`, `forwards`, `from-image`, `full-width`, `geometricPrecision`, `georgian`, `groove`, `hanging`, `hard-light`, `help`, `hidden`, `hide`, `horizontal`, `hue`, `icon`, `infinite`, `inherit`, `initial`, `ink`, `inline`, `inline-block`, `inline-flex`, `inline-table`, `inset`, `inside`, `inter-word`, `invert`, `isolate`, `italic`, `justify`, `large`, `larger`, `last`, `left`, `lighten`, `lighter`, `line-through`, `linear`, `list-item`, `local`, `loose`, `lower-alpha`, `lower-greek`, `lower-latin`, `lower-roman`, `lowercase`, `ltr`, `luminance`, `luminosity`, `mandatory`, `manipulation`, `manual`, `margin-box`, `match-parent`, `medium`, `mixed`, `monospace`, `move`, `multiply`, `n-resize`, `ne-resize`, `nesw-resize`, `no-close-quote`, `no-drop`, `no-open-quote`, `no-repeat`, `none`, `normal`, `not-allowed`, `nowrap`, `ns-resize`, `nw-resize`, `nwse-resize`, `objects`, `oblique`, `off`, `on`, `open`, `open-quote`, `optimizeLegibility`, `optimizeSpeed`, `outset`, `outside`, `over`, `overlay`, `overline`, `padding-box`, `page`, `pan-down`, `pan-left`, `pan-right`, `pan-up`, `pan-x`, `pan-y`, `paused`, `petite-caps`, `pixelated`, `pointer`, `preserve-3d`, `progress`, `proximity`, `relative`, `repeat`, `repeat no-repeat`, `repeat-x`, `repeat-y`, `reverse`, `ridge`, `right`, `round`, `row`, `row-resize`, `row-reverse`, `rtl`, `ruby`, `ruby-base`, `ruby-base-container`, `ruby-text`, `ruby-text-container`, `run-in`, `running`, `s-resize`, `sans-serif`, `saturation`, `scale-down`, `screen`, `scroll`, `se-resize`, `semi-condensed`, `semi-expanded`, `separate`, `serif`, `sesame`, `show`, `sideways`, `sideways-left`, `sideways-right`, `slice`, `small`, `small-caps`, `smaller`, `smooth`, `snap`, `soft-light`, `solid`, `space`, `space-around`, `space-between`, `spaces`, `square`, `start`, `static`, `step-end`, `step-start`, `sticky`, `stretch`, `strict`, `stroke-box`, `style`, `sw-resize`, `table`, `table-caption`, `table-cell`, `table-column`, `table-column-group`, `table-footer-group`, `table-header-group`, `table-row`, `table-row-group`, `text`, `thick`, `thin`, `titling-caps`, `to`, `top`, `triangle`, `ultra-condensed`, `ultra-expanded`, `under`, `underline`, `unicase`, `unset`, `upper-alpha`, `upper-latin`, `upper-roman`, `uppercase`, `upright`, `use-glyph-orientation`, `vertical`, `vertical-text`, `view-box`, `visible`, `w-resize`, `wait`, `wavy`, `weight`, `weight style`, `wrap`, `wrap-reverse`, `x-large`, `x-small`, `xx-large`, `xx-small`, `zoom-in`, `zoom-out`), KeywordConstant, nil},
 			{`\;?`, Punctuation, Pop(1)},
 		},
-	},
-))
+	}
+}

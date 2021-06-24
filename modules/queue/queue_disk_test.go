@@ -5,7 +5,6 @@
 package queue
 
 import (
-	"context"
 	"io/ioutil"
 	"sync"
 	"testing"
@@ -49,11 +48,11 @@ func TestLevelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
 		lock.Unlock()
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
 		lock.Unlock()
@@ -123,11 +122,11 @@ func TestLevelQueue(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		queueShutdown = append(queueShutdown, shutdown)
 		lock.Unlock()
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		lock.Lock()
 		queueTerminate = append(queueTerminate, terminate)
 		lock.Unlock()

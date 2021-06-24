@@ -81,6 +81,7 @@ type Group struct {
 // GitLab API docs: https://docs.gitlab.com/ce/api/groups.html#ldap-group-links
 type LDAPGroupLink struct {
 	CN          string           `json:"cn"`
+	Filter      string           `json:"filter"`
 	GroupAccess AccessLevelValue `json:"group_access"`
 	Provider    string           `json:"provider"`
 }
@@ -457,9 +458,20 @@ func (s *GroupsService) ListGroupLDAPLinks(gid interface{}, options ...RequestOp
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/groups.html#add-ldap-group-link-starter
 type AddGroupLDAPLinkOptions struct {
-	CN          *string `url:"cn,omitempty" json:"cn,omitempty"`
-	GroupAccess *int    `url:"group_access,omitempty" json:"group_access,omitempty"`
-	Provider    *string `url:"provider,omitempty" json:"provider,omitempty"`
+	CN          *string           `url:"cn,omitempty" json:"cn,omitempty"`
+	Filter      *string           `url:"filter,omitempty" json:"filter,omitempty"`
+	GroupAccess *AccessLevelValue `url:"group_access,omitempty" json:"group_access,omitempty"`
+	Provider    *string           `url:"provider,omitempty" json:"provider,omitempty"`
+}
+
+// DeleteGroupLDAPLinkWithCNOrFilterOptions represents the available DeleteGroupLDAPLinkWithCNOrFilter() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#delete-ldap-group-link-with-cn-or-filter
+type DeleteGroupLDAPLinkWithCNOrFilterOptions struct {
+	CN       *string `url:"cn,omitempty" json:"cn,omitempty"`
+	Filter   *string `url:"filter,omitempty" json:"filter,omitempty"`
+	Provider *string `url:"provider,omitempty" json:"provider,omitempty"`
 }
 
 // AddGroupLDAPLink creates a new group LDAP link. Available only for users who
@@ -501,6 +513,26 @@ func (s *GroupsService) DeleteGroupLDAPLink(gid interface{}, cn string, options 
 	u := fmt.Sprintf("groups/%s/ldap_group_links/%s", pathEscape(group), pathEscape(cn))
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// DeleteGroupLDAPLinkWithCNOrFilter deletes a group LDAP link. Available only for users who
+// can edit groups.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/groups.html#delete-ldap-group-link-with-cn-or-filter
+func (s *GroupsService) DeleteGroupLDAPLinkWithCNOrFilter(gid interface{}, opts *DeleteGroupLDAPLinkWithCNOrFilterOptions, options ...RequestOptionFunc) (*Response, error) {
+	group, err := parseID(gid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("groups/%s/ldap_group_links", pathEscape(group))
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, opts, options)
 	if err != nil {
 		return nil, err
 	}

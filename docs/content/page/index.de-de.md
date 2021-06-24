@@ -32,5 +32,5 @@ Gitea ist ein [Gogs](http://gogs.io)-Fork.
 
 ## Browser Unterstützung
 
-- Letzten 2 Versions von Chrome, Firefox, Safari, Edge (EdgeHTML) and Edge (Chromium)
+- Letzten 2 Versions von Chrome, Firefox, Safari und Edge
 - Firefox ESR

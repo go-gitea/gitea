@@ -61,7 +61,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(user2, true, true),
+		User:     convert.ToUser(user2, user2),
 		Reaction: "eyes",
 		Created:  time.Unix(1573248003, 0),
 	}
@@ -121,12 +121,12 @@ func TestAPICommentReactions(t *testing.T) {
 	DecodeJSON(t, resp, &apiReactions)
 	expectResponse := make(map[int]api.Reaction)
 	expectResponse[0] = api.Reaction{
-		User:     convert.ToUser(user2, true, true),
+		User:     convert.ToUser(user2, user2),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248004, 0),
 	}
 	expectResponse[1] = api.Reaction{
-		User:     convert.ToUser(user1, true, true),
+		User:     convert.ToUser(user1, user1),
 		Reaction: "laugh",
 		Created:  time.Unix(1573248005, 0),
 	}

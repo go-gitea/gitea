@@ -197,10 +197,8 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
-		// remove <strong /> from lang
-		expected := i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress", "[wip]")
-		replacer := strings.NewReplacer("<strong>", "", "</strong>", "")
-		assert.Equal(t, replacer.Replace(expected), text, "Unable to find WIP text")
+		assert.Contains(t, text, i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
+		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
 	})
 }
 

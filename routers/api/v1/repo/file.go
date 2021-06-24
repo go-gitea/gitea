@@ -17,7 +17,8 @@ import (
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/repo"
 )
 
 // GetRawFile get a file by path on a repository
@@ -83,7 +84,7 @@ func GetRawFile(ctx *context.APIContext) {
 		}
 		return
 	}
-	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
+	if err = common.ServeBlob(ctx.Context, blob); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }

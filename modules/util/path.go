@@ -6,9 +6,12 @@ package util
 
 import (
 	"errors"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 )
 
@@ -149,4 +152,24 @@ func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
 		isIncludeDir = includeDir[0]
 	}
 	return statDir(rootPath, "", isIncludeDir, false, false)
+}
+
+// FileURLToPath extracts the path informations from a file://... url.
+func FileURLToPath(u *url.URL) (string, error) {
+	if u.Scheme != "file" {
+		return "", errors.New("URL scheme is not 'file': " + u.String())
+	}
+
+	path := u.Path
+
+	if runtime.GOOS != "windows" {
+		return path, nil
+	}
+
+	// If it looks like there's a Windows drive letter at the beginning, strip off the leading slash.
+	re := regexp.MustCompile("/[A-Za-z]:/")
+	if re.MatchString(path) {
+		return path[1:], nil
+	}
+	return path, nil
 }

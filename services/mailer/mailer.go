@@ -337,13 +337,16 @@ func NewContext() {
 
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
-	go func() {
-		_ = mailQueue.Push(msg)
-	}()
+	SendAsyncs([]*Message{msg})
 }
 
 // SendAsyncs send mails asynchronously
 func SendAsyncs(msgs []*Message) {
+	if setting.MailService == nil {
+		log.Error("Mailer: SendAsyncs is being invoked but mail service hasn't been initialized")
+		return
+	}
+
 	go func() {
 		for _, msg := range msgs {
 			_ = mailQueue.Push(msg)
