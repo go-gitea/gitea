@@ -680,7 +680,7 @@ type HookEventLevel int64
 
 const (
 	// HookEventLevelRepo all hook types can be used
-	HookEventLevelRepo HookEventLevel = iota
+	HookEventLevelRepo HookEventLevel = iota + 1
 	// HookEventLevelOrg org and system hook can be used
 	HookEventLevelOrg
 	// HookEventLevelSys only system hook can be used
@@ -830,7 +830,7 @@ func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	return tasks, nil
 }
 
-// FindOrgUndeliveredHookTasks represents find the undelivered hook tasks of one org
+// FindOrgUndeliveredHookTasks  finds the undelivered hook tasks of an organisation
 func FindOrgUndeliveredHookTasks(orgID int64) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 5)
 	if err := x.Where("org_id=? AND is_delivered=?", orgID, false).Find(&tasks); err != nil {
