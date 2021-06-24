@@ -819,8 +819,8 @@ func (m *webhookNotifier) NotifySyncDeleteRef(pusher *models.User, repo *models.
 }
 
 func (*webhookNotifier) NotifyAddOrgMember(doer, org, member *models.User) {
-	apiDoer := convert.ToUser(doer, false, false)
-	apiMember := convert.ToUser(member, false, false)
+	apiDoer := convert.ToUser(doer, doer)
+	apiMember := convert.ToUser(member, doer)
 	apiOrg := convert.ToOrganization(org)
 
 	if err := webhook_services.PrepareWebhooks(nil, org, models.HookEventOrg, &api.OrganizationPayload{
@@ -834,8 +834,8 @@ func (*webhookNotifier) NotifyAddOrgMember(doer, org, member *models.User) {
 }
 
 func (*webhookNotifier) NotifyRemoveOrgMember(doer, org, member *models.User) {
-	apiDoer := convert.ToUser(doer, false, false)
-	apiMember := convert.ToUser(member, false, false)
+	apiDoer := convert.ToUser(doer, doer)
+	apiMember := convert.ToUser(member, doer)
 	apiOrg := convert.ToOrganization(org)
 
 	if err := webhook_services.PrepareWebhooks(nil, org, models.HookEventOrg, &api.OrganizationPayload{
@@ -849,7 +849,7 @@ func (*webhookNotifier) NotifyRemoveOrgMember(doer, org, member *models.User) {
 }
 
 func (*webhookNotifier) NotifyAddOrgTeam(doer, org *models.User, team *models.Team) {
-	apiDoer := convert.ToUser(doer, false, false)
+	apiDoer := convert.ToUser(doer, doer)
 	apiOrg := convert.ToOrganization(org)
 	apiTeam := convert.ToTeam(team)
 
@@ -864,7 +864,7 @@ func (*webhookNotifier) NotifyAddOrgTeam(doer, org *models.User, team *models.Te
 }
 
 func (*webhookNotifier) NotifyRemoveOrgTeam(doer, org *models.User, team *models.Team) {
-	apiDoer := convert.ToUser(doer, false, false)
+	apiDoer := convert.ToUser(doer, doer)
 	apiOrg := convert.ToOrganization(org)
 	apiTeam := convert.ToTeam(team)
 
@@ -879,8 +879,8 @@ func (*webhookNotifier) NotifyRemoveOrgTeam(doer, org *models.User, team *models
 }
 
 func (*webhookNotifier) NotifyAddTeamMember(doer, org, member *models.User, team *models.Team) {
-	apiDoer := convert.ToUser(doer, false, false)
-	apiMember := convert.ToUser(member, false, false)
+	apiDoer := convert.ToUser(doer, doer)
+	apiMember := convert.ToUser(member, doer)
 	apiOrg := convert.ToOrganization(org)
 	apiTeam := convert.ToTeam(team)
 
