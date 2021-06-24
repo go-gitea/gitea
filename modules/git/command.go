@@ -114,9 +114,9 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	if len(dir) == 0 {
-		log(c.String())
+		gogsLog(c.String())
 	} else {
-		log("%s: %v", dir, c)
+		gogsLog("%s: %v", dir, c)
 	}
 
 	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
@@ -199,7 +199,7 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	}
 
 	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout.Bytes()[:1024])
+		gogsLog("stdout:\n%s", stdout.Bytes()[:1024])
 	}
 	return stdout.Bytes(), nil
 }

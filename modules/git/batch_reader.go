@@ -99,7 +99,7 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 	}
 	idx := strings.IndexByte(typ, ' ')
 	if idx < 0 {
-		log("missing space typ: %s", typ)
+		gogsLog("missing space typ: %s", typ)
 		err = ErrNotExist{ID: string(sha)}
 		return
 	}
@@ -230,7 +230,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	idx := bytes.IndexByte(readBytes, ' ')
 	if idx < 0 {
-		log("missing space in readBytes ParseTreeLine: %s", readBytes)
+		gogsLog("missing space in readBytes ParseTreeLine: %s", readBytes)
 
 		err = &ErrNotExist{}
 		return

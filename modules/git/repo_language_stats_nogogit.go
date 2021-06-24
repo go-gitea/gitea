@@ -34,19 +34,19 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	}
 	shaBytes, typ, size, err := ReadBatchLine(batchReader)
 	if typ != "commit" {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		gogsLog("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		gogsLog("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		gogsLog("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
 	}
 	if _, err = batchReader.Discard(1); err != nil {
@@ -79,7 +79,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
-				log("Error reading blob: %s Err: %v", f.ID.String(), err)
+				gogsLog("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
 

@@ -41,7 +41,7 @@ var (
 	goVersionLessThan115 = true
 )
 
-func log(format string, args ...interface{}) {
+func gogsLog(format string, args ...interface{}) {
 	if !Debug {
 		return
 	}

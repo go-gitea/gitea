@@ -69,12 +69,12 @@ func (b *Blob) Size() int64 {
 	defer cancel()
 	_, err := wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		gogsLog("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 	_, _, b.size, err = ReadBatchLine(rd)
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		gogsLog("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 

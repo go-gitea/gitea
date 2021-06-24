@@ -120,7 +120,7 @@ loop:
 		case "40000":
 			entry.entryMode = EntryModeTree
 		default:
-			log("Unknown mode: %v", string(mode))
+			gogsLog("Unknown mode: %v", string(mode))
 			return nil, fmt.Errorf("unknown mode: %v", string(mode))
 		}
 

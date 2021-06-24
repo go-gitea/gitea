@@ -78,7 +78,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				commitsInfo[i].SubModuleFile = subModuleFile
 			}
 		} else {
-			log("missing commit for %s", entry.Name())
+			gogsLog("missing commit for %s", entry.Name())
 		}
 	}
 

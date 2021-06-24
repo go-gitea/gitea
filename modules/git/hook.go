@@ -126,11 +126,11 @@ const (
 
 // SetUpdateHook writes given content to update hook of the repository.
 func SetUpdateHook(repoPath, content string) (err error) {
-	log("Setting update hook: %s", repoPath)
+	gogsLog("Setting update hook: %s", repoPath)
 	hookPath := path.Join(repoPath, HookPathUpdate)
 	isExist, err := util.IsExist(hookPath)
 	if err != nil {
-		log("Unable to check if %s exists. Error: %v", hookPath, err)
+		gogsLog("Unable to check if %s exists. Error: %v", hookPath, err)
 		return err
 	}
 	if isExist {
