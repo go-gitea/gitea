@@ -29,7 +29,7 @@ type (
 		BranchName   string `form:"BranchName" binding:"GitRefName"`
 		URL          string `form:"ValidUrl" binding:"ValidUrl"`
 		GlobPattern  string `form:"GlobPattern" binding:"GlobPattern"`
-		RegexPattern string `form:"GlobPattern" binding:"RegexPattern"`
+		RegexPattern string `form:"RegexPattern" binding:"RegexPattern"`
 	}
 )
 
