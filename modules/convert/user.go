@@ -25,6 +25,15 @@ func ToUser(user, doer *models.User) *api.User {
 	return toUser(user, signed, authed)
 }
 
+// ToUsers convert list of models.User to list of api.User
+func ToUsers(doer *models.User, users []*models.User) []*api.User {
+	result := make([]*api.User, len(users))
+	for i := range users {
+		result[i] = ToUser(users[i], doer)
+	}
+	return result
+}
+
 // ToUserWithAccessMode convert models.User to api.User
 // AccessMode is not none show add some more information
 func ToUserWithAccessMode(user *models.User, accessMode models.AccessMode) *api.User {
@@ -66,4 +75,19 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		result.ProhibitLogin = user.ProhibitLogin
 	}
 	return result
+}
+
+// User2UserSettings return UserSettings based on a user
+func User2UserSettings(user *models.User) api.UserSettings {
+	return api.UserSettings{
+		FullName:      user.FullName,
+		Website:       user.Website,
+		Location:      user.Location,
+		Language:      user.Language,
+		Description:   user.Description,
+		Theme:         user.Theme,
+		HideEmail:     user.KeepEmailPrivate,
+		HideActivity:  user.KeepActivityPrivate,
+		DiffViewStyle: user.DiffViewStyle,
+	}
 }

@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
+	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -63,6 +64,9 @@ func NewServices() {
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
+	if err := archiver.Init(); err != nil {
+		log.Fatal("archiver init failed: %v", err)
+	}
 }
 
 // GlobalInit is for global configuration reload-able.

@@ -49,6 +49,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		log("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
 	}
+	if _, err = batchReader.Discard(1); err != nil {
+		return nil, err
+	}
 
 	tree := commit.Tree
 
