@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -114,9 +115,9 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	if len(dir) == 0 {
-		gogsLog(c.String())
+		log.Debug(c.String())
 	} else {
-		gogsLog("%s: %v", dir, c)
+		log.Debug("%s: %v", dir, c)
 	}
 
 	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
@@ -199,7 +200,7 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	}
 
 	if stdout.Len() > 0 {
-		gogsLog("stdout:\n%s", stdout.Bytes()[:1024])
+		log.Debug("stdout:\n%s", stdout.Bytes()[:1024])
 	}
 	return stdout.Bytes(), nil
 }
