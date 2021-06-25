@@ -115,7 +115,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	if len(dir) == 0 {
-		log.Debug(c.String())
+		log.Debug("%s", c)
 	} else {
 		log.Debug("%s: %v", dir, c)
 	}
@@ -198,7 +198,9 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
 		return nil, ConcatenateError(err, stderr.String())
 	}
-
+	if stdout.Len() > 0 && log.IsTrace() {
+		log.Trace("Stdout:\n %s", stdout.Bytes()[:1024])
+	}
 	return stdout.Bytes(), nil
 }
 
