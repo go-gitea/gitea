@@ -103,6 +103,10 @@ func GetInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	u := GetUserByParams(ctx)
+	if !u.IsVisibleToUser(ctx.User) {
+		ctx.JSON(http.StatusNotFound, nil)
+		return
+	}
 	if ctx.Written() {
 		return
 	}
