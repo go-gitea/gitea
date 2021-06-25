@@ -18,7 +18,7 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 	assert.False(t, commitMessageTrailersPattern.MatchString(""))
 	assert.False(t, commitMessageTrailersPattern.MatchString("No trailer."))
 	assert.False(t, commitMessageTrailersPattern.MatchString("Signed-off-by: Bob <bob@example.com>\nNot a trailer due to following text."))
-	assert.False(t, commitMessageTrailersPattern.MatchString("Message body not correctly separated from trailer section by empty line.\nSigned-of-by: Bob <bob@example.com>"))
+	assert.False(t, commitMessageTrailersPattern.MatchString("Message body not correctly separated from trailer section by empty line.\nSigned-off-by: Bob <bob@example.com>"))
 	// Valid trailer section
 	assert.True(t, commitMessageTrailersPattern.MatchString("Signed-off-by: Bob <bob@example.com>"))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Signed-off-by: Bob <bob@example.com>\nOther-Trailer: Value"))
