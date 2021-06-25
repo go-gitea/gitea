@@ -214,15 +214,10 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 
 func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		authorized := false
-		if ctx.IsSigned {
-			if ctx.Context.IsBasicAuth {
-				authorized = true
-			} else if setting.Service.EnableReverseProxyAuth && ctx.Data["AuthedMethod"].(string) == new(auth.ReverseProxy).Name() {
-				authorized = true
-			}
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuth && ctx.Data["AuthedMethod"].(string) == new(auth.ReverseProxy).Name() {
+			return
 		}
-		if !authorized {
+		if !ctx.Context.IsBasicAuth {
 			ctx.Error(http.StatusUnauthorized, "reqBasicOrRevProxyAuth", "auth required")
 			return
 		}
