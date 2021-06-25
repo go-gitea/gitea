@@ -216,12 +216,13 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate   bool `xorm:"INDEX"`
+	IsEmpty     bool `xorm:"INDEX"`
+	IsArchived  bool `xorm:"INDEX"`
+	IsMirror    bool `xorm:"INDEX"`
+	*Mirror     `xorm:"-"`
+	PushMirrors []*PushMirror    `xorm:"-"`
+	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -255,7 +256,12 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return ""
+	}
+	u.User = nil
+	return u.String()
 }
 
 // ColorFormat returns a colored string to represent this repo
@@ -654,6 +660,12 @@ func (repo *Repository) IssueStats(uid int64, filterMode int, isPull bool) (int6
 // GetMirror sets the repository mirror, returns an error upon failure
 func (repo *Repository) GetMirror() (err error) {
 	repo.Mirror, err = GetMirrorByRepoID(repo.ID)
+	return err
+}
+
+// LoadPushMirrors populates the repository push mirrors.
+func (repo *Repository) LoadPushMirrors() (err error) {
+	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
 	return err
 }
 
@@ -1487,6 +1499,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
 		&PullRequest{BaseRepoID: repoID},
+		&PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
 		&RepoRedirect{RedirectRepoID: repoID},
@@ -1507,6 +1520,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
+	// Delete issue index
+	if err := deleteResouceIndex(sess, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -1566,6 +1584,22 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		return err
+	}
+
+	// Remove archives
+	var archives []*RepoArchiver
+	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
+		return err
+	}
+
+	for _, v := range archives {
+		v.Repo = repo
+		p, _ := v.RelativePath()
+		removeStorageWithNotice(sess, storage.RepoArchives, "Delete repo archive file", p)
+	}
+
+	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1750,64 +1784,45 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
-	}); err != nil {
-		log.Trace("Error: ArchiveClean: %v", err)
-		return err
+	for {
+		var archivers []RepoArchiver
+		err := x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).
+			Asc("created_unix").
+			Limit(100).
+			Find(&archivers)
+		if err != nil {
+			log.Trace("Error: ArchiveClean: %v", err)
+			return err
+		}
+
+		for _, archiver := range archivers {
+			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
+				return err
+			}
+		}
+		if len(archivers) < 100 {
+			break
+		}
 	}
 
 	log.Trace("Finished: ArchiveCleanup")
 	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
-	repo := bean.(*Repository)
-	basePath := filepath.Join(repo.RepoPath(), "archives")
+var delRepoArchiver = new(RepoArchiver)
 
-	for _, ty := range []string{"zip", "targz"} {
-		select {
-		case <-ctx.Done():
-			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
-		default:
-		}
-
-		path := filepath.Join(basePath, ty)
-		file, err := os.Open(path)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Warn("Unable to open directory %s: %v", path, err)
-				return err
-			}
-
-			// If the directory doesn't exist, that's okay.
-			continue
-		}
-
-		files, err := file.Readdir(0)
-		file.Close()
-		if err != nil {
-			log.Warn("Unable to read directory %s: %v", path, err)
-			return err
-		}
-
-		minimumOldestTime := time.Now().Add(-olderThan)
-		for _, info := range files {
-			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
-				default:
-				}
-				toDelete := filepath.Join(path, info.Name())
-				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = util.Remove(toDelete); err != nil {
-					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
-				}
-			}
-		}
+func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+	p, err := archiver.RelativePath()
+	if err != nil {
+		return err
 	}
-
+	_, err = x.ID(archiver.ID).Delete(delRepoArchiver)
+	if err != nil {
+		return err
+	}
+	if err := storage.RepoArchives.Delete(p); err != nil {
+		log.Error("delete repo archive file failed: %v", err)
+	}
 	return nil
 }
 

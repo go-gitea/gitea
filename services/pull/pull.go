@@ -389,6 +389,10 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 // corresponding branches of base repository.
 // FIXME: Only push branches that are actually updates?
 func PushToBaseRepo(pr *models.PullRequest) (err error) {
+	return pushToBaseRepoHelper(pr, "")
+}
+
+func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
 	if err := pr.LoadHeadRepo(); err != nil {
@@ -414,7 +418,7 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 
 	if err := git.Push(headRepoPath, git.PushOptions{
 		Remote: baseRepoPath,
-		Branch: pr.HeadBranch + ":" + gitRefName,
+		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
 		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
@@ -426,6 +430,14 @@ func PushToBaseRepo(pr *models.PullRequest) (err error) {
 		} else if git.IsErrPushRejected(err) {
 			rejectErr := err.(*git.ErrPushRejected)
 			log.Info("Unable to push PR head for %s#%d (%-v:%s) due to rejection:\nStdout: %s\nStderr: %s\nError: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, rejectErr.StdOut, rejectErr.StdErr, rejectErr.Err)
+			return err
+		} else if git.IsErrMoreThanOne(err) {
+			if prefixHeadBranch != "" {
+				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
+				return err
+			}
+			log.Info("Retrying to push with refs/heads/%s", pr.HeadBranch)
+			err = pushToBaseRepoHelper(pr, "refs/heads/")
 			return err
 		}
 		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
@@ -570,16 +582,44 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	authors := make([]string, 0, list.Len())
 	stringBuilder := strings.Builder{}
 
-	stringBuilder.WriteString(pr.Issue.Content)
-	if stringBuilder.Len() > 0 {
-		stringBuilder.WriteRune('\n')
-		stringBuilder.WriteRune('\n')
+	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		stringBuilder.WriteString(pr.Issue.Content)
+		if stringBuilder.Len() > 0 {
+			stringBuilder.WriteRune('\n')
+			stringBuilder.WriteRune('\n')
+		}
 	}
 
 	// commits list is in reverse chronological order
 	element := list.Back()
 	for element != nil {
 		commit := element.Value.(*git.Commit)
+
+		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+			if maxSize < 0 || stringBuilder.Len() < maxSize {
+				var toWrite []byte
+				if element == list.Back() {
+					toWrite = []byte(strings.TrimPrefix(commit.CommitMessage, pr.Issue.Title))
+				} else {
+					toWrite = []byte(commit.CommitMessage)
+				}
+
+				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
+					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
+				}
+				if _, err := stringBuilder.Write(toWrite); err != nil {
+					log.Error("Unable to write commit message Error: %v", err)
+					return ""
+				}
+
+				if _, err := stringBuilder.WriteRune('\n'); err != nil {
+					log.Error("Unable to write commit message Error: %v", err)
+					return ""
+				}
+			}
+		}
+
 		authorString := commit.Author.String()
 		if !authorsMap[authorString] && authorString != posterSig {
 			authors = append(authors, authorString)

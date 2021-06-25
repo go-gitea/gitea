@@ -134,6 +134,9 @@ func init() {
 		new(ProjectIssue),
 		new(Session),
 		new(RepoTransfer),
+		new(IssueIndex),
+		new(PushMirror),
+		new(RepoArchiver),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -171,6 +174,10 @@ func GetNewEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
+func syncTables() error {
+	return x.StoreEngine("InnoDB").Sync2(tables...)
+}
+
 // NewTestEngine sets a new test xorm.Engine
 func NewTestEngine() (err error) {
 	x, err = GetNewEngine()
@@ -181,7 +188,7 @@ func NewTestEngine() (err error) {
 	x.SetMapper(names.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.IsProd()))
 	x.ShowSQL(!setting.IsProd())
-	return x.StoreEngine("InnoDB").Sync2(tables...)
+	return syncTables()
 }
 
 // SetEngine sets the xorm.Engine
@@ -222,7 +229,7 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
