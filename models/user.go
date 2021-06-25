@@ -434,6 +434,11 @@ func (u *User) IsPasswordSet() bool {
 
 // IsVisibleToUser check if viewer is able to see user profile
 func (u *User) IsVisibleToUser(viewer *User) bool {
+
+	if viewer != nil && viewer.IsAdmin {
+		return true
+	}
+
 	switch u.Visibility {
 	case structs.VisibleTypePublic:
 		return true
@@ -446,8 +451,61 @@ func (u *User) IsVisibleToUser(viewer *User) bool {
 		if viewer == nil || viewer.IsRestricted {
 			return false
 		}
-		// if private user if follow the viewer he know each other ...
-		return IsFollowing(u.ID, viewer.ID) || viewer.IsAdmin
+
+		// If they follow - they see each over
+		follower := IsFollowing(u.ID, viewer.ID)
+		if follower {
+			return true
+		}
+
+		// Now we need to check if they in some team together
+
+		var orgIds1 []int64
+		var orgIds2 []int64
+
+		// First user all teams organization
+		if err := x.Table("team_user").
+			Cols("team_user.org_id").
+			Where("team_user.uid = ?", u.ID).
+			Find(&orgIds1); err != nil {
+			return false
+		}
+		if len(orgIds1) == 0 {
+			// No teams 1
+			return false
+		}
+
+		// Second user all teams organization
+		if err := x.Table("team_user").
+			Cols("team_user.org_id").
+			Where("team_user.uid = ?", viewer.ID).
+			Find(&orgIds2); err != nil {
+			return false
+		}
+		if len(orgIds2) == 0 {
+			// No teams 2
+			return false
+		}
+
+		// Intersect they organizations
+		var cond builder.Cond = builder.
+			In("id", orgIds1).
+			And(builder.In("id", orgIds2)).
+			And(builder.Eq{"type": UserTypeOrganization})
+		count, err := x.Table("user").
+			Cols("id").
+			Where(cond).
+			Count(1)
+		if err != nil {
+			return false
+		}
+		if count == 0 {
+			// they teams from different orgs?
+			return false
+		}
+
+		// they in some organizations together
+		return true
 	}
 	return false
 }
