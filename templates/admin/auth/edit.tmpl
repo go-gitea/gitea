@@ -53,7 +53,6 @@
 						<div class="field">
 							<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 							<input id="bind_password" name="bind_password" type="password" value="{{$cfg.BindPassword}}">
-							<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 						</div>
 					{{end}}
 					<div class="{{if .Source.IsLDAP}}required{{end}} field">
@@ -96,8 +95,8 @@
 						<input id="attribute_mail" name="attribute_mail" value="{{$cfg.AttributeMail}}" placeholder="e.g. mail" required>
 					</div>
 					<div class="field">
-					    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-					    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
+						<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+						<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
@@ -188,6 +187,10 @@
 						<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{$cfg.ServiceName}}" required>
 					</div>
+					<div class="field">
+						<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
+					</div>
 				{{end}}
 
 				<!-- OAuth2 -->
@@ -215,9 +218,9 @@
 						<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
 					</div>
 					<div class="optional field">
-            <label for="oauth2_icon_url">{{.i18n.Tr "admin.auths.oauth2_icon_url"}}</label>
-            <input id="oauth2_icon_url" name="oauth2_icon_url" value="{{$cfg.IconURL}}">
-          </div>
+						<label for="oauth2_icon_url">{{.i18n.Tr "admin.auths.oauth2_icon_url"}}</label>
+						<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{$cfg.IconURL}}">
+					</div>
 					<div class="open_id_connect_auto_discovery_url required field">
 						<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">

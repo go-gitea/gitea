@@ -47,6 +47,11 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
 			}
+
+			pr, _ := n.Issue.GetPullRequest()
+			if pr != nil && pr.HasMerged {
+				result.Subject.State = "merged"
+			}
 		}
 	case models.NotificationSourceCommit:
 		result.Subject = &api.NotificationSubject{

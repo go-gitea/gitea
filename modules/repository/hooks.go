@@ -22,9 +22,53 @@ import (
 func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {
 	hookNames = []string{"pre-receive", "update", "post-receive"}
 	hookTpls = []string{
-		fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-		fmt.Sprintf("#!/usr/bin/env %s\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\n\"${hook}\" $1 $2 $3\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-		fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+data=$(cat)
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0)/..}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+echo "${data}" | "${hook}"
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0/..)}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+"${hook}" $1 $2 $3
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+data=$(cat)
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0)/..}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+echo "${data}" | "${hook}"
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
 	}
 	giteaHookTpls = []string{
 		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s pre-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),

@@ -129,8 +129,12 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 
 // GetMilestoneByID returns the milestone via id .
 func GetMilestoneByID(id int64) (*Milestone, error) {
+	return getMilestoneByID(x, id)
+}
+
+func getMilestoneByID(e Engine, id int64) (*Milestone, error) {
 	var m Milestone
-	has, err := x.ID(id).Get(&m)
+	has, err := e.ID(id).Get(&m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -155,10 +159,6 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		return err
 	}
 
-	if err := updateMilestoneCompleteness(sess, m.ID); err != nil {
-		return err
-	}
-
 	// if IsClosed changed, update milestone numbers of repository
 	if oldIsClosed != m.IsClosed {
 		if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
@@ -171,23 +171,31 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 
 func updateMilestone(e Engine, m *Milestone) error {
 	m.Name = strings.TrimSpace(m.Name)
-	_, err := e.ID(m.ID).AllCols().
+	_, err := e.ID(m.ID).AllCols().Update(m)
+	if err != nil {
+		return err
+	}
+	return updateMilestoneCounters(e, m.ID)
+}
+
+// updateMilestoneCounters calculates NumIssues, NumClosesIssues and Completeness
+func updateMilestoneCounters(e Engine, id int64) error {
+	_, err := e.ID(id).
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
-			builder.Eq{"milestone_id": m.ID},
+			builder.Eq{"milestone_id": id},
 		)).
 		SetExpr("num_closed_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{
-				"milestone_id": m.ID,
+				"milestone_id": id,
 				"is_closed":    true,
 			},
 		)).
-		Update(m)
-	return err
-}
-
-func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
-	_, err := e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
+		Update(&Milestone{})
+	if err != nil {
+		return err
+	}
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		id,
 	)
 	return err
 }
@@ -256,24 +264,14 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 	}
 
 	if oldMilestoneID > 0 {
-		if err := updateMilestoneTotalNum(e, oldMilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, oldMilestoneID); err != nil {
 			return err
-		}
-		if issue.IsClosed {
-			if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
-				return err
-			}
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		if err := updateMilestoneTotalNum(e, issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
 			return err
-		}
-		if issue.IsClosed {
-			if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -426,9 +424,12 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
 }
 
 // SearchMilestones search milestones
-func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType string) (MilestoneList, error) {
+func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType string, keyword string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
 	sess := x.Where("is_closed = ?", isClosed)
+	if len(keyword) > 0 {
+		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
+	}
 	if repoCond.IsValid() {
 		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
 	}
@@ -460,6 +461,7 @@ func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType s
 		page,
 		isClosed,
 		sortType,
+		"",
 	)
 }
 
@@ -495,6 +497,38 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 	}
 
 	sess = x.Where("is_closed = ?", true)
+	if repoCond.IsValid() {
+		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
+	}
+	stats.ClosedCount, err = sess.Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// GetMilestonesStatsByRepoCondAndKw returns milestone statistic information for dashboard by given repo conditions and name keyword.
+func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*MilestonesStats, error) {
+	var err error
+	stats := &MilestonesStats{}
+
+	sess := x.Where("is_closed = ?", false)
+	if len(keyword) > 0 {
+		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
+	}
+	if repoCond.IsValid() {
+		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
+	}
+	stats.OpenCount, err = sess.Count(new(Milestone))
+	if err != nil {
+		return nil, err
+	}
+
+	sess = x.Where("is_closed = ?", true)
+	if len(keyword) > 0 {
+		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
+	}
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
 	}
@@ -548,6 +582,34 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 	return countMap, nil
 }
 
+// CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
+func CountMilestonesByRepoCondAndKw(repoCond builder.Cond, keyword string, isClosed bool) (map[int64]int64, error) {
+	sess := x.Where("is_closed = ?", isClosed)
+	if len(keyword) > 0 {
+		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
+	}
+	if repoCond.IsValid() {
+		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
+	}
+
+	countsSlice := make([]*struct {
+		RepoID int64
+		Count  int64
+	}, 0, 10)
+	if err := sess.GroupBy("repo_id").
+		Select("repo_id AS repo_id, COUNT(*) AS count").
+		Table("milestone").
+		Find(&countsSlice); err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[int64]int64, len(countsSlice))
+	for _, c := range countsSlice {
+		countMap[c.RepoID] = c.Count
+	}
+	return countMap, nil
+}
+
 func updateRepoMilestoneNum(e Engine, repoID int64) error {
 	_, err := e.Exec("UPDATE `repository` SET num_milestones=(SELECT count(*) FROM milestone WHERE repo_id=?),num_closed_milestones=(SELECT count(*) FROM milestone WHERE repo_id=? AND is_closed=?) WHERE id=?",
 		repoID,
@@ -556,29 +618,6 @@ func updateRepoMilestoneNum(e Engine, repoID int64) error {
 		repoID,
 	)
 	return err
-}
-
-func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?) WHERE id=?",
-		milestoneID,
-		milestoneID,
-	); err != nil {
-		return
-	}
-
-	return updateMilestoneCompleteness(e, milestoneID)
-}
-
-func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?) WHERE id=?",
-		milestoneID,
-		true,
-		milestoneID,
-	); err != nil {
-		return
-	}
-
-	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 //  _____               _            _ _____ _

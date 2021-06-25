@@ -6,7 +6,7 @@ import (
 )
 
 // Verilog lexer.
-var Verilog = internal.Register(MustNewLexer(
+var Verilog = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "verilog",
 		Aliases:   []string{"verilog", "v"},
@@ -14,7 +14,11 @@ var Verilog = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-verilog"},
 		EnsureNL:  true,
 	},
-	Rules{
+	verilogRules,
+))
+
+func verilogRules() Rules {
+	return Rules{
 		"root": {
 			{"^\\s*`define", CommentPreproc, Push("macro")},
 			{`\n`, Text, nil},
@@ -64,5 +68,5 @@ var Verilog = internal.Register(MustNewLexer(
 		"import": {
 			{`[\w:]+\*?`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

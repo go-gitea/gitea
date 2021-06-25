@@ -1676,7 +1676,7 @@ func (d *SQLiteDriver) Open(dsn string) (driver.Conn, error) {
 	//
 	// Because default is NORMAL this statement is always executed
 	if err := exec(fmt.Sprintf("PRAGMA synchronous = %s;", synchronousMode)); err != nil {
-		C.sqlite3_close_v2(db)
+		conn.Close()
 		return nil, err
 	}
 
@@ -2005,6 +2005,13 @@ func (s *SQLiteStmt) execSync(args []namedValue) (driver.Result, error) {
 	}
 
 	return &SQLiteResult{id: int64(rowid), changes: int64(changes)}, nil
+}
+
+// Readonly reports if this statement is considered readonly by SQLite.
+//
+// See: https://sqlite.org/c3ref/stmt_readonly.html
+func (s *SQLiteStmt) Readonly() bool {
+	return C.sqlite3_stmt_readonly(s.s) == 1
 }
 
 // Close the rows.

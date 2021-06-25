@@ -14,6 +14,7 @@ export default async function initProject() {
       group: 'board-column',
       draggable: '.board-column',
       animation: 150,
+      ghostClass: 'card-ghost',
       onSort: () => {
         const board = document.getElementsByClassName('board')[0];
         const boardColumns = board.getElementsByClassName('board-column');
@@ -42,6 +43,7 @@ export default async function initProject() {
       {
         group: 'shared',
         animation: 150,
+        ghostClass: 'card-ghost',
         onAdd: (e) => {
           $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
             headers: {

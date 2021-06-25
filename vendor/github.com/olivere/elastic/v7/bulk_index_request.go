@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// BulkIndexRequest is a request to add a document to Elasticsearch.
+// BulkIndexRequest is a request to add or replace a document to Elasticsearch.
 //
 // See https://www.elastic.co/guide/en/elasticsearch/reference/7.0/docs-bulk.html
 // for details.

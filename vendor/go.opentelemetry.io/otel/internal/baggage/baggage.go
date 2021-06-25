@@ -18,11 +18,11 @@ package baggage
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 )
 
-type rawMap map[label.Key]label.Value
-type keySet map[label.Key]struct{}
+type rawMap map[attribute.Key]attribute.Value
+type keySet map[attribute.Key]struct{}
 
 // Map is an immutable storage for correlations.
 type Map struct {
@@ -35,18 +35,18 @@ type MapUpdate struct {
 	// DropSingleK contains a single key to be dropped from
 	// correlations. Use this to avoid an overhead of a slice
 	// allocation if there is only one key to drop.
-	DropSingleK label.Key
+	DropSingleK attribute.Key
 	// DropMultiK contains all the keys to be dropped from
 	// correlations.
-	DropMultiK []label.Key
+	DropMultiK []attribute.Key
 
 	// SingleKV contains a single key-value pair to be added to
 	// correlations. Use this to avoid an overhead of a slice
 	// allocation if there is only one key-value pair to add.
-	SingleKV label.KeyValue
+	SingleKV attribute.KeyValue
 	// MultiKV contains all the key-value pairs to be added to
 	// correlations.
-	MultiKV []label.KeyValue
+	MultiKV []attribute.KeyValue
 }
 
 func newMap(raw rawMap) Map {
@@ -104,7 +104,7 @@ func getModificationSets(update MapUpdate) (delSet, addSet keySet) {
 		deletionsCount++
 	}
 	if deletionsCount > 0 {
-		delSet = make(map[label.Key]struct{}, deletionsCount)
+		delSet = make(map[attribute.Key]struct{}, deletionsCount)
 		for _, k := range update.DropMultiK {
 			delSet[k] = struct{}{}
 		}
@@ -118,7 +118,7 @@ func getModificationSets(update MapUpdate) (delSet, addSet keySet) {
 		additionsCount++
 	}
 	if additionsCount > 0 {
-		addSet = make(map[label.Key]struct{}, additionsCount)
+		addSet = make(map[attribute.Key]struct{}, additionsCount)
 		for _, k := range update.MultiKV {
 			addSet[k.Key] = struct{}{}
 		}
@@ -149,14 +149,14 @@ func getNewMapSize(m rawMap, delSet, addSet keySet) int {
 
 // Value gets a value from correlations map and returns a boolean
 // value indicating whether the key exist in the map.
-func (m Map) Value(k label.Key) (label.Value, bool) {
+func (m Map) Value(k attribute.Key) (attribute.Value, bool) {
 	value, ok := m.m[k]
 	return value, ok
 }
 
 // HasValue returns a boolean value indicating whether the key exist
 // in the map.
-func (m Map) HasValue(k label.Key) bool {
+func (m Map) HasValue(k attribute.Key) bool {
 	_, has := m.Value(k)
 	return has
 }
@@ -169,9 +169,9 @@ func (m Map) Len() int {
 // Foreach calls a passed callback once on each key-value pair until
 // all the key-value pairs of the map were iterated or the callback
 // returns false, whichever happens first.
-func (m Map) Foreach(f func(label.KeyValue) bool) {
+func (m Map) Foreach(f func(attribute.KeyValue) bool) {
 	for k, v := range m.m {
-		if !f(label.KeyValue{
+		if !f(attribute.KeyValue{
 			Key:   k,
 			Value: v,
 		}) {
@@ -316,7 +316,7 @@ func ContextWithNoCorrelationData(ctx context.Context) context.Context {
 
 // NewContext returns a context with the map from passed context
 // updated with the passed key-value pairs.
-func NewContext(ctx context.Context, keyvalues ...label.KeyValue) context.Context {
+func NewContext(ctx context.Context, keyvalues ...attribute.KeyValue) context.Context {
 	return ContextWithMap(ctx, MapFromContext(ctx).Apply(MapUpdate{
 		MultiKV: keyvalues,
 	}))

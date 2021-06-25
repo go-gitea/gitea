@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -19,7 +20,7 @@ import (
 // Issuer, and Revoker interfaces.
 //
 // It is NOT VALID to use an ACMEManager without calling NewACMEManager().
-// It fills in default values from DefaultACME as well as setting up
+// It fills in any default values from DefaultACME as well as setting up
 // internal state that is necessary for valid use. Always call
 // NewACMEManager() to get a valid ACMEManager value.
 type ACMEManager struct {
@@ -36,6 +37,12 @@ type ACMEManager struct {
 	// The email address to use when creating or
 	// selecting an existing ACME server account
 	Email string
+
+	// The PEM-encoded private key of the ACME
+	// account to use; only needed if the account
+	// is already created on the server and
+	// can be looked up with the ACME protocol
+	AccountKeyPEM string
 
 	// Set to true if agreed to the CA's
 	// subscriber agreement
@@ -92,9 +99,13 @@ type ACMEManager struct {
 	// Callback function that is called before a
 	// new ACME account is registered with the CA;
 	// it allows for last-second config changes
-	// of the ACMEManager (TODO: this feature is
-	// still EXPERIMENTAL and subject to change)
-	NewAccountFunc func(context.Context, *ACMEManager, acme.Account) error
+	// of the ACMEManager and the Account.
+	// (TODO: this feature is still EXPERIMENTAL and subject to change)
+	NewAccountFunc func(context.Context, *ACMEManager, acme.Account) (acme.Account, error)
+
+	// Preferences for selecting alternate
+	// certificate chains
+	PreferredChains ChainPreference
 
 	// Set a logger to enable logging
 	Logger *zap.Logger
@@ -105,10 +116,12 @@ type ACMEManager struct {
 
 // NewACMEManager constructs a valid ACMEManager based on a template
 // configuration; any empty values will be filled in by defaults in
-// DefaultACME. The associated config is also required.
+// DefaultACME, and if any required values are still empty, sensible
+// defaults will be used.
 //
-// Typically, you'll create the Config first, then call NewACMEManager(),
-// then assign the return value to the Issuer/Revoker fields of the Config.
+// Typically, you'll create the Config first with New() or NewDefault(),
+// then call NewACMEManager(), then assign the return value to the Issuers
+// field of the Config.
 func NewACMEManager(cfg *Config, template ACMEManager) *ACMEManager {
 	if cfg == nil {
 		panic("cannot make valid ACMEManager without an associated CertMagic config")
@@ -125,6 +138,9 @@ func NewACMEManager(cfg *Config, template ACMEManager) *ACMEManager {
 	}
 	if template.Email == "" {
 		template.Email = DefaultACME.Email
+	}
+	if template.AccountKeyPEM == "" {
+		template.AccountKeyPEM = DefaultACME.AccountKeyPEM
 	}
 	if !template.Agreed {
 		template.Agreed = DefaultACME.Agreed
@@ -175,7 +191,7 @@ func (am *ACMEManager) IssuerKey() string {
 	return am.issuerKey(am.CA)
 }
 
-func (am *ACMEManager) issuerKey(ca string) string {
+func (*ACMEManager) issuerKey(ca string) string {
 	key := ca
 	if caURL, err := url.Parse(key); err == nil {
 		key = caURL.Host
@@ -202,11 +218,11 @@ func (am *ACMEManager) issuerKey(ca string) string {
 // batch is eligible for certificates if using Let's Encrypt.
 // It also ensures that an email address is available.
 func (am *ACMEManager) PreCheck(_ context.Context, names []string, interactive bool) error {
-	letsEncrypt := strings.Contains(am.CA, "api.letsencrypt.org")
-	if letsEncrypt {
+	publicCA := strings.Contains(am.CA, "api.letsencrypt.org") || strings.Contains(am.CA, "acme.zerossl.com")
+	if publicCA {
 		for _, name := range names {
 			if !SubjectQualifiesForPublicCert(name) {
-				return fmt.Errorf("subject does not qualify for a Let's Encrypt certificate: %s", name)
+				return fmt.Errorf("subject does not qualify for a public certificate: %s", name)
 			}
 		}
 	}
@@ -282,7 +298,7 @@ func (am *ACMEManager) Issue(ctx context.Context, csr *x509.CertificateRequest) 
 }
 
 func (am *ACMEManager) doIssue(ctx context.Context, csr *x509.CertificateRequest, useTestCA bool) (*IssuedCertificate, bool, error) {
-	client, err := am.newACMEClient(ctx, useTestCA, false)
+	client, err := am.newACMEClientWithAccount(ctx, useTestCA, false)
 	if err != nil {
 		return nil, false, err
 	}
@@ -300,20 +316,103 @@ func (am *ACMEManager) doIssue(ctx context.Context, csr *x509.CertificateRequest
 	if err != nil {
 		return nil, usingTestCA, fmt.Errorf("%v %w (ca=%s)", nameSet, err, client.acmeClient.Directory)
 	}
+	if len(certChains) == 0 {
+		return nil, usingTestCA, fmt.Errorf("no certificate chains")
+	}
 
-	// TODO: ACME server could in theory issue a cert with multiple chains,
-	// but we don't (yet) have a way to choose one, so just use first one
+	preferredChain := am.selectPreferredChain(certChains)
+
 	ic := &IssuedCertificate{
-		Certificate: certChains[0].ChainPEM,
-		Metadata:    certChains[0],
+		Certificate: preferredChain.ChainPEM,
+		Metadata:    preferredChain,
 	}
 
 	return ic, usingTestCA, nil
 }
 
+// selectPreferredChain sorts and then filters the certificate chains to find the optimal
+// chain preferred by the client. If there's only one chain, that is returned without any
+// processing. If there are no matches, the first chain is returned.
+func (am *ACMEManager) selectPreferredChain(certChains []acme.Certificate) acme.Certificate {
+	if len(certChains) == 1 {
+		if am.Logger != nil && (len(am.PreferredChains.AnyCommonName) > 0 || len(am.PreferredChains.RootCommonName) > 0) {
+			am.Logger.Debug("there is only one chain offered; selecting it regardless of preferences",
+				zap.String("chain_url", certChains[0].URL))
+		}
+		return certChains[0]
+	}
+
+	if am.PreferredChains.Smallest != nil {
+		if *am.PreferredChains.Smallest {
+			sort.Slice(certChains, func(i, j int) bool {
+				return len(certChains[i].ChainPEM) < len(certChains[j].ChainPEM)
+			})
+		} else {
+			sort.Slice(certChains, func(i, j int) bool {
+				return len(certChains[i].ChainPEM) > len(certChains[j].ChainPEM)
+			})
+		}
+	}
+
+	if len(am.PreferredChains.AnyCommonName) > 0 || len(am.PreferredChains.RootCommonName) > 0 {
+		// in order to inspect, we need to decode their PEM contents
+		decodedChains := make([][]*x509.Certificate, len(certChains))
+		for i, chain := range certChains {
+			certs, err := parseCertsFromPEMBundle(chain.ChainPEM)
+			if err != nil {
+				if am.Logger != nil {
+					am.Logger.Error("unable to parse PEM certificate chain",
+						zap.Int("chain", i),
+						zap.Error(err))
+				}
+				continue
+			}
+			decodedChains[i] = certs
+		}
+
+		if len(am.PreferredChains.AnyCommonName) > 0 {
+			for _, prefAnyCN := range am.PreferredChains.AnyCommonName {
+				for i, chain := range decodedChains {
+					for _, cert := range chain {
+						if cert.Issuer.CommonName == prefAnyCN {
+							if am.Logger != nil {
+								am.Logger.Debug("found preferred certificate chain by issuer common name",
+									zap.String("preference", prefAnyCN),
+									zap.Int("chain", i))
+							}
+							return certChains[i]
+						}
+					}
+				}
+			}
+		}
+
+		if len(am.PreferredChains.RootCommonName) > 0 {
+			for _, prefRootCN := range am.PreferredChains.RootCommonName {
+				for i, chain := range decodedChains {
+					if chain[len(chain)-1].Issuer.CommonName == prefRootCN {
+						if am.Logger != nil {
+							am.Logger.Debug("found preferred certificate chain by root common name",
+								zap.String("preference", prefRootCN),
+								zap.Int("chain", i))
+						}
+						return certChains[i]
+					}
+				}
+			}
+		}
+
+		if am.Logger != nil {
+			am.Logger.Warn("did not find chain matching preferences; using first")
+		}
+	}
+
+	return certChains[0]
+}
+
 // Revoke implements the Revoker interface. It revokes the given certificate.
 func (am *ACMEManager) Revoke(ctx context.Context, cert CertificateResource, reason int) error {
-	client, err := am.newACMEClient(ctx, false, false)
+	client, err := am.newACMEClientWithAccount(ctx, false, false)
 	if err != nil {
 		return err
 	}
@@ -326,8 +425,24 @@ func (am *ACMEManager) Revoke(ctx context.Context, cert CertificateResource, rea
 	return client.revoke(ctx, certs[0], reason)
 }
 
-// DefaultACME specifies the default settings
-// to use for ACMEManagers.
+// ChainPreference describes the client's preferred certificate chain,
+// useful if the CA offers alternate chains. The first matching chain
+// will be selected.
+type ChainPreference struct {
+	// Prefer chains with the fewest number of bytes.
+	Smallest *bool
+
+	// Select first chain having a root with one of
+	// these common names.
+	RootCommonName []string
+
+	// Select first chain that has any issuer with one
+	// of these common names.
+	AnyCommonName []string
+}
+
+// DefaultACME specifies default settings to use for ACMEManagers.
+// Using this value is optional but can be convenient.
 var DefaultACME = ACMEManager{
 	CA:     LetsEncryptProductionCA,
 	TestCA: LetsEncryptStagingCA,
@@ -337,6 +452,7 @@ var DefaultACME = ACMEManager{
 const (
 	LetsEncryptStagingCA    = "https://acme-staging-v02.api.letsencrypt.org/directory"
 	LetsEncryptProductionCA = "https://acme-v02.api.letsencrypt.org/directory"
+	ZeroSSLProductionCA     = "https://acme.zerossl.com/v2/DV90"
 )
 
 // prefixACME is the storage key prefix used for ACME-specific assets.

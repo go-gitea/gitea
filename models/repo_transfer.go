@@ -333,7 +333,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 						INNER JOIN label ON il_too_too.label_id = label.id
 						INNER JOIN issue on issue.id = il_too_too.issue_id
 					WHERE
-						issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
+						issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
 		) AS il_too )`, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org labels: %v", err)
 		}
@@ -343,9 +343,9 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 				SELECT com.id
 					FROM comment AS com
 						INNER JOIN label ON com.label_id = label.id
-						INNER JOIN issue on issue.id = com.issue_id
+						INNER JOIN issue ON issue.id = com.issue_id
 					WHERE
-						com.type = ? AND issue.repo_id = ? AND (issue.repo_id != label.repo_id OR (label.repo_id = 0 AND label.org_id != ?))
+						com.type = ? AND issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
 		) AS il_too)`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org label comments: %v", err)
 		}

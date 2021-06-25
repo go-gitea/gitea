@@ -168,12 +168,12 @@ func (s *ResourceLabelEventsService) GetGroupEpicLabelEvent(gid interface{}, epi
 	return l, resp, err
 }
 
-// ListMergeLabelEvents retrieves resource label events for the specified
+// ListMergeRequestsLabelEvents retrieves resource label events for the specified
 // project and merge request.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/resource_label_events.html#list-project-merge-request-label-events
-func (s *ResourceLabelEventsService) ListMergeLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
+func (s *ResourceLabelEventsService) ListMergeRequestsLabelEvents(pid interface{}, request int, opt *ListLabelEventsOptions, options ...RequestOptionFunc) ([]*LabelEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
