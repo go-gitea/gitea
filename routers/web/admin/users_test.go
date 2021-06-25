@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -159,7 +160,7 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 	assert.Equal(t, username, u.Name)
 	assert.Equal(t, email, u.Email)
 	// As default user visibility
-	assert.True(t, u.Visibility.IsPublic())
+	assert.Equal(t, setting.Service.DefaultUserVisibilityMode, u.Visibility)
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
