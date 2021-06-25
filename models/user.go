@@ -432,6 +432,7 @@ func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
 }
 
+// IsVisibleToUser check if viewer is able to see user profile
 func (u *User) IsVisibleToUser(viewer *User) bool {
 	switch u.Visibility {
 	case structs.VisibleTypePublic:
