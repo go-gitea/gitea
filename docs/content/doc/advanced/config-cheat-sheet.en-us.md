@@ -519,6 +519,7 @@ relation to port exhaustion.
 - `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
+- `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
 ### Service - Expore (`service.explore`)
 
@@ -907,13 +908,17 @@ Gitea supports customizing the sanitization policy for rendered HTML. The exampl
 ELEMENT = span
 ALLOW_ATTR = class
 REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
 ```
 
  - `ELEMENT`: The element this policy applies to. Must be non-empty.
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+ - `ALLOW_DATA_URI_IMAGES`: **false** Allow data uri images (`<img src="data:image/png;base64,..."/>`).
 
 Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
+To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
+If the rule is defined above the renderer ini section or the name does not match a renderer it is applied to every renderer.
 
 ## Time (`time`)
 
@@ -990,6 +995,23 @@ MINIO_USE_SSL = false
 ```
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
+
+## Repository Archive Storage (`storage.repo-archive`)
+
+Configuration for repository archive storage. It will inherit from default `[storage]` or
+`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. The default of `PATH`
+is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
+
+- `STORAGE_TYPE`: **local**: Storage type for repo archive, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `PATH`: **./data/repo-archive**: Where to store archive files, only available when `STORAGE_TYPE` is `local`.
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `STORAGE_TYPE` is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 
 ## Other (`other`)
 
