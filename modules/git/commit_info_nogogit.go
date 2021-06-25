@@ -12,6 +12,8 @@ import (
 	"io"
 	"path"
 	"sort"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
@@ -78,7 +80,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 				commitsInfo[i].SubModuleFile = subModuleFile
 			}
 		} else {
-			log("missing commit for %s", entry.Name())
+			log.Debug("missing commit for %s", entry.Name())
 		}
 	}
 

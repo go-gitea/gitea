@@ -137,6 +137,7 @@ func init() {
 		new(IssueIndex),
 		new(PushMirror),
 		new(RepoArchiver),
+		new(ProtectedTag),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
