@@ -19,9 +19,6 @@ import (
 )
 
 var (
-	// Debug enables verbose logging on everything.
-	// This should be false in case Gogs starts in SSH mode.
-	Debug = false
 	// Prefix the log prefix
 	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
@@ -40,19 +37,6 @@ var (
 	// will be checked on Init
 	goVersionLessThan115 = true
 )
-
-func log(format string, args ...interface{}) {
-	if !Debug {
-		return
-	}
-
-	fmt.Print(Prefix)
-	if len(args) == 0 {
-		fmt.Println(format)
-	} else {
-		fmt.Printf(format+"\n", args...)
-	}
-}
 
 // LocalVersion returns current Git version from shell.
 func LocalVersion() (*version.Version, error) {
