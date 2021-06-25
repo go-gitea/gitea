@@ -478,7 +478,7 @@ func getCrossReference(content []byte, start, end int, fromLink bool, prOnly boo
 	}
 	repo := string(content[start : start+sep])
 	issue := string(content[start+sep+1 : end])
-	index, err := strconv.ParseInt(string(issue), 10, 64)
+	index, err := strconv.ParseInt(issue, 10, 64)
 	if err != nil {
 		return nil
 	}
