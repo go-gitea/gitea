@@ -19,7 +19,6 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 }
 
 func TestMain(m *testing.M) {
-	_ = log.DelLogger("console")
 	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
 
 	if err := Init(context.Background()); err != nil {
