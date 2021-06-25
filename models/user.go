@@ -432,6 +432,25 @@ func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
 }
 
+func (u *User) IsVisibleToUser(viewer *User) bool {
+	switch u.Visibility {
+	case structs.VisibleTypePublic:
+		return true
+	case structs.VisibleTypeLimited:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+		return true
+	case structs.VisibleTypePrivate:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+		// if private user if follow the viewer he know each other ...
+		return IsFollowing(u.ID, viewer.ID) || viewer.IsAdmin
+	}
+	return false
+}
+
 // IsOrganization returns true if user is actually a organization.
 func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
