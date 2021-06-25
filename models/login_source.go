@@ -856,7 +856,11 @@ func UserSignIn(username, password string) (*User, error) {
 			return authUser, nil
 		}
 
-		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		if IsErrUserNotExist(err) {
+			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		} else {
+			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		}
 	}
 
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}
