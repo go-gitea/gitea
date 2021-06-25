@@ -117,6 +117,7 @@ func Profile(ctx *context.Context) {
 		content, err := markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
+			GitRepo:   ctx.Repo.GitRepo,
 		}, ctxUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
