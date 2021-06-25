@@ -221,6 +221,9 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <system.web>
+        <httpRuntime requestPathInvalidCharacters="" />
+    </system.web>
     <system.webServer>
         <security>
           <requestFiltering>
