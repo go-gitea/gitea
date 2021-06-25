@@ -321,6 +321,8 @@ var migrations = []Migration{
 	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
 	// v185 -> v186
 	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
 }
 
 // GetCurrentDBVersion returns the current db version
