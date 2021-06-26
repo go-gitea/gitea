@@ -6,14 +6,18 @@ import (
 )
 
 // HCL lexer.
-var HCL = internal.Register(MustNewLexer(
+var HCL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "HCL",
 		Aliases:   []string{"hcl"},
 		Filenames: []string{"*.hcl"},
 		MimeTypes: []string{"application/x-hcl"},
 	},
-	Rules{
+	hclRules,
+))
+
+func hclRules() Rules {
+	return Rules{
 		"root": {
 			Include("string"),
 			Include("punctuation"),
@@ -65,5 +69,5 @@ var HCL = internal.Register(MustNewLexer(
 			{`\s+`, Text, nil},
 			{`\\\n`, Text, nil},
 		},
-	},
-))
+	}
+}

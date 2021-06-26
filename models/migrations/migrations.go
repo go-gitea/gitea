@@ -302,6 +302,27 @@ var migrations = []Migration{
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+
+	// Gitea 1.14.0 ends at v178
+
+	// v178 -> v179
+	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
+	// v180 -> v181
+	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
 }
 
 // GetCurrentDBVersion returns the current db version

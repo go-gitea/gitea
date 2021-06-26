@@ -36,7 +36,6 @@ func TestGPGKeys(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-
 		//Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {
@@ -78,42 +77,42 @@ func TestGPGKeys(t *testing.T) {
 
 		primaryKey1 := keys[0] //Primary key 1
 		assert.EqualValues(t, "38EA3BCED732982C", primaryKey1.KeyID)
-		assert.EqualValues(t, 1, len(primaryKey1.Emails))
+		assert.Len(t, primaryKey1.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", primaryKey1.Emails[0].Email)
-		assert.EqualValues(t, true, primaryKey1.Emails[0].Verified)
+		assert.True(t, primaryKey1.Emails[0].Verified)
 
 		subKey := primaryKey1.SubsKey[0] //Subkey of 38EA3BCED732982C
 		assert.EqualValues(t, "70D7C694D17D03AD", subKey.KeyID)
-		assert.EqualValues(t, 0, len(subKey.Emails))
+		assert.Empty(t, subKey.Emails)
 
 		primaryKey2 := keys[1] //Primary key 2
-		assert.EqualValues(t, "FABF39739FE1E927", primaryKey2.KeyID)
-		assert.EqualValues(t, 1, len(primaryKey2.Emails))
-		assert.EqualValues(t, "user21@example.com", primaryKey2.Emails[0].Email)
-		assert.EqualValues(t, false, primaryKey2.Emails[0].Verified)
+		assert.EqualValues(t, "3CEF46EF40BEFC3E", primaryKey2.KeyID)
+		assert.Len(t, primaryKey2.Emails, 1)
+		assert.EqualValues(t, "user2-2@example.com", primaryKey2.Emails[0].Email)
+		assert.False(t, primaryKey2.Emails[0].Verified)
 
 		var key api.GPGKey
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+token) //Primary key 1
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
-		assert.EqualValues(t, 1, len(key.Emails))
+		assert.Len(t, key.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
-		assert.EqualValues(t, true, key.Emails[0].Verified)
+		assert.True(t, key.Emails[0].Verified)
 
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+token) //Subkey of 38EA3BCED732982C
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
-		assert.EqualValues(t, 0, len(key.Emails))
+		assert.Empty(t, key.Emails)
 
 		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey2.ID, 10)+"?token="+token) //Primary key 2
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
-		assert.EqualValues(t, "FABF39739FE1E927", key.KeyID)
-		assert.EqualValues(t, 1, len(key.Emails))
-		assert.EqualValues(t, "user21@example.com", key.Emails[0].Email)
-		assert.EqualValues(t, false, key.Emails[0].Verified)
+		assert.EqualValues(t, "3CEF46EF40BEFC3E", key.KeyID)
+		assert.Len(t, key.Emails, 1)
+		assert.EqualValues(t, "user2-2@example.com", key.Emails[0].Email)
+		assert.False(t, key.Emails[0].Verified)
 
 	})
 
@@ -124,7 +123,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/not-signed?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithNotValidatedEmail", func(t *testing.T) {
@@ -132,7 +131,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign-not-yet-validated?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, false, branch.Commit.Verification.Verified)
+			assert.False(t, branch.Commit.Verification.Verified)
 		})
 
 		t.Run("SignedWithValidEmail", func(t *testing.T) {
@@ -140,7 +139,7 @@ func TestGPGKeys(t *testing.T) {
 			req := NewRequest(t, "GET", "/api/v1/repos/user2/repo16/branches/good-sign?token="+token)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			DecodeJSON(t, resp, &branch)
-			assert.EqualValues(t, true, branch.Commit.Verification.Verified)
+			assert.True(t, branch.Commit.Verification.Verified)
 		})
 	})
 }
@@ -231,35 +230,46 @@ uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 }
 
 func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	//User2 <user21@example.com> //secondary and not activated
+	//User2 <user2-2@example.com> //secondary and not activated
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
-mQENBFmGWN4BCAC18V4tVGO65VLCV7p14FuXJlUtZ5CuYMvgEkcOqrvRaBSW9ao4
-PGESOhJpfWpnW3QgJniYndLzPpsmdHEclEER6aZjiNgReWPOjHD5tykWocZAJqXD
-eY1ym59gvVMLcfbV2yQsyR2hbJlc+dJsl16tigSEe3nwxZSw2IsW92pgEzT9JNUr
-Q+mC8dw4dqY0tYmFazYUGNxufUc/twgQT/Or1aNs0az5Q6Jft4rrTRsh/S7We0VB
-COKGkdcQyYgAls7HJBuPjQRi6DM9VhgBSHLAgSLyaUcZvhZBJr8Qe/q4PP3/kYDJ
-wm4RMnjOLz2pFZPgtRqgcAwpmFtLrACbEB3JABEBAAG0GlVzZXIyIDx1c2VyMjFA
-ZXhhbXBsZS5jb20+iQFUBBMBCAA+FiEEPOLHOjPSO42DWM57+r85c5/h6ScFAlmG
-WN4CGwMFCQPCZwAFCwkIBwIGFQgJCgsCBBYCAwECHgECF4AACgkQ+r85c5/h6Sfx
-Lgf/dq64NBV8+X9an3seaLxePRviva48e4K67/wV/JxtXNO5Z/DhMGz5kHXCsG9D
-CXuWYO8ehlTjEnMZ6qqdDnY+H6bQsb2OS5oPn4RwpPXslAjEKtojPAr0dDsMS2DB
-dUuIm1AoOnewOVO0OFRf1EqX1bivxnN0FVMcO0m8AczfnKDaGb0y/qg/Y9JAsKqp
-j5pZNMWUkntRtGySeJ4CVJMmkVKJAHsa1Qj6MKdFeid4h4y94cBJ4ZdyBxNdpQOx
-ydf0doicovfeqGNO4oWzsGP4RBK2CqGPCUT+EFl20jPvMkKwOjxgqc8p0z3b2UT9
-+9bnmCGHgF/fW1HJ3iKmfFPqnLkBDQRZhljeAQgA5AirU/NJGgm19ZJYFOiHftjS
-azbrPxGeD3cSqmvDPIMc1DNZGfQV5D4EVumnVbQBtL6xHFoGKz9KisUMbe4a/X2J
-S8JmIphQWG0vMJX1DaZIzr2gT71MnPD7JMGsSUCh5dIKpTNTZX4w+oGPGOu0/UlL
-x0448AryKwp30J2p6D4GeI0nb03n35S2lTOpnHDn1wj7Jl/8LS2fdFOdNaNHXSZe
-twdSwJKhyBEiScgeHBDyKqo8zWkYoSb9eA2HiYlbVaiNtp24KP1mIEpiUdrRjWno
-zauYSZGHZlOFMgF4dKWuetPiuH9m7UYZGKyMLfQ9vYFb+xcPh2bLCQHJ1OEmMQAR
-AQABiQE8BBgBCAAmFiEEPOLHOjPSO42DWM57+r85c5/h6ScFAlmGWN4CGwwFCQPC
-ZwAACgkQ+r85c5/h6Sfjfwf+O4WEjRdvPJLxNy7mfAGoAqDMHIwyH/tVzYgyVhnG
-h/+cfRxJbGc3rpjYdr8dmvghzjEAout8uibPWaIqs63RCAPGPqgWLfxNO5c8+y8V
-LZMVOTV26l2olkkdBWAuhLqKTNh6TiQva03yhOgHWj4XDvFfxICWPFXVd6t5ELpD
-iApGu1OAj8JfhmzbG03Yzx+Ku7bWDxMonx3V/IDEu5LS5zrboHYDKCA53bXXghoi
-Aceqql+PKrDwEjoY4bptwMHLmcjGjdCQ//Qx1neho7nZcS7xjTucY8gQuulwCyXF
-y6wM+wMz8dunIG9gw4+Re6c4Rz9tX1kzxLrU7Pl21tMqfg==
-=0N/9
+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
+6qgtsUdi5eviONRkBgeZtN3oxA==
+=MgDv
 -----END PGP PUBLIC KEY BLOCK-----`)
 }

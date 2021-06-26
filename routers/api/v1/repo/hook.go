@@ -148,8 +148,8 @@ func TestHook(ctx *context.APIContext) {
 			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
 		},
 		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
-		Pusher: convert.ToUser(ctx.User, ctx.IsSigned, false),
-		Sender: convert.ToUser(ctx.User, ctx.IsSigned, false),
+		Pusher: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
+		Sender: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return

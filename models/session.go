@@ -117,6 +117,6 @@ func CountSessions() (int64, error) {
 
 // CleanupSessions cleans up expired sessions
 func CleanupSessions(maxLifetime int64) error {
-	_, err := x.Where("created_unix <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
+	_, err := x.Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
 	return err
 }

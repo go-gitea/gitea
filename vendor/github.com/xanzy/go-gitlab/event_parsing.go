@@ -37,6 +37,7 @@ const (
 	EventConfidentialNote  EventType = "Confidential Note Hook"
 	EventTypePipeline      EventType = "Pipeline Hook"
 	EventTypePush          EventType = "Push Hook"
+	EventTypeRelease       EventType = "Release Hook"
 	EventTypeSystemHook    EventType = "System Hook"
 	EventTypeTagPush       EventType = "Tag Push Hook"
 	EventTypeWikiPage      EventType = "Wiki Page Hook"
@@ -212,6 +213,8 @@ func ParseWebhook(eventType EventType, payload []byte) (event interface{}, err e
 		event = &PipelineEvent{}
 	case EventTypePush:
 		event = &PushEvent{}
+	case EventTypeRelease:
+		event = &ReleaseEvent{}
 	case EventTypeTagPush:
 		event = &TagEvent{}
 	case EventTypeWikiPage:

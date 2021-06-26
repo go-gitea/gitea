@@ -6,14 +6,18 @@ import (
 )
 
 // Objective-C lexer.
-var ObjectiveC = internal.Register(MustNewLexer(
+var ObjectiveC = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Objective-C",
 		Aliases:   []string{"objective-c", "objectivec", "obj-c", "objc"},
 		Filenames: []string{"*.m", "*.h"},
 		MimeTypes: []string{"text/x-objective-c"},
 	},
-	Rules{
+	objectiveCRules,
+))
+
+func objectiveCRules() Rules {
+	return Rules{
 		"statements": {
 			{`@"`, LiteralString, Push("string")},
 			{`@(YES|NO)`, LiteralNumber, nil},
@@ -161,5 +165,5 @@ var ObjectiveC = internal.Register(MustNewLexer(
 			{`^\s*#endif.*?(?<!\\)\n`, CommentPreproc, Pop(1)},
 			{`.*?\n`, Comment, nil},
 		},
-	},
-))
+	}
+}

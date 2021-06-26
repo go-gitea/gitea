@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -114,9 +115,9 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	}
 
 	if len(dir) == 0 {
-		log(c.String())
+		log.Debug("%s", c)
 	} else {
-		log("%s: %v", dir, c)
+		log.Debug("%s: %v", dir, c)
 	}
 
 	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
@@ -124,11 +125,17 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	if env == nil {
-		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
+		cmd.Env = os.Environ()
 	} else {
 		cmd.Env = env
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
 	}
+
+	cmd.Env = append(
+		cmd.Env,
+		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
+		// avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_TERMINAL_PROMPT=0",
+	)
 
 	// TODO: verify if this is still needed in golang 1.15
 	if goVersionLessThan115 {
@@ -191,9 +198,8 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
 		return nil, ConcatenateError(err, stderr.String())
 	}
-
-	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout.Bytes()[:1024])
+	if stdout.Len() > 0 && log.IsTrace() {
+		log.Trace("Stdout:\n %s", stdout.Bytes()[:1024])
 	}
 	return stdout.Bytes(), nil
 }

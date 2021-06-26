@@ -78,9 +78,8 @@ var (
 )
 
 const (
-	issueTasksRegexpStr      = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
-	issueTasksDoneRegexpStr  = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
-	issueMaxDupIndexAttempts = 3
+	issueTasksRegexpStr     = `(^\s*[-*]\s\[[\sxX]\]\s.)|(\n\s*[-*]\s\[[\sxX]\]\s.)`
+	issueTasksDoneRegexpStr = `(^\s*[-*]\s\[[xX]\]\s.)|(\n\s*[-*]\s\[[xX]\]\s.)`
 )
 
 func init() {
@@ -648,8 +647,10 @@ func (issue *Issue) doChangeStatus(e *xorm.Session, doer *User, isMergePull bool
 	}
 
 	// Update issue count of milestone
-	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-		return nil, err
+	if issue.MilestoneID > 0 {
+		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := issue.updateClosedNum(e); err != nil {
@@ -896,23 +897,19 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 		}
 	}
 
-	// Milestone validation should happen before insert actual object.
-	if _, err := e.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").
-		Where("repo_id=?", opts.Issue.RepoID).
-		Insert(opts.Issue); err != nil {
-		return ErrNewIssueInsert{err}
+	if opts.Issue.Index <= 0 {
+		return fmt.Errorf("no issue index provided")
+	}
+	if opts.Issue.ID > 0 {
+		return fmt.Errorf("issue exist")
 	}
 
-	inserted, err := getIssueByID(e, opts.Issue.ID)
-	if err != nil {
+	if _, err := e.Insert(opts.Issue); err != nil {
 		return err
 	}
 
-	// Patch Index with the value calculated by the database
-	opts.Issue.Index = inserted.Index
-
 	if opts.Issue.MilestoneID > 0 {
-		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -987,24 +984,13 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newIssueAttempt(repo, issue, labelIDs, uuids); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewIssue: error attempting to insert the new issue; will retry. Original error: %v", err)
+	idx, err := GetNextResourceIndex("issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %v", err)
 	}
-	return fmt.Errorf("NewIssue: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
 
-func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
+	issue.Index = idx
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1086,7 +1072,7 @@ func getIssuesByIDs(e Engine, issueIDs []int64) ([]*Issue, error) {
 
 func getIssueIDsByRepoID(e Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 10)
-	err := e.Table("issue").Where("repo_id = ?", repoID).Find(&ids)
+	err := e.Table("issue").Cols("id").Where("repo_id = ?", repoID).Find(&ids)
 	return ids, err
 }
 
@@ -1116,6 +1102,7 @@ type IssuesOptions struct {
 	LabelIDs           []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
+	IncludeMilestones  []string
 	SortType           string
 	IssueIDs           []int64
 	UpdatedAfterUnix   int64
@@ -1143,9 +1130,18 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 		sess.Desc("issue.priority")
 	case "nearduedate":
 		// 253370764800 is 01/01/9999 @ 12:00am (UTC)
-		sess.OrderBy("CASE WHEN issue.deadline_unix = 0 THEN 253370764800 ELSE issue.deadline_unix END ASC")
+		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+			OrderBy("CASE " +
+				"WHEN issue.deadline_unix = 0 AND (milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL) THEN 253370764800 " +
+				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"ELSE issue.deadline_unix END ASC")
 	case "farduedate":
-		sess.Desc("issue.deadline_unix")
+		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
+			OrderBy("CASE " +
+				"WHEN milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
+				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
+				"ELSE issue.deadline_unix END DESC")
 	case "priorityrepo":
 		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
 	default:
@@ -1247,6 +1243,13 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if len(opts.ExcludedLabelNames) > 0 {
 		sess.And(builder.NotIn("issue.id", BuildLabelNamesIssueIDsCondition(opts.ExcludedLabelNames)))
+	}
+
+	if len(opts.IncludeMilestones) > 0 {
+		sess.In("issue.milestone_id",
+			builder.Select("id").
+				From("milestone").
+				Where(builder.In("name", opts.IncludeMilestones)))
 	}
 }
 

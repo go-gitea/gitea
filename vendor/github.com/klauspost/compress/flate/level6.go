@@ -211,6 +211,31 @@ func (e *fastEncL6) Encode(dst *tokens, src []byte) {
 			l += e.matchlenLong(s+l, t+l, src)
 		}
 
+		// Try to locate a better match by checking the end-of-match...
+		if sAt := s + l; sAt < sLimit {
+			eLong := &e.bTable[hash7(load6432(src, sAt), tableBits)]
+			// Test current
+			t2 := eLong.Cur.offset - e.cur - l
+			off := s - t2
+			if off < maxMatchOffset {
+				if off > 0 && t2 >= 0 {
+					if l2 := e.matchlenLong(s, t2, src); l2 > l {
+						t = t2
+						l = l2
+					}
+				}
+				// Test next:
+				t2 = eLong.Prev.offset - e.cur - l
+				off := s - t2
+				if off > 0 && off < maxMatchOffset && t2 >= 0 {
+					if l2 := e.matchlenLong(s, t2, src); l2 > l {
+						t = t2
+						l = l2
+					}
+				}
+			}
+		}
+
 		// Extend backwards
 		for t > 0 && s > nextEmit && src[t-1] == src[s-1] {
 			s--

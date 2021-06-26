@@ -6,14 +6,18 @@ import (
 )
 
 // MLIR lexer.
-var Mlir = internal.Register(MustNewLexer(
+var Mlir = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "MLIR",
 		Aliases:   []string{"mlir"},
 		Filenames: []string{"*.mlir"},
 		MimeTypes: []string{"text/x-mlir"},
 	},
-	Rules{
+	mlirRules,
+))
+
+func mlirRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`c?"[^"]*?"`, LiteralString, nil},
@@ -39,5 +43,5 @@ var Mlir = internal.Register(MustNewLexer(
 			{`bf16|f16|f32|f64|index`, Keyword, nil},
 			{`i[1-9]\d*`, Keyword, nil},
 		},
-	},
-))
+	}
+}
