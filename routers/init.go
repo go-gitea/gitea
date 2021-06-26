@@ -69,7 +69,9 @@ func GlobalInit(ctx context.Context) {
 	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
-	setting.CheckLFSVersion()
+	log.Info(git.VersionInfo())
+
+	git.CheckLFSVersion()
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
