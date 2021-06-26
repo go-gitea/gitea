@@ -5,20 +5,22 @@
 package migrations
 
 import (
-	"fmt"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
+func createProtectedTagTable(x *xorm.Engine) error {
+	type ProtectedTag struct {
+		ID               int64 `xorm:"pk autoincr"`
+		RepoID           int64
+		NamePattern      string
+		AllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		AllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
 
-	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+		CreatedUnix timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(ProtectedTag))
 }

@@ -322,6 +322,8 @@ var migrations = []Migration{
 	// v185 -> v186
 	NewMigration("Add new table repo_archiver", addRepoArchiver),
 	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
 	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
 }
 
