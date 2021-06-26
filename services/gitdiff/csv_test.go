@@ -95,22 +95,28 @@ func TestCSVDiff(t *testing.T) {
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
-			baseReader = csv_module.CreateReaderAndGuessDelimiter([]byte(c.base))
+			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
 		}
 		var headReader *csv.Reader
 		if len(c.head) > 0 {
-			headReader = csv_module.CreateReaderAndGuessDelimiter([]byte(c.head))
+			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
 		}
 
 		result, err := CreateCsvDiff(diff.Files[0], baseReader, headReader)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(result), "case %d: should be one section", n)
+		assert.Len(t, result, 1, "case %d: should be one section", n)
 
 		section := result[0]
-		assert.Equal(t, len(c.cells), len(section.Rows), "case %d: should be %d rows", n, len(c.cells))
+		assert.Len(t, section.Rows, len(c.cells), "case %d: should be %d rows", n, len(c.cells))
 
 		for i, row := range section.Rows {
-			assert.Equal(t, 2, len(row.Cells), "case %d: row %d should have two cells", n, i)
+			assert.Len(t, row.Cells, 2, "case %d: row %d should have two cells", n, i)
 			for j, cell := range row.Cells {
 				assert.Equal(t, c.cells[i][j], cell.Type, "case %d: row %d cell %d should be equal", n, i, j)
 			}

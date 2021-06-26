@@ -5,20 +5,23 @@
 package csv
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateReader(t *testing.T) {
-	rd := CreateReader([]byte{}, ',')
+	rd := CreateReader(bytes.NewReader([]byte{}), ',')
 	assert.Equal(t, ',', rd.Comma)
 }
 
 func TestCreateReaderAndGuessDelimiter(t *testing.T) {
 	input := "a;b;c\n1;2;3\n4;5;6"
 
-	rd := CreateReaderAndGuessDelimiter([]byte(input))
+	rd, err := CreateReaderAndGuessDelimiter(strings.NewReader(input))
+	assert.NoError(t, err)
 	assert.Equal(t, ';', rd.Comma)
 }
 

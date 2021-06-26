@@ -52,6 +52,25 @@ func IsValidURL(uri string) bool {
 	return true
 }
 
+// IsValidSiteURL checks if URL is valid
+func IsValidSiteURL(uri string) bool {
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return false
+	}
+
+	if !validPort(portOnly(u.Host)) {
+		return false
+	}
+
+	for _, scheme := range setting.Service.ValidSiteURLSchemes {
+		if scheme == u.Scheme {
+			return true
+		}
+	}
+	return false
+}
+
 // IsAPIURL checks if URL is current Gitea instance API URL
 func IsAPIURL(uri string) bool {
 	return strings.HasPrefix(strings.ToLower(uri), strings.ToLower(setting.AppURL+"api"))

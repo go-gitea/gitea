@@ -6,6 +6,7 @@
 package context
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/url"
@@ -359,12 +360,16 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 		var err error
 		ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
 		if err != nil {
-			ctx.ServerError("GetMirror", err)
+			ctx.ServerError("GetMirrorByRepoID", err)
 			return
 		}
 		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
 		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
 		ctx.Data["Mirror"] = ctx.Repo.Mirror
+	}
+	if err = repo.LoadPushMirrors(); err != nil {
+		ctx.ServerError("LoadPushMirrors", err)
+		return
 	}
 
 	ctx.Repo.Repository = repo
@@ -393,7 +398,7 @@ func RepoIDAssignment() func(ctx *Context) {
 }
 
 // RepoAssignment returns a middleware to handle repository assignment
-func RepoAssignment(ctx *Context) {
+func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	var (
 		owner *models.User
 		err   error
@@ -529,12 +534,12 @@ func RepoAssignment(ctx *Context) {
 	ctx.Repo.GitRepo = gitRepo
 
 	// We opened it, we should close it
-	defer func() {
+	cancel = func() {
 		// If it's been set to nil then assume someone else has closed it.
 		if ctx.Repo.GitRepo != nil {
 			ctx.Repo.GitRepo.Close()
 		}
-	}()
+	}
 
 	// Stop at this point when the repo is empty.
 	if ctx.Repo.Repository.IsEmpty {
@@ -619,6 +624,7 @@ func RepoAssignment(ctx *Context) {
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 	}
+	return
 }
 
 // RepoRefType type of repo reference
@@ -643,7 +649,7 @@ const (
 
 // RepoRef handles repository reference names when the ref name is not
 // explicitly given
-func RepoRef() func(*Context) {
+func RepoRef() func(*Context) context.CancelFunc {
 	// since no ref name is explicitly specified, ok to just use branch
 	return RepoRefByType(RepoRefBranch)
 }
@@ -722,8 +728,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 
 // RepoRefByType handles repository reference name for a specific type
 // of repository reference
-func RepoRefByType(refType RepoRefType) func(*Context) {
-	return func(ctx *Context) {
+func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context) context.CancelFunc {
+	return func(ctx *Context) (cancel context.CancelFunc) {
 		// Empty repository does not have reference information.
 		if ctx.Repo.Repository.IsEmpty {
 			return
@@ -742,12 +748,12 @@ func RepoRefByType(refType RepoRefType) func(*Context) {
 				return
 			}
 			// We opened it, we should close it
-			defer func() {
+			cancel = func() {
 				// If it's been set to nil then assume someone else has closed it.
 				if ctx.Repo.GitRepo != nil {
 					ctx.Repo.GitRepo.Close()
 				}
-			}()
+			}
 		}
 
 		// Get default branch.
@@ -811,6 +817,9 @@ func RepoRefByType(refType RepoRefType) func(*Context) {
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
 				}
 			} else {
+				if len(ignoreNotExistErr) > 0 && ignoreNotExistErr[0] {
+					return
+				}
 				ctx.NotFound("RepoRef invalid repo", fmt.Errorf("branch or tag not exist: %s", refName))
 				return
 			}
@@ -841,6 +850,7 @@ func RepoRefByType(refType RepoRefType) func(*Context) {
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+		return
 	}
 }
 
@@ -899,12 +909,18 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 					log.Debug("DataAsync: %v", err)
 					continue
 				}
-				defer r.Close()
+				closed := false
+				defer func() {
+					if !closed {
+						_ = r.Close()
+					}
+				}()
 				data, err := ioutil.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue
 				}
+				_ = r.Close()
 				var it api.IssueTemplate
 				content, err := markdown.ExtractMetadata(string(data), &it)
 				if err != nil {

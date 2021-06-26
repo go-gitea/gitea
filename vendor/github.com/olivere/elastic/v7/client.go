@@ -14,6 +14,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,7 @@ import (
 
 const (
 	// Version is the current version of Elastic.
-	Version = "7.0.22"
+	Version = "7.0.24"
 
 	// DefaultURL is the default endpoint of Elasticsearch on the local machine.
 	// It is used e.g. when initializing a new Client without a specific URL.
@@ -983,6 +984,10 @@ func (c *Client) sniffNode(ctx context.Context, url string) []*conn {
 	}
 	c.mu.RUnlock()
 
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Add("User-Agent", "elastic/"+Version+" ("+runtime.GOOS+"-"+runtime.GOARCH+")")
+	}
+
 	res, err := c.c.Do((*http.Request)(req).WithContext(ctx))
 	if err != nil {
 		return nodes
@@ -1125,6 +1130,9 @@ func (c *Client) healthcheck(parentCtx context.Context, timeout time.Duration, f
 						req.Header.Add(key, v)
 					}
 				}
+			}
+			if req.Header.Get("User-Agent") == "" {
+				req.Header.Add("User-Agent", "elastic/"+Version+" ("+runtime.GOOS+"-"+runtime.GOARCH+")")
 			}
 			res, err := c.c.Do((*http.Request)(req).WithContext(ctx))
 			if res != nil {
@@ -1286,6 +1294,7 @@ type PerformRequestOptions struct {
 	RetryStatusCodes []int
 	Headers          http.Header
 	MaxResponseSize  int64
+	Stream           bool
 }
 
 // PerformRequest does a HTTP request to Elasticsearch.
@@ -1294,6 +1303,9 @@ type PerformRequestOptions struct {
 // Optionally, a list of HTTP error codes to ignore can be passed.
 // This is necessary for services that expect e.g. HTTP status 404 as a
 // valid outcome (Exists, IndicesExists, IndicesTypeExists).
+//
+// If Stream is set, the returned BodyReader field must be closed, even
+// if PerformRequest returns an error.
 func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) (*Response, error) {
 	start := time.Now().UTC()
 
@@ -1383,11 +1395,9 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 		if opt.ContentType != "" {
 			req.Header.Set("Content-Type", opt.ContentType)
 		}
-		if len(opt.Headers) > 0 {
-			for key, value := range opt.Headers {
-				for _, v := range value {
-					req.Header.Add(key, v)
-				}
+		for key, value := range opt.Headers {
+			for _, v := range value {
+				req.Header.Add(key, v)
 			}
 		}
 		if len(defaultHeaders) > 0 {
@@ -1396,6 +1406,9 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 					req.Header.Add(key, v)
 				}
 			}
+		}
+		if req.Header.Get("User-Agent") == "" {
+			req.Header.Set("User-Agent", "elastic/"+Version+" ("+runtime.GOOS+"-"+runtime.GOARCH+")")
 		}
 
 		// Set body
@@ -1448,7 +1461,10 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 				continue // try again
 			}
 		}
-		defer res.Body.Close()
+
+		if !opt.Stream {
+			defer res.Body.Close()
+		}
 
 		// Tracing
 		c.dumpResponse(res)
@@ -1465,14 +1481,14 @@ func (c *Client) PerformRequest(ctx context.Context, opt PerformRequestOptions) 
 		if err := checkResponse((*http.Request)(req), res, opt.IgnoreErrors...); err != nil {
 			// No retry if request succeeded
 			// We still try to return a response.
-			resp, _ = c.newResponse(res, opt.MaxResponseSize)
+			resp, _ = c.newResponse(res, opt.MaxResponseSize, opt.Stream)
 			return resp, err
 		}
 
 		// We successfully made a request with this connection
 		conn.MarkAsHealthy()
 
-		resp, err = c.newResponse(res, opt.MaxResponseSize)
+		resp, err = c.newResponse(res, opt.MaxResponseSize, opt.Stream)
 		if err != nil {
 			return nil, err
 		}
@@ -1618,6 +1634,16 @@ func (c *Client) Scroll(indices ...string) *ScrollService {
 // ClearScroll can be used to clear search contexts manually.
 func (c *Client) ClearScroll(scrollIds ...string) *ClearScrollService {
 	return NewClearScrollService(c).ScrollId(scrollIds...)
+}
+
+// OpenPointInTime opens a new Point in Time.
+func (c *Client) OpenPointInTime(indices ...string) *OpenPointInTimeService {
+	return NewOpenPointInTimeService(c).Index(indices...)
+}
+
+// ClosePointInTime closes an existing Point in Time.
+func (c *Client) ClosePointInTime(id string) *ClosePointInTimeService {
+	return NewClosePointInTimeService(c).ID(id)
 }
 
 // -- Indices APIs --
@@ -1835,7 +1861,6 @@ func (c *Client) GetFieldMapping() *IndicesGetFieldMappingService {
 
 // -- cat APIs --
 
-// TODO cat fielddata
 // TODO cat master
 // TODO cat nodes
 // TODO cat pending tasks
@@ -1844,6 +1869,11 @@ func (c *Client) GetFieldMapping() *IndicesGetFieldMappingService {
 // TODO cat thread pool
 // TODO cat shards
 // TODO cat segments
+
+// CatFielddata returns information about the amount of heap memory currently used by the field data cache.
+func (c *Client) CatFielddata() *CatFielddataService {
+	return NewCatFielddataService(c)
+}
 
 // CatAliases returns information about aliases.
 func (c *Client) CatAliases() *CatAliasesService {

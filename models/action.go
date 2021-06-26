@@ -26,31 +26,32 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo          ActionType = iota + 1 // 1
-	ActionRenameRepo                                // 2
-	ActionStarRepo                                  // 3
-	ActionWatchRepo                                 // 4
-	ActionCommitRepo                                // 5
-	ActionCreateIssue                               // 6
-	ActionCreatePullRequest                         // 7
-	ActionTransferRepo                              // 8
-	ActionPushTag                                   // 9
-	ActionCommentIssue                              // 10
-	ActionMergePullRequest                          // 11
-	ActionCloseIssue                                // 12
-	ActionReopenIssue                               // 13
-	ActionClosePullRequest                          // 14
-	ActionReopenPullRequest                         // 15
-	ActionDeleteTag                                 // 16
-	ActionDeleteBranch                              // 17
-	ActionMirrorSyncPush                            // 18
-	ActionMirrorSyncCreate                          // 19
-	ActionMirrorSyncDelete                          // 20
-	ActionApprovePullRequest                        // 21
-	ActionRejectPullRequest                         // 22
-	ActionCommentPull                               // 23
-	ActionPublishRelease                            // 24
-	ActionPullReviewDismissed                       // 25
+	ActionCreateRepo                ActionType = iota + 1 // 1
+	ActionRenameRepo                                      // 2
+	ActionStarRepo                                        // 3
+	ActionWatchRepo                                       // 4
+	ActionCommitRepo                                      // 5
+	ActionCreateIssue                                     // 6
+	ActionCreatePullRequest                               // 7
+	ActionTransferRepo                                    // 8
+	ActionPushTag                                         // 9
+	ActionCommentIssue                                    // 10
+	ActionMergePullRequest                                // 11
+	ActionCloseIssue                                      // 12
+	ActionReopenIssue                                     // 13
+	ActionClosePullRequest                                // 14
+	ActionReopenPullRequest                               // 15
+	ActionDeleteTag                                       // 16
+	ActionDeleteBranch                                    // 17
+	ActionMirrorSyncPush                                  // 18
+	ActionMirrorSyncCreate                                // 19
+	ActionMirrorSyncDelete                                // 20
+	ActionApprovePullRequest                              // 21
+	ActionRejectPullRequest                               // 22
+	ActionCommentPull                                     // 23
+	ActionPublishRelease                                  // 24
+	ActionPullReviewDismissed                             // 25
+	ActionPullRequestReadyForReview                       // 26
 )
 
 // Action represents user operation type and other information to
@@ -394,4 +395,14 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	return cond, nil
+}
+
+// DeleteOldActions deletes all old actions from database.
+func DeleteOldActions(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	return
 }

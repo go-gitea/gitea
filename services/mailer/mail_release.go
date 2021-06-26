@@ -10,8 +10,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -48,19 +50,28 @@ func MailNewRelease(rel *models.Release) {
 func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	locale := translation.NewLocale(lang)
 
-	rel.RenderedNote = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
+	var err error
+	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: rel.Repo.Link(),
+		Metas:     rel.Repo.ComposeMetas(),
+	}, rel.Note)
+	if err != nil {
+		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
+		return
+	}
 
 	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]interface{}{
 		"Release":  rel,
 		"Subject":  subject,
-		"i18n":     locale,
 		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
 	}
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return

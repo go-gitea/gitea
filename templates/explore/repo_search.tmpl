@@ -12,8 +12,10 @@
 			<a class="{{if eq .SortType "reversealphabetically"}}active{{end}} item" href="{{$.Link}}?sort=reversealphabetically&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</a>
 			<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?sort=recentupdate&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
 			<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?sort=leastupdate&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-			<a class="{{if eq .SortType "moststars"}}active{{end}} item" href="{{$.Link}}?sort=moststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.moststars"}}</a>
-			<a class="{{if eq .SortType "feweststars"}}active{{end}} item" href="{{$.Link}}?sort=feweststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.feweststars"}}</a>
+			{{if not .DisableStars}}
+				<a class="{{if eq .SortType "moststars"}}active{{end}} item" href="{{$.Link}}?sort=moststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.moststars"}}</a>
+				<a class="{{if eq .SortType "feweststars"}}active{{end}} item" href="{{$.Link}}?sort=feweststars&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.feweststars"}}</a>
+			{{end}}
 			<a class="{{if eq .SortType "mostforks"}}active{{end}} item" href="{{$.Link}}?sort=mostforks&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.mostforks"}}</a>
 			<a class="{{if eq .SortType "fewestforks"}}active{{end}} item" href="{{$.Link}}?sort=fewestforks&q={{$.Keyword}}&tab={{$.TabName}}">{{.i18n.Tr "repo.issues.filter_sort.fewestforks"}}</a>
 		</div>

@@ -226,7 +226,7 @@ type UpdateProfileForm struct {
 	Name                string `binding:"AlphaDashDot;MaxSize(40)"`
 	FullName            string `binding:"MaxSize(100)"`
 	KeepEmailPrivate    bool
-	Website             string `binding:"ValidUrl;MaxSize(255)"`
+	Website             string `binding:"ValidSiteUrl;MaxSize(255)"`
 	Location            string `binding:"MaxSize(50)"`
 	Language            string
 	Description         string `binding:"MaxSize(255)"`

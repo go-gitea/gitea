@@ -5,13 +5,14 @@
 package models
 
 import (
+	"bufio"
+	"bytes"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 )
@@ -49,9 +50,9 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 	}
 
 	gt.globs = make([]glob.Glob, 0)
-	lines := strings.Split(string(util.NormalizeEOL(gt.Content)), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
+	scanner := bufio.NewScanner(bytes.NewReader(gt.Content))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}

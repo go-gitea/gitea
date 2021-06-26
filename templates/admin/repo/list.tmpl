@@ -52,8 +52,30 @@
 							</td>
 							<td>
 								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
-								{{if .IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+								{{if .IsArchived}}
+									<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+								{{end}}
+								{{if .IsTemplate}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+										{{end}}
+									{{end}}
+								{{else}}
+									{{if .IsPrivate}}
+										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private"}}</span>
+									{{else}}
+										{{if .Owner.Visibility.IsPrivate}}
+											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+										{{end}}
+									{{end}}
+								{{end}}
+								{{if .IsFork}}
+									{{svg "octicon-repo-forked"}}
+								{{else if .IsMirror}}
+									{{svg "octicon-mirror"}}
 								{{end}}
 							</td>
 							<td>{{.NumWatches}}</td>

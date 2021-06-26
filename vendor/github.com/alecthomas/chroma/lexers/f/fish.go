@@ -6,14 +6,18 @@ import (
 )
 
 // Fish lexer.
-var Fish = internal.Register(MustNewLexer(
+var Fish = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Fish",
 		Aliases:   []string{"fish", "fishshell"},
 		Filenames: []string{"*.fish", "*.load"},
 		MimeTypes: []string{"application/x-fish"},
 	},
-	Rules{
+	fishRules,
+))
+
+func fishRules() Rules {
+	return Rules{
 		"root": {
 			Include("basic"),
 			Include("data"),
@@ -61,5 +65,5 @@ var Fish = internal.Register(MustNewLexer(
 			{`\d+`, LiteralNumber, nil},
 			Include("root"),
 		},
-	},
-))
+	}
+}

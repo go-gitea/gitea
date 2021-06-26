@@ -1,10 +1,11 @@
 import imageminZopfli from 'imagemin-zopfli';
 import {optimize, extendDefaultPlugins} from 'svgo';
 import {fabric} from 'fabric';
-import {readFile, writeFile} from 'fs/promises';
+import fs from 'fs';
 import {resolve, dirname} from 'path';
 import {fileURLToPath} from 'url';
 
+const {readFile, writeFile} = fs.promises;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const logoFile = resolve(__dirname, '../assets/logo.svg');
 

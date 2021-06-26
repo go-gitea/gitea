@@ -28,21 +28,19 @@ var prQueue queue.UniqueQueue
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
-	go func() {
-		err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
-			pr.Status = models.PullRequestStatusChecking
-			err := pr.UpdateColsIfNotMerged("status")
-			if err != nil {
-				log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
-			} else {
-				log.Trace("Adding PR ID: %d to the test pull requests queue", pr.ID)
-			}
-			return err
-		})
-		if err != nil && err != queue.ErrAlreadyInQueue {
-			log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
+	err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+		pr.Status = models.PullRequestStatusChecking
+		err := pr.UpdateColsIfNotMerged("status")
+		if err != nil {
+			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+		} else {
+			log.Trace("Adding PR ID: %d to the test pull requests queue", pr.ID)
 		}
-	}()
+		return err
+	})
+	if err != nil && err != queue.ErrAlreadyInQueue {
+		log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
+	}
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,

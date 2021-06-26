@@ -11,6 +11,7 @@ import (
 	"context"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
@@ -78,6 +79,7 @@ loop:
 			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}
+		sha = strings.TrimSpace(sha)
 		// Throw away the blob
 		if _, err := bufferedReader.ReadString(' '); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)

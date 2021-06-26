@@ -4,14 +4,16 @@
 
 package queue
 
+import "context"
+
 // ByteFIFO defines a FIFO that takes a byte array
 type ByteFIFO interface {
 	// Len returns the length of the fifo
-	Len() int64
+	Len(ctx context.Context) int64
 	// PushFunc pushes data to the end of the fifo and calls the callback if it is added
-	PushFunc(data []byte, fn func() error) error
+	PushFunc(ctx context.Context, data []byte, fn func() error) error
 	// Pop pops data from the start of the fifo
-	Pop() ([]byte, error)
+	Pop(ctx context.Context) ([]byte, error)
 	// Close this fifo
 	Close() error
 }
@@ -20,7 +22,7 @@ type ByteFIFO interface {
 type UniqueByteFIFO interface {
 	ByteFIFO
 	// Has returns whether the fifo contains this data
-	Has(data []byte) (bool, error)
+	Has(ctx context.Context, data []byte) (bool, error)
 }
 
 var _ ByteFIFO = &DummyByteFIFO{}
@@ -29,12 +31,12 @@ var _ ByteFIFO = &DummyByteFIFO{}
 type DummyByteFIFO struct{}
 
 // PushFunc returns nil
-func (*DummyByteFIFO) PushFunc(data []byte, fn func() error) error {
+func (*DummyByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
 	return nil
 }
 
 // Pop returns nil
-func (*DummyByteFIFO) Pop() ([]byte, error) {
+func (*DummyByteFIFO) Pop(ctx context.Context) ([]byte, error) {
 	return []byte{}, nil
 }
 
@@ -44,7 +46,7 @@ func (*DummyByteFIFO) Close() error {
 }
 
 // Len is always 0
-func (*DummyByteFIFO) Len() int64 {
+func (*DummyByteFIFO) Len(ctx context.Context) int64 {
 	return 0
 }
 
@@ -56,6 +58,6 @@ type DummyUniqueByteFIFO struct {
 }
 
 // Has always returns false
-func (*DummyUniqueByteFIFO) Has([]byte) (bool, error) {
+func (*DummyUniqueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
 	return false, nil
 }
