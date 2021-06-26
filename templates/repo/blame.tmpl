@@ -24,8 +24,8 @@
 			<table>
 				<tbody>
 					{{range $row := .BlameRows}}
-					  <tr class="{{if and (gt $.CommitCnt 1) ($row.CommitMessage)}}bottom-line-blame{{end}}">
-						  <td class="lines-commit">
+						<tr class="{{if and (gt $.CommitCnt 1) ($row.CommitMessage)}}bottom-line-blame{{end}}">
+							<td class="lines-commit">
 								<div class="blame-info">
 									<div class="blame-data">
 										<div class="blame-avatar">
@@ -43,7 +43,7 @@
 								</div>
 							</td>
 							<td class="lines-blame-btn">
-							  {{if $row.PreviousSha}}
+								{{if $row.PreviousSha}}
 									<a href="{{$row.PreviousShaURL}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
 										{{svg "octicon-versions"}}
 									</a>
