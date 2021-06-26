@@ -23,7 +23,7 @@
 		<div class="file-view code-view">
 			<table>
 				<tbody>
-					{{range $row := .Codes}}
+					{{range $row := .BlameRows}}
 					  <tr class="{{if and (gt $.CommitCnt 1) ($row.CommitMessage)}}bottom-line-blame{{end}}">
 						  <td class="lines-commit">
 								<div class="blame-info">

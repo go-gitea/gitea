@@ -267,6 +267,6 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 		}
 	}
 
-	ctx.Data["Codes"] = rows
+	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
 }
