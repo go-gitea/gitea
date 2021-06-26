@@ -621,6 +621,7 @@ func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload s
 func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 	uid := int64(0)
 	var userEmails []*EmailAddress
+	var user *User
 	for _, key := range keys {
 		for _, e := range key.Emails {
 			if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
@@ -631,11 +632,16 @@ func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 			if uid != key.OwnerID {
 				userEmails, _ = GetEmailAddresses(key.OwnerID)
 				uid = key.OwnerID
+				user = &User{ID: uid}
+				_, _ = GetUser(user)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
 					return true, e.Email
 				}
+			}
+			if user.KeepEmailPrivate && strings.EqualFold(email, user.GetEmail()) {
+				return true, user.GetEmail()
 			}
 		}
 	}
