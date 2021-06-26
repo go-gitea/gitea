@@ -87,49 +87,34 @@ func InitWiki(repo *models.Repository) error {
 	return nil
 }
 
-func checkFileExistence(gitRepo *git.Repository, filePath string) (bool, error) {
-	filesInIndex, err := gitRepo.LsFiles(filePath)
-	if err != nil {
-		log.Error("%v", err)
-		return false, err
-	}
-	if util.IsStringInSlice(filePath, filesInIndex) {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // prepareWikiFileName try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
 func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string, error) {
 	// Pass in the raw unchanged name
 	// Add ".md" suffix if not there.
-	newWikiPath := NameToUnescapedFilename(wikiName)
-	// Look for this raw suffixed name within the stringslice - that works return true, rawSuffixed, nil
-	isWikiExist, err := checkFileExistence(gitRepo, newWikiPath)
+	unescaped := NameToUnescapedFilename(wikiName)
+	escaped := NameToFilename(wikiName)
+
+	// Look for both files
+	filesInIndex, err := gitRepo.LsFiles(unescaped, escaped)
 	if err != nil {
-		return isWikiExist, newWikiPath, err
+		log.Error("%v", err)
+		return false, escaped, err
 	}
 
-	if isWikiExist {
-		return true, newWikiPath, nil
+	foundEscaped := false
+	for _, filename := range filesInIndex {
+		switch filename {
+		case unescaped:
+			// if we find the unescaped file return it
+			return true, unescaped, nil
+		case escaped:
+			foundEscaped = true
+		}
 	}
 
-	// If not normalize and look for that - if that works returns true, normalized path, nil
-	newWikiPath = NameToFilename(wikiName)
-	isWikiExist, err = checkFileExistence(gitRepo, newWikiPath)
-	if err != nil {
-		return isWikiExist, newWikiPath, err
-	}
-
-	if isWikiExist {
-		return true, newWikiPath, nil
-	}
-
-	// If not return false, raw suffixed, nil
-	// blumia: we prefer use the normalized path here to keep compatible with old version.
-	return false, newWikiPath, nil
+	// If not return whether the escaped file exists, and the escaped filename to keep backwards compatibility.
+	return foundEscaped, escaped, nil
 }
 
 // updateWikiPage adds a new page to the repository wiki.
