@@ -15,6 +15,8 @@ import (
 
 // Service settings
 var Service struct {
+	DefaultUserVisibility                   string
+	DefaultUserVisibilityMode               structs.VisibleType
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -118,6 +120,8 @@ func newService() {
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
+	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
+	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
