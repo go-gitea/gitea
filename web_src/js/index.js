@@ -1,30 +1,30 @@
-import { htmlEscape } from 'escape-goat';
-import 'jquery.are-you-sure';
+import './publicpath.js';
+
 import Vue from 'vue';
-import { showLineButton } from './code/linebutton.js';
+import {htmlEscape} from 'escape-goat';
+import 'jquery.are-you-sure';
+
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
-import initClipboard from './features/clipboard.js';
-import { createCodeEditor, createMonaco } from './features/codeeditor.js';
+import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
-import initContextPopups from './features/contextpopup.js';
 import createDropzone from './features/dropzone.js';
+import initClipboard from './features/clipboard.js';
+import initContextPopups from './features/contextpopup.js';
 import initGitGraph from './features/gitgraph.js';
 import initHeatmap from './features/heatmap.js';
 import initImageDiff from './features/imagediff.js';
 import initMigration from './features/migration.js';
-import { initNotificationCount, initNotificationsTable } from './features/notification.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
-import { initStopwatch } from './features/stopwatch.js';
 import initTableSort from './features/tablesort.js';
-import attachTribute from './features/tribute.js';
-import { initMarkupAnchors } from './markup/anchors.js';
-import { initCommentContent, initMarkupContent } from './markup/content.js';
-import './publicpath.js';
-import { svg, svgs } from './svg.js';
-import { mqBinarySearch, stripTags } from './utils.js';
-
-
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {initMarkupAnchors} from './markup/anchors.js';
+import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {initStopwatch} from './features/stopwatch.js';
+import {showLineButton} from './code/linebutton.js';
+import {initMarkupContent, initCommentContent} from './markup/content.js';
+import {stripTags, mqBinarySearch} from './utils.js';
+import {svg, svgs} from './svg.js';
 
 const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
