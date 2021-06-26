@@ -199,7 +199,11 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 		return nil, ConcatenateError(err, stderr.String())
 	}
 	if stdout.Len() > 0 && log.IsTrace() {
-		log.Trace("Stdout:\n %s", stdout.Bytes()[:1024])
+		tracelen := stdout.Len()
+		if tracelen > 1024 {
+			tracelen = 1024
+		}
+		log.Trace("Stdout:\n %s", stdout.Bytes()[:tracelen])
 	}
 	return stdout.Bytes(), nil
 }
