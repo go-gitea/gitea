@@ -1497,6 +1497,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Mirror{RepoID: repoID},
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
+		&ProtectedTag{RepoID: repoID},
 		&PullRequest{BaseRepoID: repoID},
 		&PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
