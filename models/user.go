@@ -434,7 +434,10 @@ func (u *User) IsPasswordSet() bool {
 
 // IsVisibleToUser check if viewer is able to see user profile
 func (u *User) IsVisibleToUser(viewer *User) bool {
+	return u.isVisibleToUser(x, viewer)
+}
 
+func (u *User) isVisibleToUser(e Engine, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}
@@ -458,53 +461,28 @@ func (u *User) IsVisibleToUser(viewer *User) bool {
 			return true
 		}
 
-		// Now we need to check if they in some team together
-
-		var orgIds1 []int64
-		var orgIds2 []int64
-
-		// First user all teams organization
-		if err := x.Table("team_user").
-			Cols("team_user.org_id").
-			Where("team_user.uid = ?", u.ID).
-			Find(&orgIds1); err != nil {
-			return false
-		}
-		if len(orgIds1) == 0 {
-			// No teams 1
-			return false
-		}
-
-		// Second user all teams organization
-		if err := x.Table("team_user").
-			Cols("team_user.org_id").
-			Where("team_user.uid = ?", viewer.ID).
-			Find(&orgIds2); err != nil {
-			return false
-		}
-		if len(orgIds2) == 0 {
-			// No teams 2
-			return false
-		}
-
-		// Intersect they organizations
-		var cond builder.Cond = builder.
-			In("id", orgIds1).
-			And(builder.In("id", orgIds2)).
-			And(builder.Eq{"type": UserTypeOrganization})
-		count, err := x.Table("user").
-			Cols("id").
-			Where(cond).
-			Count(1)
+		// Now we need to check if they in some organization together
+		count, err := x.Table("team_user").
+			Where(
+				builder.And(
+					builder.Eq{"uid": viewer.ID},
+					builder.Or(
+						builder.Eq{"org_id": u.ID},
+						builder.In("org_id",
+							builder.Select("org_id").
+								From("team_user", "t2").
+								Where(builder.Eq{"uid": u.ID}))))).
+			Count(new(TeamUser))
 		if err != nil {
 			return false
 		}
-		if count == 0 {
-			// they teams from different orgs?
+
+		if count < 0 {
+			// No common organization
 			return false
 		}
 
-		// they in some organizations together
+		// they are in an organization together
 		return true
 	}
 	return false
