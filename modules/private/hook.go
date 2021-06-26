@@ -89,12 +89,13 @@ type HockProcReceiveResult struct {
 
 // HockProcReceiveRefResult represents an individual result from ProcReceive
 type HockProcReceiveRefResult struct {
-	OldOID      string
-	NewOID      string
-	Ref         string
-	OrignRef    string
-	IsForcePush bool
-	Err         string
+	OldOID       string
+	NewOID       string
+	Ref          string
+	OriginalRef  string
+	IsForcePush  bool
+	IsNotMatched bool
+	Err          string
 }
 
 // HookPreReceive check whether the provided commits are allowed

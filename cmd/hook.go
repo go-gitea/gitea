@@ -217,6 +217,11 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
+	supportProcRecive := false
+	if git.CheckGitVersionAtLeast("2.29") == nil {
+		supportProcRecive = true
+	}
+
 	for scanner.Scan() {
 		// TODO: support news feeds for wiki
 		if isWiki {
@@ -235,7 +240,9 @@ Gitea or set your environment appropriately.`, "")
 		lastline++
 
 		// If the ref is a branch or tag, check if it's protected
-		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
+		// if supportProcRecive all ref should be checked because
+		// permission check was delayed
+		if supportProcRecive || strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
@@ -602,14 +609,23 @@ Gitea or set your environment appropriately.`, "")
 	// H: flush-pkt
 	// # b. NO, I reject it.
 	// H: PKT-LINE(ng <ref> <reason>)
+	// # c. Fall through, let 'receive-pack' to execute it.
+	// H: PKT-LINE(ok <ref>)
+	//H: PKT-LINE(option fall-through)
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {
-			writeDataPktLine(os.Stdout, []byte("ng "+rs.OrignRef+" "+rs.Err))
+			writeDataPktLine(os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
 			continue
 		}
 
-		writeDataPktLine(os.Stdout, []byte("ok "+rs.OrignRef))
+		if rs.IsNotMatched {
+			writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
+			writeDataPktLine(os.Stdout, []byte("option fall-through"))
+			continue
+		}
+
+		writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
 		writeDataPktLine(os.Stdout, []byte("option refname "+rs.Ref))
 		if rs.OldOID != git.EmptySHA {
 			writeDataPktLine(os.Stdout, []byte("option old-oid "+rs.OldOID))

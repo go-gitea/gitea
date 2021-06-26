@@ -429,6 +429,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
+		} else if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix) {
+			continue
 		} else {
 			log.Error("Unexpected ref: %s", refFullName)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -656,10 +658,18 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
 			results = append(results, private.HockProcReceiveRefResult{
-				OrignRef: opts.RefFullNames[i],
-				OldOID:   opts.OldCommitIDs[i],
-				NewOID:   opts.NewCommitIDs[i],
-				Err:      "Can't delete not exist branch",
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "Can't delete not exist branch",
+			})
+			continue
+		}
+
+		if !strings.HasPrefix(opts.RefFullNames[i], git.PullRequestPrefix) {
+			results = append(results, private.HockProcReceiveRefResult{
+				IsNotMatched: true,
+				OriginalRef:  opts.RefFullNames[i],
 			})
 			continue
 		}
@@ -679,10 +689,10 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 
 		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
 			results = append(results, private.HockProcReceiveRefResult{
-				OrignRef: opts.RefFullNames[i],
-				OldOID:   opts.OldCommitIDs[i],
-				NewOID:   opts.NewCommitIDs[i],
-				Err:      "topic-branch is not set",
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "topic-branch is not set",
 			})
 		}
 
@@ -770,10 +780,10 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
 			results = append(results, private.HockProcReceiveRefResult{
-				Ref:      pr.GetGitRefName(),
-				OrignRef: opts.RefFullNames[i],
-				OldOID:   git.EmptySHA,
-				NewOID:   opts.NewCommitIDs[i],
+				Ref:         pr.GetGitRefName(),
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      git.EmptySHA,
+				NewOID:      opts.NewCommitIDs[i],
 			})
 			continue
 		}
@@ -833,7 +843,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			OldOID:      old,
 			NewOID:      opts.NewCommitIDs[i],
 			Ref:         pr.GetGitRefName(),
-			OrignRef:    opts.RefFullNames[i],
+			OriginalRef: opts.RefFullNames[i],
 			IsForcePush: isForcePush,
 		})
 	}

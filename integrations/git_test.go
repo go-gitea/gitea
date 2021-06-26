@@ -620,6 +620,8 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			return
 		}
 
+		pullNum := models.GetCount(t, &models.PullRequest{})
+
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
 		t.Run("AddCommit", func(t *testing.T) {
@@ -654,6 +656,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			if !assert.NoError(t, err) {
 				return
 			}
+			models.AssertCount(t, &models.PullRequest{}, pullNum+1)
 			pr1 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Style:      models.PullRequestStyleAGit,
@@ -674,6 +677,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			if !assert.NoError(t, err) {
 				return
 			}
+			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			pr2 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
@@ -726,6 +730,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			if !assert.NoError(t, err) {
 				return
 			}
+			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -737,7 +742,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			if !assert.NoError(t, err) {
 				return
 			}
-
+			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return
