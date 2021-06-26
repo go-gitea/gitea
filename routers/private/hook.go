@@ -430,12 +430,34 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				return
 			}
 		} else if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix) {
-			continue
+			baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+
+			baseBranchExist := false
+			if gitRepo.IsBranchExist(baseBranchName) {
+				baseBranchExist = true
+			}
+
+			if !baseBranchExist {
+				for p, v := range baseBranchName {
+					if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+						baseBranchExist = true
+						break
+					}
+				}
+			}
+
+			if !baseBranchExist {
+				ctx.JSON(http.StatusForbidden, private.Response{
+					Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
+				})
+				return
+			}
 		} else {
 			log.Error("Unexpected ref: %s", refFullName)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
 			})
+			return
 		}
 	}
 
