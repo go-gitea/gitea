@@ -45,7 +45,6 @@ func NormalizeWikiName(name string) string {
 
 // NameToUnescapedFilename converts a wiki name to its corresponding filename without url query escape.
 func NameToUnescapedFilename(name string) string {
-	name = strings.ReplaceAll(name, " ", "-")
 	return name + ".md"
 }
 
