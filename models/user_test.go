@@ -322,6 +322,28 @@ func TestCreateUser(t *testing.T) {
 	assert.NoError(t, DeleteUser(user))
 }
 
+func TestCreateUserWithRestrictedUserByDefault(t *testing.T) {
+	user := &User{
+		Name:               "GiteaBot",
+		Email:              "GiteaBot@gitea.io",
+		Passwd:             ";p['////..-++']",
+		IsAdmin:            false,
+		Theme:              setting.UI.DefaultTheme,
+		MustChangePassword: false,
+	}
+
+	setting.Service.DefaultUserIsRestricted = true
+
+	assert.NoError(t, CreateUser(user))
+
+	savedUser, err := GetUserByEmail(user.Email)
+	assert.NoError(t, err)
+
+	assert.Equal(t, savedUser.IsRestricted, true)
+
+	assert.NoError(t, DeleteUser(savedUser))
+}
+
 func TestCreateUserInvalidEmail(t *testing.T) {
 	user := &User{
 		Name:               "GiteaBot",
