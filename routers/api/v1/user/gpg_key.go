@@ -7,11 +7,8 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"strconv"
-	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -123,8 +120,8 @@ func GetGPGKey(ctx *context.APIContext) {
 
 // CreateUserGPGKey creates new GPG key to given user by ID.
 func CreateUserGPGKey(ctx *context.APIContext, form api.CreateGPGKeyOption, uid int64) {
-	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
-	lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	token := models.VerificationToken(ctx.User, 1)
+	lastToken := models.VerificationToken(ctx.User, 0)
 
 	keys, err := models.AddGPGKey(uid, form.ArmoredKey, token, form.Signature)
 	if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
@@ -151,7 +148,7 @@ func GetVerificationToken(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	token := models.VerificationToken(ctx.User, 1)
 	ctx.PlainText(http.StatusOK, []byte(token))
 }
 
@@ -173,8 +170,8 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
-	token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
-	lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	token := models.VerificationToken(ctx.User, 1)
+	lastToken := models.VerificationToken(ctx.User, 0)
 
 	_, err := models.VerifyGPGKey(ctx.User.ID, form.KeyID, token, form.Signature)
 	if err != nil && models.IsErrGPGInvalidTokenSignature(err) {

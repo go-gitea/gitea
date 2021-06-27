@@ -7,8 +7,6 @@ package setting
 
 import (
 	"net/http"
-	"strconv"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -78,8 +76,8 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
-		token := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
-		lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+		token := models.VerificationToken(ctx.User, 1)
+		lastToken := models.VerificationToken(ctx.User, 0)
 
 		keys, err := models.AddGPGKey(ctx.User.ID, form.Content, token, form.Signature)
 		if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
@@ -125,8 +123,8 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_gpg_key_success", keyIDs))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "verify_gpg":
-		token := base.EncodeSha256(time.Now().Round(5*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
-		lastToken := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+		token := models.VerificationToken(ctx.User, 1)
+		lastToken := models.VerificationToken(ctx.User, 0)
 
 		keyID, err := models.VerifyGPGKey(ctx.User.ID, form.KeyID, token, form.Signature)
 		if err != nil && models.IsErrGPGInvalidTokenSignature(err) {
@@ -255,7 +253,7 @@ func loadKeysData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["GPGKeys"] = gpgkeys
-	tokenToSign := base.EncodeSha256(time.Now().Truncate(1*time.Minute).Add(1*time.Minute).Format(time.RFC1123Z) + ":" + ctx.User.CreatedUnix.FormatLong() + ":" + ctx.User.Name + ":" + ctx.User.Email + ":" + strconv.FormatInt(ctx.User.ID, 10))
+	tokenToSign := models.VerificationToken(ctx.User, 1)
 
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign

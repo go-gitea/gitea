@@ -4,7 +4,13 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/log"
+import (
+	"strconv"
+	"time"
+
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
+)
 
 //   __________________  ________   ____  __.
 //  /  _____/\______   \/  _____/  |    |/ _|____ ___.__.
@@ -94,4 +100,14 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 
 	return key.KeyID, nil
+}
+
+// VerificationToken returns token for the user that will be valid in minutes minutes time
+func VerificationToken(user *User, minutes int) string {
+	return base.EncodeSha256(
+		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(time.RFC1123Z) + ":" +
+			user.CreatedUnix.FormatLong() + ":" +
+			user.Name + ":" +
+			user.Email + ":" +
+			strconv.FormatInt(user.ID, 10))
 }
