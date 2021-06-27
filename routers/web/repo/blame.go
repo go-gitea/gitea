@@ -156,7 +156,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 			continue
 		}
 
-		// find the blamePart commit, to look up parent & email adress for avatars
+		// find the blamePart commit, to look up parent & email address for avatars
 		commit, ok := commitCache[sha]
 		var err error
 		if !ok {
