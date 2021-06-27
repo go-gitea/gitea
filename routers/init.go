@@ -72,10 +72,10 @@ func GlobalInit(ctx context.Context) {
 	log.Info(git.VersionInfo())
 
 	git.CheckLFSVersion()
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 
 	// Setup i18n
