@@ -1069,11 +1069,7 @@ func validateUser(u *User) error {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	if err := ValidateEmail(u.Email); err != nil {
-		return err
-	}
-
-	return nil
+	return ValidateEmail(u.Email)
 }
 
 func updateUser(e Engine, u *User) error {
