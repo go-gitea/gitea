@@ -796,15 +796,30 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			}
 		}
 
+		committerEmailAddresses, _ := GetEmailAddresses(committer.ID)
+		activated := false
+		for _, e := range committerEmailAddresses {
+			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
+				activated = true
+				break
+			}
+		}
+
 		for _, k := range keys {
 			// Pre-check (& optimization) that emails attached to key can be attached to the commiter email and can validate
 			canValidate := false
 			email := ""
-			for _, e := range k.Emails {
-				if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-					canValidate = true
-					email = e.Email
-					break
+			if k.Verified && activated {
+				canValidate = true
+				email = c.Committer.Email
+			}
+			if !canValidate {
+				for _, e := range k.Emails {
+					if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
+						canValidate = true
+						email = e.Email
+						break
+					}
 				}
 			}
 			if !canValidate {
