@@ -122,17 +122,30 @@ func RefBlame(ctx *context.Context) {
 		blameParts = append(blameParts, *blamePart)
 	}
 
-	// PREVIOUS BLAME LINK RESOLVER
-	//
-	// we look for the SHAs of the blameParts parent commit. so we..
-	// 1 resolve the blamePart commit to
-	// 2 look up its parent
-	// 3 validate that the parent commit holds the current treepath
-	// 4 store the parent SHA if successful
-	// and as blameParts can reference the same commits multiple
-	// times, we cache the work locally
+	// Get Topics of this repo
+	renderRepoTopics(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	commitNames, previousCommits := processBlameParts(ctx, blameParts)
+	if ctx.Written() {
+		return
+	}
+
+	renderBlame(ctx, blameParts, commitNames, previousCommits)
+
+	ctx.HTML(http.StatusOK, tplBlame)
+}
+
+func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]models.UserCommit, map[string]string) {
+	// store commit data by SHA to look up avatar info etc
 	commitNames := make(map[string]models.UserCommit)
+	// previousCommits contains links from SHA to parent SHA,
+	// if parent also contains the current TreePath.
 	previousCommits := make(map[string]string)
+	// and as blameParts can reference the same commits multiple
+	// times, we cache the lookup work locally
 	commits := list.New()
 	commitCache := map[string]*git.Commit{}
 	commitCache[ctx.Repo.Commit.ID.String()] = ctx.Repo.Commit
@@ -143,7 +156,9 @@ func RefBlame(ctx *context.Context) {
 			continue
 		}
 
+		// find the blamePart commit, to look up parent & email adress for avatars
 		commit, ok := commitCache[sha]
+		var err error
 		if !ok {
 			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
 			if err != nil {
@@ -152,12 +167,12 @@ func RefBlame(ctx *context.Context) {
 				} else {
 					ctx.ServerError("Repo.GitRepo.GetCommit", err)
 				}
-				return
+				return nil, nil
 			}
 			commitCache[sha] = commit
 		}
 
-		// populate parent
+		// find parent commit
 		if commit.ParentCount() > 0 {
 			psha := commit.Parents[0]
 			previousCommit, ok := commitCache[psha.String()]
@@ -167,6 +182,7 @@ func RefBlame(ctx *context.Context) {
 					commitCache[psha.String()] = previousCommit
 				}
 			}
+			// only store parent commit ONCE, if it has the file
 			if previousCommit != nil {
 				if haz1, _ := previousCommit.HasFile(ctx.Repo.TreePath); haz1 {
 					previousCommits[commit.ID.String()] = previousCommit.ID.String()
@@ -181,22 +197,12 @@ func RefBlame(ctx *context.Context) {
 
 	// populate commit email adresses to later look up avatars.
 	commits = models.ValidateCommitsWithEmails(commits)
-
 	for e := commits.Front(); e != nil; e = e.Next() {
 		c := e.Value.(models.UserCommit)
-
 		commitNames[c.ID.String()] = c
 	}
 
-	// Get Topics of this repo
-	renderRepoTopics(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	renderBlame(ctx, blameParts, commitNames, previousCommits)
-
-	ctx.HTML(http.StatusOK, tplBlame)
+	return commitNames, previousCommits
 }
 
 func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]models.UserCommit, previousCommits map[string]string) {
