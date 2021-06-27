@@ -55,9 +55,6 @@ type (
 	}
 )
 
-// SetSecret sets the MSTeams secret
-func (m *MSTeamsPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the MSTeamsPayload to json
 func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary

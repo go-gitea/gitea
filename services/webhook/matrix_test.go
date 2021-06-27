@@ -184,6 +184,8 @@ func TestMatrixJSONPayload(t *testing.T) {
 }
 
 func TestMatrixHookRequest(t *testing.T) {
+	w := &models.Webhook{}
+
 	h := &models.HookTask{
 		PayloadContent: `{
   "body": "[[user1/test](http://localhost:3000/user1/test)] user1 pushed 1 commit to [master](http://localhost:3000/user1/test/src/branch/master):\n[5175ef2](http://localhost:3000/user1/test/commit/5175ef26201c58b035a3404b3fe02b4e8d436eee): Merge pull request 'Change readme.md' (#2) from add-matrix-webhook into master\n\nReviewed-on: http://localhost:3000/user1/test/pulls/2\n - user1",
@@ -245,7 +247,7 @@ func TestMatrixHookRequest(t *testing.T) {
   ]
 }`
 
-	req, err := getMatrixHookRequest(h)
+	req, err := getMatrixHookRequest(w, h)
 	require.NoError(t, err)
 	require.NotNil(t, req)
 
