@@ -69,7 +69,7 @@ func (source *Source) FromDB(bs []byte) error {
 		Source: source,
 	}
 
-	err := models.JsonUnmarshalIgnoreErroneousBOM(bs, &wrapped)
+	err := models.JSONUnmarshalIgnoreErroneousBOM(bs, &wrapped)
 	if err != nil {
 		return err
 	}

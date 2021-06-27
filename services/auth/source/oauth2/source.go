@@ -32,7 +32,7 @@ type Source struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JsonUnmarshalIgnoreErroneousBOM(bs, source)
+	return models.JSONUnmarshalIgnoreErroneousBOM(bs, source)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
