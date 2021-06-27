@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -87,25 +86,6 @@ func RefBlame(ctx *context.Context) {
 		}
 	}
 
-	// Show latest commit info of repository in table header,
-	// or of directory if not in root directory.
-	latestCommit := ctx.Repo.Commit
-	if len(ctx.Repo.TreePath) > 0 {
-		latestCommit, err = ctx.Repo.Commit.GetCommitByPath(ctx.Repo.TreePath)
-		if err != nil {
-			ctx.ServerError("GetCommitByPath", err)
-			return
-		}
-	}
-	ctx.Data["LatestCommit"] = latestCommit
-	ctx.Data["LatestCommitVerification"] = models.ParseCommitWithSignature(latestCommit)
-	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
-
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
-
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -114,9 +94,6 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	blob := entry.Blob()
-
-	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
 
 	ctx.Data["Paths"] = paths
 	ctx.Data["TreeLink"] = treeLink
