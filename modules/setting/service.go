@@ -78,6 +78,7 @@ var Service struct {
 // AllowedVisibility store in a 3 item bool array what is allowed
 type AllowedVisibility []bool
 
+// IsAllowedVisibility check if a AllowedVisibility allow a specific VisibleType
 func (a AllowedVisibility) IsAllowedVisibility(t structs.VisibleType) bool {
 	if int(t) >= len(a) {
 		return false
