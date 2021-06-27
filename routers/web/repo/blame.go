@@ -51,19 +51,6 @@ func RefBlame(ctx *context.Context) {
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Repo.CommitID
 
-	commit, err := ctx.Repo.GitRepo.GetCommit(commitID)
-	if err != nil {
-		if git.IsErrNotExist(err) {
-			ctx.NotFound("Repo.GitRepo.GetCommit", err)
-		} else {
-			ctx.ServerError("Repo.GitRepo.GetCommit", err)
-		}
-		return
-	}
-	if len(commitID) != 40 {
-		commitID = commit.ID.String()
-	}
-
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
@@ -148,7 +135,7 @@ func RefBlame(ctx *context.Context) {
 	previousCommits := make(map[string]string)
 	commits := list.New()
 	commitCache := map[string]*git.Commit{}
-	commitCache[commitID] = commit
+	commitCache[ctx.Repo.Commit.ID.String()] = ctx.Repo.Commit
 
 	for _, part := range blameParts {
 		sha := part.Sha
