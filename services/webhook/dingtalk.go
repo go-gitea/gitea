@@ -25,9 +25,6 @@ var (
 	_ PayloadConvertor = &DingtalkPayload{}
 )
 
-// SetSecret sets the dingtalk secret
-func (d *DingtalkPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the DingtalkPayload to json
 func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
