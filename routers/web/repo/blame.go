@@ -135,9 +135,20 @@ func RefBlame(ctx *context.Context) {
 		blameParts = append(blameParts, *blamePart)
 	}
 
+	// PREVIOUS BLAME LINK RESOLVER
+	//
+	// we look for the SHAs of the blameParts parent commit. so we..
+	// 1 resolve the blamePart commit to
+	// 2 look up its parent
+	// 3 validate that the parent commit holds the current treepath
+	// 4 store the parent SHA if successful
+	// and as blameParts can reference the same commits multiple
+	// times, we cache the work locally
 	commitNames := make(map[string]models.UserCommit)
 	previousCommits := make(map[string]string)
 	commits := list.New()
+	commitCache := map[string]*git.Commit{}
+	commitCache[commitID] = commit
 
 	for _, part := range blameParts {
 		sha := part.Sha
@@ -145,21 +156,31 @@ func RefBlame(ctx *context.Context) {
 			continue
 		}
 
-		commit, err := ctx.Repo.GitRepo.GetCommit(sha)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound("Repo.GitRepo.GetCommit", err)
-			} else {
-				ctx.ServerError("Repo.GitRepo.GetCommit", err)
+		commit, ok := commitCache[sha]
+		if !ok {
+			commit, err = ctx.Repo.GitRepo.GetCommit(sha)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					ctx.NotFound("Repo.GitRepo.GetCommit", err)
+				} else {
+					ctx.ServerError("Repo.GitRepo.GetCommit", err)
+				}
+				return
 			}
-			return
+			commitCache[sha] = commit
 		}
 
-		// Get previous closest commit sha from the commit
-		previousCommit, err := commit.Parent(0)
-		if err == nil {
-			// Verify the commit
-			if haz, _ := commit.HasPreviousCommit(previousCommit.ID); haz {
+		// populate parent
+		if commit.ParentCount() > 0 {
+			psha := commit.Parents[0]
+			previousCommit, ok := commitCache[psha.String()]
+			if !ok {
+				previousCommit, _ = commit.Parent(0)
+				if previousCommit != nil {
+					commitCache[psha.String()] = previousCommit
+				}
+			}
+			if previousCommit != nil {
 				if haz1, _ := previousCommit.HasFile(ctx.Repo.TreePath); haz1 {
 					previousCommits[commit.ID.String()] = previousCommit.ID.String()
 				}
@@ -171,6 +192,7 @@ func RefBlame(ctx *context.Context) {
 		commitNames[commit.ID.String()] = models.UserCommit{}
 	}
 
+	// populate commit email adresses to later look up avatars.
 	commits = models.ValidateCommitsWithEmails(commits)
 
 	for e := commits.Front(); e != nil; e = e.Next() {
