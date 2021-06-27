@@ -185,13 +185,8 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	// Reapply the submodules by updating the index
-	for _, submodule := range submodules {
-		if stdout, err := git.NewCommand("update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
-			RunInDirWithEnv(tmpDir, env); err != nil {
-			log.Error("Unable to add %v as submodule to temporary repo %s: stdout %s\nError: %v", submodule.Name, tmpDir, stdout, err)
-			return fmt.Errorf("git update-index --add --cacheinfo 160000 %s %s: %v", submodule.Commit, submodule.Name, err)
-		}
+	if err := git.AddSubmoduleIndexes(tmpDir, submodules); err != nil {
+		return fmt.Errorf("Failed to add submodules: %v", err)
 	}
 
 	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)

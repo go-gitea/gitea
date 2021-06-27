@@ -191,3 +191,16 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 
 	return submodules
 }
+
+// AddSubmoduleIndexes Adds the given submodules to the git index. Requires the .gitmodules file to be already present.
+func AddSubmoduleIndexes(repoPath string, submodules []SubModuleCommit) error {
+	for _, submodule := range submodules {
+		if stdout, err := NewCommand("update-index", "--add", "--cacheinfo", "160000", submodule.Commit, submodule.Name).
+			RunInDir(repoPath); err != nil {
+			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Name, repoPath, stdout, err)
+			return err
+		}
+	}
+
+	return nil
+}
