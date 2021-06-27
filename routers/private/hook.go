@@ -673,9 +673,11 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		topicBranch string
 		title       string
 		description string
+		forcePush   bool
 	)
 
 	topicBranch = opts.GitPushOptions["topic"]
+	_, forcePush = opts.GitPushOptions["force-push"]
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
@@ -716,6 +718,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 				NewOID:      opts.NewCommitIDs[i],
 				Err:         "topic-branch is not set",
 			})
+			continue
 		}
 
 		headBranch := ""
@@ -819,13 +822,42 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		old, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
 			log.Error("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"Err": fmt.Sprintf("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err),
 			})
 			return
+		}
+
+		if oldCommitID == opts.NewCommitIDs[i] {
+			results = append(results, private.HockProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "new commit is same with old commit",
+			})
+			continue
+		}
+
+		if !forcePush {
+			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
+			if err != nil {
+				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, opts.NewCommitIDs[i], repo, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to detect force push: %v", err),
+				})
+				return
+			} else if len(output) > 0 {
+				results = append(results, private.HockProcReceiveRefResult{
+					OriginalRef: oldCommitID,
+					OldOID:      opts.OldCommitIDs[i],
+					NewOID:      opts.NewCommitIDs[i],
+					Err:         "request `force-push` push option",
+				})
+				continue
+			}
 		}
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
@@ -854,7 +886,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 			})
 			return
 		}
-		comment, err := models.CreatePushPullComment(pusher, pr, old, opts.NewCommitIDs[i])
+		comment, err := models.CreatePushPullComment(pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
 		}
@@ -862,7 +894,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HockProcReceiveRefResult{
-			OldOID:      old,
+			OldOID:      oldCommitID,
 			NewOID:      opts.NewCommitIDs[i],
 			Ref:         pr.GetGitRefName(),
 			OriginalRef: opts.RefFullNames[i],
