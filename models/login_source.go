@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -124,6 +125,17 @@ func Cell2Int64(val xorm.Cell) int64 {
 		return v
 	}
 	return (*val).(int64)
+}
+
+// JsonUnmarshalIgnoreErroneousBOM - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may gain an unwanted prefix of 0xff 0xfe.
+func JsonUnmarshalIgnoreErroneousBOM(bs []byte, v interface{}) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(bs, &v)
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], &v)
+	}
+	return err
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.

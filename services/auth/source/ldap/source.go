@@ -65,13 +65,11 @@ type wrappedSource struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-
 	wrapped := &wrappedSource{
 		Source: source,
 	}
 
-	err := json.Unmarshal(bs, &wrapped)
+	err := models.JsonUnmarshalIgnoreErroneousBOM(bs, &wrapped)
 	if err != nil {
 		return err
 	}

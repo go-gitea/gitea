@@ -28,8 +28,7 @@ type Source struct {
 
 // FromDB fills up a PAMConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, &source)
+	return models.JsonUnmarshalIgnoreErroneousBOM(bs, &source)
 }
 
 // ToDB exports a PAMConfig to a serialized format.

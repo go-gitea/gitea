@@ -27,8 +27,7 @@ type Source struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *Source) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
+	return models.JsonUnmarshalIgnoreErroneousBOM(bs, cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.
