@@ -13,7 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	gitea_log "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/log"
 )
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
@@ -155,7 +155,7 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 		name = strings.TrimSpace(name)
 
 		if len(name) == 0 {
-			gitea_log.Debug("Submodule skipped because it has no name")
+			log.Debug("Submodule skipped because it has no name")
 			continue
 		}
 
@@ -164,7 +164,7 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 
 		// If no commit was found for the module skip it
 		if err != nil {
-			gitea_log.Debug("Submodule %s skipped because it has no commit", name)
+			log.Debug("Submodule %s skipped because it has no commit", name)
 			continue
 		}
 
@@ -175,14 +175,14 @@ func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
 		fields := strings.Fields(commit)
 
 		if len(fields) == 0 {
-			gitea_log.Debug("Submodule %s skipped because it has no valid commit", name)
+			log.Debug("Submodule %s skipped because it has no valid commit", name)
 			continue
 		}
 
 		commit = fields[0]
 
 		if len(commit) != 40 {
-			gitea_log.Debug("Submodule %s skipped due to malformed commit hash", name)
+			log.Debug("Submodule %s skipped due to malformed commit hash", name)
 			continue
 		}
 
