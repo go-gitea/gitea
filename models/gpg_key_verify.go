@@ -102,7 +102,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	return key.KeyID, nil
 }
 
-// VerificationToken returns token for the user that will be valid in minutes minutes time
+// VerificationToken returns token for the user that will be valid in minutes (time)
 func VerificationToken(user *User, minutes int) string {
 	return base.EncodeSha256(
 		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(time.RFC1123Z) + ":" +
