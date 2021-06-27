@@ -195,7 +195,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 		commitNames[commit.ID.String()] = models.UserCommit{}
 	}
 
-	// populate commit email adresses to later look up avatars.
+	// populate commit email addresses to later look up avatars.
 	commits = models.ValidateCommitsWithEmails(commits)
 	for e := commits.Front(); e != nil; e = e.Next() {
 		c := e.Value.(models.UserCommit)
