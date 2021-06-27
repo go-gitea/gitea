@@ -56,7 +56,6 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 }
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
-
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
@@ -94,7 +93,6 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 }
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
-
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
@@ -125,7 +123,6 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 }
 
 func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
-
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
@@ -164,7 +161,6 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
-
 	models.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
