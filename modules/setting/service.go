@@ -73,6 +73,8 @@ var Service struct {
 		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
 		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
 	} `ini:"service.explore"`
+} {
+  AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
 
 // AllowedVisibility store in a 3 item bool array what is allowed
