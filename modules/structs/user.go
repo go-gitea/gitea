@@ -43,6 +43,8 @@ type User struct {
 	Website string `json:"website"`
 	// the user's description
 	Description string `json:"description"`
+	// User visibility level option: public, limited, private
+	Visibility string `json:"visibility"`
 
 	// user counts
 	Followers    int `json:"followers_count"`
