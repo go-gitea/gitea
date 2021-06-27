@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -230,6 +231,7 @@ type UpdateProfileForm struct {
 	Location            string `binding:"MaxSize(50)"`
 	Language            string
 	Description         string `binding:"MaxSize(255)"`
+	Visibility          structs.VisibleType
 	KeepActivityPrivate bool
 }
 

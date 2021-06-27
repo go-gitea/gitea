@@ -23,8 +23,8 @@ var (
 	// GlobalCommandArgs global command args for external package setting
 	GlobalCommandArgs []string
 
-	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 360 * time.Second
+	// defaultCommandExecutionTimeout default command execution timeout duration
+	defaultCommandExecutionTimeout = 360 * time.Second
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.
@@ -111,7 +111,7 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
 	if timeout == -1 {
-		timeout = DefaultCommandExecutionTimeout
+		timeout = defaultCommandExecutionTimeout
 	}
 
 	if len(dir) == 0 {
@@ -199,7 +199,11 @@ func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir st
 		return nil, ConcatenateError(err, stderr.String())
 	}
 	if stdout.Len() > 0 && log.IsTrace() {
-		log.Trace("Stdout:\n %s", stdout.Bytes()[:1024])
+		tracelen := stdout.Len()
+		if tracelen > 1024 {
+			tracelen = 1024
+		}
+		log.Trace("Stdout:\n %s", stdout.Bytes()[:tracelen])
 	}
 	return stdout.Bytes(), nil
 }
