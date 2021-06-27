@@ -70,7 +70,7 @@ var (
 	_ convert.Conversion = &SSPIConfig{}
 )
 
-// jsonUnmarshalIgnoreErroneousBOM - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) >
+// jsonUnmarshalIgnoreErroneousBOM - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may gain an unwanted prefix of 0xff 0xfe.
 func jsonUnmarshalIgnoreErroneousBOM(bs []byte, v interface{}) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
