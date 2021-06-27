@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -39,13 +38,7 @@ const (
 func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
-	var allowedUserVisibilityModes []structs.VisibleType
-	for i, v := range setting.Service.AllowedUserVisibilityModesSlice {
-		if v {
-			allowedUserVisibilityModes = append(allowedUserVisibilityModes, structs.VisibleType(i))
-		}
-	}
-	ctx.Data["AllowedUserVisibilityModes"] = allowedUserVisibilityModes
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }

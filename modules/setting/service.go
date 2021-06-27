@@ -86,6 +86,16 @@ func (a AllowedVisibility) IsAllowedVisibility(t structs.VisibleType) bool {
 	return a[t]
 }
 
+// ToVisibleTypeSlice convert a AllowedVisibility into a VisibleType slice
+func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
+	for i, v := range a {
+		if v {
+			result = append(result, structs.VisibleType(i))
+		}
+	}
+	return
+}
+
 func newService() {
 	sec := Cfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)

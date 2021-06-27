@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -53,13 +52,7 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
-	var allowedUserVisibilityModes []structs.VisibleType
-	for i, v := range setting.Service.AllowedUserVisibilityModesSlice {
-		if v {
-			allowedUserVisibilityModes = append(allowedUserVisibilityModes, structs.VisibleType(i))
-		}
-	}
-	ctx.Data["AllowedUserVisibilityModes"] = allowedUserVisibilityModes
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
 
@@ -219,13 +212,7 @@ func EditUser(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
-	var allowedUserVisibilityModes []structs.VisibleType
-	for i, v := range setting.Service.AllowedUserVisibilityModesSlice {
-		if v {
-			allowedUserVisibilityModes = append(allowedUserVisibilityModes, structs.VisibleType(i))
-		}
-	}
-	ctx.Data["AllowedUserVisibilityModes"] = allowedUserVisibilityModes
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
