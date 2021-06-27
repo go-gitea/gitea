@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
 )
@@ -40,7 +40,7 @@ func (t *AccessToken) AfterLoad() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	salt, err := generate.GetRandomString(10)
+	salt, err := util.RandomString(10)
 	if err != nil {
 		return err
 	}
@@ -57,8 +57,14 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	if token == "" {
 		return nil, ErrAccessTokenEmpty{}
 	}
-	if len(token) < 8 {
+	// A token is defined as being SHA1 sum these are 40 hexadecimal bytes long
+	if len(token) != 40 {
 		return nil, ErrAccessTokenNotExist{token}
+	}
+	for _, x := range []byte(token) {
+		if x < '0' || (x > '9' && x < 'a') || x > 'f' {
+			return nil, ErrAccessTokenNotExist{token}
+		}
 	}
 	var tokens []AccessToken
 	lastEight := token[len(token)-8:]

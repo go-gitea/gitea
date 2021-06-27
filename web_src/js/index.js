@@ -1,40 +1,43 @@
-/* exported deleteDependencyModal, cancelCodeComment, onOAuthLoginClick */
-
 import './publicpath.js';
 
 import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
-import './vendor/semanticdropdown.js';
 
-import initMigration from './features/migration.js';
-import initContextPopups from './features/contextpopup.js';
-import initGitGraph from './features/gitgraph.js';
-import initClipboard from './features/clipboard.js';
-import initHeatmap from './features/heatmap.js';
-import initProject from './features/projects.js';
-import initServiceWorker from './features/serviceworker.js';
-import initMarkdownAnchors from './markdown/anchors.js';
-import renderMarkdownContent from './markdown/content.js';
+import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import attachTribute from './features/tribute.js';
 import createColorPicker from './features/colorpicker.js';
 import createDropzone from './features/dropzone.js';
-import initTableSort from './features/tablesort.js';
+import initClipboard from './features/clipboard.js';
+import initContextPopups from './features/contextpopup.js';
+import initGitGraph from './features/gitgraph.js';
+import initHeatmap from './features/heatmap.js';
 import initImageDiff from './features/imagediff.js';
-import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
+import initMigration from './features/migration.js';
+import initProject from './features/projects.js';
+import initServiceWorker from './features/serviceworker.js';
+import initTableSort from './features/tablesort.js';
+import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {createCodeEditor, createMonaco} from './features/codeeditor.js';
+import {showLineButton} from './code/linebutton.js';
+import {initMarkupContent, initCommentContent} from './markup/content.js';
+import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
-import {stripTags} from './utils.js';
 
-const {AppSubUrl, StaticUrlPrefix, csrf} = window.config;
+const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
 const commentMDEditors = {};
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
+
+// Silence Vue's console advertisments in dev mode
+// To use the Vue browser extension, enable the devtools option temporarily
+Vue.config.productionTip = false;
+Vue.config.devtools = false;
 
 function initCommentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
@@ -49,7 +52,7 @@ function initCommentPreviewTab($form) {
     }, (data) => {
       const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
       $previewPanel.html(data);
-      renderMarkdownContent();
+      initMarkupContent();
     });
   });
 
@@ -79,7 +82,7 @@ function initEditPreviewTab($form) {
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
-        renderMarkdownContent();
+        initMarkupContent();
       });
     });
   }
@@ -199,6 +202,7 @@ function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
   $('#repo_migrating_failed_image').hide();
+  $('#repo_migrating_progress_message').hide();
   if (migrating) {
     const task = migrating.attr('task');
     if (typeof task === 'undefined') {
@@ -220,8 +224,12 @@ function initRepoStatusChecker() {
             $('#repo_migrating').hide();
             $('#repo_migrating_failed').show();
             $('#repo_migrating_failed_image').show();
-            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.message);
             return;
+          }
+          if (xhr.responseJSON.message) {
+            $('#repo_migrating_progress_message').show();
+            $('#repo_migrating_progress_message').text(xhr.responseJSON.message);
           }
           setTimeout(() => {
             initRepoStatusChecker();
@@ -247,7 +255,6 @@ function initReactionSelector(parent) {
   parent.find(`${reactions}a.label`).popup({position: 'bottom left', metadata: {content: 'title', title: 'none'}});
 
   parent.find(`.select-reaction > .menu > .item, ${reactions}a.label`).on('click', function (e) {
-    const vm = this;
     e.preventDefault();
 
     if ($(this).hasClass('disabled')) return;
@@ -263,7 +270,7 @@ function initReactionSelector(parent) {
       }
     }).done((resp) => {
       if (resp && (resp.html || resp.empty)) {
-        const content = $(vm).closest('.content');
+        const content = $(this).closest('.content');
         let react = content.find('.segment.reactions');
         if ((!resp.empty || resp.html === '') && react.length > 0) {
           react.remove();
@@ -325,11 +332,11 @@ function getPastedImages(e) {
   return files;
 }
 
-async function uploadFile(file) {
+async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const res = await fetch($('#dropzone').data('upload-url'), {
+  const res = await fetch(uploadUrl, {
     method: 'POST',
     headers: {'X-Csrf-Token': csrf},
     body: formData,
@@ -343,25 +350,33 @@ function reload() {
 
 function initImagePaste(target) {
   target.each(function () {
-    const field = this;
-    field.addEventListener('paste', async (e) => {
-      for (const img of getPastedImages(e)) {
-        const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(field, `![${name}]()`);
-        const data = await uploadFile(img);
-        replaceAndKeepCursor(field, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $('.files').append(input);
-      }
-    }, false);
+    const dropzone = this.querySelector('.dropzone');
+    if (!dropzone) {
+      return;
+    }
+    const uploadUrl = dropzone.dataset.uploadUrl;
+    const dropzoneFiles = dropzone.querySelector('.files');
+    for (const textarea of this.querySelectorAll('textarea')) {
+      textarea.addEventListener('paste', async (e) => {
+        for (const img of getPastedImages(e)) {
+          const name = img.name.substr(0, img.name.lastIndexOf('.'));
+          insertAtCursor(textarea, `![${name}]()`);
+          const data = await uploadFile(img, uploadUrl);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          dropzoneFiles.appendChild(input[0]);
+        }
+      }, false);
+    }
   });
 }
 
-function initSimpleMDEImagePaste(simplemde, files) {
+function initSimpleMDEImagePaste(simplemde, dropzone, files) {
+  const uploadUrl = dropzone.dataset.uploadUrl;
   simplemde.codemirror.on('paste', async (_, e) => {
     for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      const data = await uploadFile(img);
+      const data = await uploadFile(img, uploadUrl);
       const pos = simplemde.codemirror.getCursor();
       simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
@@ -380,7 +395,7 @@ function initCommentForm() {
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
-  initImagePaste($('.comment.form textarea'));
+  initImagePaste($('.comment.form'));
 
   // Listsubmit
   function initListSubmits(selector, outerSelector) {
@@ -781,7 +796,8 @@ async function initRepository() {
   });
 
   // File list and commits
-  if ($('.repository.file.list').length > 0 || ('.repository.commits').length > 0) {
+  if ($('.repository.file.list').length > 0 ||
+    $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
     initFilterBranchTagDropdown('.choose.reference .dropdown');
   }
 
@@ -907,6 +923,17 @@ async function initRepository() {
       return false;
     });
 
+    // Toggle WIP
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+      e.preventDefault();
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
+        _csrf: csrf,
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
+    });
+
     // Issue Comments
     initIssueComments();
 
@@ -980,8 +1007,7 @@ async function initRepository() {
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        const $files = $editContentZone.find('.comment-files');
-        if ($dropzone.length > 0) {
+        if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
           const filenameDict = {};
@@ -997,6 +1023,9 @@ async function initRepository() {
             dictFileTooBig: $dropzone.data('file-too-big'),
             dictRemoveFile: $dropzone.data('remove-file'),
             timeout: 0,
+            thumbnailMethod: 'contain',
+            thumbnailWidth: 480,
+            thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
                 filenameDict[file.name] = {
@@ -1004,7 +1033,7 @@ async function initRepository() {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-                $files.append(input);
+                $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
                 if (!(file.name in filenameDict)) {
@@ -1026,7 +1055,7 @@ async function initRepository() {
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
                   dz.removeAllFiles(true);
-                  $files.empty();
+                  $dropzone.find('.files').empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
@@ -1039,7 +1068,7 @@ async function initRepository() {
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
-                    $files.append(input);
+                    $dropzone.find('.files').append(input);
                   });
                 });
               });
@@ -1059,7 +1088,9 @@ async function initRepository() {
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
-        initSimpleMDEImagePaste($simplemde, $files);
+        if ($dropzone.length === 1) {
+          initSimpleMDEImagePaste($simplemde, $dropzone[0], $dropzone.find('.files'));
+        }
 
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
@@ -1071,7 +1102,7 @@ async function initRepository() {
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          const $attachments = $files.find('[name=files]').map(function () {
+          const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
             return $(this).val();
           }).get();
           $.post($editContentZone.data('update-url'), {
@@ -1082,8 +1113,10 @@ async function initRepository() {
           }, (data) => {
             if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
+              $rawContent.text('');
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
@@ -1103,7 +1136,8 @@ async function initRepository() {
               dz.emit('submit');
               dz.emit('reload');
             }
-            renderMarkdownContent();
+            initMarkupContent();
+            initCommentContent();
           });
         });
       } else {
@@ -1151,14 +1185,38 @@ async function initRepository() {
       return false;
     });
 
+    // Delete Issue dependency
+    $(document).on('click', '.delete-dependency-button', (e) => {
+      const {id, type} = e.currentTarget.dataset;
+
+      $('.remove-dependency').modal({
+        closable: false,
+        duration: 200,
+        onApprove: () => {
+          $('#removeDependencyID').val(id);
+          $('#dependencyType').val(type);
+          $('#removeDependencyForm').trigger('submit');
+        }
+      }).modal('show');
+    });
+
+    // Cancel inline code comment
+    $(document).on('click', '.cancel-code-comment', (e) => {
+      const form = $(e.currentTarget).closest('form');
+      if (form.length > 0 && form.hasClass('comment-form')) {
+        form.addClass('hide');
+        form.closest('.comment-code-cloud').find('button.comment-form-reply').show();
+      } else {
+        form.closest('.comment-code-cloud').remove();
+      }
+    });
+
     // Change status
     const $statusButton = $('#status-button');
     $('#comment-form textarea').on('keyup', function () {
-      if ($(this).val().length === 0) {
-        $statusButton.text($statusButton.data('status'));
-      } else {
-        $statusButton.text($statusButton.data('status-and-comment'));
-      }
+      const $simplemde = $(this).data('simplemde');
+      const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+      $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
     });
     $statusButton.on('click', () => {
       $('#status').val($statusButton.data('status-val'));
@@ -1188,6 +1246,7 @@ async function initRepository() {
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
     });
+
     initReactionSelector();
   }
 
@@ -1212,10 +1271,16 @@ async function initRepository() {
     $(this).select();
   });
 
+  // Compare or pull request
+  const $repoDiff = $('.repository.diff');
+  if ($repoDiff.length) {
+    initBranchOrTagDropdown('.choose.branch .dropdown');
+    initFilterSearchDropdown('.choose.branch .dropdown');
+  }
+
   // Pull request
   const $repoComparePull = $('.repository.compare.pull');
   if ($repoComparePull.length > 0) {
-    initFilterSearchDropdown('.choose.branch .dropdown');
     // show pull request form
     $repoComparePull.find('button.show-form').on('click', function (e) {
       e.preventDefault();
@@ -1257,6 +1322,15 @@ function initPullRequestMergeInstruction() {
   });
 }
 
+function initRelease() {
+  $(document).on('click', '.remove-rel-attach', function() {
+    const uuid = $(this).data('uuid');
+    const id = $(this).data('id');
+    $(`input[name='attachment-del-${uuid}']`).attr('value', true);
+    $(`#attachment-${id}`).hide();
+  });
+}
+
 function initPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
@@ -1269,7 +1343,7 @@ function initPullRequestReview() {
         $(`#code-comments-${id}`).removeClass('hide');
         $(`#code-preview-${id}`).removeClass('hide');
         $(`#hide-outdated-${id}`).removeClass('hide');
-        $(window).scrollTop(commentDiv.offset().top);
+        commentDiv[0].scrollIntoView();
       }
     }
   }
@@ -1295,7 +1369,7 @@ function initPullRequestReview() {
   $(document).on('click', 'button.comment-form-reply', function (e) {
     e.preventDefault();
     $(this).hide();
-    const form = $(this).parent().find('.comment-form');
+    const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
     let $simplemde;
@@ -1308,8 +1382,15 @@ function initPullRequestReview() {
     }
     $textarea.focus();
     $simplemde.codemirror.focus();
-    assingMenuAttributes(form.find('.menu'));
+    assignMenuAttributes(form.find('.menu'));
   });
+
+  const $reviewBox = $('.review-box');
+  if ($reviewBox.length === 1) {
+    setCommentSimpleMDE($reviewBox.find('textarea'));
+    initImagePaste($reviewBox);
+  }
+
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
@@ -1359,7 +1440,7 @@ function initPullRequestReview() {
       const data = await $.get($(this).data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
-      assingMenuAttributes(commentCloud.find('.menu'));
+      assignMenuAttributes(commentCloud.find('.menu'));
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
@@ -1372,7 +1453,7 @@ function initPullRequestReview() {
   });
 }
 
-function assingMenuAttributes(menu) {
+function assignMenuAttributes(menu) {
   const id = Math.floor(Math.random() * Math.floor(1000000));
   menu.attr('data-write', menu.attr('data-write') + id);
   menu.attr('data-preview', menu.attr('data-preview') + id);
@@ -1435,8 +1516,8 @@ function initWikiForm() {
             text: plainText,
             wiki: true
           }, (data) => {
-            preview.innerHTML = `<div class="markdown ui segment">${data}</div>`;
-            renderMarkdownContent();
+            preview.innerHTML = `<div class="markup ui segment">${data}</div>`;
+            initMarkupContent();
           });
         };
 
@@ -1515,7 +1596,7 @@ function initWikiForm() {
             const $form = $('.repository.wiki.new .ui.form');
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
-            $root.append(`<div class="ui bottom tab markdown" data-tab="preview">${loading}</div>`);
+            $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
             initCommentPreviewTab($form);
           },
           className: 'fa fa-file',
@@ -1597,6 +1678,10 @@ $.fn.getCursorPosition = function () {
 };
 
 function setCommentSimpleMDE($editArea) {
+  if ($editArea.length === 0) {
+    return null;
+  }
+
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
@@ -1658,6 +1743,8 @@ function setCommentSimpleMDE($editArea) {
     }
   });
   attachTribute(simplemde.codemirror.getInputField(), {mentions: true, emoji: true});
+  $editArea.data('simplemde', simplemde);
+  $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
   return simplemde;
 }
 
@@ -1766,7 +1853,8 @@ function initReleaseEditor() {
   const $files = $editor.parent().find('.files');
   const $simplemde = setCommentSimpleMDE($textarea);
   initCommentPreviewTab($editor);
-  initSimpleMDEImagePaste($simplemde, $files);
+  const dropzone = $editor.parent().find('.dropzone')[0];
+  initSimpleMDEImagePaste($simplemde, dropzone, $files);
 }
 
 function initOrganization() {
@@ -2179,6 +2267,7 @@ function initCodeView() {
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
+      showLineButton();
     });
 
     $(window).on('hashchange', () => {
@@ -2193,6 +2282,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2200,6 +2290,7 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
+        showLineButton();
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
@@ -2432,6 +2523,18 @@ function initIssueReferenceRepositorySearch() {
     });
 }
 
+function initFileViewToggle() {
+  $('.file-view-toggle').on('click', function() {
+    const $this = $(this);
+    $this.parent().children().removeClass('active');
+    $this.addClass('active');
+
+    const $target = $($this.data('toggle-selector'));
+    $target.parent().children().addClass('hide');
+    $target.removeClass('hide');
+  });
+}
+
 function initLinkAccountView() {
   const $lnkUserPage = $('.page-content.user.link-account');
   if ($lnkUserPage.length === 0) {
@@ -2469,6 +2572,19 @@ $(document).ready(async () => {
       .attr('title', '');
   });
 
+  // Undo Safari emoji glitch fix at high enough zoom levels
+  if (navigator.userAgent.match('Safari')) {
+    $(window).resize(() => {
+      const px = mqBinarySearch('width', 0, 4096, 1, 'px');
+      const em = mqBinarySearch('width', 0, 1024, 0.01, 'em');
+      if (em * 16 * 1.25 - px <= -1) {
+        $('body').addClass('safari-above125');
+      } else {
+        $('body').removeClass('safari-above125');
+      }
+    });
+  }
+
   // Semantic UI modules.
   $('.dropdown:not(.custom)').dropdown({
     fullTextSearch: 'exact'
@@ -2488,7 +2604,6 @@ $(document).ready(async () => {
     direction: 'upward',
     fullTextSearch: 'exact'
   });
-  $('.ui.accordion').accordion();
   $('.ui.checkbox').checkbox();
   $('.ui.progress').progress({
     showActivity: false
@@ -2522,11 +2637,10 @@ $(document).ready(async () => {
   initLinkAccountView();
 
   // Dropzone
-  const $dropzone = $('#dropzone');
-  if ($dropzone.length > 0) {
+  for (const el of document.querySelectorAll('.dropzone')) {
     const filenameDict = {};
-
-    await createDropzone('#dropzone', {
+    const $dropzone = $(el);
+    await createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
@@ -2538,11 +2652,14 @@ $(document).ready(async () => {
       dictFileTooBig: $dropzone.data('file-too-big'),
       dictRemoveFile: $dropzone.data('remove-file'),
       timeout: 0,
+      thumbnailMethod: 'contain',
+      thumbnailWidth: 480,
+      thumbnailHeight: 480,
       init() {
         this.on('success', (file, data) => {
           filenameDict[file.name] = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
+          $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
           if (file.name in filenameDict) {
@@ -2580,6 +2697,11 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
+  $('.show-create-branch-modal.button').on('click', function () {
+    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
+    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
+    $($(this).data('modal')).modal('show');
+  });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
@@ -2604,12 +2726,10 @@ $(document).ready(async () => {
   });
 
   $('.issue-action').on('click', function () {
-    let {action} = this.dataset;
-    let {elementId} = this.dataset;
-    const issueIDs = $('.issue-checkbox').children('input:checked').map(function () {
-      return this.dataset.issueId;
+    let {action, elementId, url} = this.dataset;
+    const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
+      return el.dataset.issueId;
     }).get().join();
-    const {url} = this.dataset;
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2656,7 +2776,8 @@ $(document).ready(async () => {
   searchTeams();
   searchRepositories();
 
-  initMarkdownAnchors();
+  initMarkupAnchors();
+  initCommentContent();
   initCommentForm();
   initInstall();
   initArchiveLinks();
@@ -2688,7 +2809,9 @@ $(document).ready(async () => {
   initTableSort();
   initNotificationsTable();
   initPullRequestMergeInstruction();
+  initFileViewToggle();
   initReleaseEditor();
+  initRelease();
 
   const routes = {
     'div.user.settings': initUserSettings,
@@ -2712,7 +2835,7 @@ $(document).ready(async () => {
     initServiceWorker(),
     initNotificationCount(),
     initStopwatch(),
-    renderMarkdownContent(),
+    initMarkupContent(),
     initGithook(),
     initImageDiff(),
   ]);
@@ -2752,11 +2875,40 @@ function selectRange($list, $select, $from) {
       }
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
+
+      // add hashchange to permalink
+      const $issue = $('a.ref-in-new-issue');
+
+      if ($issue.length === 0) {
+        return;
+      }
+
+      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
+      if (matched) {
+        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
+      } else {
+        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
+      }
+
       return;
     }
   }
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
+
+  // add hashchange to permalink
+  const $issue = $('a.ref-in-new-issue');
+
+  if ($issue.length === 0) {
+    return;
+  }
+
+  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
+  if (matched) {
+    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
+  } else {
+    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
+  }
 }
 
 $(() => {
@@ -2981,7 +3133,7 @@ function initVueComponents() {
         finalPage: 1,
         searchQuery,
         isLoading: false,
-        staticPrefix: StaticUrlPrefix,
+        staticPrefix: AssetUrlPrefix,
         counts: {},
         repoTypes: {
           all: {
@@ -3021,13 +3173,12 @@ function initVueComponents() {
     },
 
     mounted() {
-      this.searchRepos(this.reposFilter);
+      this.changeReposFilter(this.reposFilter);
       $(this.$el).find('.poping.up').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
-      const self = this;
       Vue.nextTick(() => {
-        self.$refs.search.focus();
+        this.$refs.search.focus();
       });
     },
 
@@ -3184,14 +3335,12 @@ function initVueComponents() {
       },
 
       searchRepos() {
-        const self = this;
-
         this.isLoading = true;
 
         if (!this.reposTotalCount) {
           const totalCountSearchURL = `${this.suburl}/api/v1/repos/search?sort=updated&order=desc&uid=${this.uid}&team_id=${this.teamId}&q=&page=1&mode=`;
           $.getJSON(totalCountSearchURL, (_result, _textStatus, request) => {
-            self.reposTotalCount = request.getResponseHeader('X-Total-Count');
+            this.reposTotalCount = request.getResponseHeader('X-Total-Count');
           });
         }
 
@@ -3200,19 +3349,19 @@ function initVueComponents() {
         const searchedQuery = this.searchQuery;
 
         $.getJSON(searchedURL, (result, _textStatus, request) => {
-          if (searchedURL === self.searchURL) {
-            self.repos = result.data;
+          if (searchedURL === this.searchURL) {
+            this.repos = result.data;
             const count = request.getResponseHeader('X-Total-Count');
-            if (searchedQuery === '' && searchedMode === '' && self.archivedFilter === 'both') {
-              self.reposTotalCount = count;
+            if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
+              this.reposTotalCount = count;
             }
-            Vue.set(self.counts, `${self.reposFilter}:${self.archivedFilter}:${self.privateFilter}`, count);
-            self.finalPage = Math.floor(count / self.searchLimit) + 1;
-            self.updateHistory();
+            Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
+            this.finalPage = Math.floor(count / this.searchLimit) + 1;
+            this.updateHistory();
           }
         }).always(() => {
-          if (searchedURL === self.searchURL) {
-            self.isLoading = false;
+          if (searchedURL === this.searchURL) {
+            this.isLoading = false;
           }
         });
       },
@@ -3296,6 +3445,17 @@ function initIssueTimetracking() {
         $(`${sel} form`).trigger('submit');
       }
     }).modal('show');
+  });
+}
+
+function initBranchOrTagDropdown(selector) {
+  $(selector).each(function() {
+    const $dropdown = $(this);
+    $dropdown.find('.reference.column').on('click', function () {
+      $dropdown.find('.scrolling.reference-list-menu').hide();
+      $($(this).data('target')).show();
+      return false;
+    });
   });
 }
 
@@ -3704,19 +3864,6 @@ function initIssueDue() {
   });
 }
 
-window.deleteDependencyModal = function (id, type) {
-  $('.remove-dependency')
-    .modal({
-      closable: false,
-      duration: 200,
-      onApprove() {
-        $('#removeDependencyID').val(id);
-        $('#dependencyType').val(type);
-        $('#removeDependencyForm').trigger('submit');
-      }
-    }).modal('show');
-};
-
 function initIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
@@ -3803,17 +3950,7 @@ $(document).on('submit', '.conversation-holder form', async (e) => {
   initClipboard();
 });
 
-window.cancelCodeComment = function (btn) {
-  const form = $(btn).closest('form');
-  if (form.length > 0 && form.hasClass('comment-form')) {
-    form.addClass('hide');
-    form.parent().find('button.comment-form-reply').show();
-  } else {
-    form.closest('.comment-code-cloud').remove();
-  }
-};
-
-window.onOAuthLoginClick = function () {
+$(document).on('click', '.oauth-login-image', () => {
   const oauthLoader = $('#oauth2-login-loader');
   const oauthNav = $('#oauth2-login-navigator');
 
@@ -3826,4 +3963,4 @@ window.onOAuthLoginClick = function () {
     oauthLoader.addClass('disabled');
     oauthNav.show();
   }, 5000);
-};
+});

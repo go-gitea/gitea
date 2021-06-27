@@ -17,7 +17,7 @@ func ToComment(c *models.Comment) *api.Comment {
 	}
 	return &api.Comment{
 		ID:          c.ID,
-		Poster:      ToUser(c.Poster, false, false),
+		Poster:      ToUser(c.Poster, nil),
 		HTMLURL:     c.HTMLURL(),
 		IssueURL:    c.IssueURL(),
 		PRURL:       c.PRURL(),

@@ -46,6 +46,9 @@ func (opt *ListDeployKeysOptions) QueryEncode() string {
 
 // ListDeployKeys list all the deploy keys of one repository
 func (c *Client) ListDeployKeys(user, repo string, opt ListDeployKeysOptions) ([]*DeployKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/keys", user, repo))
 	opt.setDefaults()
 	link.RawQuery = opt.QueryEncode()
@@ -56,6 +59,9 @@ func (c *Client) ListDeployKeys(user, repo string, opt ListDeployKeysOptions) ([
 
 // GetDeployKey get one deploy key with key id
 func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	key := new(DeployKey)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/keys/%d", user, repo, keyID), nil, nil, &key)
 	return key, resp, err
@@ -63,6 +69,9 @@ func (c *Client) GetDeployKey(user, repo string, keyID int64) (*DeployKey, *Resp
 
 // CreateDeployKey options when create one deploy key
 func (c *Client) CreateDeployKey(user, repo string, opt CreateKeyOption) (*DeployKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user, &repo); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err
@@ -74,6 +83,9 @@ func (c *Client) CreateDeployKey(user, repo string, opt CreateKeyOption) (*Deplo
 
 // DeleteDeployKey delete deploy key with key id
 func (c *Client) DeleteDeployKey(owner, repo string, keyID int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/keys/%d", owner, repo, keyID), nil, nil)
 	return resp, err
 }

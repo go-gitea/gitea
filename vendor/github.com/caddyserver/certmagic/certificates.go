@@ -113,10 +113,11 @@ func (cfg *Config) CacheManagedCertificate(domain string) (Certificate, error) {
 	return cert, nil
 }
 
-// loadManagedCertificate loads the managed certificate for domain,
-// but it does not add it to the cache. It just loads from storage.
+// loadManagedCertificate loads the managed certificate for domain from any
+// of the configured issuers' storage locations, but it does not add it to
+// the cache. It just loads from storage and returns it.
 func (cfg *Config) loadManagedCertificate(domain string) (Certificate, error) {
-	certRes, err := cfg.loadCertResource(domain)
+	certRes, err := cfg.loadCertResourceAnyIssuer(domain)
 	if err != nil {
 		return Certificate{}, err
 	}
@@ -154,7 +155,7 @@ func (cfg *Config) CacheUnmanagedTLSCertificate(tlsCert tls.Certificate, tags []
 	if err != nil {
 		return err
 	}
-	_, err = stapleOCSP(cfg.Storage, &cert, nil)
+	_, err = stapleOCSP(cfg.OCSP, cfg.Storage, &cert, nil)
 	if err != nil && cfg.Logger != nil {
 		cfg.Logger.Warn("stapling OCSP", zap.Error(err))
 	}
@@ -202,7 +203,7 @@ func (cfg Config) makeCertificateWithOCSP(certPEMBlock, keyPEMBlock []byte) (Cer
 	if err != nil {
 		return cert, err
 	}
-	_, err = stapleOCSP(cfg.Storage, &cert, certPEMBlock)
+	_, err = stapleOCSP(cfg.OCSP, cfg.Storage, &cert, certPEMBlock)
 	if err != nil && cfg.Logger != nil {
 		cfg.Logger.Warn("stapling OCSP", zap.Error(err))
 	}
@@ -295,19 +296,12 @@ func fillCertFromLeaf(cert *Certificate, tlsCert tls.Certificate) error {
 // meantime, and it would be a good idea to simply load the cert
 // into our cache rather than repeating the renewal process again.
 func (cfg *Config) managedCertInStorageExpiresSoon(cert Certificate) (bool, error) {
-	certRes, err := cfg.loadCertResource(cert.Names[0])
+	certRes, err := cfg.loadCertResourceAnyIssuer(cert.Names[0])
 	if err != nil {
 		return false, err
 	}
-	tlsCert, err := tls.X509KeyPair(certRes.CertificatePEM, certRes.PrivateKeyPEM)
-	if err != nil {
-		return false, err
-	}
-	leaf, err := x509.ParseCertificate(tlsCert.Certificate[0])
-	if err != nil {
-		return false, err
-	}
-	return currentlyInRenewalWindow(leaf.NotBefore, leaf.NotAfter, cfg.RenewalWindowRatio), nil
+	_, needsRenew := cfg.managedCertNeedsRenewal(certRes)
+	return needsRenew, nil
 }
 
 // reloadManagedCertificate reloads the certificate corresponding to the name(s)
@@ -341,8 +335,9 @@ func SubjectQualifiesForCert(subj string) bool {
 		!strings.HasPrefix(subj, ".") &&
 		!strings.HasSuffix(subj, ".") &&
 
-		// if it has a wildcard, must be a left-most label
-		(!strings.Contains(subj, "*") || strings.HasPrefix(subj, "*.")) &&
+		// if it has a wildcard, must be a left-most label (or exactly "*"
+		// which won't be trusted by browsers but still technically works)
+		(!strings.Contains(subj, "*") || strings.HasPrefix(subj, "*.") || subj == "*") &&
 
 		// must not contain other common special characters
 		!strings.ContainsAny(subj, "()[]{}<> \t\n\"\\!@#$%^&|;'+=")
@@ -356,32 +351,45 @@ func SubjectQualifiesForCert(subj string) bool {
 // allowed, as long as they conform to CABF requirements (only
 // one wildcard label, and it must be the left-most label).
 func SubjectQualifiesForPublicCert(subj string) bool {
-	// must at least qualify for certificate
+	// must at least qualify for a certificate
 	return SubjectQualifiesForCert(subj) &&
 
-		// localhost is ineligible
-		subj != "localhost" &&
-
-		// .localhost TLD is ineligible
-		!strings.HasSuffix(subj, ".localhost") &&
-
-		// .local TLD is ineligible
-		!strings.HasSuffix(subj, ".local") &&
-
-		// only one wildcard label allowed, and it must be left-most
-		(!strings.Contains(subj, "*") ||
-			(strings.Count(subj, "*") == 1 &&
-				len(subj) > 2 &&
-				strings.HasPrefix(subj, "*."))) &&
+		// localhost, .localhost TLD, and .local TLD are ineligible
+		!SubjectIsInternal(subj) &&
 
 		// cannot be an IP address (as of yet), see
 		// https://community.letsencrypt.org/t/certificate-for-static-ip/84/2?u=mholt
-		net.ParseIP(subj) == nil
+		!SubjectIsIP(subj) &&
+
+		// only one wildcard label allowed, and it must be left-most, with 3+ labels
+		(!strings.Contains(subj, "*") ||
+			(strings.Count(subj, "*") == 1 &&
+				strings.Count(subj, ".") > 1 &&
+				len(subj) > 2 &&
+				strings.HasPrefix(subj, "*.")))
+}
+
+// SubjectIsIP returns true if subj is an IP address.
+func SubjectIsIP(subj string) bool {
+	return net.ParseIP(subj) != nil
+}
+
+// SubjectIsInternal returns true if subj is an internal-facing
+// hostname or address.
+func SubjectIsInternal(subj string) bool {
+	return subj == "localhost" ||
+		strings.HasSuffix(subj, ".localhost") ||
+		strings.HasSuffix(subj, ".local")
 }
 
 // MatchWildcard returns true if subject (a candidate DNS name)
 // matches wildcard (a reference DNS name), mostly according to
-// RFC6125-compliant wildcard rules.
+// RFC 6125-compliant wildcard rules. See also RFC 2818 which
+// states that IP addresses must match exactly, but this function
+// does not attempt to distinguish IP addresses from internal or
+// external DNS names that happen to look like IP addresses.
+// It uses DNS wildcard matching logic.
+// https://tools.ietf.org/html/rfc2818#section-3.1
 func MatchWildcard(subject, wildcard string) bool {
 	if subject == wildcard {
 		return true

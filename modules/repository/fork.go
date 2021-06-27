@@ -64,6 +64,12 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			return err
 		}
 
+		// copy lfs files failure should not be ignored
+		if err := models.CopyLFS(ctx, repo, oldRepo); err != nil {
+			rollbackRemoveFn()
+			return err
+		}
+
 		repoPath := models.RepoPath(owner.Name, repo.Name)
 		if stdout, err := git.NewCommand(
 			"clone", "--bare", oldRepoPath, repoPath).
@@ -92,6 +98,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 		return nil, err
 	}
 
+	// even if below operations failed, it could be ignored. And they will be retried
 	ctx := models.DefaultDBContext()
 	if err = repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
@@ -100,11 +107,5 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 		log.Error("Copy language stat from oldRepo failed")
 	}
 
-	if err := models.CopyLFS(ctx, repo, oldRepo); err != nil {
-		if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
-			log.Error("Rollback deleteRepository: %v", errDelete)
-		}
-		return nil, err
-	}
 	return repo, nil
 }

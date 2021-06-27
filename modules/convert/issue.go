@@ -36,7 +36,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		URL:         issue.APIURL(),
 		HTMLURL:     issue.HTMLURL(),
 		Index:       issue.Index,
-		Poster:      ToUser(issue.Poster, false, false),
+		Poster:      ToUser(issue.Poster, nil),
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: assets,
@@ -72,9 +72,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, false, false))
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, nil))
 		}
-		apiIssue.Assignee = ToUser(issue.Assignees[0], false, false) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(); err != nil {

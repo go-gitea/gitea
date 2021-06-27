@@ -193,22 +193,23 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				commits = repo_module.ListToPushCommits(l)
+
+				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
+					log.Error("updateIssuesCommit: %v", err)
+				}
+
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
-					log.Error("updateIssuesCommit: %v", err)
-				}
-
 				if err = models.RemoveDeletedBranch(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
 				// Cache for big repository
-				if err := repo_module.CacheRef(repo, gitRepo, opts.RefFullName); err != nil {
+				if err := repo_module.CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {

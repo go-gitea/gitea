@@ -121,8 +121,8 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	}
 	defer rows.Close()
 
-	var repos = make(map[*Repository]AccessMode, 10)
-	var ownerCache = make(map[int64]*User, 10)
+	repos := make(map[*Repository]AccessMode, 10)
+	ownerCache := make(map[int64]*User, 10)
 	for rows.Next() {
 		var repo repoAccess
 		err = rows.Scan(&repo)

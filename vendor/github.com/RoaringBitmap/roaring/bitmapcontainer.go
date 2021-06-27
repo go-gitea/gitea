@@ -5,8 +5,6 @@ import (
 	"unsafe"
 )
 
-//go:generate msgp -unexported
-
 type bitmapContainer struct {
 	cardinality int
 	bitmap      []uint64
@@ -115,7 +113,7 @@ type bitmapContainerShortIterator struct {
 
 func (bcsi *bitmapContainerShortIterator) next() uint16 {
 	j := bcsi.i
-	bcsi.i = bcsi.ptr.NextSetBit(bcsi.i + 1)
+	bcsi.i = bcsi.ptr.NextSetBit(uint(bcsi.i) + 1)
 	return uint16(j)
 }
 func (bcsi *bitmapContainerShortIterator) hasNext() bool {
@@ -128,7 +126,7 @@ func (bcsi *bitmapContainerShortIterator) peekNext() uint16 {
 
 func (bcsi *bitmapContainerShortIterator) advanceIfNeeded(minval uint16) {
 	if bcsi.hasNext() && bcsi.peekNext() < minval {
-		bcsi.i = bcsi.ptr.NextSetBit(int(minval))
+		bcsi.i = bcsi.ptr.NextSetBit(uint(minval))
 	}
 }
 
@@ -266,7 +264,7 @@ func bitmapEquals(a, b []uint64) bool {
 	return true
 }
 
-func (bc *bitmapContainer) fillLeastSignificant16bits(x []uint32, i int, mask uint32) {
+func (bc *bitmapContainer) fillLeastSignificant16bits(x []uint32, i int, mask uint32) int {
 	// TODO: should be written as optimized assembly
 	pos := i
 	base := mask
@@ -280,6 +278,7 @@ func (bc *bitmapContainer) fillLeastSignificant16bits(x []uint32, i int, mask ui
 		}
 		base += 64
 	}
+	return pos
 }
 
 func (bc *bitmapContainer) equals(o container) bool {
@@ -349,6 +348,11 @@ func (bc *bitmapContainer) isFull() bool {
 
 func (bc *bitmapContainer) getCardinality() int {
 	return bc.cardinality
+}
+
+
+func (bc *bitmapContainer) isEmpty() bool {
+	return bc.cardinality == 0
 }
 
 func (bc *bitmapContainer) clone() container {
@@ -1009,20 +1013,23 @@ func (bc *bitmapContainer) fillArray(container []uint16) {
 	}
 }
 
-func (bc *bitmapContainer) NextSetBit(i int) int {
-	x := i / 64
-	if x >= len(bc.bitmap) {
+func (bc *bitmapContainer) NextSetBit(i uint) int {
+	var (
+		x      = i / 64
+		length = uint(len(bc.bitmap))
+	)
+	if x >= length {
 		return -1
 	}
 	w := bc.bitmap[x]
 	w = w >> uint(i%64)
 	if w != 0 {
-		return i + countTrailingZeros(w)
+		return int(i) + countTrailingZeros(w)
 	}
 	x++
-	for ; x < len(bc.bitmap); x++ {
+	for ; x < length; x++ {
 		if bc.bitmap[x] != 0 {
-			return (x * 64) + countTrailingZeros(bc.bitmap[x])
+			return int(x*64) + countTrailingZeros(bc.bitmap[x])
 		}
 	}
 	return -1
@@ -1131,16 +1138,12 @@ func (bc *bitmapContainer) addOffset(x uint16) []container {
 		low.bitmap[b] = bc.bitmap[0] << i
 		for k := uint32(1); k < end; k++ {
 			newval := bc.bitmap[k] << i
-			if newval == 0 {
-				newval = bc.bitmap[k-1] >> (64 - i)
-			}
+			newval |= bc.bitmap[k-1] >> (64 - i)
 			low.bitmap[b+k] = newval
 		}
 		for k := end; k < 1024; k++ {
 			newval := bc.bitmap[k] << i
-			if newval == 0 {
-				newval = bc.bitmap[k-1] >> (64 - i)
-			}
+			newval |= bc.bitmap[k-1] >> (64 - i)
 			high.bitmap[k-end] = newval
 		}
 		high.bitmap[b] = bc.bitmap[1023] >> (64 - i)

@@ -256,7 +256,6 @@ func UpdateLabel(l *Label) error {
 
 // DeleteLabel delete a label
 func DeleteLabel(id, labelID int64) error {
-
 	label, err := GetLabelByID(labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
@@ -511,19 +510,6 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 		Find(&labelIDs)
 }
 
-// GetLabelIDsInOrgsByNames returns a list of labelIDs by names in one of the given
-// organization.
-// it silently ignores label names that do not belong to the organization.
-func GetLabelIDsInOrgsByNames(orgIDs []int64, labelNames []string) ([]int64, error) {
-	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table("label").
-		In("org_id", orgIDs).
-		In("name", labelNames).
-		Asc("name").
-		Cols("id").
-		Find(&labelIDs)
-}
-
 // GetLabelInOrgByID returns a label by ID in given organization.
 func GetLabelInOrgByID(orgID, labelID int64) (*Label, error) {
 	return getLabelInOrgByID(x, orgID, labelID)
@@ -646,7 +632,7 @@ func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:    CommentTypeLabel,
 		Doer:    doer,
 		Repo:    issue.Repo,
@@ -748,7 +734,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 		return
 	}
 
-	var opts = &CreateCommentOptions{
+	opts := &CreateCommentOptions{
 		Type:  CommentTypeLabel,
 		Doer:  doer,
 		Repo:  issue.Repo,
@@ -780,4 +766,16 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	}
 
 	return sess.Commit()
+}
+
+func deleteLabelsByRepoID(sess Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
+
+	if _, err := sess.In("label_id", deleteCond).
+		Delete(&IssueLabel{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&Label{RepoID: repoID})
+	return err
 }

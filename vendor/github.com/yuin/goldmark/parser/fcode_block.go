@@ -71,9 +71,10 @@ func (b *fencedCodeBlockParser) Open(parent ast.Node, reader text.Reader, pc Con
 func (b *fencedCodeBlockParser) Continue(node ast.Node, reader text.Reader, pc Context) State {
 	line, segment := reader.PeekLine()
 	fdata := pc.Get(fencedCodeBlockInfoKey).(*fenceData)
+
 	// if code block line starts with a tab, keep a tab as it is.
 	if segment.Padding != 0 {
-		preserveLeadingTabInCodeBlock(&segment, reader)
+		preserveLeadingTabInCodeBlock(&segment, reader, fdata.indent)
 	}
 	w, pos := util.IndentWidth(line, reader.LineOffset())
 	if w < 4 {

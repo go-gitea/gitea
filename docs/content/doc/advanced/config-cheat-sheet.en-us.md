@@ -59,7 +59,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `MIRROR_QUEUE_LENGTH`: **1000**: Patch test queue length, increase if pull request patch
    testing starts hanging.
 - `PREFERRED_LICENSES`: **Apache License 2.0,MIT License**: Preferred Licenses to place at
-   the top of the list. Name must match file name in conf/license or custom/conf/license.
+   the top of the list. Name must match file name in options/license or custom/options/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the
    HTTP protocol.
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
@@ -75,6 +75,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
 - `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
+- `DISABLE_STARS`: **false**: Disable stars feature.
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
@@ -93,10 +94,11 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `REOPEN_KEYWORDS`: **reopen**, **reopens**, **reopened**: List of keywords used in Pull Request comments to automatically reopen
  a related issue
 - `DEFAULT_MERGE_MESSAGE_COMMITS_LIMIT`: **50**: In the default merge message for squash commits include at most this many commits. Set to `-1` to include all commits
-- `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: In the default merge message for squash commits limit the size of the commit messages. Set to `-1` to have no limit.
+- `DEFAULT_MERGE_MESSAGE_SIZE`: **5120**: In the default merge message for squash commits limit the size of the commit messages. Set to `-1` to have no limit. Only used if `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES` is `true`.
 - `DEFAULT_MERGE_MESSAGE_ALL_AUTHORS`: **false**: In the default merge message for squash commits walk all commits to include all authors in the Co-authored-by otherwise just use those in the limited list
 - `DEFAULT_MERGE_MESSAGE_MAX_APPROVERS`: **10**: In default merge messages limit the number of approvers listed as `Reviewed-by:`. Set to `-1` to include all.
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
+- `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -141,6 +143,15 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ## Repository - Local (`repository.local`)
 
 - `LOCAL_COPY_PATH`: **tmp/local-repo**: Path for temporary local repository copies. Defaults to `tmp/local-repo`
+
+## Repository -  MIME type mapping (`repository.mimetype_mapping`)
+
+Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
+
+The following configuration set `Content-Type: application/vnd.android.package-archive` header when downloading files with `.apk` file extension.
+```ini
+.apk=application/vnd.android.package-archive
+```
 
 ## CORS (`cors`)
 
@@ -198,6 +209,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ENABLE_RENDER`: **true**: Whether to render SVG files as images.  If SVG rendering is disabled, SVG files are displayed as text and cannot be embedded in markdown files as images.
 
+### UI - CSV Files (`ui.csv`)
+
+- `MAX_FILE_SIZE`: **524288** (512kb): Maximum allowed file size in bytes to render CSV files as table. (Set to 0 for no limit).
+
 ## Markdown (`markdown`)
 
 - `ENABLE_HARD_LINE_BREAK_IN_COMMENTS`: **true**: Render soft line breaks as hard line breaks in comments, which
@@ -237,6 +252,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `unix`.
+- `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to 0 to
+   disable all timeouts.)
+- `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.
 
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
@@ -253,6 +271,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_AUTHORIZED_PRINCIPALS_ALLOW`: **off** or **username, email**: \[off, username, email, anything\]: Specify the principals values that users are allowed to use as principal. When set to `anything` no checks are done on the principal string. When set to `off` authorized principal are not allowed to be set.
 - `SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE`: **false/true**: Gitea will create a authorized_principals file by default when it is not using the internal ssh server and `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
 - `SSH_AUTHORIZED_PRINCIPALS_BACKUP`: **false/true**: Enable SSH Authorized Principals Backup when rewriting all keys, default is true if `SSH_AUTHORIZED_PRINCIPALS_ALLOW` is not `off`.
+- `SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE`: **{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}**: Set the template for the command to passed on authorized keys. Possible keys are: AppPath, AppWorkPath, CustomConf, CustomPath, Key - where Key is a `models.PublicKey` and the others are strings which are shellquoted.
 - `SSH_SERVER_CIPHERS`: **aes128-ctr, aes192-ctr, aes256-ctr, aes128-gcm@openssh.com, arcfour256, arcfour128**: For the built-in SSH server, choose the ciphers to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_KEY_EXCHANGES`: **diffie-hellman-group1-sha1, diffie-hellman-group14-sha1, ecdh-sha2-nistp256, ecdh-sha2-nistp384, ecdh-sha2-nistp521, curve25519-sha256@libssh.org**: For the built-in SSH server, choose the key exchange algorithms to support for SSH connections, for system SSH this setting has no effect.
 - `SSH_SERVER_MACS`: **hmac-sha2-256-etm@openssh.com, hmac-sha2-256, hmac-sha1, hmac-sha1-96**: For the built-in SSH server, choose the MACs to support for SSH connections, for system SSH this setting has no effect
@@ -260,6 +279,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `SSH_KEY_TEST_PATH`: **/tmp**: Directory to create temporary files in when testing public keys using ssh-keygen, default is the system temporary directory.
 - `SSH_KEYGEN_PATH`: **ssh-keygen**: Path to ssh-keygen, default is 'ssh-keygen' which means the shell is responsible for finding out which one to call.
 - `SSH_EXPOSE_ANONYMOUS`: **false**: Enable exposure of SSH clone URL to anonymous visitors, default is false.
+- `SSH_PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the SSH connections. (Set to
+  0 to disable all timeouts.)
+- `SSH_PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to SSH connections.
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
@@ -335,10 +357,10 @@ relation to port exhaustion.
 - `ISSUE_INDEXER_NAME`: **gitea_issues**: Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
 - `ISSUE_INDEXER_PATH`: **indexers/issues.bleve**: Index file used for issue search; available when ISSUE_INDEXER_TYPE is bleve and elasticsearch.
 - The next 4 configuration values are deprecated and should be set in `queue.issue_indexer` however are kept for backwards compatibility:
-- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`.
-- `ISSUE_INDEXER_QUEUE_DIR`: **indexers/issues.queue**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved.
-- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`.
-- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number.
+- `ISSUE_INDEXER_QUEUE_TYPE`: **levelqueue**: Issue indexer queue, currently supports:`channel`, `levelqueue`, `redis`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_DIR`: **queues/common**: When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this will be the path where the queue will be saved. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_CONN_STR`: **addrs=127.0.0.1:6379 db=0**: When `ISSUE_INDEXER_QUEUE_TYPE` is `redis`, this will store the redis connection string. When `ISSUE_INDEXER_QUEUE_TYPE` is `levelqueue`, this is a directory or additional options of the form `leveldb://path/to/db?option=value&....`, and overrides `ISSUE_INDEXER_QUEUE_DIR`. **DEPRECATED** use settings in `[queue.issue_indexer]`.
+- `ISSUE_INDEXER_QUEUE_BATCH_NUMBER`: **20**: Batch queue number. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 
 - `REPO_INDEXER_ENABLED`: **false**: Enables code search (uses a lot of disk space, about 6 times more than the repository size).
 - `REPO_INDEXER_TYPE`: **bleve**: Code search engine type, could be `bleve` or `elasticsearch`.
@@ -349,14 +371,14 @@ relation to port exhaustion.
 - `REPO_INDEXER_INCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **include** in the index. Use `**.txt` to match any files with .txt extension. An empty list means include all files.
 - `REPO_INDEXER_EXCLUDE`: **empty**: A comma separated list of glob patterns (see https://github.com/gobwas/glob) to **exclude** from the index. Files that match this list will not be indexed, even if they match in `REPO_INDEXER_INCLUDE`.
 - `REPO_INDEXER_EXCLUDE_VENDORED`: **true**: Exclude vendored files from index.
-- `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request.
+- `UPDATE_BUFFER_LEN`: **20**: Buffer length of index request. **DEPRECATED** use settings in `[queue.issue_indexer]`.
 - `MAX_FILE_SIZE`: **1048576**: Maximum size in bytes of files to be indexed.
 - `STARTUP_TIMEOUT`: **30s**: If the indexer takes longer than this timeout to start - fail. (This timeout will be added to the hammer time above for child processes - as bleve will not start until the previous parent is shutdown.) Set to zero to never timeout.
 
 ## Queue (`queue` and `queue.*`)
 
 - `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
-- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`name`**.
+- `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.)
 - `LENGTH`: **20**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
@@ -367,11 +389,11 @@ relation to port exhaustion.
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
 - Queues by default come with a dynamically scaling worker pool. The following settings configure this:
-- `WORKERS`: **1**: Number of initial workers for the queue.
+- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue. 
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
-- `BOOST_WORKERS`: **5**: This many workers will be added to the worker pool if there is a boost.
+- `BOOST_WORKERS`: **1** (v1.14 and before: **5**): This many workers will be added to the worker pool if there is a boost.
 
 ## Admin (`admin`)
 
@@ -390,6 +412,9 @@ relation to port exhaustion.
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
+- `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
+   Number of trusted proxy count. Set to zero to not use these headers.
+- `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.0/8,::1/128**: List of IP addresses and networks separated by comma of trusted proxy servers. Use `*` to trust all.
 - `DISABLE_GIT_HOOKS`: **true**: Set to `false` to enable users with git hook privilege to create custom git hooks.
    WARNING: Custom git hooks can be used to perform arbitrary code execution on the host operating system.
    This enables the users to access and modify this config file and the Gitea database and interrupt the Gitea service.
@@ -421,6 +446,21 @@ relation to port exhaustion.
    OpenID URI's to permit.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to block.
+
+## OAuth2 Client (`oauth2_client`)
+
+- `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
+- `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
+- `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
+- `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
+    - userid - use the userid / sub attribute
+    - nickname - use the nickname attribute
+    - email - use the username part of the email attribute
+- `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
+- `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
+    - disabled - show an error
+    - login - show an account linking login
+    - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
 
 ## Service (`service`)
 
@@ -472,12 +512,16 @@ relation to port exhaustion.
 - `SHOW_MILESTONES_DASHBOARD_PAGE`: **true** Enable this to show the milestones dashboard page - a view of all the user's milestones
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
+- `DEFAULT_USER_VISIBILITY`: **public**: Set default visibility mode for users, either "public", "limited" or "private".
+- `ALLOWED_USER_VISIBILITY_MODES`: **public,limited,private**: Set whitch visibibilty modes a user can have
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
+- `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via gitea.
 - `ALLOW_ONLY_EXTERNAL_REGISTRATION`: **false** Set to true to force registration only using third-party services.
-- `NO_REPLY_ADDRESS`: **DOMAIN** Default value for the domain part of the user's email address in the git log if he has set KeepEmailPrivate to true.
+- `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
+- `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
 ### Service - Expore (`service.explore`)
 
@@ -509,9 +553,9 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
 - `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
 - `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
-  - Using opportunistic TLS via STARTTLS on port 587 is recommended per RFC 6409.
+  - As per RFC 8314, if supported, Implicit TLS/SMTPS on port 465 is recommended, otherwise opportunistic TLS via STARTTLS on port 587 should be used.
 - `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port.
-  - Note, if the port ends with `465` SMTPS/SMTP over TLS will be used despite this setting.
+  - Note, if the port ends with `465` Implicit TLS/SMTPS/SMTP over TLS will be used despite this setting.
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
@@ -559,7 +603,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Session (`session`)
 
 - `PROVIDER`: **memory**: Session engine provider \[memory, file, redis, db, mysql, couchbase, memcache, postgres\].
-- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for others, the connection string.
+- `PROVIDER_CONFIG`: **data/sessions**: For file, the root path; for db, empty (database config will be used); for others, the connection string.
 - `COOKIE_SECURE`: **false**: Enable this to force using HTTPS for all session access.
 - `COOKIE_NAME`: **i\_like\_gitea**: The name of the cookie used for the session ID.
 - `GC_INTERVAL_TIME`: **86400**: GC interval in seconds.
@@ -624,6 +668,7 @@ Default templates for project boards:
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default gitea logger.)
 NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
+- `ENABLE_SSH_LOG`: **false**: save ssh log to log file
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
   - The following variables are available:
@@ -679,6 +724,11 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ENABLED`: **false**: Enable to run all cron tasks periodically with default settings.
 - `RUN_AT_START`: **false**: Run cron tasks at application start-up.
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+
+- `SCHEDULE` accept formats
+   - Full crontab specs, e.g. `* * * * * ?`
+   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
+   - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 
@@ -763,6 +813,13 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
+#### Cron -  Delete all old actions from database ('cron.delete_old_actions')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `SCHEDULE`: **@every 128h**: Cron syntax for scheduling a work, e.g. `@every 128h`.
+- `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
+
 ## Git (`git`)
 
 - `PATH`: **""**: The path of git executable. If empty, Gitea searches through the PATH environment.
@@ -805,7 +862,9 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ACCESS_TOKEN_EXPIRATION_TIME`: **3600**: Lifetime of an OAuth2 access token in seconds
 - `REFRESH_TOKEN_EXPIRATION_TIME`: **730**: Lifetime of an OAuth2 refresh token in hours
 - `INVALIDATE_REFRESH_TOKENS`: **false**: Check if refresh token has already been used
-- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this a unique string.
+- `JWT_SIGNING_ALGORITHM`: **RS256**: Algorithm used to sign OAuth2 tokens. Valid values: \[`HS256`, `HS384`, `HS512`, `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`\]
+- `JWT_SECRET`: **\<empty\>**: OAuth2 authentication secret for access and refresh tokens, change this to a unique string. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `HS256`, `HS384` or `HS512`.
+- `JWT_SIGNING_PRIVATE_KEY_FILE`: **jwt/private.pem**: Private key file path used to sign OAuth2 tokens. The path is relative to `APP_DATA_PATH`. This setting is only needed if `JWT_SIGNING_ALGORITHM` is set to `RS256`, `RS384`, `RS512`, `ES256`, `ES384` or `ES512`. The file must contain a RSA or ECDSA private key in the PKCS8 format. If no key exists a 4096 bit key will be created for you.
 - `MAX_TOKEN_LENGTH`: **32767**: Maximum length of token/cookie to accept from OAuth2 provider
 
 ## i18n (`i18n`)
@@ -824,12 +883,14 @@ Gitea can support Markup using external tools. The example below will add a mark
 ```ini
 [markup.asciidoc]
 ENABLED = true
+NEED_POSTPROCESS = true
 FILE_EXTENSIONS = .adoc,.asciidoc
 RENDER_COMMAND = "asciidoc --out-file=- -"
 IS_INPUT_FILE = false
 ```
 
 - ENABLED: **false** Enable markup support; set to **true** to enable this renderer.
+- NEED\_POSTPROCESS: **true** set to **true** to replace links / sha1 and etc.
 - FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
    command. Multiple extentions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
@@ -849,13 +910,17 @@ Gitea supports customizing the sanitization policy for rendered HTML. The exampl
 ELEMENT = span
 ALLOW_ATTR = class
 REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
 ```
 
  - `ELEMENT`: The element this policy applies to. Must be non-empty.
  - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
  - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+ - `ALLOW_DATA_URI_IMAGES`: **false** Allow data uri images (`<img src="data:image/png;base64,..."/>`).
 
 Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
+To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
+If the rule is defined above the renderer ini section or the name does not match a renderer it is applied to every renderer.
 
 ## Time (`time`)
 
@@ -932,6 +997,23 @@ MINIO_USE_SSL = false
 ```
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
+
+## Repository Archive Storage (`storage.repo-archive`)
+
+Configuration for repository archive storage. It will inherit from default `[storage]` or
+`[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. The default of `PATH`
+is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
+
+- `STORAGE_TYPE`: **local**: Storage type for repo archive, `local` for local disk or `minio` for s3 compatible object storage service or other name defined with `[storage.xxx]`
+- `SERVE_DIRECT`: **false**: Allows the storage driver to redirect to authenticated URLs to serve files directly. Currently, only Minio/S3 is supported via signed URLs, local does nothing.
+- `PATH`: **./data/repo-archive**: Where to store archive files, only available when `STORAGE_TYPE` is `local`.
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio endpoint to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID to connect only available when `STORAGE_TYPE` is `minio`
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey to connect only available when `STORAGE_TYPE is` `minio`
+- `MINIO_BUCKET`: **gitea**: Minio bucket to store the lfs only available when `STORAGE_TYPE` is `minio`
+- `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
+- `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
 
 ## Other (`other`)
 

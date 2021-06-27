@@ -4,7 +4,9 @@
 
 package context
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // ResponseWriter represents a response writer for HTTP
 type ResponseWriter interface {
@@ -47,7 +49,7 @@ func (r *Response) Write(bs []byte) (int, error) {
 		return size, err
 	}
 	if r.status == 0 {
-		r.WriteHeader(200)
+		r.status = http.StatusOK
 	}
 	return size, nil
 }
@@ -60,8 +62,10 @@ func (r *Response) WriteHeader(statusCode int) {
 		}
 		r.beforeExecuted = true
 	}
-	r.status = statusCode
-	r.ResponseWriter.WriteHeader(statusCode)
+	if r.status == 0 {
+		r.status = statusCode
+		r.ResponseWriter.WriteHeader(statusCode)
+	}
 }
 
 // Flush flush cached data
