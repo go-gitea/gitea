@@ -863,9 +863,28 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
+	// set system defaults
+	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.Visibility = setting.Service.DefaultUserVisibilityMode
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
+	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
+
+	// overwrite defaults if set
+	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
+		u.Visibility = overwriteDefault[0].Visibility
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	// validate data
+
+	if err := validateUser(u); err != nil {
 		return err
 	}
 
@@ -876,21 +895,14 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	if err = deleteUserRedirect(sess, u.Name); err != nil {
-		return err
-	}
-
-	u.Email = strings.ToLower(u.Email)
-	if err = ValidateEmail(u.Email); err != nil {
-		return err
-	}
-
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
+
+	// prepare for database
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
@@ -901,16 +913,10 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	// set system defaults
-	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
-	u.Visibility = setting.Service.DefaultUserVisibilityMode
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
-	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
-	u.MaxRepoCreation = -1
-	u.Theme = setting.UI.DefaultTheme
-	// overwrite defaults if set
-	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
-		u.Visibility = overwriteDefault[0].Visibility
+	// save changes to database
+
+	if err = deleteUserRedirect(sess, u.Name); err != nil {
+		return err
 	}
 
 	if _, err = sess.Insert(u); err != nil {
@@ -1056,12 +1062,22 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) (err error) {
+// validateUser check if user is valide to insert / update into database
+func validateUser(u *User) error {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
+		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+	}
+
 	u.Email = strings.ToLower(u.Email)
-	if err = ValidateEmail(u.Email); err != nil {
+	return ValidateEmail(u.Email)
+}
+
+func updateUser(e Engine, u *User) error {
+	if err := validateUser(u); err != nil {
 		return err
 	}
-	_, err = e.ID(u.ID).AllCols().Update(u)
+
+	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -1076,6 +1092,10 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
