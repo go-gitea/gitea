@@ -18,6 +18,8 @@ import (
 )
 
 func TestChangePassword(t *testing.T) {
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+
 	oldPassword := "password"
 	setting.MinPasswordLength = 6
 	var pcALL = []string{"lower", "upper", "digit", "spec"}

@@ -1064,7 +1064,7 @@ func checkDupEmail(e Engine, u *User) error {
 
 // validateUser check if user is valide to insert / update into database
 func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesMap[u.Visibility] {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
 		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 	}
 

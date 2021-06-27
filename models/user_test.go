@@ -190,8 +190,7 @@ func TestDeleteUser(t *testing.T) {
 
 func TestEmailNotificationPreferences(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	for _, test := range []struct {
 		expected string
@@ -312,8 +311,7 @@ func TestDisplayName(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	user := &User{
 		Name:               "GiteaBot",
@@ -330,8 +328,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserInvalidEmail(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	user := &User{
 		Name:               "GiteaBot",
@@ -348,8 +345,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	// Init settings
 	_ = setting.Admin
@@ -490,8 +486,7 @@ func TestUpdateUser(t *testing.T) {
 	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
 	assert.Error(t, UpdateUser(user))

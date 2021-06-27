@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -168,8 +167,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 
 func TestActivate(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	email := &EmailAddress{
 		ID:    int64(1),

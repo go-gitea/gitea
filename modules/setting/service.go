@@ -18,7 +18,7 @@ var Service struct {
 	DefaultUserVisibility                   string
 	DefaultUserVisibilityMode               structs.VisibleType
 	AllowedUserVisibilityModes              []string
-	AllowedUserVisibilityModesMap           map[structs.VisibleType]bool `ini:"-"`
+	AllowedUserVisibilityModesSlice         AllowedVisibility `ini:"-"`
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -75,6 +75,16 @@ var Service struct {
 	} `ini:"service.explore"`
 }
 
+// AllowedVisibility store in a 3 item bool array what is allowed
+type AllowedVisibility []bool
+
+func (a AllowedVisibility) IsAllowedVisibility(t structs.VisibleType) bool {
+	if int(t) >= len(a) {
+		return false
+	}
+	return a[t]
+}
+
 func newService() {
 	sec := Cfg.Section("service")
 	Service.ActiveCodeLives = sec.Key("ACTIVE_CODE_LIVE_MINUTES").MustInt(180)
@@ -125,14 +135,13 @@ func newService() {
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.AllowedUserVisibilityModes = sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
-	Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
-	for _, modes := range Service.AllowedUserVisibilityModes {
-		Service.AllowedUserVisibilityModesMap[structs.VisibilityModes[modes]] = true
-	}
-	if len(Service.AllowedUserVisibilityModesMap) == 0 {
-		Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
-		Service.AllowedUserVisibilityModesMap[structs.VisibleTypeLimited] = true
-		Service.AllowedUserVisibilityModesMap[structs.VisibleTypePrivate] = true
+	if len(Service.AllowedUserVisibilityModes) == 0 {
+		Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
+	} else {
+		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
+		for _, sMode := range Service.AllowedUserVisibilityModes {
+			Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[sMode]] = true
+		}
 	}
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
