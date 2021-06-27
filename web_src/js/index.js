@@ -2283,20 +2283,24 @@ function initCodeView() {
       const $select = $(this);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-      showLineButton();
+
+      // show code view menu marker (don't show in blame page)
+      if ($('div.blame').length === 0) {
+        showLineButton();
+      }
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
@@ -2304,7 +2308,12 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2312,7 +2321,12 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
@@ -2911,7 +2925,6 @@ function selectRange($list, $select, $from) {
       } else {
         $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
       }
-
       return;
     }
   }
