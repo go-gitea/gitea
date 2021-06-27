@@ -14,7 +14,7 @@ import (
 )
 
 // Service settings
-var Service struct {
+var Service = struct {
 	DefaultUserVisibility                   string
 	DefaultUserVisibilityMode               structs.VisibleType
 	AllowedUserVisibilityModes              []string
@@ -73,8 +73,8 @@ var Service struct {
 		RequireSigninView bool `ini:"REQUIRE_SIGNIN_VIEW"`
 		DisableUsersPage  bool `ini:"DISABLE_USERS_PAGE"`
 	} `ini:"service.explore"`
-} {
-  AllowedUserVisibilityModesSlice: []bool{true, true, true},
+}{
+	AllowedUserVisibilityModesSlice: []bool{true, true, true},
 }
 
 // AllowedVisibility store in a 3 item bool array what is allowed
@@ -148,9 +148,7 @@ func newService() {
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.AllowedUserVisibilityModes = sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
-	if len(Service.AllowedUserVisibilityModes) == 0 {
-		Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
-	} else {
+	if len(Service.AllowedUserVisibilityModes) != 0 {
 		Service.AllowedUserVisibilityModesSlice = []bool{false, false, false}
 		for _, sMode := range Service.AllowedUserVisibilityModes {
 			Service.AllowedUserVisibilityModesSlice[structs.VisibilityModes[sMode]] = true

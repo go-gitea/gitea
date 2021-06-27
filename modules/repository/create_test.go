@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,6 @@ import (
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := models.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)

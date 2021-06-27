@@ -190,7 +190,6 @@ func TestDeleteUser(t *testing.T) {
 
 func TestEmailNotificationPreferences(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 
 	for _, test := range []struct {
 		expected string
@@ -311,8 +310,6 @@ func TestDisplayName(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
-
 	user := &User{
 		Name:               "GiteaBot",
 		Email:              "GiteaBot@gitea.io",
@@ -328,8 +325,6 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserInvalidEmail(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
-
 	user := &User{
 		Name:               "GiteaBot",
 		Email:              "GiteaBot@gitea.io\r\n",
@@ -345,8 +340,6 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
-
 	// Init settings
 	_ = setting.Admin
 

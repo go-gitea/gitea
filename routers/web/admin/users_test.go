@@ -20,7 +20,6 @@ import (
 func TestNewUserPost_MustChangePassword(t *testing.T) {
 
 	models.PrepareTestEnv(t)
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
@@ -57,9 +56,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 }
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
-
 	models.PrepareTestEnv(t)
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
@@ -96,9 +93,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 }
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
-
 	models.PrepareTestEnv(t)
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
@@ -128,9 +123,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 }
 
 func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
-
 	models.PrepareTestEnv(t)
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
@@ -168,9 +161,7 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
-
 	models.PrepareTestEnv(t)
-	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, true, true}
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := models.AssertExistsAndLoadBean(t, &models.User{
