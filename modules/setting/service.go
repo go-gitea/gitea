@@ -124,7 +124,7 @@ func newService() {
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
-	Service.AllowedUserVisibilityModes = sec.Key("AllowedUserVisibilityModes").Strings(",")
+	Service.AllowedUserVisibilityModes = sec.Key("ALLOWED_USER_VISIBILITY_MODES").Strings(",")
 	Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
 	for _, modes := range Service.AllowedUserVisibilityModes {
 		Service.AllowedUserVisibilityModesMap[structs.VisibilityModes[modes]] = true

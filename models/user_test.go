@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -466,4 +467,25 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 			DeletePublicKey(user, key.ID)
 		}
 	}
+}
+
+func TestUpdateUser(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	user.KeepActivityPrivate = true
+	assert.NoError(t, UpdateUser(user))
+	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.True(t, user.KeepActivityPrivate)
+
+	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+	user.KeepActivityPrivate = false
+	user.Visibility = structs.VisibleTypePrivate
+	assert.Error(t, UpdateUser(user))
+	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.True(t, user.KeepActivityPrivate)
+
+	user.Email = "no mail@mail.org"
+	assert.Error(t, UpdateUser(user))
 }
