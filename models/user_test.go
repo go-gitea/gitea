@@ -190,6 +190,9 @@ func TestDeleteUser(t *testing.T) {
 
 func TestEmailNotificationPreferences(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
+	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+
 	for _, test := range []struct {
 		expected string
 		userID   int64
@@ -309,6 +312,9 @@ func TestDisplayName(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
+	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+
 	user := &User{
 		Name:               "GiteaBot",
 		Email:              "GiteaBot@gitea.io",
@@ -324,6 +330,9 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestCreateUserInvalidEmail(t *testing.T) {
+	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+
 	user := &User{
 		Name:               "GiteaBot",
 		Email:              "GiteaBot@gitea.io\r\n",
@@ -339,6 +348,9 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
+	setting.Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	setting.Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+
 	// Init settings
 	_ = setting.Admin
 
