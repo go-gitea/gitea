@@ -30,15 +30,21 @@
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="visibility" name="visibility" value="{{.visibility}}">
 						<div class="text">
-						{{if .DefaultUserVisibilityMode.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
-						{{if .DefaultUserVisibilityMode.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
-						{{if .DefaultUserVisibilityMode.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
+							{{if .DefaultUserVisibilityMode.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item poping up" data-content="{{.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{.i18n.Tr "settings.visibility.public"}}</div>
-							<div class="item poping up" data-content="{{.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{.i18n.Tr "settings.visibility.limited"}}</div>
-							<div class="item poping up" data-content="{{.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{.i18n.Tr "settings.visibility.private"}}</div>
+							{{range $mode := .AllowedUserVisibilityModes}}
+								{{if $mode.IsPublic}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+								{{else if $mode.IsLimited}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+								{{else if $mode.IsPrivate}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+								{{end}}
+							{{end}}
 						</div>
 					</div>
 				</div>
