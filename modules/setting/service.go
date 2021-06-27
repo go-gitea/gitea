@@ -17,6 +17,8 @@ import (
 var Service struct {
 	DefaultUserVisibility                   string
 	DefaultUserVisibilityMode               structs.VisibleType
+	AllowedUserVisibilityModes              []string
+	AllowedUserVisibilityModesMap           map[structs.VisibleType]bool `ini:"-"`
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -122,6 +124,16 @@ func newService() {
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
 	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
+	Service.AllowedUserVisibilityModes = sec.Key("AllowedUserVisibilityModes").Strings(",")
+	Service.AllowedUserVisibilityModesMap = make(map[structs.VisibleType]bool)
+	for _, modes := range Service.AllowedUserVisibilityModes {
+		Service.AllowedUserVisibilityModesMap[structs.VisibilityModes[modes]] = true
+	}
+	if len(Service.AllowedUserVisibilityModesMap) == 0 {
+		Service.AllowedUserVisibilityModesMap[structs.VisibleTypePublic] = true
+		Service.AllowedUserVisibilityModesMap[structs.VisibleTypeLimited] = true
+		Service.AllowedUserVisibilityModesMap[structs.VisibleTypePrivate] = true
+	}
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()

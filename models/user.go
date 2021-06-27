@@ -903,6 +903,10 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
+	if !setting.Service.AllowedUserVisibilityModesMap[u.Visibility] {
+		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+	}
+
 	// prepare for database
 
 	u.LowerName = strings.ToLower(u.Name)
