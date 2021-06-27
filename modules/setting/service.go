@@ -6,6 +6,7 @@ package setting
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -14,6 +15,8 @@ import (
 
 // Service settings
 var Service struct {
+	DefaultUserVisibility                   string
+	DefaultUserVisibilityMode               structs.VisibleType
 	DefaultOrgVisibility                    string
 	DefaultOrgVisibilityMode                structs.VisibleType
 	ActiveCodeLives                         int
@@ -55,6 +58,7 @@ var Service struct {
 	AutoWatchOnChanges                      bool
 	DefaultOrgMemberVisible                 bool
 	UserDeleteWithCommentsMaxTime           time.Duration
+	ValidSiteURLSchemes                     []string
 
 	// OpenID settings
 	EnableOpenIDSignIn bool
@@ -116,10 +120,22 @@ func newService() {
 	Service.EnableUserHeatmap = sec.Key("ENABLE_USER_HEATMAP").MustBool(true)
 	Service.AutoWatchNewRepos = sec.Key("AUTO_WATCH_NEW_REPOS").MustBool(true)
 	Service.AutoWatchOnChanges = sec.Key("AUTO_WATCH_ON_CHANGES").MustBool(false)
+	Service.DefaultUserVisibility = sec.Key("DEFAULT_USER_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
+	Service.DefaultUserVisibilityMode = structs.VisibilityModes[Service.DefaultUserVisibility]
 	Service.DefaultOrgVisibility = sec.Key("DEFAULT_ORG_VISIBILITY").In("public", structs.ExtractKeysFromMapString(structs.VisibilityModes))
 	Service.DefaultOrgVisibilityMode = structs.VisibilityModes[Service.DefaultOrgVisibility]
 	Service.DefaultOrgMemberVisible = sec.Key("DEFAULT_ORG_MEMBER_VISIBLE").MustBool()
 	Service.UserDeleteWithCommentsMaxTime = sec.Key("USER_DELETE_WITH_COMMENTS_MAX_TIME").MustDuration(0)
+	sec.Key("VALID_SITE_URL_SCHEMES").MustString("http,https")
+	Service.ValidSiteURLSchemes = sec.Key("VALID_SITE_URL_SCHEMES").Strings(",")
+	schemes := make([]string, len(Service.ValidSiteURLSchemes))
+	for _, scheme := range Service.ValidSiteURLSchemes {
+		scheme = strings.ToLower(strings.TrimSpace(scheme))
+		if scheme != "" {
+			schemes = append(schemes, scheme)
+		}
+	}
+	Service.ValidSiteURLSchemes = schemes
 
 	if err := Cfg.Section("service.explore").MapTo(&Service.Explore); err != nil {
 		log.Fatal("Failed to map service.explore settings: %v", err)

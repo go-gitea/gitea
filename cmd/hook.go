@@ -179,7 +179,7 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
-		ProtectedBranchID:               prID,
+		PullRequestID:                   prID,
 		IsDeployKey:                     isDeployKey,
 	}
 
@@ -221,8 +221,8 @@ Gitea or set your environment appropriately.`, "")
 		total++
 		lastline++
 
-		// If the ref is a branch, check if it's protected
-		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+		// If the ref is a branch or tag, check if it's protected
+		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
@@ -230,7 +230,7 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(out, "*")
 
 			if count >= hookBatchSize {
-				fmt.Fprintf(out, " Checking %d branches\n", count)
+				fmt.Fprintf(out, " Checking %d references\n", count)
 
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
@@ -261,7 +261,7 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
-		fmt.Fprintf(out, " Checking %d branches\n", count)
+		fmt.Fprintf(out, " Checking %d references\n", count)
 
 		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
 		switch statusCode {
