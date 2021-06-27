@@ -884,6 +884,10 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 
 	// validate data
 
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	isExist, err := isUserExist(sess, 0, u.Name)
 	if err != nil {
 		return err
@@ -891,20 +895,11 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	u.Email = strings.ToLower(u.Email)
-	if err = ValidateEmail(u.Email); err != nil {
-		return err
-	}
-
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
 		return ErrEmailAlreadyUsed{u.Email}
-	}
-
-	if !setting.Service.AllowedUserVisibilityModesMap[u.Visibility] {
-		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 	}
 
 	// prepare for database
@@ -1067,12 +1062,26 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) (err error) {
+// validateUser check if user is valide to insert / update into database
+func validateUser(u *User) error {
+	if !setting.Service.AllowedUserVisibilityModesMap[u.Visibility] {
+		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+	}
+
 	u.Email = strings.ToLower(u.Email)
-	if err = ValidateEmail(u.Email); err != nil {
+	if err := ValidateEmail(u.Email); err != nil {
 		return err
 	}
-	_, err = e.ID(u.ID).AllCols().Update(u)
+
+	return nil
+}
+
+func updateUser(e Engine, u *User) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
+	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -1087,6 +1096,10 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
