@@ -471,7 +471,8 @@ func getWorkPath(appPath string) string {
 func init() {
 	IsWindows = runtime.GOOS == "windows"
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	// By default set this logger at Info - we'll change it later but we need to start with something.
+	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
@@ -807,7 +808,7 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
-		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(CustomPath, OAuth2.JWTSigningPrivateKeyFile)
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
 	sec = Cfg.Section("admin")
@@ -1159,6 +1160,19 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	}
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
+	}
+
+	// Change permissions to be more restrictive
+	fi, err := os.Stat(CustomConf)
+	if err != nil {
+		log.Error("Failed to determine current conf file permissions: %v", err)
+		return
+	}
+
+	if fi.Mode().Perm() > 0o600 {
+		if err = os.Chmod(CustomConf, 0o600); err != nil {
+			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
+		}
 	}
 }
 

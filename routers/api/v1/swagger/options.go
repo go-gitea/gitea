@@ -161,4 +161,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateTagOption api.CreateTagOption
+
+	// in:body
+	UserSettingsOptions api.UserSettingsOptions
 }
