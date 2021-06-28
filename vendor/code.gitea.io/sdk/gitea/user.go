@@ -30,6 +30,9 @@ type User struct {
 
 // GetUserInfo get user info by user's name
 func (c *Client) GetUserInfo(user string) (*User, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	u := new(User)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s", user), nil, nil, u)
 	return u, resp, err

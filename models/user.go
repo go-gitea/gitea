@@ -22,10 +22,8 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -76,12 +74,6 @@ const (
 )
 
 var (
-	// ErrUserNotKeyOwner user does not own this key error
-	ErrUserNotKeyOwner = errors.New("User does not own this public key")
-
-	// ErrEmailNotExist e-mail does not exist error
-	ErrEmailNotExist = errors.New("E-mail does not exist")
-
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
@@ -120,7 +112,6 @@ type User struct {
 	LoginName   string
 	Type        UserType
 	OwnedOrgs   []*User       `xorm:"-"`
-	Orgs        []*User       `xorm:"-"`
 	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
@@ -239,10 +230,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users found in DB.
+// GetAllUsers returns a slice of all individual users found in DB.
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Find(&users)
+	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -296,7 +287,7 @@ func (u *User) CanEditGitHook() bool {
 
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
-	if !setting.ImportLocalPaths {
+	if !setting.ImportLocalPaths || u == nil {
 		return false
 	}
 	return u.IsAdmin || u.AllowImportLocal
@@ -305,7 +296,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return setting.AppSubURL + "/org/" + u.Name + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard/"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -320,6 +311,11 @@ func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
 }
 
+// OrganisationLink returns the organization sub page link.
+func (u *User) OrganisationLink() string {
+	return setting.AppSubURL + "/org/" + u.Name
+}
+
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
@@ -329,11 +325,6 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
 	return code
-}
-
-// GenerateActivateCode generates an activate code based on user information.
-func (u *User) GenerateActivateCode() string {
-	return u.GenerateEmailActivateCode(u.Email)
 }
 
 // GetFollowers returns range of user's followers.
@@ -439,6 +430,62 @@ func (u *User) ValidatePassword(passwd string) bool {
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
+}
+
+// IsVisibleToUser check if viewer is able to see user profile
+func (u *User) IsVisibleToUser(viewer *User) bool {
+	return u.isVisibleToUser(x, viewer)
+}
+
+func (u *User) isVisibleToUser(e Engine, viewer *User) bool {
+	if viewer != nil && viewer.IsAdmin {
+		return true
+	}
+
+	switch u.Visibility {
+	case structs.VisibleTypePublic:
+		return true
+	case structs.VisibleTypeLimited:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+		return true
+	case structs.VisibleTypePrivate:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+
+		// If they follow - they see each over
+		follower := IsFollowing(u.ID, viewer.ID)
+		if follower {
+			return true
+		}
+
+		// Now we need to check if they in some organization together
+		count, err := x.Table("team_user").
+			Where(
+				builder.And(
+					builder.Eq{"uid": viewer.ID},
+					builder.Or(
+						builder.Eq{"org_id": u.ID},
+						builder.In("org_id",
+							builder.Select("org_id").
+								From("team_user", "t2").
+								Where(builder.Eq{"uid": u.ID}))))).
+			Count(new(TeamUser))
+		if err != nil {
+			return false
+		}
+
+		if count < 0 {
+			// No common organization
+			return false
+		}
+
+		// they are in an organization together
+		return true
+	}
+	return false
 }
 
 // IsOrganization returns true if user is actually a organization.
@@ -611,58 +658,6 @@ func (u *User) GetOwnedOrganizations() (err error) {
 	return err
 }
 
-// GetOrganizations returns paginated organizations that user belongs to.
-// TODO: does not respect All and show orgs you privately participate
-func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	schema, err := x.TableInfo(new(User))
-	if err != nil {
-		return err
-	}
-	groupByCols := &strings.Builder{}
-	for _, col := range schema.Columns() {
-		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col.Name)
-	}
-	groupByStr := groupByCols.String()
-	groupByStr = groupByStr[0 : len(groupByStr)-1]
-
-	sess.Select("`user`.*, count(repo_id) as org_count").
-		Table("user").
-		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
-		Join("LEFT", builder.
-			Select("id as repo_id, owner_id as repo_owner_id").
-			From("repository").
-			Where(accessibleRepositoryCondition(u)), "`repository`.repo_owner_id = `org_user`.org_id").
-		And("`org_user`.uid=?", u.ID).
-		GroupBy(groupByStr)
-	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
-	}
-	type OrgCount struct {
-		User     `xorm:"extends"`
-		OrgCount int
-	}
-	orgCounts := make([]*OrgCount, 0, 10)
-
-	if err := sess.
-		Asc("`user`.name").
-		Find(&orgCounts); err != nil {
-		return err
-	}
-
-	orgs := make([]*User, len(orgCounts))
-	for i, orgCount := range orgCounts {
-		orgCount.User.NumRepos = orgCount.OrgCount
-		orgs[i] = &orgCount.User
-	}
-
-	u.Orgs = orgs
-
-	return nil
-}
-
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
@@ -750,7 +745,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return generate.GetRandomString(10)
+	return util.RandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -780,7 +775,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = append([]string{
+	reservedUsernames = []string{
 		".",
 		"..",
 		".well-known",
@@ -794,6 +789,7 @@ var (
 		"debug",
 		"error",
 		"explore",
+		"favicon.ico",
 		"ghost",
 		"help",
 		"install",
@@ -812,10 +808,11 @@ var (
 		"repo",
 		"robots.txt",
 		"search",
+		"serviceworker.js",
 		"stars",
 		"template",
 		"user",
-	}, public.KnownPublicEntries...)
+	}
 
 	reservedUserPatterns = []string{"*.keys", "*.gpg"}
 )
@@ -855,15 +852,39 @@ func IsUsableUsername(name string) error {
 	return isUsableName(reservedUsernames, reservedUserPatterns, name)
 }
 
+// CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
+type CreateUserOverwriteOptions struct {
+	Visibility structs.VisibleType
+}
+
 // CreateUser creates record of a new user.
-func CreateUser(u *User) (err error) {
+func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
+	}
+
+	// set system defaults
+	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.Visibility = setting.Service.DefaultUserVisibilityMode
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
+	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
+
+	// overwrite defaults if set
+	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
+		u.Visibility = overwriteDefault[0].Visibility
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	// validate data
+
+	if err := validateUser(u); err != nil {
 		return err
 	}
 
@@ -874,24 +895,6 @@ func CreateUser(u *User) (err error) {
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	if err = deleteUserRedirect(sess, u.Name); err != nil {
-		return err
-	}
-
-	u.Email = strings.ToLower(u.Email)
-	isExist, err = sess.
-		Where("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
-	}
-
-	if err = ValidateEmail(u.Email); err != nil {
-		return err
-	}
-
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
@@ -899,7 +902,7 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	// prepare for database
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
@@ -909,12 +912,25 @@ func CreateUser(u *User) (err error) {
 	if err = u.SetPassword(u.Passwd); err != nil {
 		return err
 	}
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
-	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
-	u.MaxRepoCreation = -1
-	u.Theme = setting.UI.DefaultTheme
+
+	// save changes to database
+
+	if err = deleteUserRedirect(sess, u.Name); err != nil {
+		return err
+	}
 
 	if _, err = sess.Insert(u); err != nil {
+		return err
+	}
+
+	// insert email address
+	if _, err := sess.Insert(&EmailAddress{
+		UID:         u.ID,
+		Email:       u.Email,
+		LowerEmail:  strings.ToLower(u.Email),
+		IsActivated: u.IsActive,
+		IsPrimary:   true,
+	}); err != nil {
 		return err
 	}
 
@@ -1046,12 +1062,22 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-func updateUser(e Engine, u *User) (err error) {
+// validateUser check if user is valide to insert / update into database
+func validateUser(u *User) error {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
+		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+	}
+
 	u.Email = strings.ToLower(u.Email)
-	if err = ValidateEmail(u.Email); err != nil {
+	return ValidateEmail(u.Email)
+}
+
+func updateUser(e Engine, u *User) error {
+	if err := validateUser(u); err != nil {
 		return err
 	}
-	_, err = e.ID(u.ID).AllCols().Update(u)
+
+	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
 
@@ -1066,6 +1092,10 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
@@ -1307,7 +1337,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 			Find(&users); err != nil {
 			return fmt.Errorf("get all inactive users: %v", err)
 		}
-
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range users {
@@ -1572,7 +1601,6 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
-
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1586,10 +1614,9 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
+	// If visibility filtered
 	if len(opts.Visible) > 0 {
 		cond = cond.And(builder.In("visibility", opts.Visible))
-	} else {
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.Actor != nil {
@@ -1601,16 +1628,28 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		} else {
 			exprCond = builder.Expr("org_user.org_id = \"user\".id")
 		}
-		var accessCond = builder.NewCond()
-		if !opts.Actor.IsRestricted {
-			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-		} else {
-			// restricted users only see orgs they are a member of
-			accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+
+		// If Admin - they see all users!
+		if !opts.Actor.IsAdmin {
+			// Force visiblity for privacy
+			var accessCond builder.Cond
+			if !opts.Actor.IsRestricted {
+				accessCond = builder.Or(
+					builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+					builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			} else {
+				// restricted users only see orgs they are a member of
+				accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+			}
+			// Don't forget about self
+			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
+			cond = cond.And(accessCond)
 		}
-		cond = cond.And(accessCond)
+
+	} else {
+		// Force visiblity for privacy
+		// Not logged in - only public users
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.UID > 0 {
@@ -1847,7 +1886,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 			log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
 
 			var existingUsers []int64
-			var isAttributeSSHPublicKeySet = len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
+			isAttributeSSHPublicKeySet := len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
 			var sshKeysNeedUpdate bool
 
 			// Find all users with this login type
@@ -2021,9 +2060,9 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 // IterateUser iterate users
 func IterateUser(f func(user *User) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var users = make([]*User, 0, batchSize)
+		users := make([]*User, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&users); err != nil {
 			return err
 		}

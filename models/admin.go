@@ -14,11 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-//NoticeType describes the notice type
+// NoticeType describes the notice type
 type NoticeType int
 
 const (
-	//NoticeRepository type
+	// NoticeRepository type
 	NoticeRepository NoticeType = iota + 1
 	// NoticeTask type
 	NoticeTask
@@ -114,6 +114,11 @@ func DeleteNotice(id int64) error {
 
 // DeleteNotices deletes all notices with ID from start to end (inclusive).
 func DeleteNotices(start, end int64) error {
+	if start == 0 && end == 0 {
+		_, err := x.Exec("DELETE FROM notice")
+		return err
+	}
+
 	sess := x.Where("id >= ?", start)
 	if end > 0 {
 		sess.And("id <= ?", end)

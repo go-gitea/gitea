@@ -2,9 +2,11 @@
 	<a class="{{if .PageIsExploreRepositories}}active{{end}} item" href="{{AppSubUrl}}/explore/repos">
 		{{svg "octicon-repo"}} {{.i18n.Tr "explore.repos"}}
 	</a>
-	<a class="{{if .PageIsExploreUsers}}active{{end}} item" href="{{AppSubUrl}}/explore/users">
-		{{svg "octicon-person"}} {{.i18n.Tr "explore.users"}}
-	</a>
+	{{if not .UsersIsDisabled}}
+		<a class="{{if .PageIsExploreUsers}}active{{end}} item" href="{{AppSubUrl}}/explore/users">
+			{{svg "octicon-person"}} {{.i18n.Tr "explore.users"}}
+		</a>
+	{{end}}
 	<a class="{{if .PageIsExploreOrganizations}}active{{end}} item" href="{{AppSubUrl}}/explore/organizations">
 		{{svg "octicon-organization"}} {{.i18n.Tr "explore.organizations"}}
 	</a>

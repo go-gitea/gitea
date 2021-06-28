@@ -7,18 +7,22 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-// nixb matches right boundary of a nix word. Use it instead of \b.
-const nixb = `(?![a-zA-Z0-9_'-])`
-
 // Nix lexer.
-var Nix = internal.Register(MustNewLexer(
+var Nix = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Nix",
 		Aliases:   []string{"nixos", "nix"},
 		Filenames: []string{"*.nix"},
 		MimeTypes: []string{"text/x-nix"},
 	},
-	Rules{
+	nixRules,
+))
+
+func nixRules() Rules {
+	// nixb matches right boundary of a nix word. Use it instead of \b.
+	const nixb = `(?![a-zA-Z0-9_'-])`
+
+	return Rules{
 		"root": {
 			Include("keywords"),
 			Include("builtins"),
@@ -118,5 +122,5 @@ var Nix = internal.Register(MustNewLexer(
 		"space": {
 			{`[ \t\r\n]+`, Text, nil},
 		},
-	},
-))
+	}
+}

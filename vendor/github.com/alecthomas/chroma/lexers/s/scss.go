@@ -6,7 +6,7 @@ import (
 )
 
 // Scss lexer.
-var Scss = internal.Register(MustNewLexer(
+var Scss = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "SCSS",
 		Aliases:         []string{"scss"},
@@ -16,7 +16,11 @@ var Scss = internal.Register(MustNewLexer(
 		DotAll:          true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	scssRules,
+))
+
+func scssRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`//.*?\n`, CommentSingle, nil},
@@ -120,5 +124,5 @@ var Scss = internal.Register(MustNewLexer(
 			{`(from|to|through)`, OperatorWord, nil},
 			Include("value"),
 		},
-	},
-))
+	}
+}

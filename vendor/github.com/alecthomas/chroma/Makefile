@@ -1,5 +1,7 @@
 .PHONY: chromad upload all
 
+VERSION ?= $(shell git describe --tags --dirty  --always)
+
 all: README.md tokentype_string.go
 
 README.md: lexers/*/*.go
@@ -9,10 +11,8 @@ tokentype_string.go: types.go
 	go generate
 
 chromad:
-	(cd ./cmd/chromad && go get github.com/GeertJohan/go.rice/rice@master && go install github.com/GeertJohan/go.rice/rice)
 	rm -f chromad
-	(export CGOENABLED=0 GOOS=linux ; cd ./cmd/chromad && go build -o ../../chromad .)
-	rice append -i ./cmd/chromad --exec=./chromad
+	(export CGOENABLED=0 GOOS=linux ; cd ./cmd/chromad && go build -ldflags="-X 'main.version=$(VERSION)'" -o ../../chromad .)
 
 upload: chromad
 	scp chromad root@swapoff.org: && \

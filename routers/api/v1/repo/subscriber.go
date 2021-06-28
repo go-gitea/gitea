@@ -50,7 +50,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(subscribers))
 	for i, subscriber := range subscribers {
-		users[i] = convert.ToUser(subscriber, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(subscriber, ctx.User)
 	}
 	ctx.JSON(http.StatusOK, users)
 }

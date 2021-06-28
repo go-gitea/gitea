@@ -2,7 +2,7 @@ version: '3'
 
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:7.9.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
     hostname: elasticsearch
     environment:
       - cluster.name=elasticsearch
@@ -28,7 +28,7 @@ services:
     ports:
       - 9200:9200
   platinum:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.9.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
     hostname: elasticsearch-platinum
     environment:
       - cluster.name=platinum

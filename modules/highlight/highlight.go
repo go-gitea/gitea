@@ -8,6 +8,7 @@ package highlight
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	gohtml "html"
 	"path/filepath"
 	"strings"
@@ -16,9 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/alecthomas/chroma"
 	"github.com/alecthomas/chroma/formatters/html"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // don't index files larger than this many bytes for performance purposes
@@ -29,6 +32,8 @@ var (
 	highlightMapping = map[string]string{}
 
 	once sync.Once
+
+	cache *lru.TwoQueueCache
 )
 
 // NewContext loads custom highlight map from local config
@@ -38,6 +43,13 @@ func NewContext() {
 		for i := range keys {
 			highlightMapping[keys[i].Name()] = keys[i].Value()
 		}
+
+		// The size 512 is simply a conservative rule of thumb
+		c, err := lru.New2Q(512)
+		if err != nil {
+			panic(fmt.Sprintf("failed to initialize LRU cache for highlighter: %s", err))
+		}
+		cache = c
 	})
 }
 
@@ -66,14 +78,24 @@ func Code(fileName, code string) string {
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
 
+	var lexer chroma.Lexer
 	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		//change file name to one with mapped extension so we look that up instead
-		fileName = "mapped." + val
+		//use mapped value to find lexer
+		lexer = lexers.Get(val)
 	}
 
-	lexer := lexers.Match(fileName)
 	if lexer == nil {
-		lexer = lexers.Fallback
+		if l, ok := cache.Get(fileName); ok {
+			lexer = l.(chroma.Lexer)
+		}
+	}
+
+	if lexer == nil {
+		lexer = lexers.Match(fileName)
+		if lexer == nil {
+			lexer = lexers.Fallback
+		}
+		cache.Add(fileName, lexer)
 	}
 
 	iterator, err := lexer.Tokenise(nil, string(code))
@@ -114,17 +136,20 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
 
+	var lexer chroma.Lexer
 	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		fileName = "test." + val
+		lexer = lexers.Get(val)
 	}
 
-	language := analyze.GetCodeLanguage(fileName, code)
-
-	lexer := lexers.Get(language)
 	if lexer == nil {
-		lexer = lexers.Match(fileName)
+		language := analyze.GetCodeLanguage(fileName, code)
+
+		lexer = lexers.Get(language)
 		if lexer == nil {
-			lexer = lexers.Fallback
+			lexer = lexers.Match(fileName)
+			if lexer == nil {
+				lexer = lexers.Fallback
+			}
 		}
 	}
 

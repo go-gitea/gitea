@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 )
 
@@ -47,7 +48,7 @@ func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiff
 func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
-		return fmt.Errorf("GetCommit: %v", err)
+		return err
 	}
 	fileArgs := make([]string, 0)
 	if len(file) > 0 {
@@ -113,7 +114,7 @@ func ParseDiffHunkString(diffhunk string) (leftLine, leftHunk, rightLine, righHu
 			righHunk, _ = strconv.Atoi(rightRange[1])
 		}
 	} else {
-		log("Parse line number failed: %v", diffhunk)
+		log.Debug("Parse line number failed: %v", diffhunk)
 		rightLine = leftLine
 		righHunk = leftHunk
 	}

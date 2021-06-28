@@ -74,6 +74,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 	setting.RepoAvatar.Storage.Path = filepath.Join(setting.AppDataPath, "repo-avatars")
 
+	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
@@ -103,7 +105,7 @@ func CreateTestEngine(fixturesDir string) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return err
 	}
 	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
@@ -207,7 +209,7 @@ func AssertSuccessfulInsert(t testing.TB, beans ...interface{}) {
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t testing.TB, bean interface{}, expected interface{}) {
+func AssertCount(t testing.TB, bean, expected interface{}) {
 	assert.EqualValues(t, expected, GetCount(t, bean))
 }
 
