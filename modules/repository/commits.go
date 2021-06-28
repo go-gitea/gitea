@@ -98,8 +98,8 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 	}, nil
 }
 
-// ToAPIPayloadCommits converts a PushCommits object to
-// api.PayloadCommit format.
+// ToAPIPayloadCommits converts a PushCommits object to api.PayloadCommit format.
+// It returns all converted commits and, if provided, the head commit or an error otherwise.
 func (pc *PushCommits) ToAPIPayloadCommits(repoPath, repoLink string) ([]*api.PayloadCommit, *api.PayloadCommit, error) {
 	commits := make([]*api.PayloadCommit, len(pc.Commits))
 	var headCommit *api.PayloadCommit
