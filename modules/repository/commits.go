@@ -28,7 +28,6 @@ type PushCommit struct {
 
 // PushCommits represents list of commits in a push operation.
 type PushCommits struct {
-	Len        int
 	Commits    []*PushCommit
 	CompareURL string
 
@@ -165,5 +164,5 @@ func ListToPushCommits(l *list.List) *PushCommits {
 		}
 		commits = append(commits, CommitToPushCommit(commit))
 	}
-	return &PushCommits{l.Len(), commits, "", make(map[string]string), make(map[string]*models.User)}
+	return &PushCommits{commits, "", make(map[string]string), make(map[string]*models.User)}
 }

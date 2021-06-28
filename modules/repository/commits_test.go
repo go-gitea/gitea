@@ -46,7 +46,6 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 			Message:        "good signed commit",
 		},
 	}
-	pushCommits.Len = len(pushCommits.Commits)
 
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
@@ -109,7 +108,6 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 			Message:        "message2",
 		},
 	}
-	pushCommits.Len = len(pushCommits.Commits)
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=112",
