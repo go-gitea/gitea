@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers/install"
 
 	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
@@ -47,6 +47,14 @@ and it takes care of all the other things for you`,
 			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Only display Fatal logging errors until logging is set-up",
+		},
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "Set initial logging to TRACE level until logging is properly set-up",
+		},
 	},
 }
 
@@ -71,6 +79,14 @@ func runHTTPRedirector() {
 }
 
 func runWeb(ctx *cli.Context) error {
+	if ctx.Bool("verbose") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	} else if ctx.Bool("quiet") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	}
+
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
@@ -88,7 +104,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
+	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {
@@ -101,7 +117,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := routes.InstallRoutes()
+		c := install.Routes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -134,7 +150,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routes.NormalRoutes()
+	c := routers.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())

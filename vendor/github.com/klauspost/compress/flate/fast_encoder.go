@@ -45,7 +45,7 @@ const (
 
 	bTableBits   = 17                                               // Bits used in the big tables
 	bTableSize   = 1 << bTableBits                                  // Size of the table
-	allocHistory = maxStoreBlockSize * 10                           // Size to preallocate for history.
+	allocHistory = maxStoreBlockSize * 5                            // Size to preallocate for history.
 	bufferReset  = (1 << 31) - allocHistory - maxStoreBlockSize - 1 // Reset the buffer offset when reaching this.
 )
 

@@ -6,14 +6,18 @@ import (
 )
 
 // Matlab lexer.
-var Matlab = internal.Register(MustNewLexer(
+var Matlab = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Matlab",
 		Aliases:   []string{"matlab"},
 		Filenames: []string{"*.m"},
 		MimeTypes: []string{"text/matlab"},
 	},
-	Rules{
+	matlabRules,
+))
+
+func matlabRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`^!.*`, LiteralStringOther, nil},
@@ -47,5 +51,5 @@ var Matlab = internal.Register(MustNewLexer(
 			{`(\s*)(?:(.+)(\s*)(=)(\s*))?(.+)(\()(.*)(\))(\s*)`, ByGroups(TextWhitespace, Text, TextWhitespace, Punctuation, TextWhitespace, NameFunction, Punctuation, Text, Punctuation, TextWhitespace), Pop(1)},
 			{`(\s*)([a-zA-Z_]\w*)`, ByGroups(Text, NameFunction), Pop(1)},
 		},
-	},
-))
+	}
+}
