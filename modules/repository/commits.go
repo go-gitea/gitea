@@ -178,13 +178,9 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 // ListToPushCommits transforms a list.List to PushCommits type.
 func ListToPushCommits(l *list.List) *PushCommits {
 	var commits []*PushCommit
-	var actEmail string
 	for e := l.Front(); e != nil; e = e.Next() {
-		commit := e.Value.(*git.Commit)
-		if actEmail == "" {
-			actEmail = commit.Committer.Email
-		}
-		commits = append(commits, CommitToPushCommit(commit))
+		commit := CommitToPushCommit(e.Value.(*git.Commit))
+		commits = append(commits, commit)
 	}
 	return &PushCommits{commits, nil, "", make(map[string]string), make(map[string]*models.User)}
 }
