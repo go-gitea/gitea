@@ -12,6 +12,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -251,6 +252,12 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 			config.MACs = macs
 			config.Ciphers = ciphers
 			return config
+		},
+		ConnectionFailedCallback: func(conn net.Conn, err error) {
+			// Log the underlying error with a specific message
+			log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
+			// Log with the standard failed authentication from message for simpler fail2ban configuration
+			log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 		},
 		// We need to explicitly disable the PtyCallback so text displays
 		// properly.
