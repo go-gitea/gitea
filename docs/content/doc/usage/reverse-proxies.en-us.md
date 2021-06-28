@@ -124,7 +124,7 @@ server {
 
 This error indicates nginx is configured to restrict the file upload size.
 
-In your `nginx.conf`, find the `http { ... }` block and add the line
+In your nginx config file containing your Gitea proxy directive, find the `location { ... }` block for Gitea and add the line
 `client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
 
 
