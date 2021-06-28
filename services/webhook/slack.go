@@ -56,9 +56,6 @@ type SlackAttachment struct {
 	Text      string `json:"text"`
 }
 
-// SetSecret sets the slack secret
-func (s *SlackPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the SlackPayload to json
 func (s *SlackPayload) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary

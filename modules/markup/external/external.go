@@ -30,7 +30,7 @@ func RegisterRenderers() {
 
 // Renderer implements markup.Renderer for external tools
 type Renderer struct {
-	setting.MarkupRenderer
+	*setting.MarkupRenderer
 }
 
 // Name returns the external tool name
@@ -46,6 +46,11 @@ func (p *Renderer) NeedPostProcess() bool {
 // Extensions returns the supported extensions of the tool
 func (p *Renderer) Extensions() []string {
 	return p.FileExtensions
+}
+
+// SanitizerRules implements markup.Renderer
+func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return p.MarkupSanitizerRules
 }
 
 func envMark(envName string) string {
