@@ -339,6 +339,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 						Filename:  readmeFile.name,
 						URLPrefix: readmeTreelink,
 						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+						GitRepo:   ctx.Repo.GitRepo,
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
@@ -513,6 +514,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -571,6 +573,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)

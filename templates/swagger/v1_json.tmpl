@@ -3657,7 +3657,7 @@
           "repository"
         ],
         "summary": "Gets the tag object of an annotated tag (not lightweight tags)",
-        "operationId": "GetTag",
+        "operationId": "GetAnnotatedTag",
         "parameters": [
           {
             "type": "string",
@@ -9117,7 +9117,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/AnnotatedTag"
+            "$ref": "#/responses/Tag"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -9129,6 +9129,47 @@
       }
     },
     "/repos/{owner}/{repo}/tags/{tag}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get the tag of a repository by tag name",
+        "operationId": "repoGetTag",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of tag",
+            "name": "tag",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Tag"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
       "delete": {
         "produces": [
           "application/json"
@@ -10907,6 +10948,47 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/user/settings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get user settings",
+        "operationId": "getUserSettings",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
+          }
+        }
+      },
+      "patch": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Update user settings",
+        "operationId": "updateUserSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UserSettingsOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/UserSettings"
           }
         }
       }
@@ -13252,6 +13334,10 @@
         "username": {
           "type": "string",
           "x-go-name": "Username"
+        },
+        "visibility": {
+          "type": "string",
+          "x-go-name": "Visibility"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14060,6 +14146,10 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
+        },
+        "visibility": {
+          "type": "string",
+          "x-go-name": "Visibility"
         },
         "website": {
           "type": "string",
@@ -16555,6 +16645,11 @@
           "format": "int64",
           "x-go-name": "StarredRepos"
         },
+        "visibility": {
+          "description": "User visibility level option: public, limited, private",
+          "type": "string",
+          "x-go-name": "Visibility"
+        },
         "website": {
           "description": "the user's website",
           "type": "string",
@@ -16577,6 +16672,94 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/models"
+    },
+    "UserSettings": {
+      "description": "UserSettings represents user settings",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "diff_view_style": {
+          "type": "string",
+          "x-go-name": "DiffViewStyle"
+        },
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "hide_activity": {
+          "type": "boolean",
+          "x-go-name": "HideActivity"
+        },
+        "hide_email": {
+          "description": "Privacy",
+          "type": "boolean",
+          "x-go-name": "HideEmail"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "location": {
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "theme": {
+          "type": "string",
+          "x-go-name": "Theme"
+        },
+        "website": {
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UserSettingsOptions": {
+      "description": "UserSettingsOptions represents options to change user settings",
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "diff_view_style": {
+          "type": "string",
+          "x-go-name": "DiffViewStyle"
+        },
+        "full_name": {
+          "type": "string",
+          "x-go-name": "FullName"
+        },
+        "hide_activity": {
+          "type": "boolean",
+          "x-go-name": "HideActivity"
+        },
+        "hide_email": {
+          "description": "Privacy",
+          "type": "boolean",
+          "x-go-name": "HideEmail"
+        },
+        "language": {
+          "type": "string",
+          "x-go-name": "Language"
+        },
+        "location": {
+          "type": "string",
+          "x-go-name": "Location"
+        },
+        "theme": {
+          "type": "string",
+          "x-go-name": "Theme"
+        },
+        "website": {
+          "type": "string",
+          "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "WatchInfo": {
       "description": "WatchInfo represents an API watch status of one repository",
@@ -17281,6 +17464,15 @@
         }
       }
     },
+    "UserSettings": {
+      "description": "UserSettings",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/UserSettings"
+        }
+      }
+    },
     "WatchInfo": {
       "description": "WatchInfo",
       "schema": {
@@ -17335,7 +17527,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateTagOption"
+        "$ref": "#/definitions/UserSettingsOptions"
       }
     },
     "redirect": {

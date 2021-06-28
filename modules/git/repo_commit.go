@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -84,12 +86,6 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	}
 	return commits.Front().Value.(*Commit), nil
 }
-
-// CommitsRangeSize the default commits range size
-var CommitsRangeSize = 50
-
-// BranchesRangeSize the default branches range size
-var BranchesRangeSize = 20
 
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
@@ -206,7 +202,7 @@ func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 
 // CommitsByFileAndRange return the commits according revison file and the page
 func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	skip := (page - 1) * CommitsRangeSize
+	skip := (page - 1) * setting.Git.CommitsRangeSize
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
@@ -216,7 +212,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand("log", revision, "--follow",
-			"--max-count="+strconv.Itoa(CommitsRangeSize*page),
+			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
 			prettyLogFormat, "--", file).
 			RunInDirPipeline(repo.Path, stdoutWriter, &stderr)
 		if err != nil {
@@ -247,7 +243,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 // CommitsByFileAndRangeNoFollow return the commits according revison file and the page
 func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) (*list.List, error) {
 	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
+		"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
