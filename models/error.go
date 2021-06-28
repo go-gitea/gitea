@@ -985,6 +985,21 @@ func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 
+// ErrProtectedTagName represents a "ProtectedTagName" kind of error.
+type ErrProtectedTagName struct {
+	TagName string
+}
+
+// IsErrProtectedTagName checks if an error is a ErrProtectedTagName.
+func IsErrProtectedTagName(err error) bool {
+	_, ok := err.(ErrProtectedTagName)
+	return ok
+}
+
+func (err ErrProtectedTagName) Error() string {
+	return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
+}
+
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
 type ErrRepoFileAlreadyExists struct {
 	Path string

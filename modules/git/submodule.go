@@ -12,6 +12,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 var scpSyntax = regexp.MustCompile(`^([a-zA-Z0-9_]+@)?([a-zA-Z0-9._-]+):(.*)$`)
@@ -44,13 +46,13 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 		return ""
 	}
 
-	if alias, ok := SubModuleMap[refURL]; ok {
+	if alias, ok := setting.Git.SubModuleMap[refURL]; ok {
 		return alias
 	}
 
 	refURI := strings.TrimSuffix(refURL, ".git")
 
-	if alias, ok := SubModuleMap[refURI]; ok {
+	if alias, ok := setting.Git.SubModuleMap[refURI]; ok {
 		return alias
 	}
 
@@ -84,7 +86,7 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 				pth = "/" + pth
 			}
 
-			if alias, ok := SubModuleMap[m[1]+refHostname]; ok {
+			if alias, ok := setting.Git.SubModuleMap[m[1]+refHostname]; ok {
 				return alias + pth
 			}
 
@@ -107,18 +109,18 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 
 	supportedSchemes := []string{"http", "https", "git", "ssh", "git+ssh"}
 
-	if len(SubModuleMap) > 0 && ref.Scheme != "" {
+	if len(setting.Git.SubModuleMap) > 0 && ref.Scheme != "" {
 		if ref.Scheme == "ssh" {
 			if len(ref.User.Username()) > 0 {
-				if alias, ok := SubModuleMap[fmt.Sprintf("%v@%s:%s", ref.User, ref.Host, ref.Path[1:])]; ok {
+				if alias, ok := setting.Git.SubModuleMap[fmt.Sprintf("%v@%s:%s", ref.User, ref.Host, ref.Path[1:])]; ok {
 					return alias
 				}
-				if alias, ok := SubModuleMap[fmt.Sprintf("%v@%s", ref.User, ref.Host)]; ok {
+				if alias, ok := setting.Git.SubModuleMap[fmt.Sprintf("%v@%s", ref.User, ref.Host)]; ok {
 					return alias + ref.Path
 				}
-			} else if alias, ok := SubModuleMap[ref.Host+":"+ref.Path[1:]]; ok {
+			} else if alias, ok := setting.Git.SubModuleMap[ref.Host+":"+ref.Path[1:]]; ok {
 				return alias
-			} else if alias, ok := SubModuleMap[ref.Host]; ok {
+			} else if alias, ok := setting.Git.SubModuleMap[ref.Host]; ok {
 				return alias + ref.Path
 			}
 		}
@@ -127,7 +129,7 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 		for idx := strings.LastIndex(left, "/"); idx > len(ref.Scheme)+3; {
 			right = left[idx:] + right
 			left = left[:idx]
-			if alias, ok := SubModuleMap[left]; ok {
+			if alias, ok := setting.Git.SubModuleMap[left]; ok {
 				return alias + right
 			}
 			idx = strings.LastIndex(left, "/")

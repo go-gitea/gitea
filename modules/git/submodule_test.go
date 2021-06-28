@@ -7,6 +7,8 @@ package git
 import (
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,10 +59,10 @@ func TestGetRefURL(t *testing.T) {
 			"git@ssh.gitea.io:go-gitea/gitea": "https://try.gitea.io/go-gitea/gitea",
 		}},
 	}
-	orig := SubModuleMap
+	orig := setting.Git.SubModuleMap
 	for _, kase := range kases {
-		SubModuleMap = kase.subModuleMap
+		setting.Git.SubModuleMap = kase.subModuleMap
 		assert.EqualValues(t, kase.expect, getRefURL(kase.refURL, kase.prefixURL, kase.parentPath, kase.SSHDomain))
 	}
-	SubModuleMap = orig
+	setting.Git.SubModuleMap = orig
 }
