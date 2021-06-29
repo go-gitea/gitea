@@ -258,8 +258,8 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
-		CustomEmojis:        []string{`gitea`, `codeberg`},
-		CustomEmojisMap:     map[string]string{"gitea": ":gitea:", "codeberg": ":codeberg:"},
+		CustomEmojis:        []string{`gitea`},
+		CustomEmojisMap:     map[string]string{"gitea": ":gitea:"},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
