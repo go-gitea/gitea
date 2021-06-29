@@ -8,7 +8,6 @@ package process
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -22,10 +21,8 @@ import (
 // then we delete the singleton.
 
 var (
-	// ErrExecTimeout represent a timeout error
-	ErrExecTimeout = errors.New("Process execution timeout")
-	manager        *Manager
-	managerInit    sync.Once
+	manager     *Manager
+	managerInit sync.Once
 
 	// DefaultContext is the default context to run processing commands in
 	DefaultContext = context.Background()

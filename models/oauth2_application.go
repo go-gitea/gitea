@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -235,7 +235,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
 		return err
 	} else if deleted == 0 {
-		return fmt.Errorf("cannot find oauth2 application")
+		return ErrOAuthApplicationNotFound{ID: id}
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
 	// delete correlating auth codes
@@ -261,6 +261,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -393,7 +394,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
+// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
@@ -539,10 +540,10 @@ type OAuth2Token struct {
 // ParseOAuth2Token parses a singed jwt string
 func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 	parsedToken, err := jwt.ParseWithClaims(jwtToken, &OAuth2Token{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if token.Method == nil || token.Method.Alg() != oauth2.DefaultSigningKey.SigningMethod().Alg() {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
 		}
-		return setting.OAuth2.JWTSecretBytes, nil
+		return oauth2.DefaultSigningKey.VerifyKey(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -558,19 +559,34 @@ func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 // SignToken signs the token with the JWT secret
 func (token *OAuth2Token) SignToken() (string, error) {
 	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
-	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
+	jwtToken := jwt.NewWithClaims(oauth2.DefaultSigningKey.SigningMethod(), token)
+	oauth2.DefaultSigningKey.PreProcessToken(jwtToken)
+	return jwtToken.SignedString(oauth2.DefaultSigningKey.SignKey())
 }
 
 // OIDCToken represents an OpenID Connect id_token
 type OIDCToken struct {
 	jwt.StandardClaims
 	Nonce string `json:"nonce,omitempty"`
+
+	// Scope profile
+	Name              string             `json:"name,omitempty"`
+	PreferredUsername string             `json:"preferred_username,omitempty"`
+	Profile           string             `json:"profile,omitempty"`
+	Picture           string             `json:"picture,omitempty"`
+	Website           string             `json:"website,omitempty"`
+	Locale            string             `json:"locale,omitempty"`
+	UpdatedAt         timeutil.TimeStamp `json:"updated_at,omitempty"`
+
+	// Scope email
+	Email         string `json:"email,omitempty"`
+	EmailVerified bool   `json:"email_verified,omitempty"`
 }
 
 // SignToken signs an id_token with the (symmetric) client secret key
-func (token *OIDCToken) SignToken(clientSecret string) (string, error) {
+func (token *OIDCToken) SignToken(signingKey oauth2.JWTSigningKey) (string, error) {
 	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, token)
-	return jwtToken.SignedString([]byte(clientSecret))
+	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
+	signingKey.PreProcessToken(jwtToken)
+	return jwtToken.SignedString(signingKey.SignKey())
 }

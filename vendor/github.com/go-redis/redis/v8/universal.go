@@ -53,6 +53,7 @@ type UniversalOptions struct {
 
 	// The sentinel master name.
 	// Only failover clients.
+
 	MasterName string
 }
 
@@ -168,9 +169,9 @@ func (o *UniversalOptions) Simple() *Options {
 // --------------------------------------------------------------------
 
 // UniversalClient is an abstract client which - based on the provided options -
-// can connect to either clusters, or sentinel-backed failover instances
-// or simple single-instance servers. This can be useful for testing
-// cluster-specific applications locally.
+// represents either a ClusterClient, a FailoverClient, or a single-node Client.
+// This can be useful for testing cluster-specific applications locally or having different
+// clients in different environments.
 type UniversalClient interface {
 	Cmdable
 	Context() context.Context
@@ -190,12 +191,12 @@ var (
 	_ UniversalClient = (*Ring)(nil)
 )
 
-// NewUniversalClient returns a new multi client. The type of client returned depends
-// on the following three conditions:
+// NewUniversalClient returns a new multi client. The type of the returned client depends
+// on the following conditions:
 //
-// 1. if a MasterName is passed a sentinel-backed FailoverClient will be returned
-// 2. if the number of Addrs is two or more, a ClusterClient will be returned
-// 3. otherwise, a single-node redis Client will be returned.
+// 1. If the MasterName option is specified, a sentinel-backed FailoverClient is returned.
+// 2. if the number of Addrs is two or more, a ClusterClient is returned.
+// 3. Otherwise, a single-node Client is returned.
 func NewUniversalClient(opts *UniversalOptions) UniversalClient {
 	if opts.MasterName != "" {
 		return NewFailoverClient(opts.Failover())

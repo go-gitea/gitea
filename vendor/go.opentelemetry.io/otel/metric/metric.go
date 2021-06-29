@@ -17,7 +17,7 @@ package metric // import "go.opentelemetry.io/otel/metric"
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/number"
 	"go.opentelemetry.io/otel/unit"
 )
@@ -42,7 +42,7 @@ type Meter struct {
 }
 
 // RecordBatch atomically records a batch of measurements.
-func (m Meter) RecordBatch(ctx context.Context, ls []label.KeyValue, ms ...Measurement) {
+func (m Meter) RecordBatch(ctx context.Context, ls []attribute.KeyValue, ms ...Measurement) {
 	if m.impl == nil {
 		return
 	}

@@ -35,9 +35,9 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 
 	repoIDs := issues.getRepoIDs()
 	repoMaps := make(map[int64]*Repository, len(repoIDs))
-	var left = len(repoIDs)
+	left := len(repoIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -53,6 +53,9 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 
 	for _, issue := range issues {
 		issue.Repo = repoMaps[issue.RepoID]
+		if issue.PullRequest != nil {
+			issue.PullRequest.BaseRepo = issue.Repo
+		}
 	}
 	return valuesRepository(repoMaps), nil
 }
@@ -79,9 +82,9 @@ func (issues IssueList) loadPosters(e Engine) error {
 
 	posterIDs := issues.getPosterIDs()
 	posterMaps := make(map[int64]*User, len(posterIDs))
-	var left = len(posterIDs)
+	left := len(posterIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -108,7 +111,7 @@ func (issues IssueList) loadPosters(e Engine) error {
 }
 
 func (issues IssueList) getIssueIDs() []int64 {
-	var ids = make([]int64, 0, len(issues))
+	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
 		ids = append(ids, issue.ID)
 	}
@@ -125,11 +128,11 @@ func (issues IssueList) loadLabels(e Engine) error {
 		IssueLabel *IssueLabel `xorm:"extends"`
 	}
 
-	var issueLabels = make(map[int64][]*Label, len(issues)*3)
-	var issueIDs = issues.getIssueIDs()
-	var left = len(issueIDs)
+	issueLabels := make(map[int64][]*Label, len(issues)*3)
+	issueIDs := issues.getIssueIDs()
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -169,7 +172,7 @@ func (issues IssueList) loadLabels(e Engine) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(issues))
+	ids := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
 		if _, ok := ids[issue.MilestoneID]; !ok {
 			ids[issue.MilestoneID] = struct{}{}
@@ -185,9 +188,9 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	var left = len(milestoneIDs)
+	left := len(milestoneIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -217,11 +220,11 @@ func (issues IssueList) loadAssignees(e Engine) error {
 		Assignee      *User           `xorm:"extends"`
 	}
 
-	var assignees = make(map[int64][]*User, len(issues))
-	var issueIDs = issues.getIssueIDs()
-	var left = len(issueIDs)
+	assignees := make(map[int64][]*User, len(issues))
+	issueIDs := issues.getIssueIDs()
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -259,7 +262,7 @@ func (issues IssueList) loadAssignees(e Engine) error {
 }
 
 func (issues IssueList) getPullIssueIDs() []int64 {
-	var ids = make([]int64, 0, len(issues))
+	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
 		if issue.IsPull && issue.PullRequest == nil {
 			ids = append(ids, issue.ID)
@@ -275,9 +278,9 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 	}
 
 	pullRequestMaps := make(map[int64]*PullRequest, len(issuesIDs))
-	var left = len(issuesIDs)
+	left := len(issuesIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -317,11 +320,11 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 		return nil
 	}
 
-	var attachments = make(map[int64][]*Attachment, len(issues))
-	var issuesIDs = issues.getIssueIDs()
-	var left = len(issuesIDs)
+	attachments := make(map[int64][]*Attachment, len(issues))
+	issuesIDs := issues.getIssueIDs()
+	left := len(issuesIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -362,11 +365,11 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 		return nil
 	}
 
-	var comments = make(map[int64][]*Comment, len(issues))
-	var issuesIDs = issues.getIssueIDs()
-	var left = len(issuesIDs)
+	comments := make(map[int64][]*Comment, len(issues))
+	issuesIDs := issues.getIssueIDs()
+	left := len(issuesIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -411,18 +414,18 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
-	var trackedTimes = make(map[int64]int64, len(issues))
+	trackedTimes := make(map[int64]int64, len(issues))
 
-	var ids = make([]int64, 0, len(issues))
+	ids := make([]int64, 0, len(issues))
 	for _, issue := range issues {
 		if issue.Repo.IsTimetrackerEnabled() {
 			ids = append(ids, issue.ID)
 		}
 	}
 
-	var left = len(ids)
+	left := len(ids)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -514,6 +517,11 @@ func (issues IssueList) LoadComments() error {
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
 	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
+}
+
+// LoadPullRequests loads pull requests
+func (issues IssueList) LoadPullRequests() error {
+	return issues.loadPullRequests(x)
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts

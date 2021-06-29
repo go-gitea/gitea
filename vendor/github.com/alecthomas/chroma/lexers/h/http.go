@@ -8,7 +8,7 @@ import (
 )
 
 // HTTP lexer.
-var HTTP = internal.Register(httpBodyContentTypeLexer(MustNewLexer(
+var HTTP = internal.Register(httpBodyContentTypeLexer(MustNewLazyLexer(
 	&Config{
 		Name:         "HTTP",
 		Aliases:      []string{"http"},
@@ -17,7 +17,11 @@ var HTTP = internal.Register(httpBodyContentTypeLexer(MustNewLexer(
 		NotMultiline: true,
 		DotAll:       true,
 	},
-	Rules{
+	httpRules,
+)))
+
+func httpRules() Rules {
+	return Rules{
 		"root": {
 			{`(GET|POST|PUT|DELETE|HEAD|OPTIONS|TRACE|PATCH|CONNECT)( +)([^ ]+)( +)(HTTP)(/)([12]\.[01])(\r?\n|\Z)`, ByGroups(NameFunction, Text, NameNamespace, Text, KeywordReserved, Operator, LiteralNumber, Text), Push("headers")},
 			{`(HTTP)(/)([12]\.[01])( +)(\d{3})( +)([^\r\n]+)(\r?\n|\Z)`, ByGroups(KeywordReserved, Operator, LiteralNumber, Text, LiteralNumber, Text, NameException, Text), Push("headers")},
@@ -30,8 +34,8 @@ var HTTP = internal.Register(httpBodyContentTypeLexer(MustNewLexer(
 		"content": {
 			{`.+`, EmitterFunc(httpContentBlock), nil},
 		},
-	},
-)))
+	}
+}
 
 func httpContentBlock(groups []string, lexer Lexer) Iterator {
 	tokens := []Token{

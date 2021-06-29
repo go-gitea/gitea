@@ -17,7 +17,7 @@ package scorch
 import (
 	"regexp/syntax"
 
-	"github.com/couchbase/vellum/regexp"
+	"github.com/blevesearch/vellum/regexp"
 )
 
 func parseRegexp(pattern string) (a *regexp.Regexp, prefixBeg, prefixEnd []byte, err error) {

@@ -20,7 +20,7 @@ import (
 	"context"
 	"errors"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/number"
 )
 
@@ -116,25 +116,25 @@ type BatchObserverFunc func(context.Context, BatchObserverResult)
 // observations for one asynchronous integer metric instrument.
 type Int64ObserverResult struct {
 	instrument AsyncImpl
-	function   func([]label.KeyValue, ...Observation)
+	function   func([]attribute.KeyValue, ...Observation)
 }
 
 // Float64ObserverResult is passed to an observer callback to capture
 // observations for one asynchronous floating point metric instrument.
 type Float64ObserverResult struct {
 	instrument AsyncImpl
-	function   func([]label.KeyValue, ...Observation)
+	function   func([]attribute.KeyValue, ...Observation)
 }
 
 // BatchObserverResult is passed to a batch observer callback to
 // capture observations for multiple asynchronous instruments.
 type BatchObserverResult struct {
-	function func([]label.KeyValue, ...Observation)
+	function func([]attribute.KeyValue, ...Observation)
 }
 
 // Observe captures a single integer value from the associated
 // instrument callback, with the given labels.
-func (ir Int64ObserverResult) Observe(value int64, labels ...label.KeyValue) {
+func (ir Int64ObserverResult) Observe(value int64, labels ...attribute.KeyValue) {
 	ir.function(labels, Observation{
 		instrument: ir.instrument,
 		number:     number.NewInt64Number(value),
@@ -143,7 +143,7 @@ func (ir Int64ObserverResult) Observe(value int64, labels ...label.KeyValue) {
 
 // Observe captures a single floating point value from the associated
 // instrument callback, with the given labels.
-func (fr Float64ObserverResult) Observe(value float64, labels ...label.KeyValue) {
+func (fr Float64ObserverResult) Observe(value float64, labels ...attribute.KeyValue) {
 	fr.function(labels, Observation{
 		instrument: fr.instrument,
 		number:     number.NewFloat64Number(value),
@@ -152,7 +152,7 @@ func (fr Float64ObserverResult) Observe(value float64, labels ...label.KeyValue)
 
 // Observe captures a multiple observations from the associated batch
 // instrument callback, with the given labels.
-func (br BatchObserverResult) Observe(labels []label.KeyValue, obs ...Observation) {
+func (br BatchObserverResult) Observe(labels []attribute.KeyValue, obs ...Observation) {
 	br.function(labels, obs...)
 }
 
@@ -173,7 +173,7 @@ type AsyncSingleRunner interface {
 	// receives one captured observation.  (The function accepts
 	// multiple observations so the same implementation can be
 	// used for batch runners.)
-	Run(ctx context.Context, single AsyncImpl, capture func([]label.KeyValue, ...Observation))
+	Run(ctx context.Context, single AsyncImpl, capture func([]attribute.KeyValue, ...Observation))
 
 	AsyncRunner
 }
@@ -183,7 +183,7 @@ type AsyncSingleRunner interface {
 type AsyncBatchRunner interface {
 	// Run accepts a function for capturing observations of
 	// multiple instruments.
-	Run(ctx context.Context, capture func([]label.KeyValue, ...Observation))
+	Run(ctx context.Context, capture func([]attribute.KeyValue, ...Observation))
 
 	AsyncRunner
 }
@@ -217,7 +217,7 @@ func (*Float64ObserverFunc) AnyRunner() {}
 func (*BatchObserverFunc) AnyRunner() {}
 
 // Run implements AsyncSingleRunner.
-func (i *Int64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function func([]label.KeyValue, ...Observation)) {
+func (i *Int64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function func([]attribute.KeyValue, ...Observation)) {
 	(*i)(ctx, Int64ObserverResult{
 		instrument: impl,
 		function:   function,
@@ -225,7 +225,7 @@ func (i *Int64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function fu
 }
 
 // Run implements AsyncSingleRunner.
-func (f *Float64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function func([]label.KeyValue, ...Observation)) {
+func (f *Float64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function func([]attribute.KeyValue, ...Observation)) {
 	(*f)(ctx, Float64ObserverResult{
 		instrument: impl,
 		function:   function,
@@ -233,7 +233,7 @@ func (f *Float64ObserverFunc) Run(ctx context.Context, impl AsyncImpl, function 
 }
 
 // Run implements AsyncBatchRunner.
-func (b *BatchObserverFunc) Run(ctx context.Context, function func([]label.KeyValue, ...Observation)) {
+func (b *BatchObserverFunc) Run(ctx context.Context, function func([]attribute.KeyValue, ...Observation)) {
 	(*b)(ctx, BatchObserverResult{
 		function: function,
 	})
@@ -442,7 +442,7 @@ func (s syncInstrument) SyncImpl() SyncImpl {
 	return s.instrument
 }
 
-func (s syncInstrument) bind(labels []label.KeyValue) syncBoundInstrument {
+func (s syncInstrument) bind(labels []attribute.KeyValue) syncBoundInstrument {
 	return newSyncBoundInstrument(s.instrument.Bind(labels))
 }
 
@@ -454,7 +454,7 @@ func (s syncInstrument) int64Measurement(value int64) Measurement {
 	return newMeasurement(s.instrument, number.NewInt64Number(value))
 }
 
-func (s syncInstrument) directRecord(ctx context.Context, number number.Number, labels []label.KeyValue) {
+func (s syncInstrument) directRecord(ctx context.Context, number number.Number, labels []attribute.KeyValue) {
 	s.instrument.RecordOne(ctx, number, labels)
 }
 
@@ -577,14 +577,14 @@ type BoundInt64Counter struct {
 
 // Bind creates a bound instrument for this counter. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Float64Counter) Bind(labels ...label.KeyValue) (h BoundFloat64Counter) {
+func (c Float64Counter) Bind(labels ...attribute.KeyValue) (h BoundFloat64Counter) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
 
 // Bind creates a bound instrument for this counter. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Int64Counter) Bind(labels ...label.KeyValue) (h BoundInt64Counter) {
+func (c Int64Counter) Bind(labels ...attribute.KeyValue) (h BoundInt64Counter) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
@@ -603,13 +603,13 @@ func (c Int64Counter) Measurement(value int64) Measurement {
 
 // Add adds the value to the counter's sum. The labels should contain
 // the keys and values to be associated with this value.
-func (c Float64Counter) Add(ctx context.Context, value float64, labels ...label.KeyValue) {
+func (c Float64Counter) Add(ctx context.Context, value float64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewFloat64Number(value), labels)
 }
 
 // Add adds the value to the counter's sum. The labels should contain
 // the keys and values to be associated with this value.
-func (c Int64Counter) Add(ctx context.Context, value int64, labels ...label.KeyValue) {
+func (c Int64Counter) Add(ctx context.Context, value int64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewInt64Number(value), labels)
 }
 
@@ -652,14 +652,14 @@ type BoundInt64UpDownCounter struct {
 
 // Bind creates a bound instrument for this counter. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Float64UpDownCounter) Bind(labels ...label.KeyValue) (h BoundFloat64UpDownCounter) {
+func (c Float64UpDownCounter) Bind(labels ...attribute.KeyValue) (h BoundFloat64UpDownCounter) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
 
 // Bind creates a bound instrument for this counter. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Int64UpDownCounter) Bind(labels ...label.KeyValue) (h BoundInt64UpDownCounter) {
+func (c Int64UpDownCounter) Bind(labels ...attribute.KeyValue) (h BoundInt64UpDownCounter) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
@@ -678,13 +678,13 @@ func (c Int64UpDownCounter) Measurement(value int64) Measurement {
 
 // Add adds the value to the counter's sum. The labels should contain
 // the keys and values to be associated with this value.
-func (c Float64UpDownCounter) Add(ctx context.Context, value float64, labels ...label.KeyValue) {
+func (c Float64UpDownCounter) Add(ctx context.Context, value float64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewFloat64Number(value), labels)
 }
 
 // Add adds the value to the counter's sum. The labels should contain
 // the keys and values to be associated with this value.
-func (c Int64UpDownCounter) Add(ctx context.Context, value int64, labels ...label.KeyValue) {
+func (c Int64UpDownCounter) Add(ctx context.Context, value int64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewInt64Number(value), labels)
 }
 
@@ -726,14 +726,14 @@ type BoundInt64ValueRecorder struct {
 
 // Bind creates a bound instrument for this ValueRecorder. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Float64ValueRecorder) Bind(labels ...label.KeyValue) (h BoundFloat64ValueRecorder) {
+func (c Float64ValueRecorder) Bind(labels ...attribute.KeyValue) (h BoundFloat64ValueRecorder) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
 
 // Bind creates a bound instrument for this ValueRecorder. The labels are
 // associated with values recorded via subsequent calls to Record.
-func (c Int64ValueRecorder) Bind(labels ...label.KeyValue) (h BoundInt64ValueRecorder) {
+func (c Int64ValueRecorder) Bind(labels ...attribute.KeyValue) (h BoundInt64ValueRecorder) {
 	h.syncBoundInstrument = c.bind(labels)
 	return
 }
@@ -753,14 +753,14 @@ func (c Int64ValueRecorder) Measurement(value int64) Measurement {
 // Record adds a new value to the list of ValueRecorder's records. The
 // labels should contain the keys and values to be associated with
 // this value.
-func (c Float64ValueRecorder) Record(ctx context.Context, value float64, labels ...label.KeyValue) {
+func (c Float64ValueRecorder) Record(ctx context.Context, value float64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewFloat64Number(value), labels)
 }
 
 // Record adds a new value to the ValueRecorder's distribution. The
 // labels should contain the keys and values to be associated with
 // this value.
-func (c Int64ValueRecorder) Record(ctx context.Context, value int64, labels ...label.KeyValue) {
+func (c Int64ValueRecorder) Record(ctx context.Context, value int64, labels ...attribute.KeyValue) {
 	c.directRecord(ctx, number.NewInt64Number(value), labels)
 }
 

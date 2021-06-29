@@ -102,8 +102,8 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		return nil, nil, err
 	}
 
-	var ids = make([]int64, len(ous))
-	var idsIsPublic = make(map[int64]bool, len(ous))
+	ids := make([]int64, len(ous))
+	idsIsPublic := make(map[int64]bool, len(ous))
 	for i, ou := range ous {
 		ids[i] = ou.UID
 		idsIsPublic[ou.UID] = ou.IsPublic
@@ -205,7 +205,7 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	var units = make([]TeamUnit, 0, len(AllRepoUnitTypes))
+	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
 	for _, tp := range AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
@@ -391,6 +391,20 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		Exist(new(Team))
 }
 
+// GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
+func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
+	return getUsersWhoCanCreateOrgRepo(x, orgID)
+}
+
+func getUsersWhoCanCreateOrgRepo(e Engine, orgID int64) ([]*User, error) {
+	users := make([]*User, 0, 10)
+	return users, x.
+		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
+		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
+		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
+		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
+}
+
 func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	if !showAll {
@@ -411,6 +425,25 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
+// queryUserOrgIDs returns a condition to return user's organization id
+func queryUserOrgIDs(uid int64) *builder.Builder {
+	return builder.Select("team.org_id").
+		From("team_user").InnerJoin("team", "team.id = team_user.team_id").
+		Where(builder.Eq{"team_user.uid": uid})
+}
+
+// MinimalOrg represents a simple orgnization with only needed columns
+type MinimalOrg = User
+
+// GetUserOrgsList returns one user's all orgs list
+func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
+	var orgs = make([]*MinimalOrg, 0, 20)
+	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
+		Table("user").
+		In("id", queryUserOrgIDs(uid)).
+		Find(&orgs)
+}
+
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
@@ -422,22 +455,22 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Find(&orgs)
 }
 
-// HasOrgVisible tells if the given user can see the given org
-func HasOrgVisible(org *User, user *User) bool {
-	return hasOrgVisible(x, org, user)
+// HasOrgOrUserVisible tells if the given user can see the given org or user
+func HasOrgOrUserVisible(org, user *User) bool {
+	return hasOrgOrUserVisible(x, org, user)
 }
 
-func hasOrgVisible(e Engine, org *User, user *User) bool {
+func hasOrgOrUserVisible(e Engine, orgOrUser, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		return org.Visibility == structs.VisibleTypePublic
+		return orgOrUser.Visibility == structs.VisibleTypePublic
 	}
 
-	if user.IsAdmin {
+	if user.IsAdmin || orgOrUser.ID == user.ID {
 		return true
 	}
 
-	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.hasMemberWithUserID(e, user.ID) {
+	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !orgOrUser.hasMemberWithUserID(e, user.ID) {
 		return false
 	}
 	return true
@@ -450,7 +483,7 @@ func HasOrgsVisible(orgs []*User, user *User) bool {
 	}
 
 	for _, org := range orgs {
-		if HasOrgVisible(org, user) {
+		if HasOrgOrUserVisible(org, user) {
 			return true
 		}
 	}
@@ -799,7 +832,7 @@ func (org *User) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvironment {
 }
 
 func (env *accessibleReposEnv) cond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if env.team != nil {
 		cond = cond.And(builder.Eq{"team_repo.team_id": env.team.ID})
 	} else {

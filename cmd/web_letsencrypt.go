@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +23,15 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
 	enableTLSALPNChallenge := true
+	altHTTPPort := 0
+	altTLSALPNPort := 0
+
+	if p, err := strconv.Atoi(setting.PortToRedirect); err == nil {
+		altHTTPPort = p
+	}
+	if p, err := strconv.Atoi(setting.HTTPPort); err == nil {
+		altTLSALPNPort = p
+	}
 
 	magic := certmagic.NewDefault()
 	magic.Storage = &certmagic.FileStorage{Path: directory}
@@ -30,9 +40,12 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
+		ListenHost:              setting.HTTPAddr,
+		AltTLSALPNPort:          altTLSALPNPort,
+		AltHTTPPort:             altHTTPPort,
 	})
 
-	magic.Issuer = myACME
+	magic.Issuers = []certmagic.Issuer{myACME}
 
 	// this obtains certificates or renews them if necessary
 	err := magic.ManageSync([]string{domain})
@@ -46,14 +59,14 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		go func() {
 			log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
 			// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-			var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)), setting.RedirectorUseProxyProtocol)
+			var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, "Let's Encrypt HTTP Challenge", myACME.HTTPChallengeHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)), setting.RedirectorUseProxyProtocol)
 			if err != nil {
 				log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
 			}
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, tlsConfig, context2.ClearHandler(m), setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, context2.ClearHandler(m), setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

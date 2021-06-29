@@ -5,7 +5,10 @@
 package code
 
 import (
+	"bufio"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -13,12 +16,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -173,9 +176,9 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
 	}
 
@@ -196,15 +199,26 @@ func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *mode
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	}
+
+	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	if err != nil {
+		return err
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
@@ -254,10 +268,17 @@ func (b *BleveIndexer) Close() {
 // Index indexes the data
 func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
 	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
-	for _, update := range changes.Updates {
-		if err := b.addUpdate(sha, update, repo, batch); err != nil {
-			return err
+	if len(changes.Updates) > 0 {
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			if err := b.addUpdate(batchWriter, batchReader, sha, update, repo, batch); err != nil {
+				return err
+			}
 		}
+		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {

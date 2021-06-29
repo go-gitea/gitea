@@ -5,13 +5,13 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // KeyAndOwner is the response from ServNoCommand
@@ -34,6 +34,7 @@ func ServNoCommand(keyID int64) (*models.PublicKey, *models.User, error) {
 	}
 
 	var keyAndOwner KeyAndOwner
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewDecoder(resp.Body).Decode(&keyAndOwner); err != nil {
 		return nil, nil, err
 	}
@@ -57,7 +58,6 @@ type ServCommandResults struct {
 // ErrServCommand is an error returned from ServCommmand.
 type ErrServCommand struct {
 	Results    ServCommandResults
-	Type       string
 	Err        string
 	StatusCode int
 }
@@ -90,6 +90,7 @@ func ServCommand(keyID int64, ownerName, repoName string, mode models.AccessMode
 		return nil, err
 	}
 	defer resp.Body.Close()
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if resp.StatusCode != http.StatusOK {
 		var errServCommand ErrServCommand
 		if err := json.NewDecoder(resp.Body).Decode(&errServCommand); err != nil {

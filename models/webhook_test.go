@@ -6,12 +6,12 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
 	api "code.gitea.io/gitea/modules/structs"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,16 +58,19 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 	assert.NoError(t, webhook.UpdateEvent())
 	assert.NotEmpty(t, webhook.Events)
 	actualHookEvent := &HookEvent{}
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal([]byte(webhook.Events), actualHookEvent))
 	assert.Equal(t, *hookEvent, *actualHookEvent)
 }
 
 func TestWebhook_EventsArray(t *testing.T) {
-	assert.Equal(t, []string{"create", "delete", "fork", "push",
+	assert.Equal(t, []string{
+		"create", "delete", "fork", "push",
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
-		"pull_request_review_comment", "pull_request_sync", "repository", "release"},
+		"pull_request_review_comment", "pull_request_sync", "repository", "release",
+	},
 		(&Webhook{
 			HookEvent: &HookEvent{SendEverything: true},
 		}).EventsArray(),
@@ -152,7 +155,6 @@ func TestGetWebhooksByOrgID(t *testing.T) {
 		assert.Equal(t, int64(3), hooks[0].ID)
 		assert.True(t, hooks[0].IsActive)
 	}
-
 }
 
 func TestUpdateWebhook(t *testing.T) {
@@ -205,8 +207,6 @@ func TestCreateHookTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:    3,
 		HookID:    3,
-		Typ:       GITEA,
-		URL:       "http://www.example.com/unit_test",
 		Payloader: &api.PushPayload{},
 	}
 	AssertNotExistsBean(t, hookTask)
@@ -231,8 +231,6 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      3,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
 		Delivered:   time.Now().UnixNano(),
@@ -250,8 +248,6 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
 	}
@@ -268,8 +264,6 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
 		Delivered:   time.Now().UnixNano(),
@@ -287,8 +281,6 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      3,
 		HookID:      3,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
 		Delivered:   time.Now().AddDate(0, 0, -8).UnixNano(),
@@ -306,8 +298,6 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
 	}
@@ -324,8 +314,6 @@ func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *test
 	hookTask := &HookTask{
 		RepoID:      2,
 		HookID:      4,
-		Typ:         GITEA,
-		URL:         "http://www.example.com/unit_test",
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
 		Delivered:   time.Now().AddDate(0, 0, -6).UnixNano(),

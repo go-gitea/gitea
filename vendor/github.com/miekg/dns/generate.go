@@ -75,10 +75,10 @@ func (zp *ZoneParser) generate(l lex) (RR, bool) {
 	r := &generateReader{
 		s: s,
 
-		cur:   int(start),
-		start: int(start),
-		end:   int(end),
-		step:  int(step),
+		cur:   start,
+		start: start,
+		end:   end,
+		step:  step,
 
 		file: zp.file,
 		lex:  &l,
@@ -94,10 +94,10 @@ type generateReader struct {
 	s  string
 	si int
 
-	cur   int
-	start int
-	end   int
-	step  int
+	cur   int64
+	start int64
+	end   int64
+	step  int64
 
 	mod bytes.Buffer
 
@@ -173,7 +173,7 @@ func (r *generateReader) ReadByte() (byte, error) {
 			return '$', nil
 		}
 
-		var offset int
+		var offset int64
 
 		// Search for { and }
 		if r.s[si+1] == '{' {
@@ -188,7 +188,7 @@ func (r *generateReader) ReadByte() (byte, error) {
 			if errMsg != "" {
 				return 0, r.parseError(errMsg, si+3+sep)
 			}
-			if r.start+offset < 0 || int64(r.end) + int64(offset) > 1<<31-1 {
+			if r.start+offset < 0 || r.end+offset > 1<<31-1 {
 				return 0, r.parseError("bad offset in $GENERATE", si+3+sep)
 			}
 
@@ -208,7 +208,7 @@ func (r *generateReader) ReadByte() (byte, error) {
 }
 
 // Convert a $GENERATE modifier 0,0,d to something Printf can deal with.
-func modToPrintf(s string) (string, int, string) {
+func modToPrintf(s string) (string, int64, string) {
 	// Modifier is { offset [ ,width [ ,base ] ] } - provide default
 	// values for optional width and type, if necessary.
 	var offStr, widthStr, base string
@@ -240,8 +240,8 @@ func modToPrintf(s string) (string, int, string) {
 	}
 
 	if width == 0 {
-		return "%" + base, int(offset), ""
+		return "%" + base, offset, ""
 	}
 
-	return "%0" + widthStr + base, int(offset), ""
+	return "%0" + widthStr + base, offset, ""
 }

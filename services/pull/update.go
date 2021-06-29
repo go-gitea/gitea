@@ -48,6 +48,9 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, error) {
+	if user == nil {
+		return false, nil
+	}
 	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
 	if err != nil {
 		return false, err

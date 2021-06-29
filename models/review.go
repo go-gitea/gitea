@@ -175,7 +175,7 @@ type FindReviewOptions struct {
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -334,8 +334,7 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 }
 
 // ContentEmptyErr represents an content empty error
-type ContentEmptyErr struct {
-}
+type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
 	return "Review content is empty"
@@ -348,14 +347,14 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, nil, err
 	}
 
-	var official = false
+	official := false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -420,12 +419,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	comm, err := createComment(sess, &CreateCommentOptions{
-		Type:     CommentTypeReview,
-		Doer:     doer,
-		Content:  review.Content,
-		Issue:    issue,
-		Repo:     issue.Repo,
-		ReviewID: review.ID,
+		Type:        CommentTypeReview,
+		Doer:        doer,
+		Content:     review.Content,
+		Issue:       issue,
+		Repo:        issue.Repo,
+		ReviewID:    review.ID,
+		Attachments: attachmentUUIDs,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err
@@ -567,7 +567,11 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 	review.Dismissed = isDismiss
 
-	_, err = x.Cols("dismissed").Update(review)
+	if review.ID == 0 {
+		return ErrReviewNotExist{}
+	}
+
+	_, err = x.ID(review.ID).Cols("dismissed").Update(review)
 
 	return
 }
@@ -668,7 +672,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	return comment, sess.Commit()
 }
 
-//RemoveReviewRequest remove a review request from one reviewer
+// RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -780,7 +784,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	return comment, sess.Commit()
 }
 
-//RemoveTeamReviewRequest remove a review request from one team
+// RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()

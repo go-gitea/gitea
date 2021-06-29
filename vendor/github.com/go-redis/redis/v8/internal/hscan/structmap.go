@@ -1,6 +1,7 @@
 package hscan
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -83,5 +84,10 @@ func (s StructValue) Scan(key string, value string) error {
 	if !ok {
 		return nil
 	}
-	return field.fn(s.value.Field(field.index), value)
+	if err := field.fn(s.value.Field(field.index), value); err != nil {
+		t := s.value.Type()
+		return fmt.Errorf("cannot scan redis.result %s into struct field %s.%s of type %s, error-%s",
+			value, t.Name(), t.Field(field.index).Name, t.Field(field.index).Type, err.Error())
+	}
+	return nil
 }

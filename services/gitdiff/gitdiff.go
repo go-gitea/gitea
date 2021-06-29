@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -573,20 +574,22 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 // DiffFile represents a file diff.
 type DiffFile struct {
-	Name               string
-	OldName            string
-	Index              int
-	Addition, Deletion int
-	Type               DiffFileType
-	IsCreated          bool
-	IsDeleted          bool
-	IsBin              bool
-	IsLFSFile          bool
-	IsRenamed          bool
-	IsSubmodule        bool
-	Sections           []*DiffSection
-	IsIncomplete       bool
-	IsProtected        bool
+	Name                    string
+	OldName                 string
+	Index                   int
+	Addition, Deletion      int
+	Type                    DiffFileType
+	IsCreated               bool
+	IsDeleted               bool
+	IsBin                   bool
+	IsLFSFile               bool
+	IsRenamed               bool
+	IsAmbiguous             bool
+	IsSubmodule             bool
+	Sections                []*DiffSection
+	IsIncomplete            bool
+	IsIncompleteLineTooLong bool
+	IsProtected             bool
 }
 
 // GetType returns type of diff file.
@@ -776,12 +779,32 @@ parsingLoop:
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
+			case strings.HasPrefix(line, "rename from "):
+				curFile.IsRenamed = true
+				curFile.Type = DiffFileRename
+				if curFile.IsAmbiguous {
+					curFile.OldName = line[len("rename from ") : len(line)-1]
+				}
+			case strings.HasPrefix(line, "rename to "):
+				curFile.IsRenamed = true
+				curFile.Type = DiffFileRename
+				if curFile.IsAmbiguous {
+					curFile.Name = line[len("rename to ") : len(line)-1]
+					curFile.IsAmbiguous = false
+				}
 			case strings.HasPrefix(line, "copy from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
+				if curFile.IsAmbiguous {
+					curFile.OldName = line[len("copy from ") : len(line)-1]
+				}
 			case strings.HasPrefix(line, "copy to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
+				if curFile.IsAmbiguous {
+					curFile.Name = line[len("copy to ") : len(line)-1]
+					curFile.IsAmbiguous = false
+				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
@@ -803,9 +826,35 @@ parsingLoop:
 			case strings.HasPrefix(line, "Binary"):
 				curFile.IsBin = true
 			case strings.HasPrefix(line, "--- "):
-				// Do nothing with this line
+				// Handle ambiguous filenames
+				if curFile.IsAmbiguous {
+					if len(line) > 6 && line[4] == 'a' {
+						curFile.OldName = line[6 : len(line)-1]
+						if line[len(line)-2] == '\t' {
+							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
+						}
+					} else {
+						curFile.OldName = ""
+					}
+				}
+				// Otherwise do nothing with this line
 			case strings.HasPrefix(line, "+++ "):
-				// Do nothing with this line
+				// Handle ambiguous filenames
+				if curFile.IsAmbiguous {
+					if len(line) > 6 && line[4] == 'b' {
+						curFile.Name = line[6 : len(line)-1]
+						if line[len(line)-2] == '\t' {
+							curFile.Name = curFile.Name[:len(curFile.Name)-1]
+						}
+						if curFile.OldName == "" {
+							curFile.OldName = curFile.Name
+						}
+					} else {
+						curFile.Name = curFile.OldName
+					}
+					curFile.IsAmbiguous = false
+				}
+				// Otherwise do nothing with this line, but now switch to parsing hunks
 				lineBytes, isFragment, err := parseHunks(curFile, maxLines, maxLineCharacters, input)
 				diff.TotalAddition += curFile.Addition
 				diff.TotalDeletion += curFile.Deletion
@@ -887,6 +936,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 	for {
 		for isFragment {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
@@ -967,6 +1017,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine}
 			rightLine++
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case '-':
 			curFileLinesCount++
@@ -979,6 +1034,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			if leftLine > 0 {
 				leftLine++
 			}
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case ' ':
 			curFileLinesCount++
@@ -989,6 +1049,11 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			diffLine := &DiffLine{Type: DiffLinePlain, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
@@ -999,6 +1064,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		line := string(lineBytes)
 		if isFragment {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			for isFragment {
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
@@ -1010,17 +1076,18 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		}
 		if len(line) > maxLineCharacters {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 
 		// handle LFS
-		if line[1:] == models.LFSMetaFileIdentifier {
+		if line[1:] == lfs.MetaFileIdentifier {
 			curFileLFSPrefix = true
-		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], models.LFSMetaFileOidPrefix) {
-			oid := strings.TrimPrefix(line[1:], models.LFSMetaFileOidPrefix)
+		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], lfs.MetaFileOidPrefix) {
+			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
-				m := &models.LFSMetaObject{Oid: oid}
+				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
 				count, err := models.Count(m)
 
 				if err == nil && count > 0 {
@@ -1056,13 +1123,33 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 
 	rd := strings.NewReader(line[len(cmdDiffHead):] + " ")
 	curFile.Type = DiffFileChange
-	curFile.OldName = readFileName(rd)
-	curFile.Name = readFileName(rd)
+	oldNameAmbiguity := false
+	newNameAmbiguity := false
+
+	curFile.OldName, oldNameAmbiguity = readFileName(rd)
+	curFile.Name, newNameAmbiguity = readFileName(rd)
+	if oldNameAmbiguity && newNameAmbiguity {
+		curFile.IsAmbiguous = true
+		// OK we should bet that the oldName and the newName are the same if they can be made to be same
+		// So we need to start again ...
+		if (len(line)-len(cmdDiffHead)-1)%2 == 0 {
+			// diff --git a/b b/b b/b b/b b/b b/b
+			//
+			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
+			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
+				curFile.OldName = old[2:]
+				curFile.Name = old[2:]
+			}
+		}
+	}
+
 	curFile.IsRenamed = curFile.Name != curFile.OldName
 	return curFile
 }
 
-func readFileName(rd *strings.Reader) string {
+func readFileName(rd *strings.Reader) (string, bool) {
+	ambiguity := false
 	var name string
 	char, _ := rd.ReadByte()
 	_ = rd.UnreadByte()
@@ -1072,9 +1159,24 @@ func readFileName(rd *strings.Reader) string {
 			name = name[1:]
 		}
 	} else {
+		// This technique is potentially ambiguous it may not be possible to uniquely identify the filenames from the diff line alone
+		ambiguity = true
 		fmt.Fscanf(rd, "%s ", &name)
+		char, _ := rd.ReadByte()
+		_ = rd.UnreadByte()
+		for !(char == 0 || char == '"' || char == 'b') {
+			var suffix string
+			fmt.Fscanf(rd, "%s ", &suffix)
+			name += " " + suffix
+			char, _ = rd.ReadByte()
+			_ = rd.UnreadByte()
+		}
 	}
-	return name[2:]
+	if len(name) < 2 {
+		log.Error("Unable to determine name from reader: %v", rd)
+		return "", true
+	}
+	return name[2:], ambiguity
 }
 
 // GetDiffRange builds a Diff between two commits of a repository.
@@ -1191,6 +1293,7 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
 	if err != nil {
+		log.Error("Unable to parse patch: %v", err)
 		return nil, err
 	}
 	if len(diff.Files) == 0 {
@@ -1205,6 +1308,14 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning
 func CommentMustAsDiff(c *models.Comment) *Diff {
+	if c == nil {
+		return nil
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
+		}
+	}()
 	diff, err := CommentAsDiff(c)
 	if err != nil {
 		log.Warn("CommentMustAsDiff: %v", err)

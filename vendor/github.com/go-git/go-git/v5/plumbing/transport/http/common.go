@@ -3,6 +3,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -32,7 +33,7 @@ func applyHeadersToRequest(req *http.Request, content *bytes.Buffer, host string
 
 const infoRefsPath = "/info/refs"
 
-func advertisedReferences(s *session, serviceName string) (ref *packp.AdvRefs, err error) {
+func advertisedReferences(ctx context.Context, s *session, serviceName string) (ref *packp.AdvRefs, err error) {
 	url := fmt.Sprintf(
 		"%s%s?service=%s",
 		s.endpoint.String(), infoRefsPath, serviceName,
@@ -45,7 +46,7 @@ func advertisedReferences(s *session, serviceName string) (ref *packp.AdvRefs, e
 
 	s.ApplyAuthToRequest(req)
 	applyHeadersToRequest(req, nil, s.endpoint.Host, serviceName)
-	res, err := s.client.Do(req)
+	res, err := s.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

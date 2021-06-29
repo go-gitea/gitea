@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html"
 	"html/template"
@@ -22,7 +21,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -31,10 +29,12 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -188,6 +188,10 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return fmt.Sprint(time.Since(startTime).Nanoseconds()/1e6) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
+			ctx.PlainText(http.StatusInternalServerError, []byte("Unable to find status/500 template"))
+			return
+		}
 		ctx.ServerError("Render failed", err)
 	}
 }
@@ -210,7 +214,7 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
@@ -223,6 +227,23 @@ func (ctx *Context) notFoundInternal(title string, err error) {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
 		if !setting.IsProd() {
 			ctx.Data["ErrorMsg"] = err
+		}
+	}
+
+	// response simple meesage if Accept isn't text/html
+	reqTypes, has := ctx.Req.Header["Accept"]
+	if has && len(reqTypes) > 0 {
+		notHTML := true
+		for _, part := range reqTypes {
+			if strings.Contains(part, "text/html") {
+				notHTML = false
+				break
+			}
+		}
+
+		if notHTML {
+			ctx.PlainText(404, []byte("Not found.\n"))
+			return
 		}
 	}
 
@@ -299,6 +320,11 @@ func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
+// QueryOptionalBool returns request form as OptionalBool with default
+func (ctx *Context) QueryOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
+	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
+}
+
 // HandleText handles HTTP status code
 func (ctx *Context) HandleText(status int, title string) {
 	if (status/100 == 4) || (status/100 == 5) {
@@ -354,6 +380,21 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
+// ServeStream serves file via io stream
+func (ctx *Context) ServeStream(rd io.Reader, name string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	_, err := io.Copy(ctx.Resp, rd)
+	if err != nil {
+		ctx.ServerError("Download file failed", err)
+	}
+}
+
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
 	var v = http.StatusText(status)
@@ -367,6 +408,7 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -382,9 +424,28 @@ func (ctx *Context) Redirect(location string, status ...int) {
 	http.Redirect(ctx.Resp, ctx.Req, location, code)
 }
 
-// SetCookie set cookies to web browser
-func (ctx *Context) SetCookie(name string, value string, others ...interface{}) {
-	middleware.SetCookie(ctx.Resp, name, value, others...)
+// SetCookie convenience function to set most cookies consistently
+// CSRF and a few others are the exception here
+func (ctx *Context) SetCookie(name, value string, expiry int) {
+	middleware.SetCookie(ctx.Resp, name, value,
+		expiry,
+		setting.AppSubURL,
+		setting.SessionConfig.Domain,
+		setting.SessionConfig.Secure,
+		true,
+		middleware.SameSite(setting.SessionConfig.SameSite))
+}
+
+// DeleteCookie convenience function to delete most cookies consistently
+// CSRF and a few others are the exception here
+func (ctx *Context) DeleteCookie(name string) {
+	middleware.SetCookie(ctx.Resp, name, "",
+		-1,
+		setting.AppSubURL,
+		setting.SessionConfig.Domain,
+		setting.SessionConfig.Secure,
+		true,
+		middleware.SameSite(setting.SessionConfig.SameSite))
 }
 
 // GetCookie returns given cookie value from request header.
@@ -395,6 +456,11 @@ func (ctx *Context) GetCookie(name string) string {
 // GetSuperSecureCookie returns given cookie value from request header with secret string.
 func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
 	val := ctx.GetCookie(name)
+	return ctx.CookieDecrypt(secret, val)
+}
+
+// CookieDecrypt returns given value from with secret string.
+func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 	if val == "" {
 		return "", false
 	}
@@ -410,14 +476,21 @@ func (ctx *Context) GetSuperSecureCookie(secret, name string) (string, bool) {
 }
 
 // SetSuperSecureCookie sets given cookie value to response header with secret string.
-func (ctx *Context) SetSuperSecureCookie(secret, name, value string, others ...interface{}) {
+func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int) {
+	text := ctx.CookieEncrypt(secret, value)
+
+	ctx.SetCookie(name, text, expiry)
+}
+
+// CookieEncrypt encrypts a given value using the provided secret
+func (ctx *Context) CookieEncrypt(secret, value string) string {
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
 	text, err := com.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
 
-	ctx.SetCookie(name, hex.EncodeToString(text), others...)
+	return hex.EncodeToString(text)
 }
 
 // GetCookieInt returns cookie result in int type.
@@ -457,7 +530,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx.Req.Context())
+	chiCtx := chi.RouteContext(ctx)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
 
@@ -474,6 +547,26 @@ func (ctx *Context) Written() bool {
 // Status writes status code
 func (ctx *Context) Status(status int) {
 	ctx.Resp.WriteHeader(status)
+}
+
+// Deadline is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
+	return ctx.Req.Context().Deadline()
+}
+
+// Done is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Done() <-chan struct{} {
+	return ctx.Req.Context().Done()
+}
+
+// Err is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Err() error {
+	return ctx.Req.Context().Err()
+}
+
+// Value is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Value(key interface{}) interface{} {
+	return ctx.Req.Context().Value(key)
 }
 
 // Handler represents a custom handler
@@ -529,6 +622,29 @@ func getCsrfOpts() CsrfOptions {
 		Header:         "X-Csrf-Token",
 		CookieDomain:   setting.SessionConfig.Domain,
 		CookiePath:     setting.SessionConfig.CookiePath,
+		SameSite:       setting.SessionConfig.SameSite,
+	}
+}
+
+// Auth converts auth.Auth as a middleware
+func Auth(authMethod auth.Auth) func(*Context) {
+	return func(ctx *Context) {
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+
+			// ensure the session uid is deleted
+			_ = ctx.Session.Delete("uid")
+		}
 	}
 }
 
@@ -593,78 +709,21 @@ func Contexter() func(next http.Handler) http.Handler {
 						middleware.Domain(setting.SessionConfig.Domain),
 						middleware.HTTPOnly(true),
 						middleware.Secure(setting.SessionConfig.Secure),
-						//middlewares.SameSite(opt.SameSite), FIXME: we need a samesite config
+						middleware.SameSite(setting.SessionConfig.SameSite),
 					)
 					return
 				}
 
-				ctx.SetCookie("macaron_flash", "", -1,
+				middleware.SetCookie(ctx.Resp, "macaron_flash", "", -1,
 					setting.SessionConfig.CookiePath,
 					middleware.Domain(setting.SessionConfig.Domain),
 					middleware.HTTPOnly(true),
 					middleware.Secure(setting.SessionConfig.Secure),
-					//middleware.SameSite(), FIXME: we need a samesite config
+					middleware.SameSite(setting.SessionConfig.SameSite),
 				)
 			})
 
 			ctx.Flash = f
-
-			// Quick responses appropriate go-get meta with status 200
-			// regardless of if user have access to the repository,
-			// or the repository does not exist at all.
-			// This is particular a workaround for "go get" command which does not respect
-			// .netrc file.
-			if ctx.Query("go-get") == "1" {
-				ownerName := ctx.Params(":username")
-				repoName := ctx.Params(":reponame")
-				trimmedRepoName := strings.TrimSuffix(repoName, ".git")
-
-				if ownerName == "" || trimmedRepoName == "" {
-					_, _ = ctx.Write([]byte(`<!doctype html>
-<html>
-	<body>
-		invalid import path
-	</body>
-</html>
-`))
-					ctx.Status(400)
-					return
-				}
-				branchName := "master"
-
-				repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
-				if err == nil && len(repo.DefaultBranch) > 0 {
-					branchName = repo.DefaultBranch
-				}
-				prefix := setting.AppURL + path.Join(url.PathEscape(ownerName), url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
-
-				appURL, _ := url.Parse(setting.AppURL)
-
-				insecure := ""
-				if appURL.Scheme == string(setting.HTTP) {
-					insecure = "--insecure "
-				}
-				ctx.Header().Set("Content-Type", "text/html")
-				ctx.Status(http.StatusOK)
-				_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
-<html>
-	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
-	</head>
-	<body>
-		go get {Insecure}{GoGetImport}
-	</body>
-</html>
-`, map[string]string{
-					"GoGetImport":    ComposeGoGetImport(ownerName, trimmedRepoName),
-					"CloneLink":      models.ComposeHTTPSCloneURL(ownerName, repoName),
-					"GoDocDirectory": prefix + "{/dir}",
-					"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-					"Insecure":       insecure,
-				})))
-				return
-			}
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -674,21 +733,6 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-			}
-
 			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
@@ -696,6 +740,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
@@ -708,8 +753,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 
 			ctx.Data["ManifestData"] = setting.ManifestData
+
+			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

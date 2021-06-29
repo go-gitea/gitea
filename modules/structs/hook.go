@@ -6,10 +6,11 @@
 package structs
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -61,7 +62,6 @@ type EditHookOption struct {
 
 // Payloader payload is some part of one hook
 type Payloader interface {
-	SetSecret(string)
 	JSONPayload() ([]byte, error)
 }
 
@@ -123,7 +123,6 @@ var (
 
 // CreatePayload FIXME
 type CreatePayload struct {
-	Secret  string      `json:"secret"`
 	Sha     string      `json:"sha"`
 	Ref     string      `json:"ref"`
 	RefType string      `json:"ref_type"`
@@ -131,19 +130,16 @@ type CreatePayload struct {
 	Sender  *User       `json:"sender"`
 }
 
-// SetSecret modifies the secret of the CreatePayload
-func (p *CreatePayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload return payload information
 func (p *CreatePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParseCreateHook parses create event hook content.
 func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 	hook := new(CreatePayload)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -178,7 +174,6 @@ const (
 
 // DeletePayload represents delete payload
 type DeletePayload struct {
-	Secret     string      `json:"secret"`
 	Ref        string      `json:"ref"`
 	RefType    string      `json:"ref_type"`
 	PusherType PusherType  `json:"pusher_type"`
@@ -186,13 +181,9 @@ type DeletePayload struct {
 	Sender     *User       `json:"sender"`
 }
 
-// SetSecret modifies the secret of the DeletePayload
-func (p *DeletePayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload implements Payload
 func (p *DeletePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -205,19 +196,14 @@ func (p *DeletePayload) JSONPayload() ([]byte, error) {
 
 // ForkPayload represents fork payload
 type ForkPayload struct {
-	Secret string      `json:"secret"`
 	Forkee *Repository `json:"forkee"`
 	Repo   *Repository `json:"repository"`
 	Sender *User       `json:"sender"`
 }
 
-// SetSecret modifies the secret of the ForkPayload
-func (p *ForkPayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload implements Payload
 func (p *ForkPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -233,7 +219,6 @@ const (
 
 // IssueCommentPayload represents a payload information of issue comment event.
 type IssueCommentPayload struct {
-	Secret     string                 `json:"secret"`
 	Action     HookIssueCommentAction `json:"action"`
 	Issue      *Issue                 `json:"issue"`
 	Comment    *Comment               `json:"comment"`
@@ -243,13 +228,9 @@ type IssueCommentPayload struct {
 	IsPull     bool                   `json:"is_pull"`
 }
 
-// SetSecret modifies the secret of the IssueCommentPayload
-func (p *IssueCommentPayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload implements Payload
 func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -272,20 +253,15 @@ const (
 
 // ReleasePayload represents a payload information of release event.
 type ReleasePayload struct {
-	Secret     string            `json:"secret"`
 	Action     HookReleaseAction `json:"action"`
 	Release    *Release          `json:"release"`
 	Repository *Repository       `json:"repository"`
 	Sender     *User             `json:"sender"`
 }
 
-// SetSecret modifies the secret of the ReleasePayload
-func (p *ReleasePayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload implements Payload
 func (p *ReleasePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -298,7 +274,6 @@ func (p *ReleasePayload) JSONPayload() ([]byte, error) {
 
 // PushPayload represents a payload information of push event.
 type PushPayload struct {
-	Secret     string           `json:"secret"`
 	Ref        string           `json:"ref"`
 	Before     string           `json:"before"`
 	After      string           `json:"after"`
@@ -310,19 +285,16 @@ type PushPayload struct {
 	Sender     *User            `json:"sender"`
 }
 
-// SetSecret modifies the secret of the PushPayload
-func (p *PushPayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload FIXME
 func (p *PushPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParsePushHook parses push event hook content.
 func ParsePushHook(raw []byte) (*PushPayload, error) {
 	hook := new(PushPayload)
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -380,7 +352,6 @@ const (
 
 // IssuePayload represents the payload information that is sent along with an issue event.
 type IssuePayload struct {
-	Secret     string          `json:"secret"`
 	Action     HookIssueAction `json:"action"`
 	Index      int64           `json:"number"`
 	Changes    *ChangesPayload `json:"changes,omitempty"`
@@ -389,13 +360,9 @@ type IssuePayload struct {
 	Sender     *User           `json:"sender"`
 }
 
-// SetSecret modifies the secret of the IssuePayload.
-func (p *IssuePayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
 func (p *IssuePayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -420,7 +387,6 @@ type ChangesPayload struct {
 
 // PullRequestPayload represents a payload information of pull request event.
 type PullRequestPayload struct {
-	Secret      string          `json:"secret"`
 	Action      HookIssueAction `json:"action"`
 	Index       int64           `json:"number"`
 	Changes     *ChangesPayload `json:"changes,omitempty"`
@@ -430,13 +396,9 @@ type PullRequestPayload struct {
 	Review      *ReviewPayload  `json:"review"`
 }
 
-// SetSecret modifies the secret of the PullRequestPayload.
-func (p *PullRequestPayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -465,19 +427,14 @@ const (
 
 // RepositoryPayload payload for repository webhooks
 type RepositoryPayload struct {
-	Secret       string         `json:"secret"`
 	Action       HookRepoAction `json:"action"`
 	Repository   *Repository    `json:"repository"`
 	Organization *User          `json:"organization"`
 	Sender       *User          `json:"sender"`
 }
 
-// SetSecret modifies the secret of the RepositoryPayload
-func (p *RepositoryPayload) SetSecret(secret string) {
-	p.Secret = secret
-}
-
 // JSONPayload JSON representation of the payload
 func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", " ")
 }

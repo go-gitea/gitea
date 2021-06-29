@@ -133,6 +133,11 @@ func init() {
 		new(ProjectBoard),
 		new(ProjectIssue),
 		new(Session),
+		new(RepoTransfer),
+		new(IssueIndex),
+		new(PushMirror),
+		new(RepoArchiver),
+		new(ProtectedTag),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -141,7 +146,8 @@ func init() {
 	}
 }
 
-func getEngine() (*xorm.Engine, error) {
+// GetNewEngine returns a new xorm engine from the configuration
+func GetNewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -169,9 +175,13 @@ func getEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
+func syncTables() error {
+	return x.StoreEngine("InnoDB").Sync2(tables...)
+}
+
 // NewTestEngine sets a new test xorm.Engine
 func NewTestEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
@@ -179,12 +189,12 @@ func NewTestEngine() (err error) {
 	x.SetMapper(names.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.IsProd()))
 	x.ShowSQL(!setting.IsProd())
-	return x.StoreEngine("InnoDB").Sync2(tables...)
+	return syncTables()
 }
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -220,7 +230,7 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
@@ -304,7 +314,7 @@ func Ping() error {
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath string, dbType string) error {
+func DumpDatabase(filePath, dbType string) error {
 	var tbs []*schemas.Table
 	for _, t := range tables {
 		t, err := x.TableInfo(t)
@@ -318,7 +328,7 @@ func DumpDatabase(filePath string, dbType string) error {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	t, err := x.TableInfo(Version{})
+	t, err := x.TableInfo(&Version{})
 	if err != nil {
 		return err
 	}

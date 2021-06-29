@@ -13,7 +13,9 @@ import (
 )
 
 func listen(server *ssh.Server) {
-	gracefulServer := graceful.NewServer("tcp", server.Addr)
+	gracefulServer := graceful.NewServer("tcp", server.Addr, "SSH")
+	gracefulServer.PerWriteTimeout = setting.SSH.PerWriteTimeout
+	gracefulServer.PerWritePerKbTimeout = setting.SSH.PerWritePerKbTimeout
 
 	err := gracefulServer.ListenAndServe(server.Serve, setting.SSH.UseProxyProtocol)
 	if err != nil {

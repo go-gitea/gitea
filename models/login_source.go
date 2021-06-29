@@ -7,7 +7,6 @@ package models
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/smtp"
@@ -19,9 +18,12 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	gouuid "github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -68,6 +70,17 @@ var (
 	_ convert.Conversion = &SSPIConfig{}
 )
 
+// jsonUnmarshalIgnoreErroneousBOM - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may gain an unwanted prefix of 0xff 0xfe.
+func jsonUnmarshalIgnoreErroneousBOM(bs []byte, v interface{}) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(bs, &v)
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], &v)
+	}
+	return err
+}
+
 // LDAPConfig holds configuration for LDAP login source.
 type LDAPConfig struct {
 	*ldap.Source
@@ -75,11 +88,26 @@ type LDAPConfig struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (cfg *LDAPConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	err := jsonUnmarshalIgnoreErroneousBOM(bs, &cfg)
+	if err != nil {
+		return err
+	}
+	if cfg.BindPasswordEncrypt != "" {
+		cfg.BindPassword, err = secret.DecryptSecret(setting.SecretKey, cfg.BindPasswordEncrypt)
+		cfg.BindPasswordEncrypt = ""
+	}
+	return err
 }
 
 // ToDB exports a LDAPConfig to a serialized format.
 func (cfg *LDAPConfig) ToDB() ([]byte, error) {
+	var err error
+	cfg.BindPasswordEncrypt, err = secret.EncryptSecret(setting.SecretKey, cfg.BindPassword)
+	if err != nil {
+		return nil, err
+	}
+	cfg.BindPassword = ""
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -101,26 +129,29 @@ type SMTPConfig struct {
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (cfg *SMTPConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalIgnoreErroneousBOM(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (cfg *SMTPConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
 // PAMConfig holds configuration for the PAM login source.
 type PAMConfig struct {
 	ServiceName string // pam service (e.g. system-auth)
+	EmailDomain string
 }
 
 // FromDB fills up a PAMConfig from serialized format.
 func (cfg *PAMConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return jsonUnmarshalIgnoreErroneousBOM(bs, cfg)
 }
 
 // ToDB exports a PAMConfig to a serialized format.
 func (cfg *PAMConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -136,11 +167,12 @@ type OAuth2Config struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (cfg *OAuth2Config) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalIgnoreErroneousBOM(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (cfg *OAuth2Config) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -155,11 +187,12 @@ type SSPIConfig struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *SSPIConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalIgnoreErroneousBOM(bs, cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.
 func (cfg *SSPIConfig) ToDB() ([]byte, error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -467,7 +500,7 @@ func LoginViaLDAP(user *User, login, password string, source *LoginSource) (*Use
 		return nil, ErrUserNotExist{0, login, 0}
 	}
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.LDAP().AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
 	if isExist, err := IsUserExist(0, sr.Username); err != nil {
@@ -686,15 +719,26 @@ func LoginViaPAM(user *User, login, password string, sourceID int64, cfg *PAMCon
 
 	// Allow PAM sources with `@` in their name, like from Active Directory
 	username := pamLogin
+	email := pamLogin
 	idx := strings.Index(pamLogin, "@")
 	if idx > -1 {
 		username = pamLogin[:idx]
+	}
+	if ValidateEmail(email) != nil {
+		if cfg.EmailDomain != "" {
+			email = fmt.Sprintf("%s@%s", username, cfg.EmailDomain)
+		} else {
+			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
+		}
+		if ValidateEmail(email) != nil {
+			email = gouuid.New().String() + "@localhost"
+		}
 	}
 
 	user = &User{
 		LowerName:   strings.ToLower(username),
 		Name:        username,
-		Email:       pamLogin,
+		Email:       email,
 		Passwd:      password,
 		LoginType:   LoginPAM,
 		LoginSource: sourceID,
@@ -818,7 +862,11 @@ func UserSignIn(username, password string) (*User, error) {
 			return authUser, nil
 		}
 
-		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		if IsErrUserNotExist(err) {
+			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		} else {
+			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		}
 	}
 
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}

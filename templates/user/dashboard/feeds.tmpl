@@ -110,7 +110,8 @@
 						<span class="text truncate issue title">{{index .GetIssueInfos 1 | RenderEmoji}}</span>
 					{{else if or (eq .GetOpType 10) (eq .GetOpType 21) (eq .GetOpType 22) (eq .GetOpType 23)}}
 						<a href="{{.GetCommentLink}}" class="text truncate issue title">{{.GetIssueTitle | RenderEmoji}}</a>
-						<p class="text light grey">{{index .GetIssueInfos 1 | RenderEmoji}}</p>
+						{{$comment := index .GetIssueInfos 1}}
+						{{if gt (len $comment) 0}}<p class="text light grey">{{$comment | RenderEmoji}}</p>{{end}}
 					{{else if eq .GetOpType 11}}
 						<p class="text light grey">{{index .GetIssueInfos 1}}</p>
 					{{else if or (eq .GetOpType 12) (eq .GetOpType 13) (eq .GetOpType 14) (eq .GetOpType 15)}}

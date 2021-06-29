@@ -6,7 +6,7 @@ import (
 )
 
 // Dart lexer.
-var Dart = internal.Register(MustNewLexer(
+var Dart = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Dart",
 		Aliases:   []string{"dart"},
@@ -14,7 +14,11 @@ var Dart = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-dart"},
 		DotAll:    true,
 	},
-	Rules{
+	dartRules,
+))
+
+func dartRules() Rules {
+	return Rules{
 		"root": {
 			Include("string_literal"),
 			{`#!(.*?)$`, CommentPreproc, nil},
@@ -87,5 +91,5 @@ var Dart = internal.Register(MustNewLexer(
 			Include("string_common"),
 			{`(\$|\')+`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

@@ -54,8 +54,8 @@ type Provider struct {
 	Secret       string
 	CallbackURL  string
 	HTTPClient   *http.Client
+	OpenIDConfig *OpenIDConfig
 	config       *oauth2.Config
-	openIDConfig *OpenIDConfig
 	providerName string
 
 	UserIdClaims    []string
@@ -74,7 +74,12 @@ type OpenIDConfig struct {
 	AuthEndpoint     string `json:"authorization_endpoint"`
 	TokenEndpoint    string `json:"token_endpoint"`
 	UserInfoEndpoint string `json:"userinfo_endpoint"`
-	Issuer           string `json:"issuer"`
+
+	// If OpenID discovery is enabled, the end_session_endpoint field can optionally be provided
+	// in the discovery endpoint response according to OpenID spec. See:
+	// https://openid.net/specs/openid-connect-session-1_0-17.html#OPMetadata
+	EndSessionEndpoint string `json:"end_session_endpoint, omitempty"`
+	Issuer             string `json:"issuer"`
 }
 
 // New creates a new OpenID Connect provider, and sets up important connection details.
@@ -106,7 +111,7 @@ func New(clientKey, secret, callbackURL, openIDAutoDiscoveryURL string, scopes .
 	if err != nil {
 		return nil, err
 	}
-	p.openIDConfig = openIDConfig
+	p.OpenIDConfig = openIDConfig
 
 	p.config = newConfig(p, scopes, openIDConfig)
 	return p, nil
@@ -216,7 +221,7 @@ func (p *Provider) validateClaims(claims map[string]interface{}) (time.Time, err
 	}
 
 	issuer := getClaimValue(claims, []string{issuerClaim})
-	if issuer != p.openIDConfig.Issuer {
+	if issuer != p.OpenIDConfig.Issuer {
 		return time.Time{}, errors.New("issuer in token does not match issuer in OpenIDConfig discovery")
 	}
 
@@ -245,11 +250,11 @@ func (p *Provider) userFromClaims(claims map[string]interface{}, user *goth.User
 
 func (p *Provider) getUserInfo(accessToken string, claims map[string]interface{}) error {
 	// skip if there is no UserInfoEndpoint or is explicitly disabled
-	if p.openIDConfig.UserInfoEndpoint == "" || p.SkipUserInfoRequest {
+	if p.OpenIDConfig.UserInfoEndpoint == "" || p.SkipUserInfoRequest {
 		return nil
 	}
 
-	userInfoClaims, err := p.fetchUserInfo(p.openIDConfig.UserInfoEndpoint, accessToken)
+	userInfoClaims, err := p.fetchUserInfo(p.OpenIDConfig.UserInfoEndpoint, accessToken)
 	if err != nil {
 		return err
 	}

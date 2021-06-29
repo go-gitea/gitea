@@ -22,6 +22,9 @@ type WatchInfo struct {
 
 // GetWatchedRepos list all the watched repos of user
 func (c *Client) GetWatchedRepos(user string) ([]*Repository, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	repos := make([]*Repository, 0, 10)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/subscriptions", user), nil, nil, &repos)
 	return repos, resp, err
@@ -35,8 +38,11 @@ func (c *Client) GetMyWatchedRepos() ([]*Repository, *Response, error) {
 }
 
 // CheckRepoWatch check if the current user is watching a repo
-func (c *Client) CheckRepoWatch(repoUser, repoName string) (bool, *Response, error) {
-	status, resp, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) CheckRepoWatch(owner, repo string) (bool, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return false, nil, err
+	}
+	status, resp, err := c.getStatusCode("GET", fmt.Sprintf("/repos/%s/%s/subscription", owner, repo), nil, nil)
 	if err != nil {
 		return false, resp, err
 	}
@@ -51,8 +57,11 @@ func (c *Client) CheckRepoWatch(repoUser, repoName string) (bool, *Response, err
 }
 
 // WatchRepo start to watch a repository
-func (c *Client) WatchRepo(repoUser, repoName string) (*Response, error) {
-	status, resp, err := c.getStatusCode("PUT", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) WatchRepo(owner, repo string) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
+	status, resp, err := c.getStatusCode("PUT", fmt.Sprintf("/repos/%s/%s/subscription", owner, repo), nil, nil)
 	if err != nil {
 		return resp, err
 	}
@@ -63,8 +72,11 @@ func (c *Client) WatchRepo(repoUser, repoName string) (*Response, error) {
 }
 
 // UnWatchRepo stop to watch a repository
-func (c *Client) UnWatchRepo(repoUser, repoName string) (*Response, error) {
-	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/subscription", repoUser, repoName), nil, nil)
+func (c *Client) UnWatchRepo(owner, repo string) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
+	status, resp, err := c.getStatusCode("DELETE", fmt.Sprintf("/repos/%s/%s/subscription", owner, repo), nil, nil)
 	if err != nil {
 		return resp, err
 	}
