@@ -180,9 +180,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
-    For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
+    For custom reactions, add a tightly cropped square image to public/img/emoji/reaction_name.png
 - `CUSTOM_EMOJIS`: **gitea**: Additional Emojis not defined in the utf8 standard.
-    By default we support gitea (:gitea:), to add more copy them to public/emoji/img/emoji_name.png and
+    By default we support gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
