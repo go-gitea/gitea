@@ -52,10 +52,27 @@ func GetIssueAttachment(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
-
 	if attach.IssueID == 0 {
-		log.Info("User requested attachment is not in issue, attachment_id: %v", attachID)
+		log.Debug("Requested attachment[%d] is not in an issue.", attachID)
 		ctx.NotFound()
+		return
+	}
+	issue, err := models.GetIssueByID(attach.IssueID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		return
+	}
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		log.Debug("Requested attachment[%d] belongs to issue[%d, #%d] which is not in Repo: %-v.", attachID, issue.ID, issue.Index, ctx.Repo.Repository)
+		ctx.NotFound()
+		return
+	}
+	unitType := models.UnitTypeIssues
+	if issue.IsPull {
+		unitType = models.UnitTypePullRequests
+	}
+	if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have a permission to read repo")
 		return
 	}
 
@@ -209,6 +226,38 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToIssueAttachment(attach))
 }
 
+func reqIssueAttachment(ctx *context.APIContext, attachID int64) *models.Attachment {
+	attach, err := models.GetAttachmentByID(attachID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
+		return nil
+	}
+	if attach.IssueID == 0 {
+		log.Debug("Requested attachment[%d] is not in an issue.", attachID)
+		ctx.NotFound()
+		return nil
+	}
+	issue, err := models.GetIssueByID(attach.IssueID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+		return nil
+	}
+	if issue.RepoID != ctx.Repo.Repository.ID {
+		log.Debug("Requested attachment[%d] belongs to issue[%d, #%d] which is not in Repo: %-v.", attachID, issue.ID, issue.Index, ctx.Repo.Repository)
+		ctx.NotFound()
+		return nil
+	}
+	unitType := models.UnitTypeIssues
+	if issue.IsPull {
+		unitType = models.UnitTypePullRequests
+	}
+	if !ctx.IsUserRepoWriter([]models.UnitType{unitType}) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
+		ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
+		return nil
+	}
+	return attach
+}
+
 // EditIssueAttachment updates the given attachment
 func EditIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueEditIssueAttachment
@@ -246,14 +295,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
-		return
-	}
-	if attach.IssueID == 0 {
-		log.Info("User requested attachment is not in issue, attachment_id: %v", attachID)
-		ctx.NotFound()
+	attach := reqIssueAttachment(ctx, attachID)
+	if attach == nil {
 		return
 	}
 	if form.Name != "" {
@@ -295,17 +338,10 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
+	attach := reqIssueAttachment(ctx, attachID)
+	if attach == nil {
 		return
 	}
-	if attach.IssueID == 0 {
-		log.Info("User requested attachment is not in issue, attachment_id: %v", attachID)
-		ctx.NotFound()
-		return
-	}
-
 	if err := models.DeleteAttachment(attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return

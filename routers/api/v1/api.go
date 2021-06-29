@@ -862,8 +862,8 @@ func Routes() *web.Route {
 					})
 					m.Group("/assets", func() {
 						m.Combo("/{asset}").Get(repo.GetIssueAttachment).
-							Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues), bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues), repo.DeleteIssueAttachment)
+							Patch(reqToken(), bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+							Delete(reqToken(), repo.DeleteIssueAttachment)
 					})
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
