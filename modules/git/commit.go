@@ -484,7 +484,7 @@ func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	}()
 
 	stderr := new(bytes.Buffer)
-	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-t", "-z", "-1", commitID}
+	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
 
 	err := NewCommand(args...).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
