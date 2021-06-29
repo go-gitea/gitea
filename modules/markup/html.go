@@ -948,7 +948,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted == nil {
 			// check if this is a custom reaction
-			if util.ExistsInSlice(alias, setting.UI.CustomEmojis) {
+			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
 				replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
 				node = node.NextSibling.NextSibling
 				start = 0

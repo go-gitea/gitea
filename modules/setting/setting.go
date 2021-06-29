@@ -210,6 +210,7 @@ var (
 		Reactions             []string
 		ReactionsMap          map[string]bool `ini:"-"`
 		CustomEmojis          []string
+		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -984,6 +985,10 @@ func NewContext() {
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
+	}
+	UI.CustomEmojisMap = make(map[string]string)
+	for _, emoji := range UI.CustomEmojis {
+		UI.CustomEmojisMap[emoji] = fmt.Sprintf(":%s:", emoji)
 	}
 }
 

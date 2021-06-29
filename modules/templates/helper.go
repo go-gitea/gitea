@@ -91,11 +91,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.UI.Reactions
 		},
 		"CustomEmojis": func() map[string]string {
-			result := make(map[string]string)
-			for _, emoji := range setting.UI.CustomEmojis {
-				result[emoji] = fmt.Sprintf(":%s:", emoji)
-			}
-			return result
+			return setting.UI.CustomEmojisMap
 		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
