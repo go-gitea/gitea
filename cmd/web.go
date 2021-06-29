@@ -229,6 +229,8 @@ func listen(m http.Handler, handleRedirector bool) error {
 			NoHTTPRedirector()
 		}
 		err = runFCGI("unix", listenAddr, "Web", context2.ClearHandler(m), setting.UseProxyProtocol)
+	default:
+		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
 	if err != nil {
 		log.Critical("Failed to start server: %v", err)
