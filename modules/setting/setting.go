@@ -1159,6 +1159,19 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
 	}
+
+	// Change permissions to be more restrictive
+	fi, err := os.Stat(CustomConf)
+	if err != nil {
+		log.Error("Failed to determine current conf file permissions: %v", err)
+		return
+	}
+
+	if fi.Mode().Perm() > 0o600 {
+		if err = os.Chmod(CustomConf, 0o600); err != nil {
+			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
+		}
+	}
 }
 
 // NewServices initializes the services

@@ -5,20 +5,42 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+func dropWebhookColumns(x *xorm.Engine) error {
+	// Make sure the columns exist before dropping them
+	type Webhook struct {
+		Signature string `xorm:"TEXT"`
+		IsSSL     bool   `xorm:"is_ssl"`
+	}
+	if err := x.Sync2(new(Webhook)); err != nil {
+		return err
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
+	type HookTask struct {
+		Typ         string `xorm:"VARCHAR(16) index"`
+		URL         string `xorm:"TEXT"`
+		Signature   string `xorm:"TEXT"`
+		HTTPMethod  string `xorm:"http_method"`
+		ContentType int
+		IsSSL       bool
 	}
-	return nil
+	if err := x.Sync2(new(HookTask)); err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := dropTableColumns(sess, "webhook", "signature", "is_ssl"); err != nil {
+		return err
+	}
+	if err := dropTableColumns(sess, "hook_task", "typ", "url", "signature", "http_method", "content_type", "is_ssl"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
