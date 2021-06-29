@@ -324,6 +324,8 @@ var migrations = []Migration{
 	// v186 -> v187
 	NewMigration("Create protected tag table", createProtectedTagTable),
 	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	// v188 -> v189
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
 }
 
