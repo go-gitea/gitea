@@ -989,7 +989,7 @@ func NewContext() {
 	}
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
-		UI.CustomEmojisMap[emoji] = fmt.Sprintf(":%s:", emoji)
+		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 }
 

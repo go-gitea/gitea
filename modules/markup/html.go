@@ -6,7 +6,6 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/url"
@@ -475,8 +474,8 @@ func createCustomEmoji(alias string) *html.Node {
 		Data:     "img",
 		Attr:     []html.Attribute{},
 	}
-	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/assets/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
+	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: ":" + alias + ":"})
+	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: setting.StaticURLPrefix + "/assets/img/emoji/" + alias + ".png"})
 
 	span.AppendChild(img)
 	return span
