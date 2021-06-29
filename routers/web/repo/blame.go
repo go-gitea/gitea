@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"container/list"
 	"fmt"
 	"html"
 	gotemplate "html/template"
@@ -146,7 +145,7 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 	previousCommits := make(map[string]string)
 	// and as blameParts can reference the same commits multiple
 	// times, we cache the lookup work locally
-	commits := list.New()
+	commits := make([]*git.Commit, 0, len(blameParts))
 	commitCache := map[string]*git.Commit{}
 	commitCache[ctx.Repo.Commit.ID.String()] = ctx.Repo.Commit
 
@@ -190,15 +189,13 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 			}
 		}
 
-		commits.PushBack(commit)
+		commits = append(commits, commit)
 
 		commitNames[commit.ID.String()] = models.UserCommit{}
 	}
 
 	// populate commit email addresses to later look up avatars.
-	commits = models.ValidateCommitsWithEmails(commits)
-	for e := commits.Front(); e != nil; e = e.Next() {
-		c := e.Value.(models.UserCommit)
+	for _, c := range models.ValidateCommitsWithEmails(commits) {
 		commitNames[c.ID.String()] = c
 	}
 

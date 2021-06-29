@@ -191,11 +191,11 @@ type Comment struct {
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
 
-	Commits     *list.List `xorm:"-"`
-	OldCommit   string     `xorm:"-"`
-	NewCommit   string     `xorm:"-"`
-	CommitsNum  int64      `xorm:"-"`
-	IsForcePush bool       `xorm:"-"`
+	Commits     []SignCommitWithStatuses `xorm:"-"`
+	OldCommit   string                   `xorm:"-"`
+	NewCommit   string                   `xorm:"-"`
+	CommitsNum  int64                    `xorm:"-"`
+	IsForcePush bool                     `xorm:"-"`
 }
 
 // PushActionContent is content of push pull comment
@@ -676,13 +676,16 @@ func (c *Comment) LoadPushCommits() (err error) {
 		}
 		defer gitRepo.Close()
 
-		c.Commits = gitRepo.GetCommitsFromIDs(data.CommitIDs)
-		c.CommitsNum = int64(c.Commits.Len())
-		if c.CommitsNum > 0 {
-			c.Commits = ValidateCommitsWithEmails(c.Commits)
-			c.Commits = ParseCommitsWithSignature(c.Commits, c.Issue.Repo)
-			c.Commits = ParseCommitsWithStatus(c.Commits, c.Issue.Repo)
-		}
+		c.Commits = ParseCommitsWithStatus(
+			ParseCommitsWithSignature(
+				ValidateCommitsWithEmails(
+					gitRepo.GetCommitsFromIDs(data.CommitIDs),
+				),
+				c.Issue.Repo,
+			),
+			c.Issue.Repo,
+		)
+		c.CommitsNum = int64(len(c.Commits))
 	}
 
 	return err
@@ -1295,21 +1298,17 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return nil, false, err
 	}
 
-	var (
-		commits      *list.List
-		commitChecks map[string]commitBranchCheckItem
-	)
-	commits, err = newCommit.CommitsBeforeUntil(oldCommitID)
+	commits, err := newCommit.CommitsBeforeUntil(oldCommitID)
 	if err != nil {
 		return nil, false, err
 	}
 
-	commitIDs = make([]string, 0, commits.Len())
-	commitChecks = make(map[string]commitBranchCheckItem)
+	commitIDs = make([]string, 0, len(commits))
+	commitChecks := make(map[string]commitBranchCheckItem)
 
-	for e := commits.Front(); e != nil; e = e.Next() {
-		commitChecks[e.Value.(*git.Commit).ID.String()] = commitBranchCheckItem{
-			Commit:  e.Value.(*git.Commit),
+	for _, commit := range commits {
+		commitChecks[commit.ID.String()] = commitBranchCheckItem{
+			Commit:  commit,
 			Checked: false,
 		}
 	}
@@ -1318,8 +1317,8 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		return
 	}
 
-	for e := commits.Back(); e != nil; e = e.Prev() {
-		commitID := e.Value.(*git.Commit).ID.String()
+	for i := len(commits) - 1; i >= 0; i-- {
+		commitID := commits[i].ID.String()
 		if item, ok := commitChecks[commitID]; ok && item.Checked {
 			commitIDs = append(commitIDs, commitID)
 		}

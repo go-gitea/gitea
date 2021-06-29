@@ -5,7 +5,6 @@
 package models
 
 import (
-	"container/list"
 	"crypto/sha1"
 	"fmt"
 	"strings"
@@ -257,14 +256,10 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
-	var (
-		newCommits = list.New()
-		e          = oldCommits.Front()
-	)
+func ParseCommitsWithStatus(oldCommits []SignCommit, repo *Repository) []SignCommitWithStatuses {
+	newCommits := make([]SignCommitWithStatuses, 0, len(oldCommits))
 
-	for e != nil {
-		c := e.Value.(SignCommit)
+	for _, c := range oldCommits {
 		commit := SignCommitWithStatuses{
 			SignCommit: &c,
 		}
@@ -276,8 +271,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 			commit.Status = CalcCommitStatus(statuses)
 		}
 
-		newCommits.PushBack(commit)
-		e = e.Next()
+		newCommits = append(newCommits, commit)
 	}
 	return newCommits
 }

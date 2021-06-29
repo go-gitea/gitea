@@ -1,7 +1,6 @@
-{{ $r:= List .comment.Commits}}
 {{ $index := 0}}
 <div class="timeline-item commits-list">
-{{range $r}}
+{{range .comment.Commits}}
 	{{ $tag := printf "%s-%d" $.comment.HashTag $index }}
 	{{ $index = Add $index 1}}
 	<div class="singular-commit" id="{{$tag}}">

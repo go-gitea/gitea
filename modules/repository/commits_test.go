@@ -5,7 +5,6 @@
 package repository
 
 import (
-	"container/list"
 	"crypto/md5"
 	"fmt"
 	"testing"
@@ -162,21 +161,22 @@ func TestListToPushCommits(t *testing.T) {
 	hash2, err := git.NewIDFromString(hexString2)
 	assert.NoError(t, err)
 
-	l := list.New()
-	l.PushBack(&git.Commit{
-		ID:            hash1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message1",
-	})
-	l.PushBack(&git.Commit{
-		ID:            hash2,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message2",
-	})
+	l := []*git.Commit{
+		{
+			ID:            hash1,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message1",
+		},
+		{
+			ID:            hash2,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message2",
+		},
+	}
 
-	pushCommits := ListToPushCommits(l)
+	pushCommits := GitToPushCommits(l)
 	assert.Equal(t, 2, pushCommits.Len)
 	if assert.Len(t, pushCommits.Commits, 2) {
 		assert.Equal(t, "Message1", pushCommits.Commits[0].Message)

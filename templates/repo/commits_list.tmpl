@@ -9,8 +9,7 @@
 				</tr>
 			</thead>
 			<tbody class="commit-list">
-				{{ $r:= List .Commits}}
-				{{range $r}}
+				{{range .Commits}}
 					<tr>
 						<td class="author">
 							{{$userName := .Author.Name}}

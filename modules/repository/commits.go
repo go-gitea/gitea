@@ -5,7 +5,6 @@
 package repository
 
 import (
-	"container/list"
 	"fmt"
 	"time"
 
@@ -154,16 +153,11 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 	}
 }
 
-// ListToPushCommits transforms a list.List to PushCommits type.
-func ListToPushCommits(l *list.List) *PushCommits {
-	var commits []*PushCommit
-	var actEmail string
-	for e := l.Front(); e != nil; e = e.Next() {
-		commit := e.Value.(*git.Commit)
-		if actEmail == "" {
-			actEmail = commit.Committer.Email
-		}
+// GitToPushCommits transforms a list of git.Commits to PushCommits type.
+func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
+	commits := make([]*PushCommit, 0, len(gitCommits))
+	for _, commit := range gitCommits {
 		commits = append(commits, CommitToPushCommit(commit))
 	}
-	return &PushCommits{l.Len(), commits, "", make(map[string]string), make(map[string]*models.User)}
+	return &PushCommits{len(commits), commits, "", make(map[string]string), make(map[string]*models.User)}
 }
