@@ -434,51 +434,53 @@ func NewCommitFileStatus() *CommitFileStatus {
 	}
 }
 
+func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
+	rd := bufio.NewReader(stdout)
+	peek, err := rd.Peek(1)
+	if err != nil {
+		if err != io.EOF {
+			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+		}
+		return
+	}
+	if peek[0] == '\n' || peek[0] == '\x00' {
+		_, _ = rd.Discard(1)
+	}
+	for {
+		modifier, err := rd.ReadSlice('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file, err := rd.ReadString('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file = file[:len(file)-1]
+		switch modifier[0] {
+		case 'A':
+			fileStatus.Added = append(fileStatus.Added, file)
+		case 'D':
+			fileStatus.Removed = append(fileStatus.Removed, file)
+		case 'M':
+			fileStatus.Modified = append(fileStatus.Modified, file)
+		}
+	}
+}
+
 // GetCommitFileStatus returns file status of commit in given repository.
 func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
-		rd := bufio.NewReader(stdout)
-		peek, err := rd.Peek(1)
-		if err != nil {
-			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-			}
-			close(done)
-			return
-		}
-		if peek[0] == '\n' || peek[0] == '\x00' {
-			_, _ = rd.Discard(1)
-		}
-		for {
-			modifier, err := rd.ReadSlice('\x00')
-			if err != nil {
-				if err != io.EOF {
-					log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-				}
-				close(done)
-				return
-			}
-			file, err := rd.ReadString('\x00')
-			if err != nil {
-				if err != io.EOF {
-					log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-				}
-				close(done)
-				return
-			}
-			file = file[:len(file)-1]
-			switch modifier[0] {
-			case 'A':
-				fileStatus.Added = append(fileStatus.Added, file)
-			case 'D':
-				fileStatus.Removed = append(fileStatus.Removed, file)
-			case 'M':
-				fileStatus.Modified = append(fileStatus.Modified, file)
-			}
-		}
+		parseCommitFileStatus(fileStatus, stdout)
+		close(done)
 	}()
 
 	stderr := new(bytes.Buffer)
