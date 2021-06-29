@@ -65,7 +65,7 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:`)
+	EmojiShortCodeRegex = regexp.MustCompile(`:[\w\+\-]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
