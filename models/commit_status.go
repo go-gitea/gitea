@@ -256,12 +256,12 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits []SignCommit, repo *Repository) []SignCommitWithStatuses {
-	newCommits := make([]SignCommitWithStatuses, 0, len(oldCommits))
+func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *Repository) []*SignCommitWithStatuses {
+	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {
-		commit := SignCommitWithStatuses{
-			SignCommit: &c,
+		commit := &SignCommitWithStatuses{
+			SignCommit: c,
 		}
 		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), ListOptions{})
 		if err != nil {

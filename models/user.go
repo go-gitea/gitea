@@ -1502,10 +1502,10 @@ func ValidateCommitWithEmail(c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(oldCommits []*git.Commit) []UserCommit {
+func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 	var (
 		emails     = make(map[string]*User)
-		newCommits = make([]UserCommit, 0, len(oldCommits))
+		newCommits = make([]*UserCommit, 0, len(oldCommits))
 	)
 	for _, c := range oldCommits {
 		var u *User
@@ -1518,7 +1518,7 @@ func ValidateCommitsWithEmails(oldCommits []*git.Commit) []UserCommit {
 			}
 		}
 
-		newCommits = append(newCommits, UserCommit{
+		newCommits = append(newCommits, &UserCommit{
 			User:   u,
 			Commit: c,
 		})

@@ -829,13 +829,13 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 }
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []UserCommit, repository *Repository) []SignCommit {
-	newCommits := make([]SignCommit, 0, len(oldCommits))
+func ParseCommitsWithSignature(oldCommits []*UserCommit, repository *Repository) []*SignCommit {
+	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
 	for _, c := range oldCommits {
-		signCommit := SignCommit{
-			UserCommit:   &c,
+		signCommit := &SignCommit{
+			UserCommit:   c,
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 

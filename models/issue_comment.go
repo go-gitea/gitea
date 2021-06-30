@@ -191,11 +191,11 @@ type Comment struct {
 	RefIssue   *Issue      `xorm:"-"`
 	RefComment *Comment    `xorm:"-"`
 
-	Commits     []SignCommitWithStatuses `xorm:"-"`
-	OldCommit   string                   `xorm:"-"`
-	NewCommit   string                   `xorm:"-"`
-	CommitsNum  int64                    `xorm:"-"`
-	IsForcePush bool                     `xorm:"-"`
+	Commits     []*SignCommitWithStatuses `xorm:"-"`
+	OldCommit   string                    `xorm:"-"`
+	NewCommit   string                    `xorm:"-"`
+	CommitsNum  int64                     `xorm:"-"`
+	IsForcePush bool                      `xorm:"-"`
 }
 
 // PushActionContent is content of push pull comment
