@@ -967,7 +967,13 @@ func MergePullRequest(ctx *context.Context) {
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
-		cleanUpPullRequest(ctx, false)
+		headRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+			return
+		}
+		defer headRepo.Close()
+		deleteBranch(ctx, pr, headRepo)
 	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
@@ -1135,10 +1141,6 @@ func TriggerTask(ctx *context.Context) {
 
 // CleanUpPullRequest responses for delete merged branch when PR has been merged
 func CleanUpPullRequest(ctx *context.Context) {
-	cleanUpPullRequest(ctx, true)
-}
-
-func cleanUpPullRequest(ctx *context.Context, json bool) {
 	issue := checkPullInfo(ctx)
 	if ctx.Written() {
 		return
@@ -1193,13 +1195,11 @@ func cleanUpPullRequest(ctx *context.Context, json bool) {
 	}
 	defer gitBaseRepo.Close()
 
-	if json {
-		defer func() {
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
-			})
-		}()
-	}
+	defer func() {
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": pr.BaseRepo.Link() + "/pulls/" + fmt.Sprint(issue.Index),
+		})
+	}()
 
 	// Check if branch has no new commits
 	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitRefName())
@@ -1219,6 +1219,11 @@ func cleanUpPullRequest(ctx *context.Context, json bool) {
 		return
 	}
 
+	deleteBranch(ctx, pr, gitRepo)
+}
+
+func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Repository) {
+	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
 	if err := repo_service.DeleteBranch(ctx.User, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
@@ -1234,7 +1239,7 @@ func cleanUpPullRequest(ctx *context.Context, json bool) {
 		return
 	}
 
-	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
+	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
 		log.Error("DeleteBranch: %v", err)
 	}
