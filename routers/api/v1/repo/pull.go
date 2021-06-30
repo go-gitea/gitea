@@ -1217,7 +1217,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
 	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-Total", strconv.FormatInt(int64(totalNumberOfCommits), 10))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumberOfCommits))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
 	ctx.JSON(http.StatusOK, &apiCommits)
