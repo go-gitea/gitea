@@ -75,11 +75,10 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
-		if mappedMimeType != "" {
-			ctx.Resp.Header().Set("Content-Type", mappedMimeType+"; charset="+strings.ToLower(cs))
-		} else {
-			ctx.Resp.Header().Set("Content-Type", "text/plain; charset="+strings.ToLower(cs))
+		if mappedMimeType == "" {
+			mappedMimeType = "text/plain"
 		}
+		ctx.Resp.Header().Set("Content-Type", mappedMimeType+"; charset="+strings.ToLower(cs))
 	} else {
 		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		if mappedMimeType != "" {
