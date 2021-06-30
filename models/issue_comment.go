@@ -675,15 +675,7 @@ func (c *Comment) LoadPushCommits() (err error) {
 		}
 		defer gitRepo.Close()
 
-		c.Commits = ParseCommitsWithStatus(
-			ParseCommitsWithSignature(
-				ValidateCommitsWithEmails(
-					gitRepo.GetCommitsFromIDs(data.CommitIDs),
-				),
-				c.Issue.Repo,
-			),
-			c.Issue.Repo,
-		)
+		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
 	}
 

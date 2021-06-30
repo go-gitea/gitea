@@ -550,13 +550,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := models.ParseCommitsWithStatus(
-		models.ParseCommitsWithSignature(
-			models.ValidateCommitsWithEmails(compareInfo.Commits),
-			headRepo,
-		),
-		headRepo,
-	)
+	commits := models.ConvertFromGitCommit(compareInfo.Commits, headRepo)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 

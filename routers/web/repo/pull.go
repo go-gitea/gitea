@@ -562,14 +562,10 @@ func ViewPullCommits(ctx *context.Context) {
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["Commits"] = models.ParseCommitsWithStatus(
-		models.ParseCommitsWithSignature(
-			models.ValidateCommitsWithEmails(prInfo.Commits),
-			ctx.Repo.Repository,
-		),
-		ctx.Repo.Repository,
-	)
-	ctx.Data["CommitCount"] = len(prInfo.Commits)
+
+	commits := models.ConvertFromGitCommit(prInfo.Commits, ctx.Repo.Repository)
+	ctx.Data["Commits"] = commits
+	ctx.Data["CommitCount"] = len(commits)
 
 	getBranchData(ctx, issue)
 	ctx.HTML(http.StatusOK, tplPullCommits)
