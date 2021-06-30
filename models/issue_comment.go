@@ -1340,10 +1340,10 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	checkStack = append(checkStack, startCommit.ID.String())
 
 	for len(checkStack) > 0 {
-		commitId := checkStack[0]
+		commitID := checkStack[0]
 		checkStack = checkStack[1:]
 
-		item, ok := commitList[commitId]
+		item, ok := commitList[commitID]
 		if !ok {
 			continue
 		}
