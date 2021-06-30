@@ -297,18 +297,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress": mirrorRemoteAddress,
-		"CommitType": func(commit interface{}) string {
-			switch commit.(type) {
-			case models.SignCommitWithStatuses:
-				return "SignCommitWithStatuses"
-			case models.SignCommit:
-				return "SignCommit"
-			case models.UserCommit:
-				return "UserCommit"
-			default:
-				return ""
-			}
-		},
 		"NotificationSettings": func() map[string]interface{} {
 			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),

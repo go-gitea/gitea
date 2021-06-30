@@ -312,8 +312,11 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = models.ParseCommitsWithSignature(
-		models.ValidateCommitsWithEmails(commitsHistory),
+	ctx.Data["Commits"] = models.ParseCommitsWithStatus(
+		models.ParseCommitsWithSignature(
+			models.ValidateCommitsWithEmails(commitsHistory),
+			ctx.Repo.Repository,
+		),
 		ctx.Repo.Repository,
 	)
 
