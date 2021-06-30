@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
@@ -319,6 +320,11 @@ func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
+// QueryOptionalBool returns request form as OptionalBool with default
+func (ctx *Context) QueryOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
+	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
+}
+
 // HandleText handles HTTP status code
 func (ctx *Context) HandleText(status int, title string) {
 	if (status/100 == 4) || (status/100 == 5) {
@@ -372,6 +378,21 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
 	ctx.Resp.Header().Set("Pragma", "public")
 	http.ServeFile(ctx.Resp, ctx.Req, file)
+}
+
+// ServeStream serves file via io stream
+func (ctx *Context) ServeStream(rd io.Reader, name string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	_, err := io.Copy(ctx.Resp, rd)
+	if err != nil {
+		ctx.ServerError("Download file failed", err)
+	}
 }
 
 // Error returned an error to web browser

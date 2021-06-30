@@ -315,6 +315,16 @@ var migrations = []Migration{
 	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
 	// v182 -> v183
 	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
 }
 
 // GetCurrentDBVersion returns the current db version
