@@ -40,6 +40,7 @@ const (
 	tplSettingsOptions base.TplName = "repo/settings/options"
 	tplCollaboration   base.TplName = "repo/settings/collaboration"
 	tplBranches        base.TplName = "repo/settings/branches"
+	tplTags            base.TplName = "repo/settings/tags"
 	tplGithooks        base.TplName = "repo/settings/githooks"
 	tplGithookEdit     base.TplName = "repo/settings/githook_edit"
 	tplDeployKeys      base.TplName = "repo/settings/deploy_keys"
