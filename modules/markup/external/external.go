@@ -98,7 +98,6 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	// FIXME this should use process
 	processCtx, cancel := context.WithCancel(ctx.Ctx)
 	defer cancel()
 
