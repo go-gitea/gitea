@@ -41,5 +41,37 @@
 		</div>
 	</div>
 </div>
-{{template "repo/settings/delete_repo_modal" .}}
+<div class="ui small modal" id="delete-repo-modal">
+	<div class="header">
+		{{.i18n.Tr "repo.settings.delete"}}
+	</div>
+	<div class="content">
+		<div class="ui warning message text left">
+			{{.i18n.Tr "repo.settings.delete_notices_1" | Safe}}<br>
+			{{.i18n.Tr "repo.settings.delete_notices_2" .Repository.FullName | Safe}}
+			{{if .Repository.NumForks}}<br>
+			{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}
+			{{end}}
+		</div>
+		<form class="ui form" action="{{.Link}}/settings" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="delete">
+			<div class="field">
+				<label>
+					{{.i18n.Tr "repo.settings.transfer_form_title"}}
+					<span class="text red">{{.Repository.Name}}</span>
+				</label>
+			</div>
+			<div class="required field">
+				<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+				<input id="repo_name" name="repo_name" required>
+			</div>
+
+			<div class="text right actions">
+				<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+				<button class="ui red button">{{.i18n.Tr "repo.settings.confirm_delete"}}</button>
+			</div>
+		</form>
+	</div>
+</div>
 {{template "base/footer" .}}
