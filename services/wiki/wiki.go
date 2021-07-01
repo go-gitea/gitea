@@ -43,11 +43,6 @@ func NormalizeWikiName(name string) string {
 	return strings.ReplaceAll(name, "-", " ")
 }
 
-// NameToUnescapedFilename converts a wiki name to its corresponding filename without url query escape.
-func NameToUnescapedFilename(name string) string {
-	return name + ".md"
-}
-
 // NameToFilename converts a wiki name to its corresponding filename.
 func NameToFilename(name string) string {
 	name = strings.ReplaceAll(name, " ", "-")
@@ -89,7 +84,7 @@ func InitWiki(repo *models.Repository) error {
 // prepareWikiFileName try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
 func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string, error) {
-	unescaped := NameToUnescapedFilename(wikiName)
+	unescaped := wikiName + ".md"
 	escaped := NameToFilename(wikiName)
 
 	// Look for both files
