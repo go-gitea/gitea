@@ -24,7 +24,7 @@ type NotificationSubject struct {
 	Title            string            `json:"title"`
 	URL              string            `json:"url"`
 	LatestCommentURL string            `json:"latest_comment_url"`
-	Type             NotifySubjectType `json:"type"`
+	Type             NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit)"`
 	State            StateType         `json:"state"`
 }
 
