@@ -221,9 +221,8 @@ func runServ(c *cli.Context) error {
 			errServCommand := err.(private.ErrServCommand)
 			if errServCommand.StatusCode != http.StatusInternalServerError {
 				return fail("Unauthorized", "%s", errServCommand.Error())
-			} else {
-				return fail("Internal Server Error", "%s", errServCommand.Error())
 			}
+			return fail("Internal Server Error", "%s", errServCommand.Error())
 		}
 		return fail("Internal Server Error", "%s", err.Error())
 	}

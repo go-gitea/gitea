@@ -162,9 +162,8 @@ func runHookPreReceive(c *cli.Context) error {
 			return fail(`Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	// the environment setted on serv command
@@ -307,9 +306,8 @@ func runHookPostReceive(c *cli.Context) error {
 			return fail(`Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	var out io.Writer
