@@ -1,4 +1,4 @@
-APP_NAME = Gitea: Git with a cup of tea
+	APP_NAME = Gitea: Git with a cup of tea
 RUN_MODE = prod
 
 [database]
@@ -79,6 +79,7 @@ MODE                 = test,file
 ROOT_PATH            = sqlite-log
 ROUTER               = ,
 XORM                 = file
+ENABLE_SSH_LOG       = true
 
 [log.test]
 LEVEL                = Info
