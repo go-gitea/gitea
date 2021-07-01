@@ -55,7 +55,7 @@ github.com/ProtonMail/go-crypto/openpgp/internal/ecc
 github.com/ProtonMail/go-crypto/openpgp/internal/encoding
 github.com/ProtonMail/go-crypto/openpgp/packet
 github.com/ProtonMail/go-crypto/openpgp/s2k
-# github.com/PuerkitoBio/goquery v1.6.1
+# github.com/PuerkitoBio/goquery v1.7.0
 ## explicit
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.1.1
