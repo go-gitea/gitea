@@ -195,8 +195,7 @@ func runServ(c *cli.Context) error {
 			stopCPUProfiler()
 			err := pprof.DumpMemProfileForUsername(setting.PprofDataPath, username)
 			if err != nil {
-				fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
-				os.Exit(1)
+				_ = fail("Internal Server Error", "Unable to dump Mem Profile: %v", err)
 			}
 		}()
 	}
