@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 
 	ini "gopkg.in/ini.v1"
@@ -54,7 +53,7 @@ func newLFSService() {
 		n, err := base64.RawURLEncoding.Decode(LFS.JWTSecretBytes, []byte(LFS.JWTSecretBase64))
 
 		if err != nil || n != 32 {
-			LFS.JWTSecretBase64, err = generate.NewJwtSecret()
+			LFS.JWTSecretBase64, err = generate.NewJwtSecretBase64()
 			if err != nil {
 				log.Fatal("Error generating JWT Secret for custom config: %v", err)
 				return
@@ -64,27 +63,6 @@ func newLFSService() {
 			CreateOrAppendToCustomConf(func(cfg *ini.File) {
 				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 			})
-		}
-	}
-}
-
-// CheckLFSVersion will check lfs version, if not satisfied, then disable it.
-func CheckLFSVersion() {
-	if LFS.StartServer {
-		//Disable LFS client hooks if installed for the current OS user
-		//Needs at least git v2.1.2
-
-		err := git.LoadGitVersion()
-		if err != nil {
-			log.Fatal("Error retrieving git version: %v", err)
-		}
-
-		if git.CheckGitVersionAtLeast("2.1.2") != nil {
-			LFS.StartServer = false
-			log.Error("LFS server support needs at least Git v2.1.2")
-		} else {
-			git.GlobalCommandArgs = append(git.GlobalCommandArgs, "-c", "filter.lfs.required=",
-				"-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 		}
 	}
 }

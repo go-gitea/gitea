@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 )
 
@@ -338,6 +339,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 						Filename:  readmeFile.name,
 						URLPrefix: readmeTreelink,
 						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+						GitRepo:   ctx.Repo.GitRepo,
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
@@ -512,6 +514,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -570,6 +573,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:   ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -621,6 +625,7 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
 		}
