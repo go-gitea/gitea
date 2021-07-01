@@ -123,7 +123,7 @@ func (r *Request) Setting(setting Settings) *Request {
 	return r
 }
 
-// WithContext sets the request's Context
+// SetContext sets the request's Context
 func (r *Request) SetContext(ctx context.Context) *Request {
 	r.req = r.req.WithContext(ctx)
 	return r
