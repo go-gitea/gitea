@@ -797,7 +797,7 @@ github.com/xi2/xz
 # github.com/yohcop/openid-go v1.0.0
 ## explicit
 github.com/yohcop/openid-go
-# github.com/yuin/goldmark v1.3.7
+# github.com/yuin/goldmark v1.3.9
 ## explicit
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
