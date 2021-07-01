@@ -68,7 +68,7 @@ github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
 # github.com/acomagu/bufpipe v1.0.3
 github.com/acomagu/bufpipe
-# github.com/alecthomas/chroma v0.9.1
+# github.com/alecthomas/chroma v0.9.2
 ## explicit
 github.com/alecthomas/chroma
 github.com/alecthomas/chroma/formatters/html
