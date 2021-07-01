@@ -2421,7 +2421,7 @@ function u2fError(errorType) {
   u2fErrors[errorType].removeClass('hide');
 
   Object.keys(u2fErrors).forEach((type) => {
-    if (type !== errorType) {
+    if (type !== `${errorType}`) {
       u2fErrors[type].addClass('hide');
     }
   });
