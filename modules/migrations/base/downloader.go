@@ -11,6 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 )
 
+// GetCommentOptions represents an options for get comment
+type GetCommentOptions struct {
+	IssueNumber int64
+	Page        int
+	PageSize    int
+}
+
 // Downloader downloads the site repo informations
 type Downloader interface {
 	SetContext(context.Context)
@@ -20,7 +27,8 @@ type Downloader interface {
 	GetReleases() ([]*Release, error)
 	GetLabels() ([]*Label, error)
 	GetIssues(page, perPage int) ([]*Issue, bool, error)
-	GetComments(issueNumber int64) ([]*Comment, error)
+	GetComments(opts GetCommentOptions) ([]*Comment, bool, error)
+	SupportGetRepoComments() bool
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
 	GetReviews(pullRequestNumber int64) ([]*Review, error)
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)

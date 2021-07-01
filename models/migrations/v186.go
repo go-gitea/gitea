@@ -5,18 +5,22 @@
 package migrations
 
 import (
-	"fmt"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addOrgIDHookTaskColumn(x *xorm.Engine) error {
-	type HookTask struct {
-		OrgID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
+func createProtectedTagTable(x *xorm.Engine) error {
+	type ProtectedTag struct {
+		ID               int64 `xorm:"pk autoincr"`
+		RepoID           int64
+		NamePattern      string
+		AllowlistUserIDs []int64 `xorm:"JSON TEXT"`
+		AllowlistTeamIDs []int64 `xorm:"JSON TEXT"`
+
+		CreatedUnix timeutil.TimeStamp `xorm:"created"`
+		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	if err := x.Sync2(new(HookTask)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(ProtectedTag))
 }

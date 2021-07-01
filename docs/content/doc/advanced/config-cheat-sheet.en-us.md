@@ -180,7 +180,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
-    For custom reactions, add a tightly cropped square image to public/emoji/img/reaction_name.png
+    For custom reactions, add a tightly cropped square image to public/img/emoji/reaction_name.png
+- `CUSTOM_EMOJIS`: **gitea**: Additional Emojis not defined in the utf8 standard.
+    By default we support gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
+    add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
@@ -512,6 +515,8 @@ relation to port exhaustion.
 - `SHOW_MILESTONES_DASHBOARD_PAGE`: **true** Enable this to show the milestones dashboard page - a view of all the user's milestones
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
+- `DEFAULT_USER_VISIBILITY`: **public**: Set default visibility mode for users, either "public", "limited" or "private".
+- `ALLOWED_USER_VISIBILITY_MODES`: **public,limited,private**: Set whitch visibibilty modes a user can have
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via gitea.
@@ -519,6 +524,7 @@ relation to port exhaustion.
 - `NO_REPLY_ADDRESS`: **noreply.DOMAIN** Value for the domain part of the user's email address in the git log if user has set KeepEmailPrivate to true. DOMAIN resolves to the value in server.DOMAIN.
   The user's email will be replaced with a concatenation of the user name in lower case, "@" and NO_REPLY_ADDRESS.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
+- `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
 ### Service - Expore (`service.explore`)
 
@@ -831,7 +837,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `PULL_REQUEST_PUSH_MESSAGE`: **true**: Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
-
+- `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.

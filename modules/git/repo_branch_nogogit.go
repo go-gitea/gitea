@@ -12,6 +12,8 @@ import (
 	"bytes"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // IsObjectExist returns true if given reference exists in the repository.
@@ -24,7 +26,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
-		log("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	sha, _, _, err := ReadBatchLine(rd)
@@ -41,7 +43,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
-		log("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	_, _, _, err = ReadBatchLine(rd)

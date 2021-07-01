@@ -75,6 +75,17 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	if ctxUser.IsOrganization() {
+		org.Home(ctx)
+		return
+	}
+
+	// check view permissions
+	if !ctxUser.IsVisibleToUser(ctx.User) {
+		ctx.NotFound("user", fmt.Errorf(uname))
+		return
+	}
+
 	// Show SSH keys.
 	if isShowKeys {
 		ShowSSHKeys(ctx, ctxUser.ID)
@@ -84,11 +95,6 @@ func Profile(ctx *context.Context) {
 	// Show GPG keys.
 	if isShowGPG {
 		ShowGPGKeys(ctx, ctxUser.ID)
-		return
-	}
-
-	if ctxUser.IsOrganization() {
-		org.Home(ctx)
 		return
 	}
 

@@ -321,7 +321,11 @@ var migrations = []Migration{
 	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
 	// v185 -> v186
 	NewMigration("Add new table repo_archiver", addRepoArchiver),
-	// 186 -> v187
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	// v188 -> v189
 	NewMigration("Add org_id to hook_task table", addOrgIDHookTaskColumn),
 }
 

@@ -97,9 +97,6 @@ var (
 	redColor         = color("ff3232")
 )
 
-// SetSecret sets the discord secret
-func (d *DiscordPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the DiscordPayload to json
 func (d *DiscordPayload) JSONPayload() ([]byte, error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
