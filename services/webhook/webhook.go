@@ -91,8 +91,12 @@ func getPayloadBranch(p api.Payloader) string {
 	return ""
 }
 
-// PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *models.Webhook, repo *models.Repository, org *models.User, event models.HookEventType, p api.Payloader) error {
+// PrepareWebhook adds special repository webhook to task queue for given payload.
+func PrepareWebhook(w *models.Webhook, repo *models.Repository, event models.HookEventType, p api.Payloader) error {
+	return prepareRepoOrgWebhook(w, repo, nil, event, p)
+}
+
+func prepareRepoOrgWebhook(w *models.Webhook, repo *models.Repository, org *models.User, event models.HookEventType, p api.Payloader) error {
 	if err := prepareWebhook(w, repo, org, event, p); err != nil {
 		return err
 	}
@@ -166,19 +170,38 @@ func prepareWebhook(w *models.Webhook, repo *models.Repository, org *models.User
 		payloader = p
 	}
 
-	if err = models.CreateHookTask(&models.HookTask{
-		RepoID:    repo.ID,
+	task := &models.HookTask{
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
-	}); err != nil {
+	}
+
+	if repo != nil {
+		task.RepoID = repo.ID
+	}
+
+	if org != nil {
+		task.OrgID = org.ID
+	}
+
+	if err = models.CreateHookTask(task); err != nil {
 		return fmt.Errorf("CreateHookTask: %v", err)
 	}
+
 	return nil
 }
 
-// PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *models.Repository, org *models.User, event models.HookEventType, p api.Payloader) error {
+// PrepareWebhooks adds new repository webhooks to task queue for given payload.
+func PrepareWebhooks(repo *models.Repository, event models.HookEventType, p api.Payloader) error {
+	return prepareRepoOrgWebhooks(repo, nil, event, p)
+}
+
+// PrepareOrgWebhooks adds new  orgnization webhooks to task queue for given payload.
+func PrepareOrgWebhooks(org *models.User, event models.HookEventType, p api.Payloader) error {
+	return prepareRepoOrgWebhooks(nil, org, event, p)
+}
+
+func prepareRepoOrgWebhooks(repo *models.Repository, org *models.User, event models.HookEventType, p api.Payloader) error {
 	if err := prepareWebhooks(repo, org, event, p); err != nil {
 		return err
 	}
