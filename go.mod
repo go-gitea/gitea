@@ -91,7 +91,7 @@ require (
 	github.com/niklasfasching/go-org v1.5.0
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/oliamb/cutter v0.2.2
-	github.com/olivere/elastic/v7 v7.0.24
+	github.com/olivere/elastic/v7 v7.0.25
 	github.com/pelletier/go-toml v1.9.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.8 // indirect
 	github.com/pkg/errors v0.9.1
