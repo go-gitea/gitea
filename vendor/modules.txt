@@ -439,7 +439,8 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/golang/snappy v0.0.3
+# github.com/golang/snappy v0.0.4
+## explicit
 github.com/golang/snappy
 # github.com/google/go-github/v32 v32.1.0
 ## explicit
