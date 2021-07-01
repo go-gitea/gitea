@@ -89,8 +89,6 @@ func InitWiki(repo *models.Repository) error {
 // prepareWikiFileName try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
 func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string, error) {
-	// Pass in the raw unchanged name
-	// Add ".md" suffix if not there.
 	unescaped := NameToUnescapedFilename(wikiName)
 	escaped := NameToFilename(wikiName)
 
