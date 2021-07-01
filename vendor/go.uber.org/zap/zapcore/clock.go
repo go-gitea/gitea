@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Uber Technologies, Inc.
+// Copyright (c) 2021 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,10 +18,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package atomic
+package zapcore
 
-//go:generate bin/gen-atomicint -name=Int32 -wrapped=int32 -file=int32.go
-//go:generate bin/gen-atomicint -name=Int64 -wrapped=int64 -file=int64.go
-//go:generate bin/gen-atomicint -name=Uint32 -wrapped=uint32 -unsigned -file=uint32.go
-//go:generate bin/gen-atomicint -name=Uint64 -wrapped=uint64 -unsigned -file=uint64.go
-//go:generate bin/gen-atomicint -name=Uintptr -wrapped=uintptr -unsigned -file=uintptr.go
+import (
+	"time"
+)
+
+// DefaultClock is the default clock used by Zap in operations that require
+// time. This clock uses the system clock for all operations.
+var DefaultClock = systemClock{}
+
+// Clock is a source of time for logged entries.
+type Clock interface {
+	// Now returns the current local time.
+	Now() time.Time
+
+	// NewTicker returns *time.Ticker that holds a channel
+	// that delivers "ticks" of a clock.
+	NewTicker(time.Duration) *time.Ticker
+}
+
+// systemClock implements default Clock that uses system time.
+type systemClock struct{}
+
+func (systemClock) Now() time.Time {
+	return time.Now()
+}
+
+func (systemClock) NewTicker(duration time.Duration) *time.Ticker {
+	return time.NewTicker(duration)
+}

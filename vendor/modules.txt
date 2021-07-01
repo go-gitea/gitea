@@ -194,7 +194,7 @@ github.com/boombuler/barcode/utils
 # github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 ## explicit
 github.com/bradfitz/gomemcache/memcache
-# github.com/caddyserver/certmagic v0.13.1
+# github.com/caddyserver/certmagic v0.14.0
 ## explicit
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
@@ -539,7 +539,8 @@ github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.0.6
+# github.com/klauspost/cpuid/v2 v2.0.7
+## explicit
 github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.5
 ## explicit
@@ -558,7 +559,6 @@ github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
 # github.com/libdns/libdns v0.2.1
-## explicit
 github.com/libdns/libdns
 # github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 ## explicit
@@ -607,7 +607,7 @@ github.com/mholt/archiver/v3
 # github.com/microcosm-cc/bluemonday v1.0.9
 ## explicit
 github.com/microcosm-cc/bluemonday
-# github.com/miekg/dns v1.1.42
+# github.com/miekg/dns v1.1.43
 ## explicit
 github.com/miekg/dns
 # github.com/minio/md5-simd v1.1.2
@@ -844,12 +844,13 @@ go.opentelemetry.io/otel/metric/number
 go.opentelemetry.io/otel/metric/registry
 # go.opentelemetry.io/otel/trace v0.20.0
 go.opentelemetry.io/otel/trace
-# go.uber.org/atomic v1.7.0
+# go.uber.org/atomic v1.8.0
+## explicit
 go.uber.org/atomic
 # go.uber.org/multierr v1.7.0
 ## explicit
 go.uber.org/multierr
-# go.uber.org/zap v1.17.0
+# go.uber.org/zap v1.18.1
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
