@@ -6,7 +6,6 @@
 package gitdiff
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -14,9 +13,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/setting"
+	jsoniter "github.com/json-iterator/go"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -298,7 +297,8 @@ index 6961180..9ba1a00 100644
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
-			gotMarshaled, _ := json.MarshalIndent(got, "  ", "  ")
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
+			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
 				return
@@ -513,7 +513,6 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
-	git.Debug = true
 	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
 		diffs, err := GetDiffRangeWithWhitespaceBehavior("./testdata/academic-module", "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
 			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)

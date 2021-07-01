@@ -6,7 +6,7 @@ import (
 )
 
 // Sass lexer.
-var Sass = internal.Register(MustNewLexer(
+var Sass = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Sass",
 		Aliases:         []string{"sass"},
@@ -14,7 +14,11 @@ var Sass = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-sass"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	sassRules,
+))
+
+func sassRules() Rules {
+	return Rules{
 		// "root": {
 		// },
 		"root": {
@@ -140,5 +144,5 @@ var Sass = internal.Register(MustNewLexer(
 			{`(from|to|through)`, OperatorWord, nil},
 			Include("value"),
 		},
-	},
-))
+	}
+}

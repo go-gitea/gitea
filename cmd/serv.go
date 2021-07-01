@@ -6,25 +6,28 @@
 package cmd
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/lfs"
 
 	"github.com/dgrijalva/jwt-go"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -79,6 +82,10 @@ func fail(userMessage, logMessage string, args ...interface{}) {
 		if !setting.IsProd() {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
+	}
+
+	if len(logMessage) > 0 {
+		_ = private.SSHLog(true, fmt.Sprintf(logMessage+": ", args...))
 	}
 
 	os.Exit(1)
@@ -255,6 +262,7 @@ func runServ(c *cli.Context) error {
 		}
 		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
 
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
@@ -268,12 +276,31 @@ func runServ(c *cli.Context) error {
 		verb = strings.Replace(verb, "-", " ", 1)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		// install notify
+		signalChannel := make(chan os.Signal, 1)
+
+		signal.Notify(
+			signalChannel,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+		)
+		select {
+		case <-signalChannel:
+		case <-ctx.Done():
+		}
+		cancel()
+		signal.Reset()
+	}()
+
 	var gitcmd *exec.Cmd
 	verbs := strings.Split(verb, " ")
 	if len(verbs) == 2 {
-		gitcmd = exec.Command(verbs[0], verbs[1], repoPath)
+		gitcmd = exec.CommandContext(ctx, verbs[0], verbs[1], repoPath)
 	} else {
-		gitcmd = exec.Command(verb, repoPath)
+		gitcmd = exec.CommandContext(ctx, verb, repoPath)
 	}
 
 	gitcmd.Dir = setting.RepoRootPath

@@ -130,7 +130,7 @@ did not include a subject part), Gitea's **internal default** will be used.
 The internal default (fallback) subject is the equivalent of:
 
 ```sh
-{{.SubjectPrefix}}[{{.Repo}}] {{.Issue.Title}} (#.Issue.Index)
+{{.SubjectPrefix}}[{{.Repo}}] {{.Issue.Title}} (#{{.Issue.Index}})
 ```
 
 For example: `Re: [mike/stuff] New color palette (#38)`

@@ -1,5 +1,12 @@
 # Change log
 
+## v2.4.2 - 2021-03-21
+
+- Upgrade google/go-cmp v0.5.5
+  ([#105](https://github.com/editorconfig/editorconfig-core-go/pull/105));
+- Upgrade x/mod v0.4.2
+  ([#106](https://github.com/editorconfig/editorconfig-core-go/pull/106)).
+
 ## v2.4.1 - 2021-02-25
 
 - Fix for Go 1.16 os.IsNotExist wrapping

@@ -1118,6 +1118,26 @@ func (rr *X25) pack(msg []byte, off int, compression compressionMap, compress bo
 	return off, nil
 }
 
+func (rr *ZONEMD) pack(msg []byte, off int, compression compressionMap, compress bool) (off1 int, err error) {
+	off, err = packUint32(rr.Serial, msg, off)
+	if err != nil {
+		return off, err
+	}
+	off, err = packUint8(rr.Scheme, msg, off)
+	if err != nil {
+		return off, err
+	}
+	off, err = packUint8(rr.Hash, msg, off)
+	if err != nil {
+		return off, err
+	}
+	off, err = packStringHex(rr.Digest, msg, off)
+	if err != nil {
+		return off, err
+	}
+	return off, nil
+}
+
 // unpack*() functions
 
 func (rr *A) unpack(msg []byte, off int) (off1 int, err error) {
@@ -2816,6 +2836,38 @@ func (rr *X25) unpack(msg []byte, off int) (off1 int, err error) {
 	_ = rdStart
 
 	rr.PSDNAddress, off, err = unpackString(msg, off)
+	if err != nil {
+		return off, err
+	}
+	return off, nil
+}
+
+func (rr *ZONEMD) unpack(msg []byte, off int) (off1 int, err error) {
+	rdStart := off
+	_ = rdStart
+
+	rr.Serial, off, err = unpackUint32(msg, off)
+	if err != nil {
+		return off, err
+	}
+	if off == len(msg) {
+		return off, nil
+	}
+	rr.Scheme, off, err = unpackUint8(msg, off)
+	if err != nil {
+		return off, err
+	}
+	if off == len(msg) {
+		return off, nil
+	}
+	rr.Hash, off, err = unpackUint8(msg, off)
+	if err != nil {
+		return off, err
+	}
+	if off == len(msg) {
+		return off, nil
+	}
+	rr.Digest, off, err = unpackStringHex(msg, off, rdStart+int(rr.Hdr.Rdlength))
 	if err != nil {
 		return off, err
 	}

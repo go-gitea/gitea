@@ -32,7 +32,7 @@ func DefaultAvatarLink() string {
 		return ""
 	}
 
-	u.Path = path.Join(u.Path, "/img/avatar_default.png")
+	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
 	return u.String()
 }
 
@@ -44,7 +44,7 @@ const DefaultAvatarSize = -1
 const DefaultAvatarPixelSize = 28
 
 // AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
-const AvatarRenderedSizeFactor = 2
+const AvatarRenderedSizeFactor = 4
 
 // HashEmail hashes email address to MD5 string.
 // https://en.gravatar.com/site/implement/hash/
@@ -81,7 +81,7 @@ func LibravatarURL(email string) (*url.URL, error) {
 }
 
 // HashedAvatarLink returns an avatar link for a provided email
-func HashedAvatarLink(email string) string {
+func HashedAvatarLink(email string, size int) string {
 	lowerEmail := strings.ToLower(strings.TrimSpace(email))
 	sum := fmt.Sprintf("%x", md5.Sum([]byte(lowerEmail)))
 	_, _ = cache.GetString("Avatar:"+sum, func() (string, error) {
@@ -96,6 +96,11 @@ func HashedAvatarLink(email string) string {
 			// we don't care about any DB problem just return the lowerEmail
 			return lowerEmail, nil
 		}
+		has, err := sess.Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
+		if has || err != nil {
+			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+			return lowerEmail, nil
+		}
 		_, _ = sess.Insert(emailHash)
 		if err := sess.Commit(); err != nil {
 			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
@@ -103,6 +108,9 @@ func HashedAvatarLink(email string) string {
 		}
 		return lowerEmail, nil
 	})
+	if size > 0 {
+		return setting.AppSubURL + "/avatar/" + url.PathEscape(sum) + "?size=" + strconv.Itoa(size)
+	}
 	return setting.AppSubURL + "/avatar/" + url.PathEscape(sum)
 }
 
@@ -124,7 +132,7 @@ func SizedAvatarLink(email string, size int) string {
 		// This is the slow path that would need to call LibravatarURL() which
 		// does DNS lookups. Avoid it by issuing a redirect so we don't block
 		// the template render with network requests.
-		return HashedAvatarLink(email)
+		return HashedAvatarLink(email, size)
 	} else if !setting.DisableGravatar {
 		// copy GravatarSourceURL, because we will modify its Path.
 		copyOfGravatarSourceURL := *setting.GravatarSourceURL

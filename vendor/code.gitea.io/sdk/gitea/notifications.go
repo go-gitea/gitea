@@ -176,14 +176,17 @@ func (c *Client) ReadNotifications(opt MarkNotificationOptions) (*Response, erro
 }
 
 // ListRepoNotifications list users's notification threads on a specific repo
-func (c *Client) ListRepoNotifications(owner, reponame string, opt ListNotificationOptions) ([]*NotificationThread, *Response, error) {
+func (c *Client) ListRepoNotifications(owner, repo string, opt ListNotificationOptions) ([]*NotificationThread, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(c); err != nil {
 		return nil, nil, err
 	}
-	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/notifications", owner, reponame))
+	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/notifications", owner, repo))
 	link.RawQuery = opt.QueryEncode()
 	threads := make([]*NotificationThread, 0, 10)
 	resp, err := c.getParsedResponse("GET", link.String(), nil, nil, &threads)
@@ -191,14 +194,17 @@ func (c *Client) ListRepoNotifications(owner, reponame string, opt ListNotificat
 }
 
 // ReadRepoNotifications mark notification threads as read on a specific repo
-func (c *Client) ReadRepoNotifications(owner, reponame string, opt MarkNotificationOptions) (*Response, error) {
+func (c *Client) ReadRepoNotifications(owner, repo string, opt MarkNotificationOptions) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	if err := c.checkServerVersionGreaterThanOrEqual(version1_12_0); err != nil {
 		return nil, err
 	}
 	if err := opt.Validate(c); err != nil {
 		return nil, err
 	}
-	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/notifications", owner, reponame))
+	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/notifications", owner, repo))
 	link.RawQuery = opt.QueryEncode()
 	_, resp, err := c.getResponse("PUT", link.String(), nil, nil)
 	return resp, err

@@ -26,7 +26,7 @@ func updateMigrationServiceTypes(x *xorm.Engine) error {
 	var last int
 	const batchSize = 50
 	for {
-		var results = make([]Repository, 0, batchSize)
+		results := make([]Repository, 0, batchSize)
 		err := x.Where("original_url <> '' AND original_url IS NOT NULL").
 			And("original_service_type = 0 OR original_service_type IS NULL").
 			OrderBy("id").
@@ -48,7 +48,7 @@ func updateMigrationServiceTypes(x *xorm.Engine) error {
 			if err != nil {
 				return err
 			}
-			var serviceType = PlainGitService
+			serviceType := PlainGitService
 			if strings.EqualFold(u.Host, "github.com") {
 				serviceType = GithubService
 			}

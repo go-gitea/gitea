@@ -148,6 +148,7 @@
   num_closed_issues: 0
   num_pulls: 1
   num_closed_pulls: 0
+  num_milestones: 1
   is_mirror: false
   num_forks: 1
   status: 0

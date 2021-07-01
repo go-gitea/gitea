@@ -58,7 +58,6 @@ func IsProjectBoardTypeValid(p ProjectBoardType) bool {
 }
 
 func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
-
 	var items []string
 
 	switch project.BoardType {
@@ -79,7 +78,7 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 		return nil
 	}
 
-	var boards = make([]ProjectBoard, 0, len(items))
+	boards := make([]ProjectBoard, 0, len(items))
 
 	for _, v := range items {
 		boards = append(boards, ProjectBoard{
@@ -186,7 +185,7 @@ func GetProjectBoards(projectID int64) (ProjectBoardList, error) {
 }
 
 func getProjectBoards(e Engine, projectID int64) ([]*ProjectBoard, error) {
-	var boards = make([]*ProjectBoard, 0, 5)
+	boards := make([]*ProjectBoard, 0, 5)
 
 	if err := e.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").Find(&boards); err != nil {
 		return nil, err
@@ -294,7 +293,6 @@ func UpdateProjectBoardSorting(bs ProjectBoardList) error {
 		_, err := x.ID(bs[i].ID).Cols(
 			"sorting",
 		).Update(bs[i])
-
 		if err != nil {
 			return err
 		}

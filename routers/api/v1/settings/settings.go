@@ -25,6 +25,7 @@ func GetGeneralUISettings(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, api.GeneralUISettings{
 		DefaultTheme:     setting.UI.DefaultTheme,
 		AllowedReactions: setting.UI.Reactions,
+		CustomEmojis:     setting.UI.CustomEmojis,
 	})
 }
 
@@ -60,6 +61,7 @@ func GetGeneralRepoSettings(ctx *context.APIContext) {
 		MirrorsDisabled:      setting.Repository.DisableMirrors,
 		HTTPGitDisabled:      setting.Repository.DisableHTTPGit,
 		MigrationsDisabled:   setting.Repository.DisableMigrations,
+		StarsDisabled:        setting.Repository.DisableStars,
 		TimeTrackingDisabled: !setting.Service.EnableTimetracking,
 		LFSDisabled:          !setting.LFS.StartServer,
 	})

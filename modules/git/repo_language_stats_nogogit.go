@@ -11,9 +11,9 @@ import (
 	"bytes"
 	"io"
 	"math"
-	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -22,37 +22,11 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	defer func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, batchStdoutWriter, &stderr, batchStdinReader)
-		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
-		}
-	}()
-
-	// For simplicities sake we'll us a buffered reader
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	defer cancel()
 
 	writeID := func(id string) error {
-		_, err := batchStdinWriter.Write([]byte(id))
-		if err != nil {
-			return err
-		}
-		_, err = batchStdinWriter.Write([]byte{'\n'})
+		_, err := batchStdinWriter.Write([]byte(id + "\n"))
 		return err
 	}
 
@@ -61,19 +35,22 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	}
 	shaBytes, typ, size, err := ReadBatchLine(batchReader)
 	if typ != "commit" {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, err
+	}
+	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
 
@@ -90,7 +67,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	for _, f := range entries {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
-		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
+		if f.Size() == 0 || analyze.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
 			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
 			continue
 		}
@@ -103,15 +80,15 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
-				log("Error reading blob: %s Err: %v", f.ID.String(), err)
+				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
 
 			sizeToRead := size
-			discard := int64(0)
+			discard := int64(1)
 			if size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = size - fileSizeLimit
+				discard = size - fileSizeLimit + 1
 			}
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))

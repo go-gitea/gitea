@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -35,9 +36,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Used from static.go && dynamic.go
@@ -45,6 +46,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
+	jsonED := jsoniter.ConfigCompatibleWithStandardLibrary
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
 			return strings.Title(runtime.Version())
@@ -58,8 +60,8 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
-		"StaticUrlPrefix": func() string {
-			return setting.StaticURLPrefix
+		"AssetUrlPrefix": func() string {
+			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
 			return setting.AppURL
@@ -88,8 +90,12 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
+		"CustomEmojis": func() map[string]string {
+			return setting.UI.CustomEmojisMap
+		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
@@ -215,7 +221,7 @@ func NewFuncMap() []template.FuncMap {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
-			out, err := json.Marshal(in)
+			out, err := jsonED.Marshal(in)
 			if err != nil {
 				return ""
 			}
@@ -291,11 +297,8 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
-		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
-		"MirrorAddress":     mirror_service.Address,
-		"MirrorFullAddress": mirror_service.AddressNoCredentials,
-		"MirrorUserName":    mirror_service.Username,
-		"MirrorPassword":    mirror_service.Password,
+		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"CommitType": func(commit interface{}) string {
 			switch commit.(type) {
 			case models.SignCommitWithStatuses:
@@ -627,6 +630,11 @@ func Escape(raw string) string {
 	return html.EscapeString(raw)
 }
 
+// JSEscape escapes a JS string
+func JSEscape(raw string) string {
+	return template.JSEscapeString(raw)
+}
+
 // List traversings the list
 func List(l *list.List) chan interface{} {
 	e := l.Front()
@@ -657,7 +665,11 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -684,7 +696,11 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
+	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
@@ -706,7 +722,10 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
+	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -716,7 +735,10 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 
 // RenderIssueTitle renders issue/pull title with defined post processors
 func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
-	renderedText, err := markup.RenderIssueTitle([]byte(template.HTMLEscapeString(text)), urlPrefix, metas)
+	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderIssueTitle: %v", err)
 		return template.HTML("")
@@ -726,7 +748,7 @@ func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.
 
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
@@ -744,13 +766,16 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
 func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderNote: %v", err)
 		return ""
@@ -814,6 +839,12 @@ func ActionIcon(opType models.ActionType) string {
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
+
+	if act == nil || act.GetContent() == "" {
+		return push
+	}
+
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
@@ -931,4 +962,29 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		Parse(string(bodyContent)); err != nil {
 		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
+}
+
+type remoteAddress struct {
+	Address  string
+	Username string
+	Password string
+}
+
+func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+	a := remoteAddress{}
+
+	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	if err != nil {
+		log.Error("GetRemoteAddress %v", err)
+		return a
+	}
+
+	if u.User != nil {
+		a.Username = u.User.Username()
+		a.Password, _ = u.User.Password()
+	}
+	u.User = nil
+	a.Address = u.String()
+
+	return a
 }

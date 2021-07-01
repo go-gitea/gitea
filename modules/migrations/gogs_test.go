@@ -80,7 +80,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 	// downloader.GetIssues()
 	issues, isEnd, err := downloader.GetIssues(1, 8)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(issues))
+	assert.Len(t, issues, 1)
 	assert.False(t, isEnd)
 
 	assert.EqualValues(t, []*base.Issue{
@@ -103,9 +103,11 @@ func TestGogsDownloadRepo(t *testing.T) {
 	}, issues)
 
 	// downloader.GetComments()
-	comments, err := downloader.GetComments(1)
+	comments, _, err := downloader.GetComments(base.GetCommentOptions{
+		IssueNumber: 1,
+	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(comments))
+	assert.Len(t, comments, 1)
 	assert.EqualValues(t, []*base.Comment{
 		{
 			PosterName:  "lunny",

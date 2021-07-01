@@ -29,12 +29,12 @@ func TestUserListIsPublicMember(t *testing.T) {
 		})
 	}
 }
+
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
 	assert.NoError(t, org.GetMembers())
 	assert.Equal(t, expected, org.MembersIsPublic)
-
 }
 
 func TestUserListIsUserOrgOwner(t *testing.T) {

@@ -66,6 +66,7 @@ func CreateUser(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
+
 	u := &models.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
@@ -88,7 +89,7 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 		return
 	}
-	pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+	pwned, err := password.IsPwned(ctx, form.Password)
 	if pwned {
 		if err != nil {
 			log.Error(err.Error())
@@ -97,7 +98,15 @@ func CreateUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 		return
 	}
-	if err := models.CreateUser(u); err != nil {
+
+	var overwriteDefault *models.CreateUserOverwriteOptions
+	if form.Visibility != "" {
+		overwriteDefault = &models.CreateUserOverwriteOptions{
+			Visibility: api.VisibilityModes[form.Visibility],
+		}
+	}
+
+	if err := models.CreateUser(u, overwriteDefault); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
 			models.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
@@ -114,9 +123,9 @@ func CreateUser(ctx *context.APIContext) {
 
 	// Send email notification.
 	if form.SendNotify {
-		mailer.SendRegisterNotifyMail(ctx.Locale, u)
+		mailer.SendRegisterNotifyMail(u)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusCreated, convert.ToUser(u, ctx.User))
 }
 
 // EditUser api for modifying a user's information
@@ -162,7 +171,7 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "PasswordComplexity", err)
 			return
 		}
-		pwned, err := password.IsPwned(ctx.Req.Context(), form.Password)
+		pwned, err := password.IsPwned(ctx, form.Password)
 		if pwned {
 			if err != nil {
 				log.Error(err.Error())
@@ -203,8 +212,14 @@ func EditUser(ctx *context.APIContext) {
 	if form.Location != nil {
 		u.Location = *form.Location
 	}
+	if form.Description != nil {
+		u.Description = *form.Description
+	}
 	if form.Active != nil {
 		u.IsActive = *form.Active
+	}
+	if len(form.Visibility) != 0 {
+		u.Visibility = api.VisibilityModes[form.Visibility]
 	}
 	if form.Admin != nil {
 		u.IsAdmin = *form.Admin
@@ -238,7 +253,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
-	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.IsSigned, ctx.User.IsAdmin))
+	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 
 // DeleteUser api for deleting a user
@@ -392,6 +407,7 @@ func GetAllUsers(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		Actor:       ctx.User,
 		Type:        models.UserTypeIndividual,
 		OrderBy:     models.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
@@ -403,7 +419,7 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	results := make([]*api.User, len(users))
 	for i := range users {
-		results[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User.IsAdmin)
+		results[i] = convert.ToUser(users[i], ctx.User)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)

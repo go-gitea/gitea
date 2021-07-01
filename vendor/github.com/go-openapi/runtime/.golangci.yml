@@ -13,7 +13,6 @@ linters-settings:
     min-len: 2
     min-occurrences: 4
 linters:
-  enable-all: true
   disable:
     - maligned
     - lll
@@ -40,3 +39,5 @@ linters:
     - godot
     - errorlint
     - noctx
+    - interfacer
+    - nilerr
