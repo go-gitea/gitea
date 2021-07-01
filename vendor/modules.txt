@@ -62,7 +62,7 @@ github.com/PuerkitoBio/goquery
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RoaringBitmap/roaring v0.7.3
+# github.com/RoaringBitmap/roaring v0.8.0
 ## explicit
 github.com/RoaringBitmap/roaring
 github.com/RoaringBitmap/roaring/internal
@@ -118,7 +118,7 @@ github.com/aymerick/douceur/parser
 github.com/beorn7/perks/quantile
 # github.com/bits-and-blooms/bitset v1.2.0
 github.com/bits-and-blooms/bitset
-# github.com/blevesearch/bleve/v2 v2.0.5
+# github.com/blevesearch/bleve/v2 v2.0.6
 ## explicit
 github.com/blevesearch/bleve/v2
 github.com/blevesearch/bleve/v2/analysis
@@ -171,20 +171,20 @@ github.com/blevesearch/snowballstem
 github.com/blevesearch/snowballstem/english
 # github.com/blevesearch/upsidedown_store_api v1.0.1
 github.com/blevesearch/upsidedown_store_api
-# github.com/blevesearch/vellum v1.0.4
+# github.com/blevesearch/vellum v1.0.5
 github.com/blevesearch/vellum
 github.com/blevesearch/vellum/levenshtein
 github.com/blevesearch/vellum/regexp
 github.com/blevesearch/vellum/utf8
-# github.com/blevesearch/zapx/v11 v11.2.0
+# github.com/blevesearch/zapx/v11 v11.2.1
 github.com/blevesearch/zapx/v11
-# github.com/blevesearch/zapx/v12 v12.2.0
+# github.com/blevesearch/zapx/v12 v12.2.1
 github.com/blevesearch/zapx/v12
-# github.com/blevesearch/zapx/v13 v13.2.0
+# github.com/blevesearch/zapx/v13 v13.2.1
 github.com/blevesearch/zapx/v13
-# github.com/blevesearch/zapx/v14 v14.2.0
+# github.com/blevesearch/zapx/v14 v14.2.1
 github.com/blevesearch/zapx/v14
-# github.com/blevesearch/zapx/v15 v15.2.0
+# github.com/blevesearch/zapx/v15 v15.2.1
 github.com/blevesearch/zapx/v15
 # github.com/boombuler/barcode v1.0.1
 ## explicit
@@ -992,7 +992,8 @@ google.golang.org/appengine/internal/modules
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/protobuf v1.26.0
+# google.golang.org/protobuf v1.27.1
+## explicit
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
 google.golang.org/protobuf/internal/descfmt

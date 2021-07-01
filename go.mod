@@ -15,11 +15,11 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c // indirect
 	github.com/PuerkitoBio/goquery v1.7.0
-	github.com/RoaringBitmap/roaring v0.7.3 // indirect
+	github.com/RoaringBitmap/roaring v0.8.0 // indirect
 	github.com/alecthomas/chroma v0.9.2
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/andybalholm/cascadia v1.2.0 // indirect
-	github.com/blevesearch/bleve/v2 v2.0.5
+	github.com/blevesearch/bleve/v2 v2.0.6
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
 	github.com/caddyserver/certmagic v0.13.1
@@ -130,6 +130,7 @@ require (
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
 	golang.org/x/tools v0.1.0
+	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/ini.v1 v1.62.0
