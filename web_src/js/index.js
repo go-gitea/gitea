@@ -947,21 +947,19 @@ async function initRepository() {
       const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
       const $conversations = $('.comment-code-cloud:not(.hide)');
       const index = $conversations.index($conversation);
-      if (index !== 0) {
-        const $previousConversation = $conversations.eq(index - 1);
-        const anchor = $previousConversation.find('.comment').first().attr('id');
-        window.location.href = `#${anchor}`;
-      }
+      const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
+      const $previousConversation = $conversations.eq(previousIndex);
+      const anchor = $previousConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
     });
     $(document).on('click', '.next-conversation', (e) => {
       const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
       const $conversations = $('.comment-code-cloud:not(.hide)');
       const index = $conversations.index($conversation);
-      if (index !== $conversations.length - 1) {
-        const $nextConversation = $conversations.eq(index + 1);
-        const anchor = $nextConversation.find('.comment').first().attr('id');
-        window.location.href = `#${anchor}`;
-      }
+      const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
+      const $nextConversation = $conversations.eq(nextIndex);
+      const anchor = $nextConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
     });
 
     // Quote reply
