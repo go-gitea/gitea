@@ -62,10 +62,14 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
 	}
+
+	result.Visibility = user.Visibility.String()
+
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
 	}
+
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin

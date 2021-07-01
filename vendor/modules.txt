@@ -108,7 +108,6 @@ github.com/andybalholm/brotli
 ## explicit
 github.com/andybalholm/cascadia
 # github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
-## explicit
 github.com/anmitsu/go-shlex
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 github.com/asaskevich/govalidator
@@ -270,7 +269,7 @@ github.com/ethantkoenig/rupture
 github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
-# github.com/gliderlabs/ssh v0.3.2
+# github.com/gliderlabs/ssh v0.3.3
 ## explicit
 github.com/gliderlabs/ssh
 # github.com/go-asn1-ber/asn1-ber v1.5.3
@@ -306,7 +305,7 @@ github.com/go-git/go-billy/v5/helper/polyfill
 github.com/go-git/go-billy/v5/memfs
 github.com/go-git/go-billy/v5/osfs
 github.com/go-git/go-billy/v5/util
-# github.com/go-git/go-git/v5 v5.4.2
+# github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
 ## explicit
 github.com/go-git/go-git/v5
 github.com/go-git/go-git/v5/config
@@ -857,7 +856,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+# golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 ## explicit
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -888,7 +887,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210525063256-abc453219eb5
+# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -914,7 +913,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210608053332-aa57babbf139
+# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
