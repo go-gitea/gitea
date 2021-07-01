@@ -83,7 +83,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.14
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/minio/md5-simd v1.1.2 // indirect
-	github.com/minio/minio-go/v7 v7.0.10
+	github.com/minio/minio-go/v7 v7.0.12
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/msteinert/pam v0.0.0-20201130170657-e61372126161

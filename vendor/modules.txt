@@ -614,7 +614,7 @@ github.com/miekg/dns
 # github.com/minio/md5-simd v1.1.2
 ## explicit
 github.com/minio/md5-simd
-# github.com/minio/minio-go/v7 v7.0.10
+# github.com/minio/minio-go/v7 v7.0.12
 ## explicit
 github.com/minio/minio-go/v7
 github.com/minio/minio-go/v7/pkg/credentials
@@ -723,6 +723,8 @@ github.com/shurcooL/httpfs/vfsutil
 # github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 ## explicit
 github.com/shurcooL/vfsgen
+# github.com/sirupsen/logrus v1.8.1
+github.com/sirupsen/logrus
 # github.com/spf13/afero v1.6.0
 github.com/spf13/afero
 github.com/spf13/afero/mem
