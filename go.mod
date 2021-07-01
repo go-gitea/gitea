@@ -113,7 +113,7 @@ require (
 	github.com/unknwon/paginater v0.0.0-20200328080006-042474bd0eae
 	github.com/unrolled/render v1.4.0
 	github.com/urfave/cli v1.22.5
-	github.com/xanzy/go-gitlab v0.50.0
+	github.com/xanzy/go-gitlab v0.50.1
 	github.com/yohcop/openid-go v1.0.0
 	github.com/yuin/goldmark v1.3.7
 	github.com/yuin/goldmark-highlighting v0.0.0-20210516132338-9216f9c5aa01
@@ -129,7 +129,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/text v0.3.6
-	golang.org/x/time v0.0.0-20210608053304-ed9ce3a009e4 // indirect
+	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	golang.org/x/tools v0.1.0
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
