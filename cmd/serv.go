@@ -6,7 +6,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -97,8 +96,6 @@ func runServ(c *cli.Context) error {
 
 	// FIXME: This needs to internationalised
 	setup("serv.log", c.Bool("debug"))
-
-	_ = private.SSHLog(context.Background(), true, fmt.Sprintf("Serv: %v", c.Args()))
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")
