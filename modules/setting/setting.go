@@ -258,8 +258,8 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
-		CustomEmojis:        []string{`gitea`},
-		CustomEmojisMap:     map[string]string{"gitea": ":gitea:"},
+		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
+		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration

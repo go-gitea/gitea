@@ -181,7 +181,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REACTIONS`: All available reactions users can choose on issues/prs and comments
     Values can be emoji alias (:smile:) or a unicode emoji.
     For custom reactions, add a tightly cropped square image to public/img/emoji/reaction_name.png
-- `CUSTOM_EMOJIS`: **gitea**: Additional Emojis not defined in the utf8 standard.
+- `CUSTOM_EMOJIS`: **gitea, codeberg, gitlab, git, github, gogs**: Additional Emojis not defined in the utf8 standard.
     By default we support gitea (:gitea:), to add more copy them to public/img/emoji/emoji_name.png and
     add it to this config.
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
@@ -392,7 +392,7 @@ relation to port exhaustion.
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
 - Queues by default come with a dynamically scaling worker pool. The following settings configure this:
-- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue. 
+- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue.
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
