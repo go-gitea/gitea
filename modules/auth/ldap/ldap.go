@@ -274,7 +274,7 @@ func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 	err := json.Unmarshal([]byte(ls.TeamGroupMap), &ldapGroupsToTeams)
 	if err != nil {
 		log.Debug("Failed to unmarshall LDAP teams map: %v", err)
-		return nil
+		return ldapGroupsToTeams
 	}
 	return ldapGroupsToTeams
 }
