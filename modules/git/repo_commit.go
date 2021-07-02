@@ -264,14 +264,15 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 	return len(strings.Split(stdout, "\n")) - 1, nil
 }
 
-// CommitsBetween returns a list that contains commits between [last, before).
+// CommitsBetween returns a list that contains commits between [before, last).
+// If before is detached (removed by reset + push) it is not included.
 func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
 		stdout, err = NewCommand("rev-list", last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
-		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", before.ID.String()+".."+last.ID.String()).RunInDirBytes(repo.Path)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
@@ -284,14 +285,14 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
-// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [last, before)
+// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
 func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit, skip int) (*list.List, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
 		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
-		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+".."+last.ID.String()).RunInDirBytes(repo.Path)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list --max-count n before last so let's try that...
@@ -322,7 +323,7 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := CommitsCountFiles(repo.Path, []string{start + "..." + end}, []string{})
+	count, err := CommitsCountFiles(repo.Path, []string{start + ".." + end}, []string{})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...

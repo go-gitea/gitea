@@ -316,7 +316,7 @@ type SearchEmailResult struct {
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
 func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
-	var cond builder.Cond = builder.Eq{"user.`type`": UserTypeIndividual}
+	var cond builder.Cond = builder.Eq{"`user`.`type`": UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		cond = cond.And(builder.Or(
