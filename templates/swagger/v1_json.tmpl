@@ -15297,8 +15297,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "type": "string",
-          "x-go-name": "Type"
+          "$ref": "#/definitions/NotifySubjectType"
         },
         "url": {
           "type": "string",
@@ -15340,6 +15339,11 @@
           "x-go-name": "URL"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotifySubjectType": {
+      "description": "NotifySubjectType represent type of notification subject",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OAuth2Application": {
