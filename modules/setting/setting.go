@@ -215,7 +215,9 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsMap          map[string]bool
+		ReactionsMap          map[string]bool `ini:"-"`
+		CustomEmojis          []string
+		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -263,6 +265,8 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
+		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
@@ -996,6 +1000,10 @@ func NewContext() {
 	UI.ReactionsMap = make(map[string]bool)
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
+	}
+	UI.CustomEmojisMap = make(map[string]string)
+	for _, emoji := range UI.CustomEmojis {
+		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
 }
 
