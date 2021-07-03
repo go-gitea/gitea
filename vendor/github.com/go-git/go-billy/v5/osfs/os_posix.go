@@ -1,4 +1,4 @@
-// +build !plan9,!windows
+// +build !plan9,!windows,!js
 
 package osfs
 

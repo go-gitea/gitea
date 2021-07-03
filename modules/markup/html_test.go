@@ -112,7 +112,7 @@ func TestRender_links(t *testing.T) {
 
 	defaultCustom := setting.Markdown.CustomURLSchemes
 	setting.Markdown.CustomURLSchemes = []string{"ftp", "magnet"}
-	ReplaceSanitizer()
+	InitializeSanitizer()
 	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 
 	test(
@@ -192,7 +192,7 @@ func TestRender_links(t *testing.T) {
 
 	// Restore previous settings
 	setting.Markdown.CustomURLSchemes = defaultCustom
-	ReplaceSanitizer()
+	InitializeSanitizer()
 	CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
 }
 
@@ -284,7 +284,18 @@ func TestRender_emoji(t *testing.T) {
 	test(
 		":gitea:",
 		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
-
+	test(
+		":custom-emoji:",
+		`<p>:custom-emoji:</p>`)
+	setting.UI.CustomEmojisMap["custom-emoji"] = ":custom-emoji:"
+	test(
+		":custom-emoji:",
+		`<p><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span></p>`)
+	test(
+		"这是字符:1::+1: some🐊 \U0001f44d:custom-emoji: :gitea:",
+		`<p>这是字符:1:<span class="emoji" aria-label="thumbs up">👍</span> some<span class="emoji" aria-label="crocodile">🐊</span> `+
+			`<span class="emoji" aria-label="thumbs up">👍</span><span class="emoji" aria-label="custom-emoji"><img alt=":custom-emoji:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/custom-emoji.png"/></span> `+
+			`<span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
 	test(
 		"Some text with 😄 in the middle",
 		`<p>Some text with <span class="emoji" aria-label="grinning face with smiling eyes">😄</span> in the middle</p>`)
@@ -443,4 +454,40 @@ func Test_ParseClusterFuzz(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotContains(t, res.String(), "<html")
+}
+
+func TestIssue16020(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	var localMetas = map[string]string{
+		"user": "go-gitea",
+		"repo": "gitea",
+	}
+
+	data := `<img src="data:image/png;base64,i//V"/>`
+
+	var res strings.Builder
+	err := PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
+	assert.NoError(t, err)
+	assert.Equal(t, data, res.String())
+}
+
+func BenchmarkEmojiPostprocess(b *testing.B) {
+	data := "🥰 "
+	for len(data) < 1<<16 {
+		data += data
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var res strings.Builder
+		err := PostProcess(&RenderContext{
+			URLPrefix: "https://example.com",
+			Metas:     localMetas,
+		}, strings.NewReader(data), &res)
+		assert.NoError(b, err)
+	}
 }

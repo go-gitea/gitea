@@ -33,10 +33,12 @@ type ReleaseLinksService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/releases/links.html
 type ReleaseLink struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	URL      string `json:"url"`
-	External bool   `json:"external"`
+	ID             int           `json:"id"`
+	Name           string        `json:"name"`
+	URL            string        `json:"url"`
+	DirectAssetURL string        `json:"direct_asset_url"`
+	External       bool          `json:"external"`
+	LinkType       LinkTypeValue `json:"link_type"`
 }
 
 // ListReleaseLinksOptions represents ListReleaseLinks() options.
@@ -99,8 +101,10 @@ func (s *ReleaseLinksService) GetReleaseLink(pid interface{}, tagName string, li
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/releases/links.html#create-a-link
 type CreateReleaseLinkOptions struct {
-	Name *string `url:"name" json:"name"`
-	URL  *string `url:"url" json:"url"`
+	Name     *string        `url:"name,omitempty" json:"name,omitempty"`
+	URL      *string        `url:"url,omitempty" json:"url,omitempty"`
+	FilePath *string        `url:"filepath,omitempty" json:"filepath,omitempty"`
+	LinkType *LinkTypeValue `url:"link_type,omitempty" json:"link_type,omitempty"`
 }
 
 // CreateReleaseLink creates a link.
@@ -133,8 +137,10 @@ func (s *ReleaseLinksService) CreateReleaseLink(pid interface{}, tagName string,
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/releases/links.html#update-a-link
 type UpdateReleaseLinkOptions struct {
-	Name *string `url:"name,omitempty" json:"name,omitempty"`
-	URL  *string `url:"url,omitempty" json:"url,omitempty"`
+	Name     *string        `url:"name,omitempty" json:"name,omitempty"`
+	URL      *string        `url:"url,omitempty" json:"url,omitempty"`
+	FilePath *string        `url:"filepath,omitempty" json:"filepath,omitempty"`
+	LinkType *LinkTypeValue `url:"link_type,omitempty" json:"link_type,omitempty"`
 }
 
 // UpdateReleaseLink updates an asset link.

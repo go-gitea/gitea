@@ -4,7 +4,7 @@ name: compliance
 
 platform:
   os: linux
-  arch: arm64
+  arch: amd64
 
 trigger:
   event:
@@ -27,7 +27,7 @@ steps:
 
   - name: lint-backend
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -37,7 +37,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
     environment:
@@ -49,7 +49,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -153,7 +153,7 @@ services:
       MYSQL_DATABASE: test
 
   - name: mysql8
-    image: mysql:8.0
+    image: mysql:8
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
@@ -319,7 +319,7 @@ trigger:
 services:
   - name: pgsql
     pull: default
-    image: postgres:9.5
+    image: postgres:10
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
@@ -503,7 +503,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -599,7 +599,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:

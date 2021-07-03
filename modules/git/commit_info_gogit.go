@@ -7,6 +7,7 @@
 package git
 
 import (
+	"context"
 	"path"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
@@ -16,7 +17,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -42,7 +43,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(c, treePath, unHitPaths)
+			revs2, err := GetLastCommitForPaths(ctx, c, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -55,7 +56,7 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 			}
 		}
 	} else {
-		revs, err = GetLastCommitForPaths(c, treePath, entryPaths)
+		revs, err = GetLastCommitForPaths(ctx, c, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -173,7 +174,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
@@ -192,6 +193,11 @@ func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []strin
 	heap.Push(&commitAndPaths{c, paths, initialHashes})
 
 	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 		cIn, ok := heap.Pop()
 		if !ok {
 			break

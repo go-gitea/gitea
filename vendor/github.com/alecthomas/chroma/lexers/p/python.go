@@ -6,14 +6,18 @@ import (
 )
 
 // Python lexer.
-var Python = internal.Register(MustNewLexer(
+var Python = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Python",
 		Aliases:   []string{"python", "py", "sage"},
 		Filenames: []string{"*.py", "*.pyw", "*.sc", "SConstruct", "SConscript", "*.tac", "*.sage"},
 		MimeTypes: []string{"text/x-python", "application/x-python"},
 	},
-	Rules{
+	pythonRules,
+))
+
+func pythonRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`^(\s*)([rRuUbB]{,2})("""(?:.|\n)*?""")`, ByGroups(Text, LiteralStringAffix, LiteralStringDoc), nil},
@@ -65,9 +69,9 @@ var Python = internal.Register(MustNewLexer(
 			{`\d+[eE][+-]?[0-9]+j?`, LiteralNumberFloat, nil},
 			{`0[0-7]+j?`, LiteralNumberOct, nil},
 			{`0[bB][01]+`, LiteralNumberBin, nil},
-			{`0[xX][a-fA-F0-9]+`, LiteralNumberHex, nil},
+			{`0[xX][a-fA-F0-9_]+`, LiteralNumberHex, nil},
 			{`\d+L`, LiteralNumberIntegerLong, nil},
-			{`\d+j?`, LiteralNumberInteger, nil},
+			{`[\d_]+j?`, LiteralNumberInteger, nil},
 		},
 		"backtick": {
 			{"`.*?`", LiteralStringBacktick, nil},
@@ -133,5 +137,5 @@ var Python = internal.Register(MustNewLexer(
 			Include("strings-single"),
 			{`\n`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

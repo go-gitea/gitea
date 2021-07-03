@@ -64,44 +64,44 @@ func TestBaseLogger(t *testing.T) {
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = DEBUG
 	expected = ""
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 
 	event.level = TRACE
 	expected = ""
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 
 	event.level = WARN
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = ERROR
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = CRITICAL
 	expected = fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.filename, event.line, event.caller, strings.ToUpper(event.level.String())[0], event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	b.Close()
-	assert.Equal(t, true, closed)
+	assert.True(t, closed)
 }
 
 func TestBaseLoggerDated(t *testing.T) {
@@ -142,46 +142,46 @@ func TestBaseLoggerDated(t *testing.T) {
 	expected := fmt.Sprintf("%s%s %s:%d [%s] %s", prefix, dateString, "FILENAME", event.line, strings.ToUpper(event.level.String()), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = INFO
 	expected = ""
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = ERROR
 	expected = fmt.Sprintf("%s%s %s:%d [%s] %s", prefix, dateString, "FILENAME", event.line, strings.ToUpper(event.level.String()), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = DEBUG
 	expected = ""
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = CRITICAL
 	expected = fmt.Sprintf("%s%s %s:%d [%s] %s", prefix, dateString, "FILENAME", event.line, strings.ToUpper(event.level.String()), event.msg)
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.level = TRACE
 	expected = ""
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	b.Close()
-	assert.Equal(t, true, closed)
+	assert.True(t, closed)
 }
 
 func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
@@ -222,20 +222,20 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 	expected := "TEST\n\tMESSAGE\n\tTEST\n"
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.filename = "ELSEWHERE"
 
 	b.LogEvent(&event)
 	assert.Equal(t, "", string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event.caller = "FILENAME"
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
 
 	event = Event{
@@ -249,9 +249,8 @@ func TestBaseLoggerMultiLineNoFlagsRegexp(t *testing.T) {
 	expected = "TEST\n\tFILENAME\n\tTEST\n"
 	b.LogEvent(&event)
 	assert.Equal(t, expected, string(written))
-	assert.Equal(t, false, closed)
+	assert.False(t, closed)
 	written = written[:0]
-
 }
 
 func TestBrokenRegexp(t *testing.T) {
@@ -273,5 +272,5 @@ func TestBrokenRegexp(t *testing.T) {
 	b.NewWriterLogger(c)
 	assert.Empty(t, b.regexp)
 	b.Close()
-	assert.Equal(t, true, closed)
+	assert.True(t, closed)
 }
