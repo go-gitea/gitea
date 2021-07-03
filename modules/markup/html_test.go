@@ -425,6 +425,38 @@ func TestRender_ShortLinks(t *testing.T) {
 		`<p><a href="https://example.org" rel="nofollow">[[foobar]]</a></p>`)
 }
 
+func TestRender_RelativeImages(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+	tree := util.URLJoin(AppSubURL, "src", "master")
+
+	test := func(input, expected, expectedWiki string) {
+		buffer, err := markdown.RenderString(&RenderContext{
+			URLPrefix: tree,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+		buffer, err = markdown.RenderString(&RenderContext{
+			URLPrefix: setting.AppSubURL,
+			Metas:     localMetas,
+			IsWiki:    true,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
+	}
+
+	mediatree := util.URLJoin(AppSubURL, "media", "master")
+
+	url := util.URLJoin(mediatree, "Link")
+	urlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link")
+
+	test(
+		`<img src="Link">`,
+		`<img src="`+url+`"/>`,
+		`<img src="`+urlWiki+`"/>`)
+
+}
+
 func Test_ParseClusterFuzz(t *testing.T) {
 	setting.AppURL = AppURL
 	setting.AppSubURL = AppSubURL

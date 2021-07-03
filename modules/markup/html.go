@@ -364,7 +364,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 	case html.ElementNode:
 		if node.Data == "img" {
-			for _, attr := range node.Attr {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
@@ -377,6 +377,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			visitText = false
