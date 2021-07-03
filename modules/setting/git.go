@@ -26,6 +26,7 @@ var (
 		GCArgs                    []string `ini:"GC_ARGS" delim:" "`
 		EnableAutoGitWireProtocol bool
 		PullRequestPushMessage    bool
+		LargeObjectThreshold      int64
 		Timeout                   struct {
 			Default int
 			Migrate int
@@ -47,6 +48,7 @@ var (
 		GCArgs:                    []string{},
 		EnableAutoGitWireProtocol: true,
 		PullRequestPushMessage:    true,
+		LargeObjectThreshold:      1024 * 1024,
 		Timeout: struct {
 			Default int
 			Migrate int
