@@ -433,6 +433,7 @@ func TestRender_RelativeImages(t *testing.T) {
 	test := func(input, expected, expectedWiki string) {
 		buffer, err := markdown.RenderString(&RenderContext{
 			URLPrefix: tree,
+			Metas:     localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -445,16 +446,18 @@ func TestRender_RelativeImages(t *testing.T) {
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
+	rawwiki := util.URLJoin(AppSubURL, "wiki", "raw")
 	mediatree := util.URLJoin(AppSubURL, "media", "master")
-
-	url := util.URLJoin(mediatree, "Link")
-	urlWiki := util.URLJoin(AppSubURL, "wiki", "raw", "Link")
 
 	test(
 		`<img src="Link">`,
-		`<img src="`+url+`"/>`,
-		`<img src="`+urlWiki+`"/>`)
+		`<img src="`+util.URLJoin(mediatree, "Link")+`"/>`,
+		`<img src="`+util.URLJoin(rawwiki, "Link")+`"/>`)
 
+	test(
+		`<img src="./icon.png">`,
+		`<img src="`+util.URLJoin(mediatree, "icon.png")+`"/>`,
+		`<img src="`+util.URLJoin(rawwiki, "icon.png")+`"/>`)
 }
 
 func Test_ParseClusterFuzz(t *testing.T) {
