@@ -6,13 +6,15 @@ package gitea
 
 // GlobalUISettings represent the global ui settings of a gitea instance witch is exposed by API
 type GlobalUISettings struct {
+	DefaultTheme     string   `json:"default_theme"`
 	AllowedReactions []string `json:"allowed_reactions"`
 }
 
 // GlobalRepoSettings represent the global repository settings of a gitea instance witch is exposed by API
 type GlobalRepoSettings struct {
-	MirrorsDisabled bool `json:"mirrors_disabled"`
-	HTTPGitDisabled bool `json:"http_git_disabled"`
+	MirrorsDisabled    bool `json:"mirrors_disabled"`
+	HTTPGitDisabled    bool `json:"http_git_disabled"`
+	MigrationsDisabled bool `json:"migrations_disabled"`
 }
 
 // GlobalAPISettings contains global api settings exposed by it

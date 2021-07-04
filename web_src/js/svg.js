@@ -4,6 +4,7 @@ import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
 import octiconIssueOpened from '../../public/img/svg/octicon-issue-opened.svg';
+import octiconKebabHorizontal from '../../public/img/svg/octicon-kebab-horizontal.svg';
 import octiconLink from '../../public/img/svg/octicon-link.svg';
 import octiconLock from '../../public/img/svg/octicon-lock.svg';
 import octiconMilestone from '../../public/img/svg/octicon-milestone.svg';
@@ -20,6 +21,7 @@ export const svgs = {
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-issue-closed': octiconIssueClosed,
   'octicon-issue-opened': octiconIssueOpened,
+  'octicon-kebab-horizontal': octiconKebabHorizontal,
   'octicon-link': octiconLink,
   'octicon-lock': octiconLock,
   'octicon-milestone': octiconMilestone,

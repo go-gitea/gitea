@@ -40,6 +40,9 @@ type ListGPGKeysOptions struct {
 
 // ListGPGKeys list all the GPG keys of the user
 func (c *Client) ListGPGKeys(user string, opt ListGPGKeysOptions) ([]*GPGKey, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	keys := make([]*GPGKey, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/gpg_keys?%s", user, opt.getURLQuery().Encode()), nil, nil, &keys)

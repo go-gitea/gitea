@@ -92,6 +92,10 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	models.AssertNotExistsBean(t, &models.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
+
+	// Delete again will return not found
+	req = NewRequest(t, "DELETE", urlStr)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPIGetOAuth2Application(t *testing.T) {
@@ -119,7 +123,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
-	assert.EqualValues(t, len(expectedApp.RedirectURIs), 1)
+	assert.Len(t, expectedApp.RedirectURIs, 1)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
 	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
@@ -152,7 +156,7 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	DecodeJSON(t, resp, &app)
 	expectedApp := app
 
-	assert.EqualValues(t, len(expectedApp.RedirectURIs), 2)
+	assert.Len(t, expectedApp.RedirectURIs, 2)
 	assert.EqualValues(t, expectedApp.RedirectURIs[0], appBody.RedirectURIs[0])
 	assert.EqualValues(t, expectedApp.RedirectURIs[1], appBody.RedirectURIs[1])
 	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})

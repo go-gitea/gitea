@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
@@ -31,10 +32,13 @@ var (
 		Secure bool
 		// Cookie domain name. Default is empty.
 		Domain string
+		// SameSite declares if your cookie should be restricted to a first-party or same-site context. Valid strings are "none", "lax", "strict". Default is "lax"
+		SameSite http.SameSite
 	}{
 		CookieName:  "i_like_gitea",
 		Gclifetime:  86400,
 		Maxlifetime: 86400,
+		SameSite:    http.SameSiteLaxMode,
 	}
 )
 
@@ -52,6 +56,15 @@ func newSessionService() {
 	SessionConfig.Gclifetime = sec.Key("GC_INTERVAL_TIME").MustInt64(86400)
 	SessionConfig.Maxlifetime = sec.Key("SESSION_LIFE_TIME").MustInt64(86400)
 	SessionConfig.Domain = sec.Key("DOMAIN").String()
+	samesiteString := sec.Key("SAME_SITE").In("lax", []string{"none", "lax", "strict"})
+	switch strings.ToLower(samesiteString) {
+	case "none":
+		SessionConfig.SameSite = http.SameSiteNoneMode
+	case "strict":
+		SessionConfig.SameSite = http.SameSiteStrictMode
+	default:
+		SessionConfig.SameSite = http.SameSiteLaxMode
+	}
 
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	shadowConfig, err := json.Marshal(SessionConfig)

@@ -11,16 +11,12 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"image"
-	"image/color"
-	_ "image/gif"  // for processing gif images
-	_ "image/jpeg" // for processing jpeg images
-	_ "image/png"  // for processing png images
 	"io"
-	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Commit represents a git commit.
@@ -79,70 +75,6 @@ func (c *Commit) Parent(n int) (*Commit, error) {
 // 0 if this is the root commit,  otherwise 1,2, etc.
 func (c *Commit) ParentCount() int {
 	return len(c.Parents)
-}
-
-func isImageFile(data []byte) (string, bool) {
-	contentType := http.DetectContentType(data)
-	if strings.Contains(contentType, "image/") {
-		return contentType, true
-	}
-	return contentType, false
-}
-
-// IsImageFile is a file image type
-func (c *Commit) IsImageFile(name string) bool {
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return false
-	}
-
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		return false
-	}
-	defer dataRc.Close()
-	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
-	buf = buf[:n]
-	_, isImage := isImageFile(buf)
-	return isImage
-}
-
-// ImageMetaData represents metadata of an image file
-type ImageMetaData struct {
-	ColorModel color.Model
-	Width      int
-	Height     int
-	ByteSize   int64
-}
-
-// ImageInfo returns information about the dimensions of an image
-func (c *Commit) ImageInfo(name string) (*ImageMetaData, error) {
-	if !c.IsImageFile(name) {
-		return nil, nil
-	}
-
-	blob, err := c.GetBlobByPath(name)
-	if err != nil {
-		return nil, err
-	}
-	reader, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	config, _, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	metadata := ImageMetaData{
-		ColorModel: config.ColorModel,
-		Width:      config.Width,
-		Height:     config.Height,
-		ByteSize:   blob.Size(),
-	}
-	return &metadata, nil
 }
 
 // GetCommitByPath return the commit of relative path object.
@@ -502,33 +434,59 @@ func NewCommitFileStatus() *CommitFileStatus {
 	}
 }
 
+func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
+	rd := bufio.NewReader(stdout)
+	peek, err := rd.Peek(1)
+	if err != nil {
+		if err != io.EOF {
+			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+		}
+		return
+	}
+	if peek[0] == '\n' || peek[0] == '\x00' {
+		_, _ = rd.Discard(1)
+	}
+	for {
+		modifier, err := rd.ReadSlice('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file, err := rd.ReadString('\x00')
+		if err != nil {
+			if err != io.EOF {
+				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
+			}
+			return
+		}
+		file = file[:len(file)-1]
+		switch modifier[0] {
+		case 'A':
+			fileStatus.Added = append(fileStatus.Added, file)
+		case 'D':
+			fileStatus.Removed = append(fileStatus.Removed, file)
+		case 'M':
+			fileStatus.Modified = append(fileStatus.Modified, file)
+		}
+	}
+}
+
 // GetCommitFileStatus returns file status of commit in given repository.
 func GetCommitFileStatus(repoPath, commitID string) (*CommitFileStatus, error) {
 	stdout, w := io.Pipe()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			fields := strings.Fields(scanner.Text())
-			if len(fields) < 2 {
-				continue
-			}
-
-			switch fields[0][0] {
-			case 'A':
-				fileStatus.Added = append(fileStatus.Added, fields[1])
-			case 'D':
-				fileStatus.Removed = append(fileStatus.Removed, fields[1])
-			case 'M':
-				fileStatus.Modified = append(fileStatus.Modified, fields[1])
-			}
-		}
-		done <- struct{}{}
+		parseCommitFileStatus(fileStatus, stdout)
+		close(done)
 	}()
 
 	stderr := new(bytes.Buffer)
-	err := NewCommand("show", "--name-status", "--pretty=format:''", commitID).RunInDirPipeline(repoPath, w, stderr)
+	args := []string{"log", "--name-status", "-c", "--pretty=format:", "--parents", "--no-renames", "-z", "-1", commitID}
+
+	err := NewCommand(args...).RunInDirPipeline(repoPath, w, stderr)
 	w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
 		return nil, ConcatenateError(err, stderr.String())

@@ -6,14 +6,15 @@ package repo
 
 import (
 	"fmt"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -295,7 +297,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 	var (
 		repo        = ctx.Repo.Repository
 		labelIDs    []int64
-		assigneeID  int64
 		milestoneID int64
 	)
 
@@ -356,7 +357,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
 			if models.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
@@ -380,7 +381,6 @@ func CreatePullRequest(ctx *context.APIContext) {
 		PosterID:     ctx.User.ID,
 		Poster:       ctx.User,
 		MilestoneID:  milestoneID,
-		AssigneeID:   assigneeID,
 		IsPull:       true,
 		Content:      form.Body,
 		DeadlineUnix: deadlineUnix,
@@ -582,7 +582,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
-		issue.IsClosed = (api.StateClosed == api.StateType(*form.State))
+		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
 	if err != nil {
@@ -723,7 +723,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 
-	form := web.GetForm(ctx).(*auth.MergePullRequestForm)
+	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -1102,4 +1102,123 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+// GetPullRequestCommits gets all commits associated with a given PR
+func GetPullRequestCommits(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}/commits repository repoGetPullRequestCommits
+	// ---
+	// summary: Get commits for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/CommitList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
+		}
+		return
+	}
+
+	if err := pr.LoadBaseRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	var prInfo *git.CompareInfo
+	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		ctx.ServerError("OpenRepository", err)
+		return
+	}
+	defer baseGitRepo.Close()
+	if pr.HasMerged {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName())
+	} else {
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	}
+	if err != nil {
+		ctx.ServerError("GetCompareInfo", err)
+		return
+	}
+	commits := prInfo.Commits
+
+	listOptions := utils.GetListOptions(ctx)
+
+	totalNumberOfCommits := commits.Len()
+	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfCommits) / float64(listOptions.PageSize)))
+
+	userCache := make(map[string]*models.User)
+
+	start, end := listOptions.GetStartEnd()
+
+	if end > totalNumberOfCommits {
+		end = totalNumberOfCommits
+	}
+
+	apiCommits := make([]*api.Commit, end-start)
+
+	i := 0
+	addedCommitsCount := 0
+	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
+		if i < start {
+			i++
+			continue
+		}
+		if i >= end {
+			break
+		}
+
+		commit := commitPointer.Value.(*git.Commit)
+
+		// Create json struct
+		apiCommits[addedCommitsCount], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
+		addedCommitsCount++
+		if err != nil {
+			ctx.ServerError("toCommit", err)
+			return
+		}
+		i++
+	}
+
+	ctx.SetLinkHeader(int(totalNumberOfCommits), listOptions.PageSize)
+
+	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
+	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumberOfCommits))
+	ctx.Header().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
+	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.JSON(http.StatusOK, &apiCommits)
 }

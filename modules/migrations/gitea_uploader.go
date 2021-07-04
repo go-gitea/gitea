@@ -116,6 +116,8 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		OriginalURL:    repo.OriginalURL,
 		GitServiceType: opts.GitServiceType,
 		Mirror:         repo.IsMirror,
+		LFS:            opts.LFS,
+		LFSEndpoint:    opts.LFSEndpoint,
 		CloneAddr:      repo.CloneURL,
 		Private:        repo.IsPrivate,
 		Wiki:           opts.Wiki,
@@ -248,14 +250,16 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			rel.OriginalAuthorID = release.PublisherID
 		}
 
-		// calc NumCommits
-		commit, err := g.gitRepo.GetCommit(rel.TagName)
-		if err != nil {
-			return fmt.Errorf("GetCommit: %v", err)
-		}
-		rel.NumCommits, err = commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
+		// calc NumCommits if no draft
+		if !release.Draft {
+			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
+			if err != nil {
+				return fmt.Errorf("GetCommit: %v", err)
+			}
+			rel.NumCommits, err = commit.CommitsCount()
+			if err != nil {
+				return fmt.Errorf("CommitsCount: %v", err)
+			}
 		}
 
 		for _, asset := range release.Assets {
@@ -268,22 +272,26 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 
 			// download attachment
-			err = func() error {
+			err := func() error {
 				// asset.DownloadURL maybe a local file
 				var rc io.ReadCloser
-				if asset.DownloadURL == nil {
+				var err error
+				if asset.DownloadFunc != nil {
 					rc, err = asset.DownloadFunc()
 					if err != nil {
 						return err
 					}
-				} else {
+				} else if asset.DownloadURL != nil {
 					rc, err = uri.Open(*asset.DownloadURL)
 					if err != nil {
 						return err
 					}
 				}
-				defer rc.Close()
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc)
+				if rc == nil {
+					return nil
+				}
+				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				rc.Close()
 				return err
 			}()
 			if err != nil {
@@ -849,6 +857,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
+		g.gitRepo.Close()
 		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
 			return err
 		}

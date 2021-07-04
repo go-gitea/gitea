@@ -332,7 +332,8 @@ func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Rep
 func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 	opType := models.ActionCommitRepo
 	if refType == "tag" {
-		opType = models.ActionPushTag
+		// has sent same action in `NotifyPushCommits`, so skip it.
+		return
 	}
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
@@ -350,7 +351,8 @@ func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Reposit
 func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 	opType := models.ActionDeleteBranch
 	if refType == "tag" {
-		opType = models.ActionDeleteTag
+		// has sent same action in `NotifyPushCommits`, so skip it.
+		return
 	}
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,

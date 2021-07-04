@@ -7,11 +7,13 @@
 package git
 
 import (
+	"context"
 	"io/ioutil"
+	"strings"
 )
 
 // GetNote retrieves the git-notes data for a given commit.
-func GetNote(repo *Repository, commitID string, note *Note) error {
+func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
 	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
 		return err
@@ -42,18 +44,31 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 	if err != nil {
 		return err
 	}
-	defer dataRc.Close()
+	closed := false
+	defer func() {
+		if !closed {
+			_ = dataRc.Close()
+		}
+	}()
 	d, err := ioutil.ReadAll(dataRc)
 	if err != nil {
 		return err
 	}
+	_ = dataRc.Close()
+	closed = true
 	note.Message = d
 
-	lastCommits, err := GetLastCommitForPaths(notes, "", []string{path})
+	treePath := ""
+	if idx := strings.LastIndex(path, "/"); idx > -1 {
+		treePath = path[:idx]
+		path = path[idx+1:]
+	}
+
+	lastCommits, err := GetLastCommitForPaths(ctx, notes, treePath, []string{path})
 	if err != nil {
 		return err
 	}
-	note.Commit = lastCommits[0]
+	note.Commit = lastCommits[path]
 
 	return nil
 }

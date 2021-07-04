@@ -26,6 +26,9 @@ func (c *Client) AdminListOrgs(opt AdminListOrgsOptions) ([]*Organization, *Resp
 
 // AdminCreateOrg create an organization
 func (c *Client) AdminCreateOrg(user string, opt CreateOrgOption) (*Organization, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err

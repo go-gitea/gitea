@@ -7,33 +7,18 @@
 package git
 
 import (
-	"bufio"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"strings"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	stdoutReader, stdoutWriter := io.Pipe()
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
+	wr, rd, cancel := repo.CatFileBatch()
+	defer cancel()
 
-	go func() {
-		stderr := &strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repo.Path, stdoutWriter, stderr, strings.NewReader(id.String()+"\n"))
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderr.String()))
-		} else {
-			_ = stdoutWriter.Close()
-		}
-	}()
+	_, _ = wr.Write([]byte(id.String() + "\n"))
 
-	bufReader := bufio.NewReader(stdoutReader)
 	// ignore the SHA
-	_, typ, size, err := ReadBatchLine(bufReader)
+	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +26,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	switch typ {
 	case "tag":
 		resolvedID := id
-		data, err := ioutil.ReadAll(io.LimitReader(bufReader, size))
+		data, err := ioutil.ReadAll(io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}
@@ -54,24 +39,27 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = resolvedID
-		log("tag.commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
 		return &commit.Tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(bufReader, size))
+		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
 		if err != nil {
-			_ = stdoutReader.CloseWithError(err)
+			return nil, err
+		}
+		if _, err := rd.Discard(1); err != nil {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = commit.ID
-		log("commit.Tree: %s %v", commit.Tree.ID.String(), commit.Tree.repo)
 		return &commit.Tree, nil
 	case "tree":
-		stdoutReader.Close()
 		tree := NewTree(repo, id)
 		tree.ResolvedID = id
+		tree.entries, err = catBatchParseTreeEntries(tree, rd, size)
+		if err != nil {
+			return nil, err
+		}
+		tree.entriesParsed = true
 		return tree, nil
 	default:
-		_ = stdoutReader.CloseWithError(fmt.Errorf("unknown typ: %s", typ))
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}
@@ -81,12 +69,12 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 // GetTree find the tree object in the repository.
 func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
+		res, err := repo.GetRefCommitID(idStr)
 		if err != nil {
 			return nil, err
 		}
 		if len(res) > 0 {
-			idStr = res[:len(res)-1]
+			idStr = res
 		}
 	}
 	id, err := NewIDFromString(idStr)

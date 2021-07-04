@@ -3,6 +3,21 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.1.0](https://gitea.com/xorm/xorm/releases/tag/1.1.0) - 2021-05-14
+
+* FEATURES
+  * Unsigned Support for mysql (#1889)
+  * Support modernc.org/sqlite (#1850)
+* TESTING
+  * More tests (#1890)
+* MISC
+  * Byte strings in postgres aren't 0x... (#1906)
+  * Fix another bug with #1872 (#1905)
+  * Fix two issues with dumptables (#1903)
+  * Fix comments (#1896)
+  * Fix comments (#1893)
+  * MariaDB 10.5 adds a suffix on old datatypes (#1885)
+
 ## [1.0.7](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1336) - 2021-01-21
 
 * BUGFIXES

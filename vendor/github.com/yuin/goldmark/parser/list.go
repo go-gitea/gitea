@@ -164,6 +164,8 @@ func (b *listParser) Continue(node ast.Node, reader text.Reader, pc Context) Sta
 		if node.ChildCount() == 1 && node.LastChild().ChildCount() == 0 {
 			return Close
 		}
+
+		reader.Advance(len(line)-1)
 		return Continue | HasChildren
 	}
 

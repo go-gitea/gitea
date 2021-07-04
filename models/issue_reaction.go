@@ -38,14 +38,14 @@ type FindReactionsOptions struct {
 }
 
 func (opts *FindReactionsOptions) toConds() builder.Cond {
-	//If Issue ID is set add to Query
-	var cond = builder.NewCond()
+	// If Issue ID is set add to Query
+	cond := builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"reaction.issue_id": opts.IssueID})
 	}
-	//If CommentID is > 0 add to Query
-	//If it is 0 Query ignore CommentID to select
-	//If it is -1 it explicit search of Issue Reactions where CommentID = 0
+	// If CommentID is > 0 add to Query
+	// If it is 0 Query ignore CommentID to select
+	// If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
 	} else if opts.CommentID == -1 {
@@ -68,7 +68,8 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 func FindCommentReactions(comment *Comment) (ReactionList, error) {
 	return findReactions(x, FindReactionsOptions{
 		IssueID:   comment.IssueID,
-		CommentID: comment.ID})
+		CommentID: comment.ID,
+	})
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
@@ -260,7 +261,7 @@ func (list ReactionList) HasUser(userID int64) bool {
 
 // GroupByType returns reactions grouped by type
 func (list ReactionList) GroupByType() map[string]ReactionList {
-	var reactions = make(map[string]ReactionList)
+	reactions := make(map[string]ReactionList)
 	for _, reaction := range list {
 		reactions[reaction.Type] = append(reactions[reaction.Type], reaction)
 	}
@@ -314,7 +315,7 @@ func (list ReactionList) LoadUsers(repo *Repository) ([]*User, error) {
 // GetFirstUsers returns first reacted user display names separated by comma
 func (list ReactionList) GetFirstUsers() string {
 	var buffer bytes.Buffer
-	var rem = setting.UI.ReactionMaxUserNum
+	rem := setting.UI.ReactionMaxUserNum
 	for _, reaction := range list {
 		if buffer.Len() > 0 {
 			buffer.WriteString(", ")
