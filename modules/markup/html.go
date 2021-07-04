@@ -375,7 +375,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 					}
 					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-					attr.Val = util.URLJoin(prefix, attr.Val)
+					node.Attr[idx].Val = util.URLJoin(prefix, attr.Val)
 				}
 			}
 		} else if node.Data == "a" {
@@ -391,7 +391,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 				for i, class := range classes {
 					if class == "icon" {
 						classes[0], classes[i] = classes[i], classes[0]
-						attr.Val = strings.Join(classes, " ")
+						node.Attr[idx].Val = strings.Join(classes, " ")
 
 						// Remove all children of icons
 						child := node.FirstChild
