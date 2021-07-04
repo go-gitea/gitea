@@ -730,8 +730,6 @@ github.com/shurcooL/httpfs/vfsutil
 # github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
 ## explicit
 github.com/shurcooL/vfsgen
-# github.com/sirupsen/logrus v1.8.1
-github.com/sirupsen/logrus
 # github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 github.com/siddontang/go/filelock
 github.com/siddontang/go/hack
@@ -751,6 +749,8 @@ github.com/siddontang/ledisdb/store/leveldb
 github.com/siddontang/ledisdb/store/rocksdb
 # github.com/siddontang/rdb v0.0.0-20150307021120-fc89ed2e418d
 github.com/siddontang/rdb
+# github.com/sirupsen/logrus v1.8.1
+github.com/sirupsen/logrus
 # github.com/spf13/afero v1.6.0
 github.com/spf13/afero
 github.com/spf13/afero/mem
