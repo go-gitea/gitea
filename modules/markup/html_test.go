@@ -390,18 +390,9 @@ func TestRender_RelativeImages(t *testing.T) {
 	tree := util.URLJoin(AppSubURL, "src", "master")
 
 	test := func(input, expected, expectedWiki string) {
-		buffer, err := markdown.RenderString(&RenderContext{
-			URLPrefix: tree,
-			Metas:     localMetas,
-		}, input)
-		assert.NoError(t, err)
+		buffer := markdown.RenderString(input, tree, localMetas)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
-		buffer, err = markdown.RenderString(&RenderContext{
-			URLPrefix: setting.AppSubURL,
-			Metas:     localMetas,
-			IsWiki:    true,
-		}, input)
-		assert.NoError(t, err)
+		buffer = markdown.RenderWiki([]byte(input), setting.AppSubURL, localMetas)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
