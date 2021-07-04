@@ -6,7 +6,7 @@ import (
 )
 
 // Pig lexer.
-var Pig = internal.Register(MustNewLexer(
+var Pig = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Pig",
 		Aliases:         []string{"pig"},
@@ -14,7 +14,11 @@ var Pig = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-pig"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	pigRules,
+))
+
+func pigRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`--.*`, Comment, nil},
@@ -53,5 +57,5 @@ var Pig = internal.Register(MustNewLexer(
 			{`(eq|gt|lt|gte|lte|neq|matches)\b`, Operator, nil},
 			{`(==|<=|<|>=|>|!=)`, Operator, nil},
 		},
-	},
-))
+	}
+}

@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/misc"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -31,6 +30,7 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
 	userSetting "code.gitea.io/gitea/routers/web/user/setting"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
@@ -148,6 +148,9 @@ func Routes() *web.Route {
 
 	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
 	common = append(common, context.Contexter())
+
+	// Get user from session if logged in.
+	common = append(common, context.Auth(auth.NewGroup(auth.Methods()...)))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
@@ -291,6 +294,7 @@ func RegisterRoutes(m *web.Route) {
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -590,11 +594,20 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/delete", repo.DeleteTeam)
 				})
 			})
+
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
+
+			m.Group("/tags", func() {
+				m.Get("", repo.Tags)
+				m.Post("", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.NewProtectedTagPost)
+				m.Post("/delete", context.RepoMustNotBeArchived(), repo.DeleteProtectedTagPost)
+				m.Get("/{id}", repo.EditProtectedTag)
+				m.Post("/{id}", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.EditProtectedTagPost)
+			})
 
 			m.Group("/hooks/git", func() {
 				m.Get("", repo.GitHooks)
@@ -883,7 +896,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Group("/archive", func() {
-			m.Get("/*", common.Download)
+			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 

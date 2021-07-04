@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -34,22 +33,14 @@ import (
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
+	"code.gitea.io/gitea/services/archiver"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
 )
-
-func checkRunMode() {
-	switch setting.RunMode {
-	case "dev", "test":
-		git.Debug = true
-	default:
-		git.Debug = false
-	}
-	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
-}
 
 // NewServices init new services
 func NewServices() {
@@ -63,6 +54,9 @@ func NewServices() {
 	mailer.NewContext()
 	_ = cache.NewContext()
 	notification.NewContext()
+	if err := archiver.Init(); err != nil {
+		log.Fatal("archiver init failed: %v", err)
+	}
 }
 
 // GlobalInit is for global configuration reload-able.
@@ -75,12 +69,14 @@ func GlobalInit(ctx context.Context) {
 	if err := git.Init(ctx); err != nil {
 		log.Fatal("Git module init failed: %v", err)
 	}
-	setting.CheckLFSVersion()
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
-	checkRunMode()
+	log.Info(git.VersionInfo())
+
+	git.CheckLFSVersion()
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 
 	// Setup i18n
 	translation.InitLocales()
@@ -134,7 +130,7 @@ func GlobalInit(ctx context.Context) {
 	} else {
 		ssh.Unused()
 	}
-	sso.Init()
+	auth.Init()
 
 	svg.Init()
 }

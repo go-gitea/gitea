@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -158,7 +158,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					}
 					if user == nil {
 						// Get user from session if logged in - do not attempt to sign-in
-						user = sso.SessionUser(sessionStore)
+						user = auth.SessionUser(sessionStore)
 					}
 					if user != nil {
 						store["IsSigned"] = true

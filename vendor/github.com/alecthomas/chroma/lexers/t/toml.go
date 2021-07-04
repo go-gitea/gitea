@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var TOML = internal.Register(MustNewLexer(
+var TOML = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TOML",
 		Aliases:   []string{"toml"},
 		Filenames: []string{"*.toml"},
 		MimeTypes: []string{"text/x-toml"},
 	},
-	Rules{
+	tomlRules,
+))
+
+func tomlRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`#.*`, Comment, nil},
@@ -23,7 +27,7 @@ var TOML = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, StringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, StringSingle, nil},
 			{`[.,=\[\]{}]`, Punctuation, nil},
-			{`[^\W\d]\w*`, NameOther, nil},
+			{`[A-Za-z0-9_-]+`, NameOther, nil},
 		},
-	},
-))
+	}
+}

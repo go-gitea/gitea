@@ -6,7 +6,7 @@ import (
 )
 
 // Groovy lexer.
-var Groovy = internal.Register(MustNewLexer(
+var Groovy = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Groovy",
 		Aliases:   []string{"groovy"},
@@ -14,7 +14,11 @@ var Groovy = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-groovy"},
 		DotAll:    true,
 	},
-	Rules{
+	groovyRules,
+))
+
+func groovyRules() Rules {
+	return Rules{
 		"root": {
 			{`#!(.*?)$`, CommentPreproc, Push("base")},
 			Default(Push("base")),
@@ -54,5 +58,5 @@ var Groovy = internal.Register(MustNewLexer(
 		"import": {
 			{`[\w.]+\*?`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

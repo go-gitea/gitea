@@ -25,6 +25,15 @@ func ToUser(user, doer *models.User) *api.User {
 	return toUser(user, signed, authed)
 }
 
+// ToUsers convert list of models.User to list of api.User
+func ToUsers(doer *models.User, users []*models.User) []*api.User {
+	result := make([]*api.User, len(users))
+	for i := range users {
+		result[i] = ToUser(users[i], doer)
+	}
+	return result
+}
+
 // ToUserWithAccessMode convert models.User to api.User
 // AccessMode is not none show add some more information
 func ToUserWithAccessMode(user *models.User, accessMode models.AccessMode) *api.User {
@@ -48,11 +57,19 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Location:    user.Location,
 		Website:     user.Website,
 		Description: user.Description,
+		// counter's
+		Followers:    user.NumFollowers,
+		Following:    user.NumFollowing,
+		StarredRepos: user.NumStars,
 	}
+
+	result.Visibility = user.Visibility.String()
+
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
 	}
+
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
@@ -62,4 +79,19 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		result.ProhibitLogin = user.ProhibitLogin
 	}
 	return result
+}
+
+// User2UserSettings return UserSettings based on a user
+func User2UserSettings(user *models.User) api.UserSettings {
+	return api.UserSettings{
+		FullName:      user.FullName,
+		Website:       user.Website,
+		Location:      user.Location,
+		Language:      user.Language,
+		Description:   user.Description,
+		Theme:         user.Theme,
+		HideEmail:     user.KeepEmailPrivate,
+		HideActivity:  user.KeepActivityPrivate,
+		DiffViewStyle: user.DiffViewStyle,
+	}
 }
