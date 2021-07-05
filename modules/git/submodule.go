@@ -6,7 +6,9 @@
 package git
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"path"
@@ -133,25 +135,40 @@ func (sf *SubModuleFile) RefID() string {
 
 // GetSubmoduleCommits Returns a list of active submodules in the repository
 func GetSubmoduleCommits(repoPath string) []SubModuleCommit {
+	stdoutReader, stdoutWriter := io.Pipe()
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	go func() {
+		stderrBuilder := &strings.Builder{}
+		err := NewCommand("config", "-f", ".gitmodules", "--list", "--name-only").RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		if err != nil {
+			_ = stdoutWriter.CloseWithError(ConcatenateError(err, stderrBuilder.String()))
+		} else {
+			_ = stdoutWriter.Close()
+		}
+	}()
+
 	var submodules []SubModuleCommit
+	bufReader := bufio.NewReader(stdoutReader)
 
-	submoduleOut, err := NewCommand("config", "-f", ".gitmodules", "--list", "--name-only").
-		RunInDir(repoPath)
+	for {
+		line, err := bufReader.ReadString('\n')
 
-	if err != nil {
-		// Command fails if there are no or invalid submodules, just return an empty list
-		return submodules
-	}
+		if err != nil {
+			break
+		}
 
-	for _, line := range strings.Split(strings.TrimSuffix(submoduleOut, "\n"), "\n") {
-		if len(line) < len("submodule.x.url") ||
+		if len(line) < len("submodule.x.url\n") ||
 			!strings.HasPrefix(line, "submodule.") ||
-			!strings.HasSuffix(line, ".url") {
+			!strings.HasSuffix(line, ".url\n") {
 
 			continue
 		}
 
-		name := line[len("submodule.") : len(line)-len(".url")]
+		name := line[len("submodule.") : len(line)-len(".url\n")]
 		name = strings.TrimSpace(name)
 
 		if len(name) == 0 {
