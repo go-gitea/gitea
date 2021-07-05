@@ -45,9 +45,6 @@ var (
 	_ PayloadConvertor = &TelegramPayload{}
 )
 
-// SetSecret sets the telegram secret
-func (t *TelegramPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the TelegramPayload to json
 func (t *TelegramPayload) JSONPayload() ([]byte, error) {
 	t.ParseMode = "HTML"
