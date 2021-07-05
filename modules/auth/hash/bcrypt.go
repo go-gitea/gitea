@@ -14,14 +14,15 @@ import (
 
 // BCryptHasher is a Hash implementation for BCrypt
 type BCryptHasher struct {
-	Cost int `ini:"BCRYPT_COST"`
+	Cost     int `ini:"BCRYPT_COST"`
+	fallback string
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
 func (h *BCryptHasher) HashPassword(password, salt, config string) (string, string, error) {
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
-		config = "10"
+		config = h.fallback
 	} else if config == "" {
 		config = h.getConfigFromSetting()
 	}
@@ -46,9 +47,12 @@ func (h *BCryptHasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h *BCryptHasher) getConfigFromSetting() string {
+	if h.Cost == 0 {
+		return h.fallback
+	}
 	return strconv.Itoa(h.Cost)
 }
 
 func init() {
-	DefaultHasher.Hashers["bcrypt"] = &BCryptHasher{10}
+	DefaultHasher.Hashers["bcrypt"] = &BCryptHasher{10, "10"}
 }

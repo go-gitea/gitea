@@ -19,6 +19,7 @@ type Argon2Hasher struct {
 	Memory      uint32 `ini:"ARGON2_MEMORY"`
 	Parallelism uint8  `ini:"ARGON2_PARALLELISM"`
 	KeyLength   uint32 `ini:"ARGON2_KEY_LENGTH"`
+	fallback    string
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
@@ -26,7 +27,7 @@ func (h *Argon2Hasher) HashPassword(password, salt, config string) (string, stri
 	var tempPasswd []byte
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
-		config = "2$65536$8$50"
+		config = h.fallback
 	}
 
 	split := strings.Split(config, "$")
@@ -80,9 +81,12 @@ func (h *Argon2Hasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h *Argon2Hasher) getConfigFromSetting() string {
+	if h.Iterations == 0 || h.Memory == 0 || h.Parallelism == 0 || h.KeyLength == 0 {
+		return h.fallback
+	}
 	return fmt.Sprintf("%d$%d$%d$%d", h.Iterations, h.Memory, h.Parallelism, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["argon2"] = &Argon2Hasher{2, 65536, 8, 50}
+	DefaultHasher.Hashers["argon2"] = &Argon2Hasher{2, 65536, 8, 50, "2$65536$8$50"}
 }

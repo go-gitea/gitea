@@ -19,6 +19,7 @@ type SCryptHasher struct {
 	R         int `ini:"SCRYPT_R"`
 	P         int `ini:"SCRYPT_P"`
 	KeyLength int `ini:"SCRYPT_KEY_LENGTH"`
+	fallback  string
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
@@ -26,7 +27,7 @@ func (h *SCryptHasher) HashPassword(password, salt, config string) (string, stri
 	var tempPasswd []byte
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
-		config = "65536$16$2$50"
+		config = h.fallback
 	}
 
 	split := strings.Split(config, "$")
@@ -71,9 +72,12 @@ func (h *SCryptHasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h *SCryptHasher) getConfigFromSetting() string {
+	if h.N == 0 || h.R == 0 || h.P == 0 || h.KeyLength == 0 {
+		return h.fallback
+	}
 	return fmt.Sprintf("%d$%d$%d$%d", h.N, h.R, h.P, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["scrypt"] = &SCryptHasher{65536, 16, 2, 50}
+	DefaultHasher.Hashers["scrypt"] = &SCryptHasher{65536, 16, 2, 50, "65536$16$2$50"}
 }

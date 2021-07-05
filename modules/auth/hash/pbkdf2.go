@@ -18,6 +18,7 @@ import (
 type Pbkdf2Hasher struct {
 	Iterations int `ini:"PBKDF2_ITERATIONS"`
 	KeyLength  int `ini:"PBKDF2_KEY_LENGTH"`
+	fallback   string
 }
 
 // HashPassword returns a PasswordHash, PassWordAlgo (and optionally an error)
@@ -25,7 +26,7 @@ func (h *Pbkdf2Hasher) HashPassword(password, salt, config string) (string, stri
 	var tempPasswd []byte
 	if config == "fallback" {
 		// Fixed default config to match with original configuration
-		config = "10000$50"
+		config = h.fallback
 	}
 
 	split := strings.Split(config, "$")
@@ -64,9 +65,12 @@ func (h *Pbkdf2Hasher) getConfigFromAlgo(algo string) string {
 }
 
 func (h *Pbkdf2Hasher) getConfigFromSetting() string {
+	if h.Iterations == 0 || h.KeyLength == 0 {
+		return h.fallback
+	}
 	return fmt.Sprintf("%d$%d", h.Iterations, h.KeyLength)
 }
 
 func init() {
-	DefaultHasher.Hashers["pbkdf2"] = &Pbkdf2Hasher{10000, 50}
+	DefaultHasher.Hashers["pbkdf2"] = &Pbkdf2Hasher{10000, 50, "10000$50"}
 }
