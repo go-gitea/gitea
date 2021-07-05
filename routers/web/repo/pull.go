@@ -1186,19 +1186,35 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
 
-	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
-		return
-	}
-	defer gitRepo.Close()
+	var gitBaseRepo *git.Repository
 
-	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
-		return
+	// Assume that the base repo is the current context (almost certainly)
+	if ctx.Repo != nil && ctx.Repo.Repository.ID == pr.BaseRepoID && ctx.Repo.GitRepo != nil {
+		gitBaseRepo = ctx.Repo.GitRepo
+	} else {
+		// If not just open it
+		gitBaseRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
+			return
+		}
+		defer gitBaseRepo.Close()
 	}
-	defer gitBaseRepo.Close()
+
+	// Now assume that the head repo is the same as the base repo (reasonable chance)
+	gitRepo := gitBaseRepo
+	// But if not: is it the same as the context?
+	if pr.BaseRepoID != pr.HeadRepoID && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
+		gitRepo = ctx.Repo.GitRepo
+	} else if pr.BaseRepoID != pr.HeadRepoID {
+		// Otherwise just load it up
+		gitRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+			return
+		}
+		defer gitRepo.Close()
+	}
 
 	defer func() {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
