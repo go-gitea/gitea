@@ -505,7 +505,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 	templateRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 44}).(*models.Repository)
 
 	// user
-	repo := new(models.Repository)
+	repo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
 		Owner:       user.Name,
 		Name:        "new-repo",
@@ -526,7 +526,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 		Private:     false,
 		GitContent:  true,
 	})
-	session.MakeRequest(t, req, http.StatusCreated)
+	resp = session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, repo)
+
+	assert.Equal(t, "new-repo", repo.Name)
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {
