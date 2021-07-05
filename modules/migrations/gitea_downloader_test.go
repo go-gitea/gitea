@@ -225,7 +225,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}, issues[1])
 
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		IssueNumber: 4,
+		Context: 4,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, comments, 2)
@@ -337,7 +337,6 @@ func TestGiteaDownloadRepo(t *testing.T) {
 
 func assertEqualPulls(t *testing.T, pullExp, pullGet *base.PullRequest) {
 	assertEqualIssue(t, pull2issue(pullExp), pull2issue(pullGet))
-	assert.EqualValues(t, 0, pullGet.OriginalNumber)
 	assert.EqualValues(t, pullExp.PatchURL, pullGet.PatchURL)
 	assert.EqualValues(t, pullExp.Merged, pullGet.Merged)
 	assert.EqualValues(t, pullExp.MergedTime.Unix(), pullGet.MergedTime.Unix())
