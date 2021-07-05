@@ -968,7 +968,7 @@ func MergePullRequest(ctx *context.Context) {
 
 	if form.DeleteBranchAfterMerge {
 		var headRepo *git.Repository
-		if pr.HeadRepoID == ctx.Repo.Repository.ID {
+		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
 			headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
@@ -1189,7 +1189,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 	var gitBaseRepo *git.Repository
 
 	// Assume that the base repo is the current context (almost certainly)
-	if ctx.Repo != nil && ctx.Repo.Repository.ID == pr.BaseRepoID && ctx.Repo.GitRepo != nil {
+	if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.BaseRepoID && ctx.Repo.GitRepo != nil {
 		gitBaseRepo = ctx.Repo.GitRepo
 	} else {
 		// If not just open it

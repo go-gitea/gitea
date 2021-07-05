@@ -881,7 +881,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if form.DeleteBranchAfterMerge {
 		var headRepo *git.Repository
-		if pr.HeadRepoID == pr.BaseRepoID {
+		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
 			headRepo = ctx.Repo.GitRepo
 		} else {
 			headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
