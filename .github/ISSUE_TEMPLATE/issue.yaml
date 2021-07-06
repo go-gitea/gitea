@@ -21,6 +21,7 @@ body:
     label: Gitea Version
     description: Gitea version (or commit reference) your instance is running
     placeholder: v1.14.3
+    value: v1.14.3
   validations:
     required: true
 - type: input
@@ -28,21 +29,17 @@ body:
   attributes:
     label: Git Version
     description: The version of git running on the server's systemm
-  validations:
-    required: true
 - type: input
   id: os-ver
   attributes:
     label: Operating System
     description: The operating system you are using to run Gitea
-  validations:
-    required: true
 - type: textarea
   id: run-info
   attributes:
     label: How are you running Gitea?
     description: |
-      Please include information on whether you built gitea yourself, used one of our downloads or are using some other package
+      Please include information on whether you built gitea yourself, used one of our downloads, are using https://try.gitea.io or are using some other package
       Please also tell us how you are running gitea, e.g. if it is being run from docker, a command-line, systemd etc.
       If you are using a package or systemd tell us what distribution you are using
   validations:
@@ -57,8 +54,6 @@ body:
     - MySQL
     - MSSQL
     - SQLite
-  validations:
-    required: true
 - type: dropdown
   id: can-reproduce
   attributes:
