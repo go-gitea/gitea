@@ -93,12 +93,4 @@ body:
   id: screenshots
   attributes:
     label: Screenshots
-    description: If this issue involves the Web Interface, please upload a screenshot to Imgur or another image service and provide the URL here
-- type: checkboxes
-  id: terms
-  attributes:
-    label: Code of Conduct
-    description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
-    options:
-    - label: I agree to follow this project's Code of Conduct
-      required: true
+    description: If this issue involves the Web Interface, please provide a screenshot or multiple screenshots
