@@ -1,5 +1,5 @@
-name: New Issue
-description: Create a new issue
+name: Bug Report
+description: Found something you weren't expecting?  Report it here!
 body:
 - type: markdown
   attributes:
