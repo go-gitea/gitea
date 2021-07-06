@@ -585,8 +585,7 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 
 	var users []*User
 
-	if repo.IsPrivate ||
-		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
+	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
@@ -1036,7 +1035,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 
 var (
 	reservedRepoNames    = []string{".", ".."}
-	reservedRepoPatterns = []string{"*.git", "*.wiki"}
+	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
 // IsUsableRepoName returns true when repository is usable

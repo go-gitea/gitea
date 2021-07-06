@@ -323,6 +323,8 @@ var migrations = []Migration{
 	NewMigration("Add new table repo_archiver", addRepoArchiver),
 	// v186 -> v187
 	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
 }
 
 // GetCurrentDBVersion returns the current db version

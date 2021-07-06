@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 )
 
@@ -624,6 +625,7 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
 		}
