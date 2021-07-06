@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"code.gitea.io/gitea/models"
 	"fmt"
 	"net/http"
 	"strings"
@@ -50,6 +51,9 @@ func TestSignupAsRestricted(t *testing.T) {
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/restrictedUser")
 	MakeRequest(t, req, http.StatusOK)
+
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{Name: "restrictedUser"}).(*models.User)
+	assert.True(t, user2.IsRestricted)
 }
 
 func TestSignupEmail(t *testing.T) {
