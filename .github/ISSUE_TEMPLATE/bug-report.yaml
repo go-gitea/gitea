@@ -20,8 +20,6 @@ body:
   attributes:
     label: Gitea Version
     description: Gitea version (or commit reference) your instance is running
-    placeholder: v1.14.3
-    value: v1.14.3
   validations:
     required: true
 - type: input
