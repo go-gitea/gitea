@@ -29,11 +29,11 @@ func init() {
 	RegisterDownloaderFactory(&OneDevDownloaderFactory{})
 }
 
-// OneDevDownloaderFactory defines a onedev downloader factory
+// OneDevDownloaderFactory defines a downloader factory
 type OneDevDownloaderFactory struct {
 }
 
-// New returns a Downloader related to this factory according MigrateOptions
+// New returns a downloader related to this factory according MigrateOptions
 func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
 	u, err := url.Parse(opts.CloneAddr)
 	if err != nil {
@@ -71,7 +71,7 @@ type onedevUser struct {
 }
 
 // OneDevDownloader implements a Downloader interface to get repository informations
-// from OneDev via API
+// from OneDev
 type OneDevDownloader struct {
 	base.NullDownloader
 	ctx           context.Context
@@ -89,7 +89,7 @@ func (d *OneDevDownloader) SetContext(ctx context.Context) {
 	d.ctx = ctx
 }
 
-// NewOneDevDownloader creates a gogs Downloader via gogs API
+// NewOneDevDownloader creates a new downloader
 func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, password, repoName string) *OneDevDownloader {
 	var downloader = &OneDevDownloader{
 		ctx:      ctx,
@@ -306,7 +306,7 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 	return issues, len(issues) == 0, nil
 }
 
-// GetComments returns comments according issueNumber
+// GetComments returns requested comments
 func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	context, ok := opts.Context.(onedevIssueContext)
 	if !ok {
@@ -400,7 +400,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 	return comments, false, nil
 }
 
-// GetPullRequests returns pull requests according page and perPage
+// GetPullRequests returns requested pull requests
 func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	rawPullRequests := make([]struct {
 		ID             int64     `json:"id"`
@@ -480,7 +480,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 	return pullRequests, len(pullRequests) == 0, nil
 }
 
-// GetReviews returns pull requests review
+// GetReviews returns requested pull requests reviews
 func (d *OneDevDownloader) GetReviews(context interface{}) ([]*base.Review, error) {
 	issueContext, ok := context.(onedevIssueContext)
 	if !ok {
