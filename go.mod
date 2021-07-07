@@ -13,7 +13,7 @@ require (
 	gitea.com/lunny/levelqueue v0.3.0
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/ProtonMail/go-crypto v0.0.0-20210512092938-c05353c2d58c // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
 	github.com/PuerkitoBio/goquery v1.7.0
 	github.com/RoaringBitmap/roaring v0.9.1 // indirect
 	github.com/alecthomas/chroma v0.9.2
