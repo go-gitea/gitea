@@ -1,14 +1,9 @@
----
 kind: pipeline
-name: go1-13
-
-platform:
-  os: linux
-  arch: arm64
+name: go1-1-1
 
 steps:
 - name: test
-  image: golang:1.13
+  image: golang:1.11
   environment:
     GOPROXY: https://goproxy.cn
   commands:
@@ -17,15 +12,11 @@ steps:
 
 ---
 kind: pipeline
-name: go1-16
-
-platform:
-  os: linux
-  arch: arm64
+name: go1-1-2
 
 steps:
 - name: test
-  image: golang:1.16
+  image: golang:1.12
   environment:
     GOPROXY: https://goproxy.cn
   commands:

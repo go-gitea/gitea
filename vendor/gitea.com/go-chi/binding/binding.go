@@ -29,7 +29,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/goccy/go-json"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 )
 
@@ -89,6 +89,7 @@ func errorHandler(errs Errors, rw http.ResponseWriter) {
 		} else {
 			rw.WriteHeader(STATUS_UNPROCESSABLE_ENTITY)
 		}
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		errOutput, _ := json.Marshal(errs)
 		rw.Write(errOutput)
 		return
@@ -171,6 +172,7 @@ func JSON(req *http.Request, jsonStruct interface{}) Errors {
 
 	if req.Body != nil {
 		defer req.Body.Close()
+		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.NewDecoder(req.Body).Decode(jsonStruct)
 		if err != nil && err != io.EOF {
 			errors.Add([]string{}, ERR_DESERIALIZATION, err.Error())
@@ -231,9 +233,9 @@ func Validate(req *http.Request, obj interface{}) Errors {
 }
 
 var (
-	AlphaDashPattern    = regexp.MustCompile(`[^\d\w-_]`)
-	AlphaDashDotPattern = regexp.MustCompile(`[^\d\w-_\.]`)
-	EmailPattern        = regexp.MustCompile(`\A[\w!#$%&'*+/=?^_`+"`"+`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`+"`"+`{|}~-]+)*@(?:[\w](?:[\w-]*[\w])?\.)+[a-zA-Z0-9](?:[\w-]*[\w])?\z`)
+	AlphaDashPattern    = regexp.MustCompile("[^\\d\\w-_]")
+	AlphaDashDotPattern = regexp.MustCompile("[^\\d\\w-_\\.]")
+	EmailPattern        = regexp.MustCompile("[\\w!#$%&'*+/=?^_`{|}~-]+(?:\\.[\\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[\\w](?:[\\w-]*[\\w])?\\.)+[a-zA-Z0-9](?:[\\w-]*[\\w])?")
 )
 
 // Copied from github.com/asaskevich/govalidator.
@@ -248,7 +250,7 @@ var (
 	urlSubdomainRx = `((www\.)|([a-zA-Z0-9]([-\.][-\._a-zA-Z0-9]+)*))`
 	urlPortRx      = `(:(\d{1,5}))`
 	urlPathRx      = `((\/|\?|#)[^\s]*)`
-	URLPattern     = regexp.MustCompile(`\A` + urlSchemaRx + `?` + urlUsernameRx + `?` + `((` + urlIPRx + `|(\[` + ipRx + `\])|(([a-zA-Z0-9]([a-zA-Z0-9-_]+)?[a-zA-Z0-9]([-\.][a-zA-Z0-9]+)*)|(` + urlSubdomainRx + `?))?(([a-zA-Z\x{00a1}-\x{ffff}0-9]+-?-?)*[a-zA-Z\x{00a1}-\x{ffff}0-9]+)(?:\.([a-zA-Z\x{00a1}-\x{ffff}]{1,}))?))\.?` + urlPortRx + `?` + urlPathRx + `?\z`)
+	URLPattern     = regexp.MustCompile(`^` + urlSchemaRx + `?` + urlUsernameRx + `?` + `((` + urlIPRx + `|(\[` + ipRx + `\])|(([a-zA-Z0-9]([a-zA-Z0-9-_]+)?[a-zA-Z0-9]([-\.][a-zA-Z0-9]+)*)|(` + urlSubdomainRx + `?))?(([a-zA-Z\x{00a1}-\x{ffff}0-9]+-?-?)*[a-zA-Z\x{00a1}-\x{ffff}0-9]+)(?:\.([a-zA-Z\x{00a1}-\x{ffff}]{1,}))?))\.?` + urlPortRx + `?` + urlPathRx + `?$`)
 )
 
 // IsURL check if the string is an URL.
@@ -388,41 +390,32 @@ func validateField(errors Errors, zero interface{}, field reflect.StructField, f
 		}
 	}
 
-	rules := strings.Split(field.Tag.Get("binding"), ";")
-
-	if reflect.DeepEqual(zero, fieldValue) {
-		for _, rule := range rules {
-			if rule == "Required" {
-				errors.Add([]string{field.Name}, ERR_REQUIRED, "Required")
-				break
-			}
-			if strings.HasPrefix(rule, "Default(") {
-				if fieldVal.CanSet() {
-					errors = setWithProperType(field.Type.Kind(), rule[8:len(rule)-1], fieldVal, field.Tag.Get("form"), errors)
-				} else {
-					errors.Add([]string{field.Name}, ERR_EXCLUDE, "Default")
-				}
-				break
-			}
-		}
-
-		return errors
-	}
-
 VALIDATE_RULES:
-	for _, rule := range rules {
+	for _, rule := range strings.Split(field.Tag.Get("binding"), ";") {
 		if len(rule) == 0 {
 			continue
 		}
 
 		switch {
+		case rule == "OmitEmpty":
+			if reflect.DeepEqual(zero, fieldValue) {
+				break VALIDATE_RULES
+			}
 		case rule == "Required":
-			continue
-		case strings.HasPrefix(rule, "Default("):
-			continue
-		case rule == "OmitEmpty": // legacy
-			continue
+			v := reflect.ValueOf(fieldValue)
+			if v.Kind() == reflect.Slice {
+				if v.Len() == 0 {
+					errors.Add([]string{field.Name}, ERR_REQUIRED, "Required")
+					break VALIDATE_RULES
+				}
 
+				continue
+			}
+
+			if reflect.DeepEqual(zero, fieldValue) {
+				errors.Add([]string{field.Name}, ERR_REQUIRED, "Required")
+				break VALIDATE_RULES
+			}
 		case rule == "AlphaDash":
 			if AlphaDashPattern.MatchString(fmt.Sprintf("%v", fieldValue)) {
 				errors.Add([]string{field.Name}, ERR_ALPHA_DASH, "AlphaDash")
@@ -439,7 +432,8 @@ VALIDATE_RULES:
 				errors.Add([]string{field.Name}, ERR_SIZE, "Size")
 				break VALIDATE_RULES
 			}
-			if fieldVal.Kind() == reflect.Slice && fieldVal.Len() != size {
+			v := reflect.ValueOf(fieldValue)
+			if v.Kind() == reflect.Slice && v.Len() != size {
 				errors.Add([]string{field.Name}, ERR_SIZE, "Size")
 				break VALIDATE_RULES
 			}
@@ -449,7 +443,8 @@ VALIDATE_RULES:
 				errors.Add([]string{field.Name}, ERR_MIN_SIZE, "MinSize")
 				break VALIDATE_RULES
 			}
-			if fieldVal.Kind() == reflect.Slice && fieldVal.Len() < min {
+			v := reflect.ValueOf(fieldValue)
+			if v.Kind() == reflect.Slice && v.Len() < min {
 				errors.Add([]string{field.Name}, ERR_MIN_SIZE, "MinSize")
 				break VALIDATE_RULES
 			}
@@ -459,7 +454,8 @@ VALIDATE_RULES:
 				errors.Add([]string{field.Name}, ERR_MAX_SIZE, "MaxSize")
 				break VALIDATE_RULES
 			}
-			if fieldVal.Kind() == reflect.Slice && fieldVal.Len() > max {
+			v := reflect.ValueOf(fieldValue)
+			if v.Kind() == reflect.Slice && v.Len() > max {
 				errors.Add([]string{field.Name}, ERR_MAX_SIZE, "MaxSize")
 				break VALIDATE_RULES
 			}
@@ -480,7 +476,9 @@ VALIDATE_RULES:
 			}
 		case rule == "Url":
 			str := fmt.Sprintf("%v", fieldValue)
-			if !isURL(str) {
+			if len(str) == 0 {
+				continue
+			} else if !isURL(str) {
 				errors.Add([]string{field.Name}, ERR_URL, "Url")
 				break VALIDATE_RULES
 			}
@@ -503,6 +501,15 @@ VALIDATE_RULES:
 			if strings.Contains(fmt.Sprintf("%v", fieldValue), rule[8:len(rule)-1]) {
 				errors.Add([]string{field.Name}, ERR_EXCLUDE, "Exclude")
 				break VALIDATE_RULES
+			}
+		case strings.HasPrefix(rule, "Default("):
+			if reflect.DeepEqual(zero, fieldValue) {
+				if fieldVal.CanAddr() {
+					errors = setWithProperType(field.Type.Kind(), rule[8:len(rule)-1], fieldVal, field.Tag.Get("form"), errors)
+				} else {
+					errors.Add([]string{field.Name}, ERR_EXCLUDE, "Default")
+					break VALIDATE_RULES
+				}
 			}
 		default:
 			// Apply custom validation rules
