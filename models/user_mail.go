@@ -366,8 +366,8 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 }
 
 // ActivateUserEmail will change the activated state of an email address,
-// either primary (in the user table) or secondary (in the email_address table)
-func ActivateUserEmail(userID int64, email string, primary, activate bool) (err error) {
+// either primary or secondary (all in the email_address table)
+func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -397,24 +397,23 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 		return fmt.Errorf("updateActivation(): %v", err)
 	}
 
-	if primary {
-		// Activate/deactivate a user's primary email address
+	// Activate/deactivate a user's primary email address and account
+	if addr.IsPrimary {
 		user := User{ID: userID, Email: email}
 		if has, err := sess.Get(&user); err != nil {
 			return err
 		} else if !has {
 			return fmt.Errorf("no such user: %d (%s)", userID, email)
 		}
-		if user.IsActive == activate {
-			// Already in the desired state; no action
-			return nil
-		}
-		user.IsActive = activate
-		if user.Rands, err = GetUserSalt(); err != nil {
-			return fmt.Errorf("generate salt: %v", err)
-		}
-		if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
-			return fmt.Errorf("updateUserCols(): %v", err)
+		// The user's activation state should synchronized with the primary email
+		if user.IsActive != activate {
+			user.IsActive = activate
+			if user.Rands, err = GetUserSalt(); err != nil {
+				return fmt.Errorf("generate salt: %v", err)
+			}
+			if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
+				return fmt.Errorf("updateUserCols(): %v", err)
+			}
 		}
 	}
 

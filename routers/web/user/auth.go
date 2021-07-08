@@ -1429,6 +1429,10 @@ func handleAccountActivation(ctx *context.Context, user *models.User) {
 		return
 	}
 
+	if err := models.ActivateUserEmail(user.ID, user.Email, true); err != nil {
+		log.Error(fmt.Sprintf("Error active user mail: %v", err))
+	}
+
 	log.Trace("User activated: %s", user.Name)
 
 	if err := ctx.Session.Set("uid", user.ID); err != nil {
