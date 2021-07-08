@@ -31,6 +31,7 @@ package bluemonday
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -47,10 +48,11 @@ var (
 	dataAttributeXMLPrefix    = regexp.MustCompile("^xml.+")
 	dataAttributeInvalidChars = regexp.MustCompile("[A-Z;]+")
 	cssUnicodeChar            = regexp.MustCompile(`\\[0-9a-f]{1,6} ?`)
+	dataURIbase64Prefix       = regexp.MustCompile(`^data:[^,]*;base64,`)
 )
 
 // Sanitize takes a string that contains a HTML fragment or document and applies
-// the given policy whitelist.
+// the given policy allowlist.
 //
 // It returns a HTML string that has been sanitized by the policy or an empty
 // string if an error has occurred (most likely as a consequence of extremely
@@ -60,11 +62,11 @@ func (p *Policy) Sanitize(s string) string {
 		return s
 	}
 
-	return p.sanitize(strings.NewReader(s)).String()
+	return p.sanitizeWithBuff(strings.NewReader(s)).String()
 }
 
 // SanitizeBytes takes a []byte that contains a HTML fragment or document and applies
-// the given policy whitelist.
+// the given policy allowlist.
 //
 // It returns a []byte containing the HTML that has been sanitized by the policy
 // or an empty []byte if an error has occurred (most likely as a consequence of
@@ -74,26 +76,32 @@ func (p *Policy) SanitizeBytes(b []byte) []byte {
 		return b
 	}
 
-	return p.sanitize(bytes.NewReader(b)).Bytes()
+	return p.sanitizeWithBuff(bytes.NewReader(b)).Bytes()
 }
 
 // SanitizeReader takes an io.Reader that contains a HTML fragment or document
-// and applies the given policy whitelist.
+// and applies the given policy allowlist.
 //
 // It returns a bytes.Buffer containing the HTML that has been sanitized by the
 // policy. Errors during sanitization will merely return an empty result.
 func (p *Policy) SanitizeReader(r io.Reader) *bytes.Buffer {
-	return p.sanitize(r)
+	return p.sanitizeWithBuff(r)
+}
+
+// SanitizeReaderToWriter takes an io.Reader that contains a HTML fragment or document
+// and applies the given policy allowlist and writes to the provided writer returning
+// an error if there is one.
+func (p *Policy) SanitizeReaderToWriter(r io.Reader, w io.Writer) error {
+	return p.sanitize(r, w)
 }
 
 const escapedURLChars = "'<>\"\r"
 
-func escapeUrlComponent(val string) string {
-	w := bytes.NewBufferString("")
+func escapeUrlComponent(w stringWriterWriter, val string) error {
 	i := strings.IndexAny(val, escapedURLChars)
 	for i != -1 {
 		if _, err := w.WriteString(val[:i]); err != nil {
-			return w.String()
+			return err
 		}
 		var esc string
 		switch val[i] {
@@ -114,12 +122,12 @@ func escapeUrlComponent(val string) string {
 		}
 		val = val[i+1:]
 		if _, err := w.WriteString(esc); err != nil {
-			return w.String()
+			return err
 		}
 		i = strings.IndexAny(val, escapedURLChars)
 	}
-	w.WriteString(val)
-	return w.String()
+	_, err := w.WriteString(val)
+	return err
 }
 
 // Query represents a query
@@ -205,15 +213,16 @@ func sanitizedURL(val string) (string, error) {
 	return u.String(), nil
 }
 
-func (p *Policy) writeLinkableBuf(buff *bytes.Buffer, token *html.Token) {
+func (p *Policy) writeLinkableBuf(buff stringWriterWriter, token *html.Token) (int, error) {
 	// do not escape multiple query parameters
-	tokenBuff := bytes.NewBufferString("")
-	tokenBuff.WriteString("<")
+	tokenBuff := bytes.NewBuffer(make([]byte, 0, 1024)) // This should stay on the stack unless it gets too big
+
+	tokenBuff.WriteByte('<')
 	tokenBuff.WriteString(token.Data)
 	for _, attr := range token.Attr {
 		tokenBuff.WriteByte(' ')
 		tokenBuff.WriteString(attr.Key)
-		tokenBuff.WriteString(`="`)
+		tokenBuff.Write([]byte{'=', '"'})
 		switch attr.Key {
 		case "href", "src":
 			u, ok := p.validURL(attr.Val)
@@ -238,12 +247,27 @@ func (p *Policy) writeLinkableBuf(buff *bytes.Buffer, token *html.Token) {
 		tokenBuff.WriteString("/")
 	}
 	tokenBuff.WriteString(">")
-	buff.WriteString(tokenBuff.String())
+	return buff.Write(tokenBuff.Bytes())
 }
 
 // Performs the actual sanitization process.
-func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
+func (p *Policy) sanitizeWithBuff(r io.Reader) *bytes.Buffer {
+	var buff bytes.Buffer
+	if err := p.sanitize(r, &buff); err != nil {
+		return &bytes.Buffer{}
+	}
+	return &buff
+}
 
+type asStringWriter struct {
+	io.Writer
+}
+
+func (a *asStringWriter) WriteString(s string) (int, error) {
+	return a.Write([]byte(s))
+}
+
+func (p *Policy) sanitize(r io.Reader, w io.Writer) error {
 	// It is possible that the developer has created the policy via:
 	//   p := bluemonday.Policy{}
 	// rather than:
@@ -252,8 +276,12 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 	// would initiliaze the maps, then we need to do that.
 	p.init()
 
+	buff, ok := w.(stringWriterWriter)
+	if !ok {
+		buff = &asStringWriter{w}
+	}
+
 	var (
-		buff                     bytes.Buffer
 		skipElementContent       bool
 		skippingElementsCount    int64
 		skipClosingTag           bool
@@ -267,11 +295,11 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 			err := tokenizer.Err()
 			if err == io.EOF {
 				// End of input means end of processing
-				return &buff
+				return nil
 			}
 
 			// Raw tokenizer error
-			return &bytes.Buffer{}
+			return err
 		}
 
 		token := tokenizer.Token()
@@ -289,6 +317,10 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 		case html.CommentToken:
 
 			// Comments are ignored by default
+			if p.allowComments {
+				// But if allowed then write the comment out as-is
+				buff.WriteString(token.String())
+			}
 
 		case html.StartTagToken:
 
@@ -303,7 +335,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 						skippingElementsCount++
 					}
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
@@ -318,7 +352,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 					skipClosingTag = true
 					closingTagToSkipStack = append(closingTagToSkipStack, token.Data)
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
@@ -327,9 +363,13 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 			if !skipElementContent {
 				// do not escape multiple query parameters
 				if linkable(token.Data) {
-					p.writeLinkableBuf(&buff, &token)
+					if _, err := p.writeLinkableBuf(buff, &token); err != nil {
+						return err
+					}
 				} else {
-					buff.WriteString(token.String())
+					if _, err := buff.WriteString(token.String()); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -345,7 +385,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 					skipClosingTag = false
 				}
 				if p.addSpaces {
-					buff.WriteString(" ")
+					if _, err := buff.WriteString(" "); err != nil {
+						return err
+					}
 				}
 				break
 			}
@@ -366,14 +408,18 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 				}
 				if !match {
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
 			}
 
 			if !skipElementContent {
-				buff.WriteString(token.String())
+				if _, err := buff.WriteString(token.String()); err != nil {
+					return err
+				}
 			}
 
 		case html.SelfClosingTagToken:
@@ -383,7 +429,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 				aa, matched := p.matchRegex(token.Data)
 				if !matched {
 					if p.addSpaces && !matched {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
@@ -396,16 +444,22 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 
 			if len(token.Attr) == 0 && !p.allowNoAttrs(token.Data) {
 				if p.addSpaces {
-					buff.WriteString(" ")
+					if _, err := buff.WriteString(" "); err != nil {
+						return err
+					}
 					break
 				}
 			}
 			if !skipElementContent {
 				// do not escape multiple query parameters
 				if linkable(token.Data) {
-					p.writeLinkableBuf(&buff, &token)
+					if _, err := p.writeLinkableBuf(buff, &token); err != nil {
+						return err
+					}
 				} else {
-					buff.WriteString(token.String())
+					if _, err := buff.WriteString(token.String()); err != nil {
+						return err
+					}
 				}
 			}
 
@@ -416,20 +470,26 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 				case `script`:
 					// not encouraged, but if a policy allows JavaScript we
 					// should not HTML escape it as that would break the output
-					buff.WriteString(token.Data)
-				case `style`:
+					if _, err := buff.WriteString(token.Data); err != nil {
+						return err
+					}
+				case "style":
 					// not encouraged, but if a policy allows CSS styles we
 					// should not HTML escape it as that would break the output
-					buff.WriteString(token.Data)
+					if _, err := buff.WriteString(token.Data); err != nil {
+						return err
+					}
 				default:
 					// HTML escape the text
-					buff.WriteString(token.String())
+					if _, err := buff.WriteString(token.String()); err != nil {
+						return err
+					}
 				}
 			}
 
 		default:
 			// A token that didn't exist in the html package when we wrote this
-			return &bytes.Buffer{}
+			return fmt.Errorf("unknown token: %v", token)
 		}
 	}
 }
@@ -440,7 +500,7 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 func (p *Policy) sanitizeAttrs(
 	elementName string,
 	attrs []html.Attribute,
-	aps map[string]attrPolicy,
+	aps map[string][]attrPolicy,
 ) []html.Attribute {
 
 	if len(attrs) == 0 {
@@ -465,8 +525,9 @@ func (p *Policy) sanitizeAttrs(
 	}
 
 	// Builds a new attribute slice based on the whether the attribute has been
-	// whitelisted explicitly or globally.
+	// allowed explicitly or globally.
 	cleanAttrs := []html.Attribute{}
+attrsLoop:
 	for _, htmlAttr := range attrs {
 		if p.allowDataAttributes {
 			// If we see a data attribute, let it through.
@@ -489,27 +550,30 @@ func (p *Policy) sanitizeAttrs(
 		}
 
 		// Is there an element specific attribute policy that applies?
-		if ap, ok := aps[htmlAttr.Key]; ok {
-			if ap.regexp != nil {
-				if ap.regexp.MatchString(htmlAttr.Val) {
+		if apl, ok := aps[htmlAttr.Key]; ok {
+			for _, ap := range apl {
+				if ap.regexp != nil {
+					if ap.regexp.MatchString(htmlAttr.Val) {
+						cleanAttrs = append(cleanAttrs, htmlAttr)
+						continue attrsLoop
+					}
+				} else {
 					cleanAttrs = append(cleanAttrs, htmlAttr)
-					continue
+					continue attrsLoop
 				}
-			} else {
-				cleanAttrs = append(cleanAttrs, htmlAttr)
-				continue
 			}
 		}
 
 		// Is there a global attribute policy that applies?
-		if ap, ok := p.globalAttrs[htmlAttr.Key]; ok {
-
-			if ap.regexp != nil {
-				if ap.regexp.MatchString(htmlAttr.Val) {
+		if apl, ok := p.globalAttrs[htmlAttr.Key]; ok {
+			for _, ap := range apl {
+				if ap.regexp != nil {
+					if ap.regexp.MatchString(htmlAttr.Val) {
+						cleanAttrs = append(cleanAttrs, htmlAttr)
+					}
+				} else {
 					cleanAttrs = append(cleanAttrs, htmlAttr)
 				}
-			} else {
-				cleanAttrs = append(cleanAttrs, htmlAttr)
 			}
 		}
 	}
@@ -533,7 +597,7 @@ func (p *Policy) sanitizeAttrs(
 			tmpAttrs := []html.Attribute{}
 			for _, htmlAttr := range cleanAttrs {
 				switch elementName {
-				case "a", "area", "link":
+				case "a", "area", "base", "link":
 					if htmlAttr.Key == "href" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -542,7 +606,7 @@ func (p *Policy) sanitizeAttrs(
 						break
 					}
 					tmpAttrs = append(tmpAttrs, htmlAttr)
-				case "blockquote", "q":
+				case "blockquote", "del", "ins", "q":
 					if htmlAttr.Key == "cite" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -551,7 +615,7 @@ func (p *Policy) sanitizeAttrs(
 						break
 					}
 					tmpAttrs = append(tmpAttrs, htmlAttr)
-				case "img", "script":
+				case "audio", "embed", "iframe", "img", "script", "source", "track", "video":
 					if htmlAttr.Key == "src" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -576,7 +640,7 @@ func (p *Policy) sanitizeAttrs(
 
 			// Add rel="nofollow" if a "href" exists
 			switch elementName {
-			case "a", "area", "link":
+			case "a", "area", "base", "link":
 				var hrefFound bool
 				var externalLink bool
 				for _, htmlAttr := range cleanAttrs {
@@ -753,14 +817,14 @@ func (p *Policy) sanitizeAttrs(
 func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.Attribute {
 	sps := p.elsAndStyles[elementName]
 	if len(sps) == 0 {
-		sps = map[string]stylePolicy{}
+		sps = map[string][]stylePolicy{}
 		// check for any matching elements, if we don't already have a policy found
 		// if multiple matches are found they will be overwritten, it's best
 		// to not have overlapping matchers
 		for regex, policies := range p.elsMatchingAndStyles {
 			if regex.MatchString(elementName) {
 				for k, v := range policies {
-					sps[k] = v
+					sps[k] = append(sps[k], v...)
 				}
 			}
 		}
@@ -778,46 +842,51 @@ func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.At
 	clean := []string{}
 	prefixes := []string{"-webkit-", "-moz-", "-ms-", "-o-", "mso-", "-xv-", "-atsc-", "-wap-", "-khtml-", "prince-", "-ah-", "-hp-", "-ro-", "-rim-", "-tc-"}
 
+decLoop:
 	for _, dec := range decs {
-		addedProperty := false
 		tempProperty := strings.ToLower(dec.Property)
 		tempValue := removeUnicode(strings.ToLower(dec.Value))
 		for _, i := range prefixes {
 			tempProperty = strings.TrimPrefix(tempProperty, i)
 		}
-		if sp, ok := sps[tempProperty]; ok {
-			if sp.handler != nil {
-				if sp.handler(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
+		if spl, ok := sps[tempProperty]; ok {
+			for _, sp := range spl {
+				if sp.handler != nil {
+					if sp.handler(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if len(sp.enum) > 0 {
+					if stringInSlice(tempValue, sp.enum) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if sp.regexp != nil {
+					if sp.regexp.MatchString(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
 				}
-			} else if len(sp.enum) > 0 {
-				if stringInSlice(tempValue, sp.enum) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
-				}
-			} else if sp.regexp != nil {
-				if sp.regexp.MatchString(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
-				}
-				continue
 			}
 		}
-		if sp, ok := p.globalStyles[tempProperty]; ok && !addedProperty {
-			if sp.handler != nil {
-				if sp.handler(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
+		if spl, ok := p.globalStyles[tempProperty]; ok {
+			for _, sp := range spl {
+				if sp.handler != nil {
+					if sp.handler(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if len(sp.enum) > 0 {
+					if stringInSlice(tempValue, sp.enum) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if sp.regexp != nil {
+					if sp.regexp.MatchString(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
 				}
-			} else if len(sp.enum) > 0 {
-				if stringInSlice(tempValue, sp.enum) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-				}
-			} else if sp.regexp != nil {
-				if sp.regexp.MatchString(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-				}
-				continue
 			}
 		}
 	}
@@ -848,11 +917,28 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 		rawurl = strings.TrimSpace(rawurl)
 
 		// URLs cannot contain whitespace, unless it is a data-uri
-		if (strings.Contains(rawurl, " ") ||
+		if strings.Contains(rawurl, " ") ||
 			strings.Contains(rawurl, "\t") ||
-			strings.Contains(rawurl, "\n")) &&
-			!strings.HasPrefix(rawurl, `data:`) {
-			return "", false
+			strings.Contains(rawurl, "\n") {
+			if !strings.HasPrefix(rawurl, `data:`) {
+				return "", false
+			}
+
+			// Remove \r and \n from base64 encoded data to pass url.Parse.
+			matched := dataURIbase64Prefix.FindString(rawurl)
+			if matched != "" {
+				rawurl = matched + strings.Replace(
+					strings.Replace(
+						rawurl[len(matched):],
+						"\r",
+						"",
+						-1,
+					),
+					"\n",
+					"",
+					-1,
+				)
+			}
 		}
 
 		// URLs are valid if they parse
@@ -863,14 +949,19 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 
 		if u.Scheme != "" {
 
-			urlPolicy, ok := p.allowURLSchemes[u.Scheme]
+			urlPolicies, ok := p.allowURLSchemes[u.Scheme]
 			if !ok {
 				return "", false
-
 			}
 
-			if urlPolicy == nil || urlPolicy(u) == true {
+			if len(urlPolicies) == 0 {
 				return u.String(), true
+			}
+
+			for _, urlPolicy := range urlPolicies {
+				if urlPolicy(u) == true {
+					return u.String(), true
+				}
 			}
 
 			return "", false
@@ -890,7 +981,14 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 
 func linkable(elementName string) bool {
 	switch elementName {
-	case "a", "area", "blockquote", "img", "link", "script":
+	case "a", "area", "base", "link":
+		// elements that allow .href
+		return true
+	case "blockquote", "del", "ins", "q":
+		// elements that allow .cite
+		return true
+	case "audio", "embed", "iframe", "img", "input", "script", "track", "video":
+		// elements that allow .src
 		return true
 	default:
 		return false
@@ -957,14 +1055,14 @@ func removeUnicode(value string) string {
 	return substitutedValue
 }
 
-func (p *Policy) matchRegex(elementName string) (map[string]attrPolicy, bool) {
-	aps := make(map[string]attrPolicy, 0)
+func (p *Policy) matchRegex(elementName string) (map[string][]attrPolicy, bool) {
+	aps := make(map[string][]attrPolicy, 0)
 	matched := false
 	for regex, attrs := range p.elsMatchingAndAttrs {
 		if regex.MatchString(elementName) {
 			matched = true
 			for k, v := range attrs {
-				aps[k] = v
+				aps[k] = append(aps[k], v...)
 			}
 		}
 	}
