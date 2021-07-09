@@ -257,7 +257,7 @@ func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) err
 
 	go func() {
 		if err := render(ctx, input, wr); err != nil {
-			wr.CloseWithError(err)
+			_ = wr.CloseWithError(err)
 			return
 		}
 		_ = wr.Close()
