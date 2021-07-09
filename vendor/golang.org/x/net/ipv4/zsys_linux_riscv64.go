@@ -7,15 +7,12 @@
 package ipv4
 
 const (
-	sysIP_RECVTTL = 0xc
-
 	sizeofKernelSockaddrStorage = 0x80
 	sizeofSockaddrInet          = 0x10
 	sizeofInetPktinfo           = 0xc
 	sizeofSockExtendedErr       = 0x10
 
 	sizeofIPMreq         = 0x8
-	sizeofIPMreqn        = 0xc
 	sizeofIPMreqSource   = 0xc
 	sizeofGroupReq       = 0x88
 	sizeofGroupSourceReq = 0x108
@@ -54,12 +51,6 @@ type sockExtendedErr struct {
 type ipMreq struct {
 	Multiaddr [4]byte /* in_addr */
 	Interface [4]byte /* in_addr */
-}
-
-type ipMreqn struct {
-	Multiaddr [4]byte /* in_addr */
-	Address   [4]byte /* in_addr */
-	Ifindex   int32
 }
 
 type ipMreqSource struct {

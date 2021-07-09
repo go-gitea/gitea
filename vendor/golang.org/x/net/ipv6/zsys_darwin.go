@@ -4,12 +4,6 @@
 package ipv6
 
 const (
-	sysIPV6_TCLASS   = 0x24
-	sysIPV6_PATHMTU  = 0x2c
-	sysIPV6_PKTINFO  = 0x2e
-	sysIPV6_HOPLIMIT = 0x2f
-	sysIPV6_NEXTHOP  = 0x30
-
 	sizeofSockaddrStorage = 0x80
 	sizeofSockaddrInet6   = 0x1c
 	sizeofInet6Pktinfo    = 0x14
