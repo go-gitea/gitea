@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/keybase/go-crypto/openpgp"
 )
 
