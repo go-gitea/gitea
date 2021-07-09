@@ -5,6 +5,7 @@
 package external
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -96,7 +98,13 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	cmd := exec.Command(commands[0], args...)
+	processCtx, cancel := context.WithCancel(ctx.Ctx)
+	defer cancel()
+
+	pid := process.GetManager().Add(fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix), cancel)
+	defer process.GetManager().Remove(pid)
+
+	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(
 		os.Environ(),
 		"GITEA_PREFIX_SRC="+ctx.URLPrefix,

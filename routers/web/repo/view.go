@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 )
 
@@ -624,6 +625,7 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
 		}
@@ -749,7 +751,7 @@ func renderCode(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
-// RenderUserCards render a page show users according the input templaet
+// RenderUserCards render a page show users according the input template
 func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.QueryInt("page")
 	if page <= 0 {

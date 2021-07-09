@@ -97,6 +97,7 @@
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
   --color-light: #00000006;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #0000000f;
   --color-active: #00000014;
@@ -133,7 +134,7 @@ pre,
 code,
 kbd,
 samp {
-  font-size: .9em; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
 }
 
@@ -747,7 +748,7 @@ a.ui.card:hover,
     box-shadow: none;
   }
 
-  /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+  /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
   /* This fixes the commit graph button on the commits page */
 
   .menu:not(.vertical) .item > .button.compact {
