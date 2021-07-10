@@ -277,12 +277,6 @@ Please always check the release notes / [changelog](https://github.com/go-gitea/
     SET GLOBAL innodb_large_prefix=1;
     ```
 
-#### Why is my markdown broken
-
-In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
-If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
-If it is the latter, _usually_ there is a compliant alternative listed in the spec.
-
 ---
 
 ## Usage
