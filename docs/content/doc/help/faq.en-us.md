@@ -110,7 +110,8 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## Setting up logging
 
-- [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
+This is described [here]({{< relref "doc/advanced/logging-documentation.en-us.md" >}}).
+For setting up debug logging for bug reports, see [here]({{< relref "doc/advanced/logging-documentation.en-us.md" >}}#debugging-problems).
 
 ## What is Swagger?
 
