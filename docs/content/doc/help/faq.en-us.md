@@ -182,12 +182,15 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 Please don't submit translation updates via GitHub pull requests, as they will be overwritten with the translations in Crowdin.
 If you want to add (and maintain) an entirely new translation, please contact us on Discord or in a GitHub issue, so we can set that up in Crowdin.
 
-## Hooks aren't running
+## Repo displayed as empty or pushed commits don't show up in the UI
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
-See [SSH Issues](#ssh-issues) for more information.
+Essentially this problem boils down to git hooks not running.
+That could be due to:
 
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+- You're pushing not through Gitea's SSH; see [SSH issues](#ssh-issues).
+- The hooks not having the right path for gitea (ie. after moving installations. To fix this, click `Resynchronize pre-receive, update and post-receive hooks of all repositories` in the Gitea admin dashboard.
+- The hooks aren't executable because they're on a `noexec` partition, or another security feature of the way Gitea is run.
+
 
 ## SSH issues
 
