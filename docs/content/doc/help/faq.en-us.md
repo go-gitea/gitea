@@ -205,6 +205,7 @@ If this is unexpected, please log in with password and setup Gitea under another
 ```
 
 If you do not get the above message but still connect, it means your SSH key is **not** being managed by Gitea. This means hooks won't run, among other potential problems.
+You can try to run `Update the '.ssh/authorized_keys' file with Gitea SSH keys.` in the admin dashboard.
 
 If you cannot connect at all, your SSH key may not be configured correctly locally.
 This is specific to SSH and not Gitea, so will not be covered here.
@@ -284,6 +285,11 @@ Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.
 By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit.
 
 You may want to set this value to `60m` or `120m`.
+
+If git reports the following when pushing, you likely didn't push through Gitea, see [SSH issues](#ssh-issues).
+```
+error: exit status 127, message: bash: git-lfs-authenticate: command not found (try: 5/6)
+```
 
 ## How can I create users before starting Gitea
 
