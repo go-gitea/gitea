@@ -178,9 +178,7 @@ Which makes all other paths non-writeable to Gitea.
 
 ## Translation is incorrect/how to add more translations
 
-Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
-Please don't submit translation updates via GitHub pull requests, as they will be overwritten with the translations in Crowdin.
-If you want to add (and maintain) an entirely new translation, please contact us on Discord or in a GitHub issue, so we can set that up in Crowdin.
+See [here]({{< relref "doc/translation/localization.en-us.md" >}}) on how to add or change translations.
 
 ## Repo displayed as empty or pushed commits don't show up in the UI
 
