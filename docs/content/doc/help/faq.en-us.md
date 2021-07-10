@@ -22,6 +22,15 @@ For more help resources, check all [Support Options]({{< relref "doc/help/seek-h
 
 {{< toc >}}
 
+## To which Gitea version is this documentation referring?
+
+Currently, this documentation is always referring to the latest development on the `main` branch.
+We're looking provide separate documentation per release, see [this issue](https://github.com/go-gitea/gitea/issues/15279) if you want to help with that.
+
+## Is there end-user documentation available?
+
+Currently not, but Codeberg provides some helpful docs [here](https://docs.codeberg.org/).
+
 ## Difference between 1.x and 1.x.x downloads
 
 Version 1.7.x will be used for this example.  
