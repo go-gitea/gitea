@@ -56,42 +56,8 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else {
-		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
-		if err != nil {
-			return nil, err
-		}
-		if protectedBranch != nil {
-			isUnprotectedFile := false
-			glob := protectedBranch.GetUnprotectedFilePatterns()
-			if len(glob) != 0 {
-				isUnprotectedFile = protectedBranch.IsUnprotectedFile(glob, opts.TreePath)
-			}
-			if !protectedBranch.CanUserPush(doer.ID) && !isUnprotectedFile {
-				return nil, models.ErrUserCannotCommit{
-					UserName: doer.LowerName,
-				}
-			}
-			if protectedBranch.RequireSignedCommits {
-				_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
-				if err != nil {
-					if !models.IsErrWontSign(err) {
-						return nil, err
-					}
-					return nil, models.ErrUserCannotCommit{
-						UserName: doer.LowerName,
-					}
-				}
-			}
-			patterns := protectedBranch.GetProtectedFilePatterns()
-			for _, pat := range patterns {
-				if pat.Match(strings.ToLower(opts.TreePath)) {
-					return nil, models.ErrFilePathProtected{
-						Path: opts.TreePath,
-					}
-				}
-			}
-		}
+	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+		return nil, err
 	}
 
 	// Check that the path given in opts.treeName is valid (not a git path)
