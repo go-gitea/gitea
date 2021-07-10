@@ -154,7 +154,12 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 			return nil, err
 		}
 		if protectedBranch != nil {
-			if !protectedBranch.CanUserPush(doer.ID) {
+			isUnprotectedFile := false
+			glob := protectedBranch.GetUnprotectedFilePatterns()
+			if len(glob) != 0 {
+				isUnprotectedFile = protectedBranch.IsUnprotectedFile(glob, opts.TreePath)
+			}
+			if !protectedBranch.CanUserPush(doer.ID) && !isUnprotectedFile {
 				return nil, models.ErrUserCannotCommit{
 					UserName: doer.LowerName,
 				}
