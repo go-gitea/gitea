@@ -158,12 +158,7 @@ Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor an
 
 ## How to add/use custom themes
 
-Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
-To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
-
-As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/pulic/css`  
-Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
+See [here]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}#customizing-the-look-of-gitea).
 
 ## SSHD vs built-in SSH
 
