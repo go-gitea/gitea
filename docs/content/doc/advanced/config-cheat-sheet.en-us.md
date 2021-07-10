@@ -444,7 +444,7 @@ relation to port exhaustion.
 ## OpenID (`openid`)
 
 - `ENABLE_OPENID_SIGNIN`: **false**: Allow authentication in via OpenID.
-- `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION**: Allow registering via OpenID.
+- `ENABLE_OPENID_SIGNUP`: **! DISABLE\_REGISTRATION && ENABLE\_OPENID\_SIGNIN**: Allow registering via OpenID.
 - `WHITELISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
    OpenID URI's to permit.
 - `BLACKLISTED_URIS`: **\<empty\>**: If non-empty, list of POSIX regex patterns matching
