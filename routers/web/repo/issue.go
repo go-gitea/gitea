@@ -831,7 +831,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplIssueChoose)
 }
 
-// ValidateRepoMetas check and returns repository's meta informations
+// ValidateRepoMetas check and returns repository's meta information
 func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull bool) ([]int64, []int64, int64, int64) {
 	var (
 		repo = ctx.Repo.Repository
@@ -1461,7 +1461,7 @@ func ViewIssue(ctx *context.Context) {
 				}
 				if perm.CanWrite(models.UnitTypeCode) {
 					// Check if branch is not protected
-					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch, ctx.User); err != nil {
+					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true

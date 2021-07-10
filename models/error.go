@@ -985,6 +985,21 @@ func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 
+// ErrProtectedTagName represents a "ProtectedTagName" kind of error.
+type ErrProtectedTagName struct {
+	TagName string
+}
+
+// IsErrProtectedTagName checks if an error is a ErrProtectedTagName.
+func IsErrProtectedTagName(err error) bool {
+	_, ok := err.(ErrProtectedTagName)
+	return ok
+}
+
+func (err ErrProtectedTagName) Error() string {
+	return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
+}
+
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
 type ErrRepoFileAlreadyExists struct {
 	Path string
@@ -1099,7 +1114,7 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
-	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
 // ErrWontSign explains the first reason why a commit would not be signed
@@ -1274,7 +1289,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return "a SHA or commmit ID must be proved when updating a file"
+	return "a SHA or commit ID must be proved when updating a file"
 }
 
 //  __      __      ___.   .__                   __
