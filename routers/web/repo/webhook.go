@@ -239,7 +239,7 @@ func GogsHooksNewPost(ctx *context.Context) {
 }
 
 // newGogsWebhookPost response for creating gogs hook
-func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind models.HookTaskType) {
+func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind models.HookType) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -1076,6 +1076,39 @@ func MSTeamsHooksEditPost(ctx *context.Context) {
 // FeishuHooksEditPost response for editing feishu hook
 func FeishuHooksEditPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
+// WechatworkHooksEditPost response for editing wechatwork hook
+func WechatworkHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksEdit"] = true
