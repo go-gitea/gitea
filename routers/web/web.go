@@ -162,7 +162,7 @@ func Routes() *web.Route {
 		rw.WriteHeader(200)
 	})
 
-	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
+	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
 	// Get user from session if logged in.
