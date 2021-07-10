@@ -36,17 +36,12 @@ On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
 
-To migrate from Gogs to Gitea:
-
-- [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
-- [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
-
-To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
-In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
+To migrate repositories including issues, pulls, releases etc, Gitea has built in support for various git forges (GitHub, Gitlab, Gitea, Gogs).
 [Example (requires login)](https://try.gitea.io/repo/migrate)
 
-To migrate from Gitlab to Gitea, you can use this non-affiliated tool:  
-https://github.com/loganinak/MigrateGitlabToGogs
+To migrate an entire Gogs installation to Gitea:
+- [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
+- [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
 ## Where does Gitea store what file
 
@@ -100,13 +95,21 @@ The correct path for the template(s) will be relative to the `CustomPath`
 
 - If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 
-2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
+2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
-## Active user vs login prohibited user
+## User flags: active, prohibited, restricted
 
-In Gitea, an "active" user refers to a user that has activated their account via email.  
-A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
+- An "active" has activated their account via email.
+
+- A "login prohibited" user is a user that is not allowed to log in to Gitea anymore.
+
+- Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.
+
+    Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browsable by all co-workers).
+
+    At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
+
 
 ## Setting up logging
 
@@ -115,11 +118,10 @@ For setting up debug logging for bug reports, see [here]({{< relref "doc/advance
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.  
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
-
-[Swagger Example](https://try.gitea.io/api/swagger)
+[Swagger](https://swagger.io/) (or OpenAPI) is a standard Gitea uses for its API documentation.
+This UI is available at `<instance-uri>/api/swagger` ([example](https://try.gitea.io/api/swagger)),
+but it can be disabled by configuration]({{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}#api-api).
+For more information on the API, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
 
 ## Adjusting your server for public/private use
 
@@ -144,14 +146,7 @@ You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in y
 ### Issue only users
 
 The current way to achieve this is to create/modify a user with a max repo creation limit of 0.
-
-### Restricted users
-
-Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.\_\_
-
-Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browsable by all co-workers).
-
-At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
+For organization repos, teams can be set up to only access the issue tracker.
 
 ### Enable Fail2ban
 
@@ -175,7 +170,7 @@ Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `tru
 ## Can't create repositories/files
 
 Make sure that Gitea has sufficient permissions to write to its home directory and data directory.  
-See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
+See [AppDataPath and RepoRootPath](#where-does-gitea-store-what-file)
 
 **Note for Arch users:** At the time of writing this, there is an issue with the Arch package's systemd file including this line:
 `ReadWritePaths=/etc/gitea/app.ini`  
@@ -184,7 +179,8 @@ Which makes all other paths non-writeable to Gitea.
 ## Translation is incorrect/how to add more translations
 
 Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
-Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
+Please don't submit translation updates via GitHub pull requests, as they will be overwritten with the translations in Crowdin.
+If you want to add (and maintain) an entirely new translation, please contact us on Discord or in a GitHub issue, so we can set that up in Crowdin.
 
 ## Hooks aren't running
 
