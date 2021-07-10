@@ -31,6 +31,7 @@ menu:
 ## Bugs
 
 If you found a bug, please create an [issue on GitHub](https://github.com/go-gitea/gitea/issues).
+Please search for existing issues first!
 
 ## Chinese Support
 
