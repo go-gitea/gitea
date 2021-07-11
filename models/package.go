@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// PackageType
+// PackageType specifies the different package types
 type PackageType int
 
 // Note: new type must append to the end of list to maintain compatibility.

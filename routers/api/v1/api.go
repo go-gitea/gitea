@@ -79,6 +79,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/packages/generic"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -970,6 +971,15 @@ func Routes() *web.Route {
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
+				m.Group("/packages", func() {
+					m.Group("/generic", func() {
+						m.Group("/{packagename}/{packageversion}/{filename}", func() {
+							m.Get("", generic.DownloadPackage)
+							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.UploadPackage)
+							m.Delete("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.DeletePackage)
+						})
+					})
+				}, reqToken())
 			}, repoAssignment())
 		})
 
