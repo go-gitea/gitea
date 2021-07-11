@@ -6,8 +6,6 @@ package generic
 
 import (
 	"errors"
-	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -36,7 +34,7 @@ func DownloadPackage(ctx *context.APIContext) {
 	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageGeneric, packageName, packageVersion)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
-			ctx.Error(http.StatusBadRequest, "", err)
+			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
 		log.Error("Error getting package: %v", err)
@@ -54,7 +52,7 @@ func DownloadPackage(ctx *context.APIContext) {
 	pf := pfs[0]
 
 	if !strings.EqualFold(pf.LowerName, filename) {
-		ctx.Error(http.StatusBadRequest, "", models.ErrPackageNotExist)
+		ctx.Error(http.StatusNotFound, "", models.ErrPackageNotExist)
 		return
 	}
 
@@ -67,12 +65,7 @@ func DownloadPackage(ctx *context.APIContext) {
 	}
 	defer s.Close()
 
-	ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, pf.Name))
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	_, err = io.Copy(ctx.Resp, s)
-	if err != nil {
-		log.Error("Error in io.Copy: %v", err)
-	}
+	ctx.ServeStream(s, pf.Name)
 }
 
 // UploadPackage uploads the specific generic package.
@@ -120,6 +113,8 @@ func UploadPackage(ctx *context.APIContext) {
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
 	}
+
+	ctx.PlainText(http.StatusCreated, nil)
 }
 
 // DeletePackage deletes the specific generic package.
@@ -133,7 +128,7 @@ func DeletePackage(ctx *context.APIContext) {
 	err = package_service.DeletePackage(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
-			ctx.Error(http.StatusBadRequest, "", err)
+			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
