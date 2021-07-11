@@ -255,6 +255,10 @@ var (
 	RepoArchive = struct {
 		Storage
 	}{}
+
+	Packages = struct {
+		Storage
+	}{}
 )
 
 func newRepository() {
@@ -334,4 +338,5 @@ func newRepository() {
 	}
 
 	RepoArchive.Storage = getStorage("repo-archive", "", nil)
+	Packages.Storage = getStorage("packages", "", nil)
 }
