@@ -98,14 +98,11 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		args = append(args, f.Name())
 	}
 
-	parentCtx := context.Background()
-	if ctx != nil && ctx.Ctx != nil {
-		parentCtx = ctx.Ctx
-	} else {
-		log.Error("RenderContext did not provide context)")
+	if ctx == nil || ctx.Ctx == nil {
+		return fmt.Errorf("RenderContext did not provide context")
 	}
 
-	processCtx, cancel := context.WithCancel(parentCtx)
+	processCtx, cancel := context.WithCancel(ctx.Ctx)
 	defer cancel()
 
 	pid := process.GetManager().Add(fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix), cancel)
