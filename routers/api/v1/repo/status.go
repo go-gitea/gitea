@@ -171,44 +171,12 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	filter := ResolveRefOrSha(ctx, ctx.Params("ref"))
+	filter := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {
 		return
 	}
 
 	getCommitStatuses(ctx, filter) //By default filter is maybe the raw SHA
-}
-
-// ResolveRefOrSha resolve ref to sha if exist
-func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
-	if len(ref) == 0 {
-		ctx.Error(http.StatusBadRequest, "ref not given", nil)
-		return ""
-	}
-
-	// Search branches and tags
-	for _, refType := range []string{"heads", "tags"} {
-		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, lastMethodName, err)
-			return ""
-		}
-		if refSHA != "" {
-			return refSHA
-		}
-	}
-	return ref
-}
-
-func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (string, string, error) {
-	refs, lastMethodName, err := getGitRefs(ctx, refType+"/"+filter) //Search by type
-	if err != nil {
-		return "", lastMethodName, err
-	}
-	if len(refs) > 0 {
-		return refs[0].Object.String(), "", nil //Return found SHA
-	}
-	return "", "", nil
 }
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {
@@ -279,7 +247,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	sha := ResolveRefOrSha(ctx, ctx.Params("ref"))
+	sha := utils.ResolveRefOrSha(ctx, ctx.Params("ref"))
 	if ctx.Written() {
 		return
 	}
