@@ -1035,7 +1035,7 @@ func newIssueAttempt(repo *Repository, issue *Issue, labelIDs []int64, uuids []s
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.
 func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 	if index < 1 {
-		return nil, fmt.Errorf("index %d is not a valid issue", index)
+		return nil, ErrIssueNotExist{}
 	}
 	issue := &Issue{
 		RepoID: repoID,
