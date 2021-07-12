@@ -884,7 +884,7 @@ parsingLoop:
 
 	}
 
-	// FIXME: There are numerous issues with this:
+	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
 	var diffLineTypeBuffers = make(map[DiffLineType]*bytes.Buffer, 3)
