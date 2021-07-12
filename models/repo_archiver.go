@@ -52,12 +52,7 @@ func (archiver *RepoArchiver) LoadRepo() (*Repository, error) {
 
 // RelativePath returns relative path
 func (archiver *RepoArchiver) RelativePath() (string, error) {
-	repo, err := archiver.LoadRepo()
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%d/%s/%s.%s", repo.ID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String()), nil
+	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String()), nil
 }
 
 // GetRepoArchiver get an archiver
