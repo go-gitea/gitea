@@ -34,16 +34,18 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
-	gitRepo, err := git.OpenRepository(ctx.Repo.Repository.RepoPath())
-	if err != nil {
-		return nil, "OpenRepository", err
+	if ctx.Repo.GitRepo == nil {
+		var err error
+		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+		if err != nil {
+			return nil, "OpenRepository", err
+		}
+		defer ctx.Repo.GitRepo.Close()
 	}
-	defer gitRepo.Close()
-
 	if len(filter) > 0 {
 		filter = "refs/" + filter
 	}
-	refs, err := gitRepo.GetRefsFiltered(filter)
+	refs, err := ctx.Repo.GitRepo.GetRefsFiltered(filter)
 	return refs, "GetRefsFiltered", err
 }
 
