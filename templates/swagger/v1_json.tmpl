@@ -9777,6 +9777,61 @@
         }
       }
     },
+    "/repos/{template_owner}/{template_repo}/generate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a repository using a template",
+        "operationId": "generateRepo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the template repository owner",
+            "name": "template_owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the template repository",
+            "name": "template_repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/GenerateRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "description": "The repository with the same name already exists."
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repositories/{id}": {
       "get": {
         "produces": [
@@ -14547,6 +14602,68 @@
         "default_theme": {
           "type": "string",
           "x-go-name": "DefaultTheme"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GenerateRepoOption": {
+      "description": "GenerateRepoOption options when creating repository using a template",
+      "type": "object",
+      "required": [
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "avatar": {
+          "description": "include avatar of the template repo",
+          "type": "boolean",
+          "x-go-name": "Avatar"
+        },
+        "description": {
+          "description": "Description of the repository to create",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "git_content": {
+          "description": "include git content of default branch in template repo",
+          "type": "boolean",
+          "x-go-name": "GitContent"
+        },
+        "git_hooks": {
+          "description": "include git hooks in template repo",
+          "type": "boolean",
+          "x-go-name": "GitHooks"
+        },
+        "labels": {
+          "description": "include labels in template repo",
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "description": "Name of the repository to create",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        },
+        "owner": {
+          "description": "The organization or person who will own the new repository",
+          "type": "string",
+          "x-go-name": "Owner"
+        },
+        "private": {
+          "description": "Whether the repository is private",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "topics": {
+          "description": "include topics in template repo",
+          "type": "boolean",
+          "x-go-name": "Topics"
+        },
+        "webhooks": {
+          "description": "include webhooks in template repo",
+          "type": "boolean",
+          "x-go-name": "Webhooks"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
