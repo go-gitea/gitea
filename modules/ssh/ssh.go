@@ -66,7 +66,7 @@ func sessionHandler(session ssh.Session) {
 
 	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
-	cmd := exec.Command(setting.AppPath, args...)
+	cmd := exec.CommandContext(session.Context(), setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,

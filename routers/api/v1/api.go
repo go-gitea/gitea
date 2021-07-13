@@ -725,6 +725,7 @@ func Routes() *web.Route {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
+				m.Post("/generate", reqToken(), reqRepoReader(models.UnitTypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -908,6 +909,7 @@ func Routes() *web.Route {
 						m.Get(".diff", repo.DownloadPullDiff)
 						m.Get(".patch", repo.DownloadPullPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
+						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 						m.Group("/reviews", func() {

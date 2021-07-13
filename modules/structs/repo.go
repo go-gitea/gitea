@@ -180,6 +180,36 @@ type EditRepoOption struct {
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 }
 
+// GenerateRepoOption options when creating repository using a template
+// swagger:model
+type GenerateRepoOption struct {
+	// The organization or person who will own the new repository
+	//
+	// required: true
+	Owner string `json:"owner"`
+	// Name of the repository to create
+	//
+	// required: true
+	// unique: true
+	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Description of the repository to create
+	Description string `json:"description" binding:"MaxSize(255)"`
+	// Whether the repository is private
+	Private bool `json:"private"`
+	// include git content of default branch in template repo
+	GitContent bool `json:"git_content"`
+	// include topics in template repo
+	Topics bool `json:"topics"`
+	// include git hooks in template repo
+	GitHooks bool `json:"git_hooks"`
+	// include webhooks in template repo
+	Webhooks bool `json:"webhooks"`
+	// include avatar of the template repo
+	Avatar bool `json:"avatar"`
+	// include labels in template repo
+	Labels bool `json:"labels"`
+}
+
 // CreateBranchRepoOption options when creating a branch in a repository
 // swagger:model
 type CreateBranchRepoOption struct {
