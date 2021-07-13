@@ -325,6 +325,26 @@ func (ctx *Context) QueryOptionalBool(key string, defaults ...util.OptionalBool)
 	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
 
+// UploadStream returns the request body or the first form file
+func (ctx *Context) UploadStream() (io.ReadCloser, error) {
+	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := ctx.Req.ParseMultipartForm(32 * 1024 * 1024); err != nil {
+			return nil, err
+		}
+		if ctx.Req.MultipartForm.File == nil {
+			return nil, http.ErrMissingFile
+		}
+		for _, files := range ctx.Req.MultipartForm.File {
+			if len(files) > 0 {
+				return files[0].Open()
+			}
+		}
+		return nil, http.ErrMissingFile
+	}
+	return ctx.Req.Body, nil
+}
+
 // HandleText handles HTTP status code
 func (ctx *Context) HandleText(status int, title string) {
 	if (status/100 == 4) || (status/100 == 5) {

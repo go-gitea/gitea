@@ -23,9 +23,9 @@ func TestPackageGeneric(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	packageName := "te-st_pac.kage"
-	packageVersion := "v1.0.3"
+	packageVersion := "1.0.3"
 	filename := "fi-le_na.me"
-	content := []byte{1,2,3}
+	content := []byte{1, 2, 3}
 
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/generic/%s/%s/%s?token=%s", user.Name, repository.Name, packageName, packageVersion, filename, token)
 

@@ -11,18 +11,26 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // CreatePackage creates a new package
-func CreatePackage(creator *models.User, repository *models.Repository, packageType models.PackageType, name, version string, metaData interface{}, allowDuplicate bool) (*models.Package, error) {
+func CreatePackage(creator *models.User, repository *models.Repository, packageType models.PackageType, name, version string, metadata interface{}, allowDuplicate bool) (*models.Package, error) {
+	metadataJSON, err := jsoniter.Marshal(metadata)
+	if err != nil {
+		log.Error("Error converting metadata to JSON: %v", err)
+		return nil, err
+	}
+
 	p := &models.Package{
-		RepositoryID: repository.ID,
-		CreatorID:    creator.ID,
-		Type:         packageType,
-		Name:         name,
-		LowerName:    strings.ToLower(name),
-		Version:      version,
-		MetaData:     metaData,
+		RepoID:      repository.ID,
+		CreatorID:   creator.ID,
+		Type:        packageType,
+		Name:        name,
+		LowerName:   strings.ToLower(name),
+		Version:     version,
+		MetadataRaw: string(metadataJSON),
 	}
 	if err := models.TryInsertPackage(p); err != nil {
 		if err == models.ErrDuplicatePackage {
@@ -92,4 +100,28 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 	}
 
 	return nil
+}
+
+// GetPackageFileStream returns the content of the specific package file
+func GetPackageFileStream(repository *models.Repository, packageType models.PackageType, name, version, filename string) (io.ReadCloser, *models.PackageFile, error) {
+	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pfs, err := p.GetFiles()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	filename = strings.ToLower(filename)
+
+	for _, pf := range pfs {
+		if pf.LowerName == filename {
+			s, err := packages_module.NewContentStore().Get(pf.ID)
+			return s, pf, err
+		}
+	}
+
+	return nil, nil, models.ErrPackageNotExist
 }

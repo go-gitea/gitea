@@ -18,7 +18,7 @@ var (
 	ErrInvalidMemorySize = errors.New("Memory size must be greater 0 and lower math.MaxInt32")
 )
 
-// FileBackedBuffer implements io.ReadSeekCloser
+// FileBackedBuffer implements io.ReadSeekCloser and io.ReaderAt
 type FileBackedBuffer struct {
 	size    int64
 	buffer  *bytes.Reader
@@ -67,6 +67,14 @@ func (b *FileBackedBuffer) Read(p []byte) (int, error) {
 		return b.tmpFile.Read(p)
 	}
 	return b.buffer.Read(p)
+}
+
+// ReadAt implements io.ReaderAt
+func (b *FileBackedBuffer) ReadAt(p []byte, off int64) (int, error) {
+	if b.tmpFile != nil {
+		return b.tmpFile.ReadAt(p, off)
+	}
+	return b.buffer.ReadAt(p, off)
 }
 
 // Seek implements io.Seeker

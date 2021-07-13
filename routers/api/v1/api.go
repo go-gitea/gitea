@@ -80,6 +80,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
+	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -217,6 +218,7 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="API"`)
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
 			return
 		}
@@ -974,12 +976,28 @@ func Routes() *web.Route {
 				m.Group("/packages", func() {
 					m.Group("/generic", func() {
 						m.Group("/{packagename}/{packageversion}/{filename}", func() {
-							m.Get("", generic.DownloadPackage)
+							m.Get("", generic.DownloadPackageContent)
 							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.UploadPackage)
 							m.Delete("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.DeletePackage)
 						})
-					})
-				}, reqToken())
+					}, reqToken())
+					m.Group("/nuget", func() {
+						m.Put("/" /*reqRepoWriter(models.UnitTypePackage),*/, nuget.UploadPackage)
+						m.Get("/index.json", nuget.ServiceIndex)
+						m.Get("/query", nuget.SearchService)
+						m.Group("/registration/{id}", func() {
+							m.Get("/index.json", nuget.RegistrationIndex)
+							m.Get("/{version}", nuget.RegistrationLeaf)
+						})
+						m.Group("/package/{id}", func() {
+							m.Get("/index.json", nuget.EnumeratePackageVersions)
+							m.Group("/{version}", func() {
+								m.Delete("/" /*reqRepoWriter(models.UnitTypePackage),*/, nuget.DeletePackage)
+								m.Get("/{filename}", nuget.DownloadPackageContent)
+							})
+						})
+					}, reqBasicAuth())
+				})
 			}, repoAssignment())
 		})
 

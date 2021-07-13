@@ -8,59 +8,35 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/util/filebuffer"
 
 	package_service "code.gitea.io/gitea/services/packages"
+
+	"github.com/hashicorp/go-version"
 )
 
 var packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
-var packageVersionRegex = regexp.MustCompile(`\A(?:\.?[\w\+-]+\.?)+\z`)
 var filenameRegex = packageNameRegex
 
-// DownloadPackage serves the specific generic package.
-func DownloadPackage(ctx *context.APIContext) {
+// DownloadPackageContent serves the specific generic package.
+func DownloadPackageContent(ctx *context.APIContext) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 		return
 	}
 
-	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageGeneric, packageName, packageVersion)
+	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
-		log.Error("Error getting package: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", "")
-		return
-	}
-
-	pfs, err := p.GetFiles()
-	if err != nil {
-		log.Error("Error getting package files: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", "")
-		return
-	}
-
-	pf := pfs[0]
-
-	if !strings.EqualFold(pf.LowerName, filename) {
-		ctx.Error(http.StatusNotFound, "", models.ErrPackageNotExist)
-		return
-	}
-
-	packageStore := packages.NewContentStore()
-	s, err := packageStore.Get(pf.ID)
-	if err != nil {
-		log.Error("Error reading package file: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", "")
+		ctx.Error(http.StatusInternalServerError, "", err)
 		return
 	}
 	defer s.Close()
@@ -77,14 +53,20 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	defer ctx.Req.Body.Close()
-	r, err := filebuffer.CreateFromReader(ctx.Req.Body, 32*1024*1024)
+	upload, err := ctx.UploadStream()
 	if err != nil {
-		log.Error("Error in CreateFromReader: %v", err)
+		ctx.Error(http.StatusBadRequest, "", err)
+		return
+	}
+	defer upload.Close()
+
+	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
+	if err != nil {
+		log.Error("Error creating file buffer: %v", err)
 		ctx.Error(http.StatusInternalServerError, "", "")
 		return
 	}
-	defer r.Close()
+	defer buf.Close()
 
 	p, err := package_service.CreatePackage(
 		ctx.User,
@@ -100,16 +82,16 @@ func UploadPackage(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
-		log.Error("Error in CreatePackage: %v", err)
+		log.Error("Error creating package: %v", err)
 		ctx.Error(http.StatusInternalServerError, "", "")
 		return
 	}
 
-	_, err = package_service.AddFileToPackage(p, filename, r.Size(), r)
+	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
-		log.Error("Error in AddFileToPackage: %v", err)
+		log.Error("Error adding file to package: %v", err)
 		if err := models.DeletePackageByID(p.ID); err != nil {
-			log.Error("Error in DeletePackageByID: %v", err)
+			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
 	}
@@ -135,13 +117,18 @@ func DeletePackage(ctx *context.APIContext) {
 	}
 }
 
-func sanitizeParameters(ctx *context.APIContext) (packageName, packageVersion, filename string, err error) {
-	packageName = ctx.Params("packagename")
-	packageVersion = ctx.Params("packageversion")
-	filename = ctx.Params("filename")
+func sanitizeParameters(ctx *context.APIContext) (string, string, string, error) {
+	packageName := ctx.Params("packagename")
+	filename := ctx.Params("filename")
 
-	if !packageNameRegex.MatchString(packageName) || !packageVersionRegex.MatchString(packageVersion) || !filenameRegex.MatchString(filename) {
-		err = errors.New("Invalid package name, package version or filename")
+	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
+		return "", "", "", errors.New("Invalid package name or filename")
 	}
-	return
+
+	v, err := version.NewSemver(ctx.Params("packageversion"))
+	if err != nil {
+		return "", "", "", err
+	}
+
+	return packageName, v.String(), filename, nil
 }

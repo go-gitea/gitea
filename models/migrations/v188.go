@@ -12,14 +12,14 @@ import (
 
 func addPackageTables(x *xorm.Engine) error {
 	type Package struct {
-		ID           int64 `xorm:"pk autoincr"`
-		RepositoryID int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID    int64
-		Type         int `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name         string
-		LowerName    string      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Version      string      `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		MetaData     interface{} `xorm:"TEXT JSON"`
+		ID          int64 `xorm:"pk autoincr"`
+		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		CreatorID   int64
+		Type        int `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Name        string
+		LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		MetadataRaw string `xorm:"TEXT"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
