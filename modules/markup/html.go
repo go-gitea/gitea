@@ -70,9 +70,6 @@ var (
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
 
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
-
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
 	return isLink(link)
@@ -87,13 +84,13 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
-// FIXME: This function is not concurrent safe
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
-		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
-	return issueFullPattern
+	var issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
+		`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+
+	return func() *regexp.Regexp {
+		return issueFullPattern
+	}()
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
