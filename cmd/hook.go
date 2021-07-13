@@ -166,7 +166,7 @@ Gitea or set your environment appropriately.`, "")
 		return nil
 	}
 
-	// the environment setted on serv command
+	// the environment is set by serv command
 	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
@@ -323,7 +323,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	// the environment setted on serv command
+	// the environment is set by serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
 	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
 	repoName := os.Getenv(models.EnvRepoName)
