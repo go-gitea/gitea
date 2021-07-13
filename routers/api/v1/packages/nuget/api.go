@@ -12,6 +12,34 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
+// ServiceIndexResponse https://docs.microsoft.com/en-us/nuget/api/service-index#resources
+type ServiceIndexResponse struct {
+	Version   string     `json:"version"`
+	Resources []ServiceResource `json:"resources"`
+}
+
+// ServiceResource https://docs.microsoft.com/en-us/nuget/api/service-index#resource
+type ServiceResource struct {
+	ID   string `json:"@id"`
+	Type string `json:"@type"`
+}
+
+func createServiceIndexResponse(root string) *ServiceIndexResponse {
+	return &ServiceIndexResponse{
+		Version: "3.0.0",
+		Resources: []ServiceResource{
+			{ID: root + "/query", Type: "SearchQueryService"},
+			{ID: root + "/query", Type: "SearchQueryService/3.0.0-beta"},
+			{ID: root + "/query", Type: "SearchQueryService/3.0.0-rc"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-beta"},
+			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-rc"},
+			{ID: root + "/package", Type: "PackageBaseAddress/3.0.0"},
+			{ID: root, Type: "PackagePublish/2.0.0"},
+		},
+	}
+}
+
 // RegistrationIndexResponse https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#response
 type RegistrationIndexResponse struct {
 	RegistrationIndexURL string                   `json:"@id"`

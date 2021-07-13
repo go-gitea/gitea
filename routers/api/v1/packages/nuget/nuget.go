@@ -5,7 +5,6 @@
 package nuget
 
 import (
-	//"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -24,29 +23,9 @@ import (
 func ServiceIndex(ctx *context.APIContext) {
 	repoName := ctx.Repo.Repository.FullName()
 
-	type resource struct {
-		ID   string `json:"@id"`
-		Type string `json:"@type"`
-	}
+	resp := createServiceIndexResponse(setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget")
 
-	serviceIndex := struct {
-		Version   string     `json:"version"`
-		Resources []resource `json:"resources"`
-	}{
-		Version: "3.0.0",
-		Resources: []resource{
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/query", Type: "SearchQueryService"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/query", Type: "SearchQueryService/3.0.0-beta"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/query", Type: "SearchQueryService/3.0.0-rc"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/registration", Type: "RegistrationsBaseUrl"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/registration", Type: "RegistrationsBaseUrl/3.0.0-beta"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/registration", Type: "RegistrationsBaseUrl/3.0.0-rc"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget/package", Type: "PackageBaseAddress/3.0.0"},
-			{ID: setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget", Type: "PackagePublish/2.0.0"},
-		},
-	}
-
-	ctx.JSON(http.StatusOK, serviceIndex)
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
