@@ -72,7 +72,7 @@ var (
 const keywordClass = "issue-keyword"
 
 // regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
+var issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) + `\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
@@ -86,15 +86,6 @@ func isLink(link []byte) bool {
 
 func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
-}
-
-// FIXME: This function is not concurrent safe
-func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
-		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
-	return issueFullPattern
 }
 
 // CustomLinkURLSchemes allows for additional schemes to be detected when parsing links within text
@@ -769,7 +760,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	next := node.NextSibling
 	for node != nil && node != next {
-		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		m := issueFullPattern.FindStringSubmatchIndex(node.Data)
 		if m == nil {
 			return
 		}
