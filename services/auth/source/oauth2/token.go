@@ -39,7 +39,7 @@ type Token struct {
 	jwt.StandardClaims
 }
 
-// ParseToken parses a singed jwt string
+// ParseToken parses a signed jwt string
 func ParseToken(jwtToken string) (*Token, error) {
 	parsedToken, err := jwt.ParseWithClaims(jwtToken, &Token{}, func(token *jwt.Token) (interface{}, error) {
 		if token.Method == nil || token.Method.Alg() != DefaultSigningKey.SigningMethod().Alg() {

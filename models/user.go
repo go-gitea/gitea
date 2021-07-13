@@ -813,7 +813,7 @@ var (
 		"user",
 	}
 
-	reservedUserPatterns = []string{"*.keys", "*.gpg"}
+	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
@@ -1637,7 +1637,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
-			// Force visiblity for privacy
+			// Force visibility for privacy
 			var accessCond builder.Cond
 			if !opts.Actor.IsRestricted {
 				accessCond = builder.Or(
@@ -1653,7 +1653,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 
 	} else {
-		// Force visiblity for privacy
+		// Force visibility for privacy
 		// Not logged in - only public users
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
