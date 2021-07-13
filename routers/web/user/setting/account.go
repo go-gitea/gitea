@@ -116,18 +116,18 @@ func EmailPost(ctx *context.Context) {
 			return
 		}
 		if email == nil {
-			log.Error("Send activation: EmailAddress not found; user:%d, id: %d", ctx.User.ID, id)
+			log.Warn("Send activation failed: EmailAddress[%d] not found for user: %-v", id, ctx.User)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsActivated {
-			log.Error("Send activation: email not set for activation")
+			log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
 		if email.IsPrimary {
 			if ctx.User.IsActive && !setting.Service.RegisterEmailConfirm {
-				log.Error("Send activation: email not set for activation")
+				log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
 				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 				return
 			}
