@@ -70,7 +70,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade Gliderlabs SSH to 0.3.3 and add FailedConnectionCallback (#16278)
   * Add previous/next buttons to review comments (#16273)
   * Review comments: break-word for long file names (#16272)
-  * Add configuration to restrict allowed user visiblity modes (#16271)
+  * Add configuration to restrict allowed user visibility modes (#16271)
   * Add scroll-margin-top to account for sticky header (#16269)
   * Add --quiet and --verbose to gitea web to control initial logging (#16260)
   * Use gitea logging module for git module (#16243)
@@ -131,8 +131,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Refactor renders (#15175)
   * Add mimetype mapping settings (#15133)
   * Add Status Updates whilst Gitea migrations are occurring (#15076)
-  * [refactor] Use i18n.Reset to reload locales (#15073)
-  * [refactor] mailer service (#15072)
+  * Reload locales in initialisation if needed by utilizing i18n.Reset (#15073)
   * Counterwork seemingly unclickable repo button labels (#15064)
   * Add DefaultMergeStyle option to repository (#14789)
   * Added support for gopher URLs. (#14749)
@@ -192,7 +191,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use a special name for update default branch on repository setting (#15893)
   * Fix mirror_lfs source string in en-US locale (#15369)
 * BUILD
-  * upgrade xorm to v1.1.1 (#16339)
+  * Upgrade xorm to v1.1.1 (#16339)
   * Alpine 3.14 released (#16170)
   * Disable legal comments in esbuild (#15929)
   * Use esbuild to minify CSS (#15756)
@@ -203,7 +202,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * DOCS
   * Comment out app.example.ini (#15807)
   * Improve logo customization docs (#15754)
-  * Add some reponse status on api docs (#15399)
+  * Add some response status on api docs (#15399)
   * Rework Token API comments (#15162)
   * Add better errors for disabled account recovery (#15117)
 * MISC
