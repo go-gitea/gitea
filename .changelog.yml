@@ -27,15 +27,15 @@ groups:
     labels:
       - kind/api
   -
-    name: BUGFIXES
-    labels:
-      - kind/bug
-  -
     name: ENHANCEMENTS
     labels:
       - kind/enhancement
       - kind/refactor
       - kind/ui
+  -
+    name: BUGFIXES
+    labels:
+      - kind/bug
   -
     name: TESTING
     labels:
