@@ -511,9 +511,19 @@ func (ctx *Context) GetCookieFloat64(name string) float64 {
 	return v
 }
 
-// RemoteAddr returns the client machie ip address
+// RemoteAddr returns the client machine ip address. It respects the X-Real-IP (preferred) or X-Forwarded-For header.
 func (ctx *Context) RemoteAddr() string {
-	return ctx.Req.RemoteAddr
+	addr := ctx.Req.Header.Get("X-Real-IP")
+	if len(addr) == 0 {
+		addr = ctx.Req.Header.Get("X-Forwarded-For")
+		if addr == "" {
+			addr = ctx.Req.RemoteAddr
+			if i := strings.LastIndex(addr, ":"); i > -1 {
+				addr = addr[:i]
+			}
+		}
+	}
+	return addr
 }
 
 // Params returns the param on route
