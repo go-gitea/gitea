@@ -238,7 +238,7 @@ obtain a final version that is maintained in this branch. A release is
 maintained by issuing patch releases to only correct critical problems
 such as crashes or security issues.
 
-Major release cycles are seasonly. They always begin on the 25th and end on
+Major release cycles are seasonal. They always begin on the 25th and end on
 the 24th (i.e., the 25th of December to March 24th).
 
 During a development cycle, we may also publish any necessary minor releases
