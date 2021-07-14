@@ -167,7 +167,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix 500 Error with branch and tag sharing the same name (#16040)
   * Fix get tag when migration (#16014)
   * Add custom emoji support (#16004)
-  * Kd/fix release compare extra bracket (#15988)
   * Use filepath.ToSlash and Join in indexer defaults and queues (#15971)
   * Add permission check for ``GenerateRepository`` (#15946)
   * Ensure settings for Service and Mailer are read on the install page (#15943)
@@ -201,6 +200,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Stop packaging node_modules in release tarballs (#15273)
   * Introduce esbuild on webpack (#14578)
 * DOCS
+  * Update queue workers documentation (#15999)
   * Comment out app.example.ini (#15807)
   * Improve logo customization docs (#15754)
   * Add some response status on api docs (#15399)
