@@ -4,19 +4,12 @@
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addBranchProtectionUnprotectedFilesColumn(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		UnprotectedFilePatterns string `xorm:"TEXT"`
+func addKeyIsVerified(x *xorm.Engine) error {
+	type GPGKey struct {
+		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(GPGKey))
 }
