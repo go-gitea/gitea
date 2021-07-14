@@ -58,18 +58,9 @@ type Source struct {
 	loginSource *models.LoginSource
 }
 
-// wrappedSource wraps the source to ensure that the FromDB/ToDB results are the same as previously
-type wrappedSource struct {
-	Source *Source
-}
-
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	wrapped := &wrappedSource{
-		Source: source,
-	}
-
-	err := models.JSONUnmarshalIgnoreErroneousBOM(bs, &wrapped)
+	err := models.JSONUnmarshalIgnoreErroneousBOM(bs, source)
 	if err != nil {
 		return err
 	}
@@ -89,10 +80,7 @@ func (source *Source) ToDB() ([]byte, error) {
 	}
 	source.BindPassword = ""
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	wrapped := &wrappedSource{
-		Source: source,
-	}
-	return json.Marshal(wrapped)
+	return json.Marshal(source)
 }
 
 // SecurityProtocolName returns the name of configured security
