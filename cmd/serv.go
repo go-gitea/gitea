@@ -73,6 +73,8 @@ var (
 )
 
 func fail(userMessage, logMessage string, args ...interface{}) error {
+	// There appears to be a chance to cause a zombie process and failure to read the Exit status
+	// if nothing is outputted on stdout.
 	fmt.Fprintln(os.Stdout, "")
 	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
