@@ -19,6 +19,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add `/assets` as root dir of public files (#15219)
   * use level config in log section when sub log section not set level (#15176)
   * Links in markdown should be absolute to the repository not the server (#15088)
+* SECURITY
+  * Support custom mime type mapping for text files (#16304)
+  * Encrypt LDAP bind password in db with SECRET_KEY (#15547)
+  * Remove random password in Dockerfiles (#15362)
 * FEATURES
   * Update Go-Git to take advantage of LargeObjectThreshold (#16316)
   * Link to previous blames in file blame page (#16259)
@@ -40,10 +44,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Disable Stars config option (#14653)
   * Add option to provide signature for a token to verify key ownership (#14054)
   * OAuth2 auto-register (#5123)
-* SECURITY
-  * Support custom mime type mapping for text files (#16304)
-  * Encrypt LDAP bind password in db with SECRET_KEY (#15547)
-  * Remove random password in Dockerfiles (#15362)
 * API
   * Return updated repository when changing repository using API (#16420)
   * Let branch/tag name be a valid ref to get CI status (#16400)
