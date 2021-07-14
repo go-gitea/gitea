@@ -78,7 +78,31 @@ func TestParsePackageMetaData(t *testing.T) {
 
 		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.Nil(t, m)
+		assert.Error(t, err)
+	})
+
+	t.Run("InvalidPackageId", func(t *testing.T) {
+		data := createArchive("package.nuspec", `<?xml version="1.0" encoding="utf-8"?>
+		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+		  <metadata></metadata>
+		</package>`)
+
+		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, m)
 		assert.ErrorIs(t, err, ErrNuspecInvalidID)
+	})
+
+	t.Run("InvalidPackageVersion", func(t *testing.T) {
+		data := createArchive("package.nuspec", `<?xml version="1.0" encoding="utf-8"?>
+		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+		  <metadata>
+			<id>`+id+`</id>
+		  </metadata>
+		</package>`)
+
+		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, m)
+		assert.ErrorIs(t, err, ErrNuspecInvalidVersion)
 	})
 
 	t.Run("Valid", func(t *testing.T) {

@@ -80,6 +80,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
+	"code.gitea.io/gitea/routers/api/v1/packages/npm"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
@@ -997,6 +998,13 @@ func Routes() *web.Route {
 							})
 						})
 					}, reqBasicAuth())
+					m.Group("/npm", func() {
+						m.Group("/{id}", func() {
+							m.Get("", npm.PackageMetadata)
+							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, npm.UploadPackage)
+							m.Get("/-/{version}/{filename}", npm.DownloadPackageContent)
+						})
+					}, reqToken())
 				})
 			}, repoAssignment())
 		})

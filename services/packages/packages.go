@@ -5,6 +5,10 @@
 package packages
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
+	"fmt"
 	"io"
 	"strings"
 
@@ -58,9 +62,33 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 		return nil, err
 	}
 
-	packageStore := packages_module.NewContentStore()
-	if err := packageStore.Save(pf.ID, r, size); err != nil {
-		log.Error("Error saving package file: %v", err)
+	h1 := sha1.New()
+	h256 := sha256.New()
+	h512 := sha512.New()
+
+	r = io.TeeReader(r, io.MultiWriter(h1, h256, h512))
+
+	contentStore := packages_module.NewContentStore()
+
+	err := func() error {
+		err := contentStore.Save(p.ID, pf.ID, r, size)
+		if err != nil {
+			log.Error("Error saving package file in content store: %v", err)
+			return err
+		}
+
+		pf.HashSHA1 = fmt.Sprintf("%x", h1.Sum(nil))
+		pf.HashSHA256 = fmt.Sprintf("%x", h256.Sum(nil))
+		pf.HashSHA512 = fmt.Sprintf("%x", h512.Sum(nil))
+		if err = models.UpdatePackageFile(pf); err != nil {
+			log.Error("Error updating package file: %v", err)
+			return err
+		}
+		return nil
+	}()
+	if err != nil {
+		_ = contentStore.Delete(p.ID, pf.ID)
+
 		if err := models.DeletePackageFileByID(pf.ID); err != nil {
 			log.Error("Error deleting package file: %v", err)
 		}
@@ -88,7 +116,7 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 
 	contentStore := packages_module.NewContentStore()
 	for _, pf := range pfs {
-		if err := contentStore.Delete(pf.ID); err != nil {
+		if err := contentStore.Delete(p.ID, pf.ID); err != nil {
 			log.Error("Error deleting package file: %v", err)
 			return err
 		}
@@ -118,7 +146,7 @@ func GetPackageFileStream(repository *models.Repository, packageType models.Pack
 
 	for _, pf := range pfs {
 		if pf.LowerName == filename {
-			s, err := packages_module.NewContentStore().Get(pf.ID)
+			s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
 			return s, pf, err
 		}
 	}

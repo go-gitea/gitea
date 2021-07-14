@@ -2,23 +2,24 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package nuget
+package npm
 
 import (
 	"sort"
 
 	"code.gitea.io/gitea/models"
-	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
+	npm_module "code.gitea.io/gitea/modules/packages/npm"
 
 	"github.com/hashicorp/go-version"
 	jsoniter "github.com/json-iterator/go"
 )
 
-// Package represents a package with NuGet metadata
+// Package represents a package with NPM metadata
 type Package struct {
 	*models.Package
+	*models.PackageFile
 	SemVer   *version.Version
-	Metadata *nuget_module.Metadata
+	Metadata *npm_module.Metadata
 }
 
 func intializePackages(packages []*models.Package) ([]*Package, error) {
@@ -39,18 +40,25 @@ func intializePackage(p *models.Package) (*Package, error) {
 		return nil, err
 	}
 
-	var m *nuget_module.Metadata
+	var m *npm_module.Metadata
 	err = jsoniter.Unmarshal([]byte(p.MetadataRaw), &m)
 	if err != nil {
 		return nil, err
 	}
 	if m == nil {
-		m = &nuget_module.Metadata{}
+		m = &npm_module.Metadata{}
 	}
+
+	pfs, err := p.GetFiles()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Package{
-		Package:  p,
-		SemVer:   v,
-		Metadata: m,
+		Package:     p,
+		PackageFile: pfs[0],
+		SemVer:      v,
+		Metadata:    m,
 	}, nil
 }
 

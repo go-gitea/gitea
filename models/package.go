@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/modules/timeutil"
 
-	"github.com/hashicorp/go-version"
 	"xorm.io/builder"
 )
 
@@ -21,6 +20,7 @@ type PackageType int
 const (
 	PackageGeneric PackageType = iota
 	PackageNuGet               // 1
+	PackageNPM                 // 2
 )
 
 var (
@@ -37,10 +37,9 @@ type Package struct {
 	CreatorID   int64
 	Type        PackageType `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name        string
-	LowerName   string           `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Version     string           `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	SemVer      *version.Version `xorm:"-"`
-	MetadataRaw string           `xorm:"TEXT"`
+	LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	MetadataRaw string `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -48,11 +47,14 @@ type Package struct {
 
 // PackageFile represents files associated with a package
 type PackageFile struct {
-	ID        int64 `xorm:"pk autoincr"`
-	PackageID int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size      int64
-	Name      string `xorm:"UNIQUE(s) NOT NULL"`
-	LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	ID         int64 `xorm:"pk autoincr"`
+	PackageID  int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Size       int64
+	Name       string
+	LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	HashSHA1   string `xorm:"hash_sha1"`
+	HashSHA256 string `xorm:"hash_sha256"`
+	HashSHA512 string `xorm:"hash_sha512"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -172,6 +174,12 @@ func SearchPackages(repositoryID int64, packageType PackageType, query string, s
 // InsertPackageFile inserts a package file
 func InsertPackageFile(pf *PackageFile) error {
 	_, err := x.Insert(pf)
+	return err
+}
+
+// UpdatePackageFile updates a package file
+func UpdatePackageFile(pf *PackageFile) error {
+	_, err := x.ID(pf.ID).Update(pf)
 	return err
 }
 

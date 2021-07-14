@@ -14,7 +14,7 @@ import (
 
 // ServiceIndexResponse https://docs.microsoft.com/en-us/nuget/api/service-index#resources
 type ServiceIndexResponse struct {
-	Version   string     `json:"version"`
+	Version   string            `json:"version"`
 	Resources []ServiceResource `json:"resources"`
 }
 
@@ -120,17 +120,16 @@ func createRegistrationIndexPageItem(l *linkBuilder, p *Package) *RegistrationIn
 		RegistrationLeafURL: l.GetRegistrationLeafURL(p.Name, p.Version),
 		PackageContentURL:   l.GetPackageDownloadURL(p.Name, p.Version),
 		CatalogEntry: &CatalogEntry{
-			CatalogLeafURL:           l.GetRegistrationLeafURL(p.Name, p.Version),
-			PackageContentURL:        l.GetPackageDownloadURL(p.Name, p.Version),
-			ID:                       p.Name,
-			Version:                  p.Version,
-			Description:              p.Metadata.Description,
-			Summary:                  p.Metadata.Summary,
-			ReleaseNotes:             p.Metadata.ReleaseNotes,
-			Authors:                  p.Metadata.Authors,
-			RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
-			ProjectURL:               p.Metadata.ProjectURL,
-			DependencyGroups:         createDependencyGroups(p),
+			CatalogLeafURL:    l.GetRegistrationLeafURL(p.Name, p.Version),
+			PackageContentURL: l.GetPackageDownloadURL(p.Name, p.Version),
+			ID:                p.Name,
+			Version:           p.Version,
+			Description:       p.Metadata.Description,
+			Summary:           p.Metadata.Summary,
+			ReleaseNotes:      p.Metadata.ReleaseNotes,
+			Authors:           p.Metadata.Authors,
+			ProjectURL:        p.Metadata.ProjectURL,
+			DependencyGroups:  createDependencyGroups(p),
 		},
 	}
 }

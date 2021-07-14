@@ -23,21 +23,21 @@ func NewContentStore() *ContentStore {
 }
 
 // Get get the package file content
-func (s *ContentStore) Get(packageFileID int64) (storage.Object, error) {
-	return s.store.Open(toRelativePath(packageFileID))
+func (s *ContentStore) Get(packageID, packageFileID int64) (storage.Object, error) {
+	return s.store.Open(toRelativePath(packageID, packageFileID))
 }
 
 // Save stores the package file content
-func (s *ContentStore) Save(packageFileID int64, r io.Reader, size int64) error {
-	_, err := s.store.Save(toRelativePath(packageFileID), r, size)
+func (s *ContentStore) Save(packageID, packageFileID int64, r io.Reader, size int64) error {
+	_, err := s.store.Save(toRelativePath(packageID, packageFileID), r, size)
 	return err
 }
 
 // Delete deletes the package file content
-func (s *ContentStore) Delete(packageFileID int64) error {
-	return s.store.Delete(toRelativePath(packageFileID))
+func (s *ContentStore) Delete(packageID, packageFileID int64) error {
+	return s.store.Delete(toRelativePath(packageID, packageFileID))
 }
 
-func toRelativePath(packageFileID int64) string {
-	return fmt.Sprintf("%d/package", packageFileID)
+func toRelativePath(packageID, packageFileID int64) string {
+	return fmt.Sprintf("%d/%d", packageID, packageFileID)
 }

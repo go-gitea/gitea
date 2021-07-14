@@ -143,7 +143,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageNuGet, packageName, packageVersion, filename)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
@@ -210,7 +210,7 @@ func UploadPackage(ctx *context.APIContext) {
 	ctx.PlainText(http.StatusCreated, nil)
 }
 
-// DeletePackage heard deletes the package
+// DeletePackage hard deletes the package
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#delete-a-package
 func DeletePackage(ctx *context.APIContext) {
 	packageName := ctx.Params("id")

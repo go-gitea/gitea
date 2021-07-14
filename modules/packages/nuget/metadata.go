@@ -33,22 +33,21 @@ const maxNuspecFileSize = 3 * 1024 * 1024
 
 // Metadata represents the metadata of a Nuget package
 type Metadata struct {
-	ID                       string `json:"-"`
-	Version                  string `json:"-"`
-	Description              string
-	Summary                  string
-	ReleaseNotes             string
-	Authors                  string
-	RequireLicenseAcceptance bool
-	ProjectURL               string `json:"project_url"`
-	RepositoryURL            string `json:"repository_url"`
-	Dependencies             map[string][]Dependency
+	ID            string                  `json:"-"`
+	Version       string                  `json:"-"`
+	Description   string                  `json:"description"`
+	Summary       string                  `json:"summary"`
+	ReleaseNotes  string                  `json:"release_notes"`
+	Authors       string                  `json:"authors"`
+	ProjectURL    string                  `json:"project_url"`
+	RepositoryURL string                  `json:"repository_url"`
+	Dependencies  map[string][]Dependency `json:"dependencies"`
 }
 
 // Dependency represents a dependency of a Nuget package
 type Dependency struct {
-	ID      string
-	Version string
+	ID      string `json:"id"`
+	Version string `json:"version"`
 }
 
 type nuspecPackage struct {
@@ -123,16 +122,15 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 	}
 
 	m := &Metadata{
-		ID:                       p.Metadata.ID,
-		Version:                  v.String(),
-		Description:              p.Metadata.Description,
-		Summary:                  p.Metadata.Summary,
-		ReleaseNotes:             p.Metadata.ReleaseNotes,
-		Authors:                  p.Metadata.Authors,
-		RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
-		ProjectURL:               p.Metadata.ProjectURL,
-		RepositoryURL:            p.Metadata.Repository.URL,
-		Dependencies:             make(map[string][]Dependency),
+		ID:            p.Metadata.ID,
+		Version:       v.String(),
+		Description:   p.Metadata.Description,
+		Summary:       p.Metadata.Summary,
+		ReleaseNotes:  p.Metadata.ReleaseNotes,
+		Authors:       p.Metadata.Authors,
+		ProjectURL:    p.Metadata.ProjectURL,
+		RepositoryURL: p.Metadata.Repository.URL,
+		Dependencies:  make(map[string][]Dependency),
 	}
 	for _, group := range p.Metadata.Dependencies.Group {
 		deps := make([]Dependency, 0, len(group.Dependency))

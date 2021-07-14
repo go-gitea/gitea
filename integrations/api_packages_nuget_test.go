@@ -34,10 +34,10 @@ func TestPackageNuGet(t *testing.T) {
 	w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
 	<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
 	  <metadata>
-		<id>`+packageName+`</id>
-		<version>`+packageVersion+`</version>
-		<authors>`+packageAuthors+`</authors>
-		<description>`+packageDescription+`</description>
+		<id>` + packageName + `</id>
+		<version>` + packageVersion + `</version>
+		<authors>` + packageAuthors + `</authors>
+		<description>` + packageDescription + `</description>
 	  </metadata>
 	</package>`))
 	archive.Close()
@@ -48,9 +48,35 @@ func TestPackageNuGet(t *testing.T) {
 	t.Run("ServiceIndex", func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
 		req = AddBasicAuthHeader(req, user.Name)
-		_ = MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
-		
+		var result nuget.ServiceIndexResponse
+		DecodeJSON(t, resp, &result)
+
+		assert.Equal(t, "3.0.0", result.Version)
+		assert.NotEmpty(t, result.Resources)
+
+		root := setting.AppURL + url[1:]
+		for _, r := range result.Resources {
+			switch r.Type {
+			case "SearchQueryService":
+				fallthrough
+			case "SearchQueryService/3.0.0-beta":
+				fallthrough
+			case "SearchQueryService/3.0.0-rc":
+				assert.Equal(t, root+"/query", r.ID)
+			case "RegistrationsBaseUrl":
+				fallthrough
+			case "RegistrationsBaseUrl/3.0.0-beta":
+				fallthrough
+			case "RegistrationsBaseUrl/3.0.0-rc":
+				assert.Equal(t, root+"/registration", r.ID)
+			case "PackageBaseAddress/3.0.0":
+				assert.Equal(t, root+"/package", r.ID)
+			case "PackagePublish/2.0.0":
+				assert.Equal(t, root, r.ID)
+			}
+		}
 	})
 
 	t.Run("Upload", func(t *testing.T) {
@@ -86,13 +112,13 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
-		cases := []struct{
-			Query string
-			Skip int
-			Take int
-			ExpectedTotal int64
+		cases := []struct {
+			Query           string
+			Skip            int
+			Take            int
+			ExpectedTotal   int64
 			ExpectedResults int
-		} {
+		}{
 			{"", 0, 0, 1, 1},
 			{"", 0, 10, 1, 1},
 			{"gitea", 0, 10, 0, 0},
@@ -112,7 +138,7 @@ func TestPackageNuGet(t *testing.T) {
 			assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
 		}
 	})
-	
+
 	t.Run("RegistrationService", func(t *testing.T) {
 		indexURL := fmt.Sprintf("%s%s/registration/%s/index.json", setting.AppURL, url[1:], packageName)
 		leafURL := fmt.Sprintf("%s%s/registration/%s/%s.json", setting.AppURL, url[1:], packageName, packageVersion)

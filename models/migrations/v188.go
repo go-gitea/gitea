@@ -30,11 +30,14 @@ func addPackageTables(x *xorm.Engine) error {
 	}
 
 	type PackageFile struct {
-		ID        int64 `xorm:"pk autoincr"`
-		PackageID int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Size      int64
-		Name      string `xorm:"UNIQUE(s) NOT NULL"`
-		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		ID         int64 `xorm:"pk autoincr"`
+		PackageID  int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		Size       int64
+		Name       string
+		LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		HashSHA1   string `xorm:"hash_sha1"`
+		HashSHA256 string `xorm:"hash_sha256"`
+		HashSHA512 string `xorm:"hash_sha512"`
 
 		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
