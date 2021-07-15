@@ -271,7 +271,7 @@ func extractAsset(d string, a asset, overwrite, rename bool) error {
 	} else if !fi.Mode().IsRegular() {
 		return fmt.Errorf("%s already exists, but it's not a regular file", dest)
 	} else if rename {
-		if err := os.Rename(dest, dest+".bak"); err != nil {
+		if err := util.Rename(dest, dest+".bak"); err != nil {
 			return fmt.Errorf("Error creating backup for %s: %v", dest, err)
 		}
 		// Attempt to respect file permissions mask (even if user:group will be set anew)
