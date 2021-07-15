@@ -152,20 +152,21 @@ func runHookPreReceive(c *cli.Context) error {
 	if os.Getenv(models.EnvIsInternal) == "true" {
 		return nil
 	}
+	ctx, cancel := installSignals()
+	defer cancel()
 
 	setup("hooks/pre-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			fail(`Rejecting changes as Gitea environment not set.
+			return fail(`Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
-	// the environment setted on serv command
+	// the environment is set by serv command
 	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
 	username := os.Getenv(models.EnvRepoUsername)
 	reponame := os.Getenv(models.EnvRepoName)
@@ -179,7 +180,7 @@ Gitea or set your environment appropriately.`, "")
 		GitObjectDirectory:              os.Getenv(private.GitObjectDirectory),
 		GitQuarantinePath:               os.Getenv(private.GitQuarantinePath),
 		GitPushOptions:                  pushOptions(),
-		ProtectedBranchID:               prID,
+		PullRequestID:                   prID,
 		IsDeployKey:                     isDeployKey,
 	}
 
@@ -221,8 +222,8 @@ Gitea or set your environment appropriately.`, "")
 		total++
 		lastline++
 
-		// If the ref is a branch, check if it's protected
-		if strings.HasPrefix(refFullName, git.BranchPrefix) {
+		// If the ref is a branch or tag, check if it's protected
+		if strings.HasPrefix(refFullName, git.BranchPrefix) || strings.HasPrefix(refFullName, git.TagPrefix) {
 			oldCommitIDs[count] = oldCommitID
 			newCommitIDs[count] = newCommitID
 			refFullNames[count] = refFullName
@@ -230,19 +231,19 @@ Gitea or set your environment appropriately.`, "")
 			fmt.Fprintf(out, "*")
 
 			if count >= hookBatchSize {
-				fmt.Fprintf(out, " Checking %d branches\n", count)
+				fmt.Fprintf(out, " Checking %d references\n", count)
 
 				hookOptions.OldCommitIDs = oldCommitIDs
 				hookOptions.NewCommitIDs = newCommitIDs
 				hookOptions.RefFullNames = refFullNames
-				statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+				statusCode, msg := private.HookPreReceive(ctx, username, reponame, hookOptions)
 				switch statusCode {
 				case http.StatusOK:
 					// no-op
 				case http.StatusInternalServerError:
-					fail("Internal Server Error", msg)
+					return fail("Internal Server Error", msg)
 				default:
-					fail(msg, "")
+					return fail(msg, "")
 				}
 				count = 0
 				lastline = 0
@@ -261,14 +262,14 @@ Gitea or set your environment appropriately.`, "")
 		hookOptions.NewCommitIDs = newCommitIDs[:count]
 		hookOptions.RefFullNames = refFullNames[:count]
 
-		fmt.Fprintf(out, " Checking %d branches\n", count)
+		fmt.Fprintf(out, " Checking %d references\n", count)
 
-		statusCode, msg := private.HookPreReceive(username, reponame, hookOptions)
+		statusCode, msg := private.HookPreReceive(ctx, username, reponame, hookOptions)
 		switch statusCode {
 		case http.StatusInternalServerError:
-			fail("Internal Server Error", msg)
+			return fail("Internal Server Error", msg)
 		case http.StatusForbidden:
-			fail(msg, "")
+			return fail(msg, "")
 		}
 	} else if lastline > 0 {
 		fmt.Fprintf(out, "\n")
@@ -285,8 +286,11 @@ func runHookUpdate(c *cli.Context) error {
 }
 
 func runHookPostReceive(c *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
 	// First of all run update-server-info no matter what
-	if _, err := git.NewCommand("update-server-info").Run(); err != nil {
+	if _, err := git.NewCommand("update-server-info").SetParentContext(ctx).Run(); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
 	}
 
@@ -299,12 +303,11 @@ func runHookPostReceive(c *cli.Context) error {
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			fail(`Rejecting changes as Gitea environment not set.
+			return fail(`Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	var out io.Writer
@@ -320,7 +323,7 @@ Gitea or set your environment appropriately.`, "")
 		}
 	}
 
-	// the environment setted on serv command
+	// the environment is set by serv command
 	repoUser := os.Getenv(models.EnvRepoUsername)
 	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
 	repoName := os.Getenv(models.EnvRepoName)
@@ -371,11 +374,11 @@ Gitea or set your environment appropriately.`, "")
 			hookOptions.OldCommitIDs = oldCommitIDs
 			hookOptions.NewCommitIDs = newCommitIDs
 			hookOptions.RefFullNames = refFullNames
-			resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+			resp, err := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
 			if resp == nil {
 				_ = dWriter.Close()
 				hookPrintResults(results)
-				fail("Internal Server Error", err)
+				return fail("Internal Server Error", err)
 			}
 			wasEmpty = wasEmpty || resp.RepoWasEmpty
 			results = append(results, resp.Results...)
@@ -386,9 +389,9 @@ Gitea or set your environment appropriately.`, "")
 	if count == 0 {
 		if wasEmpty && masterPushed {
 			// We need to tell the repo to reset the default branch to master
-			err := private.SetDefaultBranch(repoUser, repoName, "master")
+			err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
 			if err != nil {
-				fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+				return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 			}
 		}
 		fmt.Fprintf(out, "Processed %d references in total\n", total)
@@ -404,11 +407,11 @@ Gitea or set your environment appropriately.`, "")
 
 	fmt.Fprintf(out, " Processing %d references\n", count)
 
-	resp, err := private.HookPostReceive(repoUser, repoName, hookOptions)
+	resp, err := private.HookPostReceive(ctx, repoUser, repoName, hookOptions)
 	if resp == nil {
 		_ = dWriter.Close()
 		hookPrintResults(results)
-		fail("Internal Server Error", err)
+		return fail("Internal Server Error", err)
 	}
 	wasEmpty = wasEmpty || resp.RepoWasEmpty
 	results = append(results, resp.Results...)
@@ -417,9 +420,9 @@ Gitea or set your environment appropriately.`, "")
 
 	if wasEmpty && masterPushed {
 		// We need to tell the repo to reset the default branch to master
-		err := private.SetDefaultBranch(repoUser, repoName, "master")
+		err := private.SetDefaultBranch(ctx, repoUser, repoName, "master")
 		if err != nil {
-			fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
+			return fail("Internal Server Error", "SetDefaultBranch failed with Error: %v", err)
 		}
 	}
 	_ = dWriter.Close()
