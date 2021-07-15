@@ -108,3 +108,12 @@ this to your Nginx configuration so that IPs don't show up as 127.0.0.1:
 ```
 proxy_set_header X-Real-IP $remote_addr;
 ```
+
+The security options in `app.ini` need to be adjusted to allow the interpretation of the headers
+as well as the list of IP addresses and networks that describe trusted proxy servers
+(find more information in the corresponding [PR](https://github.com/go-gitea/gitea/pull/14959)).
+
+```
+REVERSE_PROXY_LIMIT = 1
+REVERSE_PROXY_TRUSTED_PROXIES = *
+```
