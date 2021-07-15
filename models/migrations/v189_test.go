@@ -37,6 +37,11 @@ func Test_unwrapLDAPSourceCfg(t *testing.T) {
 	const batchSize = 100
 	for start := 0; ; start += batchSize {
 		sources := make([]*LoginSource, 0, batchSize)
+		if err := x.Table("login_source").Limit(batchSize, start).Find(&sources); err != nil {
+			assert.NoError(t, err)
+			return
+		}
+
 		if len(sources) == 0 {
 			break
 		}
