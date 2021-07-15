@@ -11,23 +11,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// LoginSource represents an external way for authorizing users.
+type LoginSourceOriginal_v189 struct {
+	ID        int64 `xorm:"pk autoincr"`
+	Type      int
+	IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+	Cfg       string `xorm:"TEXT"`
+	Expected  string `xorm:"TEXT"`
+}
+
+func (ls *LoginSourceOriginal_v189) TableName() string {
+	return "login_source"
+}
+
 func Test_unwrapLDAPSourceCfg(t *testing.T) {
-	// LoginSource represents an external way for authorizing users.
-	type LoginSource struct {
-		ID        int64 `xorm:"pk autoincr"`
-		Type      int
-		IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
-		Cfg       string `xorm:"TEXT"`
-		Expected  string `xorm:"TEXT"`
-	}
 
 	// Prepare and load the testing database
-	x, deferable := prepareTestEnv(t, 0, new(LoginSource))
+	x, deferable := prepareTestEnv(t, 0, new(LoginSourceOriginal_v189))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return
 	}
 	defer deferable()
+
+	// LoginSource represents an external way for authorizing users.
+	type LoginSource struct {
+		ID       int64 `xorm:"pk autoincr"`
+		Type     int
+		IsActive bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+		Cfg      string `xorm:"TEXT"`
+		Expected string `xorm:"TEXT"`
+	}
 
 	// Run the migration
 	if err := unwrapLDAPSourceCfg(x); err != nil {
@@ -62,6 +76,7 @@ func Test_unwrapLDAPSourceCfg(t *testing.T) {
 			}
 
 			assert.EqualValues(t, expected, converted, "unwrapLDAPSourceCfg failed for %d", source.ID)
+			assert.EqualValues(t, source.ID%2 == 0, source.IsActive, "unwrapLDAPSourceCfg failed for %d", source.ID)
 		}
 	}
 

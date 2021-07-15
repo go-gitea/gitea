@@ -626,10 +626,10 @@ func runAddOauth(c *cli.Context) error {
 	}
 
 	return models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
+		Type:     models.LoginOAuth2,
+		Name:     c.String("name"),
+		IsActive: true,
+		Cfg:      parseOAuth2Config(c),
 	})
 }
 
@@ -729,7 +729,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActive)
 	}
 	w.Flush()
 

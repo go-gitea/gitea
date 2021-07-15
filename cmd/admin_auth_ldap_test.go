@@ -54,7 +54,7 @@ func TestAddLdapBindDn(t *testing.T) {
 			loginSource: &models.LoginSource{
 				Type:          models.LoginLDAP,
 				Name:          "ldap (via Bind DN) source full",
-				IsActived:     false,
+				IsActive:      false,
 				IsSyncEnabled: true,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (via Bind DN) source full",
@@ -92,9 +92,9 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--email-attribute", "mail-bind min",
 			},
 			loginSource: &models.LoginSource{
-				Type:      models.LoginLDAP,
-				Name:      "ldap (via Bind DN) source min",
-				IsActived: true,
+				Type:     models.LoginLDAP,
+				Name:     "ldap (via Bind DN) source min",
+				IsActive: true,
 				Cfg: &ldap.Source{
 					Name:             "ldap (via Bind DN) source min",
 					Host:             "ldap-bind-server min",
@@ -272,9 +272,9 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 			},
 			loginSource: &models.LoginSource{
-				Type:      models.LoginDLDAP,
-				Name:      "ldap (simple auth) source full",
-				IsActived: false,
+				Type:     models.LoginDLDAP,
+				Name:     "ldap (simple auth) source full",
+				IsActive: false,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (simple auth) source full",
 					Host:                  "ldap-simple-server full",
@@ -308,9 +308,9 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--user-dn", "cn=%s,ou=Users,dc=min-domain-simple,dc=org",
 			},
 			loginSource: &models.LoginSource{
-				Type:      models.LoginDLDAP,
-				Name:      "ldap (simple auth) source min",
-				IsActived: true,
+				Type:     models.LoginDLDAP,
+				Name:     "ldap (simple auth) source min",
+				IsActive: true,
 				Cfg: &ldap.Source{
 					Name:             "ldap (simple auth) source min",
 					Host:             "ldap-simple-server min",
@@ -508,8 +508,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			},
 			id: 23,
 			existingLoginSource: &models.LoginSource{
-				Type:      models.LoginLDAP,
-				IsActived: true,
+				Type:     models.LoginLDAP,
+				IsActive: true,
 				Cfg: &ldap.Source{
 					Enabled: true,
 				},
@@ -517,7 +517,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			loginSource: &models.LoginSource{
 				Type:          models.LoginLDAP,
 				Name:          "ldap (via Bind DN) source full",
-				IsActived:     false,
+				IsActive:      false,
 				IsSyncEnabled: true,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (via Bind DN) source full",
@@ -576,14 +576,14 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--not-active",
 			},
 			existingLoginSource: &models.LoginSource{
-				Type:      models.LoginLDAP,
-				IsActived: true,
-				Cfg:       &ldap.Source{},
+				Type:     models.LoginLDAP,
+				IsActive: true,
+				Cfg:      &ldap.Source{},
 			},
 			loginSource: &models.LoginSource{
-				Type:      models.LoginLDAP,
-				IsActived: false,
-				Cfg:       &ldap.Source{},
+				Type:     models.LoginLDAP,
+				IsActive: false,
+				Cfg:      &ldap.Source{},
 			},
 		},
 		// case 4
@@ -936,9 +936,9 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			},
 			id: 7,
 			loginSource: &models.LoginSource{
-				Type:      models.LoginDLDAP,
-				Name:      "ldap (simple auth) source full",
-				IsActived: false,
+				Type:     models.LoginDLDAP,
+				Name:     "ldap (simple auth) source full",
+				IsActive: false,
 				Cfg: &ldap.Source{
 					Name:                  "ldap (simple auth) source full",
 					Host:                  "ldap-simple-server full",
@@ -992,14 +992,14 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--not-active",
 			},
 			existingLoginSource: &models.LoginSource{
-				Type:      models.LoginDLDAP,
-				IsActived: true,
-				Cfg:       &ldap.Source{},
+				Type:     models.LoginDLDAP,
+				IsActive: true,
+				Cfg:      &ldap.Source{},
 			},
 			loginSource: &models.LoginSource{
-				Type:      models.LoginDLDAP,
-				IsActived: false,
-				Cfg:       &ldap.Source{},
+				Type:     models.LoginDLDAP,
+				IsActive: false,
+				Cfg:      &ldap.Source{},
 			},
 		},
 		// case 4

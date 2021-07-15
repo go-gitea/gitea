@@ -272,7 +272,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	if err := models.CreateLoginSource(&models.LoginSource{
 		Type:          models.LoginType(form.Type),
 		Name:          form.Name,
-		IsActived:     form.IsActive,
+		IsActive:      form.IsActive,
 		IsSyncEnabled: form.IsSyncEnabled,
 		Cfg:           config,
 	}); err != nil {
@@ -365,7 +365,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	}
 
 	source.Name = form.Name
-	source.IsActived = form.IsActive
+	source.IsActive = form.IsActive
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := models.UpdateSource(source); err != nil {

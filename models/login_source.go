@@ -105,7 +105,7 @@ type LoginSource struct {
 	ID            int64 `xorm:"pk autoincr"`
 	Type          LoginType
 	Name          string             `xorm:"UNIQUE"`
-	IsActived     bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsActive      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Cfg           convert.Conversion `xorm:"TEXT"`
 
@@ -214,7 +214,7 @@ func CreateLoginSource(source *LoginSource) error {
 		return err
 	}
 
-	if !source.IsActived {
+	if !source.IsActive {
 		return nil
 	}
 
@@ -251,7 +251,7 @@ func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
 // AllActiveLoginSources returns all active sources
 func AllActiveLoginSources() ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 5)
-	if err := x.Where("is_actived = ?", true).Find(&sources); err != nil {
+	if err := x.Where("is_active = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -260,7 +260,7 @@ func AllActiveLoginSources() ([]*LoginSource, error) {
 // ActiveLoginSources returns all active sources of the specified type
 func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if err := x.Where("is_actived = ? and type = ?", true, loginType).Find(&sources); err != nil {
+	if err := x.Where("is_active = ? and type = ?", true, loginType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -287,7 +287,7 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 		source.Cfg = registeredLoginConfigs[LoginNoType]()
 		// Set this source to active
 		// FIXME: allow disabling of db based password authentication in future
-		source.IsActived = true
+		source.IsActive = true
 		return source, nil
 	}
 
@@ -316,7 +316,7 @@ func UpdateSource(source *LoginSource) error {
 		return err
 	}
 
-	if !source.IsActived {
+	if !source.IsActive {
 		return nil
 	}
 

@@ -22,7 +22,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	}
 
 	for _, s := range ls {
-		if !s.IsActived || !s.IsSyncEnabled {
+		if !s.IsActive || !s.IsSyncEnabled {
 			continue
 		}
 		select {

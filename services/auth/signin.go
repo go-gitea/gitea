@@ -54,7 +54,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 			return nil, err
 		}
 
-		if !source.IsActived {
+		if !source.IsActive {
 			return nil, models.ErrLoginSourceNotActived
 		}
 
@@ -83,7 +83,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 	}
 
 	for _, source := range sources {
-		if !source.IsActived {
+		if !source.IsActive {
 			// don't try to authenticate non-active sources
 			continue
 		}

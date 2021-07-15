@@ -26,6 +26,7 @@ func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 		ID        int64 `xorm:"pk autoincr"`
 		Type      int
 		IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+		IsActive  bool   `xorm:"INDEX NOT NULL DEFAULT false"`
 		Cfg       string `xorm:"TEXT"`
 	}
 
@@ -75,5 +76,16 @@ func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 		}
 	}
 
-	return nil
+	if _, err := x.SetExpr("is_active", "is_actived").Update(&LoginSource{}); err != nil {
+		return fmt.Errorf("SetExpr Update failed:  %w", err)
+	}
+
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := dropTableColumns(sess, "login_source", "is_actived"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

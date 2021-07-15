@@ -172,7 +172,7 @@ func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) {
 		loginSource.Name = c.String("name")
 	}
 	if c.IsSet("not-active") {
-		loginSource.IsActived = !c.Bool("not-active")
+		loginSource.IsActive = !c.Bool("not-active")
 	}
 	if c.IsSet("synchronize-users") {
 		loginSource.IsSyncEnabled = c.Bool("synchronize-users")
@@ -289,8 +289,8 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 	}
 
 	loginSource := &models.LoginSource{
-		Type:      models.LoginLDAP,
-		IsActived: true, // active by default
+		Type:     models.LoginLDAP,
+		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
 		},
@@ -334,8 +334,8 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 	}
 
 	loginSource := &models.LoginSource{
-		Type:      models.LoginDLDAP,
-		IsActived: true, // active by default
+		Type:     models.LoginDLDAP,
+		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
 		},
