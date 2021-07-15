@@ -16,7 +16,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Rename StaticUrlPrefix to AssetUrlPrefix (#15779)
   * Use a generic markup class to display externally rendered files and diffs (#15735)
   * Add frontend testing, require node 12 (#15315)
-  * Add `/assets` as root dir of public files (#15219)
+  * Move (custom) assets into subpath `/assets` (#15219)
   * use level config in log section when sub log section not set level (#15176)
   * Links in markdown should be absolute to the repository not the server (#15088)
 * SECURITY
