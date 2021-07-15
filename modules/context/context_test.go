@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/context"
-
 	"github.com/stretchr/testify/assert"
 )
 
