@@ -4,6 +4,18 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.14.5](https://github.com/go-gitea/gitea/releases/tag/v1.14.5) - 2021-07-16
+
+* SECURITY
+  * Hide mirror passwords on repo settings page (#16022) (#16355)
+  * Update bluemonday to v1.0.15 (#16379) (#16380)
+* BUGFIXES
+  * Retry rename on lock induced failures (#16435) (#16439)
+  * Validate issue index before querying DB (#16406) (#16410)
+  * Fix crash following ldap authentication update (#16447) (#16449)
+* ENHANCEMENTS
+  * Redirect on bad CSRF instead of presenting bad page (#14937) (#16378)
+
 ## [1.14.4](https://github.com/go-gitea/gitea/releases/tag/v1.14.4) - 2021-07-06
 
 * BUGFIXES
