@@ -387,6 +387,11 @@ func Generate(ctx *context.APIContext) {
 			return
 		}
 
+		if !ctx.User.IsAdmin && !ctxUser.IsOrganization() {
+			ctx.Error(http.StatusForbidden, "", "Only admin can generate repository for other user.")
+			return
+		}
+
 		if !ctx.User.IsAdmin {
 			canCreate, err := ctxUser.CanCreateOrgRepo(ctx.User.ID)
 			if err != nil {
