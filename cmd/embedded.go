@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
 	"github.com/urfave/cli"
