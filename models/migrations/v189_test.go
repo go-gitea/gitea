@@ -12,7 +12,7 @@ import (
 )
 
 // LoginSource represents an external way for authorizing users.
-type LoginSourceOriginal_v189 struct {
+type LoginSourceOriginalV189 struct {
 	ID        int64 `xorm:"pk autoincr"`
 	Type      int
 	IsActived bool   `xorm:"INDEX NOT NULL DEFAULT false"`
@@ -20,14 +20,14 @@ type LoginSourceOriginal_v189 struct {
 	Expected  string `xorm:"TEXT"`
 }
 
-func (ls *LoginSourceOriginal_v189) TableName() string {
+func (ls *LoginSourceOriginalV189) TableName() string {
 	return "login_source"
 }
 
 func Test_unwrapLDAPSourceCfg(t *testing.T) {
 
 	// Prepare and load the testing database
-	x, deferable := prepareTestEnv(t, 0, new(LoginSourceOriginal_v189))
+	x, deferable := prepareTestEnv(t, 0, new(LoginSourceOriginalV189))
 	if x == nil || t.Failed() {
 		defer deferable()
 		return
