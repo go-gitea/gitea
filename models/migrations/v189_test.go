@@ -7,6 +7,7 @@ package migrations
 import (
 	"testing"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +48,20 @@ func Test_unwrapLDAPSourceCfg(t *testing.T) {
 		}
 
 		for _, source := range sources {
-			assert.Equal(t, string(source.Cfg), string(source.Expected), "unwrapLDAPSourceCfg failed for %d", source.ID)
+			converted := map[string]interface{}{}
+			expected := map[string]interface{}{}
+
+			if err := jsoniter.Unmarshal([]byte(source.Cfg), &converted); err != nil {
+				assert.NoError(t, err)
+				return
+			}
+
+			if err := jsoniter.Unmarshal([]byte(source.Expected), &expected); err != nil {
+				assert.NoError(t, err)
+				return
+			}
+
+			assert.EqualValues(t, expected, converted, "unwrapLDAPSourceCfg failed for %d", source.ID)
 		}
 	}
 
