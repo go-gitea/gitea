@@ -58,7 +58,7 @@ func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 			wrapped := &WrappedSource{
 				Source: map[string]interface{}{},
 			}
-			err := jsonUnmarshalIgnoreErroneousBOM([]byte(source.Cfg), wrapped)
+			err := jsonUnmarshalIgnoreErroneousBOM([]byte(source.Cfg), &wrapped)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal %s: %w", string(source.Cfg), err)
 			}
