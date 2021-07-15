@@ -115,5 +115,5 @@ as well as the list of IP addresses and networks that describe trusted proxy ser
 
 ```
 REVERSE_PROXY_LIMIT = 1
-REVERSE_PROXY_TRUSTED_PROXIES = *
+REVERSE_PROXY_TRUSTED_PROXIES = 127.0.0.1/8 ; 172.17.0.0/16 for the docker default network
 ```
