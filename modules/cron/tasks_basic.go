@@ -37,7 +37,7 @@ func registerRepoHealthCheck() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		Timeout: 60 * time.Second,
 		Args:    []string{},
@@ -51,7 +51,7 @@ func registerCheckRepoStats() {
 	RegisterTaskFatal("check_repo_stats", &BaseConfig{
 		Enabled:    true,
 		RunAtStart: true,
-		Schedule:   "@every 24h",
+		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return models.CheckRepoStats(ctx)
 	})
@@ -62,7 +62,7 @@ func registerArchiveCleanup() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: true,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
@@ -76,7 +76,7 @@ func registerSyncExternalUsers() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		UpdateExisting: true,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
@@ -90,7 +90,7 @@ func registerDeletedBranchesCleanup() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: true,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
@@ -104,7 +104,7 @@ func registerUpdateMigrationPosterID() {
 	RegisterTaskFatal("update_migration_poster_id", &BaseConfig{
 		Enabled:    true,
 		RunAtStart: true,
-		Schedule:   "@every 24h",
+		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return migrations.UpdateMigrationPosterID(ctx)
 	})
@@ -115,7 +115,7 @@ func registerCleanupHookTaskTable() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		CleanupType:  "OlderThan",
 		OlderThan:    168 * time.Hour,

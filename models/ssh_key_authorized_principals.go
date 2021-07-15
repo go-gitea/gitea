@@ -96,7 +96,7 @@ func rewriteAllPrincipalKeys(e Engine) error {
 	}
 
 	t.Close()
-	return os.Rename(tmpPath, fPath)
+	return util.Rename(tmpPath, fPath)
 }
 
 // RegeneratePrincipalKeys regenerates the authorized_principals file
