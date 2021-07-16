@@ -24,7 +24,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -49,11 +48,9 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp     ResponseWriter
-	Req      *http.Request
-	Data     map[string]interface{} // data used by MVC templates
+	*BaseContext
 	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
-	Render   Render
+	Render Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
@@ -164,12 +161,6 @@ func (ctx *Context) HasError() bool {
 	ctx.Flash.ErrorMsg = ctx.Data["ErrorMsg"].(string)
 	ctx.Data["Flash"] = ctx.Flash
 	return hasErr.(bool)
-}
-
-// HasValue returns true if value of given name exists.
-func (ctx *Context) HasValue(name string) bool {
-	_, ok := ctx.Data[name]
-	return ok
 }
 
 // RedirectToFirst redirects to first not empty URL
@@ -377,15 +368,6 @@ func (ctx *Context) Error(status int, contents ...string) {
 	http.Error(ctx.Resp, v, status)
 }
 
-// JSON render content as JSON
-func (ctx *Context) JSON(status int, content interface{}) {
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Resp.WriteHeader(status)
-	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
-		ctx.ServerError("Render JSON failed", err)
-	}
-}
-
 // Redirect redirect the request
 func (ctx *Context) Redirect(location string, status ...int) {
 	code := http.StatusFound
@@ -481,64 +463,6 @@ func (ctx *Context) GetCookieInt64(name string) int64 {
 func (ctx *Context) GetCookieFloat64(name string) float64 {
 	v, _ := strconv.ParseFloat(ctx.GetCookie(name), 64)
 	return v
-}
-
-// RemoteAddr returns the client machie ip address
-func (ctx *Context) RemoteAddr() string {
-	return ctx.Req.RemoteAddr
-}
-
-// Params returns the param on route
-func (ctx *Context) Params(p string) string {
-	s, _ := url.PathUnescape(chi.URLParam(ctx.Req, strings.TrimPrefix(p, ":")))
-	return s
-}
-
-// ParamsInt64 returns the param on route as int64
-func (ctx *Context) ParamsInt64(p string) int64 {
-	v, _ := strconv.ParseInt(ctx.Params(p), 10, 64)
-	return v
-}
-
-// SetParams set params into routes
-func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx)
-	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
-}
-
-// Write writes data to webbrowser
-func (ctx *Context) Write(bs []byte) (int, error) {
-	return ctx.Resp.Write(bs)
-}
-
-// Written returns true if there are something sent to web browser
-func (ctx *Context) Written() bool {
-	return ctx.Resp.Status() > 0
-}
-
-// Status writes status code
-func (ctx *Context) Status(status int) {
-	ctx.Resp.WriteHeader(status)
-}
-
-// Deadline is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
-	return ctx.Req.Context().Deadline()
-}
-
-// Done is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Done() <-chan struct{} {
-	return ctx.Req.Context().Done()
-}
-
-// Err is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Err() error {
-	return ctx.Req.Context().Err()
-}
-
-// Value is part of the interface for context.Context and we pass this to the request context
-func (ctx *Context) Value(key interface{}) interface{} {
-	return ctx.Req.Context().Value(key)
 }
 
 // Handler represents a custom handler
@@ -645,7 +569,12 @@ func Contexter() func(next http.Handler) http.Handler {
 			var startTime = time.Now()
 			var link = setting.AppSubURL + strings.TrimSuffix(req.URL.EscapedPath(), "/")
 			var ctx = Context{
-				Resp:    NewResponse(resp),
+				BaseContext: NewBaseContext(resp, req, map[string]interface{}{
+					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
+					"PageStartTime": startTime,
+					"Link":          link,
+					"RunModeIsProd": setting.IsProd,
+				}),
 				Cache:   mc.GetCache(),
 				Locale:  locale,
 				Link:    link,
@@ -655,12 +584,6 @@ func Contexter() func(next http.Handler) http.Handler {
 					PullRequest: &PullRequest{},
 				},
 				Org: &Organization{},
-				Data: map[string]interface{}{
-					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
-					"PageStartTime": startTime,
-					"Link":          link,
-					"RunModeIsProd": setting.IsProd,
-				},
 			}
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
