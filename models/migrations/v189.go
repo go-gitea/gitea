@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	jsoniter "github.com/json-iterator/go"
@@ -12,11 +13,30 @@ import (
 )
 
 func unwrapLDAPSourceCfg(x *xorm.Engine) error {
-	jsonUnmarshalIgnoreErroneousBOM := func(bs []byte, v interface{}) error {
+	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v interface{}) error {
 		json := jsoniter.ConfigCompatibleWithStandardLibrary
-		err := json.Unmarshal(bs, &v)
+		err := json.Unmarshal(bs, v)
+		if err != nil {
+			ok := true
+			rs := []byte{}
+			temp := make([]byte, 2)
+			for _, rn := range string(bs) {
+				if rn > 0xffff {
+					ok = false
+					break
+				}
+				binary.LittleEndian.PutUint16(temp, uint16(rn))
+				rs = append(rs, temp...)
+			}
+			if ok {
+				if rs[0] == 0xff && rs[1] == 0xfe {
+					rs = rs[2:]
+				}
+				err = json.Unmarshal(rs, v)
+			}
+		}
 		if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-			err = json.Unmarshal(bs[2:], &v)
+			err = json.Unmarshal(bs[2:], v)
 		}
 		return err
 	}
@@ -59,7 +79,7 @@ func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 			wrapped := &WrappedSource{
 				Source: map[string]interface{}{},
 			}
-			err := jsonUnmarshalIgnoreErroneousBOM([]byte(source.Cfg), &wrapped)
+			err := jsonUnmarshalHandleDoubleEncode([]byte(source.Cfg), &wrapped)
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal %s: %w", string(source.Cfg), err)
 			}

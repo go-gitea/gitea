@@ -5,6 +5,8 @@
 package models
 
 import (
+	"encoding/binary"
+
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -32,13 +34,32 @@ func valuesUser(m map[int64]*User) []*User {
 	return values
 }
 
-// JSONUnmarshalIgnoreErroneousBOM - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
-// possible that a Blob may gain an unwanted prefix of 0xff 0xfe.
-func JSONUnmarshalIgnoreErroneousBOM(bs []byte, v interface{}) error {
+// JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
+func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(bs, &v)
+	err := json.Unmarshal(bs, v)
+	if err != nil {
+		ok := true
+		rs := []byte{}
+		temp := make([]byte, 2)
+		for _, rn := range string(bs) {
+			if rn > 0xffff {
+				ok = false
+				break
+			}
+			binary.LittleEndian.PutUint16(temp, uint16(rn))
+			rs = append(rs, temp...)
+		}
+		if ok {
+			if rs[0] == 0xff && rs[1] == 0xfe {
+				rs = rs[2:]
+			}
+			err = json.Unmarshal(rs, v)
+		}
+	}
 	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], &v)
+		err = json.Unmarshal(bs[2:], v)
 	}
 	return err
 }

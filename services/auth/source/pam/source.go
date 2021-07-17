@@ -28,7 +28,7 @@ type Source struct {
 
 // FromDB fills up a PAMConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalIgnoreErroneousBOM(bs, &source)
+	return models.JSONUnmarshalHandleDoubleEncode(bs, &source)
 }
 
 // ToDB exports a PAMConfig to a serialized format.

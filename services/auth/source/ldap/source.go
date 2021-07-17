@@ -60,7 +60,7 @@ type Source struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	err := models.JSONUnmarshalIgnoreErroneousBOM(bs, source)
+	err := models.JSONUnmarshalHandleDoubleEncode(bs, source)
 	if err != nil {
 		return err
 	}
