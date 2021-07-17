@@ -216,6 +216,7 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
+
   - name: unit-test-race
     image: golang:1.16
     commands:
@@ -224,6 +225,8 @@ steps:
       GOPROXY: off
       TAGS: sqlite sqlite_unlock_notify
       RACE_ENABLED: true
+      GITHUB_READ_TOKEN:
+        from_secret: github_read_token
 
   - name: unit-test-gogit
     pull: always
