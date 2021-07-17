@@ -489,19 +489,18 @@ func runHookProcReceive(c *cli.Context) error {
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
-			fail(`Rejecting changes as Gitea environment not set.
+			return fail(`Rejecting changes as Gitea environment not set.
 If you are pushing over SSH you must push with a key managed by
 Gitea or set your environment appropriately.`, "")
-		} else {
-			return nil
 		}
+		return nil
 	}
 
 	ctx, cancel := installSignals()
 	defer cancel()
 
 	if git.CheckGitVersionAtLeast("2.29") != nil {
-		fail("Internal Server Error", "git not support proc-receive.")
+		return fail("Internal Server Error", "git not support proc-receive.")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -516,7 +515,10 @@ Gitea or set your environment appropriately.`, "")
 	// H: PKT-LINE(version=1\0push-options...)
 	// H: flush-pkt
 
-	rs := readPktLine(reader, pktLineTypeData)
+	rs, err := readPktLine(reader, pktLineTypeData)
+	if err != nil {
+		return err
+	}
 
 	const VersionHead string = "version=1"
 
@@ -527,7 +529,7 @@ Gitea or set your environment appropriately.`, "")
 	for i := range rs.Data {
 		if rs.Data[i] == byte(0) {
 			if string(rs.Data[0:i]) != VersionHead {
-				fail("Internal Server Error", "Received an not supported version: %s", string(rs.Data[0:i]))
+				return fail("Internal Server Error", "Received an not supported version: %s", string(rs.Data[0:i]))
 			}
 			requestOptions = strings.Split(string(rs.Data[i+1:]), " ")
 			break
@@ -543,10 +545,20 @@ Gitea or set your environment appropriately.`, "")
 	}
 	response = append(response, '\n')
 
-	readPktLine(reader, pktLineTypeFlush)
+	_, err = readPktLine(reader, pktLineTypeFlush)
+	if err != nil {
+		return err
+	}
 
-	writeDataPktLine(os.Stdout, response)
-	writeFlushPktLine(os.Stdout)
+	err = writeDataPktLine(os.Stdout, response)
+	if err != nil {
+		return err
+	}
+
+	err = writeFlushPktLine(os.Stdout)
+	if err != nil {
+		return err
+	}
 
 	// 2. receive commands from server.
 	// S: PKT-LINE(<old-oid> <new-oid> <ref>)
@@ -566,7 +578,10 @@ Gitea or set your environment appropriately.`, "")
 
 	for {
 		// note: pktLineTypeUnknow means pktLineTypeFlush and pktLineTypeData all allowed
-		rs = readPktLine(reader, pktLineTypeUnknow)
+		rs, err = readPktLine(reader, pktLineTypeUnknow)
+		if err != nil {
+			return err
+		}
 
 		if rs.Type == pktLineTypeFlush {
 			break
@@ -584,7 +599,10 @@ Gitea or set your environment appropriately.`, "")
 
 	if hasPushOptions {
 		for {
-			rs = readPktLine(reader, pktLineTypeUnknow)
+			rs, err = readPktLine(reader, pktLineTypeUnknow)
+			if err != nil {
+				return err
+			}
 
 			if rs.Type == pktLineTypeFlush {
 				break
@@ -600,7 +618,7 @@ Gitea or set your environment appropriately.`, "")
 	// 3. run hook
 	resp, err := private.HookProcReceive(ctx, repoUser, repoName, hookOptions)
 	if err != nil {
-		fail("Internal Server Error", "run proc-receive hook failed :%v", err)
+		return fail("Internal Server Error", "run proc-receive hook failed :%v", err)
 	}
 
 	// 4. response result to service
@@ -621,29 +639,53 @@ Gitea or set your environment appropriately.`, "")
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {
-			writeDataPktLine(os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
+			err = writeDataPktLine(os.Stdout, []byte("ng "+rs.OriginalRef+" "+rs.Err))
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
 		if rs.IsNotMatched {
-			writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
-			writeDataPktLine(os.Stdout, []byte("option fall-through"))
+			err = writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
+			if err != nil {
+				return err
+			}
+			err = writeDataPktLine(os.Stdout, []byte("option fall-through"))
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
-		writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
-		writeDataPktLine(os.Stdout, []byte("option refname "+rs.Ref))
-		if rs.OldOID != git.EmptySHA {
-			writeDataPktLine(os.Stdout, []byte("option old-oid "+rs.OldOID))
+		err = writeDataPktLine(os.Stdout, []byte("ok "+rs.OriginalRef))
+		if err != nil {
+			return err
 		}
-		writeDataPktLine(os.Stdout, []byte("option new-oid "+rs.NewOID))
+		err = writeDataPktLine(os.Stdout, []byte("option refname "+rs.Ref))
+		if err != nil {
+			return err
+		}
+		if rs.OldOID != git.EmptySHA {
+			err = writeDataPktLine(os.Stdout, []byte("option old-oid "+rs.OldOID))
+			if err != nil {
+				return err
+			}
+		}
+		err = writeDataPktLine(os.Stdout, []byte("option new-oid "+rs.NewOID))
+		if err != nil {
+			return err
+		}
 		if rs.IsForcePush {
-			writeDataPktLine(os.Stdout, []byte("option forced-update"))
+			err = writeDataPktLine(os.Stdout, []byte("option forced-update"))
+			if err != nil {
+				return err
+			}
 		}
 	}
-	writeFlushPktLine(os.Stdout)
+	err = writeFlushPktLine(os.Stdout)
 
-	return nil
+	return err
 }
 
 // git PKT-Line api
@@ -666,60 +708,65 @@ type gitPktLine struct {
 	Data   []byte
 }
 
-func readPktLine(in *bufio.Reader, requestType pktLineType) (r *gitPktLine) {
-	var err error
+func readPktLine(in *bufio.Reader, requestType pktLineType) (*gitPktLine, error) {
+	var (
+		err error
+		r   *gitPktLine
+	)
 
 	// read prefix
 	lengthBytes := make([]byte, 4)
 	for i := 0; i < 4; i++ {
 		lengthBytes[i], err = in.ReadByte()
 		if err != nil {
-			fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
 
 	r = new(gitPktLine)
 	r.Length, err = strconv.ParseUint(string(lengthBytes), 16, 32)
 	if err != nil {
-		fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
+		return nil, fail("Internal Server Error", "Pkt-Line format is wrong :%v", err)
 	}
 
 	if r.Length == 0 {
 		if requestType == pktLineTypeData {
-			fail("Internal Server Error", "Pkt-Line format is wrong")
+			return nil, fail("Internal Server Error", "Pkt-Line format is wrong")
 		}
 		r.Type = pktLineTypeFlush
-		return r
+		return r, nil
 	}
 
 	if r.Length <= 4 || r.Length > 65520 || requestType == pktLineTypeFlush {
-		fail("Internal Server Error", "Pkt-Line format is wrong")
+		return nil, fail("Internal Server Error", "Pkt-Line format is wrong")
 	}
 
 	r.Data = make([]byte, r.Length-4)
 	for i := range r.Data {
 		r.Data[i], err = in.ReadByte()
 		if err != nil {
-			fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
+			return nil, fail("Internal Server Error", "Pkt-Line: read stdin failed : %v", err)
 		}
 	}
 
 	r.Type = pktLineTypeData
 
-	return r
+	return r, nil
 }
 
-func writeFlushPktLine(out io.Writer) {
+func writeFlushPktLine(out io.Writer) error {
 	l, err := out.Write([]byte("0000"))
 	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 	if l != 4 {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
+
+	return nil
 }
 
-func writeDataPktLine(out io.Writer, data []byte) {
+func writeDataPktLine(out io.Writer, data []byte) error {
 	hexchar := []byte("0123456789abcdef")
 	hex := func(n uint64) byte {
 		return hexchar[(n)&15]
@@ -734,17 +781,19 @@ func writeDataPktLine(out io.Writer, data []byte) {
 
 	lr, err := out.Write(tmp)
 	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 	if 4 != lr {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 
 	lr, err = out.Write(data)
 	if err != nil {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 	if int(length-4) != lr {
-		fail("Internal Server Error", "Pkt-Line response failed: %v", err)
+		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
+
+	return nil
 }
