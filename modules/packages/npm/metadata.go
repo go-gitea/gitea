@@ -9,7 +9,7 @@ type Metadata struct {
 	Description  string            `json:"description"`
 	Author       string            `json:"author"`
 	License      string            `json:"license"`
-	Homepage     string            `json:"homepage"`
+	ProjectURL   string            `json:"project_url"`
 	Dependencies map[string]string `json:"dependencies"`
 	Readme       string            `json:"readme"`
 }

@@ -21,6 +21,7 @@ const (
 	PackageGeneric PackageType = iota
 	PackageNuGet               // 1
 	PackageNPM                 // 2
+	PackageMaven               // 3
 )
 
 var (
@@ -28,6 +29,10 @@ var (
 	ErrDuplicatePackage = errors.New("Package does exist already")
 	// ErrPackageNotExist indicates a package not exist error
 	ErrPackageNotExist = errors.New("Package does not exist")
+	// ErrDuplicatePackageFile indicates a duplicated package file error
+	ErrDuplicatePackageFile = errors.New("Package file does exist already")
+	// ErrPackageFileNotExist indicates a package file not exist error
+	ErrPackageFileNotExist = errors.New("Package file does not exist")
 )
 
 // Package represents a package
@@ -52,6 +57,7 @@ type PackageFile struct {
 	Size       int64
 	Name       string
 	LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	HashMD5    string `xorm:"hash_md5"`
 	HashSHA1   string `xorm:"hash_sha1"`
 	HashSHA256 string `xorm:"hash_sha256"`
 	HashSHA512 string `xorm:"hash_sha512"`
@@ -66,29 +72,55 @@ func (p *Package) GetFiles() ([]*PackageFile, error) {
 	return packageFiles, x.Where("package_id = ?", p.ID).Find(&packageFiles)
 }
 
+// GetFileByName gets the specific package file by name
+func (p *Package) GetFileByName(name string) (*PackageFile, error) {
+	pf := &PackageFile{
+		PackageID: p.ID,
+		LowerName: strings.ToLower(name),
+	}
+	has, err := x.Get(pf)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrDuplicatePackage
+	}
+	return pf, nil
+}
+
 // TryInsertPackage inserts a package
 // If a package already exists ErrDuplicatePackage is returned
-func TryInsertPackage(p *Package) error {
+func TryInsertPackage(p *Package) (*Package, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		return err
+		return nil, err
 	}
 
-	has, err := sess.Get(p)
+	key := &Package{
+		RepoID:    p.RepoID,
+		Type:      p.Type,
+		LowerName: p.LowerName,
+		Version:   p.Version,
+	}
+
+	has, err := sess.Get(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
 	if has {
-		return ErrDuplicatePackage
+		return key, ErrDuplicatePackage
 	}
-
 	if _, err = sess.Insert(p); err != nil {
-		return err
+		return nil, err
 	}
+	return p, sess.Commit()
+}
 
-	return sess.Commit()
+// UpdatePackage updates a package
+func UpdatePackage(p *Package) error {
+	_, err := x.ID(p.ID).Update(p)
+	return err
 }
 
 // DeletePackageByID deletes a package and its files by ID
@@ -103,7 +135,7 @@ func DeletePackageByID(packageID int64) error {
 
 // DeletePackagesByRepositoryID deletes all packages of a repository
 func DeletePackagesByRepositoryID(repositoryID int64) error {
-	packages, err := GetPackagesByRepositoryID(repositoryID)
+	packages, err := GetPackagesByRepository(repositoryID)
 	if err != nil {
 		return err
 	}
@@ -117,10 +149,16 @@ func DeletePackagesByRepositoryID(repositoryID int64) error {
 	return nil
 }
 
-// GetPackagesByRepositoryID returns all packages of a repository
-func GetPackagesByRepositoryID(repositoryID int64) ([]*Package, error) {
+// GetPackagesByRepository returns all packages of a repository
+func GetPackagesByRepository(repositoryID int64) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
 	return packages, x.Where("repo_id = ?", repositoryID).Find(&packages)
+}
+
+// GetPackagesByRepositoryAndType returns all packages of a repository with the specific type
+func GetPackagesByRepositoryAndType(repositoryID int64, packageType PackageType) ([]*Package, error) {
+	packages := make([]*Package, 0, 10)
+	return packages, x.Where("repo_id = ? AND type = ?", repositoryID, packageType).Find(&packages)
 }
 
 // GetPackagesByName gets all repository packages with the specific name
@@ -171,10 +209,30 @@ func SearchPackages(repositoryID int64, packageType PackageType, query string, s
 	return count, packages, err
 }
 
-// InsertPackageFile inserts a package file
-func InsertPackageFile(pf *PackageFile) error {
-	_, err := x.Insert(pf)
-	return err
+// TryInsertPackageFile inserts a package file
+func TryInsertPackageFile(pf *PackageFile) (*PackageFile, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	key := &PackageFile{
+		PackageID: pf.PackageID,
+		LowerName: pf.LowerName,
+	}
+
+	has, err := sess.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return key, ErrDuplicatePackageFile
+	}
+	if _, err = sess.Insert(pf); err != nil {
+		return nil, err
+	}
+	return pf, sess.Commit()
 }
 
 // UpdatePackageFile updates a package file

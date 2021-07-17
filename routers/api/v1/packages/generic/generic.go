@@ -32,7 +32,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 
 	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -53,12 +53,14 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	upload, err := ctx.UploadStream()
+	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 		return
 	}
-	defer upload.Close()
+	if close {
+		defer upload.Close()
+	}
 
 	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
 	if err != nil {

@@ -6,6 +6,7 @@ package nuget
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -145,7 +146,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 
 	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageNuGet, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -160,12 +161,14 @@ func DownloadPackageContent(ctx *context.APIContext) {
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
 func UploadPackage(ctx *context.APIContext) {
-	upload, err := ctx.UploadStream()
+	upload, close, err := ctx.UploadStream()
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 		return
 	}
-	defer upload.Close()
+	if close {
+		defer upload.Close()
+	}
 
 	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
 	if err != nil {
@@ -176,6 +179,10 @@ func UploadPackage(ctx *context.APIContext) {
 
 	meta, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
 	}

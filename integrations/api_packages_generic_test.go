@@ -33,7 +33,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryID(repository.ID)
+		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -62,7 +62,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryID(repository.ID)
+		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageGeneric)
 		assert.NoError(t, err)
 		assert.Empty(t, ps)
 	})

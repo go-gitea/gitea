@@ -84,7 +84,7 @@ func TestPackageNuGet(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryID(repository.ID)
+		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -199,7 +199,7 @@ func TestPackageNuGet(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryID(repository.ID)
+		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
 		assert.NoError(t, err)
 		assert.Empty(t, ps)
 	})

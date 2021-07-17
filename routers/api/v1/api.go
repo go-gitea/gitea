@@ -80,6 +80,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
+	"code.gitea.io/gitea/routers/api/v1/packages/maven"
 	"code.gitea.io/gitea/routers/api/v1/packages/npm"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
 	"code.gitea.io/gitea/routers/api/v1/repo"
@@ -981,6 +982,10 @@ func Routes() *web.Route {
 							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.UploadPackage)
 							m.Delete("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.DeletePackage)
 						})
+					}, reqToken())
+					m.Group("/maven", func() {
+						m.Put("/*" /*reqRepoWriter(models.UnitTypePackage),*/, maven.UploadPackageFile)
+						m.Get("/*" /*reqRepoWriter(models.UnitTypePackage),*/, maven.DownloadPackageFile)
 					}, reqToken())
 					m.Group("/nuget", func() {
 						m.Put("/" /*reqRepoWriter(models.UnitTypePackage),*/, nuget.UploadPackage)

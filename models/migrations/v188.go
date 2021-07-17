@@ -35,6 +35,7 @@ func addPackageTables(x *xorm.Engine) error {
 		Size       int64
 		Name       string
 		LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		HashMD5    string `xorm:"hash_md5"`
 		HashSHA1   string `xorm:"hash_sha1"`
 		HashSHA256 string `xorm:"hash_sha256"`
 		HashSHA512 string `xorm:"hash_sha512"`

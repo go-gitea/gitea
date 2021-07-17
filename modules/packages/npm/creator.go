@@ -141,7 +141,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				Description:  meta.Description,
 				Author:       meta.Author.Name,
 				License:      meta.License,
-				Homepage:     meta.Homepage,
+				ProjectURL:   meta.Homepage,
 				Dependencies: meta.Dependencies,
 				Readme:       meta.Readme,
 			},

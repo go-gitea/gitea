@@ -5,6 +5,7 @@
 package packages
 
 import (
+	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -27,6 +28,8 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 		return nil, err
 	}
 
+	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", creator.ID, repository.ID, packageType, name, version, metadata, allowDuplicate)
+
 	p := &models.Package{
 		RepoID:      repository.ID,
 		CreatorID:   creator.ID,
@@ -36,7 +39,7 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 		Version:     version,
 		MetadataRaw: string(metadataJSON),
 	}
-	if err := models.TryInsertPackage(p); err != nil {
+	if p, err = models.TryInsertPackage(p); err != nil {
 		if err == models.ErrDuplicatePackage {
 			if allowDuplicate {
 				return p, nil
@@ -51,32 +54,40 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 
 // AddFileToPackage adds a new file to package and stores its content
 func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reader) (*models.PackageFile, error) {
+	log.Trace("Creating package file: %v, %v, %s", p.ID, size, filename)
+
 	pf := &models.PackageFile{
 		PackageID: p.ID,
 		Size:      size,
 		Name:      filename,
 		LowerName: strings.ToLower(filename),
 	}
-	if err := models.InsertPackageFile(pf); err != nil {
+	var err error
+	if pf, err = models.TryInsertPackageFile(pf); err != nil {
+		if err == models.ErrDuplicatePackageFile {
+			return nil, err
+		}
 		log.Error("Error inserting package file: %v", err)
 		return nil, err
 	}
 
+	md5 := md5.New()
 	h1 := sha1.New()
 	h256 := sha256.New()
 	h512 := sha512.New()
 
-	r = io.TeeReader(r, io.MultiWriter(h1, h256, h512))
+	r = io.TeeReader(r, io.MultiWriter(md5, h1, h256, h512))
 
 	contentStore := packages_module.NewContentStore()
 
-	err := func() error {
+	err = func() error {
 		err := contentStore.Save(p.ID, pf.ID, r, size)
 		if err != nil {
 			log.Error("Error saving package file in content store: %v", err)
 			return err
 		}
 
+		pf.HashMD5 = fmt.Sprintf("%x", md5.Sum(nil))
 		pf.HashSHA1 = fmt.Sprintf("%x", h1.Sum(nil))
 		pf.HashSHA256 = fmt.Sprintf("%x", h256.Sum(nil))
 		pf.HashSHA512 = fmt.Sprintf("%x", h512.Sum(nil))
@@ -99,6 +110,8 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 
 // DeletePackage deletes a package and all associated files
 func DeletePackage(repository *models.Repository, packageType models.PackageType, name, version string) error {
+	log.Trace("Deleting package: %v, %v, %s, %s", repository.ID, packageType, name, version)
+
 	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
@@ -117,7 +130,7 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 	contentStore := packages_module.NewContentStore()
 	for _, pf := range pfs {
 		if err := contentStore.Delete(p.ID, pf.ID); err != nil {
-			log.Error("Error deleting package file: %v", err)
+			log.Error("Error deleting package file [%s]: %v", pf.Name, err)
 			return err
 		}
 	}
@@ -132,24 +145,18 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 
 // GetPackageFileStream returns the content of the specific package file
 func GetPackageFileStream(repository *models.Repository, packageType models.PackageType, name, version, filename string) (io.ReadCloser, *models.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", repository.ID, packageType, name, version, filename)
+
 	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pfs, err := p.GetFiles()
+	pf, err := p.GetFileByName(filename)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	filename = strings.ToLower(filename)
-
-	for _, pf := range pfs {
-		if pf.LowerName == filename {
-			s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
-			return s, pf, err
-		}
-	}
-
-	return nil, nil, models.ErrPackageNotExist
+	s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
+	return s, pf, err
 }

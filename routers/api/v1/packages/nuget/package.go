@@ -22,15 +22,15 @@ type Package struct {
 }
 
 func intializePackages(packages []*models.Package) ([]*Package, error) {
-	nugetPackages := make([]*Package, 0, len(packages))
+	pgs := make([]*Package, 0, len(packages))
 	for _, p := range packages {
 		np, err := intializePackage(p)
 		if err != nil {
 			return nil, err
 		}
-		nugetPackages = append(nugetPackages, np)
+		pgs = append(pgs, np)
 	}
-	return nugetPackages, nil
+	return pgs, nil
 }
 
 func intializePackage(p *models.Package) (*Package, error) {

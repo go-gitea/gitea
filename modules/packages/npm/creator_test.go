@@ -217,7 +217,7 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageDescription, p.Metadata.Readme)
 		assert.Equal(t, packageAuthor, p.Metadata.Author)
 		assert.Equal(t, "MIT", p.Metadata.License)
-		assert.Equal(t, "https://gitea.io/", p.Metadata.Homepage)
+		assert.Equal(t, "https://gitea.io/", p.Metadata.ProjectURL)
 		assert.Contains(t, p.Metadata.Dependencies, "package")
 		assert.Equal(t, "1.2.0", p.Metadata.Dependencies["package"])
 	})

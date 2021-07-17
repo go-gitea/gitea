@@ -1,0 +1,295 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package maven
+
+import (
+	"crypto/md5"
+	"crypto/sha1"
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/packages"
+	maven_module "code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/util/filebuffer"
+
+	package_service "code.gitea.io/gitea/services/packages"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+const mavenMetadataFile = "maven-metadata.xml"
+
+var (
+	errInvalidParameters = errors.New("Request parameters are invalid")
+	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
+)
+
+// DownloadPackageFile serves the content of a package
+func DownloadPackageFile(ctx *context.APIContext) {
+	params, err := extractPathParameters(ctx)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", err)
+		return
+	}
+
+	if params.IsMeta {
+		serveMavenMetadata(ctx, params)
+	} else {
+		servePackageFile(ctx, params)
+	}
+}
+
+func serveMavenMetadata(ctx *context.APIContext, params parameters) {
+	if params.Version == "" {
+		// /com/foo/project/maven-metadata.xml[.sha1/.md5]
+
+		packageName := params.GroupID + "-" + params.ArtifactID
+		packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageMaven, packageName)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
+		if len(packages) == 0 {
+			ctx.Error(http.StatusNotFound, "", err)
+			return
+		}
+
+		mavenPackages, err := intializePackages(packages)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
+
+		xmlMetadata, err := xml.Marshal(createMetadataResponse(mavenPackages))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
+		xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
+
+		switch strings.ToLower(filepath.Ext(params.Filename)) {
+		case ".sha1":
+			ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", sha1.Sum(xmlMetadataWithHeader))))
+		case ".md5":
+			ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", md5.Sum(xmlMetadataWithHeader))))
+		default:
+			ctx.PlainText(http.StatusOK, xmlMetadataWithHeader)
+		}
+	} else {
+		// /com/foo/project/1-SNAPSHOT/maven-metadata.xml[.sha1/.md5]
+
+		ctx.Error(http.StatusNotFound, "", "")
+	}
+}
+
+func servePackageFile(ctx *context.APIContext, params parameters) {
+	packageName := params.GroupID + "-" + params.ArtifactID
+
+	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageMaven, packageName, params.Version)
+	if err == models.ErrPackageNotExist {
+		ctx.Error(http.StatusNotFound, "", err)
+		return
+	}
+
+	filename := params.Filename
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	if ext == ".sha1" || ext == ".md5" {
+		filename = filename[:len(filename)-len(ext)]
+	}
+
+	pf, err := p.GetFileByName(filename)
+	if err != nil {
+		if err == models.ErrPackageFileNotExist {
+			ctx.Error(http.StatusNotFound, "", "")
+			return
+		}
+		log.Error("Error getting file by name: %v", err)
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	if ext == ".sha1" {
+		ctx.PlainText(http.StatusOK, []byte(pf.HashSHA1))
+		return
+	}
+	if ext == ".md5" {
+		ctx.PlainText(http.StatusOK, []byte(pf.HashMD5))
+		return
+	}
+	s, err := packages.NewContentStore().Get(p.ID, pf.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+	}
+	defer s.Close()
+
+	ctx.ServeStream(s, pf.Name)
+}
+
+// UploadPackageFile adds a file to the package. If the package does not exist, it gets created.
+func UploadPackageFile(ctx *context.APIContext) {
+	params, err := extractPathParameters(ctx)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", err)
+		return
+	}
+
+	log.Trace("Parameters: %+v", params)
+
+	if params.IsMeta {
+		ctx.PlainText(http.StatusOK, nil)
+		return
+	}
+
+	packageName := params.GroupID + "-" + params.ArtifactID
+
+	p, err := package_service.CreatePackage(
+		ctx.User,
+		ctx.Repo.Repository,
+		models.PackageMaven,
+		packageName,
+		params.Version,
+		&maven_module.Metadata{
+			GroupID:    params.GroupID,
+			ArtifactID: params.ArtifactID,
+		},
+		true,
+	)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	buf, err := filebuffer.CreateFromReader(ctx.Req.Body, 32*1024*1024)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+	defer buf.Close()
+
+	ext := filepath.Ext(params.Filename)
+
+	if ext == ".sha1" || ext == ".md5" {
+		if ext == ".sha1" {
+			pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-5])
+			if err != nil {
+				if err == models.ErrPackageFileNotExist {
+					ctx.Error(http.StatusNotFound, "", "")
+					return
+				}
+				log.Error("GetFileByName: %v", err)
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
+
+			hash, err := ioutil.ReadAll(buf)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
+
+			if pf.HashSHA1 != string(hash) {
+				ctx.Error(http.StatusBadRequest, "", "hash mismatch")
+				return
+			}
+		}
+
+		ctx.PlainText(http.StatusOK, nil)
+		return
+	}
+
+	// If it's the package pom file extract the metadata
+	if ext == ".pom" {
+		metadata, err := maven_module.ParsePackageMetaData(buf)
+		if err != nil {
+			log.Error("Error parsing package metadata: %v", err)
+		}
+		if metadata != nil {
+			raw, err := jsoniter.Marshal(metadata)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
+			p.MetadataRaw = string(raw)
+			if err := models.UpdatePackage(p); err != nil {
+				ctx.Error(http.StatusInternalServerError, "", err)
+				return
+			}
+		}
+		if _, err := buf.Seek(0, io.SeekStart); err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
+	}
+
+	_, err = package_service.AddFileToPackage(p, params.Filename, buf.Size(), buf)
+	if err != nil {
+		if err == models.ErrDuplicatePackageFile {
+			ctx.Error(http.StatusBadRequest, "", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	ctx.PlainText(http.StatusCreated, nil)
+}
+
+type parameters struct {
+	GroupID    string
+	ArtifactID string
+	Version    string
+	Filename   string
+	IsMeta     bool
+}
+
+func extractPathParameters(ctx *context.APIContext) (parameters, error) {
+	parts := strings.Split(ctx.Params("*"), "/")
+
+	p := parameters{
+		Filename: parts[len(parts)-1],
+	}
+
+	p.IsMeta = p.Filename == mavenMetadataFile || p.Filename == mavenMetadataFile+".sha1" || p.Filename == mavenMetadataFile+".md5"
+
+	parts = parts[:len(parts)-1]
+	if len(parts) == 0 {
+		return p, errInvalidParameters
+	}
+
+	p.Version = parts[len(parts)-1]
+	if p.IsMeta && !strings.HasSuffix(p.Version, "-SNAPSHOT") {
+		p.Version = ""
+	} else {
+		parts = parts[:len(parts)-1]
+	}
+
+	if illegalCharacters.MatchString(p.Version) {
+		return p, errInvalidParameters
+	}
+
+	if len(parts) < 2 {
+		return p, errInvalidParameters
+	}
+
+	p.ArtifactID = parts[len(parts)-1]
+	p.GroupID = strings.Join(parts[:len(parts)-1], ".")
+
+	if illegalCharacters.MatchString(p.GroupID) || illegalCharacters.MatchString(p.ArtifactID) {
+		return p, errInvalidParameters
+	}
+
+	return p, nil
+}

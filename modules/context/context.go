@@ -326,23 +326,25 @@ func (ctx *Context) QueryOptionalBool(key string, defaults ...util.OptionalBool)
 }
 
 // UploadStream returns the request body or the first form file
-func (ctx *Context) UploadStream() (io.ReadCloser, error) {
+// Only form files need to get closed.
+func (ctx *Context) UploadStream() (io.ReadCloser, bool, error) {
 	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
 	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := ctx.Req.ParseMultipartForm(32 * 1024 * 1024); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if ctx.Req.MultipartForm.File == nil {
-			return nil, http.ErrMissingFile
+			return nil, false, http.ErrMissingFile
 		}
 		for _, files := range ctx.Req.MultipartForm.File {
 			if len(files) > 0 {
-				return files[0].Open()
+				r, err := files[0].Open()
+				return r, true, err
 			}
 		}
-		return nil, http.ErrMissingFile
+		return nil, false, http.ErrMissingFile
 	}
-	return ctx.Req.Body, nil
+	return ctx.Req.Body, false, nil
 }
 
 // HandleText handles HTTP status code

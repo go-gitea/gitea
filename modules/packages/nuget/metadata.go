@@ -106,9 +106,7 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Metadata, error) {
 // ParseNuspecMetaData parses a Nuspec file to retrieve the metadata of a Nuget package
 func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 	var p nuspecPackage
-	dec := xml.NewDecoder(r)
-	err := dec.Decode(&p)
-	if err != nil {
+	if err := xml.NewDecoder(r).Decode(&p); err != nil {
 		return nil, err
 	}
 
