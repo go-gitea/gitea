@@ -4,21 +4,12 @@
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
-
-	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+func addKeyIsVerified(x *xorm.Engine) error {
+	type GPGKey struct {
+		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(PullRequest)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(GPGKey))
 }
