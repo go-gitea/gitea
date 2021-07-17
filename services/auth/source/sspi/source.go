@@ -27,7 +27,7 @@ type Source struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, cfg)
+	return models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.

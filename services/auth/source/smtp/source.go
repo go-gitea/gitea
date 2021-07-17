@@ -32,7 +32,7 @@ type Source struct {
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, source)
+	return models.JSONUnmarshalHandleDoubleEncode(bs, &source)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
