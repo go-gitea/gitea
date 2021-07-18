@@ -200,7 +200,7 @@ to the file `templates/custom/footer.tmpl`
 
 You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `$GITEA_CUSTOM/public/` folder.
 
-You should end-up with a folder structucture similar to:
+You should end-up with a folder structure similar to:
 
 ```
 $GITEA_CUSTOM/templates
