@@ -74,9 +74,9 @@ var (
 // possible that a Blob may gain an unwanted prefix of 0xff 0xfe.
 func jsonUnmarshalIgnoreErroneousBOM(bs []byte, v interface{}) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(bs, &v)
+	err := json.Unmarshal(bs, v)
 	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], &v)
+		err = json.Unmarshal(bs[2:], v)
 	}
 	return err
 }
@@ -343,7 +343,7 @@ func CreateLoginSource(source *LoginSource) error {
 	} else if has {
 		return ErrLoginSourceAlreadyExist{source.Name}
 	}
-	// Synchronization is only aviable with LDAP for now
+	// Synchronization is only available with LDAP for now
 	if !source.IsLDAP() {
 		source.IsSyncEnabled = false
 	}

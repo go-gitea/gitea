@@ -151,6 +151,7 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
+	DefaultDeleteBranchAfterMerge         bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -557,6 +558,7 @@ type MergePullRequestForm struct {
 	MergeCommitID          string // only used for manually-merged
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool
+	DeleteBranchAfterMerge bool `json:"delete_branch_after_merge,omitempty"`
 }
 
 // Validate validates the fields

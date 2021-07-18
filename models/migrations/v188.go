@@ -4,20 +4,12 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-func addAutoMergeTable(x *xorm.Engine) error {
-	type MergeStyle string
-	type ScheduledPullRequestMerge struct {
-		ID          int64      `xorm:"pk autoincr"`
-		PullID      int64      `xorm:"BIGINT"`
-		DoerID      int64      `xorm:"BIGINT"`
-		MergeStyle  MergeStyle `xorm:"varchar(50)"`
-		Message     string     `xorm:"TEXT"`
-		CreatedUnix int64      `xorm:"created"`
+func addKeyIsVerified(x *xorm.Engine) error {
+	type GPGKey struct {
+		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	return x.Sync2(&ScheduledPullRequestMerge{})
+	return x.Sync(new(GPGKey))
 }
