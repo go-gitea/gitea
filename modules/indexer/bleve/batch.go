@@ -27,6 +27,7 @@ func NewFlushingBatch(index bleve.Index, maxBatchSize int) *FlushingBatch {
 	}
 }
 
+// Index add a new index to batch
 func (b *FlushingBatch) Index(id string, data interface{}) error {
 	if err := b.batch.Index(id, data); err != nil {
 		return err
@@ -34,6 +35,7 @@ func (b *FlushingBatch) Index(id string, data interface{}) error {
 	return b.flushIfFull()
 }
 
+// Delete add a delete index to batch
 func (b *FlushingBatch) Delete(id string) error {
 	b.batch.Delete(id)
 	return b.flushIfFull()
@@ -46,6 +48,7 @@ func (b *FlushingBatch) flushIfFull() error {
 	return b.Flush()
 }
 
+// Flush submit the batch and create a new one
 func (b *FlushingBatch) Flush() error {
 	err := b.index.Batch(b.batch)
 	if err != nil {
