@@ -212,6 +212,7 @@ func UploadPackage(ctx *context.APIContext) {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", err)
+		return
 	}
 
 	ctx.PlainText(http.StatusCreated, nil)

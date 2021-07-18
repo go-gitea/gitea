@@ -22,6 +22,7 @@ const (
 	PackageNuGet               // 1
 	PackageNPM                 // 2
 	PackageMaven               // 3
+	PackagePyPI                // 4
 )
 
 var (

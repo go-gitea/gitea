@@ -96,6 +96,7 @@ func UploadPackage(ctx *context.APIContext) {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
+		return
 	}
 
 	ctx.PlainText(http.StatusCreated, nil)
@@ -116,7 +117,9 @@ func DeletePackage(ctx *context.APIContext) {
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
+		return
 	}
+	ctx.PlainText(http.StatusOK, nil)
 }
 
 func sanitizeParameters(ctx *context.APIContext) (string, string, string, error) {

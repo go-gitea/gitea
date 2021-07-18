@@ -83,6 +83,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages/maven"
 	"code.gitea.io/gitea/routers/api/v1/packages/npm"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
+	"code.gitea.io/gitea/routers/api/v1/packages/pypi"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -1010,6 +1011,11 @@ func Routes() *web.Route {
 							m.Get("/-/{version}/{filename}", npm.DownloadPackageContent)
 						})
 					}, reqToken())
+					m.Group("/pypi", func() {
+						m.Post("/" /*reqRepoWriter(models.UnitTypePackage),*/, pypi.UploadPackageFile)
+						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageContent)
+						m.Get("/simple/{id}", pypi.PackageMetadata)
+					}, reqBasicAuth())
 				})
 			}, repoAssignment())
 		})
