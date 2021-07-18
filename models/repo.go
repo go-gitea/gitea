@@ -1227,7 +1227,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
@@ -1238,7 +1238,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return err
 	}
 	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
