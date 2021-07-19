@@ -210,3 +210,53 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)
 	assert.Error(t, err)
 }
+
+func TestPrepareWikiFileName(t *testing.T) {
+	models.PrepareTestEnv(t)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		arg      string
+		hasWiki  bool
+		wikiPath string
+		wantErr  bool
+	}{{
+		name:     "add suffix",
+		arg:      "home",
+		hasWiki:  true,
+		wikiPath: "home.md",
+		wantErr:  false,
+	}, {
+		name:     "test special chars",
+		arg:      "home of and & or wiki page!",
+		hasWiki:  true,
+		wikiPath: "home-of-and-%26-or-wiki-page%21.md",
+		wantErr:  false,
+	}, {
+		name:     "strange cases",
+		arg:      "...",
+		hasWiki:  true,
+		wikiPath: "....md",
+		wantErr:  false,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			isWikiExist, newWikiPath, err := prepareWikiFileName(gitRepo, tt.arg)
+			if (err != nil) != tt.wantErr {
+				assert.NoError(t, err)
+				return
+			}
+			if isWikiExist != tt.hasWiki {
+				if isWikiExist {
+					t.Errorf("expect to have no wiki but we detect one")
+				} else {
+					t.Errorf("expect to have wiki but we could not detect one")
+				}
+			}
+			assert.Equal(t, tt.wikiPath, newWikiPath)
+		})
+	}
+}
