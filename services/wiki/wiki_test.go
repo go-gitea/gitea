@@ -218,42 +218,42 @@ func TestPrepareWikiFileName(t *testing.T) {
 	assert.NoError(t, err)
 
 	tests := []struct {
-		name     string
-		arg      string
-		hasWiki  bool
-		wikiPath string
-		wantErr  bool
+		name      string
+		arg       string
+		existence bool
+		wikiPath  string
+		wantErr   bool
 	}{{
-		name:     "add suffix",
-		arg:      "home",
-		hasWiki:  true,
-		wikiPath: "home.md",
-		wantErr:  false,
+		name:      "add suffix",
+		arg:       "Home",
+		existence: true,
+		wikiPath:  "Home.md",
+		wantErr:   false,
 	}, {
-		name:     "test special chars",
-		arg:      "home of and & or wiki page!",
-		hasWiki:  true,
-		wikiPath: "home-of-and-%26-or-wiki-page%21.md",
-		wantErr:  false,
+		name:      "test special chars",
+		arg:       "home of and & or wiki page!",
+		existence: false,
+		wikiPath:  "home-of-and-%26-or-wiki-page%21.md",
+		wantErr:   false,
 	}, {
-		name:     "strange cases",
-		arg:      "...",
-		hasWiki:  true,
-		wikiPath: "....md",
-		wantErr:  false,
+		name:      "fount unescaped cases",
+		arg:       "Unescaped File",
+		existence: true,
+		wikiPath:  "Unescaped File.md",
+		wantErr:   false,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isWikiExist, newWikiPath, err := prepareWikiFileName(gitRepo, tt.arg)
+			existence, newWikiPath, err := prepareWikiFileName(gitRepo, tt.arg)
 			if (err != nil) != tt.wantErr {
 				assert.NoError(t, err)
 				return
 			}
-			if isWikiExist != tt.hasWiki {
-				if isWikiExist {
-					t.Errorf("expect to have no wiki but we detect one")
+			if existence != tt.existence {
+				if existence {
+					t.Errorf("expect to find no escaped file but we detect one")
 				} else {
-					t.Errorf("expect to have wiki but we could not detect one")
+					t.Errorf("expect to find an escaped file but we could not detect one")
 				}
 			}
 			assert.Equal(t, tt.wikiPath, newWikiPath)
