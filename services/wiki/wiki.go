@@ -309,6 +309,9 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 	}
 
 	found, wikiPath, err := prepareWikiFileName(gitRepo, wikiName)
+	if err != nil {
+		return err
+	}
 	if found {
 		err := gitRepo.RemoveFilesFromIndex(wikiPath)
 		if err != nil {
