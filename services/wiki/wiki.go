@@ -308,15 +308,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
-	wikiPath := NameToFilename(wikiName)
-	filesInIndex, err := gitRepo.LsFiles(wikiPath)
-	found := false
-	for _, file := range filesInIndex {
-		if file == wikiPath {
-			found = true
-			break
-		}
-	}
+	found, wikiPath, err := prepareWikiFileName(gitRepo, wikiName)
 	if found {
 		err := gitRepo.RemoveFilesFromIndex(wikiPath)
 		if err != nil {
