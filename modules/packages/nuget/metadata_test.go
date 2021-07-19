@@ -19,7 +19,6 @@ const (
 	authors           = "Gitea Authors"
 	projectURL        = "https://gitea.io"
 	description       = "Package Description"
-	summary           = "Package Summary"
 	releaseNotes      = "Package Release Notes"
 	repositoryURL     = "https://gitea.io/gitea/gitea"
 	targetFramework   = ".NETStandard2.1"
@@ -36,7 +35,6 @@ const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <projectUrl>` + projectURL + `</projectUrl>
     <description>` + description + `</description>
-    <summary>` + summary + `</summary>
     <releaseNotes>` + releaseNotes + `</releaseNotes>
     <repository url="` + repositoryURL + `" />
     <dependencies>
@@ -124,7 +122,6 @@ func TestParseNuspecMetaData(t *testing.T) {
 	assert.Equal(t, authors, m.Authors)
 	assert.Equal(t, projectURL, m.ProjectURL)
 	assert.Equal(t, description, m.Description)
-	assert.Equal(t, summary, m.Summary)
 	assert.Equal(t, releaseNotes, m.ReleaseNotes)
 	assert.Equal(t, repositoryURL, m.RepositoryURL)
 	assert.Len(t, m.Dependencies, 1)

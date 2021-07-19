@@ -71,7 +71,6 @@ type CatalogEntry struct {
 	ID                       string                    `json:"id"`
 	Version                  string                    `json:"version"`
 	Description              string                    `json:"description"`
-	Summary                  string                    `json:"summary"`
 	ReleaseNotes             string                    `json:"releaseNotes"`
 	Authors                  string                    `json:"authors"`
 	RequireLicenseAcceptance bool                      `json:"requireLicenseAcceptance"`
@@ -125,7 +124,6 @@ func createRegistrationIndexPageItem(l *linkBuilder, p *Package) *RegistrationIn
 			ID:                p.Name,
 			Version:           p.Version,
 			Description:       p.Metadata.Description,
-			Summary:           p.Metadata.Summary,
 			ReleaseNotes:      p.Metadata.ReleaseNotes,
 			Authors:           p.Metadata.Authors,
 			ProjectURL:        p.Metadata.ProjectURL,
@@ -202,7 +200,6 @@ type SearchResult struct {
 	Version              string                 `json:"version"`
 	Versions             []*SearchResultVersion `json:"versions"`
 	Description          string                 `json:"description"`
-	Summary              string                 `json:"summary"`
 	Authors              string                 `json:"authors"`
 	ProjectURL           string                 `json:"projectURL"`
 	RegistrationIndexURL string                 `json:"registration"`
@@ -258,7 +255,6 @@ func createSearchResult(l *linkBuilder, packages []*Package) *SearchResult {
 		Version:              latest.Version,
 		Versions:             versions,
 		Description:          latest.Metadata.Description,
-		Summary:              latest.Metadata.Summary,
 		Authors:              latest.Metadata.Authors,
 		ProjectURL:           latest.Metadata.ProjectURL,
 		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Name),

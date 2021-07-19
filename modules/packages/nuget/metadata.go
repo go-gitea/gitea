@@ -36,7 +36,6 @@ type Metadata struct {
 	ID            string                  `json:"-"`
 	Version       string                  `json:"-"`
 	Description   string                  `json:"description"`
-	Summary       string                  `json:"summary"`
 	ReleaseNotes  string                  `json:"release_notes"`
 	Authors       string                  `json:"authors"`
 	ProjectURL    string                  `json:"project_url"`
@@ -58,7 +57,6 @@ type nuspecPackage struct {
 		RequireLicenseAcceptance bool   `xml:"requireLicenseAcceptance"`
 		ProjectURL               string `xml:"projectUrl"`
 		Description              string `xml:"description"`
-		Summary                  string `xml:"summary"`
 		ReleaseNotes             string `xml:"releaseNotes"`
 		Repository               struct {
 			URL string `xml:"url,attr"`
@@ -123,7 +121,6 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 		ID:            p.Metadata.ID,
 		Version:       v.String(),
 		Description:   p.Metadata.Description,
-		Summary:       p.Metadata.Summary,
 		ReleaseNotes:  p.Metadata.ReleaseNotes,
 		Authors:       p.Metadata.Authors,
 		ProjectURL:    p.Metadata.ProjectURL,
@@ -141,7 +138,9 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 				Version: dep.Version,
 			})
 		}
-		m.Dependencies[group.TargetFramework] = deps
+		if len(deps) > 0 {
+			m.Dependencies[group.TargetFramework] = deps
+		}
 	}
 	return m, nil
 }
