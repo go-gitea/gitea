@@ -359,11 +359,15 @@ func (m *MultiChannelledLog) Flush() {
 
 // GetLevel gets the level of this MultiChannelledLog
 func (m *MultiChannelledLog) GetLevel() Level {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	return m.level
 }
 
 // GetStacktraceLevel gets the level of this MultiChannelledLog
 func (m *MultiChannelledLog) GetStacktraceLevel() Level {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	return m.stacktraceLevel
 }
 
