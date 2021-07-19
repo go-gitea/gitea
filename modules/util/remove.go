@@ -6,9 +6,12 @@ package util
 
 import (
 	"os"
+	"runtime"
 	"syscall"
 	"time"
 )
+
+const windowsSharingViolationError syscall.Errno = 32
 
 // Remove removes the named file or (empty) directory with at most 5 attempts.
 func Remove(name string) error {
@@ -20,6 +23,12 @@ func Remove(name string) error {
 		}
 		unwrapped := err.(*os.PathError).Err
 		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM || unwrapped == syscall.EMFILE || unwrapped == syscall.ENFILE {
+			// try again
+			<-time.After(100 * time.Millisecond)
+			continue
+		}
+
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -48,6 +57,12 @@ func RemoveAll(name string) error {
 			continue
 		}
 
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
+			// try again
+			<-time.After(100 * time.Millisecond)
+			continue
+		}
+
 		if unwrapped == syscall.ENOENT {
 			// it's already gone
 			return nil
@@ -66,6 +81,12 @@ func Rename(oldpath, newpath string) error {
 		}
 		unwrapped := err.(*os.LinkError).Err
 		if unwrapped == syscall.EBUSY || unwrapped == syscall.ENOTEMPTY || unwrapped == syscall.EPERM || unwrapped == syscall.EMFILE || unwrapped == syscall.ENFILE {
+			// try again
+			<-time.After(100 * time.Millisecond)
+			continue
+		}
+
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
