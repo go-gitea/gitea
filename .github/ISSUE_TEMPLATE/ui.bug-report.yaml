@@ -32,14 +32,6 @@ body:
   attributes:
     label: Browser Version
     description: The browser and version that you are using to access Gitea
-- type: textarea
-  id: run-info
-  attributes:
-    label: How are you running Gitea?
-    description: |
-      Please include information on whether you built gitea yourself, used one of our downloads, are using https://try.gitea.io or are using some other package
-      Please also tell us how you are running gitea, e.g. if it is being run from docker, a command-line, systemd etc.
-      If you are using a package or systemd tell us what distribution you are using
   validations:
     required: true
 - type: dropdown
