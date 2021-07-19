@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const WIN_ERROR_SHARING_VIOLATION syscall.Errno = 32
+const windowsSharingViolationError syscall.Errno = 32
 
 // Remove removes the named file or (empty) directory with at most 5 attempts.
 func Remove(name string) error {
@@ -28,7 +28,7 @@ func Remove(name string) error {
 			continue
 		}
 
-		if unwrapped == WIN_ERROR_SHARING_VIOLATION && runtime.GOOS == "windows" {
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -57,7 +57,7 @@ func RemoveAll(name string) error {
 			continue
 		}
 
-		if unwrapped == WIN_ERROR_SHARING_VIOLATION && runtime.GOOS == "windows" {
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
@@ -86,7 +86,7 @@ func Rename(oldpath, newpath string) error {
 			continue
 		}
 
-		if unwrapped == WIN_ERROR_SHARING_VIOLATION && runtime.GOOS == "windows" {
+		if unwrapped == windowsSharingViolationError && runtime.GOOS == "windows" {
 			// try again
 			<-time.After(100 * time.Millisecond)
 			continue
