@@ -215,6 +215,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 	models.PrepareTestEnv(t)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	defer gitRepo.Close()
 	assert.NoError(t, err)
 
 	tests := []struct {
