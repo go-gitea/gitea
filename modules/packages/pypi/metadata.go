@@ -6,10 +6,11 @@ package pypi
 
 // Metadata represents the metadata of a PyPI package
 type Metadata struct {
-	Author         string `json:"author"`
-	Description    string `json:"description"`
-	Summary        string `json:"summary"`
-	ProjectURL     string `json:"project_url"`
-	License        string `json:"license"`
-	RequiresPython string `json:"requires_python"`
+	Author          string `json:"author"`
+	Description     string `json:"description"`
+	LongDescription string `json:"long_description"`
+	Summary         string `json:"summary"`
+	ProjectURL      string `json:"project_url"`
+	License         string `json:"license"`
+	RequiresPython  string `json:"requires_python"`
 }

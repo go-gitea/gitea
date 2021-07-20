@@ -108,8 +108,8 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 	return pf, nil
 }
 
-// DeletePackage deletes a package and all associated files
-func DeletePackage(repository *models.Repository, packageType models.PackageType, name, version string) error {
+// DeletePackageByNameAndVersion deletes a package and all associated files
+func DeletePackageByNameAndVersion(repository *models.Repository, packageType models.PackageType, name, version string) error {
 	log.Trace("Deleting package: %v, %v, %s, %s", repository.ID, packageType, name, version)
 
 	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
@@ -121,6 +121,30 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 		return err
 	}
 
+	return deletePackage(p)
+}
+
+// DeletePackageByID deletes a package and all associated files
+func DeletePackageByID(repository *models.Repository, packageID int64) error {
+	log.Trace("Deleting package: %v, %v", repository.ID, packageID)
+
+	p, err := models.GetPackageByID(packageID)
+	if err != nil {
+		if err == models.ErrPackageNotExist {
+			return err
+		}
+		log.Error("Error getting package: %v", err)
+		return err
+	}
+
+	if p.RepoID != repository.ID {
+		return models.ErrPackageNotExist
+	}
+
+	return deletePackage(p)
+}
+
+func deletePackage(p *models.Package) error {
 	pfs, err := p.GetFiles()
 	if err != nil {
 		log.Error("Error getting package files: %v", err)
@@ -143,15 +167,43 @@ func DeletePackage(repository *models.Repository, packageType models.PackageType
 	return nil
 }
 
-// GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(repository *models.Repository, packageType models.PackageType, name, version, filename string) (io.ReadCloser, *models.PackageFile, error) {
+// GetFileStreamByPackageNameAndVersion returns the content of the specific package file
+func GetFileStreamByPackageNameAndVersion(repository *models.Repository, packageType models.PackageType, name, version, filename string) (io.ReadCloser, *models.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", repository.ID, packageType, name, version, filename)
 
 	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
 	if err != nil {
+		if err == models.ErrPackageNotExist {
+			return nil, nil, err
+		}
+		log.Error("Error getting package: %v", err)
 		return nil, nil, err
 	}
 
+	return getPackageFileStream(p, filename)
+}
+
+// GetFileStreamByPackageID returns the content of the specific package file
+func GetFileStreamByPackageID(repository *models.Repository, packageID int64, filename string) (io.ReadCloser, *models.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %s", repository.ID, packageID, filename)
+
+	p, err := models.GetPackageByID(packageID)
+	if err != nil {
+		if err == models.ErrPackageNotExist {
+			return nil, nil, err
+		}
+		log.Error("Error getting package: %v", err)
+		return nil, nil, err
+	}
+
+	if p.RepoID != repository.ID {
+		return nil, nil, models.ErrPackageNotExist
+	}
+
+	return getPackageFileStream(p, filename)
+}
+
+func getPackageFileStream(p *models.Package, filename string) (io.ReadCloser, *models.PackageFile, error) {
 	pf, err := p.GetFileByName(filename)
 	if err != nil {
 		return nil, nil, err

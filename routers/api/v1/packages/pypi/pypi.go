@@ -61,7 +61,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackagePyPI, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackagePyPI, packageName, packageVersion, filename)
 	if err != nil {
 		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)

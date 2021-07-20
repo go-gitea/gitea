@@ -26,7 +26,7 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageNPM, packageName)
+	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageNpm, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -60,7 +60,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageNPM, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackageNpm, packageName, packageVersion, filename)
 	if err != nil {
 		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
@@ -85,7 +85,7 @@ func UploadPackage(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageNPM,
+		models.PackageNpm,
 		npmPackage.Name,
 		npmPackage.Version,
 		npmPackage.Metadata,

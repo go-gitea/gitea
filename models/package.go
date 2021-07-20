@@ -20,10 +20,26 @@ type PackageType int
 const (
 	PackageGeneric PackageType = iota
 	PackageNuGet               // 1
-	PackageNPM                 // 2
+	PackageNpm                 // 2
 	PackageMaven               // 3
 	PackagePyPI                // 4
 )
+
+func (pt PackageType) String() string {
+	switch pt {
+	case PackageGeneric:
+		return "Generic"
+	case PackageNuGet:
+		return "NuGet"
+	case PackageNpm:
+		return "npm"
+	case PackageMaven:
+		return "Maven"
+	case PackagePyPI:
+		return "PyPI"
+	}
+	return ""
+}
 
 var (
 	// ErrDuplicatePackage indicates a duplicated package error

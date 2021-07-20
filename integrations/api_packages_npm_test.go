@@ -63,7 +63,7 @@ func TestPackageNPM(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNPM)
+		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNpm)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)

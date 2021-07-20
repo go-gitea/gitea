@@ -30,7 +30,7 @@ func DownloadPackageContent(ctx *context.APIContext) {
 		return
 	}
 
-	s, pf, err := package_service.GetPackageFileStream(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
 	if err != nil {
 		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
@@ -110,7 +110,7 @@ func DeletePackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = package_service.DeletePackage(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion)
+	err = package_service.DeletePackageByNameAndVersion(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
