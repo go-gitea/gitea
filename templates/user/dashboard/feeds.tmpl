@@ -33,7 +33,7 @@
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
 							{{ $tagLink := .GetTag | EscapePound | Escape}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath .GetTag | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}

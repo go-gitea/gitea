@@ -813,7 +813,7 @@ var (
 		"user",
 	}
 
-	reservedUserPatterns = []string{"*.keys", "*.gpg"}
+	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
@@ -1026,7 +1026,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	// Do not fail if directory does not exist
-	if err = os.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
@@ -1035,7 +1035,7 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 	}
 
 	if err = sess.Commit(); err != nil {
-		if err2 := os.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 		}
@@ -1624,7 +1624,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
-			// Force visiblity for privacy
+			// Force visibility for privacy
 			var accessCond builder.Cond
 			if !opts.Actor.IsRestricted {
 				accessCond = builder.Or(
@@ -1640,7 +1640,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		}
 
 	} else {
-		// Force visiblity for privacy
+		// Force visibility for privacy
 		// Not logged in - only public users
 		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
