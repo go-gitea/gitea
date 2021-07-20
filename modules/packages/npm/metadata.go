@@ -6,6 +6,8 @@ package npm
 
 // Metadata represents the metadata of a NPM package
 type Metadata struct {
+	Scope        string            `json:"scope"`
+	Name         string            `json:"name"`
 	Description  string            `json:"description"`
 	Author       string            `json:"author"`
 	License      string            `json:"license"`

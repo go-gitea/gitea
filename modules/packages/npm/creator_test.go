@@ -37,22 +37,28 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidPackageName", func(t *testing.T) {
-		name := " test "
-		b, _ := jsoniter.Marshal(packageUpload{
-			PackageMetadata: PackageMetadata{
-				ID:   name,
-				Name: name,
-				Versions: map[string]*PackageMetadataVersion{
-					packageVersion: {
-						Name: name,
+		test := func(t *testing.T, name string) {
+			b, _ := jsoniter.Marshal(packageUpload{
+				PackageMetadata: PackageMetadata{
+					ID:   name,
+					Name: name,
+					Versions: map[string]*PackageMetadataVersion{
+						packageVersion: {
+							Name: name,
+						},
 					},
 				},
-			},
-		})
+			})
+	
+			p, err := ParsePackage(bytes.NewReader(b))
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, ErrInvalidPackageName)
+		}
 
-		p, err := ParsePackage(bytes.NewReader(b))
-		assert.Nil(t, p)
-		assert.ErrorIs(t, err, ErrInvalidPackageName)
+		test(t, " test ")
+		test(t, "invalid/scope")
+		test(t, "@invalid/_name")
+		test(t, "@invalid/.name")
 	})
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {

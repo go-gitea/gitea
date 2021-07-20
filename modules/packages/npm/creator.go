@@ -35,7 +35,7 @@ var (
 	ErrInvalidIntegrity = errors.New("Failed to validate integrity")
 )
 
-var nameMatch = regexp.MustCompile(`\A(?:@([^/~'!\(\)\*]+?)[/])?([^/~'!\(\)\*]+?)\z`)
+var nameMatch = regexp.MustCompile(`\A(@[^\/~'!\(\)\*]+?)[\/]([^_.][^\/~'!\(\)\*]+)\z`)
 
 // Package represents a NPM package
 type Package struct {
@@ -136,6 +136,8 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			return nil, ErrInvalidPackageVersion
 		}
 
+		nameParts := strings.SplitN(meta.Name, "/", 2)
+
 		if !validation.IsValidURL(meta.Homepage) {
 			meta.Homepage = ""
 		}
@@ -144,6 +146,8 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			Name:    meta.Name,
 			Version: meta.Version,
 			Metadata: Metadata{
+				Scope:        nameParts[0],
+				Name:         nameParts[1],
 				Description:  meta.Description,
 				Author:       meta.Author.Name,
 				License:      meta.License,
@@ -208,9 +212,6 @@ func validateName(name string) bool {
 		return false
 	}
 	if len(name) == 0 || len(name) > 214 {
-		return false
-	}
-	if name[0] == '.' || name[0] == '_' {
 		return false
 	}
 	return nameMatch.MatchString(name)
