@@ -56,8 +56,8 @@ func PackageMetadata(ctx *context.APIContext) {
 	ctx.HTML(http.StatusOK, "api/packages/pypi/simple")
 }
 
-// DownloadPackageContent serves the content of a package
-func DownloadPackageContent(ctx *context.APIContext) {
+// DownloadPackageFile serves the content of a package
+func DownloadPackageFile(ctx *context.APIContext) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")

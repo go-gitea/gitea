@@ -50,8 +50,8 @@ func PackageMetadata(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// DownloadPackageContent serves the content of a package
-func DownloadPackageContent(ctx *context.APIContext) {
+// DownloadPackageFile serves the content of a package
+func DownloadPackageFile(ctx *context.APIContext) {
 	packageName, err := url.QueryUnescape(ctx.Params("id"))
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)

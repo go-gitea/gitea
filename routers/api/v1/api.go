@@ -979,7 +979,7 @@ func Routes() *web.Route {
 				m.Group("/packages", func() {
 					m.Group("/generic", func() {
 						m.Group("/{packagename}/{packageversion}/{filename}", func() {
-							m.Get("", generic.DownloadPackageContent)
+							m.Get("", generic.DownloadPackageFile)
 							m.Put("", reqRepoWriter(models.UnitTypePackages), generic.UploadPackage)
 							m.Delete("", reqRepoWriter(models.UnitTypePackages), generic.DeletePackage)
 						})
@@ -1000,7 +1000,7 @@ func Routes() *web.Route {
 							m.Get("/index.json", nuget.EnumeratePackageVersions)
 							m.Group("/{version}", func() {
 								m.Delete("/", reqRepoWriter(models.UnitTypePackages), nuget.DeletePackage)
-								m.Get("/{filename}", nuget.DownloadPackageContent)
+								m.Get("/{filename}", nuget.DownloadPackageFile)
 							})
 						})
 					}, reqBasicAuth())
@@ -1008,12 +1008,12 @@ func Routes() *web.Route {
 						m.Group("/{id}", func() {
 							m.Get("", npm.PackageMetadata)
 							m.Put("", reqRepoWriter(models.UnitTypePackages), npm.UploadPackage)
-							m.Get("/-/{version}/{filename}", npm.DownloadPackageContent)
+							m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
 						})
 					}, reqToken())
 					m.Group("/pypi", func() {
 						m.Post("/", reqRepoWriter(models.UnitTypePackages), pypi.UploadPackageFile)
-						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageContent)
+						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 						m.Get("/simple/{id}", pypi.PackageMetadata)
 					}, reqBasicAuth())
 				})

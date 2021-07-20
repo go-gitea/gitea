@@ -138,8 +138,8 @@ func EnumeratePackageVersions(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// DownloadPackageContent https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
-func DownloadPackageContent(ctx *context.APIContext) {
+// DownloadPackageFile https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#download-package-content-nupkg
+func DownloadPackageFile(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")

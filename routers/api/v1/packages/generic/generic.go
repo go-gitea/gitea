@@ -22,8 +22,8 @@ import (
 var packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
 var filenameRegex = packageNameRegex
 
-// DownloadPackageContent serves the specific generic package.
-func DownloadPackageContent(ctx *context.APIContext) {
+// DownloadPackageFile serves the specific generic package.
+func DownloadPackageFile(ctx *context.APIContext) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
