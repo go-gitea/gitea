@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/validation"
+
 	"github.com/hashicorp/go-version"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -132,6 +134,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		_, err := version.NewSemver(key)
 		if err != nil {
 			return nil, ErrInvalidPackageVersion
+		}
+
+		if !validation.IsValidURL(meta.Homepage) {
+			meta.Homepage = ""
 		}
 
 		p := &Package{

@@ -17,6 +17,7 @@ import (
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/validation"
 
 	package_service "code.gitea.io/gitea/services/packages"
 )
@@ -106,13 +107,19 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
+	projectURL := ctx.Req.FormValue("home_page")
+	if !validation.IsValidURL(projectURL) {
+		projectURL = ""
+	}
+
 	metadata := &pypi_module.Metadata{
-		Author:         ctx.Req.FormValue("author"),
-		Description:    ctx.Req.FormValue("description"),
-		Summary:        ctx.Req.FormValue("summary"),
-		ProjectURL:     ctx.Req.FormValue("home_page"),
-		License:        ctx.Req.FormValue("license"),
-		RequiresPython: ctx.Req.FormValue("requires_python"),
+		Author:          ctx.Req.FormValue("author"),
+		Description:     ctx.Req.FormValue("description"),
+		LongDescription: ctx.Req.FormValue("long_description"),
+		Summary:         ctx.Req.FormValue("summary"),
+		ProjectURL:      projectURL,
+		License:         ctx.Req.FormValue("license"),
+		RequiresPython:  ctx.Req.FormValue("requires_python"),
 	}
 
 	p, err := package_service.CreatePackage(

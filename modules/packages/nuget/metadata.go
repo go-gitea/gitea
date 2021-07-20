@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/validation"
+
 	"github.com/hashicorp/go-version"
 )
 
@@ -115,6 +117,10 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 	v, err := version.NewSemver(p.Metadata.Version)
 	if err != nil {
 		return nil, ErrNuspecInvalidVersion
+	}
+
+	if !validation.IsValidURL(p.Metadata.ProjectURL) {
+		p.Metadata.ProjectURL = ""
 	}
 
 	m := &Metadata{

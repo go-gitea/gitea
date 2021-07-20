@@ -7,6 +7,8 @@ package maven
 import (
 	"encoding/xml"
 	"io"
+
+	"code.gitea.io/gitea/modules/validation"
 )
 
 // Metadata represents the metadata of a Maven package
@@ -53,6 +55,10 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	var pom pomStruct
 	if err := xml.NewDecoder(r).Decode(&pom); err != nil {
 		return nil, err
+	}
+
+	if !validation.IsValidURL(pom.URL) {
+		pom.URL = ""
 	}
 
 	licenses := make([]string, 0, len(pom.Licenses))
