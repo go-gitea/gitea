@@ -87,13 +87,16 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 			curentTopicBranch = topicBranch
 		}
 
+		// because different user maybe want to use same topic,
+		// So it's better to make sure the topic branch name
+		// has user name prefix
 		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
 			headBranch = userName + "/" + curentTopicBranch
 		} else {
 			headBranch = curentTopicBranch
 		}
 
-		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestStyleAGit)
+		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestFlowAGit)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
@@ -149,7 +152,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				BaseRepo:     repo,
 				MergeBase:    "",
 				Type:         models.PullRequestGitea,
-				Style:        models.PullRequestStyleAGit,
+				Style:        models.PullRequestFlowAGit,
 			}
 
 			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
@@ -262,4 +265,24 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 	}
 
 	return results
+}
+
+// UserNameChanged hanle user name change for agit flow pull
+func UserNameChanged(user *models.User, newName string) error {
+	pulls, err := models.GetAllUnmergedAgitPullRequestByPoster(user.ID)
+	if err != nil {
+		return err
+	}
+
+	newName = strings.ToLower(newName)
+
+	for _, pull := range pulls {
+		pull.HeadBranch = strings.TrimPrefix(pull.HeadBranch, user.LowerName+"/")
+		pull.HeadBranch = newName + "/" + pull.HeadBranch
+		if err = pull.UpdateCols("head_branch"); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

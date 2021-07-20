@@ -157,23 +157,27 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	}
 
 	if git.SupportProcReceive {
-		// if need check write permission
+		pusher, err := models.GetUserByID(opts.UserID)
+		if err != nil {
+			log.Error("models.GetUserByID：%v", err)
+			ctx.Error(http.StatusInternalServerError, "")
+			return
+		}
+
+		perm, err := models.GetUserRepoPermission(repo, pusher)
+		if err != nil {
+			log.Error("models.GetUserRepoPermission:%v", err)
+			ctx.Error(http.StatusInternalServerError, "")
+			return
+		}
+
+		canCreatePullRequest := perm.CanRead(models.UnitTypePullRequests)
+
 		for _, refFullName := range opts.RefFullNames {
+			// if user want update other refs (branch or tag),
+			// should check code write permission because
+			// this check was delayed.
 			if !strings.HasPrefix(refFullName, git.PullRequestPrefix) {
-				pusher, err := models.GetUserByID(opts.UserID)
-				if err != nil {
-					log.Error("models.GetUserByID：%v", err)
-					ctx.Error(http.StatusInternalServerError, "")
-					return
-				}
-
-				perm, err := models.GetUserRepoPermission(repo, pusher)
-				if err != nil {
-					log.Error("models.GetUserRepoPermission:%v", err)
-					ctx.Error(http.StatusInternalServerError, "")
-					return
-				}
-
 				if !perm.CanWrite(models.UnitTypeCode) {
 					ctx.JSON(http.StatusForbidden, map[string]interface{}{
 						"err": "User permission denied.",
@@ -182,6 +186,11 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				}
 
 				break
+			} else if !canCreatePullRequest {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "User permission denied.",
+				})
+				return
 			} else if opts.IsWiki {
 				// TODO: maybe can do it ...
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
@@ -598,7 +607,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, models.PullRequestStyleGithub)
+			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, models.PullRequestFlowGithub)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{

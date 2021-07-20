@@ -11,10 +11,10 @@ import (
 )
 
 func addAgitStylePullRequest(x *xorm.Engine) error {
-	type PullRequestStyle int
+	type PullRequestFlow int
 
 	type PullRequest struct {
-		Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+		Style PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	if err := x.Sync2(new(PullRequest)); err != nil {

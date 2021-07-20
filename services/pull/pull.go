@@ -49,7 +49,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	pr.Issue = pull
 	pull.PullRequest = pr
 
-	if pr.Style == models.PullRequestStyleGithub {
+	if pr.Style == models.PullRequestFlowGithub {
 		err = PushToBaseRepo(pr)
 	} else {
 		err = UpdateRef(pr)
@@ -151,7 +151,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	}
 
 	// Check if pull request for the new target branch already exists
-	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch, models.PullRequestStyleGithub)
+	existingPr, err := models.GetUnmergedPullRequest(pr.HeadRepoID, pr.BaseRepoID, pr.HeadBranch, targetBranch, models.PullRequestFlowGithub)
 	if existingPr != nil {
 		return models.ErrPullRequestAlreadyExists{
 			ID:         existingPr.ID,
@@ -287,7 +287,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
-			if pr.Style == models.PullRequestStyleGithub {
+			if pr.Style == models.PullRequestFlowGithub {
 				if err := PushToBaseRepo(pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
@@ -589,7 +589,7 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 	defer gitRepo.Close()
 
 	var headCommit *git.Commit
-	if pr.Style == models.PullRequestStyleGithub {
+	if pr.Style == models.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
 		pr.HeadCommitID, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
@@ -818,7 +818,7 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	defer headGitRepo.Close()
 
 	var headCommit *git.Commit
-	if pr.Style == models.PullRequestStyleGithub {
+	if pr.Style == models.PullRequestFlowGithub {
 		headCommit, err = headGitRepo.GetBranchCommit(pr.HeadBranch)
 		if err != nil {
 			return false, err

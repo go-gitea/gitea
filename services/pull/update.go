@@ -22,7 +22,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 		BaseBranch: pull.HeadBranch,
 	}
 
-	if pull.Style == models.PullRequestStyleAGit {
+	if pull.Style == models.PullRequestFlowAGit {
 		// TODO: Not support update agit style pull request's head branch
 		return fmt.Errorf("Not support update agit style pull request's head branch")
 	}
@@ -53,7 +53,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (bool, error) {
-	if pull.Style == models.PullRequestStyleAGit {
+	if pull.Style == models.PullRequestFlowAGit {
 		return false, nil
 	}
 

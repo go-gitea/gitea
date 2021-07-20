@@ -52,7 +52,7 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 	prs := make([]*PullRequest, 0, 2)
 	return prs, x.
 		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND style = ?",
-			repoID, branch, false, false, PullRequestStyleGithub).
+			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Find(&prs)
 }

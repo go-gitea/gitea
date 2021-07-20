@@ -659,7 +659,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			models.AssertCount(t, &models.PullRequest{}, pullNum+1)
 			pr1 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
-				Style:      models.PullRequestStyleAGit,
+				Style:      models.PullRequestFlowAGit,
 			}).(*models.PullRequest)
 			if !assert.NotEmpty(t, pr1) {
 				return
@@ -681,7 +681,7 @@ func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, head
 			pr2 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
-				Style:      models.PullRequestStyleAGit,
+				Style:      models.PullRequestFlowAGit,
 			}).(*models.PullRequest)
 			if !assert.NotEmpty(t, pr2) {
 				return

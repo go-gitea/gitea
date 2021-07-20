@@ -141,7 +141,7 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 	trackingBranch := "tracking"
 	// Fetch head branch
 	var headBranch string
-	if pr.Style == models.PullRequestStyleGithub {
+	if pr.Style == models.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
 	} else if len(pr.HeadCommitID) == 40 { // for not created pull request
 		headBranch = pr.HeadCommitID

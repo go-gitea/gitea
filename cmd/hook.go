@@ -522,9 +522,11 @@ Gitea or set your environment appropriately.`, "")
 
 	const VersionHead string = "version=1"
 
-	hasPushOptions := false
-	response := []byte(VersionHead)
-	var requestOptions []string
+	var (
+		hasPushOptions bool
+		response       = []byte(VersionHead)
+		requestOptions []string
+	)
 
 	for i := range rs.Data {
 		if rs.Data[i] == byte(0) {
@@ -635,7 +637,7 @@ Gitea or set your environment appropriately.`, "")
 	// H: PKT-LINE(ng <ref> <reason>)
 	// # c. Fall through, let 'receive-pack' to execute it.
 	// H: PKT-LINE(ok <ref>)
-	//H: PKT-LINE(option fall-through)
+	// H: PKT-LINE(option fall-through)
 
 	for _, rs := range resp.Results {
 		if len(rs.Err) > 0 {

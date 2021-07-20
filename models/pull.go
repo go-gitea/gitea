@@ -38,14 +38,14 @@ const (
 	PullRequestStatusEmpty
 )
 
-// PullRequestStyle the style of pull request
-type PullRequestStyle int
+// PullRequestFlow the style of pull request
+type PullRequestFlow int
 
 const (
-	// PullRequestStyleGithub github style from head branch to base branch
-	PullRequestStyleGithub PullRequestStyle = iota
-	// PullRequestStyleAGit Agit flow style pull request, head branch is not exist
-	PullRequestStyleAGit
+	// PullRequestFlowGithub github style from head branch to base branch
+	PullRequestFlowGithub PullRequestFlow = iota
+	// PullRequestFlowAGit Agit flow style pull request, head branch is not exist
+	PullRequestFlowAGit
 )
 
 // PullRequest represents relation between pull request and repositories.
@@ -81,7 +81,7 @@ type PullRequest struct {
 
 	isHeadRepoLoaded bool `xorm:"-"`
 
-	Style PullRequestStyle `xorm:"NOT NULL DEFAULT 0"`
+	Style PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
@@ -483,7 +483,7 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
-func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, style PullRequestStyle) (*PullRequest, error) {
+func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, style PullRequestFlow) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND style = ? AND issue.is_closed=?",
@@ -504,7 +504,7 @@ func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch
 func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
-		Where("head_repo_id = ? AND head_branch = ? AND style = ?", repoID, branch, PullRequestStyleGithub).
+		Where("head_repo_id = ? AND head_branch = ? AND style = ?", repoID, branch, PullRequestFlowGithub).
 		OrderBy("id DESC").
 		Get(pr)
 	if !has {
@@ -577,6 +577,20 @@ func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
 	return pr, pr.loadAttributes(e)
+}
+
+// GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
+// By poster id.
+func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
+	pulls := make([]*PullRequest, 0, 10)
+
+	err := x.
+		Where("has_merged=? AND style = ? AND issue.is_closed=? AND issue.poster_id=?",
+			false, PullRequestFlowAGit, false, uid).
+		Join("INNER", "issue", "issue.id=pull_request.issue_id").
+		Find(&pulls)
+
+	return pulls, err
 }
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
