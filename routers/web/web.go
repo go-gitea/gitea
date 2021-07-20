@@ -752,7 +752,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/pull", func() {
-			m.Post("/{index}/target_branch", repo.UpdatePullRequestTarget)
+			m.Post("/{index}/target_branch", CorsHandler(), repo.UpdatePullRequestTarget)
 		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
@@ -1006,17 +1006,17 @@ func RegisterRoutes(m *web.Route) {
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
-				m.Post("/git-upload-pack", repo.ServiceUploadPack)
-				m.Post("/git-receive-pack", repo.ServiceReceivePack)
-				m.Get("/info/refs", repo.GetInfoRefs)
-				m.Get("/HEAD", repo.GetTextFile("HEAD"))
-				m.Get("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.Get("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.Get("/objects/info/packs", repo.GetInfoPacks)
-				m.Get("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
+				m.Post("/git-upload-pack", CorsHandler(), repo.ServiceUploadPack)
+				m.Post("/git-receive-pack", CorsHandler(), repo.ServiceReceivePack)
+				m.Get("/info/refs", CorsHandler(), repo.GetInfoRefs)
+				m.Get("/HEAD", CorsHandler(), repo.GetTextFile("HEAD"))
+				m.Get("/objects/info/alternates", CorsHandler(), repo.GetTextFile("objects/info/alternates"))
+				m.Get("/objects/info/http-alternates", CorsHandler(), repo.GetTextFile("objects/info/http-alternates"))
+				m.Get("/objects/info/packs", CorsHandler(), repo.GetInfoPacks)
+				m.Get("/objects/info/{file:[^/]*}", CorsHandler(), repo.GetTextFile(""))
+				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", CorsHandler(), repo.GetLooseObject)
+				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", CorsHandler(), repo.GetPackFile)
+				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", CorsHandler(), repo.GetIdxFile)
 			}, ignSignInAndCsrf)
 
 			m.Head("/tasks/trigger", repo.TriggerTask)
