@@ -510,7 +510,7 @@ Gitea or set your environment appropriately.`, "")
 	pusherName := os.Getenv(models.EnvPusherName)
 
 	// 1. Version and features negotiation.
-	// S: PKT-LINE(version=1\0push-options atomic...)
+	// S: PKT-LINE(version=1\0push-options atomic...) / PKT-LINE(version=1\n)
 	// S: flush-pkt
 	// H: PKT-LINE(version=1\0push-options...)
 	// H: flush-pkt
@@ -528,15 +528,23 @@ Gitea or set your environment appropriately.`, "")
 		requestOptions []string
 	)
 
-	for i := range rs.Data {
-		if rs.Data[i] == byte(0) {
-			if string(rs.Data[0:i]) != VersionHead {
-				return fail("Internal Server Error", "Received an not supported version: %s", string(rs.Data[0:i]))
-			}
-			requestOptions = strings.Split(string(rs.Data[i+1:]), " ")
-			break
+	index := bytes.IndexByte(rs.Data, byte(0))
+	if index >= len(rs.Data) {
+		return fail("Internal Server Error", "pkt-line: format error "+fmt.Sprint(rs.Data))
+	}
+
+	if index < 0 {
+		if len(rs.Data) == 10 && rs.Data[9] == '\n' {
+			index = 9
+		} else {
+			return fail("Internal Server Error", "pkt-line: format error "+fmt.Sprint(rs.Data))
 		}
 	}
+
+	if string(rs.Data[0:index]) != VersionHead {
+		return fail("Internal Server Error", "Received unsupported version: %s", string(rs.Data[0:index]))
+	}
+	requestOptions = strings.Split(string(rs.Data[index+1:]), " ")
 
 	for _, option := range requestOptions {
 		if strings.HasPrefix(option, "push-options") {
