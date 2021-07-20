@@ -980,16 +980,16 @@ func Routes() *web.Route {
 					m.Group("/generic", func() {
 						m.Group("/{packagename}/{packageversion}/{filename}", func() {
 							m.Get("", generic.DownloadPackageContent)
-							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.UploadPackage)
-							m.Delete("" /*reqRepoWriter(models.UnitTypePackage),*/, generic.DeletePackage)
+							m.Put("", reqRepoWriter(models.UnitTypePackages), generic.UploadPackage)
+							m.Delete("", reqRepoWriter(models.UnitTypePackages), generic.DeletePackage)
 						})
 					}, reqToken())
 					m.Group("/maven", func() {
-						m.Put("/*" /*reqRepoWriter(models.UnitTypePackage),*/, maven.UploadPackageFile)
-						m.Get("/*" /*reqRepoWriter(models.UnitTypePackage),*/, maven.DownloadPackageFile)
+						m.Put("/*", reqRepoWriter(models.UnitTypePackages), maven.UploadPackageFile)
+						m.Get("/*", reqRepoWriter(models.UnitTypePackages), maven.DownloadPackageFile)
 					}, reqToken())
 					m.Group("/nuget", func() {
-						m.Put("/" /*reqRepoWriter(models.UnitTypePackage),*/, nuget.UploadPackage)
+						m.Put("/", reqRepoWriter(models.UnitTypePackages), nuget.UploadPackage)
 						m.Get("/index.json", nuget.ServiceIndex)
 						m.Get("/query", nuget.SearchService)
 						m.Group("/registration/{id}", func() {
@@ -999,7 +999,7 @@ func Routes() *web.Route {
 						m.Group("/package/{id}", func() {
 							m.Get("/index.json", nuget.EnumeratePackageVersions)
 							m.Group("/{version}", func() {
-								m.Delete("/" /*reqRepoWriter(models.UnitTypePackage),*/, nuget.DeletePackage)
+								m.Delete("/", reqRepoWriter(models.UnitTypePackages), nuget.DeletePackage)
 								m.Get("/{filename}", nuget.DownloadPackageContent)
 							})
 						})
@@ -1007,12 +1007,12 @@ func Routes() *web.Route {
 					m.Group("/npm", func() {
 						m.Group("/{id}", func() {
 							m.Get("", npm.PackageMetadata)
-							m.Put("" /*reqRepoWriter(models.UnitTypePackage),*/, npm.UploadPackage)
+							m.Put("", reqRepoWriter(models.UnitTypePackages), npm.UploadPackage)
 							m.Get("/-/{version}/{filename}", npm.DownloadPackageContent)
 						})
 					}, reqToken())
 					m.Group("/pypi", func() {
-						m.Post("/" /*reqRepoWriter(models.UnitTypePackage),*/, pypi.UploadPackageFile)
+						m.Post("/", reqRepoWriter(models.UnitTypePackages), pypi.UploadPackageFile)
 						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageContent)
 						m.Get("/simple/{id}", pypi.PackageMetadata)
 					}, reqBasicAuth())

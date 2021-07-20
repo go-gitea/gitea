@@ -132,6 +132,12 @@
 					</a>
 				{{end}}
 
+				{{ if and (not .UnitPackagesGlobalDisabled) (.Permission.CanRead $.UnitTypePackages)}}
+					<a href="{{.RepoLink}}/packages" class="{{ if .IsPackagesPage }}active{{end}} item">
+						{{svg "octicon-package"}} {{.i18n.Tr "repo.packages"}}
+					</a>
+				{{ end }}
+
 				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}

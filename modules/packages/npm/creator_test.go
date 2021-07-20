@@ -49,7 +49,7 @@ func TestParsePackage(t *testing.T) {
 					},
 				},
 			})
-	
+
 			p, err := ParsePackage(bytes.NewReader(b))
 			assert.Nil(t, p)
 			assert.ErrorIs(t, err, ErrInvalidPackageName)

@@ -482,6 +482,8 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
+	reqRepoPackagesReader := context.RequireRepoReader(models.UnitTypePackages)
+	reqRepoPackagesWriter := context.RequireRepoWriter(models.UnitTypePackages)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -836,6 +838,15 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
+
+		m.Group("/packages", func() {
+			m.Get("", repo.Packages)
+			m.Group("/{id}", func() {
+				m.Get("/", repo.ViewPackage)
+				m.Post("/", reqRepoPackagesWriter, repo.DeletePackagePost)
+				m.Get("/files/{filename}", repo.DownloadPackageFile)
+			})
+		}, reqRepoPackagesReader, repo.MustEnablePackages)
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)

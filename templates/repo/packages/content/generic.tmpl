@@ -1,0 +1,12 @@
+{{if eq .Package.Type 0}}
+	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<label for="download-input">{{.i18n.Tr "repo.packages.generic.use"}}</label>
+			<div>
+				<input id="download-input" type="text" readonly="readonly" value="curl --user your_username:your_token {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/generic/{{.Package.LowerName}}/{{.Package.Version}}/{{(index .Files 0).LowerName}}">
+			</div>
+		</div>
+		{{.i18n.Tr "repo.packages.generic.documentation" | Safe}}
+	</div>
+{{end}}

@@ -1,0 +1,38 @@
+{{if eq .Package.Type 2}}
+	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<label for="registry-input">{{.i18n.Tr "repo.packages.npm.registry" | Safe}}</label>
+			<div>
+				<input id="registry-input" type="text" readonly="readonly" value="{{.Metadata.Scope}}:registry={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/npm">
+			</div>
+			<label for="installation-input">{{.i18n.Tr "repo.packages.npm.use"}}</label>
+			<div>
+				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.Package.Name}}">
+			</div>
+		</div>
+		{{.i18n.Tr "repo.packages.npm.documentation" | Safe}}
+	</div>
+
+	{{if or .Metadata.Description .Metadata.Readme}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
+		<div class="ui attached segment">
+			{{if .Metadata.Readme}}
+			<div class="markup markdown">
+				{{RenderMarkdownToHtml .Metadata.Readme}}
+			</div>
+			{{else if .Metadata.Description}}
+				{{.Metadata.Description}}
+			{{end}}
+		</div>
+	{{end}}
+
+	{{if .Metadata.Dependencies}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
+		<div class="ui attached segment">
+		{{range $dependency, $version := .Metadata.Dependencies}}
+			<div>{{$dependency}} ({{$version}})</div>
+		{{end}}
+		</div>
+	{{end}}
+{{end}}

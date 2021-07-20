@@ -1,0 +1,24 @@
+{{if eq .Package.Type 4}}
+	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<label for="installation-input">{{.i18n.Tr "repo.packages.pypi.use"}}</label>
+			<div>
+				<input id="installation-input" type="text" readonly="readonly" value="pip install --index-url {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/pypi/simple --no-deps {{.Package.Name}}">
+			</div>
+		</div>
+		{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}
+	</div>
+
+	{{if or .Metadata.Description .Metadata.LongDescription .Metadata.Summary}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
+		<div class="ui attached segment">
+			<p>{{if .Metadata.Summary}}{{.Metadata.Summary}}{{end}}</p>
+			{{if .Metadata.LongDescription}}
+				{{RenderMarkdownToHtml .Metadata.LongDescription}}
+			{{else if .Metadata.Description}}
+				{{RenderMarkdownToHtml .Metadata.Description}}
+			{{end}}
+		</div>
+	{{end}}
+{{end}}

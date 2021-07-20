@@ -1,0 +1,79 @@
+{{template "base/head" .}}
+<div class="page-content repository view issue pull">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div>
+			<div class="ui stackable grid">
+				<div class="sixteen wide column title">
+					<div class="issue-title">
+						<h1>{{.Package.Name}} ({{.Package.Version}})</h1>
+					</div>
+					{{ $timeStr := TimeSinceUnix .Package.CreatedUnix $.Lang }}
+					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .Package.Creator.HomeLink (.Package.Creator.GetDisplayName | Escape) | Safe}} {{svg "octicon-package"}} {{.Package.Type.String}}</div>
+					<div class="ui divider"></div>
+				</div>
+
+				<div class="twelve wide column">
+					{{template "repo/packages/content/generic" .}}
+					{{template "repo/packages/content/nuget" .}}
+					{{template "repo/packages/content/npm" .}}
+					{{template "repo/packages/content/maven" .}}
+					{{template "repo/packages/content/pypi" .}}
+				</div>
+			
+				<div class="four wide column">
+					<div class="ui segment metas">
+						<span class="text"><strong>{{.i18n.Tr "repo.packages.details"}}</strong></span>
+						<div>{{svg "octicon-calendar" 16 "mr-3"}} {{.Package.CreatedUnix.FormatDate}}</div>
+						{{template "repo/packages/metadata/generic" .}}
+						{{template "repo/packages/metadata/nuget" .}}
+						{{template "repo/packages/metadata/npm" .}}
+						{{template "repo/packages/metadata/maven" .}}
+						{{template "repo/packages/metadata/pypi" .}}
+
+						<div class="ui divider"></div>
+						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}}</strong></span>
+						{{range .Files}}
+							<div><a href="{{$.Link}}/files/{{.LowerName}}">{{.Name}}</a></div>
+						{{end}}
+						
+						{{if .OtherVersions}}
+							<div class="ui divider"></div>
+							<span class="text"><strong>{{.i18n.Tr "repo.packages.versions"}}</strong></span>
+							{{range .OtherVersions}}
+								<div><a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Version}}</a> <span class="ui small text">{{$.i18n.Tr "repo.packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span></div>
+							{{end}}
+						{{end}}
+				
+						{{if .CanWritePackages}}
+							<div class="ui divider"></div>
+							<div class="ui watching">
+								<button class="fluid ui show-modal red button" data-modal="#delete-package">{{svg "octicon-trash"}} {{.i18n.Tr "repo.packages.delete"}}</button>
+							</div>
+							<div class="ui tiny modal" id="delete-package">
+								<div class="header">
+									{{.i18n.Tr "repo.packages.delete"}}
+								</div>
+								<div class="content">
+									<div class="ui warning message text left">
+										{{.i18n.Tr "repo.packages.delete.notice" .Package.Name .Package.Version}}
+									</div>
+				
+									<form class="ui form" action="{{.Link}}" method="post">
+										{{.CsrfTokenHtml}}
+							
+										<div class="text right actions">
+											<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
+											<button class="ui red button">{{.i18n.Tr "ok"}}</button>
+										</div>
+									</form>
+								</div>
+							</div>
+						{{end}}
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

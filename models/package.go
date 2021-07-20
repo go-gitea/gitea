@@ -8,6 +8,7 @@ import (
 	"errors"
 	"strings"
 
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -57,6 +58,7 @@ type Package struct {
 	ID          int64 `xorm:"pk autoincr"`
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatorID   int64
+	Creator     *User       `xorm:"-"`
 	Type        PackageType `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name        string
 	LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
@@ -65,6 +67,16 @@ type Package struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+}
+
+// LoadCreator loads poster
+func (p *Package) LoadCreator() error {
+	if p.Creator == nil {
+		var err error
+		p.Creator, err = getUserByID(x, p.CreatorID)
+		return err
+	}
+	return nil
 }
 
 // PackageFile represents files associated with a package
@@ -164,6 +176,61 @@ func DeletePackagesByRepositoryID(repositoryID int64) error {
 	}
 
 	return nil
+}
+
+// PackageSearchOptions are options for GetLatestPackagesGrouped
+type PackageSearchOptions struct {
+	RepoID int64
+	Page   int
+	Query  string
+	Type   string
+}
+
+// GetLatestPackagesGrouped returns a list of all packages in their latest version of the repository
+func GetLatestPackagesGrouped(opts PackageSearchOptions) ([]*Package, int64, error) {
+	var cond builder.Cond = builder.Eq{"package.repo_id": opts.RepoID}
+	cond = cond.And(builder.Expr("p2.id IS NULL"))
+
+	switch opts.Type {
+	case "generic":
+		cond = cond.And(builder.Eq{"package.type": PackageGeneric})
+	case "nuget":
+		cond = cond.And(builder.Eq{"package.type": PackageNuGet})
+	case "npm":
+		cond = cond.And(builder.Eq{"package.type": PackageNpm})
+	case "maven":
+		cond = cond.And(builder.Eq{"package.type": PackageMaven})
+	case "pypi":
+		cond = cond.And(builder.Eq{"package.type": PackagePyPI})
+	}
+
+	if opts.Query != "" {
+		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Query)})
+	}
+
+	sess := x.Where(cond).
+		Table("package").
+		Join("left", "package p2", "package.repo_id = p2.repo_id AND package.type = p2.type AND package.lower_name = p2.lower_name AND package.version < p2.version")
+
+	if opts.Page > 0 {
+		sess = sess.Limit(setting.UI.PackagesPagingNum, (opts.Page-1)*setting.UI.PackagesPagingNum)
+	}
+
+	packages := make([]*Package, 0, setting.UI.PackagesPagingNum)
+	count, err := sess.FindAndCount(&packages)
+	return packages, count, err
+}
+
+// GetPackageByID returns the package with the specific id
+func GetPackageByID(packageID int64) (*Package, error) {
+	p := &Package{}
+	has, err := x.ID(packageID).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPackageNotExist
+	}
+	return p, nil
 }
 
 // GetPackagesByRepository returns all packages of a repository

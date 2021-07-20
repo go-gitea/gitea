@@ -198,6 +198,7 @@ var (
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		FeedPagingNum         int
+		PackagesPagingNum     int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -250,6 +251,7 @@ var (
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
+		PackagesPagingNum:   20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
