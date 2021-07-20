@@ -1224,9 +1224,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	apiCommits := make([]*api.Commit, 0, end-start)
 	for i := start; i < end; i++ {
-		commit := commits[i]
-
-		// Create json struct
 		apiCommit, err := convert.ToCommit(ctx.Repo.Repository, commits[i], userCache)
 		if err != nil {
 			ctx.ServerError("toCommit", err)
