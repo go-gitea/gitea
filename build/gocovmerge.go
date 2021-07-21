@@ -18,6 +18,7 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strings"
 
 	"golang.org/x/tools/cover"
 )
@@ -109,7 +110,26 @@ func main() {
 	for _, file := range flag.Args() {
 		profiles, err := cover.ParseProfiles(file)
 		if err != nil {
-			log.Fatalf("failed to parse profiles: %v", err)
+
+			// for testing only
+			f, _ := os.Open(file)
+			defer f.Close()
+			scanner := bufio.NewScanner(f)
+			i := 0
+			lines := []string{}
+			for scanner.Scan() {
+				if i > 10 {
+					break
+				}
+				i++
+				lines = append(lines, scanner.Text())
+			}
+			fmt.Println("=== " + file + " ==============================")
+			fmt.Printf("%s\n", strings.Join(lines, "\n"))
+			fmt.Println("===============================================")
+			// end
+
+			log.Fatalf("failed to parse profile '%s': %v", file, err)
 		}
 		for _, p := range profiles {
 			merged = addProfile(merged, p)
