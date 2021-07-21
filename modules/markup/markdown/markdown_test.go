@@ -42,6 +42,7 @@ func TestRender_StandardLinks(t *testing.T) {
 			URLPrefix: setting.AppSubURL,
 			IsWiki:    true,
 		}, input)
+		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expectedWiki), strings.TrimSpace(buffer))
 	}
 
@@ -166,9 +167,9 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 <p>(from <a href="https://www.markdownguide.org/extended-syntax/" rel="nofollow">https://www.markdownguide.org/extended-syntax/</a>)</p>
 <h3 id="user-content-checkboxes">Checkboxes</h3>
 <ul>
-<li class="task-list-item"><input type="checkbox" disabled=""/>unchecked</li>
-<li class="task-list-item"><input type="checkbox" disabled="" checked=""/>checked</li>
-<li class="task-list-item"><input type="checkbox" disabled=""/>still unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="434"/>unchecked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="450" checked=""/>checked</li>
+<li class="task-list-item"><input type="checkbox" disabled="" data-source-position="464"/>still unchecked</li>
 </ul>
 <h3 id="user-content-definition-list">Definition list</h3>
 <dl>

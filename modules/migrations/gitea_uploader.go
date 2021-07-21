@@ -252,7 +252,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 		// calc NumCommits if no draft
 		if !release.Draft {
-			commit, err := g.gitRepo.GetCommit(rel.TagName)
+			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if err != nil {
 				return fmt.Errorf("GetCommit: %v", err)
 			}
@@ -276,19 +276,22 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				// asset.DownloadURL maybe a local file
 				var rc io.ReadCloser
 				var err error
-				if asset.DownloadURL == nil {
+				if asset.DownloadFunc != nil {
 					rc, err = asset.DownloadFunc()
 					if err != nil {
 						return err
 					}
-				} else {
+				} else if asset.DownloadURL != nil {
 					rc, err = uri.Open(*asset.DownloadURL)
 					if err != nil {
 						return err
 					}
 				}
-				defer rc.Close()
+				if rc == nil {
+					return nil
+				}
 				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				rc.Close()
 				return err
 			}()
 			if err != nil {

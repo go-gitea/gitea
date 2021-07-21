@@ -152,7 +152,7 @@
 -
   id: 13
   repo_id: 50
-  index: 0
+  index: 1
   poster_id: 2
   name: issue in active repo
   content: we'll be testing github issue 13171 with this.
@@ -164,7 +164,7 @@
 -
   id: 14
   repo_id: 51
-  index: 0
+  index: 1
   poster_id: 2
   name: issue in archived repo
   content: we'll be testing github issue 13171 with this.

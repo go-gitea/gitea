@@ -7,6 +7,7 @@ package models
 
 import (
 	"crypto/tls"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/smtp"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -69,6 +71,36 @@ var (
 	_ convert.Conversion = &SSPIConfig{}
 )
 
+// jsonUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
+func jsonUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	err := json.Unmarshal(bs, v)
+	if err != nil {
+		ok := true
+		rs := []byte{}
+		temp := make([]byte, 2)
+		for _, rn := range string(bs) {
+			if rn > 0xffff {
+				ok = false
+				break
+			}
+			binary.LittleEndian.PutUint16(temp, uint16(rn))
+			rs = append(rs, temp...)
+		}
+		if ok {
+			if rs[0] == 0xff && rs[1] == 0xfe {
+				rs = rs[2:]
+			}
+			err = json.Unmarshal(rs, v)
+		}
+	}
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], v)
+	}
+	return err
+}
+
 // LDAPConfig holds configuration for LDAP login source.
 type LDAPConfig struct {
 	*ldap.Source
@@ -76,12 +108,25 @@ type LDAPConfig struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (cfg *LDAPConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, &cfg)
+	err := jsonUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err != nil {
+		return err
+	}
+	if cfg.BindPasswordEncrypt != "" {
+		cfg.BindPassword, err = secret.DecryptSecret(setting.SecretKey, cfg.BindPasswordEncrypt)
+		cfg.BindPasswordEncrypt = ""
+	}
+	return err
 }
 
 // ToDB exports a LDAPConfig to a serialized format.
 func (cfg *LDAPConfig) ToDB() ([]byte, error) {
+	var err error
+	cfg.BindPasswordEncrypt, err = secret.EncryptSecret(setting.SecretKey, cfg.BindPassword)
+	if err != nil {
+		return nil, err
+	}
+	cfg.BindPassword = ""
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
@@ -104,8 +149,7 @@ type SMTPConfig struct {
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (cfg *SMTPConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
@@ -122,8 +166,7 @@ type PAMConfig struct {
 
 // FromDB fills up a PAMConfig from serialized format.
 func (cfg *PAMConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, &cfg)
+	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports a PAMConfig to a serialized format.
@@ -144,8 +187,7 @@ type OAuth2Config struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (cfg *OAuth2Config) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
@@ -165,8 +207,7 @@ type SSPIConfig struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *SSPIConfig) FromDB(bs []byte) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	return json.Unmarshal(bs, cfg)
+	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.
@@ -322,7 +363,7 @@ func CreateLoginSource(source *LoginSource) error {
 	} else if has {
 		return ErrLoginSourceAlreadyExist{source.Name}
 	}
-	// Synchronization is only aviable with LDAP for now
+	// Synchronization is only available with LDAP for now
 	if !source.IsLDAP() {
 		source.IsSyncEnabled = false
 	}
@@ -841,7 +882,11 @@ func UserSignIn(username, password string) (*User, error) {
 			return authUser, nil
 		}
 
-		log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		if IsErrUserNotExist(err) {
+			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		} else {
+			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
+		}
 	}
 
 	return nil, ErrUserNotExist{user.ID, user.Name, 0}

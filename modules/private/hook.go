@@ -5,6 +5,8 @@
 package private
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -53,8 +55,14 @@ type HookOptions struct {
 	GitAlternativeObjectDirectories string
 	GitQuarantinePath               string
 	GitPushOptions                  GitPushOptions
-	ProtectedBranchID               int64
+	PullRequestID                   int64
 	IsDeployKey                     bool
+}
+
+// SSHLogOption ssh log options
+type SSHLogOption struct {
+	IsError bool
+	Message string
 }
 
 // HookPostReceiveResult represents an individual result from PostReceive
@@ -73,12 +81,12 @@ type HookPostReceiveBranchResult struct {
 }
 
 // HookPreReceive check whether the provided commits are allowed
-func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) {
+func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (int, string) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 	)
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(opts)
@@ -98,13 +106,13 @@ func HookPreReceive(ownerName, repoName string, opts HookOptions) (int, string) 
 }
 
 // HookPostReceive updates services and users
-func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, string) {
+func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HookPostReceiveResult, string) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/post-receive/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 	)
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
@@ -126,13 +134,13 @@ func HookPostReceive(ownerName, repoName string, opts HookOptions) (*HookPostRec
 }
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository
-func SetDefaultBranch(ownerName, repoName, branch string) error {
+func SetDefaultBranch(ctx context.Context, ownerName, repoName, branch string) error {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s",
 		url.PathEscape(ownerName),
 		url.PathEscape(repoName),
 		url.PathEscape(branch),
 	)
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 
 	req.SetTimeout(60*time.Second, 60*time.Second)
@@ -140,6 +148,31 @@ func SetDefaultBranch(ownerName, repoName, branch string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to contact gitea: %v", err)
 	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)
+	}
+	return nil
+}
+
+// SSHLog sends ssh error log response
+func SSHLog(ctx context.Context, isErr bool, msg string) error {
+	reqURL := setting.LocalURL + "api/internal/ssh/log"
+	req := newInternalRequest(ctx, reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+
+	jsonBytes, _ := json.Marshal(&SSHLogOption{
+		IsError: isErr,
+		Message: msg,
+	})
+	req.Body(jsonBytes)
+
+	req.SetTimeout(60*time.Second, 60*time.Second)
+	resp, err := req.Response()
+	if err != nil {
+		return fmt.Errorf("unable to contact gitea: %v", err)
+	}
+
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Error returned from gitea: %v", decodeJSONError(resp).Err)

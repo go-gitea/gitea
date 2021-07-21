@@ -8,7 +8,7 @@ import (
 // Vue lexer.
 //
 // This was generated from https://github.com/testdrivenio/vue-lexer
-var Vue = internal.Register(MustNewLexer(
+var Vue = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "vue",
 		Aliases:   []string{"vue", "vuejs"},
@@ -16,7 +16,11 @@ var Vue = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-vue", "application/x-vue"},
 		DotAll:    true,
 	},
-	Rules{
+	vueRules,
+))
+
+func vueRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`<!--`, Comment, nil},
@@ -103,5 +107,5 @@ var Vue = internal.Register(MustNewLexer(
 			{`}`, Punctuation, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

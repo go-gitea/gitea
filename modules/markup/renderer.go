@@ -13,12 +13,12 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // Init initialize regexps for markdown parsing
 func Init() {
-	getIssueFullPattern()
 	NewSanitizer()
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		CustomLinkURLSchemes(setting.Markdown.CustomURLSchemes)
@@ -35,19 +35,52 @@ func Init() {
 
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx         context.Context
-	Filename    string
-	Type        string
-	IsWiki      bool
-	URLPrefix   string
-	Metas       map[string]string
-	DefaultLink string
+	Ctx           context.Context
+	Filename      string
+	Type          string
+	IsWiki        bool
+	URLPrefix     string
+	Metas         map[string]string
+	DefaultLink   string
+	GitRepo       *git.Repository
+	ShaExistCache map[string]bool
+	cancelFn      func()
+}
+
+// Cancel runs any cleanup functions that have been registered for this Ctx
+func (ctx *RenderContext) Cancel() {
+	if ctx == nil {
+		return
+	}
+	ctx.ShaExistCache = map[string]bool{}
+	if ctx.cancelFn == nil {
+		return
+	}
+	ctx.cancelFn()
+}
+
+// AddCancel adds the provided fn as a Cleanup for this Ctx
+func (ctx *RenderContext) AddCancel(fn func()) {
+	if ctx == nil {
+		return
+	}
+	oldCancelFn := ctx.cancelFn
+	if oldCancelFn == nil {
+		ctx.cancelFn = fn
+		return
+	}
+	ctx.cancelFn = func() {
+		defer oldCancelFn()
+		fn()
+	}
 }
 
 // Renderer defines an interface for rendering markup file to HTML
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
+	NeedPostProcess() bool
+	SanitizerRules() []setting.MarkupSanitizerRule
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
@@ -94,7 +127,7 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writer) error {
+func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
@@ -111,7 +144,7 @@ func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writ
 
 	wg.Add(1)
 	go func() {
-		buf := SanitizeReader(pr2)
+		buf := SanitizeReader(pr2, renderer.Name())
 		_, err = io.Copy(output, buf)
 		_ = pr2.Close()
 		wg.Done()
@@ -119,13 +152,17 @@ func render(ctx *RenderContext, parser Renderer, input io.Reader, output io.Writ
 
 	wg.Add(1)
 	go func() {
-		err = PostProcess(ctx, pr, pw2)
+		if renderer.NeedPostProcess() {
+			err = PostProcess(ctx, pr, pw2)
+		} else {
+			_, err = io.Copy(pw2, pr)
+		}
 		_ = pr.Close()
 		_ = pw2.Close()
 		wg.Done()
 	}()
 
-	if err1 := parser.Render(ctx, input, pw); err1 != nil {
+	if err1 := renderer.Render(ctx, input, pw); err1 != nil {
 		return err1
 	}
 	_ = pw.Close()

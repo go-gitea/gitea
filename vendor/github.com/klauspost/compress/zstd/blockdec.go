@@ -123,12 +123,10 @@ func newBlockDec(lowMem bool) *blockDec {
 // Input must be a start of a block and will be at the end of the block when returned.
 func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 	b.WindowSize = windowSize
-	tmp := br.readSmall(3)
-	if tmp == nil {
-		if debug {
-			println("Reading block header:", io.ErrUnexpectedEOF)
-		}
-		return io.ErrUnexpectedEOF
+	tmp, err := br.readSmall(3)
+	if err != nil {
+		println("Reading block header:", err)
+		return err
 	}
 	bh := uint32(tmp[0]) | (uint32(tmp[1]) << 8) | (uint32(tmp[2]) << 16)
 	b.Last = bh&1 != 0
@@ -146,7 +144,7 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 		}
 		cSize = 1
 	case blockTypeCompressed:
-		if debug {
+		if debugDecoder {
 			println("Data size on stream:", cSize)
 		}
 		b.RLESize = 0
@@ -155,7 +153,7 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 			maxSize = int(windowSize)
 		}
 		if cSize > maxCompressedBlockSize || uint64(cSize) > b.WindowSize {
-			if debug {
+			if debugDecoder {
 				printf("compressed block too big: csize:%d block: %+v\n", uint64(cSize), b)
 			}
 			return ErrCompressedSizeTooBig
@@ -170,19 +168,18 @@ func (b *blockDec) reset(br byteBuffer, windowSize uint64) error {
 
 	// Read block data.
 	if cap(b.dataStorage) < cSize {
-		if b.lowMem {
+		if b.lowMem || cSize > maxCompressedBlockSize {
 			b.dataStorage = make([]byte, 0, cSize)
 		} else {
-			b.dataStorage = make([]byte, 0, maxBlockSize)
+			b.dataStorage = make([]byte, 0, maxCompressedBlockSize)
 		}
 	}
 	if cap(b.dst) <= maxSize {
 		b.dst = make([]byte, 0, maxSize+1)
 	}
-	var err error
 	b.data, err = br.readBig(cSize, b.dataStorage)
 	if err != nil {
-		if debug {
+		if debugDecoder {
 			println("Reading block:", err, "(", cSize, ")", len(b.data))
 			printf("%T", br)
 		}
@@ -252,7 +249,7 @@ func (b *blockDec) startDecoder() {
 				b:   b.dst,
 				err: err,
 			}
-			if debug {
+			if debugDecoder {
 				println("Decompressed to", len(b.dst), "bytes, error:", err)
 			}
 			b.result <- o
@@ -267,7 +264,7 @@ func (b *blockDec) startDecoder() {
 		default:
 			panic("Invalid block type")
 		}
-		if debug {
+		if debugDecoder {
 			println("blockDec: Finished block")
 		}
 	}
@@ -300,7 +297,7 @@ func (b *blockDec) decodeBuf(hist *history) error {
 		b.dst = hist.b
 		hist.b = nil
 		err := b.decodeCompressed(hist)
-		if debug {
+		if debugDecoder {
 			println("Decompressed to total", len(b.dst), "bytes, hash:", xxhash.Sum64(b.dst), "error:", err)
 		}
 		hist.b = b.dst
@@ -393,7 +390,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 			in = in[5:]
 		}
 	}
-	if debug {
+	if debugDecoder {
 		println("literals type:", litType, "litRegenSize:", litRegenSize, "litCompSize:", litCompSize, "sizeFormat:", sizeFormat, "4X:", fourStreams)
 	}
 	var literals []byte
@@ -431,7 +428,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 			literals[i] = v
 		}
 		in = in[1:]
-		if debug {
+		if debugDecoder {
 			printf("Found %d RLE compressed literals\n", litRegenSize)
 		}
 	case literalsBlockTreeless:
@@ -442,7 +439,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		// Store compressed literals, so we defer decoding until we get history.
 		literals = in[:litCompSize]
 		in = in[litCompSize:]
-		if debug {
+		if debugDecoder {
 			printf("Found %d compressed literals\n", litCompSize)
 		}
 	case literalsBlockCompressed:
@@ -484,7 +481,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		if len(literals) != litRegenSize {
 			return fmt.Errorf("literal output size mismatch want %d, got %d", litRegenSize, len(literals))
 		}
-		if debug {
+		if debugDecoder {
 			printf("Decompressed %d literals into %d bytes\n", litCompSize, litRegenSize)
 		}
 	}
@@ -535,12 +532,12 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 		br := byteReader{b: in, off: 0}
 		compMode := br.Uint8()
 		br.advance(1)
-		if debug {
+		if debugDecoder {
 			printf("Compression modes: 0b%b", compMode)
 		}
 		for i := uint(0); i < 3; i++ {
 			mode := seqCompMode((compMode >> (6 - i*2)) & 3)
-			if debug {
+			if debugDecoder {
 				println("Table", tableIndex(i), "is", mode)
 			}
 			var seq *sequenceDec
@@ -571,7 +568,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 				}
 				dec.setRLE(symb)
 				seq.fse = dec
-				if debug {
+				if debugDecoder {
 					printf("RLE set to %+v, code: %v", symb, v)
 				}
 			case compModeFSE:
@@ -587,7 +584,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 					println("Transform table error:", err)
 					return err
 				}
-				if debug {
+				if debugDecoder {
 					println("Read table ok", "symbolLen:", dec.symbolLen)
 				}
 				seq.fse = dec
@@ -655,7 +652,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 	if huff != nil {
 		hist.huffTree = huff
 	}
-	if debug {
+	if debugDecoder {
 		println("Final literals:", len(literals), "hash:", xxhash.Sum64(literals), "and", nSeqs, "sequences.")
 	}
 
@@ -672,7 +669,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 	if err != nil {
 		return err
 	}
-	if debug {
+	if debugDecoder {
 		println("History merged ok")
 	}
 	br := &bitReader{}
@@ -731,7 +728,7 @@ func (b *blockDec) decodeCompressed(hist *history) error {
 	}
 	hist.append(b.dst)
 	hist.recentOffsets = seqs.prevOffset
-	if debug {
+	if debugDecoder {
 		println("Finished block with literals:", len(literals), "and", nSeqs, "sequences.")
 	}
 

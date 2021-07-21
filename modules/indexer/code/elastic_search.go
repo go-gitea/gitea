@@ -16,12 +16,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
 	jsoniter "github.com/json-iterator/go"
@@ -210,11 +210,14 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return nil, err
-	} else if !base.IsTextFile(fileContents) {
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil, nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return nil, err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 
 	return []elastic.BulkableRequest{
@@ -281,7 +284,7 @@ func (b *ElasticSearchIndexer) Delete(repoID int64) error {
 }
 
 // indexPos find words positions for start and the following end on content. It will
-// return the beginning position of the frist start and the ending position of the
+// return the beginning position of the first start and the ending position of the
 // first end following the start string.
 // If not found any of the positions, it will return -1, -1.
 func indexPos(content, start, end string) (int, int) {
@@ -305,8 +308,8 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		var startIndex, endIndex int = -1, -1
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
-			// FIXME: Since the high lighting content will include <em> and </em> for the keywords,
-			// now we should find the poisitions. But how to avoid html content which contains the
+			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,
+			// now we should find the positions. But how to avoid html content which contains the
 			// <em> and </em> tags? If elastic search has handled that?
 			startIndex, endIndex = indexPos(c[0], "<em>", "</em>")
 			if startIndex == -1 {
