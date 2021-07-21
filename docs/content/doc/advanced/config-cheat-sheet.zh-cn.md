@@ -257,18 +257,18 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ### Cron - Repository Health Check (`cron.repo_health_check`)
 
-- `SCHEDULE`: 仓库健康监测的Cron语法，比如：`@every 24h`。
+- `SCHEDULE`: 仓库健康监测的Cron语法，比如：`@midnight`。
 - `TIMEOUT`: 仓库健康监测的超时时间，比如：`60s`.
 - `ARGS`: 执行 `git fsck` 命令的参数，比如：`--unreachable --tags`。
 
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
-- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
+- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@midnight`.
 
 ### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
-- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
+- `SCHEDULE`: **@midnight** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 
@@ -381,6 +381,21 @@ MINIO_USE_SSL = false
 ```
 
 然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
+
+## Repository Archive Storage (`storage.repo-archive`)
+
+Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[storage]` 继承。如果不为 `local` 或者 `minio` 而为 `xxx`， 则从 `[storage.xxx]` 继承。当继承时， `PATH` 默认为 `data/repo-archive`，`MINIO_BASE_PATH` 默认为 `repo-archive/`。
+
+- `STORAGE_TYPE`: **local**: Repository archive 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
+- `PATH`: 存放 Repository archive 上传的文件的地方，默认是 `data/repo-archive`。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
 
 ## Other (`other`)
 

@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/misc"
-	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -147,7 +146,7 @@ func Routes() *web.Route {
 		routes.Get("/metrics", append(common, Metrics)...)
 	}
 
-	// Removed: toolbox.Toolboxer middleware will provide debug informations which seems unnecessary
+	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
 	// Get user from session if logged in.
@@ -295,6 +294,7 @@ func RegisterRoutes(m *web.Route) {
 	}, ignSignInAndCsrf, reqSignIn)
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
+	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -596,11 +596,20 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/delete", repo.DeleteTeam)
 				})
 			})
+
 			m.Group("/branches", func() {
 				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
+
+			m.Group("/tags", func() {
+				m.Get("", repo.Tags)
+				m.Post("", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.NewProtectedTagPost)
+				m.Post("/delete", context.RepoMustNotBeArchived(), repo.DeleteProtectedTagPost)
+				m.Get("/{id}", repo.EditProtectedTag)
+				m.Post("/{id}", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.EditProtectedTagPost)
+			})
 
 			m.Group("/hooks/git", func() {
 				m.Get("", repo.GitHooks)
@@ -889,7 +898,7 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
 
 		m.Group("/archive", func() {
-			m.Get("/*", common.Download)
+			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
@@ -999,17 +1008,17 @@ func RegisterRoutes(m *web.Route) {
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
-				m.Post("/git-upload-pack", repo.ServiceUploadPack)
-				m.Post("/git-receive-pack", repo.ServiceReceivePack)
-				m.Get("/info/refs", repo.GetInfoRefs)
-				m.Get("/HEAD", repo.GetTextFile("HEAD"))
-				m.Get("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.Get("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.Get("/objects/info/packs", repo.GetInfoPacks)
-				m.Get("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
+				m.PostOptions("/git-upload-pack", repo.ServiceUploadPack)
+				m.PostOptions("/git-receive-pack", repo.ServiceReceivePack)
+				m.GetOptions("/info/refs", repo.GetInfoRefs)
+				m.GetOptions("/HEAD", repo.GetTextFile("HEAD"))
+				m.GetOptions("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
+				m.GetOptions("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
+				m.GetOptions("/objects/info/packs", repo.GetInfoPacks)
+				m.GetOptions("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
+				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
+				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
+				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
 			}, ignSignInAndCsrf)
 
 			m.Head("/tasks/trigger", repo.TriggerTask)

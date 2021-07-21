@@ -223,7 +223,7 @@ func TestAPIViewRepo(t *testing.T) {
 	DecodeJSON(t, resp, &repo)
 	assert.EqualValues(t, 1, repo.ID)
 	assert.EqualValues(t, "repo1", repo.Name)
-	assert.EqualValues(t, 3, repo.Releases)
+	assert.EqualValues(t, 2, repo.Releases)
 	assert.EqualValues(t, 1, repo.OpenIssues)
 	assert.EqualValues(t, 3, repo.OpenPulls)
 
@@ -466,7 +466,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	repoName := "moveME"
-	repo := new(models.Repository)
+	apiRepo := new(api.Repository)
 	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/user/repos?token=%s", token), &api.CreateRepoOption{
 		Name:        repoName,
 		Description: "repo move around",
@@ -475,12 +475,12 @@ func TestAPIRepoTransfer(t *testing.T) {
 		AutoInit:    true,
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
-	DecodeJSON(t, resp, repo)
+	DecodeJSON(t, resp, apiRepo)
 
 	//start testing
 	for _, testCase := range testCases {
 		user = models.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
-		repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+		repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 		session = loginUser(t, user.Name)
 		token = getTokenForLoggedInUser(t, session)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
@@ -491,8 +491,45 @@ func TestAPIRepoTransfer(t *testing.T) {
 	}
 
 	//cleanup
-	repo = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repo.ID}).(*models.Repository)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
+}
+
+func TestAPIGenerateRepo(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	templateRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 44}).(*models.Repository)
+
+	// user
+	repo := new(api.Repository)
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
+		Owner:       user.Name,
+		Name:        "new-repo",
+		Description: "test generate repo",
+		Private:     false,
+		GitContent:  true,
+	})
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, repo)
+
+	assert.Equal(t, "new-repo", repo.Name)
+
+	// org
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/generate?token=%s", templateRepo.OwnerName, templateRepo.Name, token), &api.GenerateRepoOption{
+		Owner:       "user3",
+		Name:        "new-repo",
+		Description: "test generate repo",
+		Private:     false,
+		GitContent:  true,
+	})
+	resp = session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, repo)
+
+	assert.Equal(t, "new-repo", repo.Name)
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {

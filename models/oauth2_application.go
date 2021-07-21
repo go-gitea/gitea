@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -210,7 +210,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 		return nil, err
 	}
 	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID missmatch")
+		return nil, fmt.Errorf("UID mismatch")
 	}
 
 	app.Name = opts.Name
@@ -376,7 +376,7 @@ func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2Authorizat
 
 //////////////////////////////////////////////////////
 
-// OAuth2Grant represents the permission of an user for a specifc application to access resources
+// OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
 	ID            int64              `xorm:"pk autoincr"`
 	UserID        int64              `xorm:"INDEX unique(user_application)"`
@@ -537,13 +537,13 @@ type OAuth2Token struct {
 	jwt.StandardClaims
 }
 
-// ParseOAuth2Token parses a singed jwt string
+// ParseOAuth2Token parses a signed jwt string
 func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 	parsedToken, err := jwt.ParseWithClaims(jwtToken, &OAuth2Token{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if token.Method == nil || token.Method.Alg() != oauth2.DefaultSigningKey.SigningMethod().Alg() {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
 		}
-		return setting.OAuth2.JWTSecretBytes, nil
+		return oauth2.DefaultSigningKey.VerifyKey(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -559,8 +559,9 @@ func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
 // SignToken signs the token with the JWT secret
 func (token *OAuth2Token) SignToken() (string, error) {
 	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
-	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
+	jwtToken := jwt.NewWithClaims(oauth2.DefaultSigningKey.SigningMethod(), token)
+	oauth2.DefaultSigningKey.PreProcessToken(jwtToken)
+	return jwtToken.SignedString(oauth2.DefaultSigningKey.SignKey())
 }
 
 // OIDCToken represents an OpenID Connect id_token
@@ -583,8 +584,9 @@ type OIDCToken struct {
 }
 
 // SignToken signs an id_token with the (symmetric) client secret key
-func (token *OIDCToken) SignToken(clientSecret string) (string, error) {
+func (token *OIDCToken) SignToken(signingKey oauth2.JWTSigningKey) (string, error) {
 	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, token)
-	return jwtToken.SignedString([]byte(clientSecret))
+	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
+	signingKey.PreProcessToken(jwtToken)
+	return jwtToken.SignedString(signingKey.SignKey())
 }

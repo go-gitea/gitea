@@ -18,7 +18,6 @@ import (
 func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) []Data {
-		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
@@ -26,6 +25,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 		return nil
 	}
 
+	lock := sync.Mutex{}
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
@@ -45,8 +45,12 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -73,7 +77,11 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.Error(t, err)
 
 	// Now shutdown the queue
-	for _, callback := range queueShutdown {
+	lock.Lock()
+	callbacks := make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 
@@ -91,7 +99,11 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}
 
 	// terminate the queue
-	for _, callback := range queueTerminate {
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 
@@ -114,8 +126,12 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -126,10 +142,19 @@ func TestPersistableChannelQueue(t *testing.T) {
 	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	for _, callback := range queueShutdown {
+
+	lock.Lock()
+	callbacks = make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
-	for _, callback := range queueTerminate {
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 
