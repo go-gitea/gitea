@@ -15,7 +15,6 @@ import (
 func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) {
-		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
