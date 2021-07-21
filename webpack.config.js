@@ -137,8 +137,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: { filter: filterCssImport },
-              import: { filter: filterCssImport },
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
@@ -154,8 +154,8 @@ export default {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: { filter: filterCssImport },
-              import: { filter: filterCssImport },
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
           {

@@ -7,9 +7,9 @@
   },
   "dependencies": {
     "@claviska/jquery-minicolors": "2.3.5",
-    "@primer/octicons": "14.2.2",
+    "@primer/octicons": "13.0.0",
     "add-asset-webpack-plugin": "2.0.1",
-    "codemirror": "5.62.0",
+    "codemirror": "5.62.1",
     "css-loader": "6.2.0",
     "dropzone": "5.9.2",
     "easymde": "2.15.0",
