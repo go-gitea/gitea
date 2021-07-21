@@ -2971,11 +2971,11 @@ function showDeletePopup() {
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
-  for (const key of Object.keys(dataArray)) {
+  Object.keys(dataArray).forEach((key) => {
     if (key && key.startsWith('data')) {
       dialog.find(`.${key}`).text(dataArray[key]);
     }
-  }
+  });
 
   dialog.modal({
     closable: false,
@@ -2988,14 +2988,14 @@ function showDeletePopup() {
       const postData = {
         _csrf: csrf,
       };
-      for (const key of Object.keys(dataArray)) {
+      Object.keys(dataArray).forEach((key) => {
         if (key && key.startsWith('data')) {
           postData[key.substr(4)] = dataArray[key];
         }
         if (key === 'id') {
           postData['id'] = dataArray['id'];
         }
-      }
+      });
 
       $.post($this.data('url'), postData).done((data) => {
         window.location.href = data.redirect;
