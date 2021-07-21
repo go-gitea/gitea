@@ -8,6 +8,6 @@ draft: false
 menu:
   sidebar:
     name: "翻譯"
-    weight: 45
+    weight: 50
     identifier: "translation"
 ---

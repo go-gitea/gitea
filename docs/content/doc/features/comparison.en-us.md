@@ -48,7 +48,8 @@ _Symbols used in table:_
 | Integrated Git-powered wiki         | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
 | Deploy Tokens                       | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
 | Repository Tokens with write rights | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘              | ✘            |
+| Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Built-in Package Registry           | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
 | FIDO U2F (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✘            |
 | Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
