@@ -15,7 +15,6 @@ menu:
 
 # Webhooks
 
-
 Gitea 的存储 webhook。这可以有存储库管路设定页 `/:username/:reponame/settings/hooks` 中的。Webhook 也可以按照组织调整或全系统调整，所有时间的推送都是POST请求
 。此方法目前被下列服务支援：
 
@@ -28,4 +27,5 @@ Gitea 的存储 webhook。这可以有存储库管路设定页 `/:username/:repo
 - Microsoft Teams
 - Feishu
 - Wechatwork
+
 ## TBD
