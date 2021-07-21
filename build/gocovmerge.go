@@ -125,9 +125,9 @@ func main() {
 				i++
 				lines = append(lines, scanner.Text())
 			}
-			fmt.Println("=== " + file + " ==============================")
-			fmt.Printf("%s\n", strings.Join(lines, "\n"))
-			fmt.Println("===============================================")
+			log.Println("=== " + file + " ==============================")
+			log.Printf("%s\n", strings.Join(lines, "\n"))
+			log.Println("===============================================")
 			// end
 
 			log.Fatalf("failed to parse profile '%s': %v", file, err)
