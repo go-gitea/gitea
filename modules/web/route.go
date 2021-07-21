@@ -269,6 +269,26 @@ func (r *Route) Get(pattern string, h ...interface{}) {
 	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
 }
 
+// Options delegate options method
+func (r *Route) Options(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// GetOptions delegate get and options method
+func (r *Route) GetOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// PostOptions delegate post and options method
+func (r *Route) PostOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Post(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
 // Head delegate head method
 func (r *Route) Head(pattern string, h ...interface{}) {
 	var middlewares = r.getMiddlewares(h)
