@@ -88,7 +88,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	escaped := NameToFilename(wikiName)
 
 	// Look for both files
-	filesInIndex, err := gitRepo.LsFiles(unescaped, escaped)
+	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
 	if err != nil {
 		log.Error("%v", err)
 		return false, escaped, err
