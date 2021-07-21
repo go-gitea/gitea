@@ -527,11 +527,10 @@ relation to port exhaustion.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 - `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
-### Service - Expore (`service.explore`)
+### Service - Explore (`service.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
 - `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
-
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 
