@@ -37,6 +37,7 @@ func MustEnablePackages(ctx *context.Context) {
 // Packages displays a list of all packages in the repository
 func Packages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.packages")
+	ctx.Data["IsPackagesPage"] = true
 
 	query := ctx.QueryTrim("q")
 	packageType := ctx.QueryTrim("package_type")
@@ -66,7 +67,6 @@ func Packages(ctx *context.Context) {
 	}
 
 	ctx.Data["Packages"] = packages
-	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 
@@ -97,6 +97,9 @@ func ViewPackage(ctx *context.Context) {
 		ctx.ServerError("LoadCreator", err)
 		return
 	}
+	
+	ctx.Data["Title"] = p.Name
+	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["Package"] = p
 
 	var metadata interface{}
