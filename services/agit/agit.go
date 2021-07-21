@@ -152,7 +152,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				BaseRepo:     repo,
 				MergeBase:    "",
 				Type:         models.PullRequestGitea,
-				Style:        models.PullRequestFlowAGit,
+				Flow:         models.PullRequestFlowAGit,
 			}
 
 			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {

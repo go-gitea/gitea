@@ -2047,7 +2047,7 @@ func NewComment(ctx *context.Context) {
 			if form.Status == "reopen" && issue.IsPull {
 				pull := issue.PullRequest
 				var err error
-				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Style)
+				pr, err = models.GetUnmergedPullRequest(pull.HeadRepoID, pull.BaseRepoID, pull.HeadBranch, pull.BaseBranch, pull.Flow)
 				if err != nil {
 					if !models.IsErrPullRequestNotExist(err) {
 						ctx.ServerError("GetUnmergedPullRequest", err)

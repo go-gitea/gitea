@@ -95,7 +95,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 	}
 
-	if pr.Style == models.PullRequestFlowAGit {
+	if pr.Flow == models.PullRequestFlowAGit {
 		gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
@@ -113,7 +113,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		apiPullRequest.Head.Name = ""
 	}
 
-	if pr.HeadRepo != nil && pr.Style == models.PullRequestFlowGithub {
+	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
 		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
 
