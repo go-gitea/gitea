@@ -567,6 +567,15 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
+	if len(title) > 255 {
+		if ctx.Data["content"] != nil {
+			ctx.Data["content"] = fmt.Sprintf("...%s\n\n%s", title[252:], ctx.Data["content"])
+		} else {
+			ctx.Data["content"] = "..." + title[252:] + "\n"
+		}
+		title = title[:252] + "..."
+	}
+
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
