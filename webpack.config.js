@@ -62,6 +62,12 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    'katex': [
+      fileURLToPath(new URL('node_modules/katex/dist/katex.min.js', import.meta.url)),
+      fileURLToPath(new URL('node_modules/katex/dist/contrib/auto-render.min.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/katex.js', import.meta.url)),
+      fileURLToPath(new URL('node_modules/katex/dist/katex.min.css', import.meta.url)),
+    ],
     ...themes,
   },
   devtool: false,

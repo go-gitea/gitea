@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/markup/markdown/math"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
@@ -119,6 +120,10 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							}
 						}
 					}),
+				),
+				math.NewExtension(
+					math.Enabled(setting.Markdown.EnableMath),
+					math.WithInlineDollarParser(setting.Markdown.EnableInlineDollarMath),
 				),
 				meta.Meta,
 			),
