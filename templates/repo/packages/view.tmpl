@@ -12,7 +12,6 @@
 					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .Package.Creator.HomeLink (.Package.Creator.GetDisplayName | Escape) | Safe}} {{svg "octicon-package"}} {{.Package.Type.String}}</div>
 					<div class="ui divider"></div>
 				</div>
-
 				<div class="twelve wide column">
 					{{template "repo/packages/content/generic" .}}
 					{{template "repo/packages/content/nuget" .}}
@@ -20,7 +19,6 @@
 					{{template "repo/packages/content/maven" .}}
 					{{template "repo/packages/content/pypi" .}}
 				</div>
-			
 				<div class="four wide column">
 					<div class="ui segment metas">
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.details"}}</strong></span>
@@ -30,13 +28,11 @@
 						{{template "repo/packages/metadata/npm" .}}
 						{{template "repo/packages/metadata/maven" .}}
 						{{template "repo/packages/metadata/pypi" .}}
-
 						<div class="ui divider"></div>
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}}</strong></span>
 						{{range .Files}}
 							<div><a href="{{$.Link}}/files/{{.LowerName}}">{{.Name}}</a></div>
 						{{end}}
-						
 						{{if .OtherVersions}}
 							<div class="ui divider"></div>
 							<span class="text"><strong>{{.i18n.Tr "repo.packages.versions"}}</strong></span>
@@ -44,7 +40,6 @@
 								<div><a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Version}}</a> <span class="ui small text">{{$.i18n.Tr "repo.packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span></div>
 							{{end}}
 						{{end}}
-				
 						{{if .CanWritePackages}}
 							<div class="ui divider"></div>
 							<div class="ui watching">
@@ -58,10 +53,8 @@
 									<div class="ui warning message text left">
 										{{.i18n.Tr "repo.packages.delete.notice" .Package.Name .Package.Version}}
 									</div>
-				
 									<form class="ui form" action="{{.Link}}" method="post">
 										{{.CsrfTokenHtml}}
-							
 										<div class="text right actions">
 											<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
 											<button class="ui red button">{{.i18n.Tr "ok"}}</button>
