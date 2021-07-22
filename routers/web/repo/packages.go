@@ -97,7 +97,7 @@ func ViewPackage(ctx *context.Context) {
 		ctx.ServerError("LoadCreator", err)
 		return
 	}
-	
+
 	ctx.Data["Title"] = p.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["Package"] = p

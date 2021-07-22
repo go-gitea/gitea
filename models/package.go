@@ -112,7 +112,7 @@ func (p *Package) GetFileByName(name string) (*PackageFile, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrDuplicatePackage
+		return nil, ErrPackageFileNotExist
 	}
 	return pf, nil
 }
