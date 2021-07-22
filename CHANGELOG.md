@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.15.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc2) - 2021-07-22
 
 * BUGFIXES
+  * Restore creation of git-daemon-export-ok files (#16508) (#16514)
   * Fix data race in bleve indexer (#16474) (#16509)
   * Restore CORS on git smart http protocol (#16496) (#16506)
   * Fix race in log (#16490) (#16505)
