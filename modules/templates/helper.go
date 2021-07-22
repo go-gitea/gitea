@@ -390,7 +390,9 @@ func NewFuncMap() []template.FuncMap {
 			html += "</span>"
 			return template.HTML(html)
 		},
-		"MermaidMaxSourceCharacters": setting.MermaidMaxSourceCharacters,
+		"MermaidMaxSourceCharacters": func() int {
+			return setting.MermaidMaxSourceCharacters
+		},
 	}}
 }
 
