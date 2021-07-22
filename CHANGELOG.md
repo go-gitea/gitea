@@ -4,6 +4,19 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc2) - 2021-07-22
+
+* BUGFIXES
+  * Restore creation of git-daemon-export-ok files (#16508) (#16514)
+  * Fix data race in bleve indexer (#16474) (#16509)
+  * Restore CORS on git smart http protocol (#16496) (#16506)
+  * Fix race in log (#16490) (#16505)
+  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
+  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
+  * Update notification table with only latest data (#16445) (#16469)
+  * Revert to use alpine 3.13 to fix multiple seccomp related issues with Docker <20 (#16451) (#16452)
+  * Fix crash following ldap authentication update (#16447) (#16448)
+
 ## [1.15.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc1) - 2021-07-15
 
 * BREAKING
