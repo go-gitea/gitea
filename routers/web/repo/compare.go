@@ -569,11 +569,11 @@ func PrepareCompareDiff(
 	}
 	if len(title) > 255 {
 		if ctx.Data["content"] != nil {
-			ctx.Data["content"] = fmt.Sprintf("...%s\n\n%s", title[252:], ctx.Data["content"])
+			ctx.Data["content"] = fmt.Sprintf("…%s\n\n%s", title[254:], ctx.Data["content"])
 		} else {
-			ctx.Data["content"] = "..." + title[252:] + "\n"
+			ctx.Data["content"] = "…" + title[254:] + "\n"
 		}
-		title = title[:252] + "..."
+		title = title[:254] + "…"
 	}
 
 	ctx.Data["title"] = title
