@@ -212,7 +212,7 @@ var archiverQueue queue.UniqueQueue
 
 // Init initlize archive
 func Init() error {
-	handler := func(data ...queue.Data) {
+	handler := func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
 			archiveReq, ok := datum.(*ArchiveRequest)
 			if !ok {
@@ -224,6 +224,7 @@ func Init() error {
 				log.Error("Archive %v faild: %v", datum, err)
 			}
 		}
+		return nil
 	}
 
 	archiverQueue = queue.CreateUniqueQueue("repo-archive", handler, new(ArchiveRequest))
