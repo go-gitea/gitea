@@ -830,7 +830,7 @@ func RegisterRoutes(m *web.Route) {
 
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
-	// for compitable old attachments
+	// to maintain compatibility with old attachments
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
