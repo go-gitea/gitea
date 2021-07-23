@@ -1042,7 +1042,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		}
 
 		if len(form.Title) > 255 {
-			form.Content = "..." + form.Title[252:] + "\n\n" + form.Content
+			form.Content = "…" + form.Title[254:] + "\n\n" + form.Content
 			form.Title = form.Title[:252] + "..."
 		}
 		middleware.AssignForm(form, ctx.Data)
