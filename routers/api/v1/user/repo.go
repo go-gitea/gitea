@@ -85,7 +85,7 @@ func ListUserRepos(ctx *context.APIContext) {
 func ListMyRepos(ctx *context.APIContext) {
 	// swagger:operation GET /user/repos user userCurrentListRepos
 	// ---
-	// summary: List the repos that the authenticated user owns or has access to
+	// summary: List the repos that the authenticated user owns
 	// produces:
 	// - application/json
 	// parameters:
