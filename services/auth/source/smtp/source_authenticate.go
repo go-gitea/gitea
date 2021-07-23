@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -67,5 +68,12 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		LoginName:   login,
 		IsActive:    true,
 	}
-	return user, models.CreateUser(user)
+
+	if err := models.CreateUser(user); err != nil {
+		return user, err
+	}
+
+	mailer.SendRegisterNotifyMail(user)
+
+	return user, nil
 }
