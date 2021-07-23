@@ -206,8 +206,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.NoError(t, err)
 
 	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -322,8 +326,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
 
+	lock.Lock()
+	callbacks := make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
 	// Now shutdown the queue
-	for _, callback := range queueShutdown {
+	for _, callback := range callbacks {
 		callback()
 	}
 
@@ -341,7 +349,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	}
 
 	// terminate the queue
-	for _, callback := range queueTerminate {
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 
@@ -374,8 +386,12 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	paused, _ = pausable.IsPausedIsResumed()
 
 	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -415,10 +431,18 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	for _, callback := range queueShutdown {
+	lock.Lock()
+	callbacks = make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
-	for _, callback := range queueTerminate {
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 
