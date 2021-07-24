@@ -75,7 +75,7 @@ require (
 	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.10.2
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
-	github.com/markbates/goth v1.67.1
+	github.com/markbates/goth v1.68.0
 	github.com/mattn/go-isatty v0.0.13
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7
