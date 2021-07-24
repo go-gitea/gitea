@@ -10,14 +10,9 @@ import (
 	"path"
 	"testing"
 
-<<<<<<< HEAD
 	"code.gitea.io/gitea/pkgs/json"
 	"code.gitea.io/gitea/pkgs/setting"
 	api "code.gitea.io/gitea/pkgs/structs"
-=======
-	"code.gitea.io/gitea/pkgs/setting"
-	api "code.gitea.io/gitea/pkgs/structs"
->>>>>>> eb221841d (Rename modules -> pkgs)
 
 	"github.com/stretchr/testify/assert"
 )

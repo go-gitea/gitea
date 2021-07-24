@@ -14,15 +14,9 @@ import (
 	"testing"
 	"time"
 
-<<<<<<< HEAD
 	"code.gitea.io/gitea/pkgs/json"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/queue"
-=======
-	"code.gitea.io/gitea/pkgs/log"
-	"code.gitea.io/gitea/pkgs/queue"
-	jsoniter "github.com/json-iterator/go"
->>>>>>> eb221841d (Rename modules -> pkgs)
 )
 
 var (
