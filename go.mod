@@ -78,7 +78,7 @@ require (
 	github.com/libdns/libdns v0.2.0 // indirect
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/markbates/goth v1.67.1
+	github.com/markbates/goth v1.68.0
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/mattn/go-sqlite3 v1.14.6

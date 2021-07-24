@@ -551,7 +551,7 @@ github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/markbates/goth v1.67.1
+# github.com/markbates/goth v1.68.0
 ## explicit
 github.com/markbates/goth
 github.com/markbates/goth/gothic
