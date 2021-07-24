@@ -225,9 +225,6 @@ github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
-## explicit
-github.com/dgrijalva/jwt-go
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
 # github.com/djherbis/buffer v1.2.0
@@ -431,6 +428,9 @@ github.com/gogs/cron
 # github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 ## explicit
 github.com/gogs/go-gogs-client
+# github.com/golang-jwt/jwt v3.2.1+incompatible
+## explicit
+github.com/golang-jwt/jwt
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
 # github.com/golang/protobuf v1.5.2
