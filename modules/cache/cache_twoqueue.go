@@ -178,7 +178,6 @@ func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
 		size, err = strconv.Atoi(opts.AdapterConfig)
 	}
 	if err != nil {
-
 		if !json.Valid([]byte(opts.AdapterConfig)) {
 			return err
 		}

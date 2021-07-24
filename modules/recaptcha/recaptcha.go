@@ -6,15 +6,13 @@ package recaptcha
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -52,8 +50,8 @@ func Verify(ctx context.Context, response string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("Failed to read CAPTCHA response: %s", err)
 	}
-	var jsonResponse Response
 
+	var jsonResponse Response
 	err = json.Unmarshal(body, &jsonResponse)
 	if err != nil {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)

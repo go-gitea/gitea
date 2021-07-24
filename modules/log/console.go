@@ -52,7 +52,6 @@ func NewConsoleLogger() LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *ConsoleLogger) Init(config string) error {
-
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)

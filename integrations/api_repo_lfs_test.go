@@ -6,9 +6,6 @@ package integrations
 
 import (
 	"bytes"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"net/http"
 	"path"
 	"strconv"
@@ -16,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 

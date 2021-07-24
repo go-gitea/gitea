@@ -57,7 +57,6 @@ func NewSMTPLogger() LoggerProvider {
 //		"level":LevelError
 //	}
 func (log *SMTPLogger) Init(jsonconfig string) error {
-
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)

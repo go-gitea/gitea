@@ -106,7 +106,6 @@ func NewConn() LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *ConnLogger) Init(jsonconfig string) error {
-
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)

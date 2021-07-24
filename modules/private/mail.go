@@ -6,7 +6,6 @@ package private
 
 import (
 	"context"
-
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -34,7 +33,6 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (int, 
 
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
-
 	jsonBytes, _ := json.Marshal(Email{
 		Subject: subject,
 		Message: message,

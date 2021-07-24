@@ -56,7 +56,6 @@ type User struct {
 func (u User) MarshalJSON() ([]byte, error) {
 	// Re-declaring User to avoid recursion
 	type shadow User
-
 	return json.Marshal(struct {
 		shadow
 		CompatUserName string `json:"username"`

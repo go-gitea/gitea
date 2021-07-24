@@ -6,12 +6,11 @@ package log
 
 import (
 	"bytes"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"os"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // Level is the level of the logger
@@ -105,7 +104,6 @@ func FromString(level string) Level {
 // UnmarshalJSON takes text and turns it into a Level
 func (l *Level) UnmarshalJSON(b []byte) error {
 	var tmp interface{}
-
 	err := json.Unmarshal(b, &tmp)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Err: %v", err)

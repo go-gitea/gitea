@@ -7,10 +7,9 @@ package task
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/queue"
@@ -86,7 +85,6 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 	opts.AuthToken = ""
-
 	bs, err := json.Marshal(&opts)
 	if err != nil {
 		return nil, err

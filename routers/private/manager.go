@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/queue"
@@ -131,7 +130,6 @@ func AddLogger(ctx *context.PrivateContext) {
 	}
 
 	bufferLen := setting.Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
-
 	byteConfig, err := json.Marshal(opts.Config)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", opts.Config, err)

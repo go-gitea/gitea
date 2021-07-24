@@ -6,14 +6,12 @@ package private
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -32,7 +30,6 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
 	req = req.Header("Content-Type", "application/json")
-
 	jsonBytes, _ := json.Marshal(RestoreParams{
 		RepoDir:   repoDir,
 		OwnerName: ownerName,

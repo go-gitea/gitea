@@ -7,9 +7,6 @@ package log
 import (
 	"bufio"
 	"compress/gzip"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"errors"
 	"fmt"
 	"os"
@@ -18,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -103,7 +101,6 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
-
 	if err := json.Unmarshal([]byte(config), log); err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}

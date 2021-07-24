@@ -6,7 +6,6 @@ package private
 
 import (
 	"context"
-
 	"fmt"
 	"net/http"
 	"net/url"
@@ -67,7 +66,6 @@ func FlushQueues(ctx context.Context, timeout time.Duration, nonBlocking bool) (
 		req.SetTimeout(timeout+10*time.Second, timeout+10*time.Second)
 	}
 	req = req.Header("Content-Type", "application/json")
-
 	jsonBytes, _ := json.Marshal(FlushOptions{
 		Timeout:     timeout,
 		NonBlocking: nonBlocking,
@@ -154,7 +152,6 @@ func AddLogger(ctx context.Context, group, name, mode string, config map[string]
 
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
-
 	jsonBytes, _ := json.Marshal(LoggerOptions{
 		Group:  group,
 		Name:   name,

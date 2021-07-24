@@ -6,13 +6,11 @@ package queue
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -85,7 +83,6 @@ func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
 		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
-
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -311,7 +308,6 @@ func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if !assignableTo(data, q.exemplar) {
 		return false, fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
-
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return false, err

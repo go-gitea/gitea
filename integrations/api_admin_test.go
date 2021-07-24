@@ -9,9 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -191,7 +190,6 @@ func TestAPIEditUser(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	errMap := make(map[string]interface{})
-
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 

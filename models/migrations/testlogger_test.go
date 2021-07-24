@@ -6,9 +6,6 @@ package migrations
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"os"
 	"runtime"
@@ -17,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 )

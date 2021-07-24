@@ -8,9 +8,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"hash"
 	"hash/fnv"
@@ -31,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"

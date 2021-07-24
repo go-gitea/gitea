@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"

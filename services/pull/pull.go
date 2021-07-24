@@ -8,9 +8,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"regexp"
 	"strings"
@@ -19,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"

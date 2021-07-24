@@ -6,15 +6,13 @@ package queue
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"reflect"
 	"sort"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 

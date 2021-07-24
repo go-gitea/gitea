@@ -9,11 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
@@ -222,7 +221,6 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 
 		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
-
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
 					Username: form.Config["username"],

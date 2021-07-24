@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 

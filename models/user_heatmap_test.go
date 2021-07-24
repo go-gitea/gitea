@@ -69,7 +69,6 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
 
 		// Test JSON rendering
-
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))

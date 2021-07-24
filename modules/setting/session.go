@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -66,7 +65,6 @@ func newSessionService() {
 	default:
 		SessionConfig.SameSite = http.SameSiteLaxMode
 	}
-
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
 		log.Fatal("Can't shadow session config: %v", err)

@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -106,7 +105,6 @@ func removeCredentials(payload string) (string, error) {
 	}
 
 	var opts MigrateOptions
-
 	err := json.Unmarshal([]byte(payload), &opts)
 	if err != nil {
 		return "", err

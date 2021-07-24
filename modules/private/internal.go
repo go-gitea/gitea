@@ -7,7 +7,6 @@ package private
 import (
 	"context"
 	"crypto/tls"
-
 	"fmt"
 	"net"
 	"net/http"
@@ -31,7 +30,6 @@ type Response struct {
 
 func decodeJSONError(resp *http.Response) *Response {
 	var res Response
-
 	err := json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		res.Err = err.Error()

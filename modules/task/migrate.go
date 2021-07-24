@@ -6,15 +6,13 @@ package task
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	migration "code.gitea.io/gitea/modules/migrations/base"
@@ -114,7 +112,6 @@ func runMigrateTask(t *models.Task) (err error) {
 			Format: format,
 			Args:   args,
 		}
-
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
 		_ = t.UpdateCols("message")

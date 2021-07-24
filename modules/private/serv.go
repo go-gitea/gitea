@@ -6,7 +6,6 @@ package private
 
 import (
 	"context"
-
 	"fmt"
 	"net/http"
 	"net/url"
@@ -36,7 +35,6 @@ func ServNoCommand(ctx context.Context, keyID int64) (*models.PublicKey, *models
 	}
 
 	var keyAndOwner KeyAndOwner
-
 	if err := json.NewDecoder(resp.Body).Decode(&keyAndOwner); err != nil {
 		return nil, nil, err
 	}

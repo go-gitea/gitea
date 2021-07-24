@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -71,7 +70,6 @@ func expandWebhooks(x *xorm.Engine) error {
 
 		for _, res := range results {
 			var events HookEvent
-
 			if err = json.Unmarshal([]byte(res.Events), &events); err != nil {
 				return err
 			}

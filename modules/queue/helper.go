@@ -20,7 +20,6 @@ type Mappable interface {
 // It will tolerate the cfg being passed as a []byte or string of a json representation of the
 // exemplar or the correct type of the exemplar itself
 func toConfig(exemplar, cfg interface{}) (interface{}, error) {
-
 	// First of all check if we've got the same type as the exemplar - if so it's all fine.
 	if reflect.TypeOf(cfg).AssignableTo(reflect.TypeOf(exemplar)) {
 		return cfg, nil
@@ -47,7 +46,6 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 	if !ok {
 		// hmm ... can we marshal it to json?
 		var err error
-
 		configBytes, err = json.Marshal(cfg)
 		ok = err == nil
 	}
@@ -67,7 +65,6 @@ func toConfig(exemplar, cfg interface{}) (interface{}, error) {
 
 // unmarshalAs will attempt to unmarshal provided bytes as the provided exemplar
 func unmarshalAs(bs []byte, exemplar interface{}) (data Data, err error) {
-
 	if exemplar != nil {
 		t := reflect.TypeOf(exemplar)
 		n := reflect.New(t)
@@ -77,7 +74,6 @@ func unmarshalAs(bs []byte, exemplar interface{}) (data Data, err error) {
 	} else {
 		err = json.Unmarshal(bs, &data)
 	}
-
 	return
 }
 

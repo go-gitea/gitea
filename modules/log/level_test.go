@@ -18,7 +18,6 @@ type testLevel struct {
 }
 
 func TestLevelMarshalUnmarshalJSON(t *testing.T) {
-
 	levelBytes, err := json.Marshal(testLevel{
 		Level: INFO,
 	})

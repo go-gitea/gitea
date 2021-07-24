@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -38,7 +37,6 @@ func newFeishuTextPayload(text string) *FeishuPayload {
 
 // JSONPayload Marshals the FeishuPayload to json
 func (f *FeishuPayload) JSONPayload() ([]byte, error) {
-
 	data, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return []byte{}, err

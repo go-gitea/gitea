@@ -8,13 +8,12 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/user"
@@ -104,7 +103,6 @@ loop:
 				log.Error("Unable to APIFormat stopwatches: %v", err)
 				continue
 			}
-
 			dataBs, err := json.Marshal(apiSWs)
 			if err != nil {
 				log.Error("Unable to marshal stopwatches: %v", err)

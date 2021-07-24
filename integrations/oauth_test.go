@@ -6,12 +6,10 @@ package integrations
 
 import (
 	"bytes"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"io/ioutil"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"

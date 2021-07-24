@@ -7,9 +7,6 @@ package setting
 
 import (
 	"encoding/base64"
-
-	"code.gitea.io/gitea/modules/json"
-
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -27,6 +24,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"

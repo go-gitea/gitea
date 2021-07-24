@@ -10,10 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -69,7 +68,6 @@ type (
 // GetDiscordHook returns discord metadata
 func GetDiscordHook(w *models.Webhook) *DiscordMeta {
 	s := &DiscordMeta{}
-
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
 	}
@@ -100,7 +98,6 @@ var (
 
 // JSONPayload Marshals the DiscordPayload to json
 func (d *DiscordPayload) JSONPayload() ([]byte, error) {
-
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -251,7 +248,6 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
-
 	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
 		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}

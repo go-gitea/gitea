@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-
 	"encoding/xml"
 	"io"
 	"io/ioutil"
@@ -444,7 +443,6 @@ func (r *Request) ToJSON(v interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	err = json.Unmarshal(data, v)
 	return err
 }

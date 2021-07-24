@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -190,7 +190,6 @@ func TestAPIPullReview(t *testing.T) {
 	})
 	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	errMap := make(map[string]interface{})
-
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "review event COMMENT requires a body or a comment", errMap["message"].(string))
 
