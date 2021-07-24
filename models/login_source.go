@@ -36,7 +36,7 @@ func (typ LoginType) String() string {
 	return LoginNames[typ]
 }
 
-// String returns the string name of the LoginType
+// Int returns the int value of the LoginType
 func (typ LoginType) Int() int {
 	return int(typ)
 }

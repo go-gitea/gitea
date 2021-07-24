@@ -19,7 +19,7 @@ func (s SecurityProtocol) String() string {
 	return SecurityProtocolNames[s]
 }
 
-// String returns the name of the SecurityProtocol
+// Int returns the int value of the SecurityProtocol
 func (s SecurityProtocol) Int() int {
 	return int(s)
 }
