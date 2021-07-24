@@ -5,13 +5,13 @@
 package setting
 
 import (
+	"encoding/json"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -66,7 +66,6 @@ func newSessionService() {
 		SessionConfig.SameSite = http.SameSiteLaxMode
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
 		log.Fatal("Can't shadow session config: %v", err)

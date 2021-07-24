@@ -6,6 +6,8 @@ package integrations
 
 import (
 	"bytes"
+	"encoding/json"
+
 	"net/http"
 	"path"
 	"strconv"
@@ -16,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +87,6 @@ func TestAPILFSBatch(t *testing.T) {
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
 		var br lfs.BatchResponse
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		assert.NoError(t, json.Unmarshal(b.Bytes(), &br))
 		return &br
 	}

@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -13,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +86,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 }
 
 func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRecorder, state string) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	var statuses []*api.CommitStatus
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &statuses))
 	var status api.CombinedStatus

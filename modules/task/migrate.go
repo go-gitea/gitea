@@ -6,6 +6,8 @@ package task
 
 import (
 	"context"
+	"encoding/json"
+
 	"errors"
 	"fmt"
 	"strings"
@@ -20,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func handleCreateError(owner *models.User, err error) error {
@@ -112,7 +113,7 @@ func runMigrateTask(t *models.Task) (err error) {
 			Format: format,
 			Args:   args,
 		}
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
 		_ = t.UpdateCols("message")

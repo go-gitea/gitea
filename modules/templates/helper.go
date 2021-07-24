@@ -8,7 +8,7 @@ package templates
 import (
 	"bytes"
 	"container/list"
-	"encoding/json"
+
 	"errors"
 	"fmt"
 	"html"
@@ -37,6 +37,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 
+	"code.gitea.io/gitea/modules/json"
 	"github.com/editorconfig/editorconfig-core-go/v2"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -847,7 +848,6 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 		return push
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}

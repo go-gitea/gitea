@@ -13,7 +13,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
-
 	jsoniter "github.com/json-iterator/go"
 )
 

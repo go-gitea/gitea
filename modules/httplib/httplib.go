@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+
+	"encoding/json"
 	"encoding/xml"
 	"io"
 	"io/ioutil"
@@ -23,8 +25,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 var defaultSetting = Settings{false, "GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil, nil, false}
@@ -443,7 +443,7 @@ func (r *Request) ToJSON(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	err = json.Unmarshal(data, v)
 	return err
 }

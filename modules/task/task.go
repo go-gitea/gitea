@@ -5,6 +5,7 @@
 package task
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // taskQueue is a global queue of tasks
@@ -86,7 +86,6 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 	}
 	opts.AuthToken = ""
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(&opts)
 	if err != nil {
 		return nil, err

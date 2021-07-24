@@ -5,6 +5,7 @@
 package events
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/user"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Events listens for events
@@ -103,7 +103,7 @@ loop:
 				log.Error("Unable to APIFormat stopwatches: %v", err)
 				continue
 			}
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 			dataBs, err := json.Marshal(apiSWs)
 			if err != nil {
 				log.Error("Unable to marshal stopwatches: %v", err)

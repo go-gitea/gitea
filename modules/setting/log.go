@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"encoding/json"
 	"fmt"
 	golog "log"
 	"os"
@@ -14,7 +15,6 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -204,7 +204,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)

@@ -6,13 +6,14 @@ package private
 
 import (
 	"context"
+	"encoding/json"
+
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // RestoreParams structure holds a data for restore repository
@@ -30,7 +31,7 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
 	req = req.Header("Content-Type", "application/json")
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	jsonBytes, _ := json.Marshal(RestoreParams{
 		RepoDir:   repoDir,
 		OwnerName: ownerName,

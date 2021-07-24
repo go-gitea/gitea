@@ -5,6 +5,7 @@
 package private
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // SendEmail pushes messages to mail queue
@@ -32,7 +32,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	var mail private.Email
 	rd := ctx.Req.Body
 	defer rd.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	if err := json.NewDecoder(rd).Decode(&mail); err != nil {
 		log.Error("%v", err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
