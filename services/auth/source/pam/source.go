@@ -6,8 +6,7 @@ package pam
 
 import (
 	"code.gitea.io/gitea/models"
-
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 // __________  _____      _____
@@ -33,7 +32,6 @@ func (source *Source) FromDB(bs []byte) error {
 
 // ToDB exports a PAMConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(source)
 }
 

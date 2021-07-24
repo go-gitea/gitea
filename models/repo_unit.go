@@ -7,9 +7,9 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	jsoniter "github.com/json-iterator/go"
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
 )
@@ -33,7 +33,6 @@ func (cfg *UnitConfig) FromDB(bs []byte) error {
 
 // ToDB exports a UnitConfig to a serialized format.
 func (cfg *UnitConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -49,7 +48,6 @@ func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
 
 // ToDB exports a ExternalWikiConfig to a serialized format.
 func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -67,7 +65,6 @@ func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
 
 // ToDB exports a ExternalTrackerConfig to a serialized format.
 func (cfg *ExternalTrackerConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -85,7 +82,6 @@ func (cfg *IssuesConfig) FromDB(bs []byte) error {
 
 // ToDB exports a IssuesConfig to a serialized format.
 func (cfg *IssuesConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 
@@ -109,7 +105,6 @@ func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 
 // ToDB exports a PullRequestsConfig to a serialized format.
 func (cfg *PullRequestsConfig) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 

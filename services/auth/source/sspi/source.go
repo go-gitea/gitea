@@ -6,7 +6,7 @@ package sspi
 
 import (
 	"code.gitea.io/gitea/models"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 //   _________ ___________________.___
@@ -32,7 +32,6 @@ func (cfg *Source) FromDB(bs []byte) error {
 
 // ToDB exports an SSPIConfig to a serialized format.
 func (cfg *Source) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(cfg)
 }
 

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -26,7 +27,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"xorm.io/builder"
@@ -703,7 +703,6 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Convert []int64 to string
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	reposParam, _ := json.Marshal(repoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)

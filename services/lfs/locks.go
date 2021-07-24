@@ -12,11 +12,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {
@@ -159,7 +159,7 @@ func PostLockHandler(ctx *context.Context) {
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
@@ -293,7 +293,7 @@ func UnLockHandler(ctx *context.Context) {
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)

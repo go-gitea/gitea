@@ -8,10 +8,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // .____     ________      _____ __________
@@ -79,7 +78,6 @@ func (source *Source) ToDB() ([]byte, error) {
 		return nil, err
 	}
 	source.BindPassword = ""
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(source)
 }
 
