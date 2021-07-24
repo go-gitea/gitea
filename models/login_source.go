@@ -329,6 +329,10 @@ func UpdateSource(source *LoginSource) error {
 		return nil
 	}
 
+	if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+		settable.SetLoginSource(source)
+	}
+
 	registerableSource, ok := source.Cfg.(RegisterableSource)
 	if !ok {
 		return nil
