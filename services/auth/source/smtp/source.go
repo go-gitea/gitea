@@ -6,8 +6,7 @@ package smtp
 
 import (
 	"code.gitea.io/gitea/models"
-
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 //   _________   __________________________
@@ -37,7 +36,6 @@ func (source *Source) FromDB(bs []byte) error {
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(source)
 }
 
