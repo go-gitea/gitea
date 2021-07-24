@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/notification/action"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/notification"
+	"code.gitea.io/gitea/pkgs/notification/action"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"github.com/stretchr/testify/assert"
 )

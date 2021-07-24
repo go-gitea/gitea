@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/highlight"
+	"code.gitea.io/gitea/pkgs/templates"
+	"code.gitea.io/gitea/pkgs/timeutil"
 )
 
 const (

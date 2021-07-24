@@ -6,11 +6,11 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/httpcache"
+	"code.gitea.io/gitea/pkgs/lfs"
+	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/routers/common"
 )
 

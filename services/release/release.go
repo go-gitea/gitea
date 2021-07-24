@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/notification"
+	"code.gitea.io/gitea/pkgs/repository"
+	"code.gitea.io/gitea/pkgs/storage"
+	"code.gitea.io/gitea/pkgs/timeutil"
 )
 
 func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, error) {

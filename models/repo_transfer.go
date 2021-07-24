@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/timeutil"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 // RepoTransfer is used to manage repository transfers

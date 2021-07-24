@@ -10,10 +10,10 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/timeutil"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 // PullRequestType defines pull request type

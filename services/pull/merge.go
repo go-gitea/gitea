@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/cache"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/notification"
+	"code.gitea.io/gitea/pkgs/references"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/timeutil"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 

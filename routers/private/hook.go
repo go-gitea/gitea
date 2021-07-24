@@ -15,14 +15,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
+	gitea_context "code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/private"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/util"
+	"code.gitea.io/gitea/pkgs/web"
 	"code.gitea.io/gitea/services/agit"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -485,7 +485,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	repoName := ctx.Params(":repo")
 
 	var repo *models.Repository
-	updates := make([]*repo_module.PushUpdateOptions, 0, len(opts.OldCommitIDs))
+	updates := make([]*repo_pkg.PushUpdateOptions, 0, len(opts.OldCommitIDs))
 	wasEmpty := false
 
 	for i := range opts.OldCommitIDs {
@@ -512,7 +512,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repo_module.PushUpdateOptions{
+			option := repo_pkg.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],

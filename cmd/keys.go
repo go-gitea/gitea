@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/pkgs/private"
 
 	"github.com/urfave/cli"
 )

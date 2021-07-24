@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/pkgs/notification"
+	"code.gitea.io/gitea/pkgs/sync"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository

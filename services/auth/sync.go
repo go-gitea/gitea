@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // SyncExternalUsers is used to synchronize users with external authorization source

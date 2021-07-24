@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/routers"
 
 	"gitea.com/go-chi/session"

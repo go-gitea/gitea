@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 //  _____          __  .__                 .__                  .___

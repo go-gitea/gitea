@@ -5,8 +5,8 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/openidConnect"

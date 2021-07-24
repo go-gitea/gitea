@@ -6,7 +6,7 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/pkgs/notification"
 )
 
 // ChangeContent changes issue content, as the given user.

@@ -9,12 +9,12 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/httpcache"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/storage"
+	"code.gitea.io/gitea/pkgs/upload"
 	"code.gitea.io/gitea/routers/common"
 )
 

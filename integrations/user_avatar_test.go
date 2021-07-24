@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/pkgs/avatar"
 	"github.com/stretchr/testify/assert"
 )
 

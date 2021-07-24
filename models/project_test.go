@@ -7,7 +7,7 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )

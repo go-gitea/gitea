@@ -6,8 +6,8 @@ package mailer
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.

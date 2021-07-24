@@ -11,10 +11,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
 
 	"gitea.com/go-chi/binding"

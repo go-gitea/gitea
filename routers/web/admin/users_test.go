@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/pkgs/setting"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/test"
+	"code.gitea.io/gitea/pkgs/web"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"

@@ -7,13 +7,13 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/json"
-	migration "code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/json"
+	migration "code.gitea.io/gitea/pkgs/migrations/base"
+	"code.gitea.io/gitea/pkgs/secret"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/timeutil"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"xorm.io/builder"
 )

@@ -13,9 +13,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/lfs"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/stretchr/testify/assert"
 )

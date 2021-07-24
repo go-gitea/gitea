@@ -8,10 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	myCtx "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/private"
+	myCtx "code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/migrations"
+	"code.gitea.io/gitea/pkgs/private"
 )
 
 // RestoreRepo restore a repository from data

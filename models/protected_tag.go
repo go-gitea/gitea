@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/timeutil"
 
 	"github.com/gobwas/glob"
 )

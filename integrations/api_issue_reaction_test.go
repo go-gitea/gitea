@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/convert"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/convert"
+	api "code.gitea.io/gitea/pkgs/structs"
 
 	"github.com/stretchr/testify/assert"
 )

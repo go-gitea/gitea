@@ -10,13 +10,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/json"
-	lfs_module "code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/convert"
+	"code.gitea.io/gitea/pkgs/json"
+	lfs_module "code.gitea.io/gitea/pkgs/lfs"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	api "code.gitea.io/gitea/pkgs/structs"
 )
 
 func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {

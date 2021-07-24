@@ -8,9 +8,9 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/log"
+	repo_module "code.gitea.io/gitea/pkgs/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/setting"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/timeutil"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"

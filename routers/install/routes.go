@@ -9,12 +9,12 @@ import (
 	"net/http"
 	"path"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/public"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/templates"
+	"code.gitea.io/gitea/pkgs/web"
+	"code.gitea.io/gitea/pkgs/web/middleware"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/forms"
 

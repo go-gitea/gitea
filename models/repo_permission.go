@@ -7,7 +7,7 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // Permission contains all the permissions related variables to a repository for a user

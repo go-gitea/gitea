@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/convert"
+	"code.gitea.io/gitea/pkgs/json"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/webhook"
 )

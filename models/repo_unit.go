@@ -7,8 +7,8 @@ package models
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/timeutil"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"

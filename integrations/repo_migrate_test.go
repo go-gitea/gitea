@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/structs"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -9,7 +9,7 @@ import (
 	"errors"
 	"io"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 const unmappedColumn = -1

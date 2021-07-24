@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 
 	"github.com/go-ldap/ldap/v3"
 )

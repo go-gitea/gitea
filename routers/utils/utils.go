@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // RemoveUsernameParameterSuffix returns the username parameter without the (fullname) suffix - leaving just the username

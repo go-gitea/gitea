@@ -6,9 +6,9 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/notification"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/notification"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 // NewIssue creates new issue with labels for repository.

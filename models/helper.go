@@ -7,7 +7,7 @@ package models
 import (
 	"encoding/binary"
 
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/pkgs/json"
 )
 
 func keysInt64(m map[int64]struct{}) []int64 {

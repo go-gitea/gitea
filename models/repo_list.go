@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"

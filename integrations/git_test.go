@@ -18,11 +18,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/lfs"
+	"code.gitea.io/gitea/pkgs/setting"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"github.com/stretchr/testify/assert"
 )

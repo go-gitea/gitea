@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/pkgs/queue"
 
 	"github.com/stretchr/testify/assert"
 )

@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/pkgs/lfs"
 
 	"github.com/stretchr/testify/assert"
 )

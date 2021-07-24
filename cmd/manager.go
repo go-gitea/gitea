@@ -10,8 +10,8 @@ import (
 	"os"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/private"
 
 	"github.com/urfave/cli"
 )

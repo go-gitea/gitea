@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/sync"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/log"
+	repo_module "code.gitea.io/gitea/pkgs/repository"
+	"code.gitea.io/gitea/pkgs/sync"
+	"code.gitea.io/gitea/pkgs/util"
 )
 
 var (

@@ -12,10 +12,10 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/avatar"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/pkgs/avatar"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/storage"
 )
 
 // CustomAvatarRelativePath returns user custom avatar relative path.

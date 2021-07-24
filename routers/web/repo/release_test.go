@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/pkgs/test"
+	"code.gitea.io/gitea/pkgs/web"
 	"code.gitea.io/gitea/services/forms"
 )
 

@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/repository"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 

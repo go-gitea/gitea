@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 
 	// Register the sources
 	_ "code.gitea.io/gitea/services/auth/source/db"

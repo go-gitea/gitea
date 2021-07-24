@@ -7,10 +7,10 @@ package install
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/svg"
+	"code.gitea.io/gitea/pkgs/translation"
 	"code.gitea.io/gitea/routers/common"
 )
 

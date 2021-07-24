@@ -8,11 +8,11 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/markup"
+	"code.gitea.io/gitea/pkgs/markup/markdown"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 const (

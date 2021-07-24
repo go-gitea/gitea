@@ -8,10 +8,10 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
-	cfg "code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/notification"
+	repo_module "code.gitea.io/gitea/pkgs/repository"
+	cfg "code.gitea.io/gitea/pkgs/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 

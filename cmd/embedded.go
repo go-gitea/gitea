@@ -14,12 +14,12 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/options"
-	"code.gitea.io/gitea/modules/public"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/options"
+	"code.gitea.io/gitea/pkgs/public"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/templates"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"github.com/gobwas/glob"
 	"github.com/urfave/cli"

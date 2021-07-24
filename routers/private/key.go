@@ -9,9 +9,9 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/private"
+	"code.gitea.io/gitea/pkgs/timeutil"
 )
 
 // UpdatePublicKeyInRepo update public key and deploy key updates

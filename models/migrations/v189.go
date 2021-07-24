@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/pkgs/json"
 
 	"xorm.io/xorm"
 )

@@ -9,8 +9,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/session"
-	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/pkgs/session"
+	"code.gitea.io/gitea/pkgs/web/middleware"
 )
 
 // DataStore represents a data store

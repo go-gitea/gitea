@@ -9,9 +9,9 @@ import (
 	"crypto/subtle"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/timeutil"
+	"code.gitea.io/gitea/pkgs/util"
 
 	gouuid "github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"

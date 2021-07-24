@@ -9,8 +9,8 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // IssueWatch sets issue watching

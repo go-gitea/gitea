@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/pkgs/references"
 
 	"github.com/stretchr/testify/assert"
 )

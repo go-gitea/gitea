@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/pkgs/git"
 
 	"xorm.io/xorm"
 )

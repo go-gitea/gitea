@@ -8,10 +8,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/context"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/context"
+	code_indexer "code.gitea.io/gitea/pkgs/indexer/code"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 const (

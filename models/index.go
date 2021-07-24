@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // ResourceIndex represents a resource index which could be used as issue/release and others

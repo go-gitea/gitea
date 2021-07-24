@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	code_indexer "code.gitea.io/gitea/modules/indexer/code"
-	"code.gitea.io/gitea/modules/setting"
+	code_indexer "code.gitea.io/gitea/pkgs/indexer/code"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/pam"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/auth/pam"
+	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/google/uuid"

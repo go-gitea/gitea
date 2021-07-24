@@ -9,7 +9,7 @@ import (
 	"database/sql/driver"
 	"sync"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/lib/pq"
 	"xorm.io/xorm/dialects"

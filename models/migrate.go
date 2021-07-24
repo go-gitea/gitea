@@ -5,7 +5,7 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/structs"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"

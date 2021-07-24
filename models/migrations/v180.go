@@ -5,8 +5,8 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"

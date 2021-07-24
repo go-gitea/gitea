@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/graceful"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/proxy"
+	"code.gitea.io/gitea/pkgs/setting"
 	"github.com/gobwas/glob"
 )
 

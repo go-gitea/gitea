@@ -26,11 +26,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	gitea_git "code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/external"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	gitea_git "code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/markup"
+	"code.gitea.io/gitea/pkgs/markup/external"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/routers"
 
 	"github.com/go-git/go-git/v5"

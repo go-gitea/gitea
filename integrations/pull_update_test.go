@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/repofiles"
-	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/pkgs/repofiles"
+	repo_module "code.gitea.io/gitea/pkgs/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 

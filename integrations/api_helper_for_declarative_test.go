@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/queue"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/queue"
+	api "code.gitea.io/gitea/pkgs/structs"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/stretchr/testify/assert"

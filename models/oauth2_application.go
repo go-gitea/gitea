@@ -11,9 +11,9 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/secret"
+	"code.gitea.io/gitea/pkgs/timeutil"
+	"code.gitea.io/gitea/pkgs/util"
 
 	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"

@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // Ensure the struct implements the interface.

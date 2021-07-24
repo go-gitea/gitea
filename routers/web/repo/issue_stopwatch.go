@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/pkgs/context"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.

@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repository"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/repository"
+	"code.gitea.io/gitea/pkgs/setting"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/stretchr/testify/assert"

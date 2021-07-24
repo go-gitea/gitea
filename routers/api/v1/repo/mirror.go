@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/pkgs/context"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 

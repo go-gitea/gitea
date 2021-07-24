@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/pkgs/test"
 
 	"github.com/stretchr/testify/assert"
 )

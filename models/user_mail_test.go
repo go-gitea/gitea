@@ -7,7 +7,7 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"github.com/stretchr/testify/assert"
 )

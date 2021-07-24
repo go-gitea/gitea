@@ -13,10 +13,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/lfs"
+	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/routers/web"
 
 	gzipp "github.com/klauspost/compress/gzip"

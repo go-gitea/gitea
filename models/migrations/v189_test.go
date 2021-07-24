@@ -7,7 +7,7 @@ package migrations
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/pkgs/json"
 
 	"github.com/stretchr/testify/assert"
 )

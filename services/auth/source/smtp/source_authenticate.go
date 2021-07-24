@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/services/mailer"
 )
 

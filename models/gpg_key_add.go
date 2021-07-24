@@ -7,7 +7,7 @@ package models
 import (
 	"strings"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 
 	"github.com/keybase/go-crypto/openpgp"
 )

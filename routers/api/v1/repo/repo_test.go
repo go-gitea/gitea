@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/pkgs/context"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/test"
+	"code.gitea.io/gitea/pkgs/web"
 
 	"github.com/stretchr/testify/assert"
 )

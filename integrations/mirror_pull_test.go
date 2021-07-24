@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	migration "code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/pkgs/git"
+	migration "code.gitea.io/gitea/pkgs/migrations/base"
+	"code.gitea.io/gitea/pkgs/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
 

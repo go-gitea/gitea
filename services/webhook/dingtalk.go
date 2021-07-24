@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/json"
-	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/json"
+	api "code.gitea.io/gitea/pkgs/structs"
 
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )

@@ -7,8 +7,8 @@ package utils
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/git"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist

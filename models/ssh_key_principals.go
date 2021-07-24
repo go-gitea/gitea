@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // __________       .__              .__             .__

@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"

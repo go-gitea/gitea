@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // env keys for git hooks need

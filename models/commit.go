@@ -5,7 +5,7 @@
 package models
 
 import (
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/pkgs/git"
 )
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses

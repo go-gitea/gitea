@@ -9,8 +9,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/json"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/stretchr/testify/assert"
 )

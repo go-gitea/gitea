@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/pkgs/context"
 )
 
 // SigningKey returns the public key of the default signing key if it exists

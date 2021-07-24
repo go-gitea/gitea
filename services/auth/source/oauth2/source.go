@@ -6,7 +6,7 @@ package oauth2
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/pkgs/json"
 )
 
 // ________      _____          __  .__     ________

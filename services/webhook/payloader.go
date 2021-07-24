@@ -6,7 +6,7 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
-	api "code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/pkgs/structs"
 )
 
 // PayloadConvertor defines the interface to convert system webhook payload to external payload

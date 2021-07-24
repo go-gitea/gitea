@@ -10,9 +10,9 @@ import (
 	"io"
 	"path"
 
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/storage"
+	"code.gitea.io/gitea/pkgs/timeutil"
 
 	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"

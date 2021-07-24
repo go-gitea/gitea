@@ -5,7 +5,7 @@
 package swagger
 
 import (
-	api "code.gitea.io/gitea/modules/structs"
+	api "code.gitea.io/gitea/pkgs/structs"
 )
 
 // Repository

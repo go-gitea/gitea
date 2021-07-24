@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/private"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/private"
+	"code.gitea.io/gitea/pkgs/setting"
 	"github.com/urfave/cli"
 )
 

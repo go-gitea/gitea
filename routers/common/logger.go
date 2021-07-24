@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // LoggerHandler is a handler that will log the routing to the default gitea log

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 // Sync causes this ldap source to synchronize its users with the db

@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/git"
+	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/services/release"
 
 	"github.com/stretchr/testify/assert"

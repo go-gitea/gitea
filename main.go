@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/cmd"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	// register supported doc types
-	_ "code.gitea.io/gitea/modules/markup/csv"
-	_ "code.gitea.io/gitea/modules/markup/markdown"
-	_ "code.gitea.io/gitea/modules/markup/orgmode"
+	_ "code.gitea.io/gitea/pkgs/markup/csv"
+	_ "code.gitea.io/gitea/pkgs/markup/markdown"
+	_ "code.gitea.io/gitea/pkgs/markup/orgmode"
 
 	"github.com/urfave/cli"
 )

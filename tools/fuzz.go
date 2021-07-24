@@ -10,9 +10,9 @@ import (
 	"bytes"
 	"io"
 
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/markup"
+	"code.gitea.io/gitea/pkgs/markup/markdown"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // Contains fuzzing functions executed by

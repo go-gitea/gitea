@@ -6,7 +6,7 @@ package db
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/setting"
 )
 
 // Authenticate authenticates the provided user against the DB

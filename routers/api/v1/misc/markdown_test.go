@@ -12,12 +12,12 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/pkgs/context"
+	"code.gitea.io/gitea/pkgs/setting"
+	api "code.gitea.io/gitea/pkgs/structs"
+	"code.gitea.io/gitea/pkgs/templates"
+	"code.gitea.io/gitea/pkgs/util"
+	"code.gitea.io/gitea/pkgs/web"
 
 	"github.com/stretchr/testify/assert"
 )

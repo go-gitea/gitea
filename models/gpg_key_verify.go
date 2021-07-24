@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/pkgs/base"
+	"code.gitea.io/gitea/pkgs/log"
 )
 
 //   __________________  ________   ____  __.

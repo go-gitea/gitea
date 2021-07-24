@@ -7,7 +7,7 @@ package models
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/pkgs/structs"
 
 	"github.com/markbates/goth"
 	"xorm.io/builder"

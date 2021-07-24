@@ -20,10 +20,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/modules/generate"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/pkgs/generate"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
+	"code.gitea.io/gitea/pkgs/util"
 
 	"github.com/golang-jwt/jwt"
 	ini "gopkg.in/ini.v1"

@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/pkgs/log"
+	"code.gitea.io/gitea/pkgs/setting"
 
 	"github.com/google/uuid"
 	"github.com/markbates/goth/gothic"
