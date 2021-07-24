@@ -88,11 +88,11 @@ func (m *SigningMethodECDSA) Verify(signingString, signature string, key interfa
 	hasher.Write([]byte(signingString))
 
 	// Verify the signature
-	if verifystatus := ecdsa.Verify(ecdsaKey, hasher.Sum(nil), r, s); verifystatus == true {
+	if verifystatus := ecdsa.Verify(ecdsaKey, hasher.Sum(nil), r, s); verifystatus {
 		return nil
-	} else {
-		return ErrECDSAVerification
 	}
+
+	return ErrECDSAVerification
 }
 
 // Implements the Sign method from SigningMethod
