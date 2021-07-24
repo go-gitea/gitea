@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	csv_module "code.gitea.io/gitea/pkgs/csv"
+	csv_pkg "code.gitea.io/gitea/pkgs/csv"
 	"code.gitea.io/gitea/pkgs/setting"
 	"github.com/stretchr/testify/assert"
 )
@@ -95,14 +95,14 @@ func TestCSVDiff(t *testing.T) {
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
-			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			baseReader, err = csv_pkg.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
 			if err != nil {
 				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
 			}
 		}
 		var headReader *csv.Reader
 		if len(c.head) > 0 {
-			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			headReader, err = csv_pkg.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
 			if err != nil {
 				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
 			}

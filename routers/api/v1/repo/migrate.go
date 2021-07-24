@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/pkgs/migrations"
 	"code.gitea.io/gitea/pkgs/migrations/base"
 	"code.gitea.io/gitea/pkgs/notification"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	api "code.gitea.io/gitea/pkgs/structs"
 	"code.gitea.io/gitea/pkgs/util"
@@ -163,7 +163,7 @@ func Migrate(ctx *context.APIContext) {
 		opts.Releases = false
 	}
 
-	repo, err := repo_module.CreateRepository(ctx.User, repoOwner, models.CreateRepoOptions{
+	repo, err := repo_pkg.CreateRepository(ctx.User, repoOwner, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    form.CloneAddr,

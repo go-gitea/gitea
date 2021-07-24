@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 )
 
@@ -33,7 +33,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.DeleteRepositoryArchives(ctx)
+		return repo_pkg.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -53,7 +53,7 @@ func registerGarbageCollectRepositories() {
 		Args:    setting.Git.GCArgs,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
-		return repo_module.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
+		return repo_pkg.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
 	})
 }
 
@@ -83,7 +83,7 @@ func registerRepositoryUpdateHook() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.SyncRepositoryHooks(ctx)
+		return repo_pkg.SyncRepositoryHooks(ctx)
 	})
 }
 
@@ -93,7 +93,7 @@ func registerReinitMissingRepositories() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.ReinitMissingRepositories(ctx)
+		return repo_pkg.ReinitMissingRepositories(ctx)
 	})
 }
 
@@ -103,7 +103,7 @@ func registerDeleteMissingRepositories() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, user *models.User, _ Config) error {
-		return repo_module.DeleteMissingRepositories(ctx, user)
+		return repo_pkg.DeleteMissingRepositories(ctx, user)
 	})
 }
 

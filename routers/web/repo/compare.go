@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/pkgs/base"
 	"code.gitea.io/gitea/pkgs/charset"
 	"code.gitea.io/gitea/pkgs/context"
-	csv_module "code.gitea.io/gitea/pkgs/csv"
+	csv_pkg "code.gitea.io/gitea/pkgs/csv"
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/setting"
@@ -120,7 +120,7 @@ func setCsvCompareContext(ctx *context.Context) {
 			}
 			defer reader.Close()
 
-			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			return csv_pkg.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
 		}
 
 		baseReader, err := csvReaderFromCommit(baseCommit)
@@ -134,7 +134,7 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
-			errMessage, err := csv_module.FormatError(err, ctx.Locale)
+			errMessage, err := csv_pkg.FormatError(err, ctx.Locale)
 			if err != nil {
 				log.Error("RenderCsvDiff failed: %v", err)
 				return CsvDiffResult{nil, ""}

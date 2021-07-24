@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/context"
 	"code.gitea.io/gitea/pkgs/json"
-	lfs_module "code.gitea.io/gitea/pkgs/lfs"
+	lfs_pkg "code.gitea.io/gitea/pkgs/lfs"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/setting"
 
@@ -41,17 +41,17 @@ type Claims struct {
 }
 
 // DownloadLink builds a URL to download the object.
-func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
+func (rc *requestContext) DownloadLink(p lfs_pkg.Pointer) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid)
 }
 
 // UploadLink builds a URL to upload the object.
-func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
+func (rc *requestContext) UploadLink(p lfs_pkg.Pointer) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid, strconv.FormatInt(p.Size, 10))
 }
 
 // VerifyLink builds a URL for verifying the object.
-func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
+func (rc *requestContext) VerifyLink(p lfs_pkg.Pointer) string {
 	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify")
 }
 
@@ -59,8 +59,8 @@ func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
 func CheckAcceptMediaType(ctx *context.Context) {
 	mediaParts := strings.Split(ctx.Req.Header.Get("Accept"), ";")
 
-	if mediaParts[0] != lfs_module.MediaType {
-		log.Trace("Calling a LFS method without accepting the correct media type: %s", lfs_module.MediaType)
+	if mediaParts[0] != lfs_pkg.MediaType {
+		log.Trace("Calling a LFS method without accepting the correct media type: %s", lfs_pkg.MediaType)
 		writeStatus(ctx, http.StatusUnsupportedMediaType)
 		return
 	}
@@ -69,7 +69,7 @@ func CheckAcceptMediaType(ctx *context.Context) {
 // DownloadHandler gets the content from the content store
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_pkg.Pointer{Oid: ctx.Params("oid")}
 
 	meta := getAuthenticatedMeta(ctx, rc, p, false)
 	if meta == nil {
@@ -104,7 +104,7 @@ func DownloadHandler(ctx *context.Context) {
 		}
 	}
 
-	contentStore := lfs_module.NewContentStore()
+	contentStore := lfs_pkg.NewContentStore()
 	content, err := contentStore.Get(meta.Pointer)
 	if err != nil {
 		writeStatus(ctx, http.StatusNotFound)
@@ -143,7 +143,7 @@ func DownloadHandler(ctx *context.Context) {
 
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
-	var br lfs_module.BatchRequest
+	var br lfs_pkg.BatchRequest
 	if err := decodeJSON(ctx.Req, &br); err != nil {
 		log.Trace("Unable to decode BATCH request vars: Error: %v", err)
 		writeStatus(ctx, http.StatusBadRequest)
@@ -168,13 +168,13 @@ func BatchHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContentStore()
+	contentStore := lfs_pkg.NewContentStore()
 
-	var responseObjects []*lfs_module.ObjectResponse
+	var responseObjects []*lfs_pkg.ObjectResponse
 
 	for _, p := range br.Objects {
 		if !p.IsValid() {
-			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
+			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_pkg.ObjectError{
 				Code:    http.StatusUnprocessableEntity,
 				Message: "Oid or size are invalid",
 			}))
@@ -196,18 +196,18 @@ func BatchHandler(ctx *context.Context) {
 		}
 
 		if meta != nil && p.Size != meta.Size {
-			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_module.ObjectError{
+			responseObjects = append(responseObjects, buildObjectResponse(rc, p, false, false, &lfs_pkg.ObjectError{
 				Code:    http.StatusUnprocessableEntity,
 				Message: fmt.Sprintf("Object %s is not %d bytes", p.Oid, p.Size),
 			}))
 			continue
 		}
 
-		var responseObject *lfs_module.ObjectResponse
+		var responseObject *lfs_pkg.ObjectResponse
 		if isUpload {
-			var err *lfs_module.ObjectError
+			var err *lfs_pkg.ObjectError
 			if !exists && setting.LFS.MaxFileSize > 0 && p.Size > setting.LFS.MaxFileSize {
-				err = &lfs_module.ObjectError{
+				err = &lfs_pkg.ObjectError{
 					Code:    http.StatusUnprocessableEntity,
 					Message: fmt.Sprintf("Size must be less than or equal to %d", setting.LFS.MaxFileSize),
 				}
@@ -226,9 +226,9 @@ func BatchHandler(ctx *context.Context) {
 
 			responseObject = buildObjectResponse(rc, p, false, !exists, err)
 		} else {
-			var err *lfs_module.ObjectError
+			var err *lfs_pkg.ObjectError
 			if !exists || meta == nil {
-				err = &lfs_module.ObjectError{
+				err = &lfs_pkg.ObjectError{
 					Code:    http.StatusNotFound,
 					Message: http.StatusText(http.StatusNotFound),
 				}
@@ -239,9 +239,9 @@ func BatchHandler(ctx *context.Context) {
 		responseObjects = append(responseObjects, responseObject)
 	}
 
-	respobj := &lfs_module.BatchResponse{Objects: responseObjects}
+	respobj := &lfs_pkg.BatchResponse{Objects: responseObjects}
 
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
@@ -253,7 +253,7 @@ func BatchHandler(ctx *context.Context) {
 func UploadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 
-	p := lfs_module.Pointer{Oid: ctx.Params("oid")}
+	p := lfs_pkg.Pointer{Oid: ctx.Params("oid")}
 	var err error
 	if p.Size, err = strconv.ParseInt(ctx.Params("size"), 10, 64); err != nil {
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
@@ -277,7 +277,7 @@ func UploadHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContentStore()
+	contentStore := lfs_pkg.NewContentStore()
 
 	exists, err := contentStore.Exists(p)
 	if err != nil {
@@ -292,7 +292,7 @@ func UploadHandler(ctx *context.Context) {
 
 	defer ctx.Req.Body.Close()
 	if err := contentStore.Put(meta.Pointer, ctx.Req.Body); err != nil {
-		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) {
+		if errors.Is(err, lfs_pkg.ErrSizeMismatch) || errors.Is(err, lfs_pkg.ErrHashMismatch) {
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
@@ -308,7 +308,7 @@ func UploadHandler(ctx *context.Context) {
 
 // VerifyHandler verify oid and its size from the content store
 func VerifyHandler(ctx *context.Context) {
-	var p lfs_module.Pointer
+	var p lfs_pkg.Pointer
 	if err := decodeJSON(ctx.Req, &p); err != nil {
 		writeStatus(ctx, http.StatusUnprocessableEntity)
 		return
@@ -321,7 +321,7 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	contentStore := lfs_module.NewContentStore()
+	contentStore := lfs_pkg.NewContentStore()
 	ok, err := contentStore.Verify(meta.Pointer)
 
 	status := http.StatusOK
@@ -348,7 +348,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	}
 }
 
-func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) *models.LFSMetaObject {
+func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_pkg.Pointer, requireWrite bool) *models.LFSMetaObject {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, "Oid or size are invalid")
@@ -386,12 +386,12 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 	return repository
 }
 
-func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, download, upload bool, err *lfs_module.ObjectError) *lfs_module.ObjectResponse {
-	rep := &lfs_module.ObjectResponse{Pointer: pointer}
+func buildObjectResponse(rc *requestContext, pointer lfs_pkg.Pointer, download, upload bool, err *lfs_pkg.ObjectError) *lfs_pkg.ObjectResponse {
+	rep := &lfs_pkg.ObjectResponse{Pointer: pointer}
 	if err != nil {
 		rep.Error = err
 	} else {
-		rep.Actions = make(map[string]*lfs_module.Link)
+		rep.Actions = make(map[string]*lfs_pkg.Link)
 
 		header := make(map[string]string)
 
@@ -400,10 +400,10 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 		}
 
 		if download {
-			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			rep.Actions["download"] = &lfs_pkg.Link{Href: rc.DownloadLink(pointer), Header: header}
 		}
 		if upload {
-			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
+			rep.Actions["upload"] = &lfs_pkg.Link{Href: rc.UploadLink(pointer), Header: header}
 
 			verifyHeader := make(map[string]string)
 			for key, value := range header {
@@ -411,9 +411,9 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			}
 
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
-			verifyHeader["Accept"] = lfs_module.MediaType
+			verifyHeader["Accept"] = lfs_pkg.MediaType
 
-			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
+			rep.Actions["verify"] = &lfs_pkg.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
 		}
 	}
 	return rep
@@ -424,10 +424,10 @@ func writeStatus(ctx *context.Context, status int) {
 }
 
 func writeStatusMessage(ctx *context.Context, status int, message string) {
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 	ctx.Resp.WriteHeader(status)
 
-	er := lfs_module.ErrorResponse{Message: message}
+	er := lfs_pkg.ErrorResponse{Message: message}
 
 	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(er); err != nil {

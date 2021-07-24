@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/pkgs/notification"
 	"code.gitea.io/gitea/pkgs/queue"
 	"code.gitea.io/gitea/pkgs/repofiles"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -27,7 +27,7 @@ var pushQueue queue.Queue
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
 	for _, datum := range data {
-		opts := datum.([]*repo_module.PushUpdateOptions)
+		opts := datum.([]*repo_pkg.PushUpdateOptions)
 		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
@@ -35,7 +35,7 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_pkg.PushUpdateOptions{}).(queue.Queue)
 	if pushQueue == nil {
 		return fmt.Errorf("Unable to create push_update Queue")
 	}
@@ -45,12 +45,12 @@ func initPushQueue() error {
 }
 
 // PushUpdate is an alias of PushUpdates for single push update options
-func PushUpdate(opts *repo_module.PushUpdateOptions) error {
-	return PushUpdates([]*repo_module.PushUpdateOptions{opts})
+func PushUpdate(opts *repo_pkg.PushUpdateOptions) error {
+	return PushUpdates([]*repo_pkg.PushUpdateOptions{opts})
 }
 
 // PushUpdates adds a push update to push queue
-func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
+func PushUpdates(opts []*repo_pkg.PushUpdateOptions) error {
 	if len(opts) == 0 {
 		return nil
 	}
@@ -65,7 +65,7 @@ func PushUpdates(opts []*repo_module.PushUpdateOptions) error {
 }
 
 // pushUpdates generates push action history feeds for push updating multiple refs
-func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
+func pushUpdates(optsList []*repo_pkg.PushUpdateOptions) error {
 	if len(optsList) == 0 {
 		return nil
 	}
@@ -105,22 +105,22 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			if opts.IsDelRef() {
 				notification.NotifyPushCommits(
 					pusher, repo,
-					&repo_module.PushUpdateOptions{
+					&repo_pkg.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: opts.OldCommitID,
 						NewCommitID: git.EmptySHA,
-					}, repo_module.NewPushCommits())
+					}, repo_pkg.NewPushCommits())
 
 				delTags = append(delTags, tagName)
 				notification.NotifyDeleteRef(pusher, repo, "tag", opts.RefFullName)
 			} else { // is new tag
 				notification.NotifyPushCommits(
 					pusher, repo,
-					&repo_module.PushUpdateOptions{
+					&repo_pkg.PushUpdateOptions{
 						RefFullName: git.TagPrefix + tagName,
 						OldCommitID: git.EmptySHA,
 						NewCommitID: opts.NewCommitID,
-					}, repo_module.NewPushCommits())
+					}, repo_pkg.NewPushCommits())
 
 				addTags = append(addTags, tagName)
 				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
@@ -175,7 +175,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(opts)
+					isForce, err := repo_pkg.IsForcePush(opts)
 					if err != nil {
 						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
@@ -190,8 +190,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				commits := repo_module.GitToPushCommits(l)
-				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+				commits := repo_pkg.GitToPushCommits(l)
+				commits.HeadCommit = repo_pkg.CommitToPushCommit(newCommit)
 
 				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
 					log.Error("updateIssuesCommit: %v", err)
@@ -208,8 +208,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				// Cache for big repository
-				if err := repo_module.CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
-					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
+				if err := repo_pkg.CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
+					log.Error("repo_pkg.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
 				notification.NotifyDeleteRef(pusher, repo, "branch", opts.RefFullName)
@@ -227,7 +227,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			log.Trace("Non-tag and non-branch commits pushed.")
 		}
 	}
-	if err := repo_module.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
+	if err := repo_pkg.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
 		return fmt.Errorf("PushUpdateAddDeleteTags: %v", err)
 	}
 

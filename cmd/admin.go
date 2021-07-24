@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/pkgs/graceful"
 	"code.gitea.io/gitea/pkgs/log"
 	pwd "code.gitea.io/gitea/pkgs/password"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/storage"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -552,7 +552,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			if err = repo_pkg.SyncReleasesWithTags(repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue
@@ -587,7 +587,7 @@ func runRegenerateHooks(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
-	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
+	return repo_pkg.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(_ *cli.Context) error {

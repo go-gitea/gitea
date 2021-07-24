@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/lfs"
 	"code.gitea.io/gitea/pkgs/log"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/structs"
 
@@ -131,7 +131,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := repo_pkg.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -139,7 +139,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
+		existingBranch, err := repo_pkg.GetBranch(repo, opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,

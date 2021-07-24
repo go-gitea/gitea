@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/log"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -52,7 +52,7 @@ func DeleteBranch(doer *models.User, repo *models.Repository, gitRepo *git.Repos
 
 	// Don't return error below this
 	if err := PushUpdate(
-		&repo_module.PushUpdateOptions{
+		&repo_pkg.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + branchName,
 			OldCommitID:  commit.ID.String(),
 			NewCommitID:  git.EmptySHA,

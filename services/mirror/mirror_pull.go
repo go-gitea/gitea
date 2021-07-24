@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/pkgs/lfs"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/notification"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/timeutil"
 	"code.gitea.io/gitea/pkgs/util"
@@ -42,7 +42,7 @@ func UpdateAddress(m *models.Mirror, addr string) error {
 
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
-		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		wikiRemotePath := repo_pkg.WikiRemoteURL(addr)
 		// Remove old remote of wiki
 		_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
@@ -189,14 +189,14 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
-	if err = repo_module.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
+	if err = repo_pkg.SyncReleasesWithTags(m.Repo, gitRepo); err != nil {
 		log.Error("Failed to synchronize tags to releases for repository: %v", err)
 	}
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 		ep := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep, false); err != nil {
+		if err = repo_pkg.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep, false); err != nil {
 			log.Error("Failed to synchronize LFS objects for repository: %v", err)
 		}
 	}
@@ -240,7 +240,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := repo_module.GetBranches(m.Repo, 0, 0)
+	branches, _, err := repo_pkg.GetBranches(m.Repo, 0, 0)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		return nil, false
@@ -322,11 +322,11 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				log.Error("gitRepo.GetRefCommitID [repo_id: %d, ref_name: %s]: %v", m.RepoID, result.refName, err)
 				continue
 			}
-			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+			notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_pkg.PushUpdateOptions{
 				RefFullName: result.refName,
 				OldCommitID: git.EmptySHA,
 				NewCommitID: commitID,
-			}, repo_module.NewPushCommits())
+			}, repo_pkg.NewPushCommits())
 			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
 			continue
 		}
@@ -354,14 +354,14 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 			continue
 		}
 
-		theCommits := repo_module.GitToPushCommits(commits)
+		theCommits := repo_pkg.GitToPushCommits(commits)
 		if len(theCommits.Commits) > setting.UI.FeedMaxCommitNum {
 			theCommits.Commits = theCommits.Commits[:setting.UI.FeedMaxCommitNum]
 		}
 
 		theCommits.CompareURL = m.Repo.ComposeCompareURL(oldCommitID, newCommitID)
 
-		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_module.PushUpdateOptions{
+		notification.NotifySyncPushCommits(m.Repo.MustOwner(), m.Repo, &repo_pkg.PushUpdateOptions{
 			RefFullName: result.refName,
 			OldCommitID: oldCommitID,
 			NewCommitID: newCommitID,

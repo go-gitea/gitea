@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/pkgs/json"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/repofiles"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/typesniffer"
 	"code.gitea.io/gitea/pkgs/upload"
@@ -613,7 +613,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if oldBranchName != branchName {
-		if _, err := repo_module.GetBranch(ctx.Repo.Repository, branchName); err == nil {
+		if _, err := repo_pkg.GetBranch(ctx.Repo.Repository, branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
@@ -805,7 +805,7 @@ func GetUniquePatchBranchName(ctx *context.Context) string {
 	prefix := ctx.User.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
-		if _, err := repo_module.GetBranch(ctx.Repo.Repository, branchName); err != nil {
+		if _, err := repo_pkg.GetBranch(ctx.Repo.Repository, branchName); err != nil {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
 			}

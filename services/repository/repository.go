@@ -10,14 +10,14 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/notification"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	cfg "code.gitea.io/gitea/pkgs/setting"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 // CreateRepository creates a repository for the user/organization.
 func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
-	repo, err := repo_module.CreateRepository(doer, owner, opts)
+	repo, err := repo_pkg.CreateRepository(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
 		return nil, err
@@ -30,7 +30,7 @@ func CreateRepository(doer, owner *models.User, opts models.CreateRepoOptions) (
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
 func AdoptRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
-	repo, err := repo_module.AdoptRepository(doer, owner, opts)
+	repo, err := repo_pkg.AdoptRepository(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in AdoptRepository...
 		return nil, err
@@ -43,12 +43,12 @@ func AdoptRepository(doer, owner *models.User, opts models.CreateRepoOptions) (*
 
 // DeleteUnadoptedRepository adopts pre-existing repository files for the user/organization.
 func DeleteUnadoptedRepository(doer, owner *models.User, name string) error {
-	return repo_module.DeleteUnadoptedRepository(doer, owner, name)
+	return repo_pkg.DeleteUnadoptedRepository(doer, owner, name)
 }
 
 // ForkRepository forks a repository
 func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
-	repo, err := repo_module.ForkRepository(doer, u, oldRepo, name, desc)
+	repo, err := repo_pkg.ForkRepository(doer, u, oldRepo, name, desc)
 	if err != nil {
 		return nil, err
 	}

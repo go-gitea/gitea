@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/repofiles"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/util"
 	"code.gitea.io/gitea/pkgs/web"
@@ -139,7 +139,7 @@ func RestoreBranchPost(ctx *context.Context) {
 
 	// Don't return error below this
 	if err := repo_service.PushUpdate(
-		&repo_module.PushUpdateOptions{
+		&repo_pkg.PushUpdateOptions{
 			RefFullName:  git.BranchPrefix + deletedBranch.Name,
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
@@ -163,14 +163,14 @@ func redirect(ctx *context.Context) {
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
 func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
-	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
+	defaultBranch, err := repo_pkg.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		log.Error("loadBranches: get default branch: %v", err)
 		ctx.ServerError("GetDefaultBranch", err)
 		return nil, 0
 	}
 
-	rawBranches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, limit)
+	rawBranches, totalNumOfBranches, err := repo_pkg.GetBranches(ctx.Repo.Repository, skip, limit)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		ctx.ServerError("GetBranches", err)
@@ -349,11 +349,11 @@ func CreateBranch(ctx *context.Context) {
 			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
 		}
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_pkg.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else if ctx.Repo.IsViewTag {
-		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_pkg.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	} else {
-		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_pkg.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {

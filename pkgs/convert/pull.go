@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/log"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	api "code.gitea.io/gitea/pkgs/structs"
 )
 
@@ -77,7 +77,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		},
 	}
 
-	baseBranch, err = repo_module.GetBranch(pr.BaseRepo, pr.BaseBranch)
+	baseBranch, err = repo_pkg.GetBranch(pr.BaseRepo, pr.BaseBranch)
 	if err != nil && !git.IsErrBranchNotExist(err) {
 		log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil

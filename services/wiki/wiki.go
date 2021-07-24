@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/git"
 	"code.gitea.io/gitea/pkgs/log"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/sync"
 	"code.gitea.io/gitea/pkgs/util"
 )
@@ -73,7 +73,7 @@ func InitWiki(repo *models.Repository) error {
 
 	if err := git.InitRepository(repo.WikiPath(), true); err != nil {
 		return fmt.Errorf("InitRepository: %v", err)
-	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
+	} else if err = repo_pkg.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
 	} else if _, err = git.NewCommand("symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)

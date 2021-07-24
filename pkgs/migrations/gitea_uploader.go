@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/migrations/base"
 	"code.gitea.io/gitea/pkgs/repository"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	"code.gitea.io/gitea/pkgs/storage"
 	"code.gitea.io/gitea/pkgs/structs"
@@ -93,7 +93,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 
 	var r *models.Repository
 	if opts.MigrateToRepoID <= 0 {
-		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
+		r, err = repo_pkg.CreateRepository(g.doer, owner, models.CreateRepoOptions{
 			Name:           g.repoName,
 			Description:    repo.Description,
 			OriginalURL:    repo.OriginalURL,

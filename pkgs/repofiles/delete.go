@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/git"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	api "code.gitea.io/gitea/pkgs/structs"
 )
 
@@ -39,7 +39,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := repo_pkg.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +47,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
+		newBranch, err := repo_pkg.GetBranch(repo, opts.NewBranch)
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}

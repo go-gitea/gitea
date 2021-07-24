@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/repofiles"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -60,7 +60,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NoError(t, err)
 	assert.NotEmpty(t, baseRepo)
 
-	headRepo, err := repo_module.ForkRepository(actor, forkOrg, baseRepo, "repo-pr-update", "desc")
+	headRepo, err := repo_pkg.ForkRepository(actor, forkOrg, baseRepo, "repo-pr-update", "desc")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, headRepo)
 

@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/pkgs/git"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	"code.gitea.io/gitea/pkgs/setting"
 	api "code.gitea.io/gitea/pkgs/structs"
 
@@ -71,7 +71,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err := repo_module.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
+	err := repo_pkg.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 	// Get the commit ID of the default branch
 	gitRepo, err := git.OpenRepository(repo1.RepoPath())

@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/pkgs/context"
 	"code.gitea.io/gitea/pkgs/convert"
 	"code.gitea.io/gitea/pkgs/git"
-	repo_module "code.gitea.io/gitea/pkgs/repository"
+	repo_pkg "code.gitea.io/gitea/pkgs/repository"
 	api "code.gitea.io/gitea/pkgs/structs"
 	"code.gitea.io/gitea/pkgs/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -53,7 +53,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
+	branch, err := repo_pkg.GetBranch(ctx.Repo.Repository, branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -176,7 +176,7 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err := repo_pkg.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
@@ -198,7 +198,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, opt.BranchName)
+	branch, err := repo_pkg.GetBranch(ctx.Repo.Repository, opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
@@ -257,7 +257,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
+	branches, totalNumOfBranches, err := repo_pkg.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return

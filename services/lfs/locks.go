@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/pkgs/context"
 	"code.gitea.io/gitea/pkgs/convert"
 	"code.gitea.io/gitea/pkgs/json"
-	lfs_module "code.gitea.io/gitea/pkgs/lfs"
+	lfs_pkg "code.gitea.io/gitea/pkgs/lfs"
 	"code.gitea.io/gitea/pkgs/log"
 	"code.gitea.io/gitea/pkgs/setting"
 	api "code.gitea.io/gitea/pkgs/structs"
@@ -66,7 +66,7 @@ func GetListLockHandler(ctx *context.Context) {
 		})
 		return
 	}
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 
 	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
@@ -154,7 +154,7 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
@@ -222,7 +222,7 @@ func VerifyLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 
 	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
@@ -288,7 +288,7 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
+	ctx.Resp.Header().Set("Content-Type", lfs_pkg.MediaType)
 
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
