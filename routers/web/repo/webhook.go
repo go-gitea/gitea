@@ -6,12 +6,13 @@
 package repo
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"path"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"

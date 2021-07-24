@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/tls"
 
-	"encoding/json"
 	"encoding/xml"
 	"io"
 	"io/ioutil"
@@ -25,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 var defaultSetting = Settings{false, "GiteaServer", 60 * time.Second, 60 * time.Second, nil, nil, nil, false}

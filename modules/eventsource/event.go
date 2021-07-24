@@ -6,7 +6,8 @@ package eventsource
 
 import (
 	"bytes"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"io"

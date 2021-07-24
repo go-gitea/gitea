@@ -121,3 +121,22 @@ func NewDecoder(reader io.Reader) Decoder {
 func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
 	return DefaultJSONHandler.Indent(dst, src, prefix, indent)
 }
+
+// MarshalIndent copied from encoding/json
+func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+	b, err := Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var buf bytes.Buffer
+	err = Indent(&buf, b, prefix, indent)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// Valid proxy to json.Valid
+func Valid(data []byte) bool {
+	return json.Valid(data)
+}

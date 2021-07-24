@@ -9,7 +9,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"html"

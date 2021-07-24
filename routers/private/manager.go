@@ -5,9 +5,10 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"

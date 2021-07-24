@@ -5,11 +5,12 @@
 package integrations
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"

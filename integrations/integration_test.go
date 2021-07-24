@@ -8,7 +8,8 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"hash"

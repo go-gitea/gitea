@@ -5,8 +5,9 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/json"
 
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/secret"

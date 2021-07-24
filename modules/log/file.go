@@ -7,7 +7,8 @@ package log
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"errors"
 	"fmt"

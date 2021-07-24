@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"encoding/json"
 	"fmt"
 	golog "log"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/log"
 

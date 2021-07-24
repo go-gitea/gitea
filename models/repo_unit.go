@@ -5,8 +5,9 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/timeutil"
 

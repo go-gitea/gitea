@@ -5,8 +5,9 @@
 package structs
 
 import (
-	"encoding/json"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // User represents a user

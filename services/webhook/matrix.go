@@ -6,7 +6,8 @@ package webhook
 
 import (
 	"crypto/sha1"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"errors"
 	"fmt"

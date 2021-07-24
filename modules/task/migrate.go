@@ -6,7 +6,8 @@ package task
 
 import (
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"errors"
 	"fmt"

@@ -6,7 +6,8 @@ package migrations
 
 import (
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"os"

@@ -6,7 +6,8 @@ package models
 
 import (
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"testing"
 	"time"

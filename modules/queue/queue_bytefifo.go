@@ -6,7 +6,8 @@ package queue
 
 import (
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"sync"

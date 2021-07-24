@@ -7,7 +7,8 @@ package code
 import (
 	"bufio"
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"io"

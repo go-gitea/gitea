@@ -5,9 +5,10 @@
 package events
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

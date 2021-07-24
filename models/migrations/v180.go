@@ -5,7 +5,7 @@
 package migrations
 
 import (
-	"encoding/json"
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/util"
 

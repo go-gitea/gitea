@@ -5,10 +5,11 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

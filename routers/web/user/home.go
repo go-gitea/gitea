@@ -7,7 +7,8 @@ package user
 
 import (
 	"bytes"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"net/http"

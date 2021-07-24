@@ -5,10 +5,11 @@
 package private
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

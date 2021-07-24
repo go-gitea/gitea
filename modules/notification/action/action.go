@@ -5,10 +5,11 @@
 package action
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"

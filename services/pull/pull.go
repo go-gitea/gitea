@@ -8,7 +8,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"regexp"

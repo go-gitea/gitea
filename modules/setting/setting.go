@@ -7,7 +7,8 @@ package setting
 
 import (
 	"encoding/base64"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"io"

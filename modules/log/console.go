@@ -6,10 +6,11 @@
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // CanColorStdout reports if we can color the Stdout

@@ -5,9 +5,10 @@
 package queue
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"

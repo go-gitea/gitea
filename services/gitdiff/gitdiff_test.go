@@ -6,12 +6,13 @@
 package gitdiff
 
 import (
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"strconv"
 	"strings"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/highlight"

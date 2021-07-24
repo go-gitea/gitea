@@ -6,7 +6,8 @@ package private
 
 import (
 	"context"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"io/ioutil"

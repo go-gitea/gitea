@@ -5,10 +5,11 @@
 package cache
 
 import (
-	"encoding/json"
 	"strconv"
 	"sync"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 
 	mc "gitea.com/go-chi/cache"
 	lru "github.com/hashicorp/golang-lru"

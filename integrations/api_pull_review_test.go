@@ -5,10 +5,11 @@
 package integrations
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"

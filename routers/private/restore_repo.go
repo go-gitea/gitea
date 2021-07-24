@@ -5,9 +5,10 @@
 package private
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
+
+	"code.gitea.io/gitea/modules/json"
 
 	myCtx "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/migrations"

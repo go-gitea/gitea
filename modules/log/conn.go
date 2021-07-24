@@ -6,10 +6,11 @@
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 type connWriter struct {

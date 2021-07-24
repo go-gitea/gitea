@@ -5,8 +5,9 @@
 package task
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"

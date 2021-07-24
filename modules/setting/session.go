@@ -5,11 +5,12 @@
 package setting
 
 import (
-	"encoding/json"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/modules/log"
 )

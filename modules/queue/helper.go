@@ -5,8 +5,9 @@
 package queue
 
 import (
-	"encoding/json"
 	"reflect"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 // Mappable represents an interface that can MapTo another interface

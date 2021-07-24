@@ -6,10 +6,11 @@
 package structs
 
 import (
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 var (

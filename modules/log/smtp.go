@@ -6,10 +6,11 @@
 package log
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/smtp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 type smtpWriter struct {

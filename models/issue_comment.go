@@ -8,7 +8,8 @@ package models
 
 import (
 	"container/list"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"fmt"
 	"regexp"

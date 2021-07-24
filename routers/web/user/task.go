@@ -5,8 +5,9 @@
 package user
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"

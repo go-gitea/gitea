@@ -6,7 +6,8 @@ package integrations
 
 import (
 	"bytes"
-	"encoding/json"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"io/ioutil"
 	"testing"
