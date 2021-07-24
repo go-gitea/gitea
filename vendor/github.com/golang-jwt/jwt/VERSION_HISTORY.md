@@ -1,5 +1,11 @@
 ## `jwt-go` Version History
 
+#### 3.2.1
+
+* **Import Path Change**: See MIGRATION_GUIDE.md for tips on updating your code
+	* Changed the import path from `github.com/dgrijalva/jwt-go` to `github.com/golang-jwt/jwt`
+* Fixed type confusing issue between `string` and `[]string` in `VerifyAudience` ([#12](https://github.com/golang-jwt/jwt/pull/12)). This fixes CVE-2020-26160 
+
 #### 3.2.0
 
 * Added method `ParseUnverified` to allow users to split up the tasks of parsing and validation
