@@ -33,7 +33,6 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -50,7 +49,7 @@ type Render interface {
 type Context struct {
 	*BaseContext
 	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
-	Render Render
+	Render   Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
@@ -315,16 +314,6 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 	ctx.Resp.Header().Set("Pragma", "public")
 	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
-}
-
-// PlainText render content as plain text, this will override basecontext's method
-// because we need a beautiful failed page
-func (ctx *Context) PlainText(status int, bs []byte) {
-	ctx.Resp.WriteHeader(status)
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
-	if _, err := ctx.Resp.Write(bs); err != nil {
-		ctx.ServerError("Write bytes failed", err)
-	}
 }
 
 // ServeStream serves file via io stream
