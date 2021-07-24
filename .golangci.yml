@@ -51,7 +51,7 @@ issues:
     - linters:
         - gocritic
       text: "`ID' should not be capitalized"
-    - path: modules/templates/helper.go
+    - path: pkgs/templates/helper.go
       linters:
         - gocritic
     - linters:
@@ -67,7 +67,7 @@ issues:
     - path: models/migrations/
       linters:
         - errcheck
-    - path: modules/log/
+    - path: pkgs/log/
       linters:
         - errcheck
     - path: routers/api/v1/repo/issue_subscription.go
@@ -82,7 +82,7 @@ issues:
     - linters:
         - staticcheck
       text: "argument x is overwritten before first use"
-    - path: modules/httplib/httplib.go
+    - path: pkgs/httplib/httplib.go
       linters:
         - staticcheck
     # Enabling this would require refactoring the methods and how they are called.
@@ -107,7 +107,7 @@ issues:
     - text: "exitAfterDefer:"
       linters:
         - gocritic
-    - path: modules/graceful/manager_windows.go
+    - path: pkgs/graceful/manager_windows.go
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
