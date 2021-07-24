@@ -242,7 +242,6 @@ func FinishMigrateTask(task *Task) error {
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""
-
 	confBytes, err := json.Marshal(conf)
 	if err != nil {
 		return err

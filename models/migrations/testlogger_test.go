@@ -158,7 +158,6 @@ func NewTestLogger() log.LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *TestLogger) Init(config string) error {
-
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return err

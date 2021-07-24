@@ -7,6 +7,7 @@ package lfs
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const batchSize = 20
@@ -68,7 +68,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
 
 	payload := new(bytes.Buffer)
-	err := jsoniter.NewEncoder(payload).Encode(request)
+	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
 		log.Error("Error encoding json: %v", err)
 		return nil, err
@@ -101,7 +101,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	}
 
 	var response BatchResponse
-	err = jsoniter.NewDecoder(res.Body).Decode(&response)
+	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		log.Error("Error decoding json: %v", err)
 		return nil, err

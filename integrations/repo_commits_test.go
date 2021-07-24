@@ -86,7 +86,6 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 }
 
 func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRecorder, state string) {
-
 	var statuses []*api.CommitStatus
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), &statuses))
 	var status api.CombinedStatus
