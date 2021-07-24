@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -57,7 +57,6 @@ type (
 
 // JSONPayload Marshals the MSTeamsPayload to json
 func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err

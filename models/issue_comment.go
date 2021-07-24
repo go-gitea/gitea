@@ -15,13 +15,13 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -654,7 +654,6 @@ func (c *Comment) LoadPushCommits() (err error) {
 
 	var data PushActionContent
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
 		return
@@ -1249,7 +1248,6 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 
 	ops.Issue = pr.Issue
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
