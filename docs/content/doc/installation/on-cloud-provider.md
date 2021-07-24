@@ -35,16 +35,16 @@ you can experiment with running Gitea.
 
 Gitea can found in [Vultr](https://www.vultr.com)'s marketplace.
 
-To deploy Gitea to Vultr, have a look at [the Vultr Marketplace listing](https://www.vultr.com/marketplace/apps/gitea).
+To deploy Gitea to Vultr, have a look at the [Vultr Marketplace](https://www.vultr.com/marketplace/apps/gitea).
 
 ## DigitalOcean
 
 [DigitalOcean](https://www.digitalocean.com) has Gitea as droplet in their marketplace.
 
-To deploy Gitea to DigitalOcean, have a look at [the DigitalOcean Marketplace listing](https://marketplace.digitalocean.com/apps/gitea).
+To deploy Gitea to DigitalOcean, have a look at the [DigitalOcean Marketplace](https://marketplace.digitalocean.com/apps/gitea).
 
 ## Linode
 
 [Linode](https://www.linode.com/) has Gitea as an app in their marketplace.
 
-To deploy Gitea to Linode, have a look at [the Linode Marketplace listing](https://www.linode.com/marketplace/apps/linode/gitea/).
+To deploy Gitea to Linode, have a look at the [Linode Marketplace](https://www.linode.com/marketplace/apps/linode/gitea/).
