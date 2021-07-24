@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"

@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 const (

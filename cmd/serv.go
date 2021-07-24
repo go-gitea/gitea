@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
