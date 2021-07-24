@@ -36,6 +36,11 @@ func (typ LoginType) String() string {
 	return LoginNames[typ]
 }
 
+// String returns the string name of the LoginType
+func (typ LoginType) Int() int {
+	return int(typ)
+}
+
 // LoginNames contains the name of LoginType values.
 var LoginNames = map[LoginType]string{
 	LoginLDAP:   "LDAP (via BindDN)",
@@ -216,6 +221,10 @@ func CreateLoginSource(source *LoginSource) error {
 
 	if !source.IsActive {
 		return nil
+	}
+
+	if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+		settable.SetLoginSource(source)
 	}
 
 	registerableSource, ok := source.Cfg.(RegisterableSource)
