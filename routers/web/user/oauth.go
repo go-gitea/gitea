@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	jsoniter "github.com/json-iterator/go"
 )
 
