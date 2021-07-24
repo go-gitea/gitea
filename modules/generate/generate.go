@@ -12,7 +12,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // GetRandomString generate random string by specify chars.
