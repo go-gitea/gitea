@@ -6,6 +6,7 @@ package util
 
 import "unicode/utf8"
 
+// SplitStringAtByteN splits a string at byte n accounting for rune boundaries. (Combining characters are not accounted for.)
 func SplitStringAtByteN(input string, n int) (left, right string) {
 	if len(input) <= n {
 		left = input
