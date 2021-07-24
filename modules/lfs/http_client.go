@@ -7,13 +7,13 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
