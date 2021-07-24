@@ -46,7 +46,7 @@ will log anything that is logged using the go logger at the INFO level.
 
 ### The "Default" logger
 
-Calls to `log.Info`, `log.Debug`, `log.Error` etc. from the `code.gitea.io/gitea/modules/log` package will log to this logger.
+Calls to `log.Info`, `log.Debug`, `log.Error` etc. from the `code.gitea.io/gitea/pkgs/log` package will log to this logger.
 
 You can configure the outputs of this logger by setting the `MODE`
 value in the `[log]` section of the configuration.
