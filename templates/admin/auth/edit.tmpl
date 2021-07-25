@@ -12,7 +12,7 @@
 				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
 					<label>{{$.i18n.Tr "admin.auths.auth_type"}}</label>
-					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type}}">
+					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
@@ -31,7 +31,7 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .SecurityProtocols}}
-									<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+									<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
 								{{end}}
 							</div>
 						</div>
