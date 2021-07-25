@@ -7,11 +7,13 @@ package oauth2
 import (
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/azuread"
 	"github.com/markbates/goth/providers/bitbucket"
 	"github.com/markbates/goth/providers/discord"
 	"github.com/markbates/goth/providers/dropbox"
 	"github.com/markbates/goth/providers/facebook"
 	"github.com/markbates/goth/providers/google"
+	"github.com/markbates/goth/providers/microsoftonline"
 	"github.com/markbates/goth/providers/twitter"
 	"github.com/markbates/goth/providers/yandex"
 )
@@ -87,5 +89,19 @@ func init() {
 		func(clientKey, secret, callbackURL string, scopes ...string) goth.Provider {
 			return yandex.New(clientKey, secret, callbackURL, scopes...)
 		}))
+
+	RegisterGothProvider(NewSimpleProvider(
+		"azuread", "Azure AD", nil,
+		func(clientID, secret, callbackURL string, scopes ...string) goth.Provider {
+			return azuread.New(clientID, secret, callbackURL, nil, scopes...)
+		},
+	))
+
+	RegisterGothProvider(NewSimpleProvider(
+		"microsoftonline", "Microsoft Online", nil,
+		func(clientID, secret, callbackURL string, scopes ...string) goth.Provider {
+			return microsoftonline.New(clientID, secret, callbackURL, scopes...)
+		},
+	))
 
 }

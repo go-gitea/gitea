@@ -167,6 +167,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 			AuthURL:    form.Oauth2AuthURL,
 			ProfileURL: form.Oauth2ProfileURL,
 			EmailURL:   form.Oauth2EmailURL,
+			Tenant:     form.Oauth2Tenant,
 		}
 	} else {
 		customURLMapping = nil

@@ -2040,13 +2040,13 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      for (const custom of ['token', 'auth', 'profile', 'email']) {
+      for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
-          $(`#oauth2_${custom}_url`).val($(`#${provider}_${custom}_url`).val());
+          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
         }
-        if ($(`#${provider}_${custom}_url`).data('available')) {
-          $(`.oauth2_${custom}_url input`).attr('required', 'required');
-          $(`.oauth2_${custom}_url`).show();
+        if ($(`#${provider}_${custom}`).data('available')) {
+          $(`.oauth2_${custom} input`).attr('required', 'required');
+          $(`.oauth2_${custom}`).show();
         }
       }
     }

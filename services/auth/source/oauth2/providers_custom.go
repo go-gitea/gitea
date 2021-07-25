@@ -7,6 +7,7 @@ package oauth2
 import (
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/providers/azureadv2"
 	"github.com/markbates/goth/providers/gitea"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/gitlab"
@@ -65,6 +66,7 @@ func init() {
 			}
 			return github.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL, custom.TokenURL, custom.ProfileURL, custom.EmailURL, scopes...), nil
 		}))
+
 	RegisterGothProvider(NewCustomProvider(
 		"gitlab", "GitLab", &CustomURLSettings{
 			AuthURL:    availableAttribute(gitlab.AuthURL),
@@ -101,4 +103,15 @@ func init() {
 		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
 			return mastodon.NewCustomisedURL(clientID, secret, callbackURL, custom.AuthURL), nil
 		}))
+
+	RegisterGothProvider(NewCustomProvider(
+		"azureadv2", "Azure AD v2", &CustomURLSettings{
+			Tenant: requiredAttribute("organizations"),
+		},
+		func(clientID, secret, callbackURL string, custom *CustomURLMapping) (goth.Provider, error) {
+			return azureadv2.New(clientID, secret, callbackURL, azureadv2.ProviderOptions{
+				Tenant: azureadv2.TenantType(custom.Tenant),
+			}), nil
+		},
+	))
 }

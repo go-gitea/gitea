@@ -10,6 +10,7 @@ type CustomURLMapping struct {
 	TokenURL   string `json:",omitempty"`
 	ProfileURL string `json:",omitempty"`
 	EmailURL   string `json:",omitempty"`
+	Tenant     string `json:",omitempty"`
 }
 
 // CustomURLSettings describes the urls values and availability to use when customizing OAuth2 provider URLs
@@ -18,6 +19,7 @@ type CustomURLSettings struct {
 	TokenURL   Attribute `json:",omitempty"`
 	ProfileURL Attribute `json:",omitempty"`
 	EmailURL   Attribute `json:",omitempty"`
+	Tenant     Attribute `json:",omitempty"`
 }
 
 // Attribute describes the availability, and required status for a custom url configuration
@@ -40,7 +42,7 @@ func (c *CustomURLSettings) Required() bool {
 	if c == nil {
 		return false
 	}
-	if c.AuthURL.Required || c.EmailURL.Required || c.ProfileURL.Required || c.TokenURL.Required {
+	if c.AuthURL.Required || c.EmailURL.Required || c.ProfileURL.Required || c.TokenURL.Required || c.Tenant.Required {
 		return true
 	}
 	return false
@@ -53,6 +55,7 @@ func (c *CustomURLSettings) OverrideWith(override *CustomURLMapping) *CustomURLM
 		TokenURL:   c.TokenURL.Value,
 		ProfileURL: c.ProfileURL.Value,
 		EmailURL:   c.EmailURL.Value,
+		Tenant:     c.Tenant.Value,
 	}
 	if override != nil {
 		if len(override.AuthURL) > 0 && c.AuthURL.Available {
@@ -66,6 +69,9 @@ func (c *CustomURLSettings) OverrideWith(override *CustomURLMapping) *CustomURLM
 		}
 		if len(override.EmailURL) > 0 && c.EmailURL.Available {
 			custom.EmailURL = override.EmailURL
+		}
+		if len(override.Tenant) > 0 && c.Tenant.Available {
+			custom.Tenant = override.Tenant
 		}
 	}
 	return custom
