@@ -176,10 +176,10 @@
 	{{if .IsNothingToCompare}}
 		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) }}
 			<div class="ui segment">{{.i18n.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
-			<div class="ui info message show-form-container">
+			<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
 				<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
 			</div>
-			<div class="pullrequest-form" style="display: none">
+			<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
 				{{template "repo/issue/new_form" .}}
 			</div>
 		{{else}}
@@ -192,7 +192,7 @@
 			</div>
 		{{else}}
 			{{if and $.IsSigned (not .Repository.IsArchived)}}
-				<div class="ui info message show-form-container">
+				<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
 					<button class="ui button green show-form">{{.i18n.Tr "repo.pulls.new"}}</button>
 				</div>
 			{{else if .Repository.IsArchived}}
@@ -201,7 +201,7 @@
 				</div>
 			{{end}}
 			{{if $.IsSigned}}
-				<div class="pullrequest-form" style="display: none">
+				<div class="pullrequest-form" {{if not .Flash}}style="display: none"{{end}}>
 					{{template "repo/issue/new_form" .}}
 				</div>
 			{{end}}

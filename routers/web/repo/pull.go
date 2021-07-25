@@ -1001,10 +1001,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
+	ctx.Data["IsRepoToolbarCommits"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -1036,6 +1040,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+
+		if len(form.Title) > 255 {
+			var trailer string
+			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
+
+			form.Content = trailer + "\n\n" + form.Content
+		}
+		middleware.AssignForm(form, ctx.Data)
 
 		ctx.HTML(http.StatusOK, tplCompareDiff)
 		return
