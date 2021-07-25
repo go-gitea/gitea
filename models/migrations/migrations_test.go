@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -55,7 +56,7 @@ func TestMain(m *testing.M) {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
 
@@ -218,6 +219,9 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 			oldDefer()
 			if err := x.Close(); err != nil {
 				t.Errorf("error during close: %v", err)
+			}
+			if err := deleteDB(); err != nil {
+				t.Errorf("unable to reset database: %v", err)
 			}
 		}
 	}

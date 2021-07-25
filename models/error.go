@@ -237,6 +237,21 @@ func (err ErrEmailAddressNotExist) Error() string {
 	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
 }
 
+// ErrPrimaryEmailCannotDelete primary email address cannot be deleted
+type ErrPrimaryEmailCannotDelete struct {
+	Email string
+}
+
+// IsErrPrimaryEmailCannotDelete checks if an error is an ErrPrimaryEmailCannotDelete
+func IsErrPrimaryEmailCannotDelete(err error) bool {
+	_, ok := err.(ErrPrimaryEmailCannotDelete)
+	return ok
+}
+
+func (err ErrPrimaryEmailCannotDelete) Error() string {
+	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
+}
+
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string
@@ -436,6 +451,7 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
 type ErrGPGNoEmailFound struct {
 	FailedEmails []string
+	ID           string
 }
 
 // IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
@@ -446,6 +462,22 @@ func IsErrGPGNoEmailFound(err error) bool {
 
 func (err ErrGPGNoEmailFound) Error() string {
 	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
+}
+
+// ErrGPGInvalidTokenSignature represents a "ErrGPGInvalidTokenSignature" kind of error.
+type ErrGPGInvalidTokenSignature struct {
+	Wrapped error
+	ID      string
+}
+
+// IsErrGPGInvalidTokenSignature checks if an error is a ErrGPGInvalidTokenSignature.
+func IsErrGPGInvalidTokenSignature(err error) bool {
+	_, ok := err.(ErrGPGInvalidTokenSignature)
+	return ok
+}
+
+func (err ErrGPGInvalidTokenSignature) Error() string {
+	return "the provided signature does not sign the token with the provided key"
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
@@ -970,6 +1002,21 @@ func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 
+// ErrProtectedTagName represents a "ProtectedTagName" kind of error.
+type ErrProtectedTagName struct {
+	TagName string
+}
+
+// IsErrProtectedTagName checks if an error is a ErrProtectedTagName.
+func IsErrProtectedTagName(err error) bool {
+	_, ok := err.(ErrProtectedTagName)
+	return ok
+}
+
+func (err ErrProtectedTagName) Error() string {
+	return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
+}
+
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
 type ErrRepoFileAlreadyExists struct {
 	Path string
@@ -1084,7 +1131,7 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
-	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
 // ErrWontSign explains the first reason why a commit would not be signed
@@ -1259,7 +1306,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return "a SHA or commmit ID must be proved when updating a file"
+	return "a SHA or commit ID must be proved when updating a file"
 }
 
 //  __      __      ___.   .__                   __

@@ -43,6 +43,9 @@ endif
 ifeq ($(OS), Windows_NT)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+else ifeq ($(OS), Windows)
+	GOFLAGS := -v -buildmode=exe
+	EXECUTABLE ?= gitea.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
@@ -61,8 +64,9 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-ifneq ($(RACE_ENABLED),)
-	GOTESTFLAGS ?= -race
+ifeq ($(RACE_ENABLED),true)
+	GOFLAGS += -race
+	GOTESTFLAGS += -race
 endif
 
 STORED_VERSION_FILE := VERSION
@@ -293,7 +297,7 @@ misspell-check:
 		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
 	fi
 	@echo "Running misspell-check..."
-	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
+	@misspell -error -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
@@ -355,7 +359,7 @@ test: test-frontend test-backend
 
 .PHONY: test-backend
 test-backend:
-	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
@@ -377,7 +381,7 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test -mod=vendor $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
@@ -385,7 +389,7 @@ coverage:
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	@echo "Running unit-test-coverage -tags '$(TEST_TAGS)'..."
+	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor

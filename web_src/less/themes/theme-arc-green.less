@@ -92,15 +92,17 @@
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
   --color-light: #00000028;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
   --color-hover: #ffffff10;
   --color-active: #ffffff16;
   --color-menu: #2e323e;
   --color-card: #2e323e;
   --color-markup-table-row: #ffffff06;
-  --color-markup-code-block: #2a2e3a;
+  --color-markup-code-block: #292d39;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
+  --color-code-sidebar-bg: #2e323e;
   --color-shadow: #00000060;
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
@@ -151,12 +153,6 @@
 
 .feeds .list ul li.private {
   background: #353945;
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: #dbdbdb;
 }
 
 .ui.red.label,
@@ -317,19 +313,6 @@ a.ui.basic.green.label:hover {
   color: var(--color-secondary-dark-6) !important;
 }
 
-.ui.active.button:active,
-.ui.button:active,
-.ui.button:focus,
-.ui.active.button {
-  background-color: #2e3e4e;
-  color: #dbdbdb;
-}
-
-.ui.active.button:hover {
-  background-color: #475e75;
-  color: #dbdbdb;
-}
-
 .repository .navbar .active.item,
 .repository .navbar .active.item:hover {
   border-color: transparent !important;
@@ -447,11 +430,6 @@ td.blob-hunk {
 
 .repository.labels .ui.basic.black.label {
   background-color: #bbbbbb !important;
-}
-
-.lines-commit,
-.blame .lines-num {
-  background: #2e323e !important;
 }
 
 .lines-num {

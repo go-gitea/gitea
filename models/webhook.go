@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/google/uuid"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // HookContentType is the content type of a web hook
@@ -109,6 +109,23 @@ type HookEvent struct {
 	HookEvents `json:"events"`
 }
 
+// HookType is the type of a webhook
+type HookType = string
+
+// Types of webhooks
+const (
+	GITEA      HookType = "gitea"
+	GOGS       HookType = "gogs"
+	SLACK      HookType = "slack"
+	DISCORD    HookType = "discord"
+	DINGTALK   HookType = "dingtalk"
+	TELEGRAM   HookType = "telegram"
+	MSTEAMS    HookType = "msteams"
+	FEISHU     HookType = "feishu"
+	MATRIX     HookType = "matrix"
+	WECHATWORK HookType = "wechatwork"
+)
+
 // HookStatus is the status of a web hook
 type HookStatus int
 
@@ -126,17 +143,15 @@ type Webhook struct {
 	OrgID           int64 `xorm:"INDEX"`
 	IsSystemWebhook bool
 	URL             string `xorm:"url TEXT"`
-	Signature       string `xorm:"TEXT"`
 	HTTPMethod      string `xorm:"http_method"`
 	ContentType     HookContentType
 	Secret          string `xorm:"TEXT"`
 	Events          string `xorm:"TEXT"`
 	*HookEvent      `xorm:"-"`
-	IsSSL           bool         `xorm:"is_ssl"`
-	IsActive        bool         `xorm:"INDEX"`
-	Type            HookTaskType `xorm:"VARCHAR(16) 'type'"`
-	Meta            string       `xorm:"TEXT"` // store hook-specific attributes
-	LastStatus      HookStatus   // Last delivery status
+	IsActive        bool       `xorm:"INDEX"`
+	Type            HookType   `xorm:"VARCHAR(16) 'type'"`
+	Meta            string     `xorm:"TEXT"` // store hook-specific attributes
+	LastStatus      HookStatus // Last delivery status
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -145,8 +160,6 @@ type Webhook struct {
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
@@ -159,7 +172,6 @@ func (w *Webhook) History(page int) ([]*HookTask, error) {
 
 // UpdateEvent handles conversion from HookEvent to Events.
 func (w *Webhook) UpdateEvent() error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(w.HookEvent)
 	w.Events = string(data)
 	return err
@@ -558,22 +570,6 @@ func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
 //  \___|_  / \____/ \____/|__|_ \ |____|  (____  /____  >__|_ \
 //        \/                    \/              \/     \/     \/
 
-// HookTaskType is the type of an hook task
-type HookTaskType = string
-
-// Types of hook tasks
-const (
-	GITEA    HookTaskType = "gitea"
-	GOGS     HookTaskType = "gogs"
-	SLACK    HookTaskType = "slack"
-	DISCORD  HookTaskType = "discord"
-	DINGTALK HookTaskType = "dingtalk"
-	TELEGRAM HookTaskType = "telegram"
-	MSTEAMS  HookTaskType = "msteams"
-	FEISHU   HookTaskType = "feishu"
-	MATRIX   HookTaskType = "matrix"
-)
-
 // HookEventType is the type of an hook event
 type HookEventType string
 
@@ -635,7 +631,9 @@ func (h HookEventType) Event() string {
 
 // HookRequest represents hook task request information.
 type HookRequest struct {
-	Headers map[string]string `json:"headers"`
+	URL        string            `json:"url"`
+	HTTPMethod string            `json:"http_method"`
+	Headers    map[string]string `json:"headers"`
 }
 
 // HookResponse represents hook task response information.
@@ -651,15 +649,9 @@ type HookTask struct {
 	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
-	Typ             HookTaskType `xorm:"VARCHAR(16) index"`
-	URL             string       `xorm:"TEXT"`
-	Signature       string       `xorm:"TEXT"`
 	api.Payloader   `xorm:"-"`
 	PayloadContent  string `xorm:"TEXT"`
-	HTTPMethod      string `xorm:"http_method"`
-	ContentType     HookContentType
 	EventType       HookEventType
-	IsSSL           bool
 	IsDelivered     bool
 	Delivered       int64
 	DeliveredString string `xorm:"-"`
@@ -692,7 +684,6 @@ func (t *HookTask) AfterLoad() {
 	}
 
 	t.RequestInfo = &HookRequest{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
 		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
 	}
@@ -706,7 +697,6 @@ func (t *HookTask) AfterLoad() {
 }
 
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)

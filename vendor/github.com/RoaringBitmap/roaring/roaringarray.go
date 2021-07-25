@@ -17,6 +17,7 @@ type container interface {
 	iand(container) container // i stands for inplace
 	andNot(container) container
 	iandNot(container) container // i stands for inplace
+	isEmpty() bool
 	getCardinality() int
 	// rank returns the number of integers that are
 	// smaller or equal to x. rank(infinity) would be getCardinality().
@@ -47,7 +48,7 @@ type container interface {
 	// any of the implementations.
 	equals(r container) bool
 
-	fillLeastSignificant16bits(array []uint32, i int, mask uint32)
+	fillLeastSignificant16bits(array []uint32, i int, mask uint32) int
 	or(r container) container
 	orCardinality(r container) int
 	isFull() bool
@@ -568,7 +569,7 @@ func (ra *roaringArray) readFrom(stream internal.ByteInput, cookieHeader ...byte
 	var isRunBitmap []byte
 
 	if cookie&0x0000FFFF == serialCookie {
-		size = uint32(uint16(cookie>>16) + 1)
+		size = uint32(cookie>>16 + 1)
 		// create is-run-container bitmap
 		isRunBitmapSize := (int(size) + 7) / 8
 		isRunBitmap, err = stream.Next(isRunBitmapSize)
@@ -645,7 +646,6 @@ func (ra *roaringArray) readFrom(stream internal.ByteInput, cookieHeader ...byte
 
 			nb := runContainer16{
 				iv:   byteSliceAsInterval16Slice(buf),
-				card: int64(card),
 			}
 
 			ra.containers[i] = &nb

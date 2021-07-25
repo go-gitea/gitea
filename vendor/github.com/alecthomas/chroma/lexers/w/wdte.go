@@ -6,12 +6,16 @@ import (
 )
 
 // WDTE lexer.
-var WDTE = internal.Register(MustNewLexer(
+var WDTE = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "WDTE",
 		Filenames: []string{"*.wdte"},
 	},
-	Rules{
+	wdteRules,
+))
+
+func wdteRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -25,5 +29,5 @@ var WDTE = internal.Register(MustNewLexer(
 			{`{|}|;|->|=>|\(|\)|\[|\]|\.`, Operator, nil},
 			{`[^{};()[\].\s]+`, NameVariable, nil},
 		},
-	},
-))
+	}
+}
