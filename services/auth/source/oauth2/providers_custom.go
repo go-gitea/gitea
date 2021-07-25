@@ -6,6 +6,7 @@ package oauth2
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/providers/azureadv2"
 	"github.com/markbates/goth/providers/gitea"
