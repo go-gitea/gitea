@@ -186,6 +186,11 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				}
 
 				break
+			} else if repo.IsEmpty {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "Can't create pull request for an empty repository.",
+				})
+				return
 			} else if !canCreatePullRequest {
 				ctx.JSON(http.StatusForbidden, map[string]interface{}{
 					"err": "User permission denied.",
