@@ -19,6 +19,11 @@ func (s SecurityProtocol) String() string {
 	return SecurityProtocolNames[s]
 }
 
+// Int returns the int value of the SecurityProtocol
+func (s SecurityProtocol) Int() int {
+	return int(s)
+}
+
 // SecurityProtocolNames contains the name of SecurityProtocol values.
 var SecurityProtocolNames = map[SecurityProtocol]string{
 	SecurityProtocolUnencrypted: "Unencrypted",
