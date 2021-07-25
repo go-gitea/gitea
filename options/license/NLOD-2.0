@@ -1,10 +1,10 @@
-Norwegian Licence for Open Government Data (NLOD) 1.0
+Norwegian Licence for Open Government Data (NLOD) 2.0
 
 Preface of licence
 
 This licence grants you the right to copy, use and distribute information, provided you acknowledge the contributors and comply with the terms and conditions stipulated in this licence. By using information made available under this licence, you accept the terms and conditions set forth in this licence. As set out in Section 7, the licensor disclaims any and all liability for the quality of the information and what the information is used for.
 
-This licence shall not impose any limitations on the rights or freedoms of the licensee under the Norwegian Freedom of Information Act or any other legislation granting the general public a right of access to public sector information, or that follow from exemptions or limitations stipulated in the Norwegian Copyright Act. Further, the licence shall not impose any limitations on the licensee's freedom of expression recognized by law.
+This licence shall not impose any limitations on the rights or freedoms of the licensee under the Norwegian Freedom of Information Act or any other legislation granting the general public a right of access to public sector information, or that follow from exemptions or limitations stipulated in the Norwegian Copyright Act. Further, the licence shall not impose any limitations on the licensee’s freedom of expression recognized by law.
 
 1. Definitions
 
@@ -22,7 +22,8 @@ The licensee, subject to the limitations that follow from this licence, may use 
      * copying the information and distributing the information to others,
      * modifying the information and/or combining the information with other information, and
      * copying and distributing such changed or combined information.
-     * This is a non-exclusive, free, perpetual and worldwide licence. The information may be used in any medium and format known today and/or which will become known in the future. The Licensee shall not sub-license or transfer this licence.
+
+This is a non-exclusive, free, perpetual and worldwide licence. The information may be used in any medium and format known today and/or which will become known in the future. The Licensee shall not sub-license or transfer this licence.
 
 3. Exemptions
 The licence does not apply to and therefore does not grant a right to use:
@@ -31,12 +32,12 @@ The licence does not apply to and therefore does not grant a right to use:
      * information distributed in violation of a statutory obligation to observe confidentiality
      * information excluded from public disclosure pursuant to law, including information deemed sensitive under the Norwegian National Security Act
      * information subject to third party rights which the licensor is not authorised to license to the licensee
-     * information protected by intellectual property rights other than copyright and neighbouring rights in accordance with Chapter 5 of the Norwegian Copyright Act, such as trademarks, patents and design rights, but this does not entail an impediment to use information where the licensor's logo has been permanently integrated into the information or to attribute the origin of the information in accordance with the article below relating to attribution.
+     * information protected by intellectual property rights other than copyright and neighbouring rights in accordance with Chapter 5 of the Norwegian Copyright Act, such as trademarks, patents and design rights, but this does not entail an impediment to use information where the licensor’s logo has been permanently integrated into the information or to attribute the origin of the information in accordance with the article below relating to attribution.
 
 If the licensor has made available information not covered by the licence according to the above list, the licensee must cease all use of the information under the licence, and erase the information as soon as he or she becomes aware of or should have understood that the information is not covered by the licence.
 
 4. Effects of breach of the licence
-The licence is subject to the licensee's compliance with the terms and conditions of this licence. In the event that the licensee commits a breach of this licence, this will entail that the licensee's right to use the information will be revoked immediately without further notice. In case of such a breach, the licensee must immediately and without further notice take measures to cause the infringement to end. Because the right to use the information has been terminated, the licensee must cease all use of the information by virtue of the licence.
+The licence is subject to the licensee’s compliance with the terms and conditions of this licence. In the event that the licensee commits a breach of this licence, this will entail that the licensee’s right to use the information will be revoked immediately without further notice. In case of such a breach, the licensee must immediately and without further notice take measures to cause the infringement to end. Because the right to use the information has been terminated, the licensee must cease all use of the information by virtue of the licence.
 
 5. Attribution
 The licensee shall attribute the licensor as specified by the licensor and include a reference to this licence. To the extent practically possible, the licensee shall provide a link to both this licence and the source of the information.
@@ -49,7 +50,7 @@ If the information has been changed, the licensee must clearly indicate that cha
 
 6. Proper use
 The licensee shall not use the information in a manner that appears misleading nor present the information in a distorted or incorrect manner.
-Neither the licensor's nor other contributors' names or trademarks must be used to support, recommend or market the licensee or any products or services using the information.
+Neither the licensor’s nor other contributors' names or trademarks must be used to support, recommend or market the licensee or any products or services using the information.
 
 7. Disclaimer of liability
 The information is licensed «as is». The information may contain errors and omissions. The licensor provides no warranties, including relating to the content and relevance of the information.
@@ -66,14 +67,14 @@ If the licensee is to distribute an adapted or combined work based on informatio
 
 A licence compatible by contract shall mean the following licences:
 
-     * for all information: Open Government Licence (version 1.0),
+     * for all information: Open Government Licence (version 1.0, 2.0 and 3.0), Creative Commons Attribution Licence (international version 4.0 and norwegian version 4.0),
      * for those parts of the information which do not constitute databases: Creative Commons Attribution Licence (generic version 1.0, 2.0, 2.5 and unported version 3.0) and Creative Commons Navngivelse 3.0 Norge,
      * for those parts of the information which constitute databases: Open Data Commons Attribution License (version 1.0).
-
+     
 This provision does not prevent other licences from being compatible with this licence based on their content.
 
 10. New versions of the licence
-The licensee may choose to use the information covered by this licence under any new versions of the Norwegian licence for Open Government data (NLOD) issued by the responsible ministry (currently the Ministry of Government Administration, Reform and Church Affairs) when these versions are final and official, unless the licensor when making the information available under this licence specifically has stated that solely version 1.0 of this licence may be used.
+The licensee may choose to use the information covered by this licence under any new versions of the Norwegian licence for Open Government data (NLOD) issued by the responsible ministry (currently the Ministry of Local Government and Modernisation) when these versions are final and official, unless the licensor when making the information available under this licence specifically has stated that solely version 2.0 of this licence may be used.
 
 11. Governing law and legal venue
-This licence, including its formation, and any disputes and claims arising in connection with or relating to this licence, shall be regulated by Norwegian law. The legal venue shall be the licensor's ordinary legal venue. The licensor may, with regard to intellectual proprietary rights, choose to pursue a claim at other competent legal venues and/or based on the laws of the country where the intellectual property rights are sought enforced.
+This licence, including its formation, and any disputes and claims arising in connection with or relating to this licence, shall be regulated by Norwegian law. The legal venue shall be the licensor’s ordinary legal venue. The licensor may, with regard to intellectual proprietary rights, choose to pursue a claim at other competent legal venues and/or based on the laws of the country where the intellectual property rights are sought enforced.
