@@ -18,13 +18,13 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
 
 	"github.com/go-enry/go-enry/v2"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/olivere/elastic/v7"
 )
 
@@ -321,7 +321,6 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 
 		repoID, fileName := parseIndexerID(hit.Id)
 		var res = make(map[string]interface{})
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(hit.Source, &res); err != nil {
 			return 0, nil, nil, err
 		}

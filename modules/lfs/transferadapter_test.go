@@ -13,7 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,7 +50,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 			assert.Equal(t, MediaType, req.Header.Get("Content-Type"))
 
 			var vp Pointer
-			err := jsoniter.NewDecoder(req.Body).Decode(&vp)
+			err := json.NewDecoder(req.Body).Decode(&vp)
 			assert.NoError(t, err)
 			assert.Equal(t, p.Oid, vp.Oid)
 			assert.Equal(t, p.Size, vp.Size)
@@ -60,7 +61,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 				Message: "Object not found",
 			}
 			payload := new(bytes.Buffer)
-			jsoniter.NewEncoder(payload).Encode(er)
+			json.NewEncoder(payload).Encode(er)
 
 			return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(payload)}
 		} else {

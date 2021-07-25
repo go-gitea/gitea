@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -567,6 +568,18 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
+	if len(title) > 255 {
+		var trailer string
+		title, trailer = util.SplitStringAtByteN(title, 255)
+		if len(trailer) > 0 {
+			if ctx.Data["content"] != nil {
+				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
+			} else {
+				ctx.Data["content"] = trailer + "\n"
+			}
+		}
+	}
+
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name

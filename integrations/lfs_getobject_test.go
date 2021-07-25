@@ -14,11 +14,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web"
 
-	jsoniter "github.com/json-iterator/go"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -206,7 +206,7 @@ func TestGetLFSRange(t *testing.T) {
 				assert.Equal(t, tt.out, resp.Body.String())
 			} else {
 				var er lfs.ErrorResponse
-				err := jsoniter.Unmarshal(resp.Body.Bytes(), &er)
+				err := json.Unmarshal(resp.Body.Bytes(), &er)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.out, er.Message)
 			}

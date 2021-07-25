@@ -882,6 +882,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 ## Markup (`markup`)
 
+- `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)
+
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 
 ```ini
