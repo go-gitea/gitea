@@ -17,6 +17,7 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
+	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -232,6 +233,15 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 
 	if err = syncTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
+	}
+
+	if setting.SuccessfulTokensCacheSize > 0 {
+		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+		if err != nil {
+			return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+		}
+	} else {
+		successfulAccessTokenCache = nil
 	}
 
 	return nil
