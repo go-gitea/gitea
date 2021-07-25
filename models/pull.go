@@ -690,6 +690,10 @@ func (pr *PullRequest) GetBaseBranchHTMLURL() string {
 
 // GetHeadBranchHTMLURL returns the HTML URL of the head branch
 func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+	if pr.Flow == PullRequestFlowAGit {
+		return ""
+	}
+
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return ""
