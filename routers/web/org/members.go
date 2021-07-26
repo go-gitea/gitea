@@ -31,7 +31,7 @@ func Members(ctx *context.Context) {
 		page = 1
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	var opts = &models.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
@@ -54,7 +54,7 @@ func Members(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := models.FindOrgMembers(&opts)
+	members, membersIsPublic, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return

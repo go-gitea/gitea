@@ -5,6 +5,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -18,24 +19,31 @@ import (
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
-	var members []*models.User
-
-	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
 		ListOptions: utils.GetListOptions(ctx),
-	})
+	}
+
+	count, err := models.CountOrgMembers(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	members, _, err := models.FindOrgMembers(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
 	apiMembers := make([]*api.User, len(members))
-	for i, member := range members {
-		apiMembers[i] = convert.ToUser(member, ctx.User)
+	for i := range members {
+		apiMembers[i] = convert.ToUser(members[i], ctx.User)
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 

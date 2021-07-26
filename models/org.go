@@ -87,7 +87,7 @@ type FindOrgMembersOpts struct {
 }
 
 // CountOrgMembers counts the organization's members
-func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
+func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 	sess := x.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
