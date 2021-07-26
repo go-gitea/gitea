@@ -6,6 +6,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -225,12 +226,19 @@ func GetStopwatches(ctx *context.APIContext) {
 		return
 	}
 
+	count, err := models.CountUserStopwatches(ctx.User.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	apiSWs, err := convert.ToStopWatches(sws)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
 		return
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, apiSWs)
 }
