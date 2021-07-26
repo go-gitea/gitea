@@ -45,10 +45,9 @@ func ListTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	org := ctx.Org.Organization
 	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OrgID:       org.ID,
+		OrgID:       ctx.Org.Organization.ID,
 	})
 
 	if err != nil {
