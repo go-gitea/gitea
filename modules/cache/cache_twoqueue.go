@@ -9,9 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
+
 	mc "gitea.com/go-chi/cache"
 	lru "github.com/hashicorp/golang-lru"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // TwoQueueCache represents a LRU 2Q cache adapter implementation
@@ -177,7 +178,6 @@ func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
 		size, err = strconv.Atoi(opts.AdapterConfig)
 	}
 	if err != nil {
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		if !json.Valid([]byte(opts.AdapterConfig)) {
 			return err
 		}
