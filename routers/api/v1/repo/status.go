@@ -268,5 +268,6 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
 	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	//       ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, combiStatus)
 }
