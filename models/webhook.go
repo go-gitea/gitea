@@ -431,6 +431,11 @@ func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
 	return listWebhooksByOpts(x, opts)
 }
 
+// CountWebhooksByOpts count webhooks based on options and ignore pagination
+func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Webhook{})
+}
+
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
 	return getDefaultWebhooks(x)

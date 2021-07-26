@@ -5,6 +5,7 @@
 package org
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -40,21 +41,30 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	org := ctx.Org.Organization
-	orgHooks, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{
+	opts := &models.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
-		OrgID:       org.ID,
-	})
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
-		return
-	}
-	hooks := make([]*api.Hook, len(orgHooks))
-	for i, hook := range orgHooks {
-		hooks[i] = convert.ToHook(org.HomeLink(), hook)
+		OrgID:       ctx.Org.Organization.ID,
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	count, err := models.CountWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	orgHooks, err := models.ListWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks := make([]*api.Hook, len(orgHooks))
+	for i, hook := range orgHooks {
+		hooks[i] = convert.ToHook(ctx.Org.Organization.HomeLink(), hook)
+	}
+
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, hooks)
 }
 
