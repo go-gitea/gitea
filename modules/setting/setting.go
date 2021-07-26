@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
@@ -258,8 +258,8 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
-		CustomEmojis:        []string{`gitea`},
-		CustomEmojisMap:     map[string]string{"gitea": ":gitea:"},
+		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
+		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
@@ -1116,7 +1116,6 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,

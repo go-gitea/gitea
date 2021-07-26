@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -71,9 +72,6 @@ var (
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
 
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
-
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
 	return isLink(link)
@@ -88,12 +86,17 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
-// FIXME: This function is not concurrent safe
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var issueFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
+	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
+	})
 	return issueFullPattern
 }
 
@@ -274,7 +277,7 @@ func RenderDescriptionHTML(
 }
 
 // RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown procesor
+// in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
 	content string,
 ) (string, error) {
@@ -364,7 +367,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 	case html.ElementNode:
 		if node.Data == "img" {
-			for _, attr := range node.Attr {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
@@ -377,6 +380,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			visitText = false

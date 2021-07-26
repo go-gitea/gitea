@@ -5,9 +5,9 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -105,7 +105,6 @@ func removeCredentials(payload string) (string, error) {
 	}
 
 	var opts MigrateOptions
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(payload), &opts)
 	if err != nil {
 		return "", err

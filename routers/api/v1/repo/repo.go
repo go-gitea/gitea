@@ -307,6 +307,120 @@ func Create(ctx *context.APIContext) {
 	CreateUserRepo(ctx, ctx.User, *opt)
 }
 
+// Generate Create a repository using a template
+func Generate(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{template_owner}/{template_repo}/generate repository generateRepo
+	// ---
+	// summary: Create a repository using a template
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: template_owner
+	//   in: path
+	//   description: name of the template repository owner
+	//   type: string
+	//   required: true
+	// - name: template_repo
+	//   in: path
+	//   description: name of the template repository
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/GenerateRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Repository"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: The repository with the same name already exists.
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	form := web.GetForm(ctx).(*api.GenerateRepoOption)
+
+	if !ctx.Repo.Repository.IsTemplate {
+		ctx.Error(http.StatusUnprocessableEntity, "", "this is not a template repo")
+		return
+	}
+
+	if ctx.User.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", "not allowed creating repository for organization")
+		return
+	}
+
+	opts := models.GenerateRepoOptions{
+		Name:        form.Name,
+		Description: form.Description,
+		Private:     form.Private,
+		GitContent:  form.GitContent,
+		Topics:      form.Topics,
+		GitHooks:    form.GitHooks,
+		Webhooks:    form.Webhooks,
+		Avatar:      form.Avatar,
+		IssueLabels: form.Labels,
+	}
+
+	if !opts.IsValid() {
+		ctx.Error(http.StatusUnprocessableEntity, "", "must select at least one template item")
+		return
+	}
+
+	ctxUser := ctx.User
+	var err error
+	if form.Owner != ctxUser.Name {
+		ctxUser, err = models.GetUserByName(form.Owner)
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.JSON(http.StatusNotFound, map[string]interface{}{
+					"error": "request owner `" + form.Owner + "` does not exist",
+				})
+				return
+			}
+
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			return
+		}
+
+		if !ctx.User.IsAdmin && !ctxUser.IsOrganization() {
+			ctx.Error(http.StatusForbidden, "", "Only admin can generate repository for other user.")
+			return
+		}
+
+		if !ctx.User.IsAdmin {
+			canCreate, err := ctxUser.CanCreateOrgRepo(ctx.User.ID)
+			if err != nil {
+				ctx.ServerError("CanCreateOrgRepo", err)
+				return
+			} else if !canCreate {
+				ctx.Error(http.StatusForbidden, "", "Given user is not allowed to create repository in organization.")
+				return
+			}
+		}
+	}
+
+	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, ctx.Repo.Repository, opts)
+	if err != nil {
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
+		} else if models.IsErrNameReserved(err) ||
+			models.IsErrNamePatternNotAllowed(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
+		}
+		return
+	}
+	log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
+
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
+}
+
 // CreateOrgRepoDeprecated create one repository of the organization
 func CreateOrgRepoDeprecated(ctx *context.APIContext) {
 	// swagger:operation POST /org/{org}/repos organization createOrgRepoDeprecated
@@ -511,7 +625,13 @@ func Edit(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToRepo(ctx.Repo.Repository, ctx.Repo.AccessMode))
+	repo, err := models.GetRepositoryByID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToRepo(repo, ctx.Repo.AccessMode))
 }
 
 // updateBasicProperties updates the basic properties of a repo: Name, Description, Website and Visibility
@@ -724,14 +844,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			if err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.PullRequestsConfig{
-					IgnoreWhitespaceConflicts: false,
-					AllowMerge:                true,
-					AllowRebase:               true,
-					AllowRebaseMerge:          true,
-					AllowSquash:               true,
-					AllowManualMerge:          true,
-					AutodetectManualMerge:     false,
-					DefaultMergeStyle:         models.MergeStyleMerge,
+					IgnoreWhitespaceConflicts:     false,
+					AllowMerge:                    true,
+					AllowRebase:                   true,
+					AllowRebaseMerge:              true,
+					AllowSquash:                   true,
+					AllowManualMerge:              true,
+					AutodetectManualMerge:         false,
+					DefaultDeleteBranchAfterMerge: false,
+					DefaultMergeStyle:             models.MergeStyleMerge,
 				}
 			} else {
 				config = unit.PullRequestsConfig()
@@ -757,6 +878,9 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if opts.AutodetectManualMerge != nil {
 				config.AutodetectManualMerge = *opts.AutodetectManualMerge
+			}
+			if opts.DefaultDeleteBranchAfterMerge != nil {
+				config.DefaultDeleteBranchAfterMerge = *opts.DefaultDeleteBranchAfterMerge
 			}
 			if opts.DefaultMergeStyle != nil {
 				config.DefaultMergeStyle = models.MergeStyle(*opts.DefaultMergeStyle)

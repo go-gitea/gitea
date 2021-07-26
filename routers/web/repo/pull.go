@@ -965,6 +965,22 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
+
+	if form.DeleteBranchAfterMerge {
+		var headRepo *git.Repository
+		if ctx.Repo != nil && ctx.Repo.Repository != nil && pr.HeadRepoID == ctx.Repo.Repository.ID && ctx.Repo.GitRepo != nil {
+			headRepo = ctx.Repo.GitRepo
+		} else {
+			headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+			if err != nil {
+				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+				return
+			}
+			defer headRepo.Close()
+		}
+		deleteBranch(ctx, pr, headRepo)
+	}
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 }
 
@@ -985,10 +1001,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
+	ctx.Data["IsRepoToolbarCommits"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -1020,6 +1040,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+
+		if len(form.Title) > 255 {
+			var trailer string
+			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
+
+			form.Content = trailer + "\n\n" + form.Content
+		}
+		middleware.AssignForm(form, ctx.Data)
 
 		ctx.HTML(http.StatusOK, tplCompareDiff)
 		return
@@ -1170,19 +1198,35 @@ func CleanUpPullRequest(ctx *context.Context) {
 
 	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
 
-	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
-		return
-	}
-	defer gitRepo.Close()
+	var gitBaseRepo *git.Repository
 
-	gitBaseRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
-		return
+	// Assume that the base repo is the current context (almost certainly)
+	if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.BaseRepoID && ctx.Repo.GitRepo != nil {
+		gitBaseRepo = ctx.Repo.GitRepo
+	} else {
+		// If not just open it
+		gitBaseRepo, err = git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.BaseRepo.RepoPath()), err)
+			return
+		}
+		defer gitBaseRepo.Close()
 	}
-	defer gitBaseRepo.Close()
+
+	// Now assume that the head repo is the same as the base repo (reasonable chance)
+	gitRepo := gitBaseRepo
+	// But if not: is it the same as the context?
+	if pr.BaseRepoID != pr.HeadRepoID && ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
+		gitRepo = ctx.Repo.GitRepo
+	} else if pr.BaseRepoID != pr.HeadRepoID {
+		// Otherwise just load it up
+		gitRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+		if err != nil {
+			ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+			return
+		}
+		defer gitRepo.Close()
+	}
 
 	defer func() {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -1208,6 +1252,11 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
+	deleteBranch(ctx, pr, gitRepo)
+}
+
+func deleteBranch(ctx *context.Context, pr *models.PullRequest, gitRepo *git.Repository) {
+	fullBranchName := pr.HeadRepo.Owner.Name + "/" + pr.HeadBranch
 	if err := repo_service.DeleteBranch(ctx.User, pr.HeadRepo, gitRepo, pr.HeadBranch); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
@@ -1223,7 +1272,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, issue.ID, pr.HeadBranch); err != nil {
+	if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, pr.IssueID, pr.HeadBranch); err != nil {
 		// Do not fail here as branch has already been deleted
 		log.Error("DeleteBranch: %v", err)
 	}

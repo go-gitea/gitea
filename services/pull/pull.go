@@ -16,11 +16,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -86,7 +86,6 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 			data.CommitIDs = append(data.CommitIDs, e.Value.(*git.Commit).ID.String())
 		}
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		dataJSON, err := json.Marshal(data)
 		if err != nil {
 			return err
@@ -303,7 +302,11 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		for _, pr := range prs {
 			divergence, err := GetDiverging(pr)
 			if err != nil {
-				log.Error("GetDiverging: %v", err)
+				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
+				} else {
+					log.Error("GetDiverging: %v", err)
+				}
 			} else {
 				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
 				if err != nil {

@@ -1152,6 +1152,16 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
+	if u.Visibility == api.VisibleTypePublic && !repo.IsPrivate {
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
+	}
+
 	if setting.Service.AutoWatchNewRepos {
 		if err = watchRepo(ctx.e, doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
@@ -1227,7 +1237,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
@@ -1238,7 +1248,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return err
 	}
 	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
@@ -1310,15 +1320,16 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
+		isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 			return err
 		}
-		if repo.IsPrivate && isExist {
+		if !isPublic && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
-		} else if !repo.IsPrivate && !isExist {
+		} else if isPublic && !isExist {
 			if f, err := os.Create(daemonExportFile); err != nil {
 				log.Error("Failed to create %s: %v", daemonExportFile, err)
 			} else {
@@ -1616,7 +1627,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	sess.Close()
 
 	// We should always delete the files after the database transaction succeed. If
-	// we delete the file but the database rollback, the repository will be borken.
+	// we delete the file but the database rollback, the repository will be broken.
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
@@ -1762,22 +1773,6 @@ func GetPublicRepositoryCount(u *User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *User) (int64, error) {
 	return getPrivateRepositoryCount(x, u)
-}
-
-// DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives(ctx context.Context) error {
-	return x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
-				default:
-				}
-				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
-			})
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.

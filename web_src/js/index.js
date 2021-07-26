@@ -34,7 +34,7 @@ const commentMDEditors = {};
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
 
-// Silence Vue's console advertisments in dev mode
+// Silence Vue's console advertisements in dev mode
 // To use the Vue browser extension, enable the devtools option temporarily
 Vue.config.productionTip = false;
 Vue.config.devtools = false;
@@ -461,7 +461,7 @@ function initCommentForm() {
       }
 
       // TODO: Which thing should be done for choosing review requests
-      // to make choosed items be shown on time here?
+      // to make chosen items be shown on time here?
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
         return false;
       }
@@ -947,21 +947,19 @@ async function initRepository() {
       const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
       const $conversations = $('.comment-code-cloud:not(.hide)');
       const index = $conversations.index($conversation);
-      if (index !== 0) {
-        const $previousConversation = $conversations.eq(index - 1);
-        const anchor = $previousConversation.find('.comment').first().attr('id');
-        window.location.href = `#${anchor}`;
-      }
+      const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
+      const $previousConversation = $conversations.eq(previousIndex);
+      const anchor = $previousConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
     });
     $(document).on('click', '.next-conversation', (e) => {
       const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
       const $conversations = $('.comment-code-cloud:not(.hide)');
       const index = $conversations.index($conversation);
-      if (index !== $conversations.length - 1) {
-        const $nextConversation = $conversations.eq(index + 1);
-        const anchor = $nextConversation.find('.comment').first().attr('id');
-        window.location.href = `#${anchor}`;
-      }
+      const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
+      const $nextConversation = $conversations.eq(nextIndex);
+      const anchor = $nextConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
     });
 
     // Quote reply
@@ -2423,7 +2421,7 @@ function u2fError(errorType) {
   u2fErrors[errorType].removeClass('hide');
 
   Object.keys(u2fErrors).forEach((type) => {
-    if (type !== errorType) {
+    if (type !== `${errorType}`) {
       u2fErrors[type].addClass('hide');
     }
   });
@@ -3391,7 +3389,7 @@ function initVueComponents() {
               this.reposTotalCount = count;
             }
             Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
-            this.finalPage = Math.floor(count / this.searchLimit) + 1;
+            this.finalPage = Math.ceil(count / this.searchLimit);
             this.updateHistory();
           }
         }).always(() => {
