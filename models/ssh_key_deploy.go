@@ -304,3 +304,8 @@ func listDeployKeys(e Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error)
 	keys := make([]*DeployKey, 0, 5)
 	return keys, sess.Find(&keys)
 }
+
+// CountDeployKeys returns count deploy keys matching the provided arguments.
+func CountDeployKeys(opts *ListDeployKeysOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&DeployKey{})
+}

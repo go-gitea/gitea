@@ -88,6 +88,12 @@ func ListDeployKeys(ctx *context.APIContext) {
 		return
 	}
 
+	count, err := models.CountDeployKeys(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
@@ -101,7 +107,8 @@ func ListDeployKeys(ctx *context.APIContext) {
 		}
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
