@@ -332,19 +332,20 @@ func GetTeamMembers(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	team := ctx.Org.Team
-	if err := team.GetMembers(&models.SearchMembersOptions{
+
+	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{
 		ListOptions: utils.GetListOptions(ctx),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
-	members := make([]*api.User, len(team.Members))
-	for i, member := range team.Members {
+	members := make([]*api.User, len(ctx.Org.Team.Members))
+	for i, member := range ctx.Org.Team.Members {
 		members[i] = convert.ToUser(member, ctx.User)
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Org.Team.NumMembers))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, members)
 }
 
