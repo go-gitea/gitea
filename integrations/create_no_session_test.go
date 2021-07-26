@@ -12,12 +12,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 
 	"gitea.com/go-chi/session"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +63,6 @@ func TestSessionFileCreation(t *testing.T) {
 
 	var config session.Options
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(oldSessionConfig), &config)
 	assert.NoError(t, err)
 
