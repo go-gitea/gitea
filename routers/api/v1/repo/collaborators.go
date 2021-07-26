@@ -7,6 +7,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -47,17 +48,25 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
+	count, err := ctx.Repo.Repository.CountCollaborators()
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	collaborators, err := ctx.Repo.Repository.GetCollaborators(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
+
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
 		users[i] = convert.ToUser(collaborator.User, ctx.User)
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, users)
 }
 
