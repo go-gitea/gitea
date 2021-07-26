@@ -73,7 +73,7 @@ func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
 
 func hasUserStopwatch(e Engine, userID int64) (exists bool, sw *Stopwatch, err error) {
 	sw = new(Stopwatch)
-	exists, err = x.
+	exists, err = e.
 		Where("user_id = ?", userID).
 		Get(sw)
 	return
