@@ -62,6 +62,8 @@ func ListTeams(ctx *context.APIContext) {
 
 		apiTeams[i] = convert.ToTeam(org.Teams[i])
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -107,6 +109,8 @@ func ListUserTeams(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -339,6 +343,8 @@ func GetTeamMembers(ctx *context.APIContext) {
 	for i, member := range team.Members {
 		members[i] = convert.ToUser(member, ctx.User)
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, members)
 }
 

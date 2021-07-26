@@ -61,6 +61,8 @@ func ListTopics(ctx *context.APIContext) {
 	for i, topic := range topics {
 		topicNames[i] = topic.Name
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
 	})
@@ -292,6 +294,8 @@ func TopicSearch(ctx *context.APIContext) {
 	for i, topic := range topics {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,
 	})

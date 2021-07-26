@@ -29,6 +29,8 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	responseAPIUsers(ctx, users)
 }
 
@@ -93,6 +95,8 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	responseAPIUsers(ctx, users)
 }
 

@@ -92,6 +92,8 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &repos)
 }
 

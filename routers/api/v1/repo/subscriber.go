@@ -52,5 +52,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	for i, subscriber := range subscribers {
 		users[i] = convert.ToUser(subscriber, ctx.User)
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, users)
 }

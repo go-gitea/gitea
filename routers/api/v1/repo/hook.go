@@ -58,6 +58,8 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 

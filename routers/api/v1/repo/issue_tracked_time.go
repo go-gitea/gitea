@@ -129,6 +129,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -540,6 +542,8 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -596,5 +600,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }

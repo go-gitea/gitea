@@ -61,6 +61,7 @@ func ListTags(ctx *context.APIContext) {
 		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
 	}
 
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &apiTags)
 }
 

@@ -89,6 +89,8 @@ func ListIssueComments(ctx *context.APIContext) {
 		comment.Issue = issue
 		apiComments[i] = convert.ToComment(comments[i])
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
@@ -171,6 +173,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	for i := range comments {
 		apiComments[i] = convert.ToComment(comments[i])
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 

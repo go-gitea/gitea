@@ -56,6 +56,8 @@ func ListCollaborators(ctx *context.APIContext) {
 	for i, collaborator := range collaborators {
 		users[i] = convert.ToUser(collaborator.User, ctx.User)
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, users)
 }
 

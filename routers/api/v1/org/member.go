@@ -35,6 +35,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 		apiMembers[i] = convert.ToUser(member, ctx.User)
 	}
 
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 

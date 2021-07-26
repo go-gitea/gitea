@@ -231,5 +231,6 @@ func GetStopwatches(ctx *context.APIContext) {
 		return
 	}
 
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, apiSWs)
 }

@@ -72,6 +72,8 @@ func ListMilestones(ctx *context.APIContext) {
 	for i := range milestones {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
+
+	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 
