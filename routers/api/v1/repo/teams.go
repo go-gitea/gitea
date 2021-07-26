@@ -57,7 +57,6 @@ func ListTeams(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
