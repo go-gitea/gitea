@@ -257,7 +257,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
+	apps, total, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -269,7 +269,8 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		apiApps[i].ClientSecret = "" // Hide secret on application list
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiApps)
 }
 
