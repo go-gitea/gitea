@@ -5,6 +5,7 @@
 package notify
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -69,6 +70,12 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -80,6 +87,8 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
