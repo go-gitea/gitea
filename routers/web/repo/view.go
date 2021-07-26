@@ -647,6 +647,22 @@ func LastCommit(ctx *context.Context) {
 		return
 	}
 
+	var treeNames []string
+	paths := make([]string, 0, 5)
+	if len(ctx.Repo.TreePath) > 0 {
+		treeNames = strings.Split(ctx.Repo.TreePath, "/")
+		for i := range treeNames {
+			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
+		}
+
+		ctx.Data["HasParentPath"] = true
+		if len(paths)-2 >= 0 {
+			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
+		}
+	}
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = branchLink
+
 	ctx.HTML(http.StatusOK, tplRepoViewList)
 }
 

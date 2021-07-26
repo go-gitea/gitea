@@ -47,7 +47,7 @@
 			{{$entry := $item.Entry}}
 			{{$commit := $item.Commit}}
 			{{$subModuleFile := $item.SubModuleFile}}
-			<tr data-entryname="{{$entry.Name}}" data-ready="{{if $commit}}true{{else}}false{{end}}" {{if not $commit}}class="notready"{{end}}>
+			<tr data-entryname="{{$entry.Name}}" data-ready="{{if $commit}}true{{else}}false{{end}}" class="{{if not $commit}}not{{end}}ready entry">
 				<td class="name four wide">
 					<span class="truncate">
 						{{if $entry.IsSubModule}}
