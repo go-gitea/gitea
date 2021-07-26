@@ -2971,9 +2971,9 @@ function showDeletePopup() {
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
-  for (const key of Object.keys(dataArray)) {
+  for (const [key, value] of Object.entries(dataArray)) {
     if (key && key.startsWith('data')) {
-      dialog.find(`.${key}`).text(dataArray[key]);
+      dialog.find(`.${key}`).text(value);
     }
   }
 
@@ -2988,12 +2988,12 @@ function showDeletePopup() {
       const postData = {
         _csrf: csrf,
       };
-      for (const key of Object.keys(dataArray)) {
+      for (const [key, value] of Object.entries(dataArray)) {
         if (key && key.startsWith('data')) {
-          postData[key.substr(4)] = dataArray[key];
+          postData[key.substr(4)] = value;
         }
         if (key === 'id') {
-          postData['id'] = dataArray['id'];
+          postData['id'] = value;
         }
       }
 
