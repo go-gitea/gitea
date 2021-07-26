@@ -214,7 +214,7 @@ func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
-	issue.Comments, err = findComments(e, FindCommentsOptions{
+	issue.Comments, err = findComments(e, &FindCommentsOptions{
 		IssueID: issue.ID,
 		Type:    tp,
 	})

@@ -7,6 +7,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -68,14 +69,22 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 	issue.Repo = ctx.Repo.Repository
 
-	comments, err := models.FindComments(models.FindCommentsOptions{
+	opts := &models.FindCommentsOptions{
 		IssueID: issue.ID,
 		Since:   since,
 		Before:  before,
 		Type:    models.CommentTypeComment,
-	})
+	}
+
+	comments, err := models.FindComments(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
+		return
+	}
+
+	totalCount, err := models.CountComments(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -90,7 +99,8 @@ func ListIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToComment(comments[i])
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
@@ -140,15 +150,23 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	comments, err := models.FindComments(models.FindCommentsOptions{
+	opts := &models.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		Type:        models.CommentTypeComment,
 		Since:       since,
 		Before:      before,
-	})
+	}
+
+	comments, err := models.FindComments(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
+		return
+	}
+
+	totalCount, err := models.CountComments(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -174,7 +192,8 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToComment(comments[i])
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
