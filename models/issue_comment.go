@@ -1031,7 +1031,11 @@ func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
 
 // CountComments count all comments according options by ignoring pagination
 func CountComments(opts *FindCommentsOptions) (int64, error) {
-	return x.Where(opts.toConds()).Count(&Comment{})
+	sess := x.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+	}
+	return sess.Count(&Comment{})
 }
 
 // UpdateComment updates information of comment.
