@@ -90,7 +90,10 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, err := models.GetUserTeams(ctx.User.ID, utils.GetListOptions(ctx))
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
@@ -113,7 +116,8 @@ func ListUserTeams(ctx *context.APIContext) {
 		apiTeams[i].Organization = apiOrg
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
