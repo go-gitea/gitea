@@ -18,17 +18,16 @@ func PaginateSlice(list interface{}, page, pageSize int) interface{} {
 
 	listValue := reflect.ValueOf(list)
 
-	page--
+	first := (page - 1) * pageSize
+	length := listValue.Len()
 
-	if page*pageSize >= listValue.Len() {
-		return listValue.Slice(listValue.Len(), listValue.Len()).Interface()
+	if first >= length {
+		return listValue.Slice(length, length).Interface()
 	}
 
-	listValue = listValue.Slice(page*pageSize, listValue.Len())
-
-	if listValue.Len() > pageSize {
-		return listValue.Slice(0, pageSize).Interface()
+	if first+pageSize >= length {
+		return listValue.Slice(first, length).Interface()
 	}
 
-	return listValue.Interface()
+	return listValue.Slice(first, first+pageSize).Interface()
 }

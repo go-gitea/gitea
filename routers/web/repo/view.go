@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -234,14 +235,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 		ctx.Data["Page"] = pager
 
-		first := pageSize * (page - 1)
-		if len(entries) < first {
-			entries = entries[:0]
-		} else if len(entries) >= first+pageSize {
-			entries = entries[first : first+pageSize]
-		} else {
-			entries = entries[first:]
-		}
+		entries = util.PaginateSlice(entries, page, pageSize).(git.Entries)
 	}
 
 	// Find the last commits for the entries
