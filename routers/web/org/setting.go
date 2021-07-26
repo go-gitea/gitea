@@ -186,7 +186,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Org.OrgLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("org.settings.hooks_desc")
 
-	ws, err := models.GetWebhooksByOrgID(ctx.Org.Organization.ID, models.ListOptions{})
+	ws, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{OrgID: ctx.Org.Organization.ID})
 	if err != nil {
 		ctx.ServerError("GetWebhooksByOrgId", err)
 		return

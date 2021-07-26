@@ -41,7 +41,10 @@ func ListHooks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/HookList"
 
 	org := ctx.Org.Organization
-	orgHooks, err := models.GetWebhooksByOrgID(org.ID, utils.GetListOptions(ctx))
+	orgHooks, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		OrgID:       org.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
 		return

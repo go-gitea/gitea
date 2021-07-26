@@ -48,7 +48,10 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	hooks, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
 		return
