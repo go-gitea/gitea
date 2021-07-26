@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
@@ -52,5 +53,8 @@ func ListStargazers(ctx *context.APIContext) {
 	for i, stargazer := range stargazers {
 		users[i] = convert.ToUser(stargazer, ctx.User)
 	}
+
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumStars))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, users)
 }
