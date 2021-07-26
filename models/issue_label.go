@@ -444,6 +444,11 @@ func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) (
 	return getLabelsByRepoID(x, repoID, sortType, listOptions)
 }
 
+// CountLabelsByRepoID count number of all labels that belong to given repository by ID.
+func CountLabelsByRepoID(repoID int64) (int64, error) {
+	return x.Where("repo_id = ?", repoID).Count(&Label{})
+}
+
 // ________
 // \_____  \_______  ____
 //  /   |   \_  __ \/ ___\
