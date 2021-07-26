@@ -57,7 +57,7 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, er
 
 // CountUserStopwatches return count of all stopwatches of a user
 func CountUserStopwatches(userID int64) (int64, error) {
-	return x.Where("stopwatch.user_id = ?", userID).Count(&Stopwatch{})
+	return x.Where("user_id = ?", userID).Count(&Stopwatch{})
 }
 
 // StopwatchExists returns true if the stopwatch exists
