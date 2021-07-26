@@ -49,7 +49,14 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	count, err := models.CountLabelsByOrgID(ctx.Org.Organization.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
 }
 

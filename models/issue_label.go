@@ -556,6 +556,11 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 	return getLabelsByOrgID(x, orgID, sortType, listOptions)
 }
 
+// CountLabelsByOrgID count all labels that belong to given organization by ID.
+func CountLabelsByOrgID(orgID int64) (int64, error) {
+	return x.Where("org_id = ?", orgID).Count(&Label{})
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
