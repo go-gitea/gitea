@@ -44,9 +44,16 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)})
+	opts := models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)}
+
+	count, err := models.CountAccessTokens(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
+		ctx.InternalServerError(err)
+		return
+	}
+	tokens, err := models.ListAccessTokens(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +65,9 @@ func ListAccessTokens(ctx *context.APIContext) {
 			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
+
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
