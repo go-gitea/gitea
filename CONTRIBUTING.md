@@ -210,6 +210,7 @@ An endpoint which changes/edits an object expects all fields to be optional (exc
 ### Endpoints returning lists should
  * support pagination (`page` & `limit` options in query)
  * add `X-Total-Count` header ([example](https://github.com/go-gitea/gitea/blob/e76f8cac9a2ba727bec6b5beab2496be9dafabef/routers/api/v1/repo/issue.go#L445))
+ * add `X-Total-Count` to the `Access-Control-Expose-Headers` header
 
 
 ## Developer Certificate of Origin (DCO)
