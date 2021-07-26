@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -57,7 +58,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, total, err := models.GetMilestones(models.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		State:       api.StateType(ctx.Query("state")),
@@ -73,7 +74,8 @@ func ListMilestones(ctx *context.APIContext) {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 

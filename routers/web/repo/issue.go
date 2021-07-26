@@ -378,7 +378,7 @@ func Issues(ctx *context.Context) {
 
 	var err error
 	// Get milestones
-	ctx.Data["Milestones"], err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["Milestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
 		State:  api.StateType(ctx.Query("state")),
 	})
@@ -395,7 +395,7 @@ func Issues(ctx *context.Context) {
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
 func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
 	var err error
-	ctx.Data["OpenMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["OpenMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateOpen,
 	})
@@ -403,7 +403,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 		ctx.ServerError("GetMilestones", err)
 		return
 	}
-	ctx.Data["ClosedMilestones"], err = models.GetMilestones(models.GetMilestonesOption{
+	ctx.Data["ClosedMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  api.StateClosed,
 	})
