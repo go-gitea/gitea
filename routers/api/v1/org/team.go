@@ -46,24 +46,28 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TeamList"
 
 	org := ctx.Org.Organization
-	if err := org.GetTeams(&models.SearchTeamOptions{
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
+		OrgID:       org.ID,
+	})
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadTeams", err)
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(org.Teams))
-	for i := range org.Teams {
-		if err := org.Teams[i].GetUnits(); err != nil {
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
 			return
 		}
 
-		apiTeams[i] = convert.ToTeam(org.Teams[i])
+		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 

@@ -1125,8 +1125,8 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		if err := u.LoadTeams(); err != nil {
+			return fmt.Errorf("LoadTeams: %v", err)
 		}
 		for _, t := range u.Teams {
 			if t.IncludesAllRepositories {
@@ -1439,7 +1439,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.getTeams(sess); err != nil {
+		if err = org.loadTeams(sess); err != nil {
 			return err
 		}
 	}

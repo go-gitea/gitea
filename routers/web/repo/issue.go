@@ -2586,8 +2586,8 @@ func handleTeamMentions(ctx *context.Context) {
 	}
 
 	if isAdmin {
-		if err := ctx.Repo.Owner.GetTeams(&models.SearchTeamOptions{}); err != nil {
-			ctx.ServerError("GetTeams", err)
+		if err := ctx.Repo.Owner.LoadTeams(); err != nil {
+			ctx.ServerError("LoadTeams", err)
 			return
 		}
 	} else {
