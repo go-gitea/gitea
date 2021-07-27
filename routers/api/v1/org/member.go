@@ -38,8 +38,8 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 	}
 
 	apiMembers := make([]*api.User, len(members))
-	for i := range members {
-		apiMembers[i] = convert.ToUser(members[i], ctx.User)
+	for i, member := range members {
+		apiMembers[i] = convert.ToUser(member, ctx.User)
 	}
 
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
