@@ -27,7 +27,7 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	depID := ctx.QueryInt64("newDependency")
+	depID := ctx.FormInt64("newDependency")
 
 	if err = issue.LoadRepo(); err != nil {
 		ctx.ServerError("LoadRepo", err)
@@ -86,7 +86,7 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	depID := ctx.QueryInt64("removeDependencyID")
+	depID := ctx.FormInt64("removeDependencyID")
 
 	if err = issue.LoadRepo(); err != nil {
 		ctx.ServerError("LoadRepo", err)

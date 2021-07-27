@@ -68,17 +68,17 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {
 		limit = 0
 	}
-	id := ctx.Query("id")
+	id := ctx.Form("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
@@ -95,7 +95,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	path := ctx.Query("path")
+	path := ctx.Form("path")
 	if path != "" { //Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
@@ -224,11 +224,11 @@ func VerifyLockHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {

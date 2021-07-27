@@ -111,7 +111,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 		return true
 	}
 
-	redirectTo := ctx.Query("redirect_to")
+	redirectTo := ctx.Form("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
@@ -1333,7 +1333,7 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 
 // Activate render activate user page
 func Activate(ctx *context.Context) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
@@ -1381,7 +1381,7 @@ func Activate(ctx *context.Context) {
 
 // ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 	if len(code) == 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
@@ -1397,7 +1397,7 @@ func ActivatePost(ctx *context.Context) {
 
 	// if account is local account, verify password
 	if user.LoginSource == 0 {
-		password := ctx.Query("password")
+		password := ctx.Form("password")
 		if len(password) == 0 {
 			ctx.Data["Code"] = code
 			ctx.Data["NeedsPassword"] = true
@@ -1454,8 +1454,8 @@ func handleAccountActivation(ctx *context.Context, user *models.User) {
 
 // ActivateEmail render the activate email page
 func ActivateEmail(ctx *context.Context) {
-	code := ctx.Query("code")
-	emailStr := ctx.Query("email")
+	code := ctx.Form("code")
+	emailStr := ctx.Form("email")
 
 	// Verify code.
 	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
@@ -1491,7 +1491,7 @@ func ForgotPasswd(ctx *context.Context) {
 		return
 	}
 
-	email := ctx.Query("email")
+	email := ctx.Form("email")
 	ctx.Data["Email"] = email
 
 	ctx.Data["IsResetRequest"] = true
@@ -1508,7 +1508,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 	ctx.Data["IsResetRequest"] = true
 
-	email := ctx.Query("email")
+	email := ctx.Form("email")
 	ctx.Data["Email"] = email
 
 	u, err := models.GetUserByEmail(email)
@@ -1548,7 +1548,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 }
 
 func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
@@ -1577,7 +1577,7 @@ func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor)
 		}
 	} else {
 		ctx.Data["has_two_factor"] = true
-		ctx.Data["scratch_code"] = ctx.QueryBool("scratch_code")
+		ctx.Data["scratch_code"] = ctx.FormBool("scratch_code")
 	}
 
 	// Show the user that they are affecting the account that they intended to
@@ -1617,7 +1617,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	// Validate password length.
-	passwd := ctx.Query("password")
+	passwd := ctx.Form("password")
 	if len(passwd) < setting.MinPasswordLength {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
@@ -1643,8 +1643,8 @@ func ResetPasswdPost(ctx *context.Context) {
 	// Handle two-factor
 	regenerateScratchToken := false
 	if twofa != nil {
-		if ctx.QueryBool("scratch_code") {
-			if !twofa.VerifyScratchToken(ctx.Query("token")) {
+		if ctx.FormBool("scratch_code") {
+			if !twofa.VerifyScratchToken(ctx.Form("token")) {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
 				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
@@ -1652,7 +1652,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 			regenerateScratchToken = true
 		} else {
-			passcode := ctx.Query("passcode")
+			passcode := ctx.Form("passcode")
 			ok, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
@@ -1689,7 +1689,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
-	remember := len(ctx.Query("remember")) != 0
+	remember := len(ctx.Form("remember")) != 0
 
 	if regenerateScratchToken {
 		// Invalidate the scratch token.
