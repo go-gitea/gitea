@@ -184,7 +184,7 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 }
 
 // FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(opts *FindTopicOptions) ([]*Topic, error) {
+func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 	sess := x.Select("topic.*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
@@ -193,16 +193,8 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, error) {
 		sess = opts.setSessionPagination(sess)
 	}
 	topics := make([]*Topic, 0, 10)
-	return topics, sess.Desc("topic.repo_count").Find(&topics)
-}
-
-// CountTopics count topics via FindTopicOptions
-func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := x.Select("topic.*").Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
-	}
-	return sess.Count(&Topic{})
+	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
+	return topics, total, err
 }
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
@@ -279,7 +271,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 
 // SaveTopics save topics to a repository
 func SaveTopics(repoID int64, topicNames ...string) error {
-	topics, err := FindTopics(&FindTopicOptions{
+	topics, _, err := FindTopics(&FindTopicOptions{
 		RepoID: repoID,
 	})
 	if err != nil {

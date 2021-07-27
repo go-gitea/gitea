@@ -53,13 +53,7 @@ func ListTopics(ctx *context.APIContext) {
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	topics, err := models.FindTopics(opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	count, err := models.CountTopics(opts)
+	topics, total, err := models.FindTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -70,7 +64,7 @@ func ListTopics(ctx *context.APIContext) {
 		topicNames[i] = topic.Name
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
 	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
@@ -175,7 +169,7 @@ func AddTopic(ctx *context.APIContext) {
 	}
 
 	// Prevent adding more topics than allowed to repo
-	topics, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := models.FindTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -285,13 +279,7 @@ func TopicSearch(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 	}
 
-	topics, err := models.FindTopics(opts)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-
-	count, err := models.CountTopics(opts)
+	topics, total, err := models.FindTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -302,7 +290,7 @@ func TopicSearch(ctx *context.APIContext) {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
 	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,

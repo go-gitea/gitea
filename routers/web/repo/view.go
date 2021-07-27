@@ -674,7 +674,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := models.FindTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
