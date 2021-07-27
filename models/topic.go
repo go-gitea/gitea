@@ -184,7 +184,7 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 }
 
 // FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
+func FindTopics(opts *FindTopicOptions) ([]*Topic, error) {
 	sess := x.Select("topic.*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
@@ -192,12 +192,17 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.PageSize != 0 && opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
+	topics := make([]*Topic, 0, 10)
 	return topics, sess.Desc("topic.repo_count").Find(&topics)
 }
 
-// CountTopicsByRepoID return amount of topics a specific repo has
-func CountTopicsByRepoID(repoID int64) (int64, error) {
-	return x.Where("repo_id =?", repoID).Count(&RepoTopic{})
+// CountTopics count topics via FindTopicOptions
+func CountTopics(opts *FindTopicOptions) (int64, error) {
+	sess := x.Select("topic.*").Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+	}
+	return sess.Count(&Topic{})
 }
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist

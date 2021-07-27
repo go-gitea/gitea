@@ -48,16 +48,18 @@ func ListTopics(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TopicNames"
 
-	topics, err := models.FindTopics(&models.FindTopicOptions{
+	opts := &models.FindTopicOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-	})
+	}
+
+	topics, err := models.FindTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	count, err := models.CountTopicsByRepoID(ctx.Repo.Repository.ID)
+	count, err := models.CountTopics(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -278,21 +280,19 @@ func TopicSearch(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if ctx.User == nil {
-		ctx.Error(http.StatusForbidden, "UserIsNil", "Only owners could change the topics.")
+	opts := &models.FindTopicOptions{
+		Keyword:     ctx.Query("q"),
+		ListOptions: utils.GetListOptions(ctx),
+	}
+
+	topics, err := models.FindTopics(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
-	kw := ctx.Query("q")
-
-	listOptions := utils.GetListOptions(ctx)
-
-	topics, err := models.FindTopics(&models.FindTopicOptions{
-		Keyword:     kw,
-		ListOptions: listOptions,
-	})
+	count, err := models.CountTopics(opts)
 	if err != nil {
-		log.Error("SearchTopics failed: %v", err)
 		ctx.InternalServerError(err)
 		return
 	}
@@ -302,7 +302,8 @@ func TopicSearch(ctx *context.APIContext) {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,
 	})
