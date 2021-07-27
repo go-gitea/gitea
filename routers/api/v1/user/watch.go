@@ -5,6 +5,7 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -14,23 +15,22 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-// getWatchedRepos returns the repos that the user with the specified userID is
-// watching
-func getWatchedRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, error) {
-	watchedRepos, err := models.GetWatchedRepos(user.ID, private, listOptions)
+// getWatchedRepos returns the repos that the user with the specified userID is watching
+func getWatchedRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, int64, error) {
+	watchedRepos, total, err := models.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
 		access, err := models.AccessLevel(user, watched)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		repos[i] = convert.ToRepo(watched, access)
 	}
-	return repos, nil
+	return repos, total, nil
 }
 
 // GetWatchedRepos returns the repos that the user specified in ctx is watching
@@ -60,10 +60,12 @@ func GetWatchedRepos(ctx *context.APIContext) {
 
 	user := GetUserByParams(ctx)
 	private := user.ID == ctx.User.ID
-	repos, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -87,12 +89,13 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getWatchedRepos(ctx.User, true, utils.GetListOptions(ctx))
+	repos, total, err := getWatchedRepos(ctx.User, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
 
-	// TODO: ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
+	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
 	ctx.JSON(http.StatusOK, &repos)
 }
 
