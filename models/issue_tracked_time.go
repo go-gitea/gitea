@@ -131,7 +131,11 @@ func GetTrackedTimes(opts *FindTrackedTimesOptions) (TrackedTimeList, error) {
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
 func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
-	return x.Where(opts.toCond()).Count(&TrackedTime{})
+	sess := x.Where(opts.toCond())
+	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
+		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
+	}
+	return sess.Count(&TrackedTime{})
 }
 
 func getTrackedSeconds(e Engine, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
