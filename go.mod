@@ -10,7 +10,7 @@ require (
 	gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
-	gitea.com/lunny/levelqueue v0.3.0
+	gitea.com/lunny/levelqueue v0.4.0
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/ProtonMail/go-crypto v0.0.0-20210705153151-cc34b1f6908b // indirect
