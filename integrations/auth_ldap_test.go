@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/services/auth"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
@@ -205,7 +205,7 @@ func TestLDAPUserSync(t *testing.T) {
 	}
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
-	models.SyncExternalUsers(context.Background(), true)
+	auth.SyncExternalUsers(context.Background(), true)
 
 	session := loginUser(t, "user1")
 	// Check if users exists
@@ -270,7 +270,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 	defer prepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
 
-	models.SyncExternalUsers(context.Background(), true)
+	auth.SyncExternalUsers(context.Background(), true)
 
 	// Check if users has SSH keys synced
 	for _, u := range gitLDAPUsers {

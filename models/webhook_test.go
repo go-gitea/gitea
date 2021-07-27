@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,7 +58,6 @@ func TestWebhook_UpdateEvent(t *testing.T) {
 	assert.NoError(t, webhook.UpdateEvent())
 	assert.NotEmpty(t, webhook.Events)
 	actualHookEvent := &HookEvent{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal([]byte(webhook.Events), actualHookEvent))
 	assert.Equal(t, *hookEvent, *actualHookEvent)
 }

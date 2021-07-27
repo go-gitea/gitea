@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +69,6 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
 
 		// Test JSON rendering
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))
