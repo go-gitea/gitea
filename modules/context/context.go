@@ -292,32 +292,32 @@ func (ctx *Context) Form(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustString(key, defaults...)
 }
 
-// QueryTrim returns request form as string with default and trimmed spaces
+// FormTrim returns request form as string with default and trimmed spaces
 func (ctx *Context) FormTrim(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
 }
 
-// QueryStrings returns request form as strings with default
+// FormStrings returns request form as strings with default
 func (ctx *Context) FormStrings(key string, defaults ...[]string) []string {
 	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
 }
 
-// QueryInt returns request form as int with default
+// FormInt returns request form as int with default
 func (ctx *Context) FormInt(key string, defaults ...int) int {
 	return (*Forms)(ctx.Req).MustInt(key, defaults...)
 }
 
-// QueryInt64 returns request form as int64 with default
+// FormInt64 returns request form as int64 with default
 func (ctx *Context) FormInt64(key string, defaults ...int64) int64 {
 	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
 }
 
-// QueryBool returns request form as bool with default
+// FormBool returns request form as bool with default
 func (ctx *Context) FormBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
-// QueryOptionalBool returns request form as OptionalBool with default
+// FormOptionalBool returns request form as OptionalBool with default
 func (ctx *Context) FormOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
 	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
