@@ -169,15 +169,15 @@ func AddTopic(ctx *context.APIContext) {
 	}
 
 	// Prevent adding more topics than allowed to repo
-	topics, _, err := models.FindTopics(&models.FindTopicOptions{
+	count, err := models.CountTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		log.Error("AddTopic failed: %v", err)
+		log.Error("CountTopics failed: %v", err)
 		ctx.InternalServerError(err)
 		return
 	}
-	if len(topics) >= 25 {
+	if count >= 25 {
 		ctx.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
 			"message": "Exceeding maximum allowed topics per repo.",
 		})

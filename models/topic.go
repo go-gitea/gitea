@@ -197,6 +197,15 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 	return topics, total, err
 }
 
+// CountTopics counts the number of topics matching the FindTopicOptions
+func CountTopics(opts *FindTopicOptions) (int64, error) {
+	sess := x.Select("topic.*").Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+	}
+	return sess.Count(new(Topic))
+}
+
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 	return getRepoTopicByName(x, repoID, topicName)
