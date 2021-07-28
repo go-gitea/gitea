@@ -10,7 +10,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func addAgitStylePullRequest(x *xorm.Engine) error {
+func addAgitFlowPullRequest(x *xorm.Engine) error {
 	type PullRequestFlow int
 
 	type PullRequest struct {

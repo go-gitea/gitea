@@ -38,13 +38,13 @@ const (
 	PullRequestStatusEmpty
 )
 
-// PullRequestFlow the style of pull request
+// PullRequestFlow the flow of pull request
 type PullRequestFlow int
 
 const (
-	// PullRequestFlowGithub github style from head branch to base branch
+	// PullRequestFlowGithub github flow from head branch to base branch
 	PullRequestFlowGithub PullRequestFlow = iota
-	// PullRequestFlowAGit Agit flow style pull request, head branch is not exist
+	// PullRequestFlowAGit Agit flow pull request, head branch is not exist
 	PullRequestFlowAGit
 )
 

@@ -99,9 +99,9 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestFlowAGit)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
+				log.Error("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"Err": fmt.Sprintf("Failed to get unmerged agit style pull request in repository: %s/%s Error: %v", ownerName, repoName, err),
+					"Err": fmt.Sprintf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err),
 				})
 				return nil
 			}

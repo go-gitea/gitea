@@ -23,8 +23,8 @@ func Update(pull *models.PullRequest, doer *models.User, message string) error {
 	}
 
 	if pull.Flow == models.PullRequestFlowAGit {
-		// TODO: Not support update agit style pull request's head branch
-		return fmt.Errorf("Not support update agit style pull request's head branch")
+		// TODO: Not support update agit flow pull request's head branch
+		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
 
 	if err := pr.LoadHeadRepo(); err != nil {

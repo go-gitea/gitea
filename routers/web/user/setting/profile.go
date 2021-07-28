@@ -78,7 +78,7 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 		}
 	}
 
-	// update all agit style pull request header
+	// update all agit flow pull request header
 	err := agit.UserNameChanged(user, newName)
 	if err != nil {
 		ctx.ServerError("agit.UserNameChanged", err)

@@ -70,7 +70,7 @@ func testGit(t *testing.T, u *url.URL) {
 		rawTest(t, &httpContext, little, big, littleLFS, bigLFS)
 		mediaTest(t, &httpContext, little, big, littleLFS, bigLFS)
 
-		t.Run("CreateAGitStylePull", doCreateAGitStylePull(dstPath, &httpContext, "master", "test/head"))
+		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
 		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
@@ -112,7 +112,7 @@ func testGit(t *testing.T, u *url.URL) {
 			rawTest(t, &sshContext, little, big, littleLFS, bigLFS)
 			mediaTest(t, &sshContext, little, big, littleLFS, bigLFS)
 
-			t.Run("CreateAGitStylePull", doCreateAGitStylePull(dstPath, &sshContext, "master", "test/head2"))
+			t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &sshContext, "master", "test/head2"))
 			t.Run("BranchProtectMerge", doBranchProtectPRMerge(&sshContext, dstPath))
 			t.Run("MergeFork", func(t *testing.T) {
 				defer PrintCurrentTest(t)()
@@ -596,7 +596,7 @@ func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testin
 	}
 }
 
-func doCreateAGitStylePull(dstPath string, ctx *APITestContext, baseBranch, headBranch string) func(t *testing.T) {
+func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 

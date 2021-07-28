@@ -460,7 +460,7 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 	return nil
 }
 
-// UpdateRef update refs/pull/id/head directly for agit style pull request
+// UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(pr *models.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
 	if err := pr.LoadBaseRepo(); err != nil {

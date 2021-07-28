@@ -330,7 +330,7 @@ var migrations = []Migration{
 	// v189 -> v190
 	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
 	// v190 -> v191
-	NewMigration("Add agit style pull request support", addAgitStylePullRequest),
+	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
 }
 
 // GetCurrentDBVersion returns the current db version
