@@ -107,6 +107,8 @@ func (set *Set) Remove(value []byte) (bool, error) {
 
 // Close closes the set (and the underlying db if set to closeUnderlyingDB)
 func (set *Set) Close() error {
+	set.lock.Lock()
+	defer set.lock.Unlock()
 	if !set.closeUnderlyingDB {
 		set.db = nil
 		return nil
