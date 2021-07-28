@@ -93,7 +93,6 @@ func (q *ByteFIFOQueue) PushBack(data Data) error {
 	if !assignableTo(data, q.exemplar) {
 		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := json.Marshal(data)
 	if err != nil {
 		return err
