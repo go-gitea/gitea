@@ -33,19 +33,29 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// httpBase implementation git smart HTTP protocol
-func httpBase(ctx *context.Context) (h *serviceHandler) {
-	if setting.Repository.DisableHTTPGit {
+// HTTPMustEnabled check if http enabled
+func HTTPMustEnabled() func(ctx *context.Context) {
+	if !setting.Repository.DisableHTTPGit {
+		return func(ctx *context.Context) {}
+	}
+
+	return func(ctx *context.Context) {
 		ctx.Resp.WriteHeader(http.StatusForbidden)
 		_, err := ctx.Resp.Write([]byte("Interacting with repositories by HTTP protocol is not allowed"))
 		if err != nil {
 			log.Error(err.Error())
 		}
-		return
+	}
+}
+
+// HTTPCors check if cors matched
+func HTTPCors() func(ctx *context.Context) {
+	var allowedOrigin = setting.Repository.AccessControlAllowOrigin
+	if len(allowedOrigin) == 0 {
+		return func(ctx *context.Context) {}
 	}
 
-	if len(setting.Repository.AccessControlAllowOrigin) > 0 {
-		allowedOrigin := setting.Repository.AccessControlAllowOrigin
+	return func(ctx *context.Context) {
 		// Set CORS headers for browser-based git clients
 		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
@@ -67,7 +77,10 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			return
 		}
 	}
+}
 
+// httpBase implementation git smart HTTP protocol
+func httpBase(ctx *context.Context) (h *serviceHandler) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
