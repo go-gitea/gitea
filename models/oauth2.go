@@ -155,11 +155,6 @@ func initOAuth2LoginSources() error {
 		err := oauth2.RegisterProvider(source.Name, oAuth2Config.Provider, oAuth2Config.ClientID, oAuth2Config.ClientSecret, oAuth2Config.OpenIDConnectAutoDiscoveryURL, oAuth2Config.CustomURLMapping)
 		if err != nil {
 			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
-			source.IsActived = false
-			if err = UpdateSource(source); err != nil {
-				log.Critical("Unable to update source %s to disable it. Error: %v", err)
-				return err
-			}
 		}
 	}
 	return nil
