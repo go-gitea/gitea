@@ -527,6 +527,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
+	if compareInfo.HeadCommitID == compareInfo.MergeBase {
+		ctx.Data["IsNothingToCompare"] = true
+	}
+
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	if pull.IsWorkInProgress() {
