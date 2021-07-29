@@ -129,7 +129,7 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 
 // DeleteOAuth2Application deletes the given oauth2 application
 func DeleteOAuth2Application(ctx *context.Context) {
-	if err := models.DeleteOAuth2Application(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+	if err := models.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
@@ -143,11 +143,11 @@ func DeleteOAuth2Application(ctx *context.Context) {
 
 // RevokeOAuth2Grant revokes the grant with the given id
 func RevokeOAuth2Grant(ctx *context.Context) {
-	if ctx.User.ID == 0 || ctx.QueryInt64("id") == 0 {
+	if ctx.User.ID == 0 || ctx.FormInt64("id") == 0 {
 		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
 		return
 	}
-	if err := models.RevokeOAuth2Grant(ctx.QueryInt64("id"), ctx.User.ID); err != nil {
+	if err := models.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}

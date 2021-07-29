@@ -42,7 +42,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
-	repoNames, count, err := repository.ListUnadoptedRepositories(ctx.Query("query"), &listOptions)
+	repoNames, count, err := repository.ListUnadoptedRepositories(ctx.Form("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
 	}
