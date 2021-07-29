@@ -143,9 +143,9 @@ func getNotifications(c *context.Context) {
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(c *context.Context) {
 	var (
-		notificationID, _ = strconv.ParseInt(c.Req.PostFormValue("notification_id"), 10, 64)
-		statusStr         = c.Req.PostFormValue("status")
-		status            models.NotificationStatus
+		notificationID = c.FormInt64("notification_id")
+		statusStr      = c.FormString("status")
+		status         models.NotificationStatus
 	)
 
 	switch statusStr {
