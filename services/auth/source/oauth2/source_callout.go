@@ -20,6 +20,9 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 	// normally the gothic library will write some custom stuff to the response instead of our own nice error page
 	//gothic.BeginAuthHandler(response, request)
 
+	gothRWMutex.RLock()
+	defer gothRWMutex.RUnlock()
+
 	url, err := gothic.GetAuthURL(response, request)
 	if err == nil {
 		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
@@ -32,6 +35,9 @@ func (source *Source) Callout(request *http.Request, response http.ResponseWrite
 func (source *Source) Callback(request *http.Request, response http.ResponseWriter) (goth.User, error) {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(ProviderHeaderKey, source.loginSource.Name)
+
+	gothRWMutex.RLock()
+	defer gothRWMutex.RUnlock()
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
