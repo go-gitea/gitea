@@ -129,7 +129,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url += "&openid.ns.sreg=http%3A%2F%2Fopenid.net%2Fextensions%2Fsreg%2F1.1"
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
-	log.Trace("FormString-passed openid-remember: %t", form.Remember)
+	log.Trace("Form-passed openid-remember: %t", form.Remember)
 
 	if err := ctx.Session.Set("openid_signin_remember", form.Remember); err != nil {
 		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %v", err)
