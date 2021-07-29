@@ -7,6 +7,7 @@ package oauth2
 import (
 	"net/http"
 	"net/url"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,6 +35,7 @@ import (
 var (
 	sessionUsersStoreKey = "gitea-oauth2-sessions"
 	providerHeaderKey    = "gitea-oauth2-provider"
+	gothRWMutex          = sync.RWMutex{}
 )
 
 // CustomURLMapping describes the urls values to use when customizing OAuth2 provider URLs
@@ -60,6 +62,10 @@ func Init(x *xorm.Engine) error {
 
 	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
 	store.MaxLength(setting.OAuth2.MaxTokenLength)
+
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
@@ -82,6 +88,9 @@ func Auth(provider string, request *http.Request, response http.ResponseWriter) 
 	// normally the gothic library will write some custom stuff to the response instead of our own nice error page
 	//gothic.BeginAuthHandler(response, request)
 
+	gothRWMutex.RLock()
+	defer gothRWMutex.RUnlock()
+
 	url, err := gothic.GetAuthURL(response, request)
 	if err == nil {
 		http.Redirect(response, request, url, http.StatusTemporaryRedirect)
@@ -94,6 +103,9 @@ func Auth(provider string, request *http.Request, response http.ResponseWriter) 
 func ProviderCallback(provider string, request *http.Request, response http.ResponseWriter) (goth.User, error) {
 	// not sure if goth is thread safe (?) when using multiple providers
 	request.Header.Set(providerHeaderKey, provider)
+
+	gothRWMutex.RLock()
+	defer gothRWMutex.RUnlock()
 
 	user, err := gothic.CompleteUserAuth(response, request)
 	if err != nil {
@@ -108,6 +120,9 @@ func RegisterProvider(providerName, providerType, clientID, clientSecret, openID
 	provider, err := createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL, customURLMapping)
 
 	if err == nil && provider != nil {
+		gothRWMutex.Lock()
+		defer gothRWMutex.Unlock()
+
 		goth.UseProviders(provider)
 	}
 
@@ -116,11 +131,17 @@ func RegisterProvider(providerName, providerType, clientID, clientSecret, openID
 
 // RemoveProvider removes the given OAuth2 provider from the goth lib
 func RemoveProvider(providerName string) {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	delete(goth.GetProviders(), providerName)
 }
 
 // ClearProviders clears all OAuth2 providers from the goth lib
 func ClearProviders() {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	goth.ClearProviders()
 }
 
