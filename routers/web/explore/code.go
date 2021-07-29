@@ -6,7 +6,6 @@ package explore
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -33,14 +32,14 @@ func Code(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 
-	language := strings.TrimSpace(ctx.FormString("l"))
-	keyword := strings.TrimSpace(ctx.FormString("q"))
+	language := ctx.FormTrim("l")
+	keyword := ctx.FormTrim("q")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	queryType := strings.TrimSpace(ctx.FormString("t"))
+	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
 	var (

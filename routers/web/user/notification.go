@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -59,7 +58,7 @@ func Notifications(c *context.Context) {
 
 func getNotifications(c *context.Context) {
 	var (
-		keyword = strings.Trim(c.FormString("q"), " ")
+		keyword = c.FormTrim("q")
 		status  models.NotificationStatus
 		page    = c.FormInt("page")
 		perPage = c.FormInt("perPage")

@@ -140,7 +140,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.FormString("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -162,13 +162,13 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := strings.TrimSpace(ctx.FormString("labels"))
+	labels := ctx.FormTrim("labels")
 	var includedLabelNames []string
 	if len(labels) > 0 {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
-	milestones := strings.TrimSpace(ctx.FormString("milestones"))
+	milestones := ctx.FormTrim("milestones")
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
@@ -331,7 +331,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.FormString("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}

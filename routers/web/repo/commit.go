@@ -177,7 +177,7 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	query := strings.Trim(ctx.FormString("q"), " ")
+	query := ctx.FormTrim("q")
 	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return

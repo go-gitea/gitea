@@ -7,7 +7,6 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -90,7 +89,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		IssueID:      issue.ID,
 	}
 
-	qUser := strings.Trim(ctx.FormString("user"), " ")
+	qUser := ctx.FormTrim("user")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -500,7 +499,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	// Filters
-	qUser := strings.Trim(ctx.FormString("user"), " ")
+	qUser := ctx.FormTrim("user")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
