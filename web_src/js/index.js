@@ -1825,7 +1825,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+  const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1848,6 +1848,14 @@ async function initEditor() {
       $commitButton.prop('disabled', !dirty);
     }
   });
+
+  // Update the editor from query params, if available,
+  // only after the dirtyFileClass initialization
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get('value');
+  if (value) {
+    editor.setValue(value);
+  }
 
   $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed

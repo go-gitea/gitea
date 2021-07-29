@@ -90,7 +90,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		IssueID:      issue.ID,
 	}
 
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := strings.Trim(ctx.Form("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -509,7 +509,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	// Filters
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := strings.Trim(ctx.Form("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {

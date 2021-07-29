@@ -275,7 +275,7 @@ func TopicSearch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	opts := &models.FindTopicOptions{
-		Keyword:     ctx.Query("q"),
+		Keyword:     ctx.Form("q"),
 		ListOptions: utils.GetListOptions(ctx),
 	}
 

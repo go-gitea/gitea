@@ -155,7 +155,7 @@ func SettingsDelete(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 	if ctx.Req.Method == "POST" {
-		if org.Name != ctx.Query("org_name") {
+		if org.Name != ctx.Form("org_name") {
 			ctx.Data["Err_OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
 			return
@@ -198,7 +198,7 @@ func Webhooks(ctx *context.Context) {
 
 // DeleteWebhook response for delete webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := models.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.QueryInt64("id")); err != nil {
+	if err := models.DeleteWebhookByOrgID(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByOrgID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))

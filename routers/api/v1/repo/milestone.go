@@ -61,8 +61,8 @@ func ListMilestones(ctx *context.APIContext) {
 	milestones, total, err := models.GetMilestones(models.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		State:       api.StateType(ctx.Query("state")),
-		Name:        ctx.Query("name"),
+		State:       api.StateType(ctx.Form("state")),
+		Name:        ctx.Form("name"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)

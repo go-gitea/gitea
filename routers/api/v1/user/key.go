@@ -50,7 +50,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	var err error
 	var count int
 
-	fingerprint := ctx.Query("fingerprint")
+	fingerprint := ctx.Form("fingerprint")
 	username := ctx.Params("username")
 
 	if fingerprint != "" {

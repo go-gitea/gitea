@@ -106,7 +106,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Query("state") {
+	switch ctx.Form("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -140,7 +140,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -153,7 +153,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isPull util.OptionalBool
-	switch ctx.Query("type") {
+	switch ctx.Form("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -162,13 +162,13 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := strings.TrimSpace(ctx.Query("labels"))
+	labels := strings.TrimSpace(ctx.Form("labels"))
 	var includedLabelNames []string
 	if len(labels) > 0 {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
-	milestones := strings.TrimSpace(ctx.Query("milestones"))
+	milestones := strings.TrimSpace(ctx.Form("milestones"))
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
@@ -176,7 +176,7 @@ func SearchIssues(ctx *context.APIContext) {
 
 	// this api is also used in UI,
 	// so the default limit is set to fit UI needs
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit == 0 {
 		limit = setting.UI.IssuePagingNum
 	} else if limit > setting.API.MaxResponseItems {
@@ -188,7 +188,7 @@ func SearchIssues(ctx *context.APIContext) {
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: models.ListOptions{
-				Page:     ctx.QueryInt("page"),
+				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
 			RepoIDs:            repoIDs,
@@ -197,23 +197,23 @@ func SearchIssues(ctx *context.APIContext) {
 			IncludedLabelNames: includedLabelNames,
 			IncludeMilestones:  includedMilestones,
 			SortType:           "priorityrepo",
-			PriorityRepoID:     ctx.QueryInt64("priority_repo_id"),
+			PriorityRepoID:     ctx.FormInt64("priority_repo_id"),
 			IsPull:             isPull,
 			UpdatedBeforeUnix:  before,
 			UpdatedAfterUnix:   since,
 		}
 
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
-		if ctx.QueryBool("created") {
+		if ctx.FormBool("created") {
 			issuesOpt.PosterID = ctx.User.ID
 		}
-		if ctx.QueryBool("assigned") {
+		if ctx.FormBool("assigned") {
 			issuesOpt.AssigneeID = ctx.User.ID
 		}
-		if ctx.QueryBool("mentioned") {
+		if ctx.FormBool("mentioned") {
 			issuesOpt.MentionedID = ctx.User.ID
 		}
-		if ctx.QueryBool("review_requested") {
+		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctx.User.ID
 		}
 
@@ -319,7 +319,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Query("state") {
+	switch ctx.Form("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -331,7 +331,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -345,7 +345,7 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	if splitted := strings.Split(ctx.Query("labels"), ","); len(splitted) > 0 {
+	if splitted := strings.Split(ctx.Form("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
@@ -354,7 +354,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var mileIDs []int64
-	if part := strings.Split(ctx.Query("milestones"), ","); len(part) > 0 {
+	if part := strings.Split(ctx.Form("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
@@ -386,7 +386,7 @@ func ListIssues(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
-	switch ctx.Query("type") {
+	switch ctx.Form("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -448,7 +448,7 @@ func ListIssues(ctx *context.APIContext) {
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
-	userName := ctx.Query(queryName)
+	userName := ctx.Form(queryName)
 	if len(userName) == 0 {
 		return 0
 	}

@@ -86,10 +86,10 @@ func ListPullRequests(ctx *context.APIContext) {
 
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.QueryTrim("state"),
-		SortType:    ctx.QueryTrim("sort"),
-		Labels:      ctx.QueryStrings("labels"),
-		MilestoneID: ctx.QueryInt64("milestone"),
+		State:       ctx.FormTrim("state"),
+		SortType:    ctx.FormTrim("sort"),
+		Labels:      ctx.FormStrings("labels"),
+		MilestoneID: ctx.FormInt64("milestone"),
 	})
 
 	if err != nil {
@@ -310,7 +310,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	defer headGitRepo.Close()
 
 	// Check if another PR exists with the same targets
-	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestFlowGithub)
 	if err != nil {
 		if !models.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetUnmergedPullRequest", err)
