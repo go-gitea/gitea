@@ -199,7 +199,7 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 
 // CountTopics counts the number of topics matching the FindTopicOptions
 func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := x.Select("topic.*").Where(opts.toConds())
+	sess := x.Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
