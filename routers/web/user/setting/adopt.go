@@ -23,8 +23,8 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	allowDelete := ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = allowDelete
 
-	dir := ctx.Form("id")
-	action := ctx.Form("action")
+	dir := ctx.FormString("id")
+	action := ctx.FormString("action")
 
 	ctxUser := ctx.User
 	root := filepath.Join(models.UserPath(ctxUser.LowerName))

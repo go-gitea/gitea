@@ -34,7 +34,7 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	if ctx.Form("openid.return_to") != "" {
+	if ctx.FormString("openid.return_to") != "" {
 		signInOpenIDVerify(ctx)
 		return
 	}
@@ -46,7 +46,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Form("redirect_to")
+	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
@@ -129,7 +129,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url += "&openid.ns.sreg=http%3A%2F%2Fopenid.net%2Fextensions%2Fsreg%2F1.1"
 	url += "&openid.sreg.optional=nickname%2Cemail"
 
-	log.Trace("Form-passed openid-remember: %t", form.Remember)
+	log.Trace("FormString-passed openid-remember: %t", form.Remember)
 
 	if err := ctx.Session.Set("openid_signin_remember", form.Remember); err != nil {
 		log.Error("SignInOpenIDPost: Could not set openid_signin_remember in session: %v", err)

@@ -34,7 +34,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 
 // SetDiffViewStyle set diff style as render variable
 func SetDiffViewStyle(ctx *context.Context) {
-	queryStyle := ctx.Form("style")
+	queryStyle := ctx.FormString("style")
 
 	if !ctx.IsSigned {
 		ctx.Data["IsSplitStyle"] = queryStyle == "split"
@@ -62,7 +62,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
-	whitespaceBehavior := ctx.Form("whitespace")
+	whitespaceBehavior := ctx.FormString("whitespace")
 	switch whitespaceBehavior {
 	case "ignore-all", "ignore-eol", "ignore-change":
 		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior

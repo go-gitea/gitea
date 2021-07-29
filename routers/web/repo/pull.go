@@ -1129,8 +1129,8 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 // TriggerTask response for a trigger task request
 func TriggerTask(ctx *context.Context) {
 	pusherID := ctx.FormInt64("pusher")
-	branch := ctx.Form("branch")
-	secret := ctx.Form("secret")
+	branch := ctx.FormString("branch")
+	secret := ctx.FormString("secret")
 	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
 		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")

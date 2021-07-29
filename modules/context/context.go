@@ -287,8 +287,8 @@ func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
 }
 
-// Form returns request form as string with default
-func (ctx *Context) Form(key string, defaults ...string) string {
+// FormString returns request form as string with default
+func (ctx *Context) FormString(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustString(key, defaults...)
 }
 

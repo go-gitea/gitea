@@ -51,8 +51,8 @@ func Emails(ctx *context.Context) {
 		orderBy    models.SearchEmailOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Form("sort")
-	switch ctx.Form("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "email":
 		orderBy = models.SearchEmailOrderByEmail
 	case "reverseemail":
@@ -68,10 +68,10 @@ func Emails(ctx *context.Context) {
 
 	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
-	if len(ctx.Form("is_activated")) != 0 {
+	if len(ctx.FormString("is_activated")) != 0 {
 		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
 	}
-	if len(ctx.Form("is_primary")) != 0 {
+	if len(ctx.FormString("is_primary")) != 0 {
 		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
 	}
 
@@ -114,9 +114,9 @@ func ActivateEmail(ctx *context.Context) {
 	truefalse := map[string]bool{"1": true, "0": false}
 
 	uid := ctx.FormInt64("uid")
-	email := ctx.Form("email")
-	primary, okp := truefalse[ctx.Form("primary")]
-	activate, oka := truefalse[ctx.Form("activate")]
+	email := ctx.FormString("email")
+	primary, okp := truefalse[ctx.FormString("primary")]
+	activate, oka := truefalse[ctx.FormString("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
 		ctx.Error(http.StatusBadRequest)

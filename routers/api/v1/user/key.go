@@ -48,7 +48,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	var keys []*models.PublicKey
 	var err error
 
-	fingerprint := ctx.Form("fingerprint")
+	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
