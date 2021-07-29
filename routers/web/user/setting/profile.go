@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/unknwon/i18n"
@@ -76,6 +77,14 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			return err
 		}
 	}
+
+	// update all agit flow pull request header
+	err := agit.UserNameChanged(user, newName)
+	if err != nil {
+		ctx.ServerError("agit.UserNameChanged", err)
+		return err
+	}
+
 	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
