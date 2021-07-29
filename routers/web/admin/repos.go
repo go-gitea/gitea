@@ -7,7 +7,6 @@ package admin
 import (
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -111,7 +110,7 @@ func UnadoptedRepos(ctx *context.Context) {
 func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.FormString("id")
 	action := ctx.FormString("action")
-	page := ctx.FormInt("page")
+	page := ctx.FormString("page")
 	q := ctx.FormString("q")
 
 	dirSplit := strings.SplitN(dir, "/", 2)
@@ -162,5 +161,5 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + strconv.Itoa(page))
+	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + page)
 }
