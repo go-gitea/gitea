@@ -274,7 +274,7 @@ func TopicSearch(ctx *context.APIContext) {
 		return
 	}
 
-	kw := ctx.Query("q")
+	kw := ctx.Form("q")
 
 	listOptions := utils.GetListOptions(ctx)
 

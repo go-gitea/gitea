@@ -30,7 +30,7 @@ func Emails(ctx *context.Context) {
 	opts := &models.SearchEmailOptions{
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
-			Page:     ctx.QueryInt("page"),
+			Page:     ctx.FormInt("page"),
 		},
 	}
 
@@ -51,8 +51,8 @@ func Emails(ctx *context.Context) {
 		orderBy    models.SearchEmailOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.Form("sort")
+	switch ctx.Form("sort") {
 	case "email":
 		orderBy = models.SearchEmailOrderByEmail
 	case "reverseemail":
@@ -66,13 +66,13 @@ func Emails(ctx *context.Context) {
 		orderBy = models.SearchEmailOrderByEmail
 	}
 
-	opts.Keyword = ctx.QueryTrim("q")
+	opts.Keyword = ctx.FormTrim("q")
 	opts.SortType = orderBy
-	if len(ctx.Query("is_activated")) != 0 {
-		opts.IsActivated = util.OptionalBoolOf(ctx.QueryBool("activated"))
+	if len(ctx.Form("is_activated")) != 0 {
+		opts.IsActivated = util.OptionalBoolOf(ctx.FormBool("activated"))
 	}
-	if len(ctx.Query("is_primary")) != 0 {
-		opts.IsPrimary = util.OptionalBoolOf(ctx.QueryBool("primary"))
+	if len(ctx.Form("is_primary")) != 0 {
+		opts.IsPrimary = util.OptionalBoolOf(ctx.FormBool("primary"))
 	}
 
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
@@ -113,10 +113,10 @@ func ActivateEmail(ctx *context.Context) {
 
 	truefalse := map[string]bool{"1": true, "0": false}
 
-	uid := ctx.QueryInt64("uid")
-	email := ctx.Query("email")
-	primary, okp := truefalse[ctx.Query("primary")]
-	activate, oka := truefalse[ctx.Query("activate")]
+	uid := ctx.FormInt64("uid")
+	email := ctx.Form("email")
+	primary, okp := truefalse[ctx.Form("primary")]
+	activate, oka := truefalse[ctx.Form("activate")]
 
 	if uid == 0 || len(email) == 0 || !okp || !oka {
 		ctx.Error(http.StatusBadRequest)
@@ -139,16 +139,16 @@ func ActivateEmail(ctx *context.Context) {
 
 	redirect, _ := url.Parse(setting.AppSubURL + "/admin/emails")
 	q := url.Values{}
-	if val := ctx.QueryTrim("q"); len(val) > 0 {
+	if val := ctx.FormTrim("q"); len(val) > 0 {
 		q.Set("q", val)
 	}
-	if val := ctx.QueryTrim("sort"); len(val) > 0 {
+	if val := ctx.FormTrim("sort"); len(val) > 0 {
 		q.Set("sort", val)
 	}
-	if val := ctx.QueryTrim("is_primary"); len(val) > 0 {
+	if val := ctx.FormTrim("is_primary"); len(val) > 0 {
 		q.Set("is_primary", val)
 	}
-	if val := ctx.QueryTrim("is_activated"); len(val) > 0 {
+	if val := ctx.FormTrim("is_activated"); len(val) > 0 {
 		q.Set("is_activated", val)
 	}
 	redirect.RawQuery = q.Encode()

@@ -46,11 +46,11 @@ func MustEnableProjects(ctx *context.Context) {
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
-	sortType := ctx.QueryTrim("sort")
+	sortType := ctx.FormTrim("sort")
 
-	isShowClosed := strings.ToLower(ctx.QueryTrim("state")) == "closed"
+	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 	repo := ctx.Repo.Repository
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -346,7 +346,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.QueryInt64("id")
+	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		oldProjectID := issue.ProjectID()
 		if oldProjectID == projectID {

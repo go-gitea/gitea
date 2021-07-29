@@ -49,8 +49,8 @@ func Notifications(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if c.QueryBool("div-only") {
-		c.Data["SequenceNumber"] = c.Query("sequence-number")
+	if c.FormBool("div-only") {
+		c.Data["SequenceNumber"] = c.Form("sequence-number")
 		c.HTML(http.StatusOK, tplNotificationDiv)
 		return
 	}
@@ -59,10 +59,10 @@ func Notifications(c *context.Context) {
 
 func getNotifications(c *context.Context) {
 	var (
-		keyword = strings.Trim(c.Query("q"), " ")
+		keyword = strings.Trim(c.Form("q"), " ")
 		status  models.NotificationStatus
-		page    = c.QueryInt("page")
-		perPage = c.QueryInt("perPage")
+		page    = c.FormInt("page")
+		perPage = c.FormInt("perPage")
 	)
 	if page < 1 {
 		page = 1
@@ -87,7 +87,7 @@ func getNotifications(c *context.Context) {
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.Query("q"), pager.Paginater.Current()))
+		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.Form("q"), pager.Paginater.Current()))
 		return
 	}
 
@@ -166,8 +166,8 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	if !c.QueryBool("noredirect") {
-		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
+	if !c.FormBool("noredirect") {
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Form("page"))
 		c.Redirect(url, http.StatusSeeOther)
 	}
 
