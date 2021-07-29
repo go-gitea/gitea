@@ -56,12 +56,12 @@ func Commits(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	pageSize := ctx.QueryInt("limit")
+	pageSize := ctx.FormInt("limit")
 	if pageSize <= 0 {
 		pageSize = setting.Git.CommitsRangeSize
 	}
@@ -94,14 +94,14 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.commit_graph")
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
-	mode := strings.ToLower(ctx.QueryTrim("mode"))
+	mode := strings.ToLower(ctx.FormTrim("mode"))
 	if mode != "monochrome" {
 		mode = "color"
 	}
 	ctx.Data["Mode"] = mode
-	hidePRRefs := ctx.QueryBool("hide-pr-refs")
+	hidePRRefs := ctx.FormBool("hide-pr-refs")
 	ctx.Data["HidePRRefs"] = hidePRRefs
-	branches := ctx.QueryStrings("branch")
+	branches := ctx.FormStrings("branch")
 	realBranches := make([]string, len(branches))
 	copy(realBranches, branches)
 	for i, branch := range realBranches {
@@ -110,7 +110,7 @@ func Graph(ctx *context.Context) {
 		}
 	}
 	ctx.Data["SelectedBranches"] = realBranches
-	files := ctx.QueryStrings("file")
+	files := ctx.FormStrings("file")
 
 	commitsCount, err := ctx.Repo.GetCommitsCount()
 	if err != nil {
@@ -130,7 +130,7 @@ func Graph(ctx *context.Context) {
 		}
 	}
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 
 	graph, err := gitgraph.GetCommitGraph(ctx.Repo.GitRepo, page, 0, hidePRRefs, realBranches, files)
 	if err != nil {
@@ -167,7 +167,7 @@ func Graph(ctx *context.Context) {
 		paginator.AddParamString("file", file)
 	}
 	ctx.Data["Page"] = paginator
-	if ctx.QueryBool("div-only") {
+	if ctx.FormBool("div-only") {
 		ctx.HTML(http.StatusOK, tplGraphDiv)
 		return
 	}
@@ -180,13 +180,13 @@ func SearchCommits(ctx *context.Context) {
 	ctx.Data["PageIsCommits"] = true
 	ctx.Data["PageIsViewCode"] = true
 
-	query := strings.Trim(ctx.Query("q"), " ")
+	query := strings.Trim(ctx.Form("q"), " ")
 	if len(query) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/commits/" + ctx.Repo.BranchNameSubURL())
 		return
 	}
 
-	all := ctx.QueryBool("all")
+	all := ctx.FormBool("all")
 	opts := git.NewSearchCommitsOptions(query, all)
 	commits, err := ctx.Repo.Commit.SearchCommits(opts)
 	if err != nil {
@@ -229,7 +229,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}

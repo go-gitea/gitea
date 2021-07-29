@@ -18,7 +18,7 @@ import (
 )
 
 func goGet(ctx *context.Context) {
-	if ctx.Req.Method != "GET" || ctx.Query("go-get") != "1" || len(ctx.Req.URL.Query()) > 1 {
+	if ctx.Req.Method != "GET" || ctx.Form("go-get") != "1" || len(ctx.Req.URL.Query()) > 1 {
 		return
 	}
 

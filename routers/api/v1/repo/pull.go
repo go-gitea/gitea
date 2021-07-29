@@ -86,10 +86,10 @@ func ListPullRequests(ctx *context.APIContext) {
 
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.QueryTrim("state"),
-		SortType:    ctx.QueryTrim("sort"),
-		Labels:      ctx.QueryStrings("labels"),
-		MilestoneID: ctx.QueryInt64("milestone"),
+		State:       ctx.FormTrim("state"),
+		SortType:    ctx.FormTrim("sort"),
+		Labels:      ctx.FormStrings("labels"),
+		MilestoneID: ctx.FormInt64("milestone"),
 	})
 
 	if err != nil {

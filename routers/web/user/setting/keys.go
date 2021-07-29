@@ -193,15 +193,15 @@ func KeysPost(ctx *context.Context) {
 // DeleteKey response for delete user's SSH/GPG key
 func DeleteKey(ctx *context.Context) {
 
-	switch ctx.Query("type") {
+	switch ctx.Form("type") {
 	case "gpg":
-		if err := models.DeleteGPGKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		if err := models.DeleteGPGKey(ctx.User, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		keyID := ctx.QueryInt64("id")
+		keyID := ctx.FormInt64("id")
 		external, err := models.PublicKeyIsExternallyManaged(keyID)
 		if err != nil {
 			ctx.ServerError("sshKeysExternalManaged", err)
@@ -218,7 +218,7 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
 	case "principal":
-		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		if err := models.DeletePublicKey(ctx.User, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
@@ -265,5 +265,5 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["Principals"] = principals
 
-	ctx.Data["VerifyingID"] = ctx.Query("verify_gpg")
+	ctx.Data["VerifyingID"] = ctx.Form("verify_gpg")
 }

@@ -133,14 +133,14 @@ func Create(ctx *context.Context) {
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
+	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
-	templateID := ctx.QueryInt64("template_id")
+	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := models.GetRepositoryByID(templateID)
 		if err == nil && templateRepo.CheckUnitUser(ctxUser, models.UnitTypeCode) {
@@ -291,8 +291,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		ctx.Repo.Repository.Description = ctx.Query("desc")
-		ctx.Repo.Repository.Website = ctx.Query("site")
+		ctx.Repo.Repository.Description = ctx.Form("desc")
+		ctx.Repo.Repository.Website = ctx.Form("site")
 		err = models.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
@@ -301,7 +301,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToFirst(ctx.Form("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
