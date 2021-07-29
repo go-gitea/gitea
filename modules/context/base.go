@@ -109,41 +109,38 @@ func (ctx *BaseContext) Value(key interface{}) interface{} {
 	return ctx.Req.Context().Value(key)
 }
 
-// FIXME: We should differ Query and Form, currently we just use form as query
-// Currently to be compatible with macaron, we keep it.
-
-// Query returns request form as string with default
-func (ctx *BaseContext) Query(key string, defaults ...string) string {
+// Form returns request form as string with default
+func (ctx *BaseContext) Form(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustString(key, defaults...)
 }
 
-// QueryTrim returns request form as string with default and trimmed spaces
-func (ctx *BaseContext) QueryTrim(key string, defaults ...string) string {
+// FormTrim returns request form as string with default and trimmed spaces
+func (ctx *BaseContext) FormTrim(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
 }
 
-// QueryStrings returns request form as strings with default
-func (ctx *BaseContext) QueryStrings(key string, defaults ...[]string) []string {
+// FormStrings returns request form as strings with default
+func (ctx *BaseContext) FormStrings(key string, defaults ...[]string) []string {
 	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
 }
 
-// QueryInt returns request form as int with default
-func (ctx *BaseContext) QueryInt(key string, defaults ...int) int {
+// FormInt returns request form as int with default
+func (ctx *BaseContext) FormInt(key string, defaults ...int) int {
 	return (*Forms)(ctx.Req).MustInt(key, defaults...)
 }
 
-// QueryInt64 returns request form as int64 with default
-func (ctx *BaseContext) QueryInt64(key string, defaults ...int64) int64 {
+// FormInt64 returns request form as int64 with default
+func (ctx *BaseContext) FormInt64(key string, defaults ...int64) int64 {
 	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
 }
 
-// QueryBool returns request form as bool with default
-func (ctx *BaseContext) QueryBool(key string, defaults ...bool) bool {
+// FormBool returns request form as bool with default
+func (ctx *BaseContext) FormBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
-// QueryOptionalBool returns request form as OptionalBool with default
-func (ctx *BaseContext) QueryOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
+// FormOptionalBool returns request form as OptionalBool with default
+func (ctx *BaseContext) FormOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
 	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
 
