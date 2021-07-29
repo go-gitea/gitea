@@ -26,7 +26,7 @@ func Security(ctx *context.Context) {
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["RequireU2F"] = true
 
-	if ctx.Query("openid.return_to") != "" {
+	if ctx.Form("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
 		return
 	}
@@ -38,7 +38,7 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	id := ctx.QueryInt64("id")
+	id := ctx.FormInt64("id")
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {

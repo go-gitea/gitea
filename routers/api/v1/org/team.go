@@ -658,9 +658,9 @@ func SearchTeam(ctx *context.APIContext) {
 
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
-		Keyword:     strings.TrimSpace(ctx.Query("q")),
+		Keyword:     strings.TrimSpace(ctx.Form("q")),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc"),
+		IncludeDesc: ctx.Form("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
 	}
 

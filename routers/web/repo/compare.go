@@ -696,15 +696,15 @@ func CompareDiff(ctx *context.Context) {
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.Params("sha")
-	lastLeft := ctx.QueryInt("last_left")
-	lastRight := ctx.QueryInt("last_right")
-	idxLeft := ctx.QueryInt("left")
-	idxRight := ctx.QueryInt("right")
-	leftHunkSize := ctx.QueryInt("left_hunk_size")
-	rightHunkSize := ctx.QueryInt("right_hunk_size")
-	anchor := ctx.Query("anchor")
-	direction := ctx.Query("direction")
-	filePath := ctx.Query("path")
+	lastLeft := ctx.FormInt("last_left")
+	lastRight := ctx.FormInt("last_right")
+	idxLeft := ctx.FormInt("left")
+	idxRight := ctx.FormInt("right")
+	leftHunkSize := ctx.FormInt("left_hunk_size")
+	rightHunkSize := ctx.FormInt("right_hunk_size")
+	anchor := ctx.Form("anchor")
+	direction := ctx.Form("direction")
+	filePath := ctx.Form("path")
 	gitRepo := ctx.Repo.GitRepo
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)

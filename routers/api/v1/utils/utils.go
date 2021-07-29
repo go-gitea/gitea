@@ -54,7 +54,7 @@ func parseTime(value string) (int64, error) {
 
 // prepareQueryArg unescape and trim a query arg
 func prepareQueryArg(ctx *context.APIContext, name string) (value string, err error) {
-	value, err = url.PathUnescape(ctx.Query(name))
+	value, err = url.PathUnescape(ctx.Form(name))
 	value = strings.TrimSpace(value)
 	return
 }
@@ -62,7 +62,7 @@ func prepareQueryArg(ctx *context.APIContext, name string) (value string, err er
 // GetListOptions returns list options using the page and limit parameters
 func GetListOptions(ctx *context.APIContext) models.ListOptions {
 	return models.ListOptions{
-		Page:     ctx.QueryInt("page"),
-		PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+		Page:     ctx.FormInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}
 }
