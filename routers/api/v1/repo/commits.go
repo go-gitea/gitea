@@ -147,7 +147,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		listOptions.PageSize = setting.Git.CommitsRangeSize
 	}
 
-	sha := ctx.Query("sha")
+	sha := ctx.Form("sha")
 
 	var baseCommit *git.Commit
 	if len(sha) == 0 {
