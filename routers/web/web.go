@@ -1357,6 +1357,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
 				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
 				m.Get("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
+				m.Options("/*", func(ctx *context.Context) {}) // to ensure middlewares could handle options requests
 			}, repo.HTTPMustEnabled(), ignSignInAndCsrf, repo.HTTPCors(), context_service.UserAssignmentWeb())
 		})
 	})

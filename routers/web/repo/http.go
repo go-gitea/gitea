@@ -50,25 +50,34 @@ func HTTPMustEnabled() func(ctx *context.Context) {
 
 // HTTPCors check if cors matched
 func HTTPCors() func(ctx *context.Context) {
-	var allowedOrigin = setting.Repository.AccessControlAllowOrigin
-	if len(allowedOrigin) == 0 {
+	var allowedOrigins = setting.Repository.AccessControlAllowOrigin
+	if len(allowedOrigins) == 0 {
 		return func(ctx *context.Context) {}
 	}
 
 	return func(ctx *context.Context) {
 		// Set CORS headers for browser-based git clients
-		ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		allowedOriginSlices := strings.Split(allowedOrigins, ",")
+		var matchAll util.OptionalBool //
+		for _, allowedOrigin := range allowedOriginSlices {
+			if allowedOrigin == "*" {
+				matchAll = util.OptionalBoolTrue
+			} else if allowedOrigin == "null" {
+				matchAll = util.OptionalBoolFalse
+			}
+			ctx.Resp.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		}
 		ctx.Resp.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, User-Agent")
 
 		// Handle preflight OPTIONS request
 		if ctx.Req.Method == "OPTIONS" {
-			if allowedOrigin == "*" {
+			if matchAll.IsTrue() {
 				ctx.Status(http.StatusOK)
-			} else if allowedOrigin == "null" {
+			} else if matchAll.IsFalse() {
 				ctx.Status(http.StatusForbidden)
 			} else {
 				origin := ctx.Req.Header.Get("Origin")
-				if len(origin) > 0 && origin == allowedOrigin {
+				if len(origin) > 0 && util.IsStringInSlice(origin, allowedOriginSlices) {
 					ctx.Status(http.StatusOK)
 				} else {
 					ctx.Status(http.StatusForbidden)

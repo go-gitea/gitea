@@ -42,6 +42,9 @@ menu:
 - `DEFAULT_PUSH_CREATE_PRIVATE`: **true**:  通过 ``push-to-create`` 方式创建的仓库是否默认为私有仓库.
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
+- `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: `Access-Control-Allow-Origin`请求头的值，默认为空。
+   设置为 `*` 将允许来自任意网站的请求，为 `null` 则屏蔽所有网站的请求。也可以允许用逗号连接的多个网址，比如： `https://gitea.com,https://api.gitea.com`
+   **警告**: 如果此项设置不正确，可能会对你的网站产生负面影响。
 
 ### Repository - Release (`repository.release`)
 

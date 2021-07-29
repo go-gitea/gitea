@@ -98,8 +98,9 @@ In addition there is _`StaticRootPath`_ which can be set as a built-in at build 
 - `USE_COMPAT_SSH_URI`: **false**: Force ssh:// clone url instead of scp-style uri when
    default SSH port is used.
 - `ACCESS_CONTROL_ALLOW_ORIGIN`: **\<empty\>**: Value for Access-Control-Allow-Origin header,
-   default is not to present. **WARNING**: This maybe harmful to you website if you do not
-   give it a right value.
+   default is not to present. You can give `*` to allow requests from any website or `null` to not allow any.
+   This allow multiple websites via comma an no space. i.e. `https://gitea.com,https://api.gitea.com`
+   **WARNING**: This maybe harmful to you website if you do not give it a right value. 
 - `DEFAULT_CLOSE_ISSUES_VIA_COMMITS_IN_ANY_BRANCH`:  **false**: Close an issue if a commit on a non default branch marks it as closed.
 - `ENABLE_PUSH_CREATE_USER`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for a user.
 - `ENABLE_PUSH_CREATE_ORG`:  **false**: Allow users to push local repositories to Gitea and have them automatically created for an org.
