@@ -81,7 +81,7 @@ func TestWiki(t *testing.T) {
 	Wiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
-	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name"}, ctx.Data["Pages"])
+	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
 }
 
 func TestWikiPages(t *testing.T) {
@@ -91,7 +91,7 @@ func TestWikiPages(t *testing.T) {
 	test.LoadRepo(t, ctx, 1)
 	WikiPages(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name"}, ctx.Data["Pages"])
+	assertPagesMetas(t, []string{"Home", "Page With Image", "Page With Spaced Name", "Unescaped File"}, ctx.Data["Pages"])
 }
 
 func TestNewWiki(t *testing.T) {

@@ -287,8 +287,16 @@ func printStat(fileStats []FileStat) string {
 	for _, fs := range fileStats {
 		addn := float64(fs.Addition)
 		deln := float64(fs.Deletion)
-		adds := strings.Repeat("+", int(math.Floor(addn/scaleFactor)))
-		dels := strings.Repeat("-", int(math.Floor(deln/scaleFactor)))
+		addc := int(math.Floor(addn/scaleFactor))
+		delc := int(math.Floor(deln/scaleFactor))
+		if addc < 0 {
+			addc = 0
+		}
+		if delc < 0 {
+			delc = 0
+		}
+		adds := strings.Repeat("+", addc)
+		dels := strings.Repeat("-", delc)
 		finalOutput += fmt.Sprintf(" %s | %d %s%s\n", fs.Name, (fs.Addition + fs.Deletion), adds, dels)
 	}
 

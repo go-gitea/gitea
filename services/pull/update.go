@@ -25,6 +25,11 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 		BaseBranch: pull.HeadBranch,
 	}
 
+	if pull.Flow == models.PullRequestFlowAGit {
+		// TODO: Not support update agit flow pull request's head branch
+		return fmt.Errorf("Not support update agit flow pull request's head branch")
+	}
+
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -55,6 +60,10 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User, rebase bool) (bool, error) {
+	if pull.Flow == models.PullRequestFlowAGit {
+		return false, nil
+	}
+
 	if user == nil {
 		return false, nil
 	}
@@ -100,7 +109,9 @@ func GetDiverging(pr *models.PullRequest) (*git.DivergeObject, error) {
 
 	tmpRepo, err := createTemporaryRepo(pr)
 	if err != nil {
-		log.Error("CreateTemporaryPath: %v", err)
+		if !models.IsErrBranchDoesNotExist(err) {
+			log.Error("CreateTemporaryRepo: %v", err)
+		}
 		return nil, err
 	}
 	defer func() {

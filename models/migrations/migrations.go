@@ -187,7 +187,7 @@ var migrations = []Migration{
 	// v122 -> v123
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 	// v123 -> v124
-	NewMigration("Add original informations for reactions", addReactionOriginals),
+	NewMigration("Add original information for reactions", addReactionOriginals),
 	// v124 -> v125
 	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
 	// v125 -> v126
@@ -313,6 +313,24 @@ var migrations = []Migration{
 	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
 	// v181 -> v182
 	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	// v188 -> v189
+	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
+	// v189 -> v190
+	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
+	// v190 -> v191
+	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -8,7 +8,7 @@ import (
 // JSX lexer.
 //
 // This was generated from https://github.com/fcurella/jsx-lexer
-var JSX = internal.Register(MustNewLexer(
+var JSX = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "react",
 		Aliases:   []string{"jsx", "react"},
@@ -16,7 +16,11 @@ var JSX = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/jsx", "text/typescript-jsx"},
 		DotAll:    true,
 	},
-	Rules{
+	jsxRules,
+))
+
+func jsxRules() Rules {
+	return Rules{
 		"commentsandwhitespace": {
 			{`\s+`, Text, nil},
 			{`<!--`, Comment, nil},
@@ -91,5 +95,5 @@ var JSX = internal.Register(MustNewLexer(
 			{`}`, Punctuation, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

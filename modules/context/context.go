@@ -23,17 +23,18 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	"github.com/go-chi/chi"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -286,37 +287,39 @@ func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
 }
 
-// FIXME: We should differ Query and Form, currently we just use form as query
-// Currently to be compatible with macaron, we keep it.
-
-// Query returns request form as string with default
-func (ctx *Context) Query(key string, defaults ...string) string {
+// Form returns request form as string with default
+func (ctx *Context) Form(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustString(key, defaults...)
 }
 
-// QueryTrim returns request form as string with default and trimmed spaces
-func (ctx *Context) QueryTrim(key string, defaults ...string) string {
+// FormTrim returns request form as string with default and trimmed spaces
+func (ctx *Context) FormTrim(key string, defaults ...string) string {
 	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
 }
 
-// QueryStrings returns request form as strings with default
-func (ctx *Context) QueryStrings(key string, defaults ...[]string) []string {
+// FormStrings returns request form as strings with default
+func (ctx *Context) FormStrings(key string, defaults ...[]string) []string {
 	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
 }
 
-// QueryInt returns request form as int with default
-func (ctx *Context) QueryInt(key string, defaults ...int) int {
+// FormInt returns request form as int with default
+func (ctx *Context) FormInt(key string, defaults ...int) int {
 	return (*Forms)(ctx.Req).MustInt(key, defaults...)
 }
 
-// QueryInt64 returns request form as int64 with default
-func (ctx *Context) QueryInt64(key string, defaults ...int64) int64 {
+// FormInt64 returns request form as int64 with default
+func (ctx *Context) FormInt64(key string, defaults ...int64) int64 {
 	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
 }
 
-// QueryBool returns request form as bool with default
-func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
+// FormBool returns request form as bool with default
+func (ctx *Context) FormBool(key string, defaults ...bool) bool {
 	return (*Forms)(ctx.Req).MustBool(key, defaults...)
+}
+
+// FormOptionalBool returns request form as OptionalBool with default
+func (ctx *Context) FormOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
+	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
 
 // HandleText handles HTTP status code
@@ -374,6 +377,21 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
+// ServeStream serves file via io stream
+func (ctx *Context) ServeStream(rd io.Reader, name string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	_, err := io.Copy(ctx.Resp, rd)
+	if err != nil {
+		ctx.ServerError("Download file failed", err)
+	}
+}
+
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
 	var v = http.StatusText(status)
@@ -387,7 +405,6 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -606,7 +623,7 @@ func getCsrfOpts() CsrfOptions {
 }
 
 // Auth converts auth.Auth as a middleware
-func Auth(authMethod auth.Auth) func(*Context) {
+func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {

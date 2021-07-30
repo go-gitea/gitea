@@ -7,13 +7,13 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/json"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 )
@@ -32,8 +32,14 @@ type Task struct {
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
-	Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
 	Created        timeutil.TimeStamp `xorm:"created"`
+}
+
+// TranslatableMessage represents JSON struct that can be translated with a Locale
+type TranslatableMessage struct {
+	Format string
+	Args   []interface{} `json:"omitempty"`
 }
 
 // LoadRepo loads repository of the task
@@ -108,7 +114,6 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
@@ -184,7 +189,6 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	}
 
 	var opts migration.MigrateOptions
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
 		return nil, nil, err
 	}
@@ -234,11 +238,10 @@ func FinishMigrateTask(task *Task) error {
 	}
 	conf.AuthPassword = ""
 	conf.AuthToken = ""
-	conf.CloneAddr = util.SanitizeURLCredentials(conf.CloneAddr, true)
+	conf.CloneAddr = util.NewStringURLSanitizer(conf.CloneAddr, true).Replace(conf.CloneAddr)
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	confBytes, err := json.Marshal(conf)
 	if err != nil {
 		return err

@@ -32,7 +32,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// httpBase implmentation git smart HTTP protocol
+// httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) (h *serviceHandler) {
 	if setting.Repository.DisableHTTPGit {
 		ctx.Resp.WriteHeader(http.StatusForbidden)
@@ -70,13 +70,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
-	if ctx.Query("go-get") == "1" {
+	if ctx.Form("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return
 	}
 
 	var isPull, receivePack bool
-	service := ctx.Query("service")
+	service := ctx.Form("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
@@ -196,6 +196,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
+			}
+
+			// Because of special ref "refs/for" .. , need delay write permission check
+			if git.SupportProcReceive {
+				accessMode = models.AccessModeRead
 			}
 
 			if !perm.CanAccess(accessMode, unitType) {

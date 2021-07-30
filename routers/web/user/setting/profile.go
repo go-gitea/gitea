@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/unknwon/i18n"
@@ -38,6 +39,7 @@ const (
 func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -75,6 +77,14 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			return err
 		}
 	}
+
+	// update all agit flow pull request header
+	err := agit.UserNameChanged(user, newName)
+	if err != nil {
+		ctx.ServerError("agit.UserNameChanged", err)
+		return err
+	}
+
 	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
@@ -114,6 +124,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
+	ctx.User.Visibility = form.Visibility
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -226,7 +237,7 @@ func Repos(ctx *context.Context) {
 
 	opts := models.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
-		Page:     ctx.QueryInt("page"),
+		Page:     ctx.FormInt("page"),
 	}
 
 	if opts.Page <= 0 {

@@ -75,6 +75,17 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	if ctxUser.IsOrganization() {
+		org.Home(ctx)
+		return
+	}
+
+	// check view permissions
+	if !ctxUser.IsVisibleToUser(ctx.User) {
+		ctx.NotFound("user", fmt.Errorf(uname))
+		return
+	}
+
 	// Show SSH keys.
 	if isShowKeys {
 		ShowSSHKeys(ctx, ctxUser.ID)
@@ -84,11 +95,6 @@ func Profile(ctx *context.Context) {
 	// Show GPG keys.
 	if isShowGPG {
 		ShowGPGKeys(ctx, ctxUser.ID)
-		return
-	}
-
-	if ctxUser.IsOrganization() {
-		org.Home(ctx)
 		return
 	}
 
@@ -117,6 +123,7 @@ func Profile(ctx *context.Context) {
 		content, err := markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
+			GitRepo:   ctx.Repo.GitRepo,
 		}, ctxUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -136,15 +143,15 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
-	tab := ctx.Query("tab")
+	tab := ctx.Form("tab")
 	ctx.Data["TabName"] = tab
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	topicOnly := ctx.QueryBool("topic")
+	topicOnly := ctx.FormBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -153,8 +160,8 @@ func Profile(ctx *context.Context) {
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.Form("sort")
+	switch ctx.Form("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -180,7 +187,7 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
@@ -213,7 +220,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
-			Date:            ctx.Query("date"),
+			Date:            ctx.Form("date"),
 		})
 		if ctx.Written() {
 			return
@@ -325,5 +332,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
+	ctx.RedirectToFirst(ctx.Form("redirect_to"), u.HomeLink())
 }

@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
@@ -567,6 +568,18 @@ func PrepareCompareDiff(
 	} else {
 		title = headBranch
 	}
+	if len(title) > 255 {
+		var trailer string
+		title, trailer = util.SplitStringAtByteN(title, 255)
+		if len(trailer) > 0 {
+			if ctx.Data["content"] != nil {
+				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
+			} else {
+				ctx.Data["content"] = trailer + "\n"
+			}
+		}
+	}
+
 	ctx.Data["title"] = title
 	ctx.Data["Username"] = headUser.Name
 	ctx.Data["Reponame"] = headRepo.Name
@@ -640,7 +653,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
-		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestFlowGithub)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
@@ -683,15 +696,15 @@ func CompareDiff(ctx *context.Context) {
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.Params("sha")
-	lastLeft := ctx.QueryInt("last_left")
-	lastRight := ctx.QueryInt("last_right")
-	idxLeft := ctx.QueryInt("left")
-	idxRight := ctx.QueryInt("right")
-	leftHunkSize := ctx.QueryInt("left_hunk_size")
-	rightHunkSize := ctx.QueryInt("right_hunk_size")
-	anchor := ctx.Query("anchor")
-	direction := ctx.Query("direction")
-	filePath := ctx.Query("path")
+	lastLeft := ctx.FormInt("last_left")
+	lastRight := ctx.FormInt("last_right")
+	idxLeft := ctx.FormInt("left")
+	idxRight := ctx.FormInt("right")
+	leftHunkSize := ctx.FormInt("left_hunk_size")
+	rightHunkSize := ctx.FormInt("right_hunk_size")
+	anchor := ctx.Form("anchor")
+	direction := ctx.Form("direction")
+	filePath := ctx.Form("path")
 	gitRepo := ctx.Repo.GitRepo
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
@@ -714,7 +727,11 @@ func ExcerptBlob(ctx *context.Context) {
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight-1)
+		offset := -1
+		if direction == "down" {
+			offset = 0
+		}
+		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft

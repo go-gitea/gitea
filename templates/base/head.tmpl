@@ -30,6 +30,7 @@
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
 			AssetUrlPrefix: '{{AssetUrlPrefix}}',
+			CustomEmojis: {{CustomEmojis}},
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
@@ -59,6 +60,7 @@
 				{{ end }}
 			]).values()),
 			{{end}}
+			MermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
 		};
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">

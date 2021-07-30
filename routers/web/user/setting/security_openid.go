@@ -106,7 +106,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	if err := models.DeleteUserOpenID(&models.UserOpenID{ID: ctx.QueryInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := models.DeleteUserOpenID(&models.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteUserOpenID", err)
 		return
 	}
@@ -120,7 +120,7 @@ func DeleteOpenID(ctx *context.Context) {
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
-	if err := models.ToggleUserOpenIDVisibility(ctx.QueryInt64("id")); err != nil {
+	if err := models.ToggleUserOpenIDVisibility(ctx.FormInt64("id")); err != nil {
 		ctx.ServerError("ToggleUserOpenIDVisibility", err)
 		return
 	}

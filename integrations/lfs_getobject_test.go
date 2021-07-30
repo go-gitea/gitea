@@ -13,11 +13,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web"
 
-	jsoniter "github.com/json-iterator/go"
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
@@ -81,7 +82,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 
 func TestGetLFSSmall(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -94,7 +95,7 @@ func TestGetLFSSmall(t *testing.T) {
 
 func TestGetLFSLarge(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -110,7 +111,7 @@ func TestGetLFSLarge(t *testing.T) {
 
 func TestGetLFSGzip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -131,7 +132,7 @@ func TestGetLFSGzip(t *testing.T) {
 
 func TestGetLFSZip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -154,7 +155,7 @@ func TestGetLFSZip(t *testing.T) {
 
 func TestGetLFSRangeNo(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -167,7 +168,7 @@ func TestGetLFSRangeNo(t *testing.T) {
 
 func TestGetLFSRange(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -205,7 +206,7 @@ func TestGetLFSRange(t *testing.T) {
 				assert.Equal(t, tt.out, resp.Body.String())
 			} else {
 				var er lfs.ErrorResponse
-				err := jsoniter.Unmarshal(resp.Body.Bytes(), &er)
+				err := json.Unmarshal(resp.Body.Bytes(), &er)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.out, er.Message)
 			}

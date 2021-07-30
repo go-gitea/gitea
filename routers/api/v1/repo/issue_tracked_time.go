@@ -90,7 +90,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		IssueID:      issue.ID,
 	}
 
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := strings.Trim(ctx.Form("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -500,7 +500,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	}
 
 	// Filters
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := strings.Trim(ctx.Form("user"), " ")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -526,7 +526,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.User.ID
 		} else {
-			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query user not allowed not enouth rights"))
+			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
 		}
 	}

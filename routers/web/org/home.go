@@ -30,8 +30,8 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgVisible(org, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
+	if !models.HasOrgOrUserVisible(org, ctx.User) {
+		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 
@@ -41,6 +41,7 @@ func Home(ctx *context.Context) {
 		desc, err := markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
+			GitRepo:   ctx.Repo.GitRepo,
 		}, org.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -50,8 +51,8 @@ func Home(ctx *context.Context) {
 	}
 
 	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.Form("sort")
+	switch ctx.Form("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -77,10 +78,10 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 	ctx.Data["Keyword"] = keyword
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
