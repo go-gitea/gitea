@@ -3,7 +3,6 @@ import './publicpath.js';
 import Vue from 'vue';
 import {htmlEscape} from 'escape-goat';
 import 'jquery.are-you-sure';
-import './vendor/dropdown.js';
 
 import ActivityTopAuthors from './components/ActivityTopAuthors.vue';
 import attachTribute from './features/tribute.js';
