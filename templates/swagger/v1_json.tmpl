@@ -16,7 +16,7 @@
     "description": "This documentation describes the Gitea API.",
     "title": "Gitea API.",
     "license": {
-      "name": "MIT"i
+      "name": "MIT"
       "url": "http://opensource.org/licenses/MIT"
     },
     "version": "{{AppVer | JSEscape | Safe}}"
@@ -17818,47 +17818,4 @@
       "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
       "type": "apiKey",
       "name": "Sudo",
-      "in": "header"
-    },
-    "SudoParam": {
-      "description": "Sudo API request as the user provided as the key. Admin privileges are required.",
-      "type": "apiKey",
-      "name": "sudo",
-      "in": "query"
-    },
-    "TOTPHeader": {
-      "description": "Must be used in combination with BasicAuth if two-factor authentication is enabled.",
-      "type": "apiKey",
-      "name": "X-GITEA-OTP",
-      "in": "header"
-    },
-    "Token": {
-      "type": "apiKey",
-      "name": "token",
-      "in": "query"
-    }
-  },
-  "security": [
-    {
-      "BasicAuth": []
-    },
-    {
-      "Token": []
-    },
-    {
-      "AccessToken": []
-    },
-    {
-      "AuthorizationHeaderToken": []
-    },
-    {
-      "SudoParam": []
-    },
-    {
-      "SudoHeader": []
-    },
-    {
-      "TOTPHeader": []
-    }
-  ]
-}
+      "in": "header
