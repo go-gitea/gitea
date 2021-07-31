@@ -122,7 +122,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	lastRead := int64(0)
-	qLastRead := strings.Trim(ctx.Query("last_read_at"), " ")
+	qLastRead := strings.Trim(ctx.Form("last_read_at"), " ")
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
@@ -137,8 +137,8 @@ func ReadNotifications(ctx *context.APIContext) {
 		UserID:            ctx.User.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
-	if !ctx.QueryBool("all") {
-		statuses := ctx.QueryStrings("status-types")
+	if !ctx.FormBool("all") {
+		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
 	nl, err := models.GetNotifications(opts)
@@ -147,7 +147,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.Form("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}

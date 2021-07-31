@@ -36,7 +36,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
 
-	isShowClosed := ctx.Query("state") == "closed"
+	isShowClosed := ctx.Form("state") == "closed"
 	stats, err := models.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
 	if err != nil {
 		ctx.ServerError("MilestoneStats", err)
@@ -45,11 +45,11 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 
-	sortType := ctx.Query("sort")
+	sortType := ctx.Form("sort")
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -253,7 +253,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 
 // DeleteMilestone delete a milestone
 func DeleteMilestone(ctx *context.Context) {
-	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
+	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteMilestoneByRepoID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))

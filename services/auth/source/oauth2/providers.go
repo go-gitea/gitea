@@ -113,6 +113,9 @@ func RegisterProviderWithGothic(providerName string, source *Source) error {
 	provider, err := createProvider(providerName, source)
 
 	if err == nil && provider != nil {
+		gothRWMutex.Lock()
+		defer gothRWMutex.Unlock()
+
 		goth.UseProviders(provider)
 	}
 
@@ -121,11 +124,17 @@ func RegisterProviderWithGothic(providerName string, source *Source) error {
 
 // RemoveProviderFromGothic removes the given OAuth2 provider from the goth lib
 func RemoveProviderFromGothic(providerName string) {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	delete(goth.GetProviders(), providerName)
 }
 
 // ClearProviders clears all OAuth2 providers from the goth lib
 func ClearProviders() {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	goth.ClearProviders()
 }
 

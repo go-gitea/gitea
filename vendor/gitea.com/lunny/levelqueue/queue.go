@@ -295,6 +295,11 @@ func (queue *Queue) LHandle(h func([]byte) error) error {
 
 // Close closes the queue (and the underlying db is set to closeUnderlyingDB)
 func (queue *Queue) Close() error {
+	queue.highLock.Lock()
+	queue.lowLock.Lock()
+	defer queue.highLock.Unlock()
+	defer queue.lowLock.Unlock()
+
 	if !queue.closeUnderlyingDB {
 		queue.db = nil
 		return nil
