@@ -121,6 +121,9 @@ func RegisterProvider(providerName, providerType, clientID, clientSecret, openID
 	provider, err := createProvider(providerName, providerType, clientID, clientSecret, openIDConnectAutoDiscoveryURL, customURLMapping)
 
 	if err == nil && provider != nil {
+		gothRWMutex.Lock()
+		defer gothRWMutex.Unlock()
+
 		goth.UseProviders(provider)
 	}
 
@@ -129,11 +132,17 @@ func RegisterProvider(providerName, providerType, clientID, clientSecret, openID
 
 // RemoveProvider removes the given OAuth2 provider from the goth lib
 func RemoveProvider(providerName string) {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	delete(goth.GetProviders(), providerName)
 }
 
 // ClearProviders clears all OAuth2 providers from the goth lib
 func ClearProviders() {
+	gothRWMutex.Lock()
+	defer gothRWMutex.Unlock()
+
 	goth.ClearProviders()
 }
 

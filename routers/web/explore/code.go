@@ -33,14 +33,14 @@ func Code(ctx *context.Context) {
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 
-	language := strings.TrimSpace(ctx.Query("l"))
-	keyword := strings.TrimSpace(ctx.Query("q"))
-	page := ctx.QueryInt("page")
+	language := strings.TrimSpace(ctx.Form("l"))
+	keyword := strings.TrimSpace(ctx.Form("q"))
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	queryType := strings.TrimSpace(ctx.Query("t"))
+	queryType := strings.TrimSpace(ctx.Form("t"))
 	isMatch := queryType == "match"
 
 	var (

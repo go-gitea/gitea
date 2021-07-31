@@ -161,7 +161,7 @@ func setTagsContext(ctx *context.Context) error {
 }
 
 func selectProtectedTagByContext(ctx *context.Context) *models.ProtectedTag {
-	id := ctx.QueryInt64("id")
+	id := ctx.FormInt64("id")
 	if id == 0 {
 		id = ctx.ParamsInt64(":id")
 	}
