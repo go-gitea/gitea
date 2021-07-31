@@ -282,17 +282,21 @@
 						</div>
 						<div class="item-section-right">
 							{{if and .UpdateAllowed (not .UpdateByRebaseNotAllowed)}}
-								<div class="ui dropdown jump item" tabindex="-1" data-variation="tiny inverted">
-									<span class="text">
-										{{$.i18n.Tr "repo.pulls.update_branch"}}
-									</span>
-									<div class="menu user-menu" tabindex="-1">
-										<a class="item link-action" href data-url="{{.Link}}/update" data-redirect="{{.Link}}">
-											merge
-										</a>
-										<a class="item ui red link-action" href data-url="{{.Link}}/update?style=rebase" data-redirect="{{.Link}}">
-											rebase
-										</a>
+								<div class="dib">
+									<div class="ui buttons update-button">
+										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+											<span class="button-text">
+												{{$.i18n.Tr "repo.pulls.update_branch"}}
+											</span>
+										</button>
+
+										<div class="ui dropdown icon button no-text">
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="menu">
+												<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
+												<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
+											</div>
+										</div>
 									</div>
 								</div>
 							{{end}}
