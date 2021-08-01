@@ -9,9 +9,16 @@ A [go](http://www.golang.org) (or 'golang' for search engine friendliness) imple
 
 Future releases will be using the `github.com/golang-jwt/jwt` import path and continue the existing versioning scheme of `v3.x.x+incompatible`. Backwards-compatible patches and fixes will be done on the `v3` release branch, where as new build-breaking features will be developed in a `v4` release, possibly including a SIV-style import path.
 
-**SECURITY NOTICE:** Some older versions of Go have a security issue in the crypto/elliptic. Recommendation is to upgrade to at least 1.8.3. See issue [dgrijalva/jwt-go#216](https://github.com/dgrijalva/jwt-go/issues/216) for more detail.
+**SECURITY NOTICE:** Some older versions of Go have a security issue in the crypto/elliptic. Recommendation is to upgrade to at least 1.15 See issue [dgrijalva/jwt-go#216](https://github.com/dgrijalva/jwt-go/issues/216) for more detail.
 
 **SECURITY NOTICE:** It's important that you [validate the `alg` presented is what you expect](https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/). This library attempts to make it easy to do the right thing by requiring key types match the expected alg, but you should take the extra step to verify it in your usage.  See the examples provided.
+
+### Supported Go versions
+
+Our support of Go versions is aligned with Go's [version release policy](https://golang.org/doc/devel/release#policy).
+So we will support a major version of Go until there are two newer major releases.
+We no longer support building jwt-go with unsupported Go versions, as these contain security vulnerabilities
+which will not be fixed.
 
 ## What the heck is a JWT?
 
