@@ -50,7 +50,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
-	content := ctx.Query("content")
+	content := ctx.Form("content")
 
 	publicKey, err := models.SearchPublicKeyByContent(content)
 	if err != nil {

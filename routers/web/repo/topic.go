@@ -23,7 +23,7 @@ func TopicsPost(ctx *context.Context) {
 	}
 
 	var topics = make([]string, 0)
-	var topicsStr = strings.TrimSpace(ctx.Query("topics"))
+	var topicsStr = strings.TrimSpace(ctx.Form("topics"))
 	if len(topicsStr) > 0 {
 		topics = strings.Split(topicsStr, ",")
 	}
