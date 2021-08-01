@@ -355,7 +355,7 @@ watch-backend: go-check
 	air -c .air.conf
 
 .PHONY: test
-test: test-backend
+test: test-frontend test-backend
 
 .PHONY: test-backend
 test-backend:

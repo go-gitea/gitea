@@ -71,7 +71,7 @@ steps:
     depends_on: [lint-backend]
 
   - name: test-frontend
-    image: node:16
+    image: node:16.5
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
