@@ -3,7 +3,6 @@ package jwt
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"errors"
 	"math/big"
 )
@@ -93,56 +92,4 @@ func (m *SigningMethodECDSA) Verify(signingString, signature string, key interfa
 	}
 
 	return ErrECDSAVerification
-}
-
-// Implements the Sign method from SigningMethod
-// For this signing method, key must be an ecdsa.PrivateKey struct
-func (m *SigningMethodECDSA) Sign(signingString string, key interface{}) (string, error) {
-	// Get the key
-	var ecdsaKey *ecdsa.PrivateKey
-	switch k := key.(type) {
-	case *ecdsa.PrivateKey:
-		ecdsaKey = k
-	default:
-		return "", ErrInvalidKeyType
-	}
-
-	// Create the hasher
-	if !m.Hash.Available() {
-		return "", ErrHashUnavailable
-	}
-
-	hasher := m.Hash.New()
-	hasher.Write([]byte(signingString))
-
-	// Sign the string and return r, s
-	if r, s, err := ecdsa.Sign(rand.Reader, ecdsaKey, hasher.Sum(nil)); err == nil {
-		curveBits := ecdsaKey.Curve.Params().BitSize
-
-		if m.CurveBits != curveBits {
-			return "", ErrInvalidKey
-		}
-
-		keyBytes := curveBits / 8
-		if curveBits%8 > 0 {
-			keyBytes += 1
-		}
-
-		// We serialize the outpus (r and s) into big-endian byte arrays and pad
-		// them with zeros on the left to make sure the sizes work out. Both arrays
-		// must be keyBytes long, and the output must be 2*keyBytes long.
-		rBytes := r.Bytes()
-		rBytesPadded := make([]byte, keyBytes)
-		copy(rBytesPadded[keyBytes-len(rBytes):], rBytes)
-
-		sBytes := s.Bytes()
-		sBytesPadded := make([]byte, keyBytes)
-		copy(sBytesPadded[keyBytes-len(sBytes):], sBytes)
-
-		out := append(rBytesPadded, sBytesPadded...)
-
-		return EncodeSegment(out), nil
-	} else {
-		return "", err
-	}
 }
