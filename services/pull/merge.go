@@ -307,6 +307,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		outbuf.Reset()
 		errbuf.Reset()
 
+		// not need merge, just update by rebase. so skip
 		if mergeStyle == models.MergeStyleRebaseUpdate {
 			break
 		}
@@ -418,6 +419,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 
 	var pushCmd *git.Command
 	if mergeStyle == models.MergeStyleRebaseUpdate {
+		// force push the rebase result to head brach
 		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":refs/heads/"+pr.HeadBranch)
 	} else {
 		pushCmd = git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch)

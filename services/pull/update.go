@@ -67,17 +67,17 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User, rebase bool) (bool, error) {
+func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == models.PullRequestFlowAGit {
-		return false, nil
+		return false, false, nil
 	}
 
 	if user == nil {
-		return false, nil
+		return false, false, nil
 	}
 	headRepoPerm, err := models.GetUserRepoPermission(pull.HeadRepo, user)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	pr := &models.PullRequest{
@@ -89,20 +89,25 @@ func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User, rebase b
 
 	err = pr.LoadProtectedBranch()
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
-	if rebase && pr.ProtectedBranch != nil {
-		return false, err
+	if pr.ProtectedBranch == nil {
+		rebaseAllowed = true
 	}
 
 	// Update function need push permission
 	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
-		return false, nil
+		return false, false, nil
 	}
 
-	return IsUserAllowedToMerge(pr, headRepoPerm, user)
+	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
+	if err != nil {
+		return false, false, err
+	}
+
+	return mergeAllowed, rebaseAllowed, nil
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch

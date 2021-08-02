@@ -281,7 +281,7 @@
 							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 						</div>
 						<div class="item-section-right">
-							{{if and .UpdateAllowed (not .UpdateByRebaseNotAllowed)}}
+							{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
 								<div class="dib">
 									<div class="ui buttons update-button">
 										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
@@ -300,7 +300,7 @@
 									</div>
 								</div>
 							{{end}}
-							{{if and .UpdateAllowed .UpdateByRebaseNotAllowed}}
+							{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
 								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
 									{{.CsrfTokenHtml}}
 									<button class="ui compact button" data-do="update">
@@ -579,7 +579,7 @@
 						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 					</div>
 					<div>
-						{{if and .UpdateAllowed (not .UpdateByRebaseNotAllowed)}}
+						{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
 							<div class="dib">
 								<div class="ui buttons update-button">
 									<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
@@ -598,7 +598,7 @@
 								</div>
 							</div>
 						{{end}}
-						{{if and .UpdateAllowed .UpdateByRebaseNotAllowed}}
+						{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
 							<form action="{{.Link}}/update" method="post">
 								{{.CsrfTokenHtml}}
 								<button class="ui compact button" data-do="update">

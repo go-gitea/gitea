@@ -1119,13 +1119,13 @@ func UpdatePullRequest(ctx *context.APIContext) {
 
 	rebase := ctx.Form("style") == "rebase"
 
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User, rebase)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserAllowedToMerge", err)
 		return
 	}
 
-	if !allowedUpdate {
+	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
