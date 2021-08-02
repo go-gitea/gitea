@@ -126,7 +126,7 @@ func UpdateTopics(ctx *context.APIContext) {
 
 // AddTopic adds a topic name to a repo
 func AddTopic(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/topics/{topic} repository repoAddTopíc
+	// swagger:operation PUT /repos/{owner}/{repo}/topics/{topic} repository repoAddTopic
 	// ---
 	// summary: Add a topic to a repository
 	// produces:
