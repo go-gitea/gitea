@@ -770,6 +770,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			username := ctx.Data["SignedUserName"].(string)
+			identityPtr := ctx.Req.Context().Value(signedUserNameStringPointerKey).(*string)
+			if identityPtr != nil && username != "" {
+				*identityPtr = username
+			}
+
 		})
 	}
 }
