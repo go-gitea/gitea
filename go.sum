@@ -49,8 +49,6 @@ gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e h1:YjaQU6XFicdhPN+Ml
 gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e/go.mod h1:nfA7JaGv3hbGQ1ktdhAsZhdS84qKffI8NMlHr+Opsog=
 gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee h1:9U6HuKUBt/cGK6T/64dEuz0r7Yp97WAAEJvXHDlY3ws=
 gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee/go.mod h1:Ozg8IchVNb/Udg+ui39iHRYqVHSvf3C99ixdpLR8Vu0=
-gitea.com/lunny/levelqueue v0.3.0 h1:MHn1GuSZkxvVEDMyAPqlc7A3cOW+q8RcGhRgH/xtm6I=
-gitea.com/lunny/levelqueue v0.3.0/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/lunny/levelqueue v0.4.0 h1:v+bCR1lwLTBpZMshguWNhGIFLkUj+R04pgaU3TcJFS8=
 gitea.com/lunny/levelqueue v0.4.0/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
@@ -477,8 +475,8 @@ github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14 h1:yXtpJr/LV6PFu4nTLgfjQ
 github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14/go.mod h1:jPoNZLWDAqA5N3G5amEoiNbhVrmM+ZQEcnQvNQ2KaZk=
 github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85 h1:UjoPNDAQ5JPCjlxoJd6K8ALZqSDDhk2ymieAZOVaDg0=
 github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85/go.mod h1:fR6z1Ie6rtF7kl/vBYMfgD5/G5B1blui7z426/sj2DU=
-github.com/golang-jwt/jwt v3.2.1+incompatible h1:73Z+4BJcrTC+KczS6WvTPvRGOp1WmfEP4Q1lOd9Z/+c=
-github.com/golang-jwt/jwt v3.2.1+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
+github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
+github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe h1:lXe2qZdvpiX5WZkZR4hgp4KJVfY3nMkvmwbVkpv1rVY=
 github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe/go.mod h1:8vg3r2VgvsThLBIFL93Qb5yWzgyZWhEmBwUJWevAkK0=
 github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b/go.mod h1:SBH7ygxi8pfUlaOkMMuAQtPIUF8ecWP5IEl/CR7VP2Q=
