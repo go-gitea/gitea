@@ -5,11 +5,15 @@
 package wiki
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -260,4 +264,29 @@ func TestPrepareWikiFileName(t *testing.T) {
 			assert.Equal(t, tt.wikiPath, newWikiPath)
 		})
 	}
+}
+
+func TestPrepareWikiFileName_FirstPage(t *testing.T) {
+	models.PrepareTestEnv(t)
+
+	// Now create a temporaryDirectory
+	tmpDir, err := ioutil.TempDir("", "empty-wiki")
+	assert.NoError(t, err)
+	defer func() {
+		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
+			_ = util.RemoveAll(tmpDir)
+		}
+	}()
+
+	err = git.InitRepository(tmpDir, true)
+	assert.NoError(t, err)
+
+	gitRepo, err := git.OpenRepository(tmpDir)
+	defer gitRepo.Close()
+	assert.NoError(t, err)
+
+	existence, newWikiPath, err := prepareWikiFileName(gitRepo, "Home")
+	assert.False(t, existence)
+	assert.NoError(t, err)
+	assert.Equal(t, "Home.md", newWikiPath)
 }
