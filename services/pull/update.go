@@ -57,7 +57,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 
 	defer func() {
 		if rebase {
-			go AddTestPullRequestTask(doer, pr.BaseRepo.RepoID, pr.BaseBranch, false, "", "")
+			go AddTestPullRequestTask(doer, pr.BaseRepo.ID, pr.BaseBranch, false, "", "")
 			return
 		}
 		go AddTestPullRequestTask(doer, pr.HeadRepo.ID, pr.HeadBranch, false, "", "")
