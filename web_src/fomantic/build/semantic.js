@@ -4414,7 +4414,7 @@ $.fn.dropdown = function(parameters) {
               // allow selection with menu closed
               if(isAdditionWithoutMenu) {
                 module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                module.event.item.click.call($selectedItem, event);
+                $selectedItem[0].click();
                 if(module.is.searchSelection()) {
                   module.remove.searchTerm();
                 }
@@ -4434,7 +4434,7 @@ $.fn.dropdown = function(parameters) {
                   }
                   else if(selectedIsSelectable) {
                     module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                    module.event.item.click.call($selectedItem, event);
+                    $selectedItem[0].click();
                     if(module.is.searchSelection()) {
                       module.remove.searchTerm();
                       if(module.is.multiple()) {
