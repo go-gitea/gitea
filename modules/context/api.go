@@ -277,10 +277,14 @@ func APIContexter() func(http.Handler) http.Handler {
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 
 			// Handle adding signedUserName to the context for the AccessLogger
-			username := ctx.Data["SignedUserName"].(string)
-			identityPtr := ctx.Req.Context().Value(signedUserNameStringPointerKey).(*string)
-			if identityPtr != nil && username != "" {
-				*identityPtr = username
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
 			}
 		})
 	}
