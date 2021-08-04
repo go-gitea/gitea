@@ -214,9 +214,6 @@ steps:
 node:
   oss: amd64
 
-node:
-  oss: amd64
-
 ---
 kind: pipeline
 name: docker-linux-amd64-release
