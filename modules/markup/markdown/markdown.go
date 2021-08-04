@@ -87,7 +87,9 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	once.Do(func() {
 		converter = goldmark.New(
-			goldmark.WithExtensions(extension.Table,
+			goldmark.WithExtensions(
+				extension.NewTable(
+					extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 				extension.Strikethrough,
 				extension.TaskList,
 				extension.DefinitionList,
