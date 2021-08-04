@@ -52,7 +52,7 @@ func (ctx *Context) FormBool(key string) bool {
 	return v
 }
 
-// FormOptionalBool returns an OptionalBoolTrue or OptionalBoolFalse if the value 
+// FormOptionalBool returns an OptionalBoolTrue or OptionalBoolFalse if the value
 // for the provided key exists in the form else it returns OptionalBoolNone
 func (ctx *Context) FormOptionalBool(key string) util.OptionalBool {
 	value := ctx.Req.FormValue(key)
