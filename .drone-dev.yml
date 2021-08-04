@@ -6,6 +6,12 @@ platform:
   os: linux
   arch: amd64
 
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
 steps:
   - name: lint-backend
     pull: always
