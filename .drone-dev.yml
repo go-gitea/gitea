@@ -13,6 +13,18 @@ trigger:
     - pull_request
 
 steps:
+  - name: deps-frontend
+    pull: always
+    image: node:14
+    commands:
+      - make node_modules
+
+  - name: lint-frontend
+    image: node:14
+    commands:
+      - make lint-frontend
+    depends_on: [deps-frontend]
+
   - name: lint-backend
     pull: always
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
@@ -33,6 +45,40 @@ steps:
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
+  - name: checks-frontend
+    image: node:14
+    commands:
+      - make checks-frontend
+    depends_on: [deps-frontend]
+
+  - name: checks-backend
+    pull: always
+    image: golang:1.16
+    commands:
+      - make checks-backend
+    depends_on: [lint-backend]
+
+  - name: test-frontend
+    image: node:14
+    commands:
+      - make test-frontend
+    depends_on: [lint-frontend]
+
+  - name: build-frontend
+    image: node:14
+    commands:
+      - make frontend
+    depends_on: [test-frontend]
+
+  - name: build-backend-no-gcc
+    pull: always
+    image: golang:1.14 # this step is kept as the lowest version of golang that we support
+    environment:
+      GO111MODULE: on
+      GOPROXY: off
+    commands:
+      - go build -mod=vendor -o gitea_no_gcc # test if build succeeds without the sqlite tag
+    depends_on: [checks-backend]
 
   - name: build-backend-386
     image: golang:1.16
@@ -179,16 +225,12 @@ platform:
 depends_on:
   - testing-amd64
 
-trigger:
-  event:
-    exclude:
-    - pull_request
-
 steps:
   - name: fetch-tags
     image: docker:git
     commands:
       - git fetch --tags --force
+
   - name: tag docker image
     image: golang:1.16
     commands:
@@ -196,6 +238,7 @@ steps:
     - BRANCH=`git describe --all |awk '{split($0, h, "/"); print h[2]}'`
     - VERSION=`git describe --all --long |awk '{split($0, h, "/"); print h[2]}'`
     - echo -n "$BRANCH,$VERSION,latest" > .tags
+
   - name: publish
     pull: always
     image: plugins/docker:linux-amd64
@@ -209,6 +252,7 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
+
   - name: tag rootless docker image
     image: golang:1.16
     commands:
@@ -229,6 +273,45 @@ steps:
       username:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
+
+
+node:
+  oss: amd64
+
+---
+kind: pipeline
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+  - name: manifest
+    image: plugins/manifest
+    settings:
+      auto_tag: true
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+depends_on:
+  - docker-linux-amd64-release
 
 node:
   oss: amd64
