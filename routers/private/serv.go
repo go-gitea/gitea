@@ -77,7 +77,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-	mode := models.AccessMode(ctx.QueryInt("mode"))
+	mode := models.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -127,7 +127,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
-			for _, verb := range ctx.QueryStrings("verb") {
+			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
 					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())

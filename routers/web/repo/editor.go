@@ -81,7 +81,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		return
 	}
 
-	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
+	// Check if the filename (and additional path) is specified in the querystring
+	// (filename is a misnomer, but kept for compatibility with Github)
+	filePath, fileName := path.Split(ctx.Req.URL.Query().Get("filename"))
+	filePath = strings.Trim(filePath, "/")
+	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
 
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -136,7 +140,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.Data["FileContent"] = content
 		}
 	} else {
-		treeNames = append(treeNames, "") // Append empty string to allow user name the new file.
+		// Append filename from query, or empty string to allow user name the new file.
+		treeNames = append(treeNames, fileName)
 	}
 
 	ctx.Data["TreeNames"] = treeNames

@@ -237,7 +237,7 @@ func Repos(ctx *context.Context) {
 
 	opts := models.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
-		Page:     ctx.QueryInt("page"),
+		Page:     ctx.FormInt("page"),
 	}
 
 	if opts.Page <= 0 {
