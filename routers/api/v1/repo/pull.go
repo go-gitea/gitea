@@ -1254,5 +1254,6 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumberOfCommits))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
