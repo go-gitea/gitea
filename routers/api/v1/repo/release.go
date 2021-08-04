@@ -109,16 +109,16 @@ func ListReleases(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.PageSize == 0 && ctx.QueryInt("per_page") != 0 {
-		listOptions.PageSize = ctx.QueryInt("per_page")
+	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
+		listOptions.PageSize = ctx.FormInt("per_page")
 	}
 
 	opts := models.FindReleasesOptions{
 		ListOptions:   listOptions,
 		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
 		IncludeTags:   false,
-		IsDraft:       ctx.QueryOptionalBool("draft"),
-		IsPreRelease:  ctx.QueryOptionalBool("pre-release"),
+		IsDraft:       ctx.FormOptionalBool("draft"),
+		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
