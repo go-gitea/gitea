@@ -4,6 +4,16 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.14.6](https://github.com/go-gitea/gitea/releases/tag/v1.14.6) - 2021-08-04
+
+* SECURITY
+  * Bump github.com/markbates/goth from v1.67.1 to v1.68.0 (#16538) (#16540)
+  * Switch to maintained JWT lib (#16532) (#16535)
+  * Upgrade to latest version of golang-jwt (as forked for 1.14) (#16590) (#16607)
+* BUGFIXES
+  * Add basic edit ldap auth test & actually fix #16252 (#16465) (#16495)
+  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16481)
+
 ## [1.14.5](https://github.com/go-gitea/gitea/releases/tag/v1.14.5) - 2021-07-16
 
 * SECURITY
