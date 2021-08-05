@@ -187,6 +187,10 @@ func deleteDB() error {
 		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE [%s]", setting.Database.Name)); err != nil {
 			return err
 		}
+		// set COMPATIBILITY_LEVEL to the lowest we will support
+		if _, err := db.Exec(fmt.Sprintf("BEGIN ALTER DATABASE %s SET COMPATIBILITY_LEVEL = 100; END;", setting.Database.Name)); err != nil {
+			return err
+		}
 	}
 
 	return nil

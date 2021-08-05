@@ -235,6 +235,10 @@ func initIntegrationTest() {
 		if _, err := db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", setting.Database.Name, setting.Database.Name)); err != nil {
 			log.Fatal("db.Exec: %v", err)
 		}
+		// set COMPATIBILITY_LEVEL to the lowest we will support
+		if _, err := db.Exec(fmt.Sprintf("BEGIN ALTER DATABASE %s SET COMPATIBILITY_LEVEL = 100; END;", setting.Database.Name)); err != nil {
+			log.Fatal("db.Exec: %v", err)
+		}
 		defer db.Close()
 	}
 	routers.GlobalInit(graceful.GetManager().HammerContext())
