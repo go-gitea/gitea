@@ -105,7 +105,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
-		OriginalURL:    opts.OriginalURL,
+		OriginalURL:    opts.CloneAddr,
 		GitServiceType: opts.GitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
