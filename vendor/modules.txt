@@ -570,10 +570,14 @@ github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
+# github.com/markbates/going v1.0.0
+github.com/markbates/going/defaults
 # github.com/markbates/goth v1.68.0
 ## explicit
 github.com/markbates/goth
 github.com/markbates/goth/gothic
+github.com/markbates/goth/providers/azuread
+github.com/markbates/goth/providers/azureadv2
 github.com/markbates/goth/providers/bitbucket
 github.com/markbates/goth/providers/discord
 github.com/markbates/goth/providers/dropbox
@@ -583,6 +587,7 @@ github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/google
 github.com/markbates/goth/providers/mastodon
+github.com/markbates/goth/providers/microsoftonline
 github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter

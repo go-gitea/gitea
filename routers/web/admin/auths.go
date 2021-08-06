@@ -98,8 +98,8 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = oauth2.Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
+	oauth2providers := oauth2.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
@@ -108,10 +108,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	for key := range oauth2.Providers {
-		ctx.Data["oauth2_provider"] = key
-		break
-	}
+	ctx.Data["oauth2_provider"] = oauth2providers[0]
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -170,6 +167,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 			AuthURL:    form.Oauth2AuthURL,
 			ProfileURL: form.Oauth2ProfileURL,
 			EmailURL:   form.Oauth2EmailURL,
+			Tenant:     form.Oauth2Tenant,
 		}
 	} else {
 		customURLMapping = nil
@@ -220,8 +218,8 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = oauth2.Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
+	oauth2providers := oauth2.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
 	ctx.Data["SSPIAutoActivateUsers"] = true
@@ -299,8 +297,8 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = oauth2.Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
+	oauth2providers := oauth2.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
@@ -311,7 +309,17 @@ func EditAuthSource(ctx *context.Context) {
 	ctx.Data["HasTLS"] = source.HasTLS()
 
 	if source.IsOAuth2() {
-		ctx.Data["CurrentOAuth2Provider"] = oauth2.Providers[source.Cfg.(*oauth2.Source).Provider]
+		type Named interface {
+			Name() string
+		}
+
+		for _, provider := range oauth2providers {
+			if provider.Name() == source.Cfg.(Named).Name() {
+				ctx.Data["CurrentOAuth2Provider"] = provider
+				break
+			}
+		}
+
 	}
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
@@ -324,8 +332,8 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	ctx.Data["OAuth2Providers"] = oauth2.Providers
-	ctx.Data["OAuth2DefaultCustomURLMappings"] = oauth2.DefaultCustomURLMappings
+	oauth2providers := oauth2.GetOAuth2Providers()
+	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := models.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
