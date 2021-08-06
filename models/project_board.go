@@ -37,6 +37,7 @@ type ProjectBoard struct {
 	Title   string
 	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
 	Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
+	Color   string
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -171,6 +172,10 @@ func updateProjectBoard(e Engine, board *ProjectBoard) error {
 
 	if board.Title != "" {
 		fieldToUpdate = append(fieldToUpdate, "title")
+	}
+
+	if board.Color != "" {
+		fieldToUpdate = append(fieldToUpdate, "color")
 	}
 
 	_, err := e.ID(board.ID).Cols(fieldToUpdate...).Update(board)

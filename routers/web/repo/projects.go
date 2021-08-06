@@ -442,6 +442,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	if err := models.NewProjectBoard(&models.ProjectBoard{
 		ProjectID: project.ID,
 		Title:     form.Title,
+		Color:     form.Color,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
@@ -509,6 +510,10 @@ func EditProjectBoard(ctx *context.Context) {
 
 	if form.Title != "" {
 		board.Title = form.Title
+	}
+
+	if form.Color != "" {
+		board.Color = form.Color
 	}
 
 	if form.Sorting != 0 {
