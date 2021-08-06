@@ -66,6 +66,8 @@ export default async function initProject() {
     const projectTitleInput = $(this).find(
       '.content > .form > .field > .project-board-title',
     );
+    const projectColorInput = $(this).find('.content > .form > .field > #new_board_color');
+    const boardColumn = $(this).closest('.board-column');
 
     $(this)
       .find('.content > .form > .actions > .red')
@@ -74,7 +76,7 @@ export default async function initProject() {
 
         $.ajax({
           url: $(this).data('url'),
-          data: JSON.stringify({title: projectTitleInput.val()}),
+          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
           headers: {
             'X-Csrf-Token': csrf,
             'X-Remote': true,
@@ -84,6 +86,7 @@ export default async function initProject() {
         }).done(() => {
           projectTitleLabel.text(projectTitleInput.val());
           projectTitleInput.closest('form').removeClass('dirty');
+          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
           $('.ui.modal').modal('hide');
         });
       });
