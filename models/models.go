@@ -272,7 +272,7 @@ type Statistic struct {
 	Counter struct {
 		User, Org, PublicKey,
 		Repo, Watch, Star, Action, Access,
-		Issue, Comment, Oauth, Follow,
+		IssueClosed, IssueOpen, Comment, Oauth, Follow,
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Attachment int64
@@ -289,7 +289,8 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Star, _ = x.Count(new(Star))
 	stats.Counter.Action, _ = x.Count(new(Action))
 	stats.Counter.Access, _ = x.Count(new(Access))
-	stats.Counter.Issue, _ = x.Count(new(Issue))
+	stats.Counter.IssueClosed, _ = x.Where("is_closed=?", true).Count(new(Issue))
+	stats.Counter.IssueOpen, _ = x.Where("is_closed=?", false).Count(new(Issue))
 	stats.Counter.Comment, _ = x.Count(new(Comment))
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = x.Count(new(Follow))
