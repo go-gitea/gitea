@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.15.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc3) - 2021-08-04
+## [1.15.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc3) - 2021-08-06
 
 * BREAKING
   * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
