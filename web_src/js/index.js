@@ -2027,19 +2027,17 @@ function initAdmin() {
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'gitea':
-      case 'nextcloud':
-      case 'mastodon':
-        $('#oauth2_use_custom_url').attr('checked', 'checked');
-        // fallthrough intentional
-      case 'github':
-      case 'gitlab':
-        $('.oauth2_use_custom_url').show();
-        break;
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
         $('.open_id_connect_auto_discovery_url').show();
         break;
+      default:
+        if ($(`#${provider}_customURLSettings`).data('required')) {
+          $('#oauth2_use_custom_url').attr('checked', 'checked');
+        }
+        if ($(`#${provider}_customURLSettings`).data('available')) {
+          $('.oauth2_use_custom_url').show();
+        }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
@@ -2050,29 +2048,14 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (applyDefaultValues) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
-
-      switch (provider) {
-        case 'github':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
-          break;
-        case 'nextcloud':
-        case 'gitea':
-        case 'gitlab':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
-          $('#oauth2_email_url').val('');
-          break;
-        case 'mastodon':
-          $('.oauth2_auth_url input').attr('required', 'required');
-          $('.oauth2_auth_url').show();
-          break;
+      for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
+        if (applyDefaultValues) {
+          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
+        }
+        if ($(`#${provider}_${custom}`).data('available')) {
+          $(`.oauth2_${custom} input`).attr('required', 'required');
+          $(`.oauth2_${custom}`).show();
+        }
       }
     }
   }
