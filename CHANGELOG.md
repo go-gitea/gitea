@@ -33,6 +33,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Revert to use alpine 3.13 (#16451) (#16452)
   * Fix crash following ldap authentication update (#16447) (#16448)
   * Fix direct creation of external users on admin page (partial #16612) (#16613)
+  * Prevent 500 on draft releases without tag (#16634) (#16636)
 
 ## [1.15.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc2) - 2021-07-22
 
