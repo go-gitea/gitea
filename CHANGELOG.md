@@ -4,6 +4,37 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc3) - 2021-08-06
+
+* BREAKING
+  * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
+* SECURITY
+  * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
+  * Correctly create of git-daemon-export-ok files (#16508) (#16514)
+  * Don't show private user's repo in explore view (#16550) (#16554)
+  * Update node tar dependency to 6.1.6 (#16622) (#16623)
+* API
+  * Swagger AccessToken fixes (#16574) (#16597)
+  * Set AllowedHeaders on API CORS handler (#16524) (#16618)
+* BUGFIXES
+  * Restore Accessibility for Dropdown (#16576) (#16617)
+  * Pass down SignedUserName down to AccessLogger context (#16605) (#16616)
+  * Fix table alignment in markdown (#16596) (#16602)
+  * Fix 500 on first wiki page (#16586) (#16598)
+  * Lock goth/gothic and Re-attempt OAuth2 registration on login if registration failed at startup (#16564) (#16570)
+  * Upgrade levelqueue to v0.4.0 (#16560) (#16561)
+  * Handle too long PR titles correctly (#16517) (#16549)
+  * Fix data race in bleve indexer (#16474) (#16509)
+  * Restore CORS on git smart http protocol (#16496) (#16506)
+  * Fix race in log (#16490) (#16505)
+  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
+  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
+  * Update notification table with only latest data (#16445) (#16469)
+  * Revert to use alpine 3.13 (#16451) (#16452)
+  * Fix crash following ldap authentication update (#16447) (#16448)
+  * Fix direct creation of external users on admin page (partial #16612) (#16613)
+  * Prevent 500 on draft releases without tag (#16634) (#16636)
+
 ## [1.15.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc2) - 2021-07-22
 
 * BUGFIXES
