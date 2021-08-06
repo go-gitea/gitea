@@ -12,6 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
   * Correctly create of git-daemon-export-ok files (#16508) (#16514)
   * Don't show private user's repo in explore view (#16550) (#16554)
+  * Update node tar dependency to 6.1.6 (#16622) (#16623)
 * API
   * Swagger AccessToken fixes (#16574) (#16597)
   * Set AllowedHeaders on API CORS handler (#16524) (#16618)
