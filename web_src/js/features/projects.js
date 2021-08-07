@@ -130,10 +130,11 @@ export default async function initProject() {
     e.preventDefault();
 
     const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
 
     $.ajax({
       url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val()}),
+      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
       headers: {
         'X-Csrf-Token': csrf,
         'X-Remote': true,

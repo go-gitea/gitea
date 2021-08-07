@@ -21,6 +21,11 @@
 								<input class="new-board" id="new_board" name="title" required>
 							</div>
 
+							<div class="field color-field">
+								<label for="new_board_color">{{$.i18n.Tr "repo.projects.board.edit_color"}}</label>
+								<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color_picker" name="color">
+							</div>
+
 							<div class="text right actions">
 								<div class="ui cancel button">{{$.i18n.Tr "settings.cancel"}}</div>
 								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui green button" id="new_board_submit">{{$.i18n.Tr "repo.projects.board.new_submit"}}</button>
