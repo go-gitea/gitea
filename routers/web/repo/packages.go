@@ -39,9 +39,9 @@ func Packages(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.packages")
 	ctx.Data["IsPackagesPage"] = true
 
-	query := ctx.QueryTrim("q")
-	packageType := ctx.QueryTrim("package_type")
-	page := ctx.QueryInt("page")
+	query := ctx.FormTrim("q")
+	packageType := ctx.FormTrim("package_type")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}

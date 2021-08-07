@@ -31,9 +31,9 @@ func ServiceIndex(ctx *context.APIContext) {
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.APIContext) {
-	query := ctx.QueryTrim("q")
-	skip := ctx.QueryInt("skip")
-	take := ctx.QueryInt("take")
+	query := ctx.FormTrim("q")
+	skip := ctx.FormInt("skip")
+	take := ctx.FormInt("take")
 
 	total, packages, err := models.SearchPackages(ctx.Repo.Repository.ID, models.PackageNuGet, query, skip, take)
 	if err != nil {
