@@ -65,8 +65,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 	}
 	defer conn.Close()
 
-	isSecureConn := source.ForceSMTPS || source.Port == 465
-	if isSecureConn {
+	if source.UseTLS() {
 		conn = tls.Client(conn, tlsConfig)
 	}
 
@@ -92,7 +91,7 @@ func Authenticate(a smtp.Auth, source *Source) error {
 
 	// If not using SMTPS, always use STARTTLS if available
 	hasStartTLS, _ := client.Extension("STARTTLS")
-	if !isSecureConn && hasStartTLS {
+	if !source.UseTLS() && hasStartTLS {
 		if err = client.StartTLS(tlsConfig); err != nil {
 			return fmt.Errorf("failed to start StartTLS: %v", err)
 		}
