@@ -61,7 +61,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 						"SignedUserName": "",
 					}
 
-					w.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd() {
 						store["ErrorMsg"] = combinedErr
