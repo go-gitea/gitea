@@ -6,6 +6,7 @@ package oauth2
 
 import (
 	"net/http"
+	"sync"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -14,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/markbates/goth/gothic"
 )
+
+var gothRWMutex = sync.RWMutex{}
 
 // SessionTableName is the table name that OAuth2 will use to store things
 const SessionTableName = "oauth2_session"
@@ -42,6 +45,10 @@ func Init() error {
 
 	// Note, when using the FilesystemStore only the session.ID is written to a browser cookie, so this is explicit for the storage on disk
 	store.MaxLength(setting.OAuth2.MaxTokenLength)
+
+	// Lock our mutex
+	gothRWMutex.Lock()
+
 	gothic.Store = store
 
 	gothic.SetState = func(req *http.Request) string {
@@ -51,6 +58,9 @@ func Init() error {
 	gothic.GetProviderName = func(req *http.Request) (string, error) {
 		return req.Header.Get(ProviderHeaderKey), nil
 	}
+
+	// Unlock our mutex
+	gothRWMutex.Unlock()
 
 	return initOAuth2LoginSources()
 }
@@ -71,12 +81,7 @@ func initOAuth2LoginSources() error {
 		}
 		err := oauth2Source.RegisterSource()
 		if err != nil {
-			log.Critical("Unable to register source: %s due to Error: %v. This source will be disabled.", source.Name, err)
-			source.IsActive = false
-			if err = models.UpdateSource(source); err != nil {
-				log.Critical("Unable to update source %s to disable it. Error: %v", err)
-				return err
-			}
+			log.Critical("Unable to register source: %s due to Error: %v.", source.Name, err)
 		}
 	}
 	return nil
