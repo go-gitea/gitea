@@ -2734,8 +2734,7 @@ $(document).ready(async () => {
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
-    
-    let colorPickers = $($(this).data('modal')).find(".color-picker");
+    const colorPickers = $($(this).data('modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initColorPicker();
     }
