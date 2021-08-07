@@ -98,7 +98,7 @@ import (
 
 func sudo() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		sudo := ctx.Query("sudo")
+		sudo := ctx.Form("sudo")
 		if len(sudo) == 0 {
 			sudo = ctx.Req.Header.Get("Sudo")
 		}
@@ -575,6 +575,7 @@ func Routes() *web.Route {
 			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}

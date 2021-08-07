@@ -9651,7 +9651,7 @@
           "repository"
         ],
         "summary": "Add a topic to a repository",
-        "operationId": "repoAddTopíc",
+        "operationId": "repoAddTopic",
         "parameters": [
           {
             "type": "string",
@@ -11917,18 +11917,10 @@
             "required": true
           },
           {
-            "name": "accessToken",
+            "name": "userCreateToken",
             "in": "body",
             "schema": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/CreateAccessTokenOption"
             }
           }
         ],
@@ -12654,6 +12646,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateAccessTokenOption": {
+      "description": "CreateAccessTokenOption options when create access token",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateBranchProtectionOption": {
       "description": "CreateBranchProtectionOption options for creating a branch protection",
       "type": "object",
@@ -12917,7 +12920,8 @@
             "msteams",
             "slack",
             "telegram",
-            "feishu"
+            "feishu",
+            "wechatwork"
           ],
           "x-go-name": "Type"
         }
@@ -17044,20 +17048,8 @@
   "responses": {
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
-      "headers": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {
-          "type": "string"
-        },
-        "sha1": {
-          "type": "string"
-        },
-        "token_last_eight": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/AccessToken"
       }
     },
     "AccessTokenList": {

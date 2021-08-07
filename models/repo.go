@@ -1125,7 +1125,7 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
+		if err := u.getTeams(ctx.e); err != nil {
 			return fmt.Errorf("GetTeams: %v", err)
 		}
 		for _, t := range u.Teams {
@@ -1150,6 +1150,16 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	} else if err = repo.recalculateAccesses(ctx.e); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
+	}
+
+	if u.Visibility == api.VisibleTypePublic && !repo.IsPrivate {
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
 	}
 
 	if setting.Service.AutoWatchNewRepos {
@@ -1310,15 +1320,16 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
+		isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 			return err
 		}
-		if repo.IsPrivate && isExist {
+		if !isPublic && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
-		} else if !repo.IsPrivate && !isExist {
+		} else if isPublic && !isExist {
 			if f, err := os.Create(daemonExportFile); err != nil {
 				log.Error("Failed to create %s: %v", daemonExportFile, err)
 			} else {

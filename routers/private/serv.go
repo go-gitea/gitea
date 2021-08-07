@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -76,7 +77,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-	mode := models.AccessMode(ctx.QueryInt("mode"))
+	mode := models.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -126,7 +127,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
-			for _, verb := range ctx.QueryStrings("verb") {
+			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
 					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
@@ -288,6 +289,11 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
+			// Because of special ref "refs/for" .. , need delay write permission check
+			if git.SupportProcReceive && unitType == models.UnitTypeCode {
+				mode = models.AccessModeRead
+			}
+
 			perm, err := models.GetUserRepoPermission(repo, user)
 			if err != nil {
 				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)

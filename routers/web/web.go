@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -145,6 +146,21 @@ func Routes() *web.Route {
 
 		routes.Get("/metrics", append(common, Metrics)...)
 	}
+
+	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
+		if !git.SupportProcReceive {
+			rw.WriteHeader(404)
+			return
+		}
+		rw.Header().Set("content-type", "text/json;charset=UTF-8")
+		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
+		if err != nil {
+			log.Error("fail to write result: err: %v", err)
+			rw.WriteHeader(500)
+			return
+		}
+		rw.WriteHeader(200)
+	})
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
@@ -425,6 +441,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 			m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 			m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+			m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
 		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {
@@ -438,6 +455,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
 			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+
 		})
 
 		m.Group("/auths", func() {
@@ -630,6 +649,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
 				m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
 				m.Get("/{id}", repo.WebHooksEdit)
 				m.Post("/{id}/test", repo.TestWebhook)
 				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
@@ -641,6 +661,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 				m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 				m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+				m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
 			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
@@ -824,8 +845,13 @@ func RegisterRoutes(m *web.Route) {
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
 		})
-		m.Get("/attachments/{uuid}", repo.GetAttachment)
+
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
+
+	// to maintain compatibility with old attachments
+	m.Group("/{username}/{reponame}", func() {
+		m.Get("/attachments/{uuid}", repo.GetAttachment)
+	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Post("/topics", repo.TopicsPost)

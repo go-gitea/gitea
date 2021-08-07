@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	migration "code.gitea.io/gitea/modules/migrations/base"
@@ -20,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func handleCreateError(owner *models.User, err error) error {
@@ -112,7 +112,6 @@ func runMigrateTask(t *models.Task) (err error) {
 			Format: format,
 			Args:   args,
 		}
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
 		_ = t.UpdateCols("message")

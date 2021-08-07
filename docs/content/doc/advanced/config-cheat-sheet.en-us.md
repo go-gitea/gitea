@@ -162,6 +162,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+- `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
 
@@ -300,7 +301,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**:  DEPRECATED: Default LFS content path. (if it is on local storage.)
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
@@ -507,7 +508,7 @@ relation to port exhaustion.
 - `ALLOW_CROSS_REPOSITORY_DEPENDENCIES` : **true** Enable this to allow dependencies on issues from any repository where the user is granted access.
 - `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `ENABLE_TIMETRACKING`: **true**: Enable Timetracking feature.
-- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by deault.
+- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by default.
 - `DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME`: **true**: Only allow users with write permissions to track time.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
@@ -881,6 +882,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `TRUSTED_FACETS`: List of additional facets which are trusted. This is not support by all browsers.
 
 ## Markup (`markup`)
+
+- `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)
 
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 

@@ -96,8 +96,8 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	opts := models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+			Page:     ctx.FormInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
@@ -252,7 +252,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	if tagName := ctx.Query("tag"); len(tagName) > 0 {
+	if tagName := ctx.Form("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
@@ -507,7 +507,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {

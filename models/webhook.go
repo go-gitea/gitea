@@ -11,13 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	gouuid "github.com/google/uuid"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // HookContentType is the content type of a web hook
@@ -114,15 +114,16 @@ type HookType = string
 
 // Types of webhooks
 const (
-	GITEA    HookType = "gitea"
-	GOGS     HookType = "gogs"
-	SLACK    HookType = "slack"
-	DISCORD  HookType = "discord"
-	DINGTALK HookType = "dingtalk"
-	TELEGRAM HookType = "telegram"
-	MSTEAMS  HookType = "msteams"
-	FEISHU   HookType = "feishu"
-	MATRIX   HookType = "matrix"
+	GITEA      HookType = "gitea"
+	GOGS       HookType = "gogs"
+	SLACK      HookType = "slack"
+	DISCORD    HookType = "discord"
+	DINGTALK   HookType = "dingtalk"
+	TELEGRAM   HookType = "telegram"
+	MSTEAMS    HookType = "msteams"
+	FEISHU     HookType = "feishu"
+	MATRIX     HookType = "matrix"
+	WECHATWORK HookType = "wechatwork"
 )
 
 // HookStatus is the status of a web hook
@@ -159,8 +160,6 @@ type Webhook struct {
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Events), w.HookEvent); err != nil {
 		log.Error("Unmarshal[%d]: %v", w.ID, err)
 	}
@@ -173,7 +172,6 @@ func (w *Webhook) History(page int) ([]*HookTask, error) {
 
 // UpdateEvent handles conversion from HookEvent to Events.
 func (w *Webhook) UpdateEvent() error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(w.HookEvent)
 	w.Events = string(data)
 	return err
@@ -686,7 +684,6 @@ func (t *HookTask) AfterLoad() {
 	}
 
 	t.RequestInfo = &HookRequest{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(t.RequestContent), t.RequestInfo); err != nil {
 		log.Error("Unmarshal RequestContent[%d]: %v", t.ID, err)
 	}
@@ -700,7 +697,6 @@ func (t *HookTask) AfterLoad() {
 }
 
 func (t *HookTask) simpleMarshalJSON(v interface{}) string {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	p, err := json.Marshal(v)
 	if err != nil {
 		log.Error("Marshal [%d]: %v", t.ID, err)

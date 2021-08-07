@@ -328,6 +328,10 @@ var migrations = []Migration{
 	// v188 -> v189
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
 	// v189 -> v190
+	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
+	// v190 -> v191
+	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	// v191 -> v192
 	NewMigration("Add package tables", addPackageTables),
 }
 
