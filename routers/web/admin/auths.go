@@ -154,8 +154,10 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 		Host:           form.SMTPHost,
 		Port:           form.SMTPPort,
 		AllowedDomains: form.AllowedDomains,
-		TLS:            form.TLS,
+		ForceSMTPS:     form.ForceSMTPS,
 		SkipVerify:     form.SkipVerify,
+		HeloHostname:   form.HeloHostname,
+		DisableHelo:    form.DisableHelo,
 	}
 }
 

@@ -32,8 +32,10 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		auth = smtp.PlainAuth("", login, password, source.Host)
 	} else if source.Auth == LoginAuthentication {
 		auth = &loginAuthenticator{login, password}
+	} else if source.Auth == CRAMMD5Authentication {
+		auth = smtp.CRAMMD5Auth(login, password)
 	} else {
-		return nil, errors.New("Unsupported SMTP auth type")
+		return nil, errors.New("unsupported SMTP auth type")
 	}
 
 	if err := Authenticate(auth, source); err != nil {
@@ -42,6 +44,10 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		tperr, ok := err.(*textproto.Error)
 		if (ok && tperr.Code == 535) ||
 			strings.Contains(err.Error(), "Username and Password not accepted") {
+			return nil, models.ErrUserNotExist{Name: login}
+		}
+		if (ok && tperr.Code == 534) ||
+			strings.Contains(err.Error(), "Application-specific password required") {
 			return nil, models.ErrUserNotExist{Name: login}
 		}
 		return nil, err
