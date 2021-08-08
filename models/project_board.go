@@ -5,6 +5,9 @@
 package models
 
 import (
+	"fmt"
+	"regexp"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -31,13 +34,16 @@ const (
 	ProjectBoardTypeBugTriage
 )
 
+// LabelColorPattern is a regexp witch can validate LabelColor
+var BoardColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+
 // ProjectBoard is used to represent boards on a project
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
-	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-	Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
-	Color   string
+	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
+	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -175,6 +181,9 @@ func updateProjectBoard(e Engine, board *ProjectBoard) error {
 	}
 
 	if board.Color != "" {
+		if !BoardColorPattern.MatchString(board.Color) {
+			return fmt.Errorf("bad color code: %s", board.Color)
+		}
 		fieldToUpdate = append(fieldToUpdate, "color")
 	}
 

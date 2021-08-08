@@ -12,7 +12,7 @@ import (
 
 func addColorColToProjectBoard(x *xorm.Engine) error {
 	type ProjectBoard struct {
-		Color string
+		Color string `xorm:"VARCHAR(7)"`
 	}
 
 	if err := x.Sync2(new(ProjectBoard)); err != nil {
