@@ -103,6 +103,11 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 // NewProjectBoard adds a new project board to a given project
 func NewProjectBoard(board *ProjectBoard) error {
 	_, err := x.Insert(board)
+	if board.Color != "" {
+		if !BoardColorPattern.MatchString(board.Color) {
+			return fmt.Errorf("bad color code: %s", board.Color)
+		}
+	}
 	return err
 }
 
