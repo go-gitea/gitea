@@ -170,6 +170,8 @@ To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
 work with normal Linux passwords, the user running Gitea must have read access
 to `/etc/shadow`.
 
+**Note**: PAM support is added via [build-time flags](https://docs.gitea.io/en-us/install-from-source/#build), and the official binaries provided do not have this enabled.
+
 ## SMTP (Simple Mail Transfer Protocol)
 
 This option allows Gitea to log in to an SMTP host as a Gitea user. To
