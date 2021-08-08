@@ -729,7 +729,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
