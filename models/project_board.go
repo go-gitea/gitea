@@ -34,7 +34,7 @@ const (
 	ProjectBoardTypeBugTriage
 )
 
-// LabelColorPattern is a regexp witch can validate LabelColor
+// BoardColorPattern is a regexp witch can validate BoardColor
 var BoardColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
 
 // ProjectBoard is used to represent boards on a project
