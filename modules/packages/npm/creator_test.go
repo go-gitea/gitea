@@ -11,7 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +31,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidUploadNoData", func(t *testing.T) {
-		b, _ := jsoniter.Marshal(packageUpload{})
+		b, _ := json.Marshal(packageUpload{})
 		p, err := ParsePackage(bytes.NewReader(b))
 		assert.Nil(t, p)
 		assert.ErrorIs(t, err, ErrInvalidPackage)
@@ -38,7 +39,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidPackageName", func(t *testing.T) {
 		test := func(t *testing.T, name string) {
-			b, _ := jsoniter.Marshal(packageUpload{
+			b, _ := json.Marshal(packageUpload{
 				PackageMetadata: PackageMetadata{
 					ID:   name,
 					Name: name,
@@ -63,7 +64,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,
@@ -81,7 +82,7 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidAttachment", func(t *testing.T) {
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,
@@ -103,7 +104,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidData", func(t *testing.T) {
 		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,
@@ -127,7 +128,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidIntegrity", func(t *testing.T) {
 		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,
@@ -154,7 +155,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("InvalidIntegrity2", func(t *testing.T) {
 		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,
@@ -181,7 +182,7 @@ func TestParsePackage(t *testing.T) {
 
 	t.Run("Valid", func(t *testing.T) {
 		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
-		b, _ := jsoniter.Marshal(packageUpload{
+		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
 				ID:   packageName,
 				Name: packageName,

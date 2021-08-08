@@ -14,15 +14,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // CreatePackage creates a new package
 func CreatePackage(creator *models.User, repository *models.Repository, packageType models.PackageType, name, version string, metadata interface{}, allowDuplicate bool) (*models.Package, error) {
-	metadataJSON, err := jsoniter.Marshal(metadata)
+	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		log.Error("Error converting metadata to JSON: %v", err)
 		return nil, err

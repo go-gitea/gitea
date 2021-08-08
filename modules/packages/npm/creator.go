@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -122,7 +122,7 @@ type packageUpload struct {
 // ParsePackage parses the content into a NPM package
 func ParsePackage(r io.Reader) (*Package, error) {
 	var upload packageUpload
-	if err := jsoniter.NewDecoder(r).Decode(&upload); err != nil {
+	if err := json.NewDecoder(r).Decode(&upload); err != nil {
 		return nil, err
 	}
 

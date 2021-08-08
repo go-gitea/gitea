@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
@@ -18,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	package_service "code.gitea.io/gitea/services/packages"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -114,7 +113,7 @@ func ViewPackage(ctx *context.Context) {
 		metadata = &pypi.Metadata{}
 	}
 	if metadata != nil {
-		if err := jsoniter.Unmarshal([]byte(p.MetadataRaw), &metadata); err != nil {
+		if err := json.Unmarshal([]byte(p.MetadataRaw), &metadata); err != nil {
 			ctx.ServerError("Unmarshal", err)
 			return
 		}

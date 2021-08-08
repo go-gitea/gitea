@@ -8,9 +8,8 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Package represents a package with Maven metadata
@@ -33,7 +32,7 @@ func intializePackages(packages []*models.Package) ([]*Package, error) {
 
 func intializePackage(p *models.Package) (*Package, error) {
 	var m *maven_module.Metadata
-	err := jsoniter.Unmarshal([]byte(p.MetadataRaw), &m)
+	err := json.Unmarshal([]byte(p.MetadataRaw), &m)
 	if err != nil {
 		return nil, err
 	}

@@ -8,10 +8,10 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 
 	"github.com/hashicorp/go-version"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Package represents a package with NPM metadata
@@ -41,7 +41,7 @@ func intializePackage(p *models.Package) (*Package, error) {
 	}
 
 	var m *npm_module.Metadata
-	err = jsoniter.Unmarshal([]byte(p.MetadataRaw), &m)
+	err = json.Unmarshal([]byte(p.MetadataRaw), &m)
 	if err != nil {
 		return nil, err
 	}

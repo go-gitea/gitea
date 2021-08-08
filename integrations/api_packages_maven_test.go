@@ -11,9 +11,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/maven"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -89,7 +89,7 @@ func TestPackageMaven(t *testing.T) {
 		assert.Len(t, ps, 1)
 
 		var m *maven.Metadata
-		err = jsoniter.Unmarshal([]byte(ps[0].MetadataRaw), &m)
+		err = json.Unmarshal([]byte(ps[0].MetadataRaw), &m)
 		assert.NoError(t, err)
 		assert.Empty(t, m.Description)
 
@@ -99,7 +99,7 @@ func TestPackageMaven(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 
-		err = jsoniter.Unmarshal([]byte(ps[0].MetadataRaw), &m)
+		err = json.Unmarshal([]byte(ps[0].MetadataRaw), &m)
 		assert.NoError(t, err)
 		assert.Equal(t, packageDescription, m.Description)
 	})

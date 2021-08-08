@@ -19,14 +19,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/util/filebuffer"
 
 	package_service "code.gitea.io/gitea/services/packages"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const mavenMetadataFile = "maven-metadata.xml"
@@ -217,7 +216,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 			log.Error("Error parsing package metadata: %v", err)
 		}
 		if metadata != nil {
-			raw, err := jsoniter.Marshal(metadata)
+			raw, err := json.Marshal(metadata)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "", err)
 				return
