@@ -275,6 +275,17 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
+			}
 		})
 	}
 }
