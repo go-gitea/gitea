@@ -218,7 +218,7 @@ func Organization(ctx *context.Context) {
 	opts := models.FindOrgOptions{
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
-			Page:     ctx.QueryInt("page"),
+			Page:     ctx.FormInt("page"),
 		},
 		UserID:         ctx.User.ID,
 		IncludePrivate: ctx.IsSigned,
