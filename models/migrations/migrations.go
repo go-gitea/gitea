@@ -327,6 +327,9 @@ var migrations = []Migration{
 	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
 	// v188 -> v189
 	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
+
+	// Gitea 1.15.0 ends at v189
+
 	// v189 -> v190
 	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
 	// v190 -> v191
