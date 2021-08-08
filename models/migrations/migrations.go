@@ -331,6 +331,8 @@ var migrations = []Migration{
 	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
 	// v190 -> v191
 	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	// v191 -> v192
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
 }
 
 // GetCurrentDBVersion returns the current db version
