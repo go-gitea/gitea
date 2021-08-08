@@ -12,11 +12,11 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/webhook"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // GetOrgHook get an organization's webhook. If there is an error, write to
@@ -147,7 +147,6 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			return nil, false
 		}
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		meta, err := json.Marshal(&webhook.SlackMeta{
 			Channel:  strings.TrimSpace(channel),
 			Username: form.Config["username"],
@@ -222,7 +221,6 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *models.Webho
 
 		if w.Type == models.SLACK {
 			if channel, ok := form.Config["channel"]; ok {
-				json := jsoniter.ConfigCompatibleWithStandardLibrary
 				meta, err := json.Marshal(&webhook.SlackMeta{
 					Channel:  channel,
 					Username: form.Config["username"],

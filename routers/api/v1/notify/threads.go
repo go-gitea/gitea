@@ -82,7 +82,7 @@ func ReadThread(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.Form("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}

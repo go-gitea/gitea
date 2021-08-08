@@ -13,10 +13,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,7 +86,6 @@ func TestAPILFSBatch(t *testing.T) {
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
 		var br lfs.BatchResponse
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		assert.NoError(t, json.Unmarshal(b.Bytes(), &br))
 		return &br
 	}
@@ -135,7 +134,7 @@ func TestAPILFSBatch(t *testing.T) {
 		assert.Equal(t, "Oid or size are invalid", br.Objects[1].Error.Message)
 	})
 
-	t.Run("PointerSizeMissmatch", func(t *testing.T) {
+	t.Run("PointerSizeMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.BatchRequest{
@@ -376,7 +375,7 @@ func TestAPILFSUpload(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 	})
 
-	t.Run("HashMissmatch", func(t *testing.T) {
+	t.Run("HashMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
@@ -384,7 +383,7 @@ func TestAPILFSUpload(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
-	t.Run("SizeMissmatch", func(t *testing.T) {
+	t.Run("SizeMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")

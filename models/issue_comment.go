@@ -15,13 +15,13 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	jsoniter "github.com/json-iterator/go"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -184,7 +184,7 @@ type Comment struct {
 	RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
 	RefIssueID   int64                 `xorm:"index"`
 	RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-	RefAction    references.XRefAction `xorm:"SMALLINT"` // What hapens if RefIssueID resolves
+	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
 	RefRepo    *Repository `xorm:"-"`
@@ -654,7 +654,6 @@ func (c *Comment) LoadPushCommits() (err error) {
 
 	var data PushActionContent
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal([]byte(c.Content), &data)
 	if err != nil {
 		return
@@ -1228,7 +1227,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 	return err
 }
 
-// CreatePushPullComment create push code to pull base commend
+// CreatePushPullComment create push code to pull base comment
 func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
@@ -1249,7 +1248,6 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 
 	ops.Issue = pr.Issue
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -1262,7 +1260,7 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	return
 }
 
-// getCommitsFromRepo get commit IDs from repo in betwern oldCommitID and newCommitID
+// getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
 func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {

@@ -128,8 +128,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   - Options other than `never` and `always` can be combined as a comma separated list.
 - `DEFAULT_TRUST_MODEL`: **collaborator**: \[collaborator, committer, collaboratorcommitter\]: The default trust model used for verifying commits.
    - `collaborator`: Trust signatures signed by keys of collaborators.
-   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the commmitter).
-   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the commiter.
+   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the committer).
+   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the committer.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
@@ -162,6 +162,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+- `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
 
@@ -300,7 +301,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**:  DEPRECATED: Default LFS content path. (if it is on local storage.)
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
@@ -345,9 +346,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
 - `LOG_SQL`: **true**: Log the executed SQL.
 - `DB_RETRIES`: **10**: How many ORM init / DB connect attempts allowed.
-- `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occured.
+- `DB_RETRY_BACKOFF`: **3s**: time.Duration to wait before trying another ORM init / DB connect attempt, if failure occurred.
 - `MAX_OPEN_CONNS` **0**: Database maximum open connections - default is 0, meaning there is no limit.
-- `MAX_IDLE_CONNS` **2**: Max idle database connections on connnection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
+- `MAX_IDLE_CONNS` **2**: Max idle database connections on connection pool, default is 2 - this will be capped to `MAX_OPEN_CONNS`.
 - `CONN_MAX_LIFETIME` **0 or 3s**: Sets the maximum amount of time a DB connection may be reused - default is 0, meaning there is no limit (except on MySQL where it is 3s - see #6804 & #7071).
 
 Please see #8540 & #8273 for further discussion of the appropriate values for `MAX_OPEN_CONNS`, `MAX_IDLE_CONNS` & `CONN_MAX_LIFETIME` and their
@@ -385,7 +386,7 @@ relation to port exhaustion.
 - `LENGTH`: **20**: Maximal queue size before channel queues block
 - `BATCH_LENGTH`: **20**: Batch data before passing to the handler
 - `CONN_STR`: **redis://127.0.0.1:6379/0**: Connection string for the redis queue type. Options can be set using query params. Similarly LevelDB options can also be set using: **leveldb://relative/path?option=value** or **leveldb:///absolute/path?option=value**, and will override `DATADIR`
-- `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overriden in the specific `queue.name` section.
+- `QUEUE_NAME`: **_queue**: The suffix for default redis and disk queue name. Individual queues will default to **`name`**`QUEUE_NAME` but can be overridden in the specific `queue.name` section.
 - `SET_NAME`: **_unique**: The suffix that will be added to the default redis and disk queue `set` name for unique queues. Individual queues will default to
  **`name`**`QUEUE_NAME`_`SET_NAME`_ but can be overridden in the specific `queue.name` section.
 - `WRAP_IF_NECESSARY`: **true**: Will wrap queues with a timeoutable queue if the selected queue is not ready to be created - (Only relevant for the level queue.)
@@ -502,11 +503,12 @@ relation to port exhaustion.
 - `HCAPTCHA_SITEKEY`: **""**: Sign up at https://www.hcaptcha.com/ to get a sitekey for hcaptcha.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
+- `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
 - `ALLOW_CROSS_REPOSITORY_DEPENDENCIES` : **true** Enable this to allow dependencies on issues from any repository where the user is granted access.
 - `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `ENABLE_TIMETRACKING`: **true**: Enable Timetracking feature.
-- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by deault.
+- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by default.
 - `DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME`: **true**: Only allow users with write permissions to track time.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
@@ -516,7 +518,7 @@ relation to port exhaustion.
 - `AUTO_WATCH_NEW_REPOS`: **true**: Enable this to let all organisation users watch new repos when they are created
 - `AUTO_WATCH_ON_CHANGES`: **false**: Enable this to make users watch a repository after their first commit to it
 - `DEFAULT_USER_VISIBILITY`: **public**: Set default visibility mode for users, either "public", "limited" or "private".
-- `ALLOWED_USER_VISIBILITY_MODES`: **public,limited,private**: Set whitch visibibilty modes a user can have
+- `ALLOWED_USER_VISIBILITY_MODES`: **public,limited,private**: Set which visibility modes a user can have
 - `DEFAULT_ORG_VISIBILITY`: **public**: Set default visibility mode for organisations, either "public", "limited" or "private".
 - `DEFAULT_ORG_MEMBER_VISIBLE`: **false** True will make the membership of the users visible when added to the organisation.
 - `ALLOW_ONLY_INTERNAL_REGISTRATION`: **false** Set to true to force registration only via gitea.
@@ -526,11 +528,10 @@ relation to port exhaustion.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 - `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
-### Service - Expore (`service.explore`)
+### Service - Explore (`service.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
 - `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
-
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 
@@ -590,11 +591,12 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Cache (`cache`)
 
 - `ENABLED`: **true**: Enable the cache.
-- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-- `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
-- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
+- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
+- `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
+- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`. For `twoqueue` sets configuration for the queue.
    - Redis: `redis://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
    - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
+   - TwoQueue LRU cache: `{"size":50000,"recent_ratio":0.25,"ghost_ratio":0.5}` or `50000` representing the maximum number of objects stored in the cache.
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
@@ -739,7 +741,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 - `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
 #### Cron - Update Mirrors (`cron.update_mirrors`)
@@ -749,31 +751,31 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 #### Cron - Repository Health Check (`cron.repo_health_check`)
 
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository health check.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
 #### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository statistics check.
 
 ### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
 
 - `ENABLED`: **true**: Enable cleanup hook_task job.
 - `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
-- `SCHEDULE`: **@every 24h**: Cron syntax for cleaning hook_task table.
+- `SCHEDULE`: **@midnight**: Cron syntax for cleaning hook_task table.
 - `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
 - `OLDER_THAN`: **168h**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
 - `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
 
 #### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
-- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+- `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
 #### Cron - Sync External Users (`cron.sync_external_users`)
 
-- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+- `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
 ### Extended cron tasks (not enabled by default)
@@ -881,6 +883,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 ## Markup (`markup`)
 
+- `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)
+
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 
 ```ini
@@ -895,7 +899,7 @@ IS_INPUT_FILE = false
 - ENABLED: **false** Enable markup support; set to **true** to enable this renderer.
 - NEED\_POSTPROCESS: **true** set to **true** to replace links / sha1 and etc.
 - FILE\_EXTENSIONS: **\<empty\>** List of file extensions that should be rendered by an external
-   command. Multiple extentions needs a comma as splitter.
+   command. Multiple extensions needs a comma as splitter.
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
 
@@ -927,7 +931,7 @@ If the rule is defined above the renderer ini section or the name does not match
 
 ## Time (`time`)
 
-- `FORMAT`: Time format to diplay on UI. i.e. RFC1123 or 2006-01-02 15:04:05
+- `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
 - `DEFAULT_UI_LOCATION`: Default location of time on the UI, so that we can display correct user's time on UI. i.e. Shanghai/Asia
 
 ## Task (`task`)

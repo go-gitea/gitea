@@ -9,9 +9,9 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -71,7 +71,6 @@ func TestAccessTokenExchange(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -96,7 +95,6 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -186,7 +184,6 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -230,7 +227,6 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 	}
 	parsed := new(response)
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 
 	// test without invalidation

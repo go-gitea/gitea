@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -176,7 +177,8 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+	update fileUpdate, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -229,7 +231,7 @@ func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -267,7 +269,7 @@ func (b *BleveIndexer) Close() {
 
 // Index indexes the data
 func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
 
 		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
@@ -296,7 +298,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 	if err != nil {
 		return err
 	}
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err

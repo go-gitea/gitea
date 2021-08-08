@@ -336,6 +336,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					ctx.Data["MarkupType"] = string(markupType)
 					var result strings.Builder
 					err := markup.Render(&markup.RenderContext{
+						Ctx:       ctx,
 						Filename:  readmeFile.name,
 						URLPrefix: readmeTreelink,
 						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -415,7 +416,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := st.IsText()
 
 	isLFSFile := false
-	isDisplayingSource := ctx.Query("display") == "source"
+	isDisplayingSource := ctx.Form("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
 	//Check for LFS meta file
@@ -511,6 +512,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
+				Ctx:       ctx,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -570,6 +572,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
+				Ctx:       ctx,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -751,9 +754,9 @@ func renderCode(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
-// RenderUserCards render a page show users according the input templaet
+// RenderUserCards render a page show users according the input template
 func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}

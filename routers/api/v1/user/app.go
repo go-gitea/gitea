@@ -76,15 +76,10 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
-	// - name: accessToken
+	// - name: userCreateToken
 	//   in: body
 	//   schema:
-	//     type: object
-	//     required:
-	//       - name
-	//     properties:
-	//       name:
-	//         type: string
+	//     "$ref": "#/definitions/CreateAccessTokenOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/AccessToken"
@@ -166,7 +161,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		case 1:
 			tokenID = tokens[0].ID
 		default:
-			ctx.Error(http.StatusUnprocessableEntity, "DeleteAccessTokenByID", fmt.Errorf("multible matches for token name '%s'", token))
+			ctx.Error(http.StatusUnprocessableEntity, "DeleteAccessTokenByID", fmt.Errorf("multiple matches for token name '%s'", token))
 			return
 		}
 	}

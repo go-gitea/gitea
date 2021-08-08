@@ -41,7 +41,7 @@ func Repos(ctx *context.Context) {
 
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
-	repo, err := models.GetRepositoryByID(ctx.QueryInt64("id"))
+	repo, err := models.GetRepositoryByID(ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -59,7 +59,7 @@ func DeleteRepo(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Query("page") + "&sort=" + ctx.Query("sort"),
+		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Form("page") + "&sort=" + ctx.Form("sort"),
 	})
 }
 
@@ -71,7 +71,7 @@ func UnadoptedRepos(ctx *context.Context) {
 
 	opts := models.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
-		Page:     ctx.QueryInt("page"),
+		Page:     ctx.FormInt("page"),
 	}
 
 	if opts.Page <= 0 {
@@ -80,10 +80,10 @@ func UnadoptedRepos(ctx *context.Context) {
 
 	ctx.Data["CurrentPage"] = opts.Page
 
-	doSearch := ctx.QueryBool("search")
+	doSearch := ctx.FormBool("search")
 
 	ctx.Data["search"] = doSearch
-	q := ctx.Query("q")
+	q := ctx.Form("q")
 
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
@@ -109,10 +109,10 @@ func UnadoptedRepos(ctx *context.Context) {
 
 // AdoptOrDeleteRepository adopts or deletes a repository
 func AdoptOrDeleteRepository(ctx *context.Context) {
-	dir := ctx.Query("id")
-	action := ctx.Query("action")
-	page := ctx.QueryInt("page")
-	q := ctx.Query("q")
+	dir := ctx.Form("id")
+	action := ctx.Form("action")
+	page := ctx.FormInt("page")
+	q := ctx.Form("q")
 
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {

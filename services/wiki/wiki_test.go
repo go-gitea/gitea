@@ -5,11 +5,15 @@
 package wiki
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -140,7 +144,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			wikiPath := NameToFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
 			assert.NoError(t, err)
-			assert.Equal(t, wikiPath, entry.Name(), "%s not addded correctly", wikiName)
+			assert.Equal(t, wikiPath, entry.Name(), "%s not added correctly", wikiName)
 		})
 	}
 
@@ -209,4 +213,80 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	wikiPath := NameToFilename("Home")
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)
 	assert.Error(t, err)
+}
+
+func TestPrepareWikiFileName(t *testing.T) {
+	models.PrepareTestEnv(t)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	defer gitRepo.Close()
+	assert.NoError(t, err)
+
+	tests := []struct {
+		name      string
+		arg       string
+		existence bool
+		wikiPath  string
+		wantErr   bool
+	}{{
+		name:      "add suffix",
+		arg:       "Home",
+		existence: true,
+		wikiPath:  "Home.md",
+		wantErr:   false,
+	}, {
+		name:      "test special chars",
+		arg:       "home of and & or wiki page!",
+		existence: false,
+		wikiPath:  "home-of-and-%26-or-wiki-page%21.md",
+		wantErr:   false,
+	}, {
+		name:      "fount unescaped cases",
+		arg:       "Unescaped File",
+		existence: true,
+		wikiPath:  "Unescaped File.md",
+		wantErr:   false,
+	}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			existence, newWikiPath, err := prepareWikiFileName(gitRepo, tt.arg)
+			if (err != nil) != tt.wantErr {
+				assert.NoError(t, err)
+				return
+			}
+			if existence != tt.existence {
+				if existence {
+					t.Errorf("expect to find no escaped file but we detect one")
+				} else {
+					t.Errorf("expect to find an escaped file but we could not detect one")
+				}
+			}
+			assert.Equal(t, tt.wikiPath, newWikiPath)
+		})
+	}
+}
+
+func TestPrepareWikiFileName_FirstPage(t *testing.T) {
+	models.PrepareTestEnv(t)
+
+	// Now create a temporaryDirectory
+	tmpDir, err := ioutil.TempDir("", "empty-wiki")
+	assert.NoError(t, err)
+	defer func() {
+		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
+			_ = util.RemoveAll(tmpDir)
+		}
+	}()
+
+	err = git.InitRepository(tmpDir, true)
+	assert.NoError(t, err)
+
+	gitRepo, err := git.OpenRepository(tmpDir)
+	defer gitRepo.Close()
+	assert.NoError(t, err)
+
+	existence, newWikiPath, err := prepareWikiFileName(gitRepo, "Home")
+	assert.False(t, existence)
+	assert.NoError(t, err)
+	assert.Equal(t, "Home.md", newWikiPath)
 }

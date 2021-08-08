@@ -2,12 +2,12 @@
 	<div class="inline required field">
 		<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
 		<div class="ui selection type dropdown">
-			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider}}">
-			<div class="text">{{.oauth2_provider}}</div>
+			<input type="hidden" id="oauth2_provider" name="oauth2_provider" value="{{.oauth2_provider.Name}}">
+			<div class="text">{{.oauth2_provider.Name}}</div>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
-				{{range $key, $value := .OAuth2Providers}}
-					<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+				{{range .OAuth2Providers}}
+					<div class="item" data-value="{{.Name}}">{{.DisplayName}}</div>
 				{{end}}
 			</div>
 		</div>
@@ -51,12 +51,17 @@
 		<label for="oauth2_email_url">{{.i18n.Tr "admin.auths.oauth2_emailURL"}}</label>
 		<input id="oauth2_email_url" name="oauth2_email_url" value="{{.oauth2_email_url}}">
 	</div>
-	{{if .OAuth2DefaultCustomURLMappings}}
-		{{range $key, $value := .OAuth2DefaultCustomURLMappings}}
-			<input id="{{$key}}_token_url" value="{{$value.TokenURL}}" type="hidden" />
-			<input id="{{$key}}_auth_url" value="{{$value.AuthURL}}" type="hidden" />
-			<input id="{{$key}}_profile_url" value="{{$value.ProfileURL}}" type="hidden" />
-			<input id="{{$key}}_email_url" value="{{$value.EmailURL}}" type="hidden" />
-		{{end}}
-	{{end}}
+	<div class="oauth2_use_custom_url_field oauth2_tenant required field">
+		<label for="oauth2_tenant">{{.i18n.Tr "admin.auths.oauth2_tenant"}}</label>
+		<input id="oauth2_tenant" name="oauth2_tenant" value="{{.oauth2_tenant}}">
+	</div>
+
+	{{range .OAuth2Providers}}{{if .CustomURLSettings}}
+		<input id="{{.Name}}_customURLSettings" type="hidden" data-required="{{.CustomURLSettings.Required}}" data-available="true">
+		<input id="{{.Name}}_token_url" value="{{.CustomURLSettings.TokenURL.Value}}" data-available="{{.CustomURLSettings.TokenURL.Available}}" data-required="{{.CustomURLSettings.TokenURL.Required}}" type="hidden" />
+		<input id="{{.Name}}_auth_url" value="{{.CustomURLSettings.AuthURL.Value}}" data-available="{{.CustomURLSettings.AuthURL.Available}}" data-required="{{.CustomURLSettings.AuthURL.Required}}" type="hidden" />
+		<input id="{{.Name}}_profile_url" value="{{.CustomURLSettings.ProfileURL.Value}}" data-available="{{.CustomURLSettings.ProfileURL.Available}}" data-required="{{.CustomURLSettings.ProfileURL.Required}}" type="hidden" />
+		<input id="{{.Name}}_email_url" value="{{.CustomURLSettings.EmailURL.Value}}" data-available="{{.CustomURLSettings.EmailURL.Available}}" data-required="{{.CustomURLSettings.EmailURL.Required}}" type="hidden" />
+		<input id="{{.Name}}_tenant" value="{{.CustomURLSettings.Tenant.Value}}" data-available="{{.CustomURLSettings.Tenant.Available}}" data-required="{{.CustomURLSettings.Tenant.Required}}" type="hidden" />
+	{{end}}{{end}}
 </div>
