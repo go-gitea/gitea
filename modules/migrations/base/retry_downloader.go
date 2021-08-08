@@ -182,7 +182,7 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 }
 
 // GetReviews returns pull requests reviews
-func (d *RetryDownloader) GetReviews(pullRequestContext interface{}) ([]*Review, error) {
+func (d *RetryDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, error) {
 	var (
 		reviews []*Review
 		err     error

@@ -154,7 +154,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 				}},
 			Closed: &closed1,
 			Context: gitlabIssueContext{
-				OriginalID:     1,
+				foreignID:      1,
 				IsMergeRequest: false,
 			},
 		},
@@ -206,7 +206,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 				}},
 			Closed: &closed2,
 			Context: gitlabIssueContext{
-				OriginalID:     2,
+				foreignID:      2,
 				IsMergeRequest: false,
 			},
 		},
@@ -214,8 +214,8 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
 		Context: gitlabIssueContext{
-			OriginalID:     2,
-			MigratedID:     2,
+			foreignID:      2,
+			localID:        2,
 			IsMergeRequest: false,
 		},
 	})
@@ -303,14 +303,14 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			MergedTime:     nil,
 			MergeCommitSHA: "",
 			Context: gitlabIssueContext{
-				OriginalID:     2,
-				MigratedID:     4,
+				foreignID:      2,
+				localID:        4,
 				IsMergeRequest: true,
 			},
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(1)
+	rvs, err := downloader.GetReviews(base.BasicIssueContext{ID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, rvs, 2) {
 		for i := range rvs {
@@ -327,7 +327,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			}
 		}
 	}
-	rvs, err = downloader.GetReviews(2)
+	rvs, err = downloader.GetReviews(base.BasicIssueContext{ID: 2})
 	assert.NoError(t, err)
 	if assert.Len(t, prs, 1) {
 		assert.EqualValues(t, 4575606, rvs[0].ReviewerID)

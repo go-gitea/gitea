@@ -424,7 +424,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			Labels:      labels,
 			Assignees:   assignees,
 			IsLocked:    issue.IsLocked,
-			Context:     issue.Index,
+			Context:     base.BasicIssueContext{ID: issue.Index},
 		})
 	}
 
@@ -437,11 +437,6 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 // GetComments returns comments according issueNumber
 func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	issueNumber, ok := opts.Context.(int64)
-	if !ok {
-		return nil, false, fmt.Errorf("unexpected comment context: %+v", opts.Context)
-	}
-
 	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
 	// for i := 1; ; i++ {
@@ -452,26 +447,26 @@ func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comm
 	default:
 	}
 
-	comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, issueNumber, gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+	comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
 		// PageSize: g.maxPerPage,
 		// Page:     i,
 	}})
 	if err != nil {
-		return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", issueNumber, err)
+		return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", opts.Context.ForeignID(), err)
 	}
 
 	for _, comment := range comments {
 		reactions, err := g.getCommentReactions(comment.ID)
 		if err != nil {
-			log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", issueNumber, comment.ID, g.repoOwner, g.repoName, err)
+			log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)
 			if err2 := models.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", issueNumber, comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
+				fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
 				log.Error("create repository notice failed: ", err2)
 			}
 		}
 
 		allComments = append(allComments, &base.Comment{
-			IssueIndex:  issueNumber,
+			IssueIndex:  opts.Context.LocalID(),
 			PosterID:    comment.Poster.ID,
 			PosterName:  comment.Poster.UserName,
 			PosterEmail: comment.Poster.Email,
@@ -601,7 +596,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 				RepoName:  g.repoName,
 				OwnerName: g.repoOwner,
 			},
-			Context: pr.Index,
+			Context: base.BasicIssueContext{ID: pr.Index},
 		})
 	}
 
@@ -613,15 +608,10 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(context interface{}) ([]*base.Review, error) {
+func (g *GiteaDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, nil
-	}
-
-	issueNumber, ok := context.(int64)
-	if !ok {
-		return nil, fmt.Errorf("unexpected context: %+v", context)
 	}
 
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
@@ -634,7 +624,7 @@ func (g *GiteaDownloader) GetReviews(context interface{}) ([]*base.Review, error
 		default:
 		}
 
-		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, issueNumber, gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
+		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, context.ForeignID(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -644,7 +634,7 @@ func (g *GiteaDownloader) GetReviews(context interface{}) ([]*base.Review, error
 
 		for _, pr := range prl {
 
-			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, issueNumber, pr.ID)
+			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, context.ForeignID(), pr.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -670,7 +660,7 @@ func (g *GiteaDownloader) GetReviews(context interface{}) ([]*base.Review, error
 
 			allReviews = append(allReviews, &base.Review{
 				ID:           pr.ID,
-				IssueIndex:   issueNumber,
+				IssueIndex:   context.LocalID(),
 				ReviewerID:   pr.Reviewer.ID,
 				ReviewerName: pr.Reviewer.UserName,
 				Official:     pr.Official,

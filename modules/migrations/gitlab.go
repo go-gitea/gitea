@@ -348,9 +348,17 @@ func (g *GitlabDownloader) GetReleases() ([]*base.Release, error) {
 }
 
 type gitlabIssueContext struct {
-	OriginalID     int
-	MigratedID     int64
+	foreignID      int64
+	localID        int64
 	IsMergeRequest bool
+}
+
+func (c gitlabIssueContext) LocalID() int64 {
+	return c.localID
+}
+
+func (c gitlabIssueContext) ForeignID() int64 {
+	return c.foreignID
 }
 
 // GetIssues returns issues according start and limit
@@ -423,8 +431,8 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			IsLocked:   issue.DiscussionLocked,
 			Updated:    *issue.UpdatedAt,
 			Context: gitlabIssueContext{
-				OriginalID:     int(issue.IID),
-				MigratedID:     int64(issue.IID),
+				foreignID:      int64(issue.IID),
+				localID:        int64(issue.IID),
 				IsMergeRequest: false,
 			},
 		})
@@ -453,12 +461,12 @@ func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 		var resp *gitlab.Response
 		var err error
 		if !context.IsMergeRequest {
-			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, context.OriginalID, &gitlab.ListIssueDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListIssueDiscussions(g.repoID, int(context.ForeignID()), &gitlab.ListIssueDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
 		} else {
-			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, context.OriginalID, &gitlab.ListMergeRequestDiscussionsOptions{
+			comments, resp, err = g.client.Discussions.ListMergeRequestDiscussions(g.repoID, int(context.ForeignID()), &gitlab.ListMergeRequestDiscussionsOptions{
 				Page:    page,
 				PerPage: g.maxPerPage,
 			}, nil, gitlab.WithContext(g.ctx))
@@ -472,7 +480,7 @@ func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 			if !comment.IndividualNote {
 				for _, note := range comment.Notes {
 					allComments = append(allComments, &base.Comment{
-						IssueIndex:  int64(context.MigratedID),
+						IssueIndex:  context.LocalID(),
 						PosterID:    int64(note.Author.ID),
 						PosterName:  note.Author.Username,
 						PosterEmail: note.Author.Email,
@@ -483,7 +491,7 @@ func (g *GitlabDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 			} else {
 				c := comment.Notes[0]
 				allComments = append(allComments, &base.Comment{
-					IssueIndex:  int64(context.MigratedID),
+					IssueIndex:  context.LocalID(),
 					PosterID:    int64(c.Author.ID),
 					PosterName:  c.Author.Username,
 					PosterEmail: c.Author.Email,
@@ -605,8 +613,8 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			},
 			PatchURL: pr.WebURL + ".patch",
 			Context: gitlabIssueContext{
-				OriginalID:     int(pr.IID),
-				MigratedID:     newPRNumber,
+				foreignID:      int64(pr.IID),
+				localID:        newPRNumber,
 				IsMergeRequest: true,
 			},
 		})
@@ -616,13 +624,8 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests review
-func (g *GitlabDownloader) GetReviews(context interface{}) ([]*base.Review, error) {
-	issueContext, ok := context.(gitlabIssueContext)
-	if !ok {
-		return nil, fmt.Errorf("unexpected context: %+v", context)
-	}
-
-	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(issueContext.OriginalID), gitlab.WithContext(g.ctx))
+func (g *GitlabDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(context.ForeignID()), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
@@ -642,7 +645,7 @@ func (g *GitlabDownloader) GetReviews(context interface{}) ([]*base.Review, erro
 	var reviews = make([]*base.Review, 0, len(approvers))
 	for id, name := range approvers {
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   issueContext.MigratedID,
+			IssueIndex:   context.LocalID(),
 			ReviewerID:   int64(id),
 			ReviewerName: name,
 			// GitLab API doesn't return a creation date

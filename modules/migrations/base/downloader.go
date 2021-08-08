@@ -13,7 +13,7 @@ import (
 
 // GetCommentOptions represents an options for get comment
 type GetCommentOptions struct {
-	Context  interface{}
+	Context  IssueContext
 	Page     int
 	PageSize int
 }
@@ -30,7 +30,7 @@ type Downloader interface {
 	GetComments(opts GetCommentOptions) ([]*Comment, bool, error)
 	SupportGetRepoComments() bool
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
-	GetReviews(pullRequestContext interface{}) ([]*Review, error)
+	GetReviews(pullRequestContext IssueContext) ([]*Review, error)
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 }
 

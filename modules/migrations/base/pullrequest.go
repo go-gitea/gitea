@@ -33,7 +33,7 @@ type PullRequest struct {
 	Assignees      []string
 	IsLocked       bool `yaml:"is_locked"`
 	Reactions      []*Reaction
-	Context        interface{} `yaml:"-"`
+	Context        IssueContext `yaml:"-"`
 }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository

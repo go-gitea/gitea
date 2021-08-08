@@ -225,7 +225,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}, issues[1])
 
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: int64(4),
+		Context: base.BasicIssueContext{ID: 4},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, comments, 2)
@@ -299,7 +299,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
-	reviews, err := downloader.GetReviews(int64(7))
+	reviews, err := downloader.GetReviews(base.BasicIssueContext{ID: 7})
 	assert.NoError(t, err)
 	if assert.Len(t, reviews, 3) {
 		assert.EqualValues(t, 689, reviews[0].ReviewerID)

@@ -61,7 +61,7 @@ func (n NullDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool
 }
 
 // GetReviews returns pull requests review
-func (n NullDownloader) GetReviews(pullRequestContext interface{}) ([]*Review, error) {
+func (n NullDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, error) {
 	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 

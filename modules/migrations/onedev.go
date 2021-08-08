@@ -243,9 +243,17 @@ func (d *OneDevDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 type onedevIssueContext struct {
-	OriginalID    int64
-	MigratedID    int64
+	foreignID     int64
+	localID       int64
 	IsPullRequest bool
+}
+
+func (c onedevIssueContext) LocalID() int64 {
+	return c.localID
+}
+
+func (c onedevIssueContext) ForeignID() int64 {
+	return c.foreignID
 }
 
 // GetIssues returns issues according start and limit, perPage is not supported
@@ -292,8 +300,8 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Created:     issue.SubmitDate,
 			//Closed:      closed,
 			Context: onedevIssueContext{
-				OriginalID:    issue.ID,
-				MigratedID:    issue.Number,
+				foreignID:     issue.ID,
+				localID:       issue.Number,
 				IsPullRequest: false,
 			},
 		})
@@ -321,9 +329,9 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 
 	var endpoint string
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", context.OriginalID)
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/comments", context.ForeignID())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/comments", context.OriginalID)
+		endpoint = fmt.Sprintf("/api/issues/%d/comments", context.ForeignID())
 	}
 
 	err := d.callAPI(
@@ -342,9 +350,9 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 	}, 0, 100)
 
 	if context.IsPullRequest {
-		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", context.OriginalID)
+		endpoint = fmt.Sprintf("/api/pull-requests/%d/changes", context.ForeignID())
 	} else {
-		endpoint = fmt.Sprintf("/api/issues/%d/changes", context.OriginalID)
+		endpoint = fmt.Sprintf("/api/issues/%d/changes", context.ForeignID())
 	}
 
 	err = d.callAPI(
@@ -363,7 +371,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 		}
 		poster := d.tryGetUser(comment.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  context.MigratedID,
+			IssueIndex:  context.LocalID(),
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -387,7 +395,7 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 
 		poster := d.tryGetUser(change.UserID)
 		comments = append(comments, &base.Comment{
-			IssueIndex:  context.MigratedID,
+			IssueIndex:  context.LocalID(),
 			PosterID:    poster.ID,
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
@@ -470,8 +478,8 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 				RepoName: d.repoName,
 			},
 			Context: onedevIssueContext{
-				OriginalID:    pr.ID,
-				MigratedID:    number,
+				foreignID:     pr.ID,
+				localID:       number,
 				IsPullRequest: true,
 			},
 		})
@@ -481,12 +489,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns requested pull requests reviews
-func (d *OneDevDownloader) GetReviews(context interface{}) ([]*base.Review, error) {
-	issueContext, ok := context.(onedevIssueContext)
-	if !ok {
-		return nil, fmt.Errorf("unexpected context: %+v", context)
-	}
-
+func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
 		UserID int64 `json:"userId"`
@@ -498,7 +501,7 @@ func (d *OneDevDownloader) GetReviews(context interface{}) ([]*base.Review, erro
 	}, 0, 100)
 
 	err := d.callAPI(
-		fmt.Sprintf("/api/pull-requests/%d/reviews", issueContext.OriginalID),
+		fmt.Sprintf("/api/pull-requests/%d/reviews", context.ForeignID()),
 		nil,
 		&rawReviews,
 	)
@@ -522,7 +525,7 @@ func (d *OneDevDownloader) GetReviews(context interface{}) ([]*base.Review, erro
 
 		poster := d.tryGetUser(review.UserID)
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   issueContext.MigratedID,
+			IssueIndex:   context.LocalID(),
 			ReviewerID:   poster.ID,
 			ReviewerName: poster.Name,
 			CreatedAt:    time.Now(),

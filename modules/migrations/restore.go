@@ -209,20 +209,15 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 	for _, issue := range issues {
-		issue.Context = issue.Number
+		issue.Context = base.BasicIssueContext{ID: issue.Number}
 	}
 	return issues, true, nil
 }
 
 // GetComments returns comments according issueNumber
 func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	issueNumber, ok := opts.Context.(int64)
-	if !ok {
-		return nil, false, fmt.Errorf("unexpected context: %+v", opts.Context)
-	}
-
 	var comments = make([]*base.Comment, 0, 10)
-	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", issueNumber))
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", opts.Context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -266,20 +261,15 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 	for _, pr := range pulls {
 		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
-		pr.Context = pr.Number
+		pr.Context = base.BasicIssueContext{ID: pr.Number}
 	}
 	return pulls, true, nil
 }
 
 // GetReviews returns pull requests review
-func (r *RepositoryRestorer) GetReviews(context interface{}) ([]*base.Review, error) {
-	issueNumber, ok := context.(int64)
-	if !ok {
-		return nil, fmt.Errorf("unexpected context: %+v", context)
-	}
-
+func (r *RepositoryRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	var reviews = make([]*base.Review, 0, 10)
-	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", issueNumber))
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
