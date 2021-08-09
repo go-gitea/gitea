@@ -36,6 +36,9 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			remainingCommitID = remainingCommitID[2:]
 		}
 		if err != nil {
+			if err == object.ErrDirectoryNotFound {
+				return ErrNotExist{ID: remainingCommitID, RelPath: path}
+			}
 			return err
 		}
 	}
