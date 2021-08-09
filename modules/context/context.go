@@ -729,7 +729,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
@@ -770,6 +770,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
+			}
 		})
 	}
 }
