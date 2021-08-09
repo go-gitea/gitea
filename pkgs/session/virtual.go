@@ -32,7 +32,7 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	// Note that these options are unprepared so we can't just use NewManager here.
 	// Nor can we access the provider map in session.
 	// So we will just have to do this by hand.
-	// This is only slightly more wrong than modules/setting/session.go:23
+	// This is only slightly more wrong than pkgs/setting/session.go:23
 	switch opts.Provider {
 	case "memory":
 		o.provider = &session.MemProvider{}

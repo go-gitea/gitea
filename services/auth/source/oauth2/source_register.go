@@ -20,8 +20,8 @@ func (source *Source) UnregisterSource() error {
 	return nil
 }
 
-// wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in modules/auth/oauth2
-// inside oauth2: import cycle not allowed models -> modules/auth/oauth2 -> models
+// wrapOpenIDConnectInitializeError is used to wrap the error but this cannot be done in pkgs/auth/oauth2
+// inside oauth2: import cycle not allowed models -> pkgs/auth/oauth2 -> models
 func wrapOpenIDConnectInitializeError(err error, providerName string, source *Source) error {
 	if err != nil && source.Provider == "openidConnect" {
 		err = models.ErrOpenIDConnectInitialize{ProviderName: providerName, OpenIDConnectAutoDiscoveryURL: source.OpenIDConnectAutoDiscoveryURL, Cause: err}

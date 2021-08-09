@@ -56,7 +56,7 @@ func getRefURL(refURL, urlPrefix, repoFullName, sshDomain string) string {
 		urlPrefix = urlPrefix[:len(urlPrefix)-1]
 	}
 
-	// FIXME: Need to consider branch - which will require changes in modules/git/commit.go:GetSubModules
+	// FIXME: Need to consider branch - which will require changes in pkgs/git/commit.go:GetSubModules
 	// Relative url prefix check (according to git submodule documentation)
 	if strings.HasPrefix(refURI, "./") || strings.HasPrefix(refURI, "../") {
 		return urlPrefix + path.Clean(path.Join("/", repoFullName, refURI))

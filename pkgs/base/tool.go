@@ -292,7 +292,7 @@ func SetupGiteaRoot() string {
 	giteaRoot := os.Getenv("GITEA_ROOT")
 	if giteaRoot == "" {
 		_, filename, _, _ := runtime.Caller(0)
-		giteaRoot = strings.TrimSuffix(filename, "modules/base/tool.go")
+		giteaRoot = strings.TrimSuffix(filename, "pkgs/base/tool.go")
 		wd, err := os.Getwd()
 		if err != nil {
 			rel, err := filepath.Rel(giteaRoot, wd)

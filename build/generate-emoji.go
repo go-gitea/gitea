@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	flagOut = flag.String("o", "modules/emoji/emoji_data.go", "out")
+	flagOut = flag.String("o", "pkgs/emoji/emoji_data.go", "out")
 )
 
 // Gemoji is a set of emoji data.

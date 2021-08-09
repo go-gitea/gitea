@@ -408,7 +408,7 @@ var (
 	Langs []string
 	Names []string
 
-	// Highlight settings are loaded in modules/template/highlight.go
+	// Highlight settings are loaded in pkgs/template/highlight.go
 
 	// Other settings
 	ShowFooterBranding         bool
@@ -473,7 +473,7 @@ func getWorkPath(appPath string) string {
 
 func init() {
 	IsWindows = runtime.GOOS == "windows"
-	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
+	// We can rely on log.CanColorStdout being set properly because pkgs/log/console_windows.go comes before pkgs/setting/setting.go lexicographically
 	// By default set this logger at Info - we'll change it later but we need to start with something.
 	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 

@@ -19,8 +19,8 @@ var giteaTemplate = []byte(`
 # All text files in /text/
 text/*.txt
 
-# All files in modules folders
-**/modules/*
+# All files in pkgs folders
+**/pkgs/*
 `)
 
 func TestGiteaTemplate(t *testing.T) {
@@ -38,8 +38,8 @@ func TestGiteaTemplate(t *testing.T) {
 		{Path: "text/a.txt", Match: true},
 		{Path: "text/b.txt", Match: true},
 		{Path: "text/c.json", Match: false},
-		{Path: "a/b/c/modules/README.md", Match: true},
-		{Path: "a/b/c/modules/d/README.md", Match: false},
+		{Path: "a/b/c/pkgs/README.md", Match: true},
+		{Path: "a/b/c/pkgs/d/README.md", Match: false},
 	}
 
 	for _, tc := range tt {

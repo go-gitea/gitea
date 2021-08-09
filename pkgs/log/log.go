@@ -287,5 +287,5 @@ func (l *LoggerAsWriter) Log(msg string) {
 
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
+	prefix = strings.TrimSuffix(filename, "pkgs/log/log.go")
 }
