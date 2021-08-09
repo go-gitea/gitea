@@ -426,10 +426,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+		if pull.Flow == models.PullRequestFlowGithub {
+			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+		} else {
+			headBranchExist = git.IsReferenceExist(baseGitRepo.Path, pull.GetGitRefName())
+		}
 
 		if headBranchExist {
-			headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			if pull.Flow != models.PullRequestFlowGithub {
+				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitRefName())
+			} else {
+				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			}
 			if err != nil {
 				ctx.ServerError("GetBranchCommitID", err)
 				return nil
@@ -516,6 +524,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
+	}
+
+	if compareInfo.HeadCommitID == compareInfo.MergeBase {
+		ctx.Data["IsNothingToCompare"] = true
 	}
 
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -997,10 +1009,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.pulls.compare_changes")
 	ctx.Data["PageIsComparePull"] = true
 	ctx.Data["IsDiffCompare"] = true
+	ctx.Data["IsRepoToolbarCommits"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -1032,6 +1048,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+
+		if len(form.Title) > 255 {
+			var trailer string
+			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
+
+			form.Content = trailer + "\n\n" + form.Content
+		}
+		middleware.AssignForm(form, ctx.Data)
 
 		ctx.HTML(http.StatusOK, tplCompareDiff)
 		return
@@ -1104,9 +1128,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 // TriggerTask response for a trigger task request
 func TriggerTask(ctx *context.Context) {
-	pusherID := ctx.QueryInt64("pusher")
-	branch := ctx.Query("branch")
-	secret := ctx.Query("secret")
+	pusherID := ctx.FormInt64("pusher")
+	branch := ctx.Form("branch")
+	secret := ctx.Form("secret")
 	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
 		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
@@ -1323,7 +1347,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	targetBranch := ctx.QueryTrim("target_branch")
+	targetBranch := ctx.FormTrim("target_branch")
 	if len(targetBranch) == 0 {
 		ctx.Error(http.StatusNoContent)
 		return

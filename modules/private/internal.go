@@ -12,8 +12,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func newRequest(ctx context.Context, url, method string) *httplib.Request {
@@ -30,7 +30,6 @@ type Response struct {
 
 func decodeJSONError(resp *http.Response) *Response {
 	var res Response
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
 		res.Err = err.Error()

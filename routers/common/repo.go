@@ -69,7 +69,7 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 		fileExtension := strings.ToLower(filepath.Ext(name))
 		mappedMimeType = setting.MimeTypeMap.Map[fileExtension]
 	}
-	if st.IsText() || ctx.QueryBool("render") {
+	if st.IsText() || ctx.FormBool("render") {
 		cs, err := charset.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)

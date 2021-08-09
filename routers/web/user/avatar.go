@@ -66,7 +66,7 @@ func AvatarByEmailHash(ctx *context.Context) {
 		ctx.Redirect(models.DefaultAvatarLink())
 		return
 	}
-	size := ctx.QueryInt("size")
+	size := ctx.FormInt("size")
 	if size == 0 {
 		size = models.DefaultAvatarSize
 	}

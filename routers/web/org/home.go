@@ -51,8 +51,8 @@ func Home(ctx *context.Context) {
 	}
 
 	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.Form("sort")
+	switch ctx.Form("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -78,10 +78,10 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.Form("q"), " ")
 	ctx.Data["Keyword"] = keyword
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}

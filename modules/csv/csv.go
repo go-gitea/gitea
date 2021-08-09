@@ -6,7 +6,6 @@ package csv
 
 import (
 	"bytes"
-	"encoding/csv"
 	stdcsv "encoding/csv"
 	"errors"
 	"io"
@@ -97,9 +96,9 @@ func scoreDelimiter(lines []string, delim rune) float64 {
 
 // FormatError converts csv errors into readable messages.
 func FormatError(err error, locale translation.Locale) (string, error) {
-	var perr *csv.ParseError
+	var perr *stdcsv.ParseError
 	if errors.As(err, &perr) {
-		if perr.Err == csv.ErrFieldCount {
+		if perr.Err == stdcsv.ErrFieldCount {
 			return locale.Tr("repo.error.csv.invalid_field_count", perr.Line), nil
 		}
 		return locale.Tr("repo.error.csv.unexpected", perr.Line, perr.Column), nil

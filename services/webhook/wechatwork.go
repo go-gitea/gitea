@@ -5,12 +5,12 @@
 package webhook
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 )
 

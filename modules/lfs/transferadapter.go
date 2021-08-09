@@ -12,9 +12,8 @@ import (
 	"io"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // TransferAdapter represents an adapter for downloading/uploading LFS objects
@@ -65,7 +64,7 @@ func (a *BasicTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r
 
 // Verify calls the verify handler on the LFS server
 func (a *BasicTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
-	b, err := jsoniter.Marshal(p)
+	b, err := json.Marshal(p)
 	if err != nil {
 		log.Error("Error encoding json: %v", err)
 		return err
@@ -128,7 +127,7 @@ func handleErrorResponse(resp *http.Response) error {
 
 func decodeReponseError(r io.Reader) (ErrorResponse, error) {
 	var er ErrorResponse
-	err := jsoniter.NewDecoder(r).Decode(&er)
+	err := json.NewDecoder(r).Decode(&er)
 	if err != nil {
 		log.Error("Error decoding json: %v", err)
 	}

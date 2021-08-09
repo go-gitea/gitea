@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/agit"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -153,6 +154,56 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	if opts.GitQuarantinePath != "" {
 		env = append(env,
 			private.GitQuarantinePath+"="+opts.GitQuarantinePath)
+	}
+
+	if git.SupportProcReceive {
+		pusher, err := models.GetUserByID(opts.UserID)
+		if err != nil {
+			log.Error("models.GetUserByID：%v", err)
+			ctx.Error(http.StatusInternalServerError, "")
+			return
+		}
+
+		perm, err := models.GetUserRepoPermission(repo, pusher)
+		if err != nil {
+			log.Error("models.GetUserRepoPermission:%v", err)
+			ctx.Error(http.StatusInternalServerError, "")
+			return
+		}
+
+		canCreatePullRequest := perm.CanRead(models.UnitTypePullRequests)
+
+		for _, refFullName := range opts.RefFullNames {
+			// if user want update other refs (branch or tag),
+			// should check code write permission because
+			// this check was delayed.
+			if !strings.HasPrefix(refFullName, git.PullRequestPrefix) {
+				if !perm.CanWrite(models.UnitTypeCode) {
+					ctx.JSON(http.StatusForbidden, map[string]interface{}{
+						"err": "User permission denied.",
+					})
+					return
+				}
+
+				break
+			} else if repo.IsEmpty {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "Can't create pull request for an empty repository.",
+				})
+				return
+			} else if !canCreatePullRequest {
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "User permission denied.",
+				})
+				return
+			} else if opts.IsWiki {
+				// TODO: maybe can do it ...
+				ctx.JSON(http.StatusForbidden, map[string]interface{}{
+					"err": "not support send pull request to wiki.",
+				})
+				return
+			}
+		}
 	}
 
 	protectedTags, err := repo.GetProtectedTags()
@@ -392,11 +443,35 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
+		} else if git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix) {
+			baseBranchName := opts.RefFullNames[i][len(git.PullRequestPrefix):]
+
+			baseBranchExist := false
+			if gitRepo.IsBranchExist(baseBranchName) {
+				baseBranchExist = true
+			}
+
+			if !baseBranchExist {
+				for p, v := range baseBranchName {
+					if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+						baseBranchExist = true
+						break
+					}
+				}
+			}
+
+			if !baseBranchExist {
+				ctx.JSON(http.StatusForbidden, private.Response{
+					Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
+				})
+				return
+			}
 		} else {
 			log.Error("Unexpected ref: %s", refFullName)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
 			})
+			return
 		}
 	}
 
@@ -537,7 +612,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch)
+			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, models.PullRequestFlowGithub)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
@@ -571,6 +646,30 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 		Results:      results,
 		RepoWasEmpty: wasEmpty,
+	})
+}
+
+// HookProcReceive proc-receive hook
+func HookProcReceive(ctx *gitea_context.PrivateContext) {
+	opts := web.GetForm(ctx).(*private.HookOptions)
+	if !git.SupportProcReceive {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	cancel := loadRepositoryAndGitRepoByParams(ctx)
+	if ctx.Written() {
+		return
+	}
+	defer cancel()
+
+	results := agit.ProcRecive(ctx, opts)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.JSON(http.StatusOK, private.HockProcReceiveResult{
+		Results: results,
 	})
 }
 
@@ -617,4 +716,45 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 		return
 	}
 	ctx.PlainText(http.StatusOK, []byte("success"))
+}
+
+func loadRepositoryAndGitRepoByParams(ctx *gitea_context.PrivateContext) context.CancelFunc {
+	ownerName := ctx.Params(":owner")
+	repoName := ctx.Params(":repo")
+
+	repo, err := models.GetRepositoryByOwnerAndName(ownerName, repoName)
+	if err != nil {
+		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return nil
+	}
+	if repo.OwnerName == "" {
+		repo.OwnerName = ownerName
+	}
+
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"Err": fmt.Sprintf("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err),
+		})
+		return nil
+	}
+
+	ctx.Repo = &gitea_context.Repository{
+		Repository: repo,
+		GitRepo:    gitRepo,
+	}
+
+	// We opened it, we should close it
+	cancel := func() {
+		// If it's been set to nil then assume someone else has closed it.
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+		}
+	}
+
+	return cancel
 }

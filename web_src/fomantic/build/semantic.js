@@ -142,7 +142,7 @@ $.api = $.fn.api = function(parameters) {
                response = JSON.parse(response);
               }
               catch(e) {
-                // isn't json string
+                // isnt json string
               }
             }
             return response;
@@ -2220,7 +2220,7 @@ $.fn.dimmer = function(parameters) {
 
         event: {
           click: function(event) {
-            module.verbose('Determining if event occurred on dimmer', event);
+            module.verbose('Determining if event occured on dimmer', event);
             if( $dimmer.find(event.target).length === 0 || $(event.target).is(selector.content) ) {
               module.hide();
               event.stopImmediatePropagation();
@@ -2827,6 +2827,13 @@ $.fn.dimmer.settings = {
  *
  */
 
+/*
+ * Copyright 2019 The Gitea Authors
+ * Released under the MIT license
+ * http://opensource.org/licenses/MIT
+ * This version has been modified by Gitea to improve accessibility.
+ */
+
 ;(function ($, window, document, undefined) {
 
 'use strict';
@@ -2860,6 +2867,7 @@ $.fn.dropdown = function(parameters) {
     query          = arguments[0],
     methodInvoked  = (typeof query == 'string'),
     queryArguments = [].slice.call(arguments, 1),
+    lastAriaID = 1,
     returnedValue
   ;
 
@@ -2952,6 +2960,8 @@ $.fn.dropdown = function(parameters) {
 
             module.observeChanges();
             module.instantiate();
+
+            module.aria.setup();
           }
 
         },
@@ -3152,6 +3162,86 @@ $.fn.dropdown = function(parameters) {
           }
         },
 
+        aria: {
+          setup: function() {
+            var role = module.aria.guessRole();
+            if( role !== 'menu' ) {
+              return;
+            }
+            $module.attr('aria-busy', 'true');
+            $module.attr('role', 'menu');
+            $module.attr('aria-haspopup', 'menu');
+            $module.attr('aria-expanded', 'false');
+            $menu.find('.divider').attr('role', 'separator');
+            $item.attr('role', 'menuitem');
+            $item.each(function (index, item) {
+              if( !item.id ) {
+                item.id = module.aria.nextID('menuitem');
+              }
+            });
+            $text = $module
+              .find('> .text')
+              .eq(0)
+            ;
+            if( $module.data('content') ) {
+              $text.attr('aria-hidden');
+              $module.attr('aria-label', $module.data('content'));
+            }
+            else {
+              $text.attr('id', module.aria.nextID('menutext'));
+              $module.attr('aria-labelledby', $text.attr('id'));
+            }
+            $module.attr('aria-busy', 'false');
+          },
+          nextID: function(prefix) {
+            var nextID;
+            do {
+              nextID = prefix + '_' + lastAriaID++;
+            } while( document.getElementById(nextID) );
+            return nextID;
+          },
+          setExpanded: function(expanded) {
+            if( $module.attr('aria-haspopup') ) {
+              $module.attr('aria-expanded', expanded);
+            }
+          },
+          refreshDescendant: function() {
+            if( $module.attr('aria-haspopup') !== 'menu' ) {
+              return;
+            }
+            var
+              $currentlySelected = $item.not(selector.unselectable).filter('.' + className.selected).eq(0),
+              $activeItem        = $menu.children('.' + className.active).eq(0),
+              $selectedItem      = ($currentlySelected.length > 0)
+                ? $currentlySelected
+                : $activeItem
+            ;
+            if( $selectedItem ) {
+              $module.attr('aria-activedescendant', $selectedItem.attr('id'));
+            }
+            else {
+              module.aria.removeDescendant();
+            }
+          },
+          removeDescendant: function() {
+            if( $module.attr('aria-haspopup') == 'menu' ) {
+              $module.removeAttr('aria-activedescendant');
+            }
+          },
+          guessRole: function() {
+            var
+              isIcon = $module.hasClass('icon'),
+              hasSearch = module.has.search(),
+              hasInput = ($input.length > 0),
+              isMultiple = module.is.multiple()
+            ;
+            if ( !isIcon && !hasSearch && !hasInput && !isMultiple ) {
+              return 'menu';
+            }
+            return 'unknown';
+          }
+        },
+
         setup: {
           api: function() {
             var
@@ -3198,6 +3288,7 @@ $.fn.dropdown = function(parameters) {
             if(settings.allowTab) {
               module.set.tabbable();
             }
+            $item.attr('tabindex', '-1');
           },
           select: function() {
             var
@@ -3344,6 +3435,8 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
+              module.aria.setExpanded(true);
+              module.aria.refreshDescendant();
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -3366,9 +3459,11 @@ $.fn.dropdown = function(parameters) {
           if( module.is.active() && !module.is.animatingOutward() ) {
             module.debug('Hiding dropdown');
             if(settings.onHide.call(element) !== false) {
+              module.aria.setExpanded(false);
+              module.aria.removeDescendant();
               module.animate.hide(function() {
                 module.remove.visible();
-                // hiding search focus
+                // hidding search focus
                 if ( module.is.focusedOnSearch() && preventBlur !== true ) {
                   $search.blur();
                 }
@@ -4319,7 +4414,7 @@ $.fn.dropdown = function(parameters) {
               // allow selection with menu closed
               if(isAdditionWithoutMenu) {
                 module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                module.event.item.click.call($selectedItem, event);
+                $selectedItem[0].click();
                 if(module.is.searchSelection()) {
                   module.remove.searchTerm();
                 }
@@ -4339,7 +4434,7 @@ $.fn.dropdown = function(parameters) {
                   }
                   else if(selectedIsSelectable) {
                     module.verbose('Selecting item from keyboard shortcut', $selectedItem);
-                    module.event.item.click.call($selectedItem, event);
+                    $selectedItem[0].click();
                     if(module.is.searchSelection()) {
                       module.remove.searchTerm();
                       if(module.is.multiple()) {
@@ -4367,6 +4462,7 @@ $.fn.dropdown = function(parameters) {
                         .closest(selector.item)
                           .addClass(className.selected)
                       ;
+                      module.aria.refreshDescendant();
                       event.preventDefault();
                     }
                   }
@@ -4383,6 +4479,7 @@ $.fn.dropdown = function(parameters) {
                         .find(selector.item).eq(0)
                           .addClass(className.selected)
                       ;
+                      module.aria.refreshDescendant();
                       event.preventDefault();
                     }
                   }
@@ -4407,6 +4504,7 @@ $.fn.dropdown = function(parameters) {
                     $nextItem
                       .addClass(className.selected)
                     ;
+                    module.aria.refreshDescendant();
                     module.set.scrollPosition($nextItem);
                     if(settings.selectOnKeydown && module.is.single()) {
                       module.set.selectedItem($nextItem);
@@ -4434,6 +4532,7 @@ $.fn.dropdown = function(parameters) {
                     $nextItem
                       .addClass(className.selected)
                     ;
+                    module.aria.refreshDescendant();
                     module.set.scrollPosition($nextItem);
                     if(settings.selectOnKeydown && module.is.single()) {
                       module.set.selectedItem($nextItem);
@@ -5403,6 +5502,7 @@ $.fn.dropdown = function(parameters) {
               module.set.scrollPosition($nextValue);
               $selectedItem.removeClass(className.selected);
               $nextValue.addClass(className.selected);
+              module.aria.refreshDescendant();
               if(settings.selectOnKeydown && module.is.single()) {
                 module.set.selectedItem($nextValue);
               }
@@ -11937,7 +12037,7 @@ $.fn.progress = function(parameters) {
            *
            * @param min A minimum value within multiple values
            * @param total A total amount of multiple values
-           * @returns {number} A precision. Could be 1, 10, 100, ... 1e+10.
+           * @returns {number} A precison. Could be 1, 10, 100, ... 1e+10.
            */
           derivePrecision: function(min, total) {
             var precisionPower = 0
@@ -12837,7 +12937,7 @@ $.fn.progress.settings = {
     nonNumeric      : 'Progress value is non numeric',
     tooHigh         : 'Value specified is above 100%',
     tooLow          : 'Value specified is below 0%',
-    sumExceedsTotal : 'Sum of multiple values exceed total',
+    sumExceedsTotal : 'Sum of multple values exceed total',
   },
 
   regExp: {
@@ -18076,7 +18176,7 @@ $.fn.transition.settings = {
 
   // possible errors
   error: {
-    noAnimation : 'Element is no longer attached to DOM. Unable to animate.  Use silent setting to suppress this warning in production.',
+    noAnimation : 'Element is no longer attached to DOM. Unable to animate.  Use silent setting to surpress this warning in production.',
     repeated    : 'That animation is already occurring, cancelling repeated animation',
     method      : 'The method you called is not defined',
     support     : 'This browser does not support CSS animations'

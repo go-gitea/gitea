@@ -58,8 +58,8 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchUserOptions{
 		Actor:       ctx.User,
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         ctx.QueryInt64("uid"),
+		Keyword:     strings.Trim(ctx.Form("q"), " "),
+		UID:         ctx.FormInt64("uid"),
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
 	}

@@ -30,7 +30,7 @@ type RepoSearchOptions struct {
 
 // RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
@@ -42,8 +42,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.Form("sort")
+	switch ctx.Form("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -73,8 +73,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
-	topicOnly := ctx.QueryBool("topic")
+	keyword := strings.Trim(ctx.Form("q"), " ")
+	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{

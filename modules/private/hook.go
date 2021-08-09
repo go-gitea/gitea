@@ -6,15 +6,15 @@ package private
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Git environment variables
@@ -57,6 +57,7 @@ type HookOptions struct {
 	GitPushOptions                  GitPushOptions
 	PullRequestID                   int64
 	IsDeployKey                     bool
+	IsWiki                          bool
 }
 
 // SSHLogOption ssh log options
@@ -80,6 +81,23 @@ type HookPostReceiveBranchResult struct {
 	URL     string
 }
 
+// HockProcReceiveResult represents an individual result from ProcReceive
+type HockProcReceiveResult struct {
+	Results []HockProcReceiveRefResult
+	Err     string
+}
+
+// HockProcReceiveRefResult represents an individual result from ProcReceive
+type HockProcReceiveRefResult struct {
+	OldOID       string
+	NewOID       string
+	Ref          string
+	OriginalRef  string
+	IsForcePush  bool
+	IsNotMatched bool
+	Err          string
+}
+
 // HookPreReceive check whether the provided commits are allowed
 func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (int, string) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/pre-receive/%s/%s",
@@ -88,7 +106,6 @@ func HookPreReceive(ctx context.Context, ownerName, repoName string, opts HookOp
 	)
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
@@ -115,7 +132,6 @@ func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(opts)
 	req.Body(jsonBytes)
 	resp, err := req.Response()
@@ -131,6 +147,33 @@ func HookPostReceive(ctx context.Context, ownerName, repoName string, opts HookO
 	_ = json.NewDecoder(resp.Body).Decode(res)
 
 	return res, ""
+}
+
+// HookProcReceive proc-receive hook
+func HookProcReceive(ctx context.Context, ownerName, repoName string, opts HookOptions) (*HockProcReceiveResult, error) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/proc-receive/%s/%s",
+		url.PathEscape(ownerName),
+		url.PathEscape(repoName),
+	)
+
+	req := newInternalRequest(ctx, reqURL, "POST")
+	req = req.Header("Content-Type", "application/json")
+	req.SetTimeout(60*time.Second, time.Duration(60+len(opts.OldCommitIDs))*time.Second)
+	jsonBytes, _ := json.Marshal(opts)
+	req.Body(jsonBytes)
+	resp, err := req.Response()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New(decodeJSONError(resp).Err)
+	}
+	res := &HockProcReceiveResult{}
+	_ = json.NewDecoder(resp.Body).Decode(res)
+
+	return res, nil
 }
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository

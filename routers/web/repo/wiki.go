@@ -298,7 +298,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}

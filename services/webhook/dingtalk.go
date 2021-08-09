@@ -10,9 +10,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	jsoniter "github.com/json-iterator/go"
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -27,7 +27,6 @@ var (
 
 // JSONPayload Marshals the DingtalkPayload to json
 func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err

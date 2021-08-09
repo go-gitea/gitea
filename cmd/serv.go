@@ -17,14 +17,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/dgrijalva/jwt-go"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/golang-jwt/jwt"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -146,6 +147,13 @@ func runServ(c *cli.Context) error {
 	}
 
 	if len(words) < 2 {
+		if git.CheckGitVersionAtLeast("2.29") == nil {
+			// for AGit Flow
+			if cmd == "ssh_info" {
+				fmt.Print(`{"type":"gitea","version":1}`)
+				return nil
+			}
+		}
 		return fail("Too few arguments", "Too few arguments in cmd: %s", cmd)
 	}
 
@@ -265,7 +273,6 @@ func runServ(c *cli.Context) error {
 		}
 		tokenAuthentication.Header["Authorization"] = fmt.Sprintf("Bearer %s", tokenString)
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		enc := json.NewEncoder(os.Stdout)
 		err = enc.Encode(tokenAuthentication)
 		if err != nil {
