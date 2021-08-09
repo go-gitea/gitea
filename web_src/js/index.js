@@ -1984,7 +1984,9 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
-        $('#user_name').attr('disabled', 'disabled');
+        if ($('.admin.edit.user').length > 0) {
+          $('#user_name').attr('disabled', 'disabled');
+        }
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
