@@ -270,9 +270,10 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 
 // SearchPackages searches for packages by name and can be used to navigate through the package list
 func SearchPackages(repositoryID int64, packageType PackageType, query string, skip, take int) (int64, []*Package, error) {
-	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"repo_id": repositoryID})
-	cond = cond.And(builder.Eq{"type": packageType})
+	var cond builder.Cond = builder.Eq{
+		"repo_id": repositoryID,
+		"type": packageType,
+	}
 	if query != "" {
 		cond = cond.And(builder.Like{"lower_name", strings.ToLower(query)})
 	}

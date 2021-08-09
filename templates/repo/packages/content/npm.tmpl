@@ -30,9 +30,11 @@
 	{{if .Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-		{{range $dependency, $version := .Metadata.Dependencies}}
-			<div>{{$dependency}} ({{$version}})</div>
-		{{end}}
+			<div class="ui relaxed list">
+			{{range $dependency, $version := .Metadata.Dependencies}}
+				<div class="item">{{$dependency}} ({{$version}})</div>
+			{{end}}
+			</div>
 		</div>
 	{{end}}
 {{end}}

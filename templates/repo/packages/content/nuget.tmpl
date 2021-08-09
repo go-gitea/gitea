@@ -26,10 +26,12 @@
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 		{{range $framework, $dependencies := .Metadata.Dependencies}}
-			<div><strong>{{$framework}}</strong></div>
-			{{range $dependencies}}
-			<div>{{.ID}} ({{.Version}})</div>
-			{{end}}
+			<div class="ui relaxed list">
+				<div class="item"><strong>{{$framework}}</strong></div>
+				{{range $dependencies}}
+					<div class="item">{{.ID}} ({{.Version}})</div>
+				{{end}}
+			</div>
 		{{end}}
 		</div>
 	{{end}}

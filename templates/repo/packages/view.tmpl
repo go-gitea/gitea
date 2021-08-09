@@ -22,23 +22,36 @@
 				<div class="four wide column">
 					<div class="ui segment metas">
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.details"}}</strong></span>
-						<div>{{svg "octicon-calendar" 16 "mr-3"}} {{.Package.CreatedUnix.FormatDate}}</div>
-						{{template "repo/packages/metadata/generic" .}}
-						{{template "repo/packages/metadata/nuget" .}}
-						{{template "repo/packages/metadata/npm" .}}
-						{{template "repo/packages/metadata/maven" .}}
-						{{template "repo/packages/metadata/pypi" .}}
+						<div class="ui relaxed list">
+							<div class="item">
+								{{svg "octicon-calendar" 16 "mr-3"}} {{.Package.CreatedUnix.FormatDate}}
+							</div>
+							{{template "repo/packages/metadata/generic" .}}
+							{{template "repo/packages/metadata/nuget" .}}
+							{{template "repo/packages/metadata/npm" .}}
+							{{template "repo/packages/metadata/maven" .}}
+							{{template "repo/packages/metadata/pypi" .}}
+						</div>
 						<div class="ui divider"></div>
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}}</strong></span>
+						<div class="ui relaxed list">
 						{{range .Files}}
-							<div><a href="{{$.Link}}/files/{{.LowerName}}">{{.Name}}</a></div>
+							<div class="item">
+								<a href="{{$.Link}}/files/{{.LowerName}}">{{.Name}}</a>
+							</div>
 						{{end}}
+						</div>
 						{{if .OtherVersions}}
 							<div class="ui divider"></div>
 							<span class="text"><strong>{{.i18n.Tr "repo.packages.versions"}}</strong></span>
+							<div class="ui relaxed list">
 							{{range .OtherVersions}}
-								<div><a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Version}}</a> <span class="ui small text">{{$.i18n.Tr "repo.packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span></div>
+								<div class="item">
+									<a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Version}}</a>
+									<span class="text small">{{$.i18n.Tr "repo.packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
+								</div>
 							{{end}}
+							</div>
 						{{end}}
 						{{if .CanWritePackages}}
 							<div class="ui divider"></div>

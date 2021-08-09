@@ -1,6 +1,6 @@
 {{if eq .Package.Type 4}}
-	{{if .Metadata.Author}}<div>{{svg "octicon-person" 16 "mr-3"}} {{.i18n.Tr "repo.packages.details.author"}}: {{.Metadata.Author}}</div>{{end}}
-	{{if .Metadata.ProjectURL}}<div>{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{.i18n.Tr "repo.packages.details.project_site"}}</a></div>{{end}}
-	{{if .Metadata.License}}<div>{{svg "octicon-law" 16 "mr-3"}} {{.i18n.Tr "repo.packages.details.license"}}: {{.Metadata.License}}</div>{{end}}
-	{{if .Metadata.RequiresPython}}<div>{{.i18n.Tr "repo.packages.python.requires"}}: {{.Metadata.RequiresPython}}</div>{{end}}
+	{{if .Metadata.Author}}<div class="item">{{svg "octicon-person" 16 "mr-3"}} {{.i18n.Tr "repo.packages.details.author"}}: {{.Metadata.Author}}</div>{{end}}
+	{{if .Metadata.ProjectURL}}<div class="item">{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.Metadata.ProjectURL}}" target="_blank" rel="noopener noreferrer me">{{.i18n.Tr "repo.packages.details.project_site"}}</a></div>{{end}}
+	{{if .Metadata.License}}<div class="item">{{svg "octicon-law" 16 "mr-3"}} {{.i18n.Tr "repo.packages.details.license"}}: {{.Metadata.License}}</div>{{end}}
+	{{if .Metadata.RequiresPython}}<div class="item">{{.i18n.Tr "repo.packages.pypi.requires"}}: {{.Metadata.RequiresPython}}</div>{{end}}
 {{end}}
