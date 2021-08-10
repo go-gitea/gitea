@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -27,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -110,7 +111,7 @@ func checkAutoLogin(ctx *context.Context) bool {
 		return true
 	}
 
-	redirectTo := ctx.Query("redirect_to")
+	redirectTo := ctx.Form("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
@@ -135,7 +136,7 @@ func SignIn(ctx *context.Context) {
 		return
 	}
 
-	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -155,7 +156,7 @@ func SignIn(ctx *context.Context) {
 func SignInPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	orderedOAuth2Names, oauth2Providers, err := models.GetActiveOAuth2Providers()
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -174,7 +175,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.SignInForm)
-	u, err := models.UserSignIn(form.UserName, form.Password)
+	u, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -577,13 +578,13 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
+	if err = loginSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 		if strings.Contains(err.Error(), "no provider for ") {
-			if err = models.ResetOAuth2(); err != nil {
+			if err = oauth2.ResetOAuth2(); err != nil {
 				ctx.ServerError("SignIn", err)
 				return
 			}
-			if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
+			if err = loginSource.Cfg.(*oauth2.Source).Callout(ctx.Req, ctx.Resp); err != nil {
 				ctx.ServerError("SignIn", err)
 			}
 			return
@@ -631,7 +632,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 			if len(missingFields) > 0 {
 				log.Error("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
-				if loginSource.IsOAuth2() && loginSource.OAuth2().Provider == "openidConnect" {
+				if loginSource.IsOAuth2() && loginSource.Cfg.(*oauth2.Source).Provider == "openidConnect" {
 					log.Error("You may need to change the 'OPENID_CONNECT_SCOPES' setting to request all required fields")
 				}
 				err = fmt.Errorf("OAuth2 Provider %s returned empty or missing fields: %s", loginSource.Name, missingFields)
@@ -772,8 +773,7 @@ func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
 func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
-	gothUser, err := oauth2.ProviderCallback(loginSource.Name, request, response)
-
+	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)
@@ -901,7 +901,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, err := models.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, err := auth.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["user_exists"] = true
@@ -1204,10 +1204,11 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	u := &models.User{
-		Name:     form.UserName,
-		Email:    form.Email,
-		Passwd:   form.Password,
-		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
+		Name:         form.UserName,
+		Email:        form.Email,
+		Passwd:       form.Password,
+		IsActive:     !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
+		IsRestricted: setting.Service.DefaultUserIsRestricted,
 	}
 
 	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, false) {
@@ -1332,7 +1333,7 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 
 // Activate render activate user page
 func Activate(ctx *context.Context) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 
 	if len(code) == 0 {
 		ctx.Data["IsActivatePage"] = true
@@ -1380,7 +1381,7 @@ func Activate(ctx *context.Context) {
 
 // ActivatePost handles account activation with password check
 func ActivatePost(ctx *context.Context) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 	if len(code) == 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/activate")
 		return
@@ -1396,7 +1397,7 @@ func ActivatePost(ctx *context.Context) {
 
 	// if account is local account, verify password
 	if user.LoginSource == 0 {
-		password := ctx.Query("password")
+		password := ctx.Form("password")
 		if len(password) == 0 {
 			ctx.Data["Code"] = code
 			ctx.Data["NeedsPassword"] = true
@@ -1453,8 +1454,8 @@ func handleAccountActivation(ctx *context.Context, user *models.User) {
 
 // ActivateEmail render the activate email page
 func ActivateEmail(ctx *context.Context) {
-	code := ctx.Query("code")
-	emailStr := ctx.Query("email")
+	code := ctx.Form("code")
+	emailStr := ctx.Form("email")
 
 	// Verify code.
 	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
@@ -1490,7 +1491,7 @@ func ForgotPasswd(ctx *context.Context) {
 		return
 	}
 
-	email := ctx.Query("email")
+	email := ctx.Form("email")
 	ctx.Data["Email"] = email
 
 	ctx.Data["IsResetRequest"] = true
@@ -1507,7 +1508,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	}
 	ctx.Data["IsResetRequest"] = true
 
-	email := ctx.Query("email")
+	email := ctx.Form("email")
 	ctx.Data["Email"] = email
 
 	u, err := models.GetUserByEmail(email)
@@ -1547,7 +1548,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 }
 
 func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
-	code := ctx.Query("code")
+	code := ctx.Form("code")
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
 	ctx.Data["Code"] = code
@@ -1576,7 +1577,7 @@ func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor)
 		}
 	} else {
 		ctx.Data["has_two_factor"] = true
-		ctx.Data["scratch_code"] = ctx.QueryBool("scratch_code")
+		ctx.Data["scratch_code"] = ctx.FormBool("scratch_code")
 	}
 
 	// Show the user that they are affecting the account that they intended to
@@ -1616,7 +1617,7 @@ func ResetPasswdPost(ctx *context.Context) {
 	}
 
 	// Validate password length.
-	passwd := ctx.Query("password")
+	passwd := ctx.Form("password")
 	if len(passwd) < setting.MinPasswordLength {
 		ctx.Data["IsResetForm"] = true
 		ctx.Data["Err_Password"] = true
@@ -1642,8 +1643,8 @@ func ResetPasswdPost(ctx *context.Context) {
 	// Handle two-factor
 	regenerateScratchToken := false
 	if twofa != nil {
-		if ctx.QueryBool("scratch_code") {
-			if !twofa.VerifyScratchToken(ctx.Query("token")) {
+		if ctx.FormBool("scratch_code") {
+			if !twofa.VerifyScratchToken(ctx.Form("token")) {
 				ctx.Data["IsResetForm"] = true
 				ctx.Data["Err_Token"] = true
 				ctx.RenderWithErr(ctx.Tr("auth.twofa_scratch_token_incorrect"), tplResetPassword, nil)
@@ -1651,7 +1652,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 			regenerateScratchToken = true
 		} else {
-			passcode := ctx.Query("passcode")
+			passcode := ctx.Form("passcode")
 			ok, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
@@ -1688,7 +1689,7 @@ func ResetPasswdPost(ctx *context.Context) {
 
 	log.Trace("User password reset: %s", u.Name)
 	ctx.Data["IsResetFailed"] = true
-	remember := len(ctx.Query("remember")) != 0
+	remember := len(ctx.Form("remember")) != 0
 
 	if regenerateScratchToken {
 		// Invalidate the scratch token.

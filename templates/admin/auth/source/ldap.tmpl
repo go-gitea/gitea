@@ -7,7 +7,7 @@
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 			<div class="menu">
 				{{range .SecurityProtocols}}
-					<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+					<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
 				{{end}}
 			</div>
 		</div>

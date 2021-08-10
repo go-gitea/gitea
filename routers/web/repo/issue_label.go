@@ -53,7 +53,7 @@ func InitializeLabels(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository and organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"), models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Form("sort"), models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -66,7 +66,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.Query("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.Form("sort"), models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -93,7 +93,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 	}
 	ctx.Data["NumLabels"] = len(labels)
-	ctx.Data["SortType"] = ctx.Query("sort")
+	ctx.Data["SortType"] = ctx.Form("sort")
 }
 
 // NewLabel create new label for repository
@@ -147,7 +147,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
+	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))
@@ -165,7 +165,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		return
 	}
 
-	switch action := ctx.Query("action"); action {
+	switch action := ctx.Form("action"); action {
 	case "clear":
 		for _, issue := range issues {
 			if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
@@ -174,7 +174,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	case "attach", "detach", "toggle":
-		label, err := models.GetLabelByID(ctx.QueryInt64("id"))
+		label, err := models.GetLabelByID(ctx.FormInt64("id"))
 		if err != nil {
 			if models.IsErrRepoLabelNotExist(err) {
 				ctx.Error(http.StatusNotFound, "GetLabelByID")

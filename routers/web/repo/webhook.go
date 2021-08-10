@@ -17,13 +17,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/webhook"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -306,7 +306,6 @@ func DiscordHooksNewPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -402,7 +401,6 @@ func TelegramHooksNewPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
@@ -455,7 +453,6 @@ func MatrixHooksNewPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.MatrixMeta{
 		HomeserverURL: form.HomeserverURL,
 		Room:          form.RoomID,
@@ -560,7 +557,6 @@ func SlackHooksNewPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
@@ -622,6 +618,50 @@ func FeishuHooksNewPost(ctx *context.Context) {
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
 		Type:            models.FEISHU,
+		Meta:            "",
+		OrgID:           orCtx.OrgID,
+		IsSystemWebhook: orCtx.IsSystemWebhook,
+	}
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.CreateWebhook(w); err != nil {
+		ctx.ServerError("CreateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
+	ctx.Redirect(orCtx.Link)
+}
+
+// WechatworkHooksNewPost response for creating wechatwork hook
+func WechatworkHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
+
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksNew"] = true
+	ctx.Data["Webhook"] = models.Webhook{HookEvent: &models.HookEvent{}}
+	ctx.Data["HookType"] = models.WECHATWORK
+
+	orCtx, err := getOrgRepoCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getOrgRepoCtx", err)
+		return
+	}
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	w := &models.Webhook{
+		RepoID:          orCtx.RepoID,
+		URL:             form.PayloadURL,
+		ContentType:     models.ContentTypeJSON,
+		HookEvent:       ParseHookEvent(form.WebhookForm),
+		IsActive:        form.Active,
+		Type:            models.WECHATWORK,
 		Meta:            "",
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
@@ -804,7 +844,6 @@ func SlackHooksEditPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.SlackMeta{
 		Channel:  strings.TrimSpace(form.Channel),
 		Username: form.Username,
@@ -850,7 +889,6 @@ func DiscordHooksEditPost(ctx *context.Context) {
 		return
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	meta, err := json.Marshal(&webhook.DiscordMeta{
 		Username: form.Username,
 		IconURL:  form.IconURL,
@@ -926,7 +964,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	meta, err := json.Marshal(&webhook.TelegramMeta{
 		BotToken: form.BotToken,
 		ChatID:   form.ChatID,
@@ -968,7 +1006,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
 		return
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	meta, err := json.Marshal(&webhook.MatrixMeta{
 		HomeserverURL: form.HomeserverURL,
 		Room:          form.RoomID,
@@ -1062,6 +1100,39 @@ func FeishuHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
+// WechatworkHooksEditPost response for editing wechatwork hook
+func WechatworkHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	w.URL = form.PayloadURL
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := models.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
@@ -1121,7 +1192,7 @@ func TestWebhook(ctx *context.Context) {
 
 // DeleteWebhook delete a webhook
 func DeleteWebhook(ctx *context.Context) {
-	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.QueryInt64("id")); err != nil {
+	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteWebhookByRepoID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.webhook_deletion_success"))
