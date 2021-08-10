@@ -7,7 +7,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -99,8 +98,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToComment(comments[i])
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
@@ -192,8 +190,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		apiComments[i] = convert.ToComment(comments[i])
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 

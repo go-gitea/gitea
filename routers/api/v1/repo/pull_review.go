@@ -102,8 +102,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiReviews)
 }
 

@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -64,8 +63,7 @@ func ListTopics(ctx *context.APIContext) {
 		topicNames[i] = topic.Name
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicNames,
 	})
@@ -290,8 +288,7 @@ func TopicSearch(ctx *context.APIContext) {
 		topicResponses[i] = convert.ToTopicResponse(topic)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"topics": topicResponses,
 	})

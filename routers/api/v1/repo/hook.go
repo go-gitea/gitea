@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -71,8 +70,7 @@ func ListHooks(ctx *context.APIContext) {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 

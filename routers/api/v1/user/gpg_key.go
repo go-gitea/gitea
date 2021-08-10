@@ -34,8 +34,7 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOpti
 		return
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

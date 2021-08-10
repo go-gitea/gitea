@@ -5,7 +5,6 @@
 package notify
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -126,8 +125,8 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(totalCount)
+
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 

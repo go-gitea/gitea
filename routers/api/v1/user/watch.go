@@ -5,7 +5,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -64,8 +63,8 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -94,8 +93,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }
 

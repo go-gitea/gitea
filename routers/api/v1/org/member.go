@@ -5,7 +5,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -42,8 +41,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 		apiMembers[i] = convert.ToUser(member, ctx.User)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 

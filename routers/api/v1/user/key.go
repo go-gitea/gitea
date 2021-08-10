@@ -5,7 +5,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -89,8 +88,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

@@ -5,7 +5,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
@@ -54,8 +53,7 @@ func ListCronTasks(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, res)
 }
 

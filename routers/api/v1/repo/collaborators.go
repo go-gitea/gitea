@@ -7,7 +7,6 @@ package repo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -65,8 +64,7 @@ func ListCollaborators(ctx *context.APIContext) {
 		users[i] = convert.ToUser(collaborator.User, ctx.User)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, users)
 }
 

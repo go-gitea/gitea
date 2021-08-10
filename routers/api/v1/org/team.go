@@ -6,7 +6,6 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -65,8 +64,7 @@ func ListTeams(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -116,8 +114,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		apiTeams[i].Organization = apiOrg
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -351,8 +348,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		members[i] = convert.ToUser(member, ctx.User)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Org.Team.NumMembers))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
 	ctx.JSON(http.StatusOK, members)
 }
 

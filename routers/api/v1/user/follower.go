@@ -6,7 +6,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -31,8 +30,7 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 		return
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", u.NumFollowers))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(u.NumFollowers))
 	responseAPIUsers(ctx, users)
 }
 
@@ -98,8 +96,7 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 		return
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", u.NumFollowing))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(u.NumFollowing))
 	responseAPIUsers(ctx, users)
 }
 

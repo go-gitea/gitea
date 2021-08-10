@@ -6,7 +6,6 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -94,8 +93,7 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.User.NumStars))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(ctx.User.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 

@@ -66,8 +66,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
@@ -264,8 +263,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		apiApps[i].ClientSecret = "" // Hide secret on application list
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiApps)
 }
 

@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
@@ -54,7 +53,6 @@ func ListSubscribers(ctx *context.APIContext) {
 		users[i] = convert.ToUser(subscriber, ctx.User)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", ctx.Repo.Repository.NumWatches))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))
 	ctx.JSON(http.StatusOK, users)
 }

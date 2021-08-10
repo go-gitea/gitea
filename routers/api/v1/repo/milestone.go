@@ -6,7 +6,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -74,8 +73,7 @@ func ListMilestones(ctx *context.APIContext) {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", total))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 
