@@ -5,7 +5,6 @@
 package models
 
 import (
-	"container/list"
 	"fmt"
 	"hash"
 	"strings"
@@ -68,24 +67,19 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits *list.List, repository *Repository) *list.List {
-	var (
-		newCommits = list.New()
-		e          = oldCommits.Front()
-	)
+func ParseCommitsWithSignature(oldCommits []*UserCommit, repository *Repository) []*SignCommit {
+	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
-	for e != nil {
-		c := e.Value.(UserCommit)
-		signCommit := SignCommit{
-			UserCommit:   &c,
+	for _, c := range oldCommits {
+		signCommit := &SignCommit{
+			UserCommit:   c,
 			Verification: ParseCommitWithSignature(c.Commit),
 		}
 
 		_ = CalculateTrustStatus(signCommit.Verification, repository, &keyMap)
 
-		newCommits.PushBack(signCommit)
-		e = e.Next()
+		newCommits = append(newCommits, signCommit)
 	}
 	return newCommits
 }
