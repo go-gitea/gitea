@@ -146,7 +146,7 @@ func ViewPackage(ctx *context.Context) {
 
 // DeletePackagePost deletes a package
 func DeletePackagePost(ctx *context.Context) {
-	err := package_service.DeletePackageByID(ctx.Repo.Repository, ctx.ParamsInt64(":id"))
+	err := package_service.DeletePackageByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {

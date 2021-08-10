@@ -59,4 +59,7 @@ type Notifier interface {
 	NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 
 	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
+
+	NotifyPackageCreate(repo *models.Repository, p *models.Package)
+	NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package)
 }

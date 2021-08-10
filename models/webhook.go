@@ -97,6 +97,7 @@ type HookEvents struct {
 	PullRequestSync      bool `json:"pull_request_sync"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
+	Package              bool `json:"package"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -297,6 +298,12 @@ func (w *Webhook) HasRepositoryEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Repository)
 }
 
+// HasPackageEvent returns if hook enabled package event.
+func (w *Webhook) HasPackageEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Package)
+}
+
 // EventCheckers returns event checkers
 func (w *Webhook) EventCheckers() []struct {
 	Has  func() bool
@@ -326,6 +333,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
+		{w.HasPackageEvent, HookEventPackage},
 	}
 }
 
@@ -595,6 +603,7 @@ const (
 	HookEventPullRequestSync           HookEventType = "pull_request_sync"
 	HookEventRepository                HookEventType = "repository"
 	HookEventRelease                   HookEventType = "release"
+	HookEventPackage                   HookEventType = "package"
 )
 
 // Event returns the HookEventType as an event string
@@ -625,6 +634,8 @@ func (h HookEventType) Event() string {
 		return "repository"
 	case HookEventRelease:
 		return "release"
+	case HookEventPackage:
+		return "package"
 	}
 	return ""
 }

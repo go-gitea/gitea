@@ -170,3 +170,11 @@ func (*NullNotifier) NotifySyncDeleteRef(doer *models.User, repo *models.Reposit
 // NotifyRepoPendingTransfer places a place holder function
 func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
 }
+
+// NotifyPackageCreate places a place holder function
+func (*NullNotifier) NotifyPackageCreate(repo *models.Repository, p *models.Package) {
+}
+
+// NotifyPackageDelete places a place holder function
+func (*NullNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package) {
+}

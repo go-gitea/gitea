@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
 )
 
@@ -48,6 +49,9 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 		log.Error("Error inserting package: %v", err)
 		return nil, err
 	}
+
+	notification.NotifyPackageCreate(repository, p)
+
 	return p, nil
 }
 
@@ -108,7 +112,7 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 }
 
 // DeletePackageByNameAndVersion deletes a package and all associated files
-func DeletePackageByNameAndVersion(repository *models.Repository, packageType models.PackageType, name, version string) error {
+func DeletePackageByNameAndVersion(doer *models.User, repository *models.Repository, packageType models.PackageType, name, version string) error {
 	log.Trace("Deleting package: %v, %v, %s, %s", repository.ID, packageType, name, version)
 
 	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
@@ -120,11 +124,11 @@ func DeletePackageByNameAndVersion(repository *models.Repository, packageType mo
 		return err
 	}
 
-	return deletePackage(p)
+	return deletePackage(doer, repository, p)
 }
 
 // DeletePackageByID deletes a package and all associated files
-func DeletePackageByID(repository *models.Repository, packageID int64) error {
+func DeletePackageByID(doer *models.User, repository *models.Repository, packageID int64) error {
 	log.Trace("Deleting package: %v, %v", repository.ID, packageID)
 
 	p, err := models.GetPackageByID(packageID)
@@ -140,10 +144,10 @@ func DeletePackageByID(repository *models.Repository, packageID int64) error {
 		return models.ErrPackageNotExist
 	}
 
-	return deletePackage(p)
+	return deletePackage(doer, repository, p)
 }
 
-func deletePackage(p *models.Package) error {
+func deletePackage(doer *models.User, repository *models.Repository, p *models.Package) error {
 	pfs, err := p.GetFiles()
 	if err != nil {
 		log.Error("Error getting package files: %v", err)
@@ -162,6 +166,8 @@ func deletePackage(p *models.Package) error {
 		log.Error("Error deleting package: %v", err)
 		return err
 	}
+
+	notification.NotifyPackageDelete(doer, repository, p)
 
 	return nil
 }

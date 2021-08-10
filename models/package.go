@@ -69,7 +69,7 @@ type Package struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
-// LoadCreator loads poster
+// LoadCreator loads the creator
 func (p *Package) LoadCreator() error {
 	if p.Creator == nil {
 		var err error
@@ -272,7 +272,7 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 func SearchPackages(repositoryID int64, packageType PackageType, query string, skip, take int) (int64, []*Package, error) {
 	var cond builder.Cond = builder.Eq{
 		"repo_id": repositoryID,
-		"type": packageType,
+		"type":    packageType,
 	}
 	if query != "" {
 		cond = cond.And(builder.Like{"lower_name", strings.ToLower(query)})

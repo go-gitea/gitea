@@ -177,6 +177,7 @@ func ParseHookEvent(form forms.WebhookForm) *models.HookEvent {
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
 			Repository:           form.Repository,
+			Package:              form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}
