@@ -209,8 +209,7 @@ An endpoint which changes/edits an object expects all fields to be optional (exc
 
 ### Endpoints returning lists should
  * support pagination (`page` & `limit` options in query)
- * add `X-Total-Count` header ([example](https://github.com/go-gitea/gitea/blob/e76f8cac9a2ba727bec6b5beab2496be9dafabef/routers/api/v1/repo/issue.go#L445))
- * add `X-Total-Count` to the `Access-Control-Expose-Headers` header
+ * set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
 
 ## Developer Certificate of Origin (DCO)
@@ -236,8 +235,8 @@ on, finishing, and issuing releases. The overall goal is to make a
 minor release every three or four months, which breaks down into two or three months of
 general development followed by one month of testing and polishing
 known as the release freeze. All the feature pull requests should be
-merged before feature freeze. And, during the frozen period, a corresponding 
-release branch is open for fixes backported from main branch. Release candidates 
+merged before feature freeze. And, during the frozen period, a corresponding
+release branch is open for fixes backported from main branch. Release candidates
 are made during this period for user testing to
 obtain a final version that is maintained in this branch. A release is
 maintained by issuing patch releases to only correct critical problems
