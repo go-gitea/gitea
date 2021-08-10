@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	auth "code.gitea.io/gitea/modules/forms"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -68,7 +67,7 @@ func Migrate(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "", ctx.Tr("repo.migrate.invalid_lfs_endpoint"))
 			return
 		}
-		err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+		err := migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
 		if err != nil {
 			handleRemoteAddrError(ctx, err)
 			return
@@ -198,7 +197,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, migrati
 	case base.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
-		remoteAddr, _ := auth.ParseRemoteAddr(migrationOpts.CloneAddr, migrationOpts.AuthUsername, migrationOpts.AuthPassword)
+		remoteAddr, _ := forms.ParseRemoteAddr(migrationOpts.CloneAddr, migrationOpts.AuthUsername, migrationOpts.AuthPassword)
 		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
@@ -253,7 +252,7 @@ func GetMigratingTask(ctx *context.APIContext) {
 	//     "$ref": "#/responses/"
 	//   "404":
 	//	   "$ref": "#/response/"
-	t, err := models.GetMigratingTask(ctx.QueryInt64("repo_id"))
+	t, err := models.GetMigratingTask(ctx.FormInt64("repo_id"))
 
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, err)
@@ -262,7 +261,7 @@ func GetMigratingTask(ctx *context.APIContext) {
 
 	ctx.JSON(200, map[string]interface{}{
 		"status":  t.Status,
-		"err":     t.Errors,
+		"err":     t.Message,
 		"repo-id": t.RepoID,
 		"start":   t.StartTime,
 		"end":     t.EndTime,

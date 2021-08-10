@@ -1,4 +1,4 @@
-package routers
+package web
 
 import (
 	"bytes"
@@ -31,7 +31,7 @@ func Kitspace(ctx *context.Context) {
 	)
 	var user *structs.User
 	if ctx.User != nil && ctx.IsSigned {
-		user = convert.ToUser(ctx.User, true, true)
+		user = convert.ToUser(ctx.User, ctx.User)
 	}
 
 	m := KitspaceSession{
@@ -44,7 +44,7 @@ func Kitspace(ctx *context.Context) {
 		panic(err)
 	}
 
-	req, err := http.NewRequest("GET", url.String(), bytes.NewBuffer(b))
+	req, _ := http.NewRequest("GET", url.String(), bytes.NewBuffer(b))
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
