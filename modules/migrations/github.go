@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v37/github"
 	"golang.org/x/oauth2"
 )
 
@@ -154,20 +154,15 @@ func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
 	}
 	g.rate = &resp.Rate
 
-	defaultBranch := ""
-	if gr.DefaultBranch != nil {
-		defaultBranch = *gr.DefaultBranch
-	}
-
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:         g.repoOwner,
 		Name:          gr.GetName(),
-		IsPrivate:     *gr.Private,
+		IsPrivate:     gr.GetPrivate(),
 		Description:   gr.GetDescription(),
 		OriginalURL:   gr.GetHTMLURL(),
 		CloneURL:      gr.GetCloneURL(),
-		DefaultBranch: defaultBranch,
+		DefaultBranch: gr.GetDefaultBranch(),
 	}, nil
 }
 
@@ -201,20 +196,16 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 		g.rate = &resp.Rate
 
 		for _, m := range ms {
-			var desc string
-			if m.Description != nil {
-				desc = *m.Description
-			}
 			var state = "open"
 			if m.State != nil {
 				state = *m.State
 			}
 			milestones = append(milestones, &base.Milestone{
-				Title:       *m.Title,
-				Description: desc,
+				Title:       m.GetTitle(),
+				Description: m.GetDescription(),
 				Deadline:    m.DueOn,
 				State:       state,
-				Created:     *m.CreatedAt,
+				Created:     m.GetCreatedAt(),
 				Updated:     m.UpdatedAt,
 				Closed:      m.ClosedAt,
 			})
@@ -227,14 +218,10 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 }
 
 func convertGithubLabel(label *github.Label) *base.Label {
-	var desc string
-	if label.Description != nil {
-		desc = *label.Description
-	}
 	return &base.Label{
-		Name:        *label.Name,
-		Color:       *label.Color,
-		Description: desc,
+		Name:        label.GetName(),
+		Color:       label.GetColor(),
+		Description: label.GetDescription(),
 	}
 }
 
@@ -266,24 +253,16 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
 	r := &base.Release{
-		TagName:         *rel.TagName,
-		TargetCommitish: *rel.TargetCommitish,
-		Draft:           *rel.Draft,
-		Prerelease:      *rel.Prerelease,
-		Created:         rel.CreatedAt.Time,
-		PublisherID:     *rel.Author.ID,
-		PublisherName:   *rel.Author.Login,
-	}
-
-	if rel.Body != nil {
-		r.Body = *rel.Body
-	}
-	if rel.Name != nil {
-		r.Name = *rel.Name
-	}
-
-	if rel.Author.Email != nil {
-		r.PublisherEmail = *rel.Author.Email
+		Name:            rel.GetName(),
+		TagName:         rel.GetTagName(),
+		TargetCommitish: rel.GetTargetCommitish(),
+		Draft:           rel.GetDraft(),
+		Prerelease:      rel.GetPrerelease(),
+		Created:         rel.GetCreatedAt().Time,
+		PublisherID:     rel.GetAuthor().GetID(),
+		PublisherName:   rel.GetAuthor().GetLogin(),
+		PublisherEmail:  rel.GetAuthor().GetEmail(),
+		Body:            rel.GetBody(),
 	}
 
 	if rel.PublishedAt != nil {
@@ -293,8 +272,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 	for _, asset := range rel.Assets {
 		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
-			ID:            *asset.ID,
-			Name:          *asset.Name,
+			ID:            asset.GetID(),
+			Name:          asset.GetName(),
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,
 			DownloadCount: asset.DownloadCount,
@@ -388,22 +367,10 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		if issue.IsPullRequest() {
 			continue
 		}
-		var body string
-		if issue.Body != nil {
-			body = *issue.Body
-		}
-		var milestone string
-		if issue.Milestone != nil {
-			milestone = *issue.Milestone.Title
-		}
+
 		var labels = make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
 			labels = append(labels, convertGithubLabel(l))
-		}
-
-		var email string
-		if issue.User.Email != nil {
-			email = *issue.User.Email
 		}
 
 		// get reactions
@@ -430,21 +397,27 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			}
 		}
 
+		var assignees []string
+		for i := range issue.Assignees {
+			assignees = append(assignees, issue.Assignees[i].GetLogin())
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
-			PosterID:    *issue.User.ID,
-			PosterName:  *issue.User.Login,
-			PosterEmail: email,
-			Content:     body,
-			Milestone:   milestone,
-			State:       *issue.State,
-			Created:     *issue.CreatedAt,
-			Updated:     *issue.UpdatedAt,
+			PosterID:    issue.GetUser().GetID(),
+			PosterName:  issue.GetUser().GetLogin(),
+			PosterEmail: issue.GetUser().GetEmail(),
+			Content:     issue.GetBody(),
+			Milestone:   issue.GetMilestone().GetTitle(),
+			State:       issue.GetState(),
+			Created:     issue.GetCreatedAt(),
+			Updated:     issue.GetUpdatedAt(),
 			Labels:      labels,
 			Reactions:   reactions,
 			Closed:      issue.ClosedAt,
-			IsLocked:    *issue.Locked,
+			IsLocked:    issue.GetLocked(),
+			Assignees:   assignees,
 		})
 	}
 
@@ -487,11 +460,6 @@ func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, er
 		}
 		g.rate = &resp.Rate
 		for _, comment := range comments {
-			var email string
-			if comment.User.Email != nil {
-				email = *comment.User.Email
-			}
-
 			// get reactions
 			var reactions []*base.Reaction
 			for i := 1; ; i++ {
@@ -515,14 +483,15 @@ func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, er
 					})
 				}
 			}
+
 			allComments = append(allComments, &base.Comment{
 				IssueIndex:  issueNumber,
-				PosterID:    *comment.User.ID,
-				PosterName:  *comment.User.Login,
-				PosterEmail: email,
-				Content:     *comment.Body,
-				Created:     *comment.CreatedAt,
-				Updated:     *comment.UpdatedAt,
+				PosterID:    comment.GetUser().GetID(),
+				PosterName:  comment.GetUser().GetLogin(),
+				PosterEmail: comment.GetUser().GetEmail(),
+				Content:     comment.GetBody(),
+				Created:     comment.GetCreatedAt(),
+				Updated:     comment.GetUpdatedAt(),
 				Reactions:   reactions,
 			})
 		}
@@ -558,11 +527,6 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 	log.Trace("Request get comments %d/%d, but in fact get %d", perPage, page, len(comments))
 	g.rate = &resp.Rate
 	for _, comment := range comments {
-		var email string
-		if comment.User.Email != nil {
-			email = *comment.User.Email
-		}
-
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 1; ; i++ {
@@ -590,12 +554,12 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 		issueIndex, _ := strconv.ParseInt((*comment.IssueURL)[idx+1:], 10, 64)
 		allComments = append(allComments, &base.Comment{
 			IssueIndex:  issueIndex,
-			PosterID:    *comment.User.ID,
-			PosterName:  *comment.User.Login,
-			PosterEmail: email,
-			Content:     *comment.Body,
-			Created:     *comment.CreatedAt,
-			Updated:     *comment.UpdatedAt,
+			PosterID:    comment.GetUser().GetID(),
+			PosterName:  comment.GetUser().GetLogin(),
+			PosterEmail: comment.GetUser().GetEmail(),
+			Content:     comment.GetBody(),
+			Created:     comment.GetCreatedAt(),
+			Updated:     comment.GetUpdatedAt(),
 			Reactions:   reactions,
 		})
 	}
@@ -626,57 +590,9 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.rate = &resp.Rate
 	for _, pr := range prs {
-		var body string
-		if pr.Body != nil {
-			body = *pr.Body
-		}
-		var milestone string
-		if pr.Milestone != nil {
-			milestone = *pr.Milestone.Title
-		}
 		var labels = make([]*base.Label, 0, len(pr.Labels))
 		for _, l := range pr.Labels {
 			labels = append(labels, convertGithubLabel(l))
-		}
-
-		var email string
-		if pr.User.Email != nil {
-			email = *pr.User.Email
-		}
-		var merged bool
-		// pr.Merged is not valid, so use MergedAt to test if it's merged
-		if pr.MergedAt != nil {
-			merged = true
-		}
-
-		var (
-			headRepoName string
-			cloneURL     string
-			headRef      string
-			headSHA      string
-		)
-		if pr.Head.Repo != nil {
-			if pr.Head.Repo.Name != nil {
-				headRepoName = *pr.Head.Repo.Name
-			}
-			if pr.Head.Repo.CloneURL != nil {
-				cloneURL = *pr.Head.Repo.CloneURL
-			}
-		}
-		if pr.Head.Ref != nil {
-			headRef = *pr.Head.Ref
-		}
-		if pr.Head.SHA != nil {
-			headSHA = *pr.Head.SHA
-		}
-		var mergeCommitSHA string
-		if pr.MergeCommitSHA != nil {
-			mergeCommitSHA = *pr.MergeCommitSHA
-		}
-
-		var headUserName string
-		if pr.Head.User != nil && pr.Head.User.Login != nil {
-			headUserName = *pr.Head.User.Login
 		}
 
 		// get reactions
@@ -704,36 +620,36 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		}
 
 		allPRs = append(allPRs, &base.PullRequest{
-			Title:          *pr.Title,
-			Number:         int64(*pr.Number),
-			PosterName:     *pr.User.Login,
-			PosterID:       *pr.User.ID,
-			PosterEmail:    email,
-			Content:        body,
-			Milestone:      milestone,
-			State:          *pr.State,
-			Created:        *pr.CreatedAt,
-			Updated:        *pr.UpdatedAt,
+			Title:          pr.GetTitle(),
+			Number:         int64(pr.GetNumber()),
+			PosterID:       pr.GetUser().GetID(),
+			PosterName:     pr.GetUser().GetLogin(),
+			PosterEmail:    pr.GetUser().GetEmail(),
+			Content:        pr.GetBody(),
+			Milestone:      pr.GetMilestone().GetTitle(),
+			State:          pr.GetState(),
+			Created:        pr.GetCreatedAt(),
+			Updated:        pr.GetUpdatedAt(),
 			Closed:         pr.ClosedAt,
 			Labels:         labels,
-			Merged:         merged,
-			MergeCommitSHA: mergeCommitSHA,
+			Merged:         pr.MergedAt != nil,
+			MergeCommitSHA: pr.GetMergeCommitSHA(),
 			MergedTime:     pr.MergedAt,
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
-				Ref:       headRef,
-				SHA:       headSHA,
-				RepoName:  headRepoName,
-				OwnerName: headUserName,
-				CloneURL:  cloneURL,
+				Ref:       pr.GetHead().GetRef(),
+				SHA:       pr.GetHead().GetSHA(),
+				OwnerName: pr.GetHead().GetUser().GetLogin(),
+				RepoName:  pr.GetHead().GetRepo().GetName(),
+				CloneURL:  pr.GetHead().GetRepo().GetCloneURL(),
 			},
 			Base: base.PullRequestBranch{
-				Ref:       *pr.Base.Ref,
-				SHA:       *pr.Base.SHA,
-				RepoName:  *pr.Base.Repo.Name,
-				OwnerName: *pr.Base.User.Login,
+				Ref:       pr.GetBase().GetRef(),
+				SHA:       pr.GetBase().GetSHA(),
+				RepoName:  pr.GetBase().GetRepo().GetName(),
+				OwnerName: pr.GetBase().GetUser().GetLogin(),
 			},
-			PatchURL:  *pr.PatchURL,
+			PatchURL:  pr.GetPatchURL(),
 			Reactions: reactions,
 		})
 	}
