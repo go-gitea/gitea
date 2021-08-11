@@ -81,6 +81,9 @@ func (session *Session) cacheUpdate(table *schemas.Table, tableName, sqlStr stri
 
 			ids = append(ids, pk)
 		}
+		if rows.Err() != nil {
+			return rows.Err()
+		}
 		session.engine.logger.Debugf("[cache] find updated id: %v", ids)
 	} /*else {
 	    session.engine.LogDebug("[xorm:cacheUpdate] del cached sql:", tableName, newsql, args)
@@ -212,7 +215,10 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 			!session.statement.OmitColumnMap.Contain(table.Updated) {
 			colNames = append(colNames, session.engine.Quote(table.Updated)+" = ?")
 			col := table.UpdatedColumn()
-			val, t := session.engine.nowTime(col)
+			val, t, err := session.engine.nowTime(col)
+			if err != nil {
+				return 0, err
+			}
 			if session.engine.dialect.URI().DBType == schemas.ORACLE {
 				args = append(args, t)
 			} else {
@@ -518,7 +524,10 @@ func (session *Session) genUpdateColumns(bean interface{}) ([]string, []interfac
 
 		if col.IsUpdated && session.statement.UseAutoTime /*&& isZero(fieldValue.Interface())*/ {
 			// if time is non-empty, then set to auto time
-			val, t := session.engine.nowTime(col)
+			val, t, err := session.engine.nowTime(col)
+			if err != nil {
+				return nil, nil, err
+			}
 			args = append(args, val)
 
 			var colName = col.Name

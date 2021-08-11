@@ -25,5 +25,8 @@ func (session *Session) Exist(bean ...interface{}) (bool, error) {
 	}
 	defer rows.Close()
 
-	return rows.Next(), nil
+	if rows.Next() {
+		return true, nil
+	}
+	return false, rows.Err()
 }
