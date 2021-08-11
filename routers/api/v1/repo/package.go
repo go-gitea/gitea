@@ -44,10 +44,9 @@ func ListPackages(ctx *context.APIContext) {
 	//   type: integer
 	// - name: package_type
 	//   in: query
-	//   description: page size of results
-	//   schema:
-	//     type: string
-	//     enum: [generic, nuget, npm, maven, pypi]
+	//   description: package type filter
+	//   type: string
+	//   enum: [generic, nuget, npm, maven, pypi]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -150,7 +149,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the package to delete
+	//   description: id of the package
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -192,7 +191,7 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   required: true
 	// - name: id
 	//   in: path
-	//   description: id of the package to delete
+	//   description: id of the package
 	//   type: integer
 	//   format: int64
 	//   required: true

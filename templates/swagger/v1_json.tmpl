@@ -7089,19 +7089,17 @@
             "in": "query"
           },
           {
-            "description": "page size of results",
+            "enum": [
+              "generic",
+              "nuget",
+              "npm",
+              "maven",
+              "pypi"
+            ],
+            "type": "string",
+            "description": "package type filter",
             "name": "package_type",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "generic",
-                "nuget",
-                "npm",
-                "maven",
-                "pypi"
-              ]
-            }
+            "in": "query"
           },
           {
             "type": "string",
@@ -7184,7 +7182,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the package to delete",
+            "description": "id of the package",
             "name": "id",
             "in": "path",
             "required": true
@@ -7228,7 +7226,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the package to delete",
+            "description": "id of the package",
             "name": "id",
             "in": "path",
             "required": true
