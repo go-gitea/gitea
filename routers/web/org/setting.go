@@ -155,7 +155,7 @@ func SettingsDelete(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 	if ctx.Req.Method == "POST" {
-		if org.Name != ctx.Form("org_name") {
+		if org.Name != ctx.FormString("org_name") {
 			ctx.Data["Err_OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
 			return

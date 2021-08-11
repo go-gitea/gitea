@@ -79,7 +79,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 		KeyID:       ctx.FormInt64("key_id"),
-		Fingerprint: ctx.Form("fingerprint"),
+		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
 	keys, err := models.ListDeployKeys(opts)

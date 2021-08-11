@@ -78,7 +78,7 @@ func GetListLockHandler(ctx *context.Context) {
 	} else if limit < 0 {
 		limit = 0
 	}
-	id := ctx.Form("id")
+	id := ctx.FormString("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
@@ -95,7 +95,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	path := ctx.Form("path")
+	path := ctx.FormString("path")
 	if path != "" { //Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
