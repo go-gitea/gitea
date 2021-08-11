@@ -78,7 +78,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	var keys []*models.DeployKey
 	var err error
 
-	fingerprint := ctx.Form("fingerprint")
+	fingerprint := ctx.FormString("fingerprint")
 	keyID := ctx.FormInt64("key_id")
 	if fingerprint != "" || keyID != 0 {
 		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)

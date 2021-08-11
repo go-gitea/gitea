@@ -39,22 +39,22 @@ func Migrate(ctx *context.Context) {
 	setMigrationContextData(ctx, serviceType)
 
 	if serviceType == 0 {
-		ctx.Data["Org"] = ctx.Form("org")
-		ctx.Data["Mirror"] = ctx.Form("mirror")
+		ctx.Data["Org"] = ctx.FormString("org")
+		ctx.Data["Mirror"] = ctx.FormString("mirror")
 
 		ctx.HTML(http.StatusOK, tplMigrate)
 		return
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.Form("mirror") == "1"
-	ctx.Data["lfs"] = ctx.Form("lfs") == "1"
-	ctx.Data["wiki"] = ctx.Form("wiki") == "1"
-	ctx.Data["milestones"] = ctx.Form("milestones") == "1"
-	ctx.Data["labels"] = ctx.Form("labels") == "1"
-	ctx.Data["issues"] = ctx.Form("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.Form("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.Form("releases") == "1"
+	ctx.Data["mirror"] = ctx.FormString("mirror") == "1"
+	ctx.Data["lfs"] = ctx.FormString("lfs") == "1"
+	ctx.Data["wiki"] = ctx.FormString("wiki") == "1"
+	ctx.Data["milestones"] = ctx.FormString("milestones") == "1"
+	ctx.Data["labels"] = ctx.FormString("labels") == "1"
+	ctx.Data["issues"] = ctx.FormString("issues") == "1"
+	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
+	ctx.Data["releases"] = ctx.FormString("releases") == "1"
 
 	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {

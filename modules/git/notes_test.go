@@ -39,3 +39,15 @@ func TestGetNestedNotes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []byte("Note 1"), note.Message)
 }
+
+func TestGetNonExistentNotes(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	note := Note{}
+	err = GetNote(context.Background(), bareRepo1, "non_existent_sha", &note)
+	assert.Error(t, err)
+	assert.IsType(t, ErrNotExist{}, err)
+}

@@ -1211,7 +1211,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfCommits := commits.Len()
+	totalNumberOfCommits := len(commits)
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfCommits) / float64(listOptions.PageSize)))
 
 	userCache := make(map[string]*models.User)
@@ -1222,29 +1222,14 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		end = totalNumberOfCommits
 	}
 
-	apiCommits := make([]*api.Commit, end-start)
-
-	i := 0
-	addedCommitsCount := 0
-	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		if i < start {
-			i++
-			continue
-		}
-		if i >= end {
-			break
-		}
-
-		commit := commitPointer.Value.(*git.Commit)
-
-		// Create json struct
-		apiCommits[addedCommitsCount], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
-		addedCommitsCount++
+	apiCommits := make([]*api.Commit, 0, end-start)
+	for i := start; i < end; i++ {
+		apiCommit, err := convert.ToCommit(ctx.Repo.Repository, commits[i], userCache)
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return
 		}
-		i++
+		apiCommits = append(apiCommits, apiCommit)
 	}
 
 	ctx.SetLinkHeader(int(totalNumberOfCommits), listOptions.PageSize)

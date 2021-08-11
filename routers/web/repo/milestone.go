@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -36,7 +35,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
 
-	isShowClosed := ctx.Form("state") == "closed"
+	isShowClosed := ctx.FormString("state") == "closed"
 	stats, err := models.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
 	if err != nil {
 		ctx.ServerError("MilestoneStats", err)
@@ -45,9 +44,9 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["OpenCount"] = stats.OpenCount
 	ctx.Data["ClosedCount"] = stats.ClosedCount
 
-	sortType := ctx.Form("sort")
+	sortType := ctx.FormString("sort")
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
