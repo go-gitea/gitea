@@ -28,13 +28,14 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	}
 
 	var auth smtp.Auth
-	if source.Auth == PlainAuthentication {
+	switch source.Auth {
+	case PlainAuthentication:
 		auth = smtp.PlainAuth("", login, password, source.Host)
-	} else if source.Auth == LoginAuthentication {
+	case LoginAuthentication:
 		auth = &loginAuthenticator{login, password}
-	} else if source.Auth == CRAMMD5Authentication {
+	case CRAMMD5Authentication:
 		auth = smtp.CRAMMD5Auth(login, password)
-	} else {
+	default:
 		return nil, errors.New("unsupported SMTP auth type")
 	}
 
