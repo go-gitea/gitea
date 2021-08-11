@@ -30,6 +30,8 @@ func TestPackageGeneric(t *testing.T) {
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/generic/%s/%s/%s?token=%s", user.Name, repository.Name, packageName, packageVersion, filename, token)
 
 	t.Run("Upload", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -47,11 +49,15 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", url)
 		resp := MakeRequest(t, req, http.StatusOK)
 
@@ -59,6 +65,8 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusOK)
 
@@ -68,11 +76,15 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("DownloadNotExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", url)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("DeleteNotExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusNotFound)
 	})

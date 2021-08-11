@@ -59,6 +59,8 @@ func TestPackageNPM(t *testing.T) {
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
@@ -77,12 +79,16 @@ func TestPackageNPM(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -92,6 +98,8 @@ func TestPackageNPM(t *testing.T) {
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", root)
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)

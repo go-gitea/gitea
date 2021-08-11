@@ -57,6 +57,8 @@ func TestPackagePyPI(t *testing.T) {
 	}
 
 	t.Run("Upload", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
 
@@ -74,6 +76,8 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("UploadAddFile", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
 
@@ -95,16 +99,22 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("UploadHashMismatch", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		filename := "test2.whl"
 		uploadFile(t, filename, "dummy", http.StatusBadRequest)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		uploadFile(t, "test.whl", content, http.StatusBadRequest)
 		uploadFile(t, "test.tar.gz", content, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		downloadFile := func(filename string) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", root, packageName, packageVersion, filename))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -118,6 +128,8 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/simple/%s", root, packageName))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)

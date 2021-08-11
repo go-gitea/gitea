@@ -46,6 +46,8 @@ func TestPackageNuGet(t *testing.T) {
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/nuget", user.Name, repository.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -80,6 +82,8 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("Upload", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
@@ -98,12 +102,16 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -112,6 +120,8 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		cases := []struct {
 			Query           string
 			Skip            int
@@ -140,11 +150,15 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		indexURL := fmt.Sprintf("%s%s/registration/%s/index.json", setting.AppURL, url[1:], packageName)
 		leafURL := fmt.Sprintf("%s%s/registration/%s/%s.json", setting.AppURL, url[1:], packageName, packageVersion)
 		contentURL := fmt.Sprintf("%s%s/package/%s/%s/%s.%s.nupkg", setting.AppURL, url[1:], packageName, packageVersion, packageName, packageVersion)
 
 		t.Run("RegistrationIndex", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/index.json", url, packageName))
 			req = AddBasicAuthHeader(req, user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -169,6 +183,8 @@ func TestPackageNuGet(t *testing.T) {
 		})
 
 		t.Run("RegistrationLeaf", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion))
 			req = AddBasicAuthHeader(req, user.Name)
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -183,6 +199,8 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("PackageService", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -195,6 +213,8 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
@@ -205,12 +225,16 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("DownloadNotExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("DeleteNotExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNotFound)

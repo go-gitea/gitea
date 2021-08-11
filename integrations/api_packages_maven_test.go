@@ -38,6 +38,8 @@ func TestPackageMaven(t *testing.T) {
 	}
 
 	t.Run("Upload", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
@@ -55,10 +57,14 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -67,15 +73,23 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("UploadVerifySHA1", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		t.Run("Missmatch", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
 			putFile(t, fmt.Sprintf("/%s/%s.sha1", packageVersion, filename), "test", http.StatusBadRequest)
 		})
 		t.Run("Valid", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
 			putFile(t, fmt.Sprintf("/%s/%s.sha1", packageVersion, filename), "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", http.StatusOK)
 		})
 	})
 
 	t.Run("UploadPOM", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
 		pomContent := `<?xml version="1.0"?>
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <groupId>` + groupID + `</groupId>
