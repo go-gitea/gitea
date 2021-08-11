@@ -442,9 +442,9 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v32 v32.1.0
+# github.com/google/go-github/v37 v37.0.0
 ## explicit
-github.com/google/go-github/v32/github
+github.com/google/go-github/v37/github
 # github.com/google/go-querystring v1.1.0
 ## explicit
 github.com/google/go-querystring/query
@@ -850,7 +850,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+# golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 ## explicit
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt

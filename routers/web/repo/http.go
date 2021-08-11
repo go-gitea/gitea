@@ -70,13 +70,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
-	if ctx.Form("go-get") == "1" {
+	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return
 	}
 
 	var isPull, receivePack bool
-	service := ctx.Form("service")
+	service := ctx.FormString("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
