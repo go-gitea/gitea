@@ -1722,14 +1722,12 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	content := ctx.FormString("content")
-	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
+	if err := issue_service.ChangeContent(issue, ctx.User, ctx.Req.FormValue("content")); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
 	}
 
-	files := ctx.FormStrings("files[]")
-	if err := updateAttachments(issue, files); err != nil {
+	if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
 		return
 	}
@@ -2157,8 +2155,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	files := ctx.FormStrings("files[]")
-	if err := updateAttachments(comment, files); err != nil {
+	if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
 		return
 	}

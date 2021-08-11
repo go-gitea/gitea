@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -47,7 +46,7 @@ func Milestones(ctx *context.Context) {
 
 	sortType := ctx.FormString("sort")
 
-	keyword := strings.Trim(ctx.FormString("q"), " ")
+	keyword := ctx.FormTrim("q")
 
 	page := ctx.FormInt("page")
 	if page <= 1 {

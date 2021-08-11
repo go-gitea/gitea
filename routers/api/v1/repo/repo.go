@@ -135,7 +135,7 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
-		Keyword:            strings.Trim(ctx.FormString("q"), " "),
+		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
 		TeamID:             ctx.FormInt64("team_id"),
