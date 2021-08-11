@@ -416,7 +416,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := st.IsText()
 
 	isLFSFile := false
-	isDisplayingSource := ctx.Form("display") == "source"
+	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
 	//Check for LFS meta file

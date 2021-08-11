@@ -49,7 +49,7 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Form("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return

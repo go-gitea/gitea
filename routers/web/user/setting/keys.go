@@ -193,7 +193,7 @@ func KeysPost(ctx *context.Context) {
 // DeleteKey response for delete user's SSH/GPG key
 func DeleteKey(ctx *context.Context) {
 
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "gpg":
 		if err := models.DeleteGPGKey(ctx.User, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
@@ -265,5 +265,5 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["Principals"] = principals
 
-	ctx.Data["VerifyingID"] = ctx.Form("verify_gpg")
+	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 }
