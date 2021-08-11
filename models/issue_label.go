@@ -433,7 +433,7 @@ func getLabelsByRepoID(e Engine, repoID int64, sortType string, listOptions List
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 	}
 
 	return labels, sess.Find(&labels)
@@ -545,7 +545,7 @@ func getLabelsByOrgID(e Engine, orgID int64, sortType string, listOptions ListOp
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 	}
 
 	return labels, sess.Find(&labels)

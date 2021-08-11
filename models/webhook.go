@@ -413,7 +413,7 @@ func GetWebhooksByRepoID(repoID int64, listOptions ListOptions) ([]*Webhook, err
 		return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := listOptions.GetPaginatedSession()
 	webhooks := make([]*Webhook, 0, listOptions.PageSize)
 
 	return webhooks, sess.Find(&webhooks, &Webhook{RepoID: repoID})
@@ -439,7 +439,7 @@ func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error
 		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := listOptions.GetPaginatedSession()
 	ws := make([]*Webhook, 0, listOptions.PageSize)
 	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
 }

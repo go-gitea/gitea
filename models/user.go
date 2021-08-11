@@ -332,7 +332,7 @@ func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -354,7 +354,7 @@ func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -1677,7 +1677,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 	sess := x.Where(cond).OrderBy(opts.OrderBy.String())
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.SetSessionPagination(sess)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
@@ -1693,7 +1693,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)
@@ -1713,7 +1713,7 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)

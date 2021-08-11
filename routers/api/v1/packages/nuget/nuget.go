@@ -31,19 +31,13 @@ func ServiceIndex(ctx *context.APIContext) {
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.APIContext) {
-	skip := ctx.FormInt("skip")
-	take := ctx.FormInt("take")
-	if take <= 0 {
-		take = setting.API.DefaultPagingNum
-	}
-
-	packages, count, err := models.GetPackages(models.PackageSearchOptions{
+	packages, count, err := models.GetPackages(&models.PackageSearchOptions{
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "nuget",
 		Query:  ctx.FormTrim("q"),
-		ListOptions: models.ListOptions{
-			Page:     skip / take,
-			PageSize: take,
+		Paginator: &models.AbsoluteSessionPaginator{
+			Skip: ctx.FormInt("skip"),
+			Take: ctx.FormInt("take"),
 		},
 	})
 	if err != nil {

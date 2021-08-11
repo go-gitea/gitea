@@ -16,18 +16,15 @@ type ListOptions struct {
 	Page     int // start from 1
 }
 
-func (opts *ListOptions) getPaginatedSession() *xorm.Session {
+func (opts *ListOptions) GetPaginatedSession() *xorm.Session {
 	opts.setDefaultValues()
 
 	return x.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
-func (opts *ListOptions) setSessionPagination(sess *xorm.Session) *xorm.Session {
+func (opts *ListOptions) SetSessionPagination(sess *xorm.Session) *xorm.Session {
 	opts.setDefaultValues()
 
-	if opts.PageSize <= 0 {
-		return sess
-	}
 	return sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 

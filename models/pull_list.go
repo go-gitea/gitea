@@ -100,7 +100,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 		log.Error("listPullRequestStatement: %v", err)
 		return nil, maxResults, err
 	}
-	findSession = opts.setSessionPagination(findSession)
+	findSession = opts.SetSessionPagination(findSession)
 	prs := make([]*PullRequest, 0, opts.PageSize)
 	return prs, maxResults, findSession.Find(&prs)
 }

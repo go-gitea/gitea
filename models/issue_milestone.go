@@ -399,7 +399,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
 	}
 
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.SetSessionPagination(sess)
 	}
 
 	switch opts.SortType {

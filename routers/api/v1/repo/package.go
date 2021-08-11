@@ -62,11 +62,11 @@ func ListPackages(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	packages, count, err := models.GetPackages(models.PackageSearchOptions{
-		RepoID:      repo.ID,
-		Type:        packageType,
-		Query:       query,
-		ListOptions: listOptions,
+	packages, count, err := models.GetPackages(&models.PackageSearchOptions{
+		RepoID:    repo.ID,
+		Type:      packageType,
+		Query:     query,
+		Paginator: &listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPackages", err)

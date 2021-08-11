@@ -272,7 +272,7 @@ func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error)
 func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
 	sess := e.Where("repo_id = ?", repoID)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 
 		keys := make([]*DeployKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)

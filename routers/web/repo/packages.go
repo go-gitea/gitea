@@ -47,11 +47,11 @@ func Packages(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	packages, count, err := models.GetLatestPackagesGrouped(models.PackageSearchOptions{
+	packages, count, err := models.GetLatestPackagesGrouped(&models.PackageSearchOptions{
 		RepoID: repo.ID,
 		Query:  query,
 		Type:   packageType,
-		ListOptions: models.ListOptions{
+		Paginator: &models.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.PackagesPagingNum,
 		},

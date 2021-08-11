@@ -208,7 +208,7 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 		Where(opts.toConds(repoID))
 
 	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.SetSessionPagination(sess)
 	}
 
 	rels := make([]*Release, 0, opts.PageSize)

@@ -168,7 +168,7 @@ func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
 		return t.getRepositories(x)
 	}
 
-	return t.getRepositories(opts.getPaginatedSession())
+	return t.getRepositories(opts.GetPaginatedSession())
 }
 
 func (t *Team) getMembers(e Engine) (err error) {
@@ -182,7 +182,7 @@ func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
 		return t.getMembers(x)
 	}
 
-	return t.getMembers(opts.getPaginatedSession())
+	return t.getMembers(opts.GetPaginatedSession())
 }
 
 // AddMember adds new membership of the team to the organization,
@@ -795,7 +795,7 @@ func getUserTeams(e Engine, userID int64, listOptions ListOptions) (teams []*Tea
 		Join("INNER", "team_user", "team_user.team_id = team.id").
 		Where("team_user.uid=?", userID)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = listOptions.SetSessionPagination(sess)
 	}
 	return teams, sess.Find(&teams)
 }

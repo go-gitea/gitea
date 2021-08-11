@@ -65,7 +65,7 @@ func (org *User) getTeams(e Engine) error {
 // GetTeams returns paginated teams that belong to organization.
 func (org *User) GetTeams(opts *SearchTeamOptions) error {
 	if opts.Page != 0 {
-		return org.getTeams(opts.getPaginatedSession())
+		return org.getTeams(opts.GetPaginatedSession())
 	}
 
 	return org.getTeams(x)
@@ -529,7 +529,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 	}
 
 	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.SetSessionPagination(sess)
 	}
 
 	err := sess.
@@ -549,7 +549,7 @@ func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) 
 		sess.And("is_public = ?", true)
 	}
 	if opts.ListOptions.PageSize > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = opts.SetSessionPagination(sess)
 
 		ous := make([]*OrgUser, 0, opts.PageSize)
 		return ous, sess.Find(&ous)
