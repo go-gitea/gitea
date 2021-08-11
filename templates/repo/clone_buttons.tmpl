@@ -12,9 +12,7 @@
 			</a>
 		</div>
 	</div>
-{{end}}
 
-{{if not $.DisableHTTP}}
 	<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">
 		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
 	</button>
