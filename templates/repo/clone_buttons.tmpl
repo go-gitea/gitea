@@ -1,4 +1,20 @@
 {{if not $.DisableHTTP}}
+	<div class="ui dropdown jump item poping up" tabindex="-1" data-content="{{.i18n.Tr "repo.clone_in_ide"}}" data-variation="tiny inverted">
+		<span class="text">
+			IDE
+		</span>
+		<div class="menu" tabindex="-1">
+			<div class="ui header">
+				<strong>{{.i18n.Tr "repo.clone_in_ide"}}</strong>
+			</div>
+			<a class="item" href="vscode://vscode.git/clone?url={{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">
+				VS Code
+			</a>
+		</div>
+	</div>
+{{end}}
+
+{{if not $.DisableHTTP}}
 	<button class="ui basic clone button no-transition" id="repo-clone-https" data-link="{{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">
 		{{if UseHTTPS}}HTTPS{{else}}HTTP{{end}}
 	</button>
