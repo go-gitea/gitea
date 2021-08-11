@@ -171,7 +171,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	lastRead := int64(0)
-	qLastRead := strings.Trim(ctx.FormString("last_read_at"), " ")
+	qLastRead := ctx.FormTrim("last_read_at")
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
