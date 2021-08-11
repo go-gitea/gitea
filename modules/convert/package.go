@@ -14,22 +14,13 @@ func ToPackage(p *models.Package) *api.Package {
 	if err := p.LoadCreator(); err != nil {
 		return &api.Package{}
 	}
-	files, err := p.GetFiles()
-	if err != nil {
-		return &api.Package{}
-	}
 
-	apiFiles := make([]*api.PackageFile, 0, len(files))
-	for _, file := range files {
-		apiFiles = append(apiFiles, ToPackageFile(file))
-	}
 	return &api.Package{
 		ID:        p.ID,
 		Creator:   ToUser(p.Creator, nil),
 		Type:      p.Type.String(),
 		Name:      p.Name,
 		Version:   p.Version,
-		Files:     apiFiles,
 		CreatedAt: p.CreatedUnix.AsTime(),
 		UpdatedAt: p.CreatedUnix.AsTime(),
 	}

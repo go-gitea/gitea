@@ -31,11 +31,21 @@ func ServiceIndex(ctx *context.APIContext) {
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.APIContext) {
-	query := ctx.FormTrim("q")
 	skip := ctx.FormInt("skip")
 	take := ctx.FormInt("take")
+	if take <= 0 {
+		take = setting.API.DefaultPagingNum
+	}
 
-	total, packages, err := models.SearchPackages(ctx.Repo.Repository.ID, models.PackageNuGet, query, skip, take)
+	packages, count, err := models.GetPackages(models.PackageSearchOptions{
+		RepoID: ctx.Repo.Repository.ID,
+		Type:   "nuget",
+		Query:  ctx.FormTrim("q"),
+		ListOptions: models.ListOptions{
+			Page:     skip / take,
+			PageSize: take,
+		},
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -49,7 +59,7 @@ func SearchService(ctx *context.APIContext) {
 
 	resp := createSearchResultResponse(
 		&linkBuilder{setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/nuget"},
-		total,
+		count,
 		nugetPackages,
 	)
 

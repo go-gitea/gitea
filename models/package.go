@@ -8,7 +8,6 @@ import (
 	"errors"
 	"strings"
 
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -181,15 +180,13 @@ func DeletePackagesByRepositoryID(repositoryID int64) error {
 // PackageSearchOptions are options for GetLatestPackagesGrouped
 type PackageSearchOptions struct {
 	RepoID int64
-	Page   int
-	Query  string
 	Type   string
+	Query  string
+	ListOptions
 }
 
-// GetLatestPackagesGrouped returns a list of all packages in their latest version of the repository
-func GetLatestPackagesGrouped(opts PackageSearchOptions) ([]*Package, int64, error) {
+func (opts PackageSearchOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"package.repo_id": opts.RepoID}
-	cond = cond.And(builder.Expr("p2.id IS NULL"))
 
 	switch opts.Type {
 	case "generic":
@@ -208,15 +205,32 @@ func GetLatestPackagesGrouped(opts PackageSearchOptions) ([]*Package, int64, err
 		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Query)})
 	}
 
+	return cond
+}
+
+// GetPackages returns a list of all packages of the repository
+func GetPackages(opts PackageSearchOptions) ([]*Package, int64, error) {
+	sess := x.Where(opts.toConds())
+
+	sess = opts.setSessionPagination(sess)
+
+	packages := make([]*Package, 0, opts.PageSize)
+	count, err := sess.FindAndCount(&packages)
+	return packages, count, err
+}
+
+// GetLatestPackagesGrouped returns a list of all packages in their latest version of the repository
+func GetLatestPackagesGrouped(opts PackageSearchOptions) ([]*Package, int64, error) {
+	cond := opts.toConds().
+		And(builder.Expr("p2.id IS NULL"))
+
 	sess := x.Where(cond).
 		Table("package").
 		Join("left", "package p2", "package.repo_id = p2.repo_id AND package.type = p2.type AND package.lower_name = p2.lower_name AND package.version < p2.version")
 
-	if opts.Page > 0 {
-		sess = sess.Limit(setting.UI.PackagesPagingNum, (opts.Page-1)*setting.UI.PackagesPagingNum)
-	}
+	sess = opts.setSessionPagination(sess)
 
-	packages := make([]*Package, 0, setting.UI.PackagesPagingNum)
+	packages := make([]*Package, 0, opts.PageSize)
 	count, err := sess.FindAndCount(&packages)
 	return packages, count, err
 }
@@ -266,32 +280,6 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 		return nil, ErrPackageNotExist
 	}
 	return p, nil
-}
-
-// SearchPackages searches for packages by name and can be used to navigate through the package list
-func SearchPackages(repositoryID int64, packageType PackageType, query string, skip, take int) (int64, []*Package, error) {
-	var cond builder.Cond = builder.Eq{
-		"repo_id": repositoryID,
-		"type":    packageType,
-	}
-	if query != "" {
-		cond = cond.And(builder.Like{"lower_name", strings.ToLower(query)})
-	}
-
-	if take <= 0 || take > 100 {
-		take = 100
-	}
-
-	sess := x.Where(cond)
-	if skip > 0 {
-		sess = sess.Limit(take, skip)
-	} else {
-		sess = sess.Limit(take)
-	}
-
-	packages := make([]*Package, 0, take)
-	count, err := sess.FindAndCount(&packages)
-	return count, packages, err
 }
 
 // TryInsertPackageFile inserts a package file

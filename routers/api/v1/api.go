@@ -1020,6 +1020,12 @@ func Routes() *web.Route {
 						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 						m.Get("/simple/{id}", pypi.PackageMetadata)
 					}, reqBasicAuth())
+					m.Group("/{id}", func() {
+						m.Get("/", repo.GetPackage)
+						m.Delete("/", repo.DeletePackage)
+						m.Get("/files", repo.ListPackageFiles)
+					}, reqAnyRepoReader())
+					m.Get("/", reqAnyRepoReader(), repo.ListPackages)
 				})
 			}, repoAssignment())
 		})

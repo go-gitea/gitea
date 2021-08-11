@@ -10,12 +10,11 @@ import (
 
 // Package represents a package
 type Package struct {
-	ID      int64          `json:"id"`
-	Creator *User          `json:"creator"`
-	Type    string         `json:"type"`
-	Name    string         `json:"name"`
-	Version string         `json:"version"`
-	Files   []*PackageFile `json:"files"`
+	ID      int64  `json:"id"`
+	Creator *User  `json:"creator"`
+	Type    string `json:"type"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time

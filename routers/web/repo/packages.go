@@ -50,8 +50,11 @@ func Packages(ctx *context.Context) {
 	packages, count, err := models.GetLatestPackagesGrouped(models.PackageSearchOptions{
 		RepoID: repo.ID,
 		Query:  query,
-		Page:   page,
 		Type:   packageType,
+		ListOptions: models.ListOptions{
+			Page:     page,
+			PageSize: setting.UI.PackagesPagingNum,
+		},
 	})
 	if err != nil {
 		ctx.ServerError("GetLatestPackagesGrouped", err)
