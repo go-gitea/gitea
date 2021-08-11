@@ -42,8 +42,8 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Form("sort")
-	switch ctx.Form("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -73,7 +73,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := strings.Trim(ctx.FormString("q"), " ")
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 

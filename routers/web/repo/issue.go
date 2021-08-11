@@ -110,8 +110,8 @@ func MustAllowPulls(ctx *context.Context) {
 
 func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
 	var err error
-	viewType := ctx.Form("type")
-	sortType := ctx.Form("sort")
+	viewType := ctx.FormString("type")
+	sortType := ctx.FormString("sort")
 	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
 	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
@@ -140,7 +140,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	repo := ctx.Repo.Repository
 	var labelIDs []int64
-	selectLabels := ctx.Form("labels")
+	selectLabels := ctx.FormString("labels")
 	if len(selectLabels) > 0 && selectLabels != "0" {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
 		if err != nil {
@@ -149,7 +149,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := strings.Trim(ctx.FormString("q"), " ")
 	if bytes.Contains([]byte(keyword), []byte{0x00}) {
 		keyword = ""
 	}
@@ -187,9 +187,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	isShowClosed := ctx.Form("state") == "closed"
+	isShowClosed := ctx.FormString("state") == "closed"
 	// if open issues are zero and close don't, use closed as default
-	if len(ctx.Form("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = true
 	}
 
@@ -285,7 +285,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Form("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -380,7 +380,7 @@ func Issues(ctx *context.Context) {
 	// Get milestones
 	ctx.Data["Milestones"], err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: ctx.Repo.Repository.ID,
-		State:  api.StateType(ctx.Form("state")),
+		State:  api.StateType(ctx.FormString("state")),
 	})
 	if err != nil {
 		ctx.ServerError("GetAllRepoMilestones", err)
@@ -655,7 +655,7 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 	}
 	ctx.Data["Labels"] = labels
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Form("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
 		if err != nil {
 			return nil
 		}
@@ -719,9 +719,9 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs []string, possibleFiles []string) {
 	templateCandidates := make([]string, 0, len(possibleFiles))
-	if ctx.Form("template") != "" {
+	if ctx.FormString("template") != "" {
 		for _, dirName := range possibleDirs {
-			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.Form("template")))
+			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.FormString("template")))
 		}
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
@@ -741,7 +741,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
 				ctx.Data["Labels"] = repoLabels
 				if ctx.Repo.Owner.IsOrganization() {
-					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.Form("sort"), models.ListOptions{}); err == nil {
+					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{}); err == nil {
 						ctx.Data["OrgLabels"] = orgLabels
 						repoLabels = append(repoLabels, orgLabels...)
 					}
@@ -773,9 +773,9 @@ func NewIssue(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
-	title := ctx.Form("title")
+	title := ctx.FormString("title")
 	ctx.Data["TitleQuery"] = title
-	body := ctx.Form("body")
+	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
 	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
@@ -1174,7 +1174,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.Form("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -1624,7 +1624,7 @@ func checkIssueRights(ctx *context.Context, issue *models.Issue) {
 }
 
 func getActionIssues(ctx *context.Context) []*models.Issue {
-	commaSeparatedIssueIDs := ctx.Form("issue_ids")
+	commaSeparatedIssueIDs := ctx.FormString("issue_ids")
 	if len(commaSeparatedIssueIDs) == 0 {
 		return nil
 	}
@@ -1722,7 +1722,7 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	content := ctx.Form("content")
+	content := ctx.FormString("content")
 	if err := issue_service.ChangeContent(issue, ctx.User, content); err != nil {
 		ctx.ServerError("ChangeContent", err)
 		return
@@ -1735,7 +1735,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Form("context"),
+		URLPrefix: ctx.FormString("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 	}, issue.Content)
@@ -1783,7 +1783,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	}
 
 	assigneeID := ctx.FormInt64("id")
-	action := ctx.Form("action")
+	action := ctx.FormString("action")
 
 	for _, issue := range issues {
 		switch action {
@@ -1829,7 +1829,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 	}
 
 	reviewID := ctx.FormInt64("id")
-	action := ctx.Form("action")
+	action := ctx.FormString("action")
 
 	// TODO: Not support 'clear' now
 	if action != "attach" && action != "detach" {
@@ -1954,7 +1954,7 @@ func UpdateIssueStatus(ctx *context.Context) {
 	}
 
 	var isClosed bool
-	switch action := ctx.Form("action"); action {
+	switch action := ctx.FormString("action"); action {
 	case "open":
 		isClosed = false
 	case "close":
@@ -2145,7 +2145,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	oldContent := comment.Content
-	comment.Content = ctx.Form("content")
+	comment.Content = ctx.FormString("content")
 	if len(comment.Content) == 0 {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"content": "",
@@ -2164,7 +2164,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.Form("context"),
+		URLPrefix: ctx.FormString("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 	}, comment.Content)

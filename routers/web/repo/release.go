@@ -252,7 +252,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	if tagName := ctx.Form("tag"); len(tagName) > 0 {
+	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
