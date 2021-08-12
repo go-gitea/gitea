@@ -13,11 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -137,7 +136,7 @@ func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string,
 	}
 	defer resp.Body.Close()
 
-	decoder := jsoniter.NewDecoder(resp.Body)
+	decoder := json.NewDecoder(resp.Body)
 	return decoder.Decode(&result)
 }
 
@@ -441,6 +440,21 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 	pullRequests := make([]*base.PullRequest, 0, len(rawPullRequests))
 	for _, pr := range rawPullRequests {
+		var mergePreview struct {
+			TargetHeadCommitHash string `json:"targetHeadCommitHash"`
+			HeadCommitHash       string `json:"headCommitHash"`
+			MergeStrategy        string `json:"mergeStrategy"`
+			MergeCommitHash      string `json:"mergeCommitHash"`
+		}
+		err := d.callAPI(
+			fmt.Sprintf("/api/pull-requests/%d/merge-preview", pr.ID),
+			nil,
+			&mergePreview,
+		)
+		if err != nil {
+			return nil, false, err
+		}
+
 		state := "open"
 		merged := false
 		var closeTime *time.Time
@@ -469,12 +483,12 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			MergedTime: mergedTime,
 			Head: base.PullRequestBranch{
 				Ref:      pr.SourceBranch,
-				SHA:      pr.BaseCommitHash,
+				SHA:      mergePreview.HeadCommitHash,
 				RepoName: d.repoName,
 			},
 			Base: base.PullRequestBranch{
 				Ref:      pr.TargetBranch,
-				SHA:      "",
+				SHA:      mergePreview.TargetHeadCommitHash,
 				RepoName: d.repoName,
 			},
 			Context: onedevIssueContext{
