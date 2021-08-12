@@ -53,17 +53,12 @@ func Milestones(ctx *context.Context) {
 		page = 1
 	}
 
-	var total int
-	var state structs.StateType
-	if !isShowClosed {
-		total = int(stats.OpenCount)
-		state = structs.StateOpen
-	} else {
-		total = int(stats.ClosedCount)
+	state := structs.StateOpen
+	if isShowClosed {
 		state = structs.StateClosed
 	}
 
-	miles, err := models.GetMilestones(models.GetMilestonesOption{
+	miles, total, err := models.GetMilestones(models.GetMilestonesOption{
 		ListOptions: models.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
@@ -106,7 +101,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["IsShowClosed"] = isShowClosed
 
-	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
+	pager := context.NewPagination(int(total), setting.UI.IssuePagingNum, page, 5)
 	pager.AddParam(ctx, "state", "State")
 	pager.AddParam(ctx, "q", "Keyword")
 	ctx.Data["Page"] = pager

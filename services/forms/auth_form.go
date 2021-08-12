@@ -50,6 +50,9 @@ type AuthenticationForm struct {
 	SecurityProtocol              int `binding:"Range(0,2)"`
 	TLS                           bool
 	SkipVerify                    bool
+	HeloHostname                  string
+	DisableHelo                   bool
+	ForceSMTPS                    bool
 	PAMServiceName                string
 	PAMEmailDomain                string
 	Oauth2Provider                string

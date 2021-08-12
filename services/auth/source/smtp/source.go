@@ -22,8 +22,10 @@ type Source struct {
 	Host           string
 	Port           int
 	AllowedDomains string `xorm:"TEXT"`
-	TLS            bool
+	ForceSMTPS     bool
 	SkipVerify     bool
+	HeloHostname   string
+	DisableHelo    bool
 
 	// reference to the loginSource
 	loginSource *models.LoginSource
@@ -51,7 +53,7 @@ func (source *Source) HasTLS() bool {
 
 // UseTLS returns if TLS is set
 func (source *Source) UseTLS() bool {
-	return source.TLS
+	return source.ForceSMTPS || source.Port == 465
 }
 
 // SetLoginSource sets the related LoginSource

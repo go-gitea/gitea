@@ -52,7 +52,7 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 	return org.getOwnerTeam(x)
 }
 
-func (org *User) getTeams(e Engine) error {
+func (org *User) loadTeams(e Engine) error {
 	if org.Teams != nil {
 		return nil
 	}
@@ -62,13 +62,9 @@ func (org *User) getTeams(e Engine) error {
 		Find(&org.Teams)
 }
 
-// GetTeams returns paginated teams that belong to organization.
-func (org *User) GetTeams(opts *SearchTeamOptions) error {
-	if opts.Page != 0 {
-		return org.getTeams(opts.getPaginatedSession())
-	}
-
-	return org.getTeams(x)
+// LoadTeams load teams if not loaded.
+func (org *User) LoadTeams() error {
+	return org.loadTeams(x)
 }
 
 // GetMembers returns all members of organization.
@@ -87,7 +83,7 @@ type FindOrgMembersOpts struct {
 }
 
 // CountOrgMembers counts the organization's members
-func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
+func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 	sess := x.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)

@@ -54,18 +54,6 @@
 						<input name="attributes_in_bind" type="checkbox" {{if .attributes_in_bind}}checked{{end}}>
 					</div>
 				</div>
-				<div class="smtp inline field {{if not (eq .type 3)}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
-						<input name="tls" type="checkbox" {{if .tls}}checked{{end}}>
-					</div>
-				</div>
-				<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-						<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
-					</div>
-				</div>
 				<div class="ldap inline field {{if not (eq .type 2)}}hide{{end}}">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>

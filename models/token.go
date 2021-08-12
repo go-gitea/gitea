@@ -122,6 +122,15 @@ func UpdateAccessToken(t *AccessToken) error {
 	return err
 }
 
+// CountAccessTokens count access tokens belongs to given user by options
+func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
+	sess := x.Where("uid=?", opts.UserID)
+	if len(opts.Name) != 0 {
+		sess = sess.Where("name=?", opts.Name)
+	}
+	return sess.Count(&AccessToken{})
+}
+
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
 	cnt, err := x.ID(id).Delete(&AccessToken{
