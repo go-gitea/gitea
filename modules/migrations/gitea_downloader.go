@@ -424,7 +424,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 			Labels:      labels,
 			Assignees:   assignees,
 			IsLocked:    issue.IsLocked,
-			Context:     base.BasicIssueContext{ID: issue.Index},
+			Context:     base.BasicIssueContext(issue.Index),
 		})
 	}
 
@@ -596,7 +596,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 				RepoName:  g.repoName,
 				OwnerName: g.repoOwner,
 			},
-			Context: base.BasicIssueContext{ID: pr.Index},
+			Context: base.BasicIssueContext(pr.Index),
 		})
 	}
 

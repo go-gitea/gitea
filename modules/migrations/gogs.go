@@ -301,7 +301,7 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 		Created:     issue.Created,
 		Labels:      labels,
 		Closed:      closed,
-		Context:     base.BasicIssueContext{ID: issue.Index},
+		Context:     base.BasicIssueContext(issue.Index),
 	}
 }
 

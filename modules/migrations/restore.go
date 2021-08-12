@@ -209,7 +209,7 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 	for _, issue := range issues {
-		issue.Context = base.BasicIssueContext{ID: issue.Number}
+		issue.Context = base.BasicIssueContext(issue.Number)
 	}
 	return issues, true, nil
 }
@@ -261,7 +261,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 	for _, pr := range pulls {
 		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
-		pr.Context = base.BasicIssueContext{ID: pr.Number}
+		pr.Context = base.BasicIssueContext(pr.Number)
 	}
 	return pulls, true, nil
 }

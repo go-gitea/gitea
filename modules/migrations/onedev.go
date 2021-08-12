@@ -126,7 +126,7 @@ func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string,
 		u.RawQuery = query.Encode()
 	}
 
-	req, err := http.NewRequest("GET", u.String(), nil)
+	req, err := http.NewRequestWithContext(d.ctx, "GET", u.String(), nil)
 	if err != nil {
 		return err
 	}

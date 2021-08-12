@@ -445,7 +445,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Reactions:   reactions,
 			Closed:      issue.ClosedAt,
 			IsLocked:    *issue.Locked,
-			Context:     base.BasicIssueContext{ID: int64(*issue.Number)},
+			Context:     base.BasicIssueContext(*issue.Number),
 		})
 	}
 
@@ -736,7 +736,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			},
 			PatchURL:  *pr.PatchURL,
 			Reactions: reactions,
-			Context:   base.BasicIssueContext{ID: int64(*pr.Number)},
+			Context:   base.BasicIssueContext(*pr.Number),
 		})
 	}
 

@@ -104,7 +104,7 @@ func TestGogsDownloadRepo(t *testing.T) {
 
 	// downloader.GetComments()
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: base.BasicIssueContext{ID: 1},
+		Context: base.BasicIssueContext(1),
 	})
 	assert.NoError(t, err)
 	assert.Len(t, comments, 1)

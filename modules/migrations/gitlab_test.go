@@ -310,7 +310,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(base.BasicIssueContext{ID: 1})
+	rvs, err := downloader.GetReviews(base.BasicIssueContext(1))
 	assert.NoError(t, err)
 	if assert.Len(t, rvs, 2) {
 		for i := range rvs {
@@ -327,7 +327,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			}
 		}
 	}
-	rvs, err = downloader.GetReviews(base.BasicIssueContext{ID: 2})
+	rvs, err = downloader.GetReviews(base.BasicIssueContext(2))
 	assert.NoError(t, err)
 	if assert.Len(t, prs, 1) {
 		assert.EqualValues(t, 4575606, rvs[0].ReviewerID)
