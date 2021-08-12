@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 )
@@ -111,6 +112,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	mailer.SendRegisterNotifyMail(user)
 
 	return user
 }
