@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -22,13 +21,13 @@ func Search(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink, 302)
 		return
 	}
-	language := strings.TrimSpace(ctx.FormString("l"))
-	keyword := strings.TrimSpace(ctx.FormString("q"))
+	language := ctx.FormTrim("l")
+	keyword := ctx.FormTrim("q")
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
-	queryType := strings.TrimSpace(ctx.FormString("t"))
+	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
 	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch([]int64{ctx.Repo.Repository.ID},

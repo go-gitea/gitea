@@ -204,7 +204,7 @@ func Milestones(ctx *context.Context) {
 		isShowClosed = ctx.FormString("state") == "closed"
 		sortType     = ctx.FormString("sort")
 		page         = ctx.FormInt("page")
-		keyword      = strings.Trim(ctx.FormString("q"), " ")
+		keyword      = ctx.FormTrim("q")
 	)
 
 	if page <= 1 {

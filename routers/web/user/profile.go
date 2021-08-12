@@ -187,7 +187,7 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.FormString("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":

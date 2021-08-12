@@ -6,7 +6,6 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -78,7 +77,7 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.FormString("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 
 	page := ctx.FormInt("page")

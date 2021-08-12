@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
@@ -28,12 +29,15 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	}
 
 	var auth smtp.Auth
-	if source.Auth == PlainAuthentication {
+	switch source.Auth {
+	case PlainAuthentication:
 		auth = smtp.PlainAuth("", login, password, source.Host)
-	} else if source.Auth == LoginAuthentication {
+	case LoginAuthentication:
 		auth = &loginAuthenticator{login, password}
-	} else {
-		return nil, errors.New("Unsupported SMTP auth type")
+	case CRAMMD5Authentication:
+		auth = smtp.CRAMMD5Auth(login, password)
+	default:
+		return nil, errors.New("unsupported SMTP auth type")
 	}
 
 	if err := Authenticate(auth, source); err != nil {
@@ -42,6 +46,10 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		tperr, ok := err.(*textproto.Error)
 		if (ok && tperr.Code == 535) ||
 			strings.Contains(err.Error(), "Username and Password not accepted") {
+			return nil, models.ErrUserNotExist{Name: login}
+		}
+		if (ok && tperr.Code == 534) ||
+			strings.Contains(err.Error(), "Application-specific password required") {
 			return nil, models.ErrUserNotExist{Name: login}
 		}
 		return nil, err
@@ -67,5 +75,12 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		LoginName:   login,
 		IsActive:    true,
 	}
-	return user, models.CreateUser(user)
+
+	if err := models.CreateUser(user); err != nil {
+		return user, err
+	}
+
+	mailer.SendRegisterNotifyMail(user)
+
+	return user, nil
 }

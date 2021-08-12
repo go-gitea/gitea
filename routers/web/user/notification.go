@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -59,7 +58,7 @@ func Notifications(c *context.Context) {
 
 func getNotifications(c *context.Context) {
 	var (
-		keyword = strings.Trim(c.FormString("q"), " ")
+		keyword = c.FormTrim("q")
 		status  models.NotificationStatus
 		page    = c.FormInt("page")
 		perPage = c.FormInt("perPage")
@@ -144,9 +143,9 @@ func getNotifications(c *context.Context) {
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(c *context.Context) {
 	var (
-		notificationID, _ = strconv.ParseInt(c.Req.PostFormValue("notification_id"), 10, 64)
-		statusStr         = c.Req.PostFormValue("status")
-		status            models.NotificationStatus
+		notificationID = c.FormInt64("notification_id")
+		statusStr      = c.FormString("status")
+		status         models.NotificationStatus
 	)
 
 	switch statusStr {

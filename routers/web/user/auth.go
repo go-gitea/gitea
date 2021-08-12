@@ -1491,8 +1491,7 @@ func ForgotPasswd(ctx *context.Context) {
 		return
 	}
 
-	email := ctx.FormString("email")
-	ctx.Data["Email"] = email
+	ctx.Data["Email"] = ctx.FormString("email")
 
 	ctx.Data["IsResetRequest"] = true
 	ctx.HTML(http.StatusOK, tplForgotPassword)
