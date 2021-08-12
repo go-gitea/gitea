@@ -20,9 +20,11 @@ var (
 		Methods          []string
 		MaxAge           time.Duration
 		AllowCredentials bool
+		XFrameOptions    string
 	}{
-		Enabled: false,
-		MaxAge:  10 * time.Minute,
+		Enabled:       false,
+		MaxAge:        10 * time.Minute,
+		XFrameOptions: "SAMEORIGIN",
 	}
 )
 

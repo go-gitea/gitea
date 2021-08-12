@@ -8,7 +8,6 @@ package user
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -58,8 +57,8 @@ func Search(ctx *context.APIContext) {
 
 	opts := &models.SearchUserOptions{
 		Actor:       ctx.User,
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         ctx.QueryInt64("uid"),
+		Keyword:     ctx.FormTrim("q"),
+		UID:         ctx.FormInt64("uid"),
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
 	}
