@@ -75,26 +75,29 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
 
-	var keys []*models.DeployKey
-	var err error
-
-	fingerprint := ctx.FormString("fingerprint")
-	keyID := ctx.FormInt64("key_id")
-	if fingerprint != "" || keyID != 0 {
-		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
-	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &models.ListDeployKeysOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		KeyID:       ctx.FormInt64("key_id"),
+		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
+	keys, err := models.ListDeployKeys(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListDeployKeys", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	count, err := models.CountDeployKeys(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err = keys[i].GetContent(); err != nil {
+		if err := keys[i].GetContent(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetContent", err)
 			return
 		}
@@ -104,6 +107,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

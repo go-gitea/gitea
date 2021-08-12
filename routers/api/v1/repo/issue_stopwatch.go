@@ -225,11 +225,18 @@ func GetStopwatches(ctx *context.APIContext) {
 		return
 	}
 
+	count, err := models.CountUserStopwatches(ctx.User.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	apiSWs, err := convert.ToStopWatches(sws)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "APIFormat", err)
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSWs)
 }

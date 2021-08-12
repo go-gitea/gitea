@@ -52,5 +52,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	for i, subscriber := range subscribers {
 		users[i] = convert.ToUser(subscriber, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumWatches))
 	ctx.JSON(http.StatusOK, users)
 }
