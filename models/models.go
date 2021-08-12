@@ -33,7 +33,7 @@ type Engine interface {
 	Table(tableNameOrBean interface{}) *xorm.Session
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
-	Delete(interface{}) (int64, error)
+	Delete(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)

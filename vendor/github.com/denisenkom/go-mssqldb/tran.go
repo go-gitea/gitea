@@ -21,11 +21,11 @@ type isoLevel uint8
 
 const (
 	isolationUseCurrent     isoLevel = 0
-	isolationReadUncommited          = 1
-	isolationReadCommited            = 2
-	isolationRepeatableRead          = 3
-	isolationSerializable            = 4
-	isolationSnapshot                = 5
+	isolationReadUncommited isoLevel = 1
+	isolationReadCommited   isoLevel = 2
+	isolationRepeatableRead isoLevel = 3
+	isolationSerializable   isoLevel = 4
+	isolationSnapshot       isoLevel = 5
 )
 
 func sendBeginXact(buf *tdsBuffer, headers []headerStruct, isolation isoLevel, name string, resetSession bool) (err error) {
