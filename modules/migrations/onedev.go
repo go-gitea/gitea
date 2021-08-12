@@ -195,8 +195,6 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 	endpoint := fmt.Sprintf("/api/projects/%d/milestones", d.repoID)
 
-	t := time.Now()
-
 	var milestones = make([]*base.Milestone, 0, 100)
 	offset := 0
 	for {
@@ -218,7 +216,7 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 		for _, milestone := range rawMilestones {
 			d.milestoneMap[milestone.ID] = milestone.Name
-			closed := &t
+			closed := milestone.DueDate
 			if !milestone.Closed {
 				closed = nil
 			}
@@ -227,8 +225,6 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 				Title:       milestone.Name,
 				Description: milestone.Description,
 				Deadline:    milestone.DueDate,
-				Created:     t,
-				Updated:     &t,
 				Closed:      closed,
 			})
 		}
@@ -588,7 +584,6 @@ func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review
 			IssueIndex:   context.LocalID(),
 			ReviewerID:   poster.ID,
 			ReviewerName: poster.Name,
-			CreatedAt:    time.Now(),
 			Content:      content,
 			State:        state,
 		})
