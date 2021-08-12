@@ -15,12 +15,12 @@ trigger:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:16
     commands:
       - make node_modules
 
   - name: lint-frontend
-    image: node:14
+    image: node:16
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -46,7 +46,7 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    image: node:14
+    image: node:16
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -59,13 +59,13 @@ steps:
     depends_on: [lint-backend]
 
   - name: test-frontend
-    image: node:14
+    image: node:16
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:14
+    image: node:16
     commands:
       - make frontend
     depends_on: [test-frontend]
@@ -274,44 +274,6 @@ steps:
         from_secret: NEXUS_PUBLISHER_USERNAME
       insecure: true
 
-
-node:
-  oss: amd64
-
----
-kind: pipeline
-name: docker-manifest
-
-platform:
-  os: linux
-  arch: amd64
-
-steps:
-  - name: manifest-rootless
-    pull: always
-    image: plugins/manifest
-    settings:
-      auto_tag: true
-      ignore_missing: true
-      spec: docker/manifest.rootless.tmpl
-      password:
-        from_secret: docker_password
-      username:
-        from_secret: docker_username
-
-  - name: manifest
-    image: plugins/manifest
-    settings:
-      auto_tag: true
-      ignore_missing: true
-      spec: docker/manifest.tmpl
-      password:
-        from_secret: docker_password
-      username:
-        from_secret: docker_username
-
-depends_on:
-  - docker-linux-amd64-release
 
 node:
   oss: amd64
