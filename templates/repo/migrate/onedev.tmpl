@@ -38,12 +38,16 @@
 								<label>{{.i18n.Tr "repo.migrate_items_milestones" | Safe}}</label>
 							</div>
 							<div class="ui checkbox">
-								<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
-								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
+								<input name="labels" type="checkbox" {{if .labels}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_labels" | Safe}}</label>
 							</div>
 						</div>
 						<div class="inline field">
 							<label></label>
+							<div class="ui checkbox">
+								<input name="issues" type="checkbox" {{if .issues}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.migrate_items_issues" | Safe}}</label>
+							</div>
 							<div class="ui checkbox">
 								<input name="pull_requests" type="checkbox" {{if .pull_requests}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.migrate_items_pullrequests" | Safe}}</label>

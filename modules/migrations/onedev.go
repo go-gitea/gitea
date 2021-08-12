@@ -238,7 +238,32 @@ func (d *OneDevDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 // GetLabels returns labels
 func (d *OneDevDownloader) GetLabels() ([]*base.Label, error) {
-	return nil, nil
+	return []*base.Label{
+		{
+			Name:  "Bug",
+			Color: "f64e60",
+		},
+		{
+			Name:  "Build Failure",
+			Color: "f64e60",
+		},
+		{
+			Name:  "Discussion",
+			Color: "8950fc",
+		},
+		{
+			Name:  "Improvement",
+			Color: "1bc5bd",
+		},
+		{
+			Name:  "New Feature",
+			Color: "1bc5bd",
+		},
+		{
+			Name:  "Support Request",
+			Color: "8950fc",
+		},
+	}, nil
 }
 
 type onedevIssueContext struct {
@@ -283,6 +308,27 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 
 	issues := make([]*base.Issue, 0, len(rawIssues))
 	for _, issue := range rawIssues {
+		fields := make([]struct {
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		}, 0, 10)
+		err := d.callAPI(
+			fmt.Sprintf("/api/issues/%d/fields", issue.ID),
+			nil,
+			&fields,
+		)
+		if err != nil {
+			return nil, false, err
+		}
+
+		var label *base.Label
+		for _, field := range fields {
+			if field.Name == "Type" {
+				label = &base.Label{Name: field.Value}
+				break
+			}
+		}
+
 		state := strings.ToLower(issue.State)
 		if state == "released" {
 			state = "closed"
@@ -297,7 +343,7 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Milestone:   d.milestoneMap[issue.MilestoneID],
 			State:       state,
 			Created:     issue.SubmitDate,
-			//Closed:      closed,
+			Labels:      []*base.Label{label},
 			Context: onedevIssueContext{
 				foreignID:     issue.ID,
 				localID:       issue.Number,
