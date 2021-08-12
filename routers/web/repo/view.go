@@ -224,7 +224,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	// Now limit the number of directory items to the page
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page < 1 {
 		page = 1
 	}
