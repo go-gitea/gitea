@@ -6,8 +6,7 @@ package smtp
 
 import (
 	"code.gitea.io/gitea/models"
-
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 //   _________   __________________________
@@ -23,8 +22,10 @@ type Source struct {
 	Host           string
 	Port           int
 	AllowedDomains string `xorm:"TEXT"`
-	TLS            bool
+	ForceSMTPS     bool
 	SkipVerify     bool
+	HeloHostname   string
+	DisableHelo    bool
 
 	// reference to the loginSource
 	loginSource *models.LoginSource
@@ -37,7 +38,6 @@ func (source *Source) FromDB(bs []byte) error {
 
 // ToDB exports an SMTPConfig to a serialized format.
 func (source *Source) ToDB() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(source)
 }
 
@@ -53,7 +53,7 @@ func (source *Source) HasTLS() bool {
 
 // UseTLS returns if TLS is set
 func (source *Source) UseTLS() bool {
-	return source.TLS
+	return source.ForceSMTPS || source.Port == 465
 }
 
 // SetLoginSource sets the related LoginSource

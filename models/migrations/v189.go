@@ -8,13 +8,13 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"xorm.io/xorm"
 )
 
 func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 	jsonUnmarshalHandleDoubleEncode := func(bs []byte, v interface{}) error {
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal(bs, v)
 		if err != nil {
 			ok := true
@@ -84,7 +84,7 @@ func unwrapLDAPSourceCfg(x *xorm.Engine) error {
 				return fmt.Errorf("failed to unmarshal %s: %w", string(source.Cfg), err)
 			}
 			if wrapped.Source != nil && len(wrapped.Source) > 0 {
-				bs, err := jsoniter.Marshal(wrapped.Source)
+				bs, err := json.Marshal(wrapped.Source)
 				if err != nil {
 					return err
 				}

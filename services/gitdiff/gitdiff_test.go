@@ -14,8 +14,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
+
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -297,7 +298,7 @@ index 6961180..9ba1a00 100644
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))

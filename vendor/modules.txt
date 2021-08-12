@@ -25,7 +25,7 @@ gitea.com/go-chi/session/couchbase
 gitea.com/go-chi/session/memcache
 gitea.com/go-chi/session/mysql
 gitea.com/go-chi/session/postgres
-# gitea.com/lunny/levelqueue v0.3.0
+# gitea.com/lunny/levelqueue v0.4.0
 ## explicit
 gitea.com/lunny/levelqueue
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
@@ -225,9 +225,6 @@ github.com/denisenkom/go-mssqldb
 github.com/denisenkom/go-mssqldb/internal/cp
 github.com/denisenkom/go-mssqldb/internal/decimal
 github.com/denisenkom/go-mssqldb/internal/querytext
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
-## explicit
-github.com/dgrijalva/jwt-go
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
 github.com/dgryski/go-rendezvous
 # github.com/djherbis/buffer v1.2.0
@@ -431,6 +428,9 @@ github.com/gogs/cron
 # github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 ## explicit
 github.com/gogs/go-gogs-client
+# github.com/golang-jwt/jwt v3.2.2+incompatible
+## explicit
+github.com/golang-jwt/jwt
 # github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe
 github.com/golang-sql/civil
 # github.com/golang/protobuf v1.5.2
@@ -442,9 +442,9 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v32 v32.1.0
+# github.com/google/go-github/v37 v37.0.0
 ## explicit
-github.com/google/go-github/v32/github
+github.com/google/go-github/v37/github
 # github.com/google/go-querystring v1.1.0
 ## explicit
 github.com/google/go-querystring/query
@@ -570,10 +570,14 @@ github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/markbates/goth v1.67.1
+# github.com/markbates/going v1.0.0
+github.com/markbates/going/defaults
+# github.com/markbates/goth v1.68.0
 ## explicit
 github.com/markbates/goth
 github.com/markbates/goth/gothic
+github.com/markbates/goth/providers/azuread
+github.com/markbates/goth/providers/azureadv2
 github.com/markbates/goth/providers/bitbucket
 github.com/markbates/goth/providers/discord
 github.com/markbates/goth/providers/dropbox
@@ -583,6 +587,7 @@ github.com/markbates/goth/providers/github
 github.com/markbates/goth/providers/gitlab
 github.com/markbates/goth/providers/google
 github.com/markbates/goth/providers/mastodon
+github.com/markbates/goth/providers/microsoftonline
 github.com/markbates/goth/providers/nextcloud
 github.com/markbates/goth/providers/openidConnect
 github.com/markbates/goth/providers/twitter
@@ -845,7 +850,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+# golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 ## explicit
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -876,7 +881,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210614182718-04defd469f4e
+# golang.org/x/net v0.0.0-20210716203947-853a461950ff
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1053,3 +1058,4 @@ xorm.io/xorm/names
 xorm.io/xorm/schemas
 xorm.io/xorm/tags
 # github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
+# github.com/golang-jwt/jwt v3.2.1+incompatible => github.com/golang-jwt/jwt v3.2.2+incompatible

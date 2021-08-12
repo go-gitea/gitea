@@ -8,7 +8,6 @@ package org
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -658,9 +657,9 @@ func SearchTeam(ctx *context.APIContext) {
 
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
-		Keyword:     strings.TrimSpace(ctx.Query("q")),
+		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc"),
+		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
 	}
 

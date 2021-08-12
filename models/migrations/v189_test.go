@@ -7,7 +7,8 @@ package migrations
 import (
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,12 +66,12 @@ func Test_unwrapLDAPSourceCfg(t *testing.T) {
 			converted := map[string]interface{}{}
 			expected := map[string]interface{}{}
 
-			if err := jsoniter.Unmarshal([]byte(source.Cfg), &converted); err != nil {
+			if err := json.Unmarshal([]byte(source.Cfg), &converted); err != nil {
 				assert.NoError(t, err)
 				return
 			}
 
-			if err := jsoniter.Unmarshal([]byte(source.Expected), &expected); err != nil {
+			if err := json.Unmarshal([]byte(source.Expected), &expected); err != nil {
 				assert.NoError(t, err)
 				return
 			}

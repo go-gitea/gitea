@@ -30,7 +30,7 @@
 
 				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
-				{{.i18n.Tr (TrN .i18n.Lang .Comment.Commits.Len "mail.issue.action.push_1" "mail.issue.action.push_n")  .Doer.Name .Comment.Issue.PullRequest.HeadBranch .Comment.Commits.Len | Str2html}}
+				{{.i18n.Tr (TrN .i18n.Lang (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n") .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}
 		</p>
 	{{end}}
@@ -69,9 +69,8 @@
 			</div>
 		{{end -}}
 		{{if eq .ActionName "push"}}
-			{{ $r:= List .Comment.Commits}}
 			<ul>
-			{{range $r}}
+			{{range .Comment.Commits}}
 				<li>
 					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}

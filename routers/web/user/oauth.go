@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -24,8 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
-	"github.com/dgrijalva/jwt-go"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/golang-jwt/jwt"
 )
 
 const (
@@ -507,7 +507,7 @@ func OIDCKeys(ctx *context.Context) {
 	}
 
 	ctx.Resp.Header().Set("Content-Type", "application/json")
-	enc := jsoniter.NewEncoder(ctx.Resp)
+	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(jwks); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}

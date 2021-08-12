@@ -7,7 +7,7 @@ package models
 import (
 	"encoding/binary"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 func keysInt64(m map[int64]struct{}) []int64 {
@@ -37,7 +37,6 @@ func valuesUser(m map[int64]*User) []*User {
 // JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
 func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(bs, v)
 	if err != nil {
 		ok := true
