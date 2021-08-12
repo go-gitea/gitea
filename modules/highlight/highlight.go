@@ -166,16 +166,33 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	}
 
 	htmlw.Flush()
+	finalNewLine := false
+	if len(code) > 0 {
+		finalNewLine = code[len(code)-1] == '\n'
+	}
+
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
 		content := string(v)
+		log.Info("%s", content)
+
 		//need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
+		} else if content == `</span><span class="w">` {
+			content += "\n"
 		}
 		m[line] = content
 	}
+	if finalNewLine {
+		m[numLines+1] = "<span class=\"w\">\n</span>"
+	}
+
+	for i, line := range m {
+		log.Info("%d: %q", i, line)
+	}
+
 	return m
 }
 
