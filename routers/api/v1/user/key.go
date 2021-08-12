@@ -47,8 +47,9 @@ func composePublicKeysAPILink() string {
 func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	var keys []*models.PublicKey
 	var err error
+	var count int
 
-	fingerprint := ctx.Form("fingerprint")
+	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
@@ -60,7 +61,15 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 			// Unrestricted
 			keys, err = models.SearchPublicKey(0, fingerprint)
 		}
+		count = len(keys)
 	} else {
+		total, err2 := models.CountPublicKeys(user.ID)
+		if err2 != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		count = int(total)
+
 		// Use ListPublicKeys
 		keys, err = models.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
@@ -79,6 +88,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

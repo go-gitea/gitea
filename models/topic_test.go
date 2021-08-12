@@ -17,17 +17,18 @@ func TestAddTopic(t *testing.T) {
 
 	assert.NoError(t, PrepareTestDatabase())
 
-	topics, err := FindTopics(&FindTopicOptions{})
+	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, total, err := FindTopics(&FindTopicOptions{
 		ListOptions: ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, topics, 2)
+	assert.EqualValues(t, 6, total)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
@@ -35,11 +36,11 @@ func TestAddTopic(t *testing.T) {
 
 	assert.NoError(t, SaveTopics(2, "golang"))
 	repo2NrOfTopics = 1
-	topics, err = FindTopics(&FindTopicOptions{})
+	topics, _, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
@@ -52,11 +53,11 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)
 
-	topics, err = FindTopics(&FindTopicOptions{})
+	topics, _, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)

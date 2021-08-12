@@ -70,7 +70,7 @@ func SettingsPost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	switch ctx.Form("action") {
+	switch ctx.FormString("action") {
 	case "update":
 		if ctx.HasError() {
 			ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -560,7 +560,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := models.GetUserByName(ctx.Form("new_owner_name"))
+		newOwner, err := models.GetUserByName(ctx.FormString("new_owner_name"))
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -775,7 +775,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Form("collaborator")))
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
@@ -854,7 +854,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Form("team")))
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
 	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -988,7 +988,7 @@ func GitHooksEditPost(ctx *context.Context) {
 		}
 		return
 	}
-	hook.Content = ctx.Form("content")
+	hook.Content = ctx.FormString("content")
 	if err = hook.Update(); err != nil {
 		ctx.ServerError("hook.Update", err)
 		return
@@ -1002,7 +1002,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
+	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1018,7 +1018,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
+	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

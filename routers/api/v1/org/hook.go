@@ -40,16 +40,29 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	org := ctx.Org.Organization
-	orgHooks, err := models.GetWebhooksByOrgID(org.ID, utils.GetListOptions(ctx))
+	opts := &models.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		OrgID:       ctx.Org.Organization.ID,
+	}
+
+	count, err := models.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByOrgID", err)
+		ctx.InternalServerError(err)
 		return
 	}
+
+	orgHooks, err := models.ListWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	hooks := make([]*api.Hook, len(orgHooks))
 	for i, hook := range orgHooks {
-		hooks[i] = convert.ToHook(org.HomeLink(), hook)
+		hooks[i] = convert.ToHook(ctx.Org.Organization.HomeLink(), hook)
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, hooks)
 }
 

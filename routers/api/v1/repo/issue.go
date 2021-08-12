@@ -106,7 +106,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -140,7 +140,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -153,7 +153,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -162,13 +162,13 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := strings.TrimSpace(ctx.Form("labels"))
+	labels := ctx.FormTrim("labels")
 	var includedLabelNames []string
 	if len(labels) > 0 {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
-	milestones := strings.TrimSpace(ctx.Form("milestones"))
+	milestones := ctx.FormTrim("milestones")
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
@@ -232,8 +232,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -319,7 +318,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -331,7 +330,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -345,7 +344,7 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	if splitted := strings.Split(ctx.Form("labels"), ","); len(splitted) > 0 {
+	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
@@ -354,7 +353,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var mileIDs []int64
-	if part := strings.Split(ctx.Form("milestones"), ","); len(part) > 0 {
+	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
@@ -386,7 +385,7 @@ func ListIssues(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -442,13 +441,12 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
-	userName := ctx.Form(queryName)
+	userName := ctx.FormString(queryName)
 	if len(userName) == 0 {
 		return 0
 	}

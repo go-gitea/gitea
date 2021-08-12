@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
@@ -197,6 +198,9 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 	if err := models.CreateUser(user); err != nil {
 		return nil, err
 	}
+
+	mailer.SendRegisterNotifyMail(user)
+
 	return user, nil
 }
 

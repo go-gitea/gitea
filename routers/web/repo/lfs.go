@@ -195,7 +195,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.NotFound("LFSLocks", nil)
 		return
 	}
-	originalPath := ctx.Form("path")
+	originalPath := ctx.FormString("path")
 	lockPath := originalPath
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
@@ -366,13 +366,13 @@ func LFSFileFind(ctx *context.Context) {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	oid := ctx.Form("oid")
+	oid := ctx.FormString("oid")
 	size := ctx.FormInt64("size")
 	if len(oid) == 0 || size == 0 {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	sha := ctx.Form("sha")
+	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	var hash git.SHA1

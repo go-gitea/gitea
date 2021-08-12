@@ -291,8 +291,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		ctx.Repo.Repository.Description = ctx.Form("desc")
-		ctx.Repo.Repository.Website = ctx.Form("site")
+		ctx.Repo.Repository.Description = ctx.FormString("desc")
+		ctx.Repo.Repository.Website = ctx.FormString("site")
 		err = models.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
@@ -301,7 +301,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Form("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
