@@ -232,8 +232,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -442,8 +441,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 

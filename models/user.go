@@ -1704,7 +1704,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, int64, error) {
 	sess := x.Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -1716,11 +1716,13 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		sess = listOptions.setSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
-		return repos, sess.Find(&repos)
+		total, err := sess.FindAndCount(&repos)
+		return repos, total, err
 	}
 
 	repos := make([]*Repository, 0, 10)
-	return repos, sess.Find(&repos)
+	total, err := sess.FindAndCount(&repos)
+	return repos, total, err
 }
 
 // IterateUser iterate users

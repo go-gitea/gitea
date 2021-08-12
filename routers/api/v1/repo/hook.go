@@ -48,9 +48,20 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &models.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	}
+
+	count, err := models.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks, err := models.ListWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +69,8 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 

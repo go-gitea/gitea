@@ -205,6 +205,12 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 	return keys, sess.Find(&keys)
 }
 
+// CountPublicKeys count public keys a user has
+func CountPublicKeys(userID int64) (int64, error) {
+	sess := x.Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
+	return sess.Count(&PublicKey{})
+}
+
 // ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
 func ListPublicKeysBySource(uid, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)

@@ -200,16 +200,16 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.SetTotalCountHeader(commitsCountTotal)
+
 	// kept for backwards compatibility
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
 	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
-
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }

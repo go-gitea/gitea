@@ -83,7 +83,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
@@ -119,6 +119,12 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		}
 	}
 
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
@@ -128,6 +134,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -423,7 +431,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
@@ -493,7 +501,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
@@ -530,6 +538,12 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		}
 	}
 
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	trackedTimes, err := models.GetTrackedTimes(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
@@ -539,6 +553,8 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -573,7 +589,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.User.ID,
 	}
@@ -581,6 +597,12 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		return
+	}
+
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -595,5 +617,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }

@@ -89,7 +89,7 @@ func init() {
 
 func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
-	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	issue.TotalTrackedTime, err = opts.toSession(e).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
-	issue.Comments, err = findComments(e, FindCommentsOptions{
+	issue.Comments, err = findComments(e, &FindCommentsOptions{
 		IssueID: issue.ID,
 		Type:    tp,
 	})

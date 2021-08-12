@@ -68,6 +68,12 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -79,6 +85,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
