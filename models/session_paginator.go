@@ -10,6 +10,7 @@ import (
 	"xorm.io/xorm"
 )
 
+// SessionPaginator to paginate database sessions
 type SessionPaginator interface {
 	GetPaginatedSession() *xorm.Session
 	SetSessionPagination(sess *xorm.Session) *xorm.Session
@@ -21,12 +22,14 @@ type AbsoluteSessionPaginator struct {
 	Take int
 }
 
+// GetPaginatedSession creates a paginated database session
 func (opts *AbsoluteSessionPaginator) GetPaginatedSession() *xorm.Session {
 	opts.setDefaultValues()
 
 	return x.Limit(opts.Take, opts.Skip)
 }
 
+// SetSessionPagination sets pagination for a database session
 func (opts *AbsoluteSessionPaginator) SetSessionPagination(sess *xorm.Session) *xorm.Session {
 	opts.setDefaultValues()
 

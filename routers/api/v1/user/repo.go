@@ -6,7 +6,6 @@ package user
 
 import (
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -43,8 +42,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
@@ -130,8 +128,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &results)
 }
 

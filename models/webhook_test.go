@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,7 +120,7 @@ func TestGetWebhookByOrgID(t *testing.T) {
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetActiveWebhooksByRepoID(1)
+	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: 1, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -129,7 +130,7 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByRepoID(1, ListOptions{})
+	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -139,7 +140,7 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 
 func TestGetActiveWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetActiveWebhooksByOrgID(3)
+	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{OrgID: 3, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -149,7 +150,7 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
-	hooks, err := GetWebhooksByOrgID(3, ListOptions{})
+	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{OrgID: 3})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)

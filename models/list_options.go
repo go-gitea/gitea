@@ -16,12 +16,14 @@ type ListOptions struct {
 	Page     int // start from 1
 }
 
+// GetPaginatedSession creates a paginated database session
 func (opts *ListOptions) GetPaginatedSession() *xorm.Session {
 	opts.setDefaultValues()
 
 	return x.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 }
 
+// SetSessionPagination sets pagination for a database session
 func (opts *ListOptions) SetSessionPagination(sess *xorm.Session) *xorm.Session {
 	opts.setDefaultValues()
 

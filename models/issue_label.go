@@ -444,6 +444,11 @@ func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) (
 	return getLabelsByRepoID(x, repoID, sortType, listOptions)
 }
 
+// CountLabelsByRepoID count number of all labels that belong to given repository by ID.
+func CountLabelsByRepoID(repoID int64) (int64, error) {
+	return x.Where("repo_id = ?", repoID).Count(&Label{})
+}
+
 // ________
 // \_____  \_______  ____
 //  /   |   \_  __ \/ ___\
@@ -554,6 +559,11 @@ func getLabelsByOrgID(e Engine, orgID int64, sortType string, listOptions ListOp
 // GetLabelsByOrgID returns all labels that belong to given organization by ID.
 func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
 	return getLabelsByOrgID(x, orgID, sortType, listOptions)
+}
+
+// CountLabelsByOrgID count all labels that belong to given organization by ID.
+func CountLabelsByOrgID(orgID int64) (int64, error) {
+	return x.Where("org_id = ?", orgID).Count(&Label{})
 }
 
 // .___

@@ -208,6 +208,11 @@ func FindReviews(opts FindReviewOptions) ([]*Review, error) {
 	return findReviews(x, opts)
 }
 
+// CountReviews returns count of reviews passing FindReviewOptions
+func CountReviews(opts FindReviewOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Review{})
+}
+
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
 type CreateReviewOptions struct {
 	Content      string

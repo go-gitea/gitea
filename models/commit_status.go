@@ -159,7 +159,7 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 	if len(ids) == 0 {
 		return statuses, nil
 	}
-	return statuses, x.In("id", ids).Find(&statuses)
+	return statuses, e.In("id", ids).Find(&statuses)
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts

@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -83,8 +82,7 @@ func ListPackages(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprint(count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiPackages)
 }
 

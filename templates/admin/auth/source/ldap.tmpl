@@ -20,6 +20,12 @@
 		<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
 		<input id="port" name="port" value="{{.port}}"  placeholder="e.g. 636">
 	</div>
+	<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+		<div class="ui checkbox">
+			<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
+		</div>
+	</div>
 	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
 		<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
 		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
