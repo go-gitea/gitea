@@ -15,13 +15,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	jsoniter "github.com/json-iterator/go"
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
@@ -306,7 +306,6 @@ func runDump(ctx *cli.Context) error {
 		var excludes []string
 		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
 			var opts session.Options
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
 			}

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 var (
@@ -132,14 +132,12 @@ type CreatePayload struct {
 
 // JSONPayload return payload information
 func (p *CreatePayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParseCreateHook parses create event hook content.
 func ParseCreateHook(raw []byte) (*CreatePayload, error) {
 	hook := new(CreatePayload)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -183,7 +181,6 @@ type DeletePayload struct {
 
 // JSONPayload implements Payload
 func (p *DeletePayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -203,7 +200,6 @@ type ForkPayload struct {
 
 // JSONPayload implements Payload
 func (p *ForkPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -230,7 +226,6 @@ type IssueCommentPayload struct {
 
 // JSONPayload implements Payload
 func (p *IssueCommentPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -261,7 +256,6 @@ type ReleasePayload struct {
 
 // JSONPayload implements Payload
 func (p *ReleasePayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -287,14 +281,12 @@ type PushPayload struct {
 
 // JSONPayload FIXME
 func (p *PushPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
 // ParsePushHook parses push event hook content.
 func ParsePushHook(raw []byte) (*PushPayload, error) {
 	hook := new(PushPayload)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal(raw, hook); err != nil {
 		return nil, err
 	}
@@ -362,7 +354,6 @@ type IssuePayload struct {
 
 // JSONPayload encodes the IssuePayload to JSON, with an indentation of two spaces.
 func (p *IssuePayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -398,7 +389,6 @@ type PullRequestPayload struct {
 
 // JSONPayload FIXME
 func (p *PullRequestPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", "  ")
 }
 
@@ -435,6 +425,5 @@ type RepositoryPayload struct {
 
 // JSONPayload JSON representation of the payload
 func (p *RepositoryPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.MarshalIndent(p, "", " ")
 }

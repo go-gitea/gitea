@@ -298,7 +298,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -312,10 +312,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
 		return nil, nil
 	}
-	commitsHistory = models.ValidateCommitsWithEmails(commitsHistory)
-	commitsHistory = models.ParseCommitsWithSignature(commitsHistory, ctx.Repo.Repository)
-
-	ctx.Data["Commits"] = commitsHistory
+	ctx.Data["Commits"] = models.ConvertFromGitCommit(commitsHistory, ctx.Repo.Repository)
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 func wrapNewlines(w io.Writer, prefix []byte, value []byte) (sum int64, err error) {
@@ -80,7 +80,6 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 			data = []byte(v)
 		default:
 			var err error
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			data, err = json.Marshal(e.Data)
 			if err != nil {
 				return sum, err
@@ -91,7 +90,6 @@ func (e *Event) WriteTo(w io.Writer) (int64, error) {
 		if err != nil {
 			return sum, err
 		}
-
 	}
 
 	n, err = wrapNewlines(w, []byte("id: "), []byte(e.ID))

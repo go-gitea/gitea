@@ -49,13 +49,13 @@ func Teams(ctx *context.Context) {
 
 // TeamsAction response for join, leave, remove, add operations to team
 func TeamsAction(ctx *context.Context) {
-	uid := ctx.QueryInt64("uid")
+	uid := ctx.FormInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 		return
 	}
 
-	page := ctx.Query("page")
+	page := ctx.FormString("page")
 	var err error
 	switch ctx.Params(":action") {
 	case "join":
@@ -112,7 +112,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("uname")))
+		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
 		var u *models.User
 		u, err = models.GetUserByName(uname)
 		if err != nil {
@@ -174,7 +174,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	action := ctx.Params(":action")
 	switch action {
 	case "add":
-		repoName := path.Base(ctx.Query("repo_name"))
+		repoName := path.Base(ctx.FormString("repo_name"))
 		var repo *models.Repository
 		repo, err = models.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
 		if err != nil {
@@ -188,7 +188,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
-		err = ctx.Org.Team.RemoveRepository(ctx.QueryInt64("repoid"))
+		err = ctx.Org.Team.RemoveRepository(ctx.FormInt64("repoid"))
 	case "addall":
 		err = ctx.Org.Team.AddAllRepositories()
 	case "removeall":
