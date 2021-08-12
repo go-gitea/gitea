@@ -33,7 +33,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	assert.EqualValues(t, &base.Repository{
 		Name:        "go-gitea-test_repo",
 		Owner:       "",
-		Description: "Test repository for testing migration from OpenDev to gitea",
+		Description: "Test repository for testing migration from OneDev to gitea",
 		CloneURL:    "https://code.onedev.io/go-gitea-test_repo",
 		OriginalURL: "https://code.onedev.io/projects/go-gitea-test_repo",
 	}, repo)
