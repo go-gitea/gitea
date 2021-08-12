@@ -78,7 +78,7 @@ require (
 	github.com/markbates/goth v1.68.0
 	github.com/mattn/go-isatty v0.0.13
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/mattn/go-sqlite3 v1.14.7
+	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mholt/archiver/v3 v3.5.0
 	github.com/microcosm-cc/bluemonday v1.0.15
 	github.com/miekg/dns v1.1.43 // indirect
@@ -139,7 +139,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.9
-	xorm.io/xorm v1.1.2
+	xorm.io/xorm v1.2.2
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1

@@ -40,14 +40,17 @@ v1.0.0 相对于 v0.8.2 有以下不兼容的变更：
 
 * [Postgres](https://github.com/postgres/postgres) / [Cockroach](https://github.com/cockroachdb/cockroach)
   - [github.com/lib/pq](https://github.com/lib/pq)
+  - [github.com/jackc/pgx](https://github.com/jackc/pgx)
 
 * [SQLite](https://sqlite.org)
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+  - [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) (Windows试验性支持)
 
 * MsSql
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 * Oracle
+  - [github.com/godror/godror](https://github.com/godror/godror) (试验性支持)
   - [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (试验性支持)
 
 ## 安装
@@ -62,7 +65,7 @@ v1.0.0 相对于 v0.8.2 有以下不兼容的变更：
 
 # 快速开始
 
-* 第一步创建引擎，driverName, dataSourceName和database/sql接口相同
+* 第一步创建引擎，`driverName`, `dataSourceName` 和 `database/sql` 接口相同
 
 ```Go
 engine, err := xorm.NewEngine(driverName, dataSourceName)
@@ -100,7 +103,7 @@ engineGroup, err := xorm.NewEngineGroup(masterEngine, []*Engine{slave1Engine, sl
 
 所有使用 `engine` 都可以简单的用 `engineGroup` 来替换。
 
-* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 []map[string][]byte。`QueryString` 返回 []map[string]string, `QueryInterface` 返回 `[]map[string]interface{}`.
+* `Query` 最原始的也支持SQL语句查询，返回的结果类型为 `[]map[string][]byte`。`QueryString` 返回 `[]map[string]string`, `QueryInterface` 返回 `[]map[string]interface{}`.
 
 ```Go
 results, err := engine.Query("select * from user")
@@ -271,6 +274,9 @@ affected, err := engine.Where(...).Delete(&user)
 
 affected, err := engine.ID(2).Delete(&user)
 // DELETE FROM user Where id = ?
+
+affected, err := engine.Table("user").Where(...).Delete()
+// DELETE FROM user WHERE ...
 ```
 
 * `Count` 获取记录条数
