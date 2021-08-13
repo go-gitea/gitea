@@ -175,8 +175,6 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
 		content := string(v)
-		log.Info("%s", content)
-
 		//need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
