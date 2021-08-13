@@ -982,11 +982,29 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
-// GetMaxIssueIndex return highest index of an issue based on repo id.
-// !!! Only used it to calculate entry for issue_index on repo migration !!!
-func GetMaxIssueIndex(repoID int64) (max int64, err error) {
-	_, err = x.Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max)
-	return
+// RecalculateIssueIndexForRepo create issue_index for repo if not exist and
+// update it based on highest index of existing issues assigned to a repo
+func RecalculateIssueIndexForRepo(repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := upsertResourceIndex(sess, "issue_index", repoID); err != nil {
+		return err
+	}
+
+	var max int64
+	if _, err := sess.Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
+		return err
+	}
+
+	if _, err := sess.Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // NewIssue creates new issue with labels for repository.

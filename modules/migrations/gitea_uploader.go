@@ -872,16 +872,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	// update issue_index
-	max, err := models.GetMaxIssueIndex(g.repo.ID)
-	if err != nil {
-		return err
-	}
-
-	if _, err := models.GetNextResourceIndex("issue_index", g.repo.ID); err != nil {
-		return err
-	}
-
-	if err := models.UpdateResourceIndex("issue_index", g.repo.ID, max); err != nil {
+	if err := models.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
 		return err
 	}
 

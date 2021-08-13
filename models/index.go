@@ -111,10 +111,3 @@ func getNextResourceIndex(tableName string, groupID int64) (int64, error) {
 	}
 	return curIdx, nil
 }
-
-// UpdateResourceIndex is used to set max_index to a specific value.
-// !!! Only used to set max_index after repo migration !!!
-func UpdateResourceIndex(tableName string, groupID, max int64) error {
-	_, err := x.Exec(fmt.Sprintf("UPDATE %s SET max_index=? WHERE group_id=?", tableName), max, groupID)
-	return err
-}
