@@ -187,10 +187,6 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		m[numLines+1] = "<span class=\"w\">\n</span>"
 	}
 
-	for i, line := range m {
-		log.Info("%d: %q", i, line)
-	}
-
 	return m
 }
 
