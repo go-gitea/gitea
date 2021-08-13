@@ -871,6 +871,11 @@ func (g *GiteaLocalUploader) Finish() error {
 		return ErrRepoNotCreated
 	}
 
+	// update issue_index
+	if err := models.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+		return err
+	}
+
 	g.repo.Status = models.RepositoryReady
 	return models.UpdateRepositoryCols(g.repo, "status")
 }
