@@ -247,6 +247,9 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 			top = fmt.Sprintf("TOP %d ", LimitNValue)
 		}
 		if statement.Start > 0 {
+			if statement.RefTable == nil {
+				return "", nil, errors.New("Unsupported query limit without reference table")
+			}
 			var column string
 			if len(statement.RefTable.PKColumns()) == 0 {
 				for _, index := range statement.RefTable.Indexes {
@@ -314,7 +317,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 				fmt.Fprint(&buf, " LIMIT ", *pLimitN)
 			}
 		} else if dialect.URI().DBType == schemas.ORACLE {
-			if statement.Start != 0 || pLimitN != nil {
+			if statement.Start != 0 && pLimitN != nil {
 				oldString := buf.String()
 				buf.Reset()
 				rawColStr := columnStr

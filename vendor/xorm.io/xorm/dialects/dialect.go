@@ -42,9 +42,11 @@ func (uri *URI) SetSchema(schema string) {
 type Dialect interface {
 	Init(*URI) error
 	URI() *URI
-	SQLType(*schemas.Column) string
-	FormatBytes(b []byte) string
 	Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error)
+
+	SQLType(*schemas.Column) string
+	Alias(string) string       // return what a sql type's alias of
+	ColumnTypeKind(string) int // database column type kind
 
 	IsReserved(string) bool
 	Quoter() schemas.Quoter
@@ -80,6 +82,11 @@ type Base struct {
 	quoter  schemas.Quoter
 }
 
+// Alias returned col itself
+func (db *Base) Alias(col string) string {
+	return col
+}
+
 // Quoter returns the current database Quoter
 func (db *Base) Quoter() schemas.Quoter {
 	return db.quoter
@@ -94,11 +101,6 @@ func (db *Base) Init(dialect Dialect, uri *URI) error {
 // URI returns the uri of database
 func (db *Base) URI() *URI {
 	return db.uri
-}
-
-// FormatBytes formats bytes
-func (db *Base) FormatBytes(bs []byte) string {
-	return fmt.Sprintf("0x%x", bs)
 }
 
 // DropTableSQL returns drop table SQL
@@ -118,7 +120,7 @@ func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query stri
 	if rows.Next() {
 		return true, nil
 	}
-	return false, nil
+	return false, rows.Err()
 }
 
 // IsColumnExist returns true if the column of the table exist

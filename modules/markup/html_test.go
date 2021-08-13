@@ -5,6 +5,7 @@
 package markup_test
 
 import (
+	"io"
 	"strings"
 	"testing"
 
@@ -525,4 +526,19 @@ func BenchmarkEmojiPostprocess(b *testing.B) {
 		}, strings.NewReader(data), &res)
 		assert.NoError(b, err)
 	}
+}
+
+func TestFuzz(t *testing.T) {
+	s := "t/l/issues/8#/../../a"
+	renderContext := RenderContext{
+		URLPrefix: "https://example.com/go-gitea/gitea",
+		Metas: map[string]string{
+			"user": "go-gitea",
+			"repo": "gitea",
+		},
+	}
+
+	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
+
+	assert.NoError(t, err)
 }
