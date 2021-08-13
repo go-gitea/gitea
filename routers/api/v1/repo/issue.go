@@ -87,6 +87,14 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
 	//   type: boolean
+	// - name: owner
+	//   in: query
+	//   description: filter by owner
+	//   type: string
+	// - name: team
+	//   in: query
+	//   description: filter by team (requires organization owner parameter to be provided)
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -129,6 +137,37 @@ func SearchIssues(ctx *context.APIContext) {
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+			return
+		}
+		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Team not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.TeamID = team.ID
 	}
 
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
