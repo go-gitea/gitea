@@ -155,6 +155,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			Closed: &closed1,
 			Context: gitlabIssueContext{
 				foreignID:      1,
+				localID:        1,
 				IsMergeRequest: false,
 			},
 		},
@@ -207,6 +208,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			Closed: &closed2,
 			Context: gitlabIssueContext{
 				foreignID:      2,
+				localID:        2,
 				IsMergeRequest: false,
 			},
 		},

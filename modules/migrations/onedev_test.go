@@ -41,18 +41,18 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 2)
-	assertMilestoneEqual(t, "", "1.0.0",
-		"2021-05-04 00:00:00.000 +0000 UTC",
-		"",
-		"",
-		"2021-05-04 00:00:00.000 +0000 UTC",
-		"", milestones[0])
-	assertMilestoneEqual(t, "next things?", "1.1.0",
-		"",
-		"",
-		"",
-		"",
-		"", milestones[1])
+	deadline := time.Unix(1620086400, 0)
+	assert.EqualValues(t, []*base.Milestone{
+		{
+			Title:    "1.0.0",
+			Deadline: &deadline,
+			Closed:   &deadline,
+		},
+		{
+			Title:       "1.1.0",
+			Description: "next things?",
+		},
+	}, milestones)
 
 	labels, err := downloader.GetLabels()
 	assert.NoError(t, err)
@@ -62,7 +62,6 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
-
 	assert.EqualValues(t, []*base.Issue{
 		{
 			Number:     4,
@@ -70,8 +69,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			Content:    "an issue not assigned to a milestone",
 			PosterName: "User 336",
 			State:      "open",
-			Created:    time.Date(2021, 8, 9, 22, 56, 16, 734000000, time.UTC),
-			Updated:    time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+			Created:    time.Unix(1628549776, 734000000),
+			Updated:    time.Unix(1628549776, 734000000),
 			Labels: []*base.Label{
 				{
 					Name: "Improvement",
@@ -90,8 +89,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			PosterName: "User 336",
 			State:      "open",
 			Milestone:  "1.1.0",
-			Created:    time.Date(2021, 8, 9, 22, 55, 49, 878000000, time.UTC),
-			Updated:    time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+			Created:    time.Unix(1628549749, 878000000),
+			Updated:    time.Unix(1628549749, 878000000),
 			Labels: []*base.Label{
 				{
 					Name: "New Feature",
@@ -118,8 +117,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		{
 			IssueIndex: 4,
 			PosterName: "User 336",
-			Created:    time.Date(2021, 8, 9, 22, 56, 31, 128000000, time.UTC),
-			Updated:    time.Date(2021, 8, 9, 22, 56, 31, 128000000, time.UTC),
+			Created:    time.Unix(1628549791, 128000000),
+			Updated:    time.Unix(1628549791, 128000000),
 			Content:    "it has a comment\r\n\r\nEDIT: that got edited",
 		},
 	}, comments)
@@ -127,7 +126,6 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	prs, _, err := downloader.GetPullRequests(1, 1)
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
-
 	assert.EqualValues(t, []*base.PullRequest{
 		{
 			Number:     5,
@@ -135,8 +133,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			Content:    "just do some git stuff",
 			PosterName: "User 336",
 			State:      "open",
-			Created:    time.Date(2021, 8, 9, 23, 1, 16, 025000000, time.UTC),
-			Updated:    time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC),
+			Created:    time.Unix(1628550076, 25000000),
+			Updated:    time.Unix(1628550076, 25000000),
 			Head: base.PullRequestBranch{
 				Ref:      "branch-for-a-pull",
 				SHA:      "343deffe3526b9bc84e873743ff7f6e6d8b827c0",
@@ -161,7 +159,11 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, rvs, 1)
-	assert.Equal(t, "User 317", rvs[0].ReviewerName)
-	assert.Equal(t, "PENDING", rvs[0].State)
-	assert.Empty(t, rvs[0].Content)
+	assert.EqualValues(t, []*base.Review{
+		{
+			IssueIndex:   5,
+			ReviewerName: "User 317",
+			State:        "PENDING",
+		},
+	}, rvs)
 }

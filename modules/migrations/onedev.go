@@ -339,6 +339,7 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			Milestone:   d.milestoneMap[issue.MilestoneID],
 			State:       state,
 			Created:     issue.SubmitDate,
+			Updated:     issue.SubmitDate,
 			Labels:      []*base.Label{label},
 			Context: onedevIssueContext{
 				foreignID:     issue.ID,
@@ -520,6 +521,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			Content:    pr.Description,
 			State:      state,
 			Created:    pr.SubmitDate,
+			Updated:    pr.SubmitDate,
 			Closed:     closeTime,
 			Merged:     merged,
 			MergedTime: mergedTime,
