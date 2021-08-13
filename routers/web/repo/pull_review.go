@@ -101,8 +101,8 @@ func CreateCodeComment(ctx *context.Context) {
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
 func UpdateResolveConversation(ctx *context.Context) {
-	origin := ctx.Form("origin")
-	action := ctx.Form("action")
+	origin := ctx.FormString("origin")
+	action := ctx.FormString("action")
 	commentID := ctx.FormInt64("comment_id")
 
 	comment, err := models.GetCommentByID(commentID)

@@ -44,6 +44,12 @@
 						<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
+					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
+						</div>
+					</div>
 					{{if .Source.IsLDAP}}
 						<div class="field">
 							<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
@@ -172,6 +178,30 @@
 					<div class="required field">
 						<label for="smtp_port">{{.i18n.Tr "admin.auths.smtpport"}}</label>
 						<input id="smtp_port" name="smtp_port" value="{{$cfg.Port}}" required>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<label for="force_smtps"><strong>{{.i18n.Tr "admin.auths.force_smtps"}}</strong></label>
+							<input id="force_smtps" name="force_smtps" type="checkbox" {{if $cfg.ForceSMTPS}}checked{{end}}>
+						</div>
+						<p class="help">{{.i18n.Tr "admin.auths.force_smtps_helper"}}</p>
+					</div>
+					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
+						</div>
+					</div>
+					<div class="field">
+						<label for="helo_hostname">{{.i18n.Tr "admin.auths.helo_hostname"}}</label>
+						<input id="helo_hostname" name="helo_hostname" value="{{$cfg.HeloHostname}}">
+						<p class="help">{{.i18n.Tr "admin.auths.helo_hostname_helper"}}</p>
+					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="disable_helo"><strong>{{.i18n.Tr "admin.auths.disable_helo"}}</strong></label>
+							<input id="disable_helo" name="disable_helo" type="checkbox" {{if $cfg.DisableHelo}}checked{{end}}>
+						</div>
 					</div>
 					<div class="field">
 						<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
@@ -308,26 +338,13 @@
 						<p class="help">{{.i18n.Tr "admin.auths.sspi_default_language_helper"}}</p>
 					</div>
 				{{end}}
-
-				<div class="inline field {{if not .Source.IsSMTP}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
-						<input name="tls" type="checkbox" {{if .Source.UseTLS}}checked{{end}}>
-					</div>
-				</div>
-				<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-						<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
-					</div>
-				</div>
 				{{if .Source.IsLDAP}}
-				<div class="inline field">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>
-						<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>
+							<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+						</div>
 					</div>
-				</div>
 				{{end}}
 				<div class="inline field">
 					<div class="ui checkbox">

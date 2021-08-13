@@ -282,9 +282,8 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumOfBranches))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
 	ctx.JSON(http.StatusOK, &apiBranches)
 }
 

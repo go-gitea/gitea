@@ -5,7 +5,6 @@
 package xorm
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,10 +16,9 @@ import (
 
 // Rows rows wrapper a rows to
 type Rows struct {
-	session   *Session
-	rows      *core.Rows
-	beanType  reflect.Type
-	lastError error
+	session  *Session
+	rows     *core.Rows
+	beanType reflect.Type
 }
 
 func newRows(session *Session, bean interface{}) (*Rows, error) {
@@ -62,15 +60,6 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 			// !oinume! Add "<col> IS NULL" to WHERE whatever condiBean is given.
 			// See https://gitea.com/xorm/xorm/issues/179
 			if col := table.DeletedColumn(); col != nil && !session.statement.GetUnscoped() { // tag "deleted" is enabled
-				var colName = session.engine.Quote(col.Name)
-				if addedTableName {
-					var nm = session.statement.TableName()
-					if len(session.statement.TableAlias) > 0 {
-						nm = session.statement.TableAlias
-					}
-					colName = session.engine.Quote(nm) + "." + colName
-				}
-
 				autoCond = session.statement.CondDeleted(col)
 			}
 		}
@@ -86,7 +75,6 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 	rows.rows, err = rows.session.queryRows(sqlStr, args...)
 	if err != nil {
-		rows.lastError = err
 		rows.Close()
 		return nil, err
 	}
@@ -96,25 +84,18 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 // Next move cursor to next record, return false if end has reached
 func (rows *Rows) Next() bool {
-	if rows.lastError == nil && rows.rows != nil {
-		hasNext := rows.rows.Next()
-		if !hasNext {
-			rows.lastError = sql.ErrNoRows
-		}
-		return hasNext
-	}
-	return false
+	return rows.rows.Next()
 }
 
 // Err returns the error, if any, that was encountered during iteration. Err may be called after an explicit or implicit Close.
 func (rows *Rows) Err() error {
-	return rows.lastError
+	return rows.rows.Err()
 }
 
 // Scan row record to bean properties
 func (rows *Rows) Scan(bean interface{}) error {
-	if rows.lastError != nil {
-		return rows.lastError
+	if rows.Err() != nil {
+		return rows.Err()
 	}
 
 	if reflect.Indirect(reflect.ValueOf(bean)).Type() != rows.beanType {
@@ -129,8 +110,12 @@ func (rows *Rows) Scan(bean interface{}) error {
 	if err != nil {
 		return err
 	}
+	types, err := rows.rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
 
-	scanResults, err := rows.session.row2Slice(rows.rows, fields, bean)
+	scanResults, err := rows.session.row2Slice(rows.rows, fields, types, bean)
 	if err != nil {
 		return err
 	}
@@ -154,5 +139,5 @@ func (rows *Rows) Close() error {
 		return rows.rows.Close()
 	}
 
-	return rows.lastError
+	return rows.Err()
 }
