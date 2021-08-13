@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
@@ -285,41 +284,6 @@ func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, 
 // Header returns a header
 func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
-}
-
-// Form returns request form as string with default
-func (ctx *Context) Form(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustString(key, defaults...)
-}
-
-// FormTrim returns request form as string with default and trimmed spaces
-func (ctx *Context) FormTrim(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
-}
-
-// FormStrings returns request form as strings with default
-func (ctx *Context) FormStrings(key string, defaults ...[]string) []string {
-	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
-}
-
-// FormInt returns request form as int with default
-func (ctx *Context) FormInt(key string, defaults ...int) int {
-	return (*Forms)(ctx.Req).MustInt(key, defaults...)
-}
-
-// FormInt64 returns request form as int64 with default
-func (ctx *Context) FormInt64(key string, defaults ...int64) int64 {
-	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
-}
-
-// FormBool returns request form as bool with default
-func (ctx *Context) FormBool(key string, defaults ...bool) bool {
-	return (*Forms)(ctx.Req).MustBool(key, defaults...)
-}
-
-// FormOptionalBool returns request form as OptionalBool with default
-func (ctx *Context) FormOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
-	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
 
 // HandleText handles HTTP status code

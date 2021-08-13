@@ -204,8 +204,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 
 	ctx.JSON(http.StatusOK, apiStatuses)
 }
@@ -267,5 +266,6 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	combiStatus := convert.ToCombinedStatus(statuses, convert.ToRepo(repo, ctx.Repo.AccessMode))
 
+	// TODO: ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, combiStatus)
 }

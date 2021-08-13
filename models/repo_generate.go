@@ -111,7 +111,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateWebhooks, err := GetWebhooksByRepoID(templateRepo.ID, ListOptions{})
+	templateWebhooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}

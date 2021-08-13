@@ -57,11 +57,11 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/MilestoneList"
 
-	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, total, err := models.GetMilestones(models.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		State:       api.StateType(ctx.Form("state")),
-		Name:        ctx.Form("name"),
+		State:       api.StateType(ctx.FormString("state")),
+		Name:        ctx.FormString("name"),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetMilestones", err)
@@ -72,6 +72,8 @@ func ListMilestones(ctx *context.APIContext) {
 	for i := range milestones {
 		apiMilestones[i] = convert.ToAPIMilestone(milestones[i])
 	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiMilestones)
 }
 

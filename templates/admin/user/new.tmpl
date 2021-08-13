@@ -19,7 +19,7 @@
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
-								<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
+								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
 						</div>
 					</div>

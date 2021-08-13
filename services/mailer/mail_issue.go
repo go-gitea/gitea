@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -163,6 +164,11 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
 	content := issue.Content
 	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
 		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||

@@ -999,7 +999,7 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
+func findComments(e Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
 	if opts.RepoID > 0 {
@@ -1019,8 +1019,17 @@ func findComments(e Engine, opts FindCommentsOptions) ([]*Comment, error) {
 }
 
 // FindComments returns all comments according options
-func FindComments(opts FindCommentsOptions) ([]*Comment, error) {
+func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
 	return findComments(x, opts)
+}
+
+// CountComments count all comments according options by ignoring pagination
+func CountComments(opts *FindCommentsOptions) (int64, error) {
+	sess := x.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+	}
+	return sess.Count(&Comment{})
 }
 
 // UpdateComment updates information of comment.

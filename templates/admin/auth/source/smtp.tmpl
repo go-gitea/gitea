@@ -20,6 +20,30 @@
 		<label for="smtp_port">{{.i18n.Tr "admin.auths.smtpport"}}</label>
 		<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
 	</div>
+	<div class="inline field">
+		<div class="ui checkbox">
+			<label for="force_smtps"><strong>{{.i18n.Tr "admin.auths.force_smtps"}}</strong></label>
+			<input id="force_smtps" name="force_smtps" type="checkbox" {{if .force_smtps}}checked{{end}}>
+			<p class="help">{{.i18n.Tr "admin.auths.force_smtps_helper"}}</p>
+		</div>
+	</div>
+	<div class="inline field">
+		<div class="ui checkbox">
+			<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
+		</div>
+	</div>
+	<div class="field">
+		<label for="helo_hostname">{{.i18n.Tr "admin.auths.helo_hostname"}}</label>
+		<input id="helo_hostname" name="helo_hostname" value="{{.helo_hostname}}">
+		<p class="help">{{.i18n.Tr "admin.auths.helo_hostname_helper"}}</p>
+	</div>
+	<div class="inline field">
+		<div class="ui checkbox">
+			<label for="disable_helo"><strong>{{.i18n.Tr "admin.auths.disable_helo"}}</strong></label>
+			<input id="disable_helo" name="disable_helo" type="checkbox" {{if .disable_helo}}checked{{end}}>
+		</div>
+	</div>
 	<div class="field">
 		<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
 		<input id="allowed_domains" name="allowed_domains" value="{{.allowed_domains}}">

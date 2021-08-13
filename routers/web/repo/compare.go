@@ -700,9 +700,9 @@ func ExcerptBlob(ctx *context.Context) {
 	idxRight := ctx.FormInt("right")
 	leftHunkSize := ctx.FormInt("left_hunk_size")
 	rightHunkSize := ctx.FormInt("right_hunk_size")
-	anchor := ctx.Form("anchor")
-	direction := ctx.Form("direction")
-	filePath := ctx.Form("path")
+	anchor := ctx.FormString("anchor")
+	direction := ctx.FormString("direction")
+	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)

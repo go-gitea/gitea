@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/sync"
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/gobwas/glob"
 )
 
@@ -187,7 +189,10 @@ func PrepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 }
 
 func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.Payloader) error {
-	ws, err := models.GetActiveWebhooksByRepoID(repo.ID)
+	ws, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{
+		RepoID:   repo.ID,
+		IsActive: util.OptionalBoolTrue,
+	})
 	if err != nil {
 		return fmt.Errorf("GetActiveWebhooksByRepoID: %v", err)
 	}
@@ -195,7 +200,10 @@ func prepareWebhooks(repo *models.Repository, event models.HookEventType, p api.
 	// check if repo belongs to org and append additional webhooks
 	if repo.MustOwner().IsOrganization() {
 		// get hooks for org
-		orgHooks, err := models.GetActiveWebhooksByOrgID(repo.OwnerID)
+		orgHooks, err := models.ListWebhooksByOpts(&models.ListWebhookOptions{
+			OrgID:    repo.OwnerID,
+			IsActive: util.OptionalBoolTrue,
+		})
 		if err != nil {
 			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
 		}
