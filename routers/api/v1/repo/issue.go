@@ -138,8 +138,8 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.Private = true
 		opts.AllLimited = true
 	}
-	if ctx.Form("owner") != "" {
-		owner, err := models.GetUserByName(ctx.Form("owner"))
+	if ctx.FormString("owner") != "" {
+		owner, err := models.GetUserByName(ctx.FormString("owner"))
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
@@ -153,12 +153,12 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllPublic = false
 		opts.Collaborate = util.OptionalBoolFalse
 	}
-	if ctx.Form("team") != "" {
-		if ctx.Form("owner") == "" {
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := models.GetTeam(opts.OwnerID, ctx.Form("team"))
+		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if models.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
