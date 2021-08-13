@@ -179,8 +179,10 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		if content == "" {
 			content = "\n"
 		} else if content == `</span><span class="w">` {
-			content += "\n"
+			content += "\n</span>"
 		}
+		content = strings.TrimSuffix(content, `<span class="w">`)
+		content = strings.TrimPrefix(content, `</span>`)
 		m[line] = content
 	}
 	if finalNewLine {
