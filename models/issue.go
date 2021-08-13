@@ -982,6 +982,13 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
+// GetMaxIssueIndex return highest index of an issue based on repo id.
+// !!! Only used it to calculate entry for issue_index on repo migration !!!
+func GetMaxIssueIndex(repoID int64) (max int64, err error) {
+	_, err = x.Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max)
+	return
+}
+
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	idx, err := GetNextResourceIndex("issue_index", repo.ID)
