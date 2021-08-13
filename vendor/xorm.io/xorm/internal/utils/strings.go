@@ -13,7 +13,7 @@ func IndexNoCase(s, sep string) int {
 	return strings.Index(strings.ToLower(s), strings.ToLower(sep))
 }
 
-// SplitNoCase split a string by a seperator with no care of capitalize
+// SplitNoCase split a string by a separator with no care of capitalize
 func SplitNoCase(s, sep string) []string {
 	idx := IndexNoCase(s, sep)
 	if idx < 0 {
@@ -22,7 +22,7 @@ func SplitNoCase(s, sep string) []string {
 	return strings.Split(s, s[idx:idx+len(sep)])
 }
 
-// SplitNNoCase split n by a seperator with no care of capitalize
+// SplitNNoCase split n by a separator with no care of capitalize
 func SplitNNoCase(s, sep string, n int) []string {
 	idx := IndexNoCase(s, sep)
 	if idx < 0 {
