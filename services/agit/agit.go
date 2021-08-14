@@ -20,7 +20,7 @@ import (
 )
 
 // ProcRecive handle proc receive work
-func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HockProcReceiveRefResult {
+func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HookProcReceiveRefResult {
 	// TODO: Add more options?
 	var (
 		topicBranch string
@@ -29,7 +29,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		forcePush   bool
 	)
 
-	results := make([]private.HockProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
 	ownerName := ctx.Repo.Repository.OwnerName
@@ -40,7 +40,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 
 	for i := range opts.OldCommitIDs {
 		if opts.NewCommitIDs[i] == git.EmptySHA {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -50,7 +50,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if !strings.HasPrefix(opts.RefFullNames[i], git.PullRequestPrefix) {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				IsNotMatched: true,
 				OriginalRef:  opts.RefFullNames[i],
 			})
@@ -71,7 +71,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -166,7 +166,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				Ref:         pr.GetGitRefName(),
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      git.EmptySHA,
@@ -194,7 +194,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if oldCommitID == opts.NewCommitIDs[i] {
-			results = append(results, private.HockProcReceiveRefResult{
+			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
 				NewOID:      opts.NewCommitIDs[i],
@@ -212,7 +212,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				})
 				return nil
 			} else if len(output) > 0 {
-				results = append(results, private.HockProcReceiveRefResult{
+				results = append(results, private.HookProcReceiveRefResult{
 					OriginalRef: oldCommitID,
 					OldOID:      opts.OldCommitIDs[i],
 					NewOID:      opts.NewCommitIDs[i],
@@ -255,7 +255,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		notification.NotifyPullRequestSynchronized(pusher, pr)
 		isForcePush := comment != nil && comment.IsForcePush
 
-		results = append(results, private.HockProcReceiveRefResult{
+		results = append(results, private.HookProcReceiveRefResult{
 			OldOID:      oldCommitID,
 			NewOID:      opts.NewCommitIDs[i],
 			Ref:         pr.GetGitRefName(),
