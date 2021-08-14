@@ -140,7 +140,7 @@ func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string,
 	return decoder.Decode(&result)
 }
 
-// GetRepoInfo returns a repository information
+// GetRepoInfo returns repository information
 func (d *OneDevDownloader) GetRepoInfo() (*base.Repository, error) {
 	info := make([]struct {
 		ID          int64  `json:"id"`
@@ -276,7 +276,7 @@ func (c onedevIssueContext) ForeignID() int64 {
 	return c.foreignID
 }
 
-// GetIssues returns issues according start and limit, perPage is not supported
+// GetIssues returns issues
 func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	rawIssues := make([]struct {
 		ID          int64     `json:"id"`
@@ -356,7 +356,7 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 	return issues, len(issues) == 0, nil
 }
 
-// GetComments returns requested comments
+// GetComments returns comments
 func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	context, ok := opts.Context.(onedevIssueContext)
 	if !ok {
@@ -447,10 +447,10 @@ func (d *OneDevDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Com
 		})
 	}
 
-	return comments, false, nil
+	return comments, true, nil
 }
 
-// GetPullRequests returns requested pull requests
+// GetPullRequests returns pull requests
 func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
 	rawPullRequests := make([]struct {
 		ID             int64     `json:"id"`
@@ -546,7 +546,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 	return pullRequests, len(pullRequests) == 0, nil
 }
 
-// GetReviews returns requested pull requests reviews
+// GetReviews returns pull requests reviews
 func (d *OneDevDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
