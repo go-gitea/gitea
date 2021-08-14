@@ -466,6 +466,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
+		} else if strings.HasPrefix(refFullName, git.NotesRef) {
+			continue
 		} else {
 			log.Error("Unexpected ref: %s", refFullName)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
