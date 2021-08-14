@@ -166,6 +166,11 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 	}
 
 	htmlw.Flush()
+	finalNewLine := false
+	if len(code) > 0 {
+		finalNewLine = code[len(code)-1] == '\n'
+	}
+
 	m := make(map[int]string, numLines)
 	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		line := k + 1
@@ -173,9 +178,17 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		//need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
+		} else if content == `</span><span class="w">` {
+			content += "\n</span>"
 		}
+		content = strings.TrimSuffix(content, `<span class="w">`)
+		content = strings.TrimPrefix(content, `</span>`)
 		m[line] = content
 	}
+	if finalNewLine {
+		m[numLines+1] = "<span class=\"w\">\n</span>"
+	}
+
 	return m
 }
 
