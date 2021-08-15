@@ -54,6 +54,7 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 		if err := json.Unmarshal(body, &ret); err != nil {
 			return http.StatusInternalServerError, fmt.Sprintf("Response body Unmarshal error: %v", err.Error())
 		}
+		return http.StatusInternalServerError, ret.Err
 	}
 
 	return http.StatusOK, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName)

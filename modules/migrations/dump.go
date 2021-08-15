@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -481,6 +482,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
+						ref := path.Join(pr.Head.OwnerName, pr.Head.Ref)
 						headBranch := filepath.Join(g.gitPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
 						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
 							return err
@@ -494,10 +496,14 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 						if err != nil {
 							return err
 						}
+						pr.Head.Ref = ref
 					}
 				}
 			}
 		}
+		// store all information into local git repository
+		pr.Head.OwnerName = pr.Base.OwnerName
+		pr.Head.RepoName = pr.Base.RepoName
 	}
 
 	var err error
