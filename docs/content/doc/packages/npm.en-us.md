@@ -33,7 +33,7 @@ The following examples use the `npm` tool with the scope `@test`.
 To register the project’s package registry you need to configure a new package source.
 
 ```shell
-npm config set {scope}:registry https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/npm
+npm config set {scope}:registry https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/npm/
 npm config set -- '//gitea.example.com/api/v1/repos/{owner}/{repository}/packages/npm/:_authToken' "{token}"
 ```
 
@@ -47,7 +47,7 @@ npm config set -- '//gitea.example.com/api/v1/repos/{owner}/{repository}/package
 For example:
 
 ```shell
-npm config set @test:registry https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/npm
+npm config set @test:registry https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/npm/
 npm config set -- '//gitea.example.com/api/v1/repos/testuser/test-repository/packages/npm/:_authToken' "personal_access_token"
 ```
 

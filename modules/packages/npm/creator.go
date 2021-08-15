@@ -101,6 +101,31 @@ type User struct {
 	URL      string `json:"url,omitempty"`
 }
 
+// UnmarshalJSON is needed because User objects can be strings or objects
+func (u *User) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		if err := json.Unmarshal(data, &u.Name); err != nil {
+			return err
+		}
+	case '{':
+		var tmp struct {
+			Username string `json:"username"`
+			Name     string `json:"name"`
+			Email    string `json:"email"`
+			URL      string `json:"url"`
+		}
+		if err := json.Unmarshal(data, &tmp); err != nil {
+			return err
+		}
+		u.Username = tmp.Username
+		u.Name = tmp.Name
+		u.Email = tmp.Email
+		u.URL = tmp.URL
+	}
+	return nil
+}
+
 // Repository https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
 type Repository struct {
 	Type string `json:"type"`
