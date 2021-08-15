@@ -991,7 +991,7 @@ func Routes() *web.Route {
 					}, reqToken())
 					m.Group("/maven", func() {
 						m.Put("/*", reqRepoWriter(models.UnitTypePackages), maven.UploadPackageFile)
-						m.Get("/*", reqRepoWriter(models.UnitTypePackages), maven.DownloadPackageFile)
+						m.Get("/*", maven.DownloadPackageFile)
 					}, reqToken())
 					m.Group("/nuget", func() {
 						m.Put("/", reqRepoWriter(models.UnitTypePackages), nuget.UploadPackage)
@@ -1023,11 +1023,11 @@ func Routes() *web.Route {
 					}, reqBasicAuth())
 					m.Group("/{id}", func() {
 						m.Get("/", repo.GetPackage)
-						m.Delete("/", repo.DeletePackage)
+						m.Delete("/", reqRepoWriter(models.UnitTypePackages), repo.DeletePackage)
 						m.Get("/files", repo.ListPackageFiles)
-					}, reqAnyRepoReader())
-					m.Get("/", reqAnyRepoReader(), repo.ListPackages)
-				})
+					})
+					m.Get("/", repo.ListPackages)
+				}, reqRepoReader(models.UnitTypePackages))
 			}, repoAssignment())
 		})
 
