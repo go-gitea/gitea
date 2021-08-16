@@ -90,7 +90,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 		Transport: &http.Transport{
 			Proxy: func(req *http.Request) (*url.URL, error) {
 				req.SetBasicAuth(userName, password)
-				return nil, nil
+				return http.ProxyFromEnvironment(req)
 			},
 		},
 	}

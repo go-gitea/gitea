@@ -97,7 +97,7 @@ func NewGogsDownloader(ctx context.Context, baseURL, userName, password, token, 
 		downloader.transport = &http.Transport{
 			Proxy: func(req *http.Request) (*url.URL, error) {
 				req.SetBasicAuth(userName, password)
-				return nil, nil
+				return http.ProxyFromEnvironment(req)
 			},
 		}
 
