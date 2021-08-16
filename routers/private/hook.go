@@ -392,11 +392,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				})
 				return
 			}
-		} else {
-			log.Error("Unexpected ref: %s", refFullName)
-			ctx.JSON(http.StatusInternalServerError, private.Response{
-				Err: fmt.Sprintf("Unexpected ref: %s", refFullName),
-			})
 		}
 	}
 
