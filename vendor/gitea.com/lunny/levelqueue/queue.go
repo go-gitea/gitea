@@ -21,8 +21,8 @@ const (
 // Queue defines a queue struct
 type Queue struct {
 	db                *leveldb.DB
-	highLock          sync.Mutex
-	lowLock           sync.Mutex
+	lowLock           sync.Mutex // If you are locking both high and low locks, lock the low lock before the high lock
+	highLock          sync.Mutex // If you are locking both high and low locks, lock the low lock before the high lock
 	low               int64
 	high              int64
 	lowKey            []byte
@@ -295,10 +295,10 @@ func (queue *Queue) LHandle(h func([]byte) error) error {
 
 // Close closes the queue (and the underlying db is set to closeUnderlyingDB)
 func (queue *Queue) Close() error {
-	queue.highLock.Lock()
 	queue.lowLock.Lock()
-	defer queue.highLock.Unlock()
+	queue.highLock.Lock()
 	defer queue.lowLock.Unlock()
+	defer queue.highLock.Unlock()
 
 	if !queue.closeUnderlyingDB {
 		queue.db = nil

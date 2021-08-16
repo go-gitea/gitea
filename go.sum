@@ -49,8 +49,8 @@ gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e h1:YjaQU6XFicdhPN+Ml
 gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e/go.mod h1:nfA7JaGv3hbGQ1ktdhAsZhdS84qKffI8NMlHr+Opsog=
 gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee h1:9U6HuKUBt/cGK6T/64dEuz0r7Yp97WAAEJvXHDlY3ws=
 gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee/go.mod h1:Ozg8IchVNb/Udg+ui39iHRYqVHSvf3C99ixdpLR8Vu0=
-gitea.com/lunny/levelqueue v0.4.0 h1:v+bCR1lwLTBpZMshguWNhGIFLkUj+R04pgaU3TcJFS8=
-gitea.com/lunny/levelqueue v0.4.0/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
+gitea.com/lunny/levelqueue v0.4.1 h1:RZ+AFx5gBsZuyqCvofhAkPQ9uaVDPJnsULoJZIYaJNw=
+gitea.com/lunny/levelqueue v0.4.1/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 github.com/6543/go-version v1.3.1 h1:HvOp+Telns7HWJ2Xo/05YXQSB2bE0WmVgbHqwMPZT4U=
