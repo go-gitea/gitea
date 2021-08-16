@@ -137,8 +137,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
@@ -154,8 +154,8 @@ export default {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
           {
@@ -176,7 +176,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
       {
@@ -184,7 +183,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
     ],
