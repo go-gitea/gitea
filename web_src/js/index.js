@@ -2756,7 +2756,7 @@ $(document).ready(async () => {
     let {action, elementId, url} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.dataset.issueId;
-    }).get().join();
+    }).get().join(',');
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
