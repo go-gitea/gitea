@@ -111,13 +111,13 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
 	return c.RunWithContext(&RunContext{
-		Env:        env,
-		Timeout:    timeout,
-		Dir:        dir,
-		Stdout:     stdout,
-		Stderr:     stderr,
-		Stdin:      stdin,
-		CancelFunc: fn,
+		Env:          env,
+		Timeout:      timeout,
+		Dir:          dir,
+		Stdout:       stdout,
+		Stderr:       stderr,
+		Stdin:        stdin,
+		PipelineFunc: fn,
 	})
 }
 
@@ -128,7 +128,7 @@ type RunContext struct {
 	Dir            string
 	Stdout, Stderr io.Writer
 	Stdin          io.Reader
-	CancelFunc     func(context.Context, context.CancelFunc) error
+	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
 // RunWithContext run the command with context
@@ -179,8 +179,8 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
-	if rc.CancelFunc != nil {
-		err := rc.CancelFunc(ctx, cancel)
+	if rc.PipelineFunc != nil {
+		err := rc.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()

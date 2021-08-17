@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path"
@@ -161,7 +162,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	err = cmd.RunWithContext(&RunContext{
 		Timeout: opts.Timeout,
 		Env:     envs,
-		Stdout:  new(bytes.Buffer),
+		Stdout:  io.Discard,
 		Stderr:  stderr,
 	})
 	return ConcatenateError(err, stderr.String())
