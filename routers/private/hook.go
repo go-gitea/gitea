@@ -670,7 +670,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, private.HockProcReceiveResult{
+	ctx.JSON(http.StatusOK, private.HookProcReceiveResult{
 		Results: results,
 	})
 }
