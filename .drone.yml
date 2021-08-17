@@ -84,7 +84,7 @@ steps:
 
   - name: build-backend-no-gcc
     pull: always
-    image: golang:1.15 # this step is kept as the lowest version of golang that we support
+    image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
