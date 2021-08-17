@@ -609,7 +609,7 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 
 // GetReviews returns pull requests review
 func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
-	state, resp, err := g.client.MergeRequestApprovals.GetApprovalState(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
+	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(pullRequestNumber), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
@@ -618,21 +618,12 @@ func (g *GitlabDownloader) GetReviews(pullRequestNumber int64) ([]*base.Review, 
 		return nil, err
 	}
 
-	// GitLab's Approvals are equivalent to Gitea's approve reviews
-	approvers := make(map[int]string)
-	for i := range state.Rules {
-		for u := range state.Rules[i].ApprovedBy {
-			approvers[state.Rules[i].ApprovedBy[u].ID] = state.Rules[i].ApprovedBy[u].Username
-		}
-	}
-
-	var reviews = make([]*base.Review, 0, len(approvers))
-	for id, name := range approvers {
+	var reviews = make([]*base.Review, 0, len(approvals.ApprovedBy))
+	for _, user := range approvals.ApprovedBy {
 		reviews = append(reviews, &base.Review{
-			ReviewerID:   int64(id),
-			ReviewerName: name,
-			// GitLab API doesn't return a creation date
-			CreatedAt: time.Now(),
+			ReviewerID:   int64(user.User.ID),
+			ReviewerName: user.User.Username,
+			CreatedAt:    *approvals.UpdatedAt,
 			// All we get are approvals
 			State: base.ReviewStateApproved,
 		})

@@ -181,7 +181,7 @@ func (g *GiteaDownloader) GetMilestones() ([]*base.Milestone, error) {
 
 		for i := range ms {
 			// old gitea instances dont have this information
-			createdAT := time.Now()
+			createdAT := time.Time{}
 			var updatedAT *time.Time
 			if ms[i].Closed != nil {
 				createdAT = *ms[i].Closed
@@ -548,11 +548,11 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			assignees = append(assignees, pr.Assignees[i].UserName)
 		}
 
-		createdAt := time.Now()
+		createdAt := time.Time{}
 		if pr.Created != nil {
 			createdAt = *pr.Created
 		}
-		updatedAt := time.Now()
+		updatedAt := time.Time{}
 		if pr.Created != nil {
 			updatedAt = *pr.Updated
 		}
