@@ -103,12 +103,12 @@ type CloneRepoOptions struct {
 }
 
 // Clone clones original repository to target path.
-func Clone(from, to string, opts CloneRepoOptions) (err error) {
+func Clone(from, to string, opts CloneRepoOptions) error {
 	return CloneWithContext(DefaultContext, from, to, opts)
 }
 
 // CloneWithContext clones original repository to target path.
-func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)
@@ -159,13 +159,15 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	var stderr = new(bytes.Buffer)
-	err = cmd.RunWithContext(&RunContext{
+	if err = cmd.RunWithContext(&RunContext{
 		Timeout: opts.Timeout,
 		Env:     envs,
 		Stdout:  io.Discard,
 		Stderr:  stderr,
-	})
-	return ConcatenateError(err, stderr.String())
+	}); err != nil {
+		return ConcatenateError(err, stderr.String())
+	}
+	return nil
 }
 
 // PullRemoteOptions options when pull from remote
