@@ -336,8 +336,10 @@ func (session *Session) Sync2(beans ...interface{}) error {
 					}
 				} else {
 					if !(strings.HasPrefix(curType, expectedType) && curType[len(expectedType)] == '(') {
-						engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s",
-							tbNameWithSchema, col.Name, curType, expectedType)
+						if !strings.EqualFold(schemas.SQLTypeName(curType), engine.dialect.Alias(schemas.SQLTypeName(expectedType))) {
+							engine.logger.Warnf("Table %s column %s db type is %s, struct type is %s",
+								tbNameWithSchema, col.Name, curType, expectedType)
+						}
 					}
 				}
 			} else if expectedType == schemas.Varchar {
@@ -467,7 +469,7 @@ func (session *Session) Import(r io.Reader) ([]sql.Result, error) {
 					startComment = false
 				}
 			} else {
-				if i > 0 && data[i-1] == '-' && data[i] == '-' {
+				if !inSingleQuote && i > 0 && data[i-1] == '-' && data[i] == '-' {
 					startComment = true
 					continue
 				}

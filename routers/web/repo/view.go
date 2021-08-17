@@ -416,7 +416,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := st.IsText()
 
 	isLFSFile := false
-	isDisplayingSource := ctx.Query("display") == "source"
+	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
 	//Check for LFS meta file
@@ -674,7 +674,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := models.FindTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -756,7 +756,7 @@ func renderCode(ctx *context.Context) {
 
 // RenderUserCards render a page show users according the input template
 func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}

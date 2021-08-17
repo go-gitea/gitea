@@ -57,6 +57,10 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
 	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
@@ -90,17 +94,29 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(locale translation.Locale, u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
 func SendResetPasswordMail(u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
 func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
@@ -129,6 +145,10 @@ func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 
 	data := map[string]interface{}{
@@ -156,6 +176,10 @@ func SendRegisterNotifyMail(u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
 
@@ -344,6 +368,10 @@ func sanitizeSubject(subject string) string {
 
 // SendIssueAssignedMail composes and sends issue assigned email
 func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
 	langMap := make(map[string][]*models.User)
 	for _, user := range recipients {
 		langMap[user.Language] = append(langMap[user.Language], user)

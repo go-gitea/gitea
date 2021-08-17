@@ -6,7 +6,6 @@
 package models
 
 import (
-	"container/list"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -1509,16 +1508,13 @@ func ValidateCommitWithEmail(c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
+func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 	var (
-		u          *User
-		emails     = map[string]*User{}
-		newCommits = list.New()
-		e          = oldCommits.Front()
+		emails     = make(map[string]*User)
+		newCommits = make([]*UserCommit, 0, len(oldCommits))
 	)
-	for e != nil {
-		c := e.Value.(*git.Commit)
-
+	for _, c := range oldCommits {
+		var u *User
 		if c.Author != nil {
 			if v, ok := emails[c.Author.Email]; !ok {
 				u, _ = GetUserByEmail(c.Author.Email)
@@ -1526,15 +1522,12 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 			} else {
 				u = v
 			}
-		} else {
-			u = nil
 		}
 
-		newCommits.PushBack(UserCommit{
+		newCommits = append(newCommits, &UserCommit{
 			User:   u,
 			Commit: c,
 		})
-		e = e.Next()
 	}
 	return newCommits
 }
@@ -1711,7 +1704,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, int64, error) {
 	sess := x.Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -1723,11 +1716,13 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		sess = listOptions.setSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
-		return repos, sess.Find(&repos)
+		total, err := sess.FindAndCount(&repos)
+		return repos, total, err
 	}
 
 	repos := make([]*Repository, 0, 10)
-	return repos, sess.Find(&repos)
+	total, err := sess.FindAndCount(&repos)
+	return repos, total, err
 }
 
 // IterateUser iterate users

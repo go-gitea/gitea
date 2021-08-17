@@ -291,8 +291,8 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.getTeams(sess); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		if err := newOwner.loadTeams(sess); err != nil {
+			return fmt.Errorf("LoadTeams: %v", err)
 		}
 		for _, t := range newOwner.Teams {
 			if t.IncludesAllRepositories {

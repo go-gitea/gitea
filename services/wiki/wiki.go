@@ -90,6 +90,9 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	// Look for both files
 	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
 	if err != nil {
+		if strings.Contains(err.Error(), "Not a valid object name master") {
+			return false, escaped, nil
+		}
 		log.Error("%v", err)
 		return false, escaped, err
 	}

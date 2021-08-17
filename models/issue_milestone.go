@@ -380,23 +380,32 @@ type GetMilestonesOption struct {
 	SortType string
 }
 
-// GetMilestones returns milestones filtered by GetMilestonesOption's
-func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
-	sess := x.Where("repo_id = ?", opts.RepoID)
+func (opts GetMilestonesOption) toCond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
 
 	switch opts.State {
 	case api.StateClosed:
-		sess = sess.And("is_closed = ?", true)
+		cond = cond.And(builder.Eq{"is_closed": true})
 	case api.StateAll:
 		break
 	// api.StateOpen:
 	default:
-		sess = sess.And("is_closed = ?", false)
+		cond = cond.And(builder.Eq{"is_closed": false})
 	}
 
 	if len(opts.Name) != 0 {
-		sess = sess.And(builder.Like{"name", opts.Name})
+		cond = cond.And(builder.Like{"name", opts.Name})
 	}
+
+	return cond
+}
+
+// GetMilestones returns milestones filtered by GetMilestonesOption's
+func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
+	sess := x.Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
@@ -420,7 +429,8 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
 	}
 
 	miles := make([]*Milestone, 0, opts.PageSize)
-	return miles, sess.Find(&miles)
+	total, err := sess.FindAndCount(&miles)
+	return miles, total, err
 }
 
 // SearchMilestones search milestones
