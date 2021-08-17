@@ -249,6 +249,7 @@ const (
 	GitlabService                         // 4 gitlab service
 	GogsService                           // 5 gogs service
 	OneDevService                         // 6 onedev service
+	GitBucketService                      // 7 gitbucket service
 )
 
 // Name represents the service type's name
@@ -270,6 +271,8 @@ func (gt GitServiceType) Title() string {
 		return "Gogs"
 	case OneDevService:
 		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
 	case PlainGitService:
 		return "Git"
 	}
@@ -326,5 +329,6 @@ var (
 		GiteaService,
 		GogsService,
 		OneDevService,
+		GitBucketService,
 	}
 )
