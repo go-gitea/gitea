@@ -55,7 +55,7 @@ var _ (GothProvider) = &CustomProvider{}
 func init() {
 	RegisterGothProvider(NewCustomProvider(
 		"github", "GitHub", &CustomURLSettings{
-			TokenURL:   availableAttribute(gitea.TokenURL),
+			TokenURL:   availableAttribute(github.TokenURL),
 			AuthURL:    availableAttribute(github.AuthURL),
 			ProfileURL: availableAttribute(github.ProfileURL),
 			EmailURL:   availableAttribute(github.EmailURL),
