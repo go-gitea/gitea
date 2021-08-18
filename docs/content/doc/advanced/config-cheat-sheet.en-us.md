@@ -549,8 +549,8 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
-- `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
-- `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts. If not given, will use global proxy setting.
+- `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
+- `PROXY_HOSTS`: **\<empty\>`**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts. If not given, will use global proxy setting.
 
 ## Mailer (`mailer`)
 
