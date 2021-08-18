@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	chi "github.com/go-chi/chi/v5"
 )
@@ -107,41 +106,6 @@ func (ctx *BaseContext) Err() error {
 // Value is part of the interface for context.Context and we pass this to the request context
 func (ctx *BaseContext) Value(key interface{}) interface{} {
 	return ctx.Req.Context().Value(key)
-}
-
-// Form returns request form as string with default
-func (ctx *BaseContext) Form(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustString(key, defaults...)
-}
-
-// FormTrim returns request form as string with default and trimmed spaces
-func (ctx *BaseContext) FormTrim(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
-}
-
-// FormStrings returns request form as strings with default
-func (ctx *BaseContext) FormStrings(key string, defaults ...[]string) []string {
-	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
-}
-
-// FormInt returns request form as int with default
-func (ctx *BaseContext) FormInt(key string, defaults ...int) int {
-	return (*Forms)(ctx.Req).MustInt(key, defaults...)
-}
-
-// FormInt64 returns request form as int64 with default
-func (ctx *BaseContext) FormInt64(key string, defaults ...int64) int64 {
-	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
-}
-
-// FormBool returns request form as bool with default
-func (ctx *BaseContext) FormBool(key string, defaults ...bool) bool {
-	return (*Forms)(ctx.Req).MustBool(key, defaults...)
-}
-
-// FormOptionalBool returns request form as OptionalBool with default
-func (ctx *BaseContext) FormOptionalBool(key string, defaults ...util.OptionalBool) util.OptionalBool {
-	return (*Forms)(ctx.Req).MustOptionalBool(key, defaults...)
 }
 
 // Error returned an error to web browser

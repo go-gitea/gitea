@@ -12,12 +12,12 @@ import (
 )
 
 // FormString returns the first value matching the provided key in the form as a string
-func (ctx *Context) FormString(key string) string {
+func (ctx *BaseContext) FormString(key string) string {
 	return ctx.Req.FormValue(key)
 }
 
 // FormStrings returns a string slice for the provided key from the form
-func (ctx *Context) FormStrings(key string) []string {
+func (ctx *BaseContext) FormStrings(key string) []string {
 	if ctx.Req.Form == nil {
 		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
 			return nil
@@ -30,31 +30,31 @@ func (ctx *Context) FormStrings(key string) []string {
 }
 
 // FormTrim returns the first value for the provided key in the form as a space trimmed string
-func (ctx *Context) FormTrim(key string) string {
+func (ctx *BaseContext) FormTrim(key string) string {
 	return strings.TrimSpace(ctx.Req.FormValue(key))
 }
 
 // FormInt returns the first value for the provided key in the form as an int
-func (ctx *Context) FormInt(key string) int {
+func (ctx *BaseContext) FormInt(key string) int {
 	v, _ := strconv.Atoi(ctx.Req.FormValue(key))
 	return v
 }
 
 // FormInt64 returns the first value for the provided key in the form as an int64
-func (ctx *Context) FormInt64(key string) int64 {
+func (ctx *BaseContext) FormInt64(key string) int64 {
 	v, _ := strconv.ParseInt(ctx.Req.FormValue(key), 10, 64)
 	return v
 }
 
 // FormBool returns true if the value for the provided key in the form is "1" or "true"
-func (ctx *Context) FormBool(key string) bool {
+func (ctx *BaseContext) FormBool(key string) bool {
 	v, _ := strconv.ParseBool(ctx.Req.FormValue(key))
 	return v
 }
 
 // FormOptionalBool returns an OptionalBoolTrue or OptionalBoolFalse if the value
 // for the provided key exists in the form else it returns OptionalBoolNone
-func (ctx *Context) FormOptionalBool(key string) util.OptionalBool {
+func (ctx *BaseContext) FormOptionalBool(key string) util.OptionalBool {
 	value := ctx.Req.FormValue(key)
 	if len(value) == 0 {
 		return util.OptionalBoolNone
