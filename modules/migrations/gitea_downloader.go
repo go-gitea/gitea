@@ -275,6 +275,13 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Created:         rel.CreatedAt,
 	}
 
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}
+
 	for _, asset := range rel.Attachments {
 		size := int(asset.Size)
 		dlCount := int(asset.DownloadCount)
@@ -291,7 +298,11 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 					return nil, err
 				}
 				// FIXME: for a private download?
-				resp, err := http.Get(asset.DownloadURL)
+				req, err := http.NewRequest("GET", asset.DownloadURL, nil)
+				if err != nil {
+					return nil, err
+				}
+				resp, err := httpClient.Do(req)
 				if err != nil {
 					return nil, err
 				}

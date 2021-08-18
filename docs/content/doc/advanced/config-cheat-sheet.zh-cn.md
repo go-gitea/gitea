@@ -401,8 +401,8 @@ Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配�
 ## Proxy (`proxy`)
 
 - `PROXY_ENABLED`: **false**: 是否启用全局代理。如果为否，则不使用代理，环境变量中的代理也不使用
-- `PROXY_URL`: ****: 代理服务器地址，支持 http://, https//, socks://，为空则不启用代理而使用环境变量中的 http_proxy/https_proxy
-- `PROXY_HOSTS`: ****: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
+- `PROXY_URL`: **\<empty\>**: 代理服务器地址，支持 http://, https//, socks://，为空则不启用代理而使用环境变量中的 http_proxy/https_proxy
+- `PROXY_HOSTS`: **\<empty\>**: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
 
 i.e.
 ```ini

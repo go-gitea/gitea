@@ -303,6 +303,13 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 		PublisherName:   rel.Author.Username,
 	}
 
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}
+
 	for k, asset := range rel.Assets.Links {
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
@@ -321,8 +328,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 					return nil, err
 				}
 				req = req.WithContext(g.ctx)
-
-				resp, err := http.DefaultClient.Do(req)
+				resp, err := httpClient.Do(req)
 				if err != nil {
 					return nil, err
 				}
