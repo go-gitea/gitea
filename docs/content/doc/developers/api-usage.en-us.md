@@ -38,7 +38,7 @@ Gitea supports these methods of API authentication:
 All of these methods accept the same API key token type. You can
 better understand this by looking at the code -- as of this writing,
 Gitea parses queries and headers to find the token in
-[modules/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/modules/auth/auth.go#L47).
+[pkgs/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/pkgs/auth/auth.go#L47).
 
 ## Generating and listing API tokens
 

@@ -429,7 +429,7 @@ func newNewoneLogService() {
 ```
 
 You should then add `newOneLogService` to `NewServices()` in
-`modules/setting/setting.go`
+`pkgs/setting/setting.go`
 
 ## Using `logrotate` instead of built-in log rotation
 

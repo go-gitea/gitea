@@ -30,7 +30,7 @@ Gitea 支持以下几种 API 认证方式：
 - 通过指定 `Authorization: token ...` HTTP header 方式
 
 以上提及的认证方法接受相同的 apiKey token 类型，您可以在编码时通过查阅代码更好地理解这一点。
-Gitea 调用解析查询参数以及头部信息来获取 token 的代码可以在 [modules/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/modules/auth/auth.go#L47) 中找到。
+Gitea 调用解析查询参数以及头部信息来获取 token 的代码可以在 [pkgs/auth/auth.go](https://github.com/go-gitea/gitea/blob/6efdcaed86565c91a3dc77631372a9cc45a58e89/pkgs/auth/auth.go#L47) 中找到。
 
 您可以通过您的 gitea web 界面来创建 apiKey token：
 `Settings | Applications | Generate New Token`.
