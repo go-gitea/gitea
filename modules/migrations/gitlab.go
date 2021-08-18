@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +18,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/xanzy/go-gitlab"
@@ -77,7 +80,12 @@ type GitlabDownloader struct {
 //   Use either a username/password, personal token entered into the username field, or anonymous/public access
 //   Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
-	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL))
+	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(&http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}))
 	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
 	if token == "" && password != "" {
@@ -295,6 +303,13 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 		PublisherName:   rel.Author.Username,
 	}
 
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}
+
 	for k, asset := range rel.Assets.Links {
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
@@ -313,8 +328,7 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 					return nil, err
 				}
 				req = req.WithContext(g.ctx)
-
-				resp, err := http.DefaultClient.Do(req)
+				resp, err := httpClient.Do(req)
 				if err != nil {
 					return nil, err
 				}
