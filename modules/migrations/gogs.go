@@ -146,16 +146,12 @@ func (g *GogsDownloader) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	t := time.Now()
-
 	for _, m := range ms {
 		milestones = append(milestones, &base.Milestone{
 			Title:       m.Title,
 			Description: m.Description,
 			Deadline:    m.Deadline,
 			State:       string(m.State),
-			Created:     t,
-			Updated:     &t,
 			Closed:      m.Closed,
 		})
 	}
@@ -294,12 +290,14 @@ func convertGogsIssue(issue *gogs.Issue) *base.Issue {
 	return &base.Issue{
 		Title:       issue.Title,
 		Number:      issue.Index,
+		PosterID:    issue.Poster.ID,
 		PosterName:  issue.Poster.Login,
 		PosterEmail: issue.Poster.Email,
 		Content:     issue.Body,
 		Milestone:   milestone,
 		State:       string(issue.State),
 		Created:     issue.Created,
+		Updated:     issue.Updated,
 		Labels:      labels,
 		Closed:      closed,
 	}

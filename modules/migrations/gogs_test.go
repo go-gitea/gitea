@@ -34,65 +34,73 @@ func TestGogsDownloadRepo(t *testing.T) {
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 
-	assert.EqualValues(t, &base.Repository{
-		Name:        "TESTREPO",
-		Owner:       "lunnytest",
-		Description: "",
-		CloneURL:    "https://try.gogs.io/lunnytest/TESTREPO.git",
+	assertRepositoryEqual(t, &base.Repository{
+		Name:          "TESTREPO",
+		Owner:         "lunnytest",
+		Description:   "",
+		CloneURL:      "https://try.gogs.io/lunnytest/TESTREPO.git",
+		OriginalURL:   "https://try.gogs.io/lunnytest/TESTREPO",
+		DefaultBranch: "master",
 	}, repo)
 
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
-	assert.True(t, len(milestones) == 1)
-
-	for _, milestone := range milestones {
-		switch milestone.Title {
-		case "1.0":
-			assert.EqualValues(t, "open", milestone.State)
-		}
-	}
+	assertMilestonesEqual(t, []*base.Milestone{
+		{
+			Title: "1.0",
+			State: "open",
+		},
+	}, milestones)
 
 	labels, err := downloader.GetLabels()
 	assert.NoError(t, err)
-	assert.Len(t, labels, 7)
-	for _, l := range labels {
-		switch l.Name {
-		case "bug":
-			assertLabelEqual(t, "bug", "ee0701", "", l)
-		case "duplicated":
-			assertLabelEqual(t, "duplicated", "cccccc", "", l)
-		case "enhancement":
-			assertLabelEqual(t, "enhancement", "84b6eb", "", l)
-		case "help wanted":
-			assertLabelEqual(t, "help wanted", "128a0c", "", l)
-		case "invalid":
-			assertLabelEqual(t, "invalid", "e6e6e6", "", l)
-		case "question":
-			assertLabelEqual(t, "question", "cc317c", "", l)
-		case "wontfix":
-			assertLabelEqual(t, "wontfix", "ffffff", "", l)
-		}
-	}
-
-	_, err = downloader.GetReleases()
-	assert.Error(t, err)
+	assertLabelsEqual(t, []*base.Label{
+		{
+			Name:  "bug",
+			Color: "ee0701",
+		},
+		{
+			Name:  "duplicate",
+			Color: "cccccc",
+		},
+		{
+			Name:  "enhancement",
+			Color: "84b6eb",
+		},
+		{
+			Name:  "help wanted",
+			Color: "128a0c",
+		},
+		{
+			Name:  "invalid",
+			Color: "e6e6e6",
+		},
+		{
+			Name:  "question",
+			Color: "cc317c",
+		},
+		{
+			Name:  "wontfix",
+			Color: "ffffff",
+		},
+	}, labels)
 
 	// downloader.GetIssues()
 	issues, isEnd, err := downloader.GetIssues(1, 8)
 	assert.NoError(t, err)
-	assert.Len(t, issues, 1)
 	assert.False(t, isEnd)
-
-	assert.EqualValues(t, []*base.Issue{
+	assertIssuesEqual(t, []*base.Issue{
 		{
 			Number:      1,
+			PosterID:    5331,
+			PosterName:  "lunny",
+			PosterEmail: "xiaolunwen@gmail.com",
 			Title:       "test",
 			Content:     "test",
 			Milestone:   "",
-			PosterName:  "lunny",
-			PosterEmail: "xiaolunwen@gmail.com",
 			State:       "open",
 			Created:     time.Date(2019, 06, 11, 8, 16, 44, 0, time.UTC),
+			Updated:     time.Date(2019, 10, 26, 11, 07, 2, 0, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name:  "bug",
@@ -107,14 +115,24 @@ func TestGogsDownloadRepo(t *testing.T) {
 		IssueNumber: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, comments, 1)
-	assert.EqualValues(t, []*base.Comment{
+	assertCommentsEqual(t, []*base.Comment{
 		{
+			IssueIndex:  1,
+			PosterID:    5331,
 			PosterName:  "lunny",
 			PosterEmail: "xiaolunwen@gmail.com",
 			Created:     time.Date(2019, 06, 11, 8, 19, 50, 0, time.UTC),
 			Updated:     time.Date(2019, 06, 11, 8, 19, 50, 0, time.UTC),
-			Content:     `1111`,
+			Content:     "1111",
+		},
+		{
+			IssueIndex:  1,
+			PosterID:    15822,
+			PosterName:  "clacplouf",
+			PosterEmail: "test1234@dbn.re",
+			Created:     time.Date(2019, 10, 26, 11, 7, 2, 0, time.UTC),
+			Updated:     time.Date(2019, 10, 26, 11, 7, 2, 0, time.UTC),
+			Content:     "88888888",
 		},
 	}, comments)
 

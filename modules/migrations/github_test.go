@@ -16,53 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func assertMilestoneEqual(t *testing.T, description, title, dueOn, created, updated, closed, state string, ms *base.Milestone) {
-	var tmPtr *time.Time
-	if dueOn != "" {
-		tm, err := time.Parse("2006-01-02 15:04:05 -0700 MST", dueOn)
-		assert.NoError(t, err)
-		tmPtr = &tm
-	}
-	var (
-		createdTM time.Time
-		updatedTM *time.Time
-		closedTM  *time.Time
-	)
-	if created != "" {
-		var err error
-		createdTM, err = time.Parse("2006-01-02 15:04:05 -0700 MST", created)
-		assert.NoError(t, err)
-	}
-	if updated != "" {
-		updatedTemp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", updated)
-		assert.NoError(t, err)
-		updatedTM = &updatedTemp
-	}
-	if closed != "" {
-		closedTemp, err := time.Parse("2006-01-02 15:04:05 -0700 MST", closed)
-		assert.NoError(t, err)
-		closedTM = &closedTemp
-	}
-
-	assert.EqualValues(t, &base.Milestone{
-		Description: description,
-		Title:       title,
-		Deadline:    tmPtr,
-		State:       state,
-		Created:     createdTM,
-		Updated:     updatedTM,
-		Closed:      closedTM,
-	}, ms)
-}
-
-func assertLabelEqual(t *testing.T, name, color, description string, label *base.Label) {
-	assert.EqualValues(t, &base.Label{
-		Name:        name,
-		Color:       color,
-		Description: description,
-	}, label)
-}
-
 func TestGitHubDownloadRepo(t *testing.T) {
 	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
 	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
@@ -71,7 +24,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
-	assert.EqualValues(t, &base.Repository{
+	assertRepositoryEqual(t, &base.Repository{
 		Name:          "test_repo",
 		Owner:         "go-gitea",
 		Description:   "Test repository for testing migration from github to gitea",
@@ -86,52 +39,80 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
-	assert.True(t, len(milestones) >= 2)
-
-	for _, milestone := range milestones {
-		switch milestone.Title {
-		case "1.0.0":
-			assertMilestoneEqual(t, "Milestone 1.0.0", "1.0.0", "2019-11-11 08:00:00 +0000 UTC",
-				"2019-11-12 19:37:08 +0000 UTC",
-				"2019-11-12 21:56:17 +0000 UTC",
-				"2019-11-12 19:45:49 +0000 UTC",
-				"closed", milestone)
-		case "1.1.0":
-			assertMilestoneEqual(t, "Milestone 1.1.0", "1.1.0", "2019-11-12 08:00:00 +0000 UTC",
-				"2019-11-12 19:37:25 +0000 UTC",
-				"2019-11-12 21:39:27 +0000 UTC",
-				"2019-11-12 19:45:46 +0000 UTC",
-				"closed", milestone)
-		}
-	}
+	assertMilestonesEqual(t, []*base.Milestone{
+		{
+			Title:       "1.0.0",
+			Description: "Milestone 1.0.0",
+			Deadline:    timePtr(time.Date(2019, 11, 11, 8, 0, 0, 0, time.UTC)),
+			Created:     time.Date(2019, 11, 12, 19, 37, 8, 0, time.UTC),
+			Updated:     timePtr(time.Date(2019, 11, 12, 21, 56, 17, 0, time.UTC)),
+			Closed:      timePtr(time.Date(2019, 11, 12, 19, 45, 49, 0, time.UTC)),
+			State:       "closed",
+		},
+		{
+			Title:       "1.1.0",
+			Description: "Milestone 1.1.0",
+			Deadline:    timePtr(time.Date(2019, 11, 12, 8, 0, 0, 0, time.UTC)),
+			Created:     time.Date(2019, 11, 12, 19, 37, 25, 0, time.UTC),
+			Updated:     timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
+			Closed:      timePtr(time.Date(2019, 11, 12, 19, 45, 46, 0, time.UTC)),
+			State:       "closed",
+		},
+	}, milestones)
 
 	labels, err := downloader.GetLabels()
 	assert.NoError(t, err)
-	assert.True(t, len(labels) >= 8)
-	for _, l := range labels {
-		switch l.Name {
-		case "bug":
-			assertLabelEqual(t, "bug", "d73a4a", "Something isn't working", l)
-		case "documentation":
-			assertLabelEqual(t, "documentation", "0075ca", "Improvements or additions to documentation", l)
-		case "duplicate":
-			assertLabelEqual(t, "duplicate", "cfd3d7", "This issue or pull request already exists", l)
-		case "enhancement":
-			assertLabelEqual(t, "enhancement", "a2eeef", "New feature or request", l)
-		case "good first issue":
-			assertLabelEqual(t, "good first issue", "7057ff", "Good for newcomers", l)
-		case "help wanted":
-			assertLabelEqual(t, "help wanted", "008672", "Extra attention is needed", l)
-		case "invalid":
-			assertLabelEqual(t, "invalid", "e4e669", "This doesn't seem right", l)
-		case "question":
-			assertLabelEqual(t, "question", "d876e3", "Further information is requested", l)
-		}
-	}
+	assertLabelsEqual(t, []*base.Label{
+		{
+			Name:        "bug",
+			Color:       "d73a4a",
+			Description: "Something isn't working",
+		},
+		{
+			Name:        "documentation",
+			Color:       "0075ca",
+			Description: "Improvements or additions to documentation",
+		},
+		{
+			Name:        "duplicate",
+			Color:       "cfd3d7",
+			Description: "This issue or pull request already exists",
+		},
+		{
+			Name:        "enhancement",
+			Color:       "a2eeef",
+			Description: "New feature or request",
+		},
+		{
+			Name:        "good first issue",
+			Color:       "7057ff",
+			Description: "Good for newcomers",
+		},
+		{
+			Name:        "help wanted",
+			Color:       "008672",
+			Description: "Extra attention is needed",
+		},
+		{
+			Name:        "invalid",
+			Color:       "e4e669",
+			Description: "This doesn't seem right",
+		},
+		{
+			Name:        "question",
+			Color:       "d876e3",
+			Description: "Further information is requested",
+		},
+		{
+			Name:        "wontfix",
+			Color:       "ffffff",
+			Description: "This will not be worked on",
+		},
+	}, labels)
 
 	releases, err := downloader.GetReleases()
 	assert.NoError(t, err)
-	assert.EqualValues(t, []*base.Release{
+	assertReleasesEqual(t, []*base.Release{
 		{
 			TagName:         "v0.9.99",
 			TargetCommitish: "master",
@@ -142,19 +123,13 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			PublisherID:     1669571,
 			PublisherName:   "mrsdizzie",
 		},
-	}, releases[len(releases)-1:])
+	}, releases)
 
 	// downloader.GetIssues()
 	issues, isEnd, err := downloader.GetIssues(1, 2)
 	assert.NoError(t, err)
-	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
-
-	var (
-		closed1 = time.Date(2019, 11, 12, 20, 22, 22, 0, time.UTC)
-		closed2 = time.Date(2019, 11, 12, 21, 1, 31, 0, time.UTC)
-	)
-	assert.EqualValues(t, []*base.Issue{
+	assertIssuesEqual(t, []*base.Issue{
 		{
 			Number:     1,
 			Title:      "Please add an animated gif icon to the merge button",
@@ -184,7 +159,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Content:  "+1",
 				},
 			},
-			Closed: &closed1,
+			Closed: timePtr(time.Date(2019, 11, 12, 20, 22, 22, 0, time.UTC)),
 		},
 		{
 			Number:     2,
@@ -235,7 +210,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Content:  "+1",
 				},
 			},
-			Closed: &closed2,
+			Closed: timePtr(time.Date(2019, 11, 12, 21, 1, 31, 0, time.UTC)),
 		},
 	}, issues)
 
@@ -244,8 +219,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		IssueNumber: 2,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, comments, 2)
-	assert.EqualValues(t, []*base.Comment{
+	assertCommentsEqual(t, []*base.Comment{
 		{
 			IssueIndex: 2,
 			PosterID:   1669571,
@@ -270,17 +244,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Content:    "A second comment",
 			Reactions:  nil,
 		},
-	}, comments[:2])
+	}, comments)
 
 	// downloader.GetPullRequests()
 	prs, _, err := downloader.GetPullRequests(1, 2)
 	assert.NoError(t, err)
-	assert.Len(t, prs, 2)
-
-	closed1 = time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)
-	var merged1 = time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)
-
-	assert.EqualValues(t, []*base.PullRequest{
+	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
 			Number:     3,
 			Title:      "Update README.md",
@@ -313,9 +282,9 @@ func TestGitHubDownloadRepo(t *testing.T) {
 				OwnerName: "go-gitea",
 				RepoName:  "test_repo",
 			},
-			Closed:         &closed1,
+			Closed:         timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			Merged:         true,
-			MergedTime:     &merged1,
+			MergedTime:     timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			MergeCommitSHA: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 		},
 		{
@@ -368,7 +337,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	reviews, err := downloader.GetReviews(3)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []*base.Review{
+	assertReviewsEqual(t, []*base.Review{
 		{
 			ID:           315859956,
 			IssueIndex:   3,
@@ -400,7 +369,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	reviews, err = downloader.GetReviews(4)
 	assert.NoError(t, err)
-	assert.EqualValues(t, []*base.Review{
+	assertReviewsEqual(t, []*base.Review{
 		{
 			ID:           338338740,
 			IssueIndex:   4,
