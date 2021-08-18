@@ -165,11 +165,27 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		if deadline == 0 {
 			deadline = timeutil.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
 		}
+
+		if milestone.Created.IsZero() {
+			if milestone.Updated != nil {
+				milestone.Created = *milestone.Updated
+			} else if milestone.Deadline != nil {
+				milestone.Created = *milestone.Deadline
+			} else {
+				milestone.Created = time.Now()
+			}
+		}
+		if milestone.Updated == nil || milestone.Updated.IsZero() {
+			milestone.Updated = &milestone.Created
+		}
+
 		var ms = models.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
 			IsClosed:     milestone.State == "closed",
+			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
+			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
 			DeadlineUnix: deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
@@ -215,6 +231,14 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
+		if release.Created.IsZero() {
+			if !release.Published.IsZero() {
+				release.Created = release.Published
+			} else {
+				release.Created = time.Now()
+			}
+		}
+
 		var rel = models.Release{
 			RepoID:       g.repo.ID,
 			TagName:      release.TagName,
@@ -263,6 +287,13 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		}
 
 		for _, asset := range release.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = release.Created
+				}
+			}
 			var attach = models.Attachment{
 				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
@@ -329,6 +360,21 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			milestone, ok := g.milestones.Load(issue.Milestone)
 			if ok {
 				milestoneID = milestone.(int64)
+			}
+		}
+
+		if issue.Created.IsZero() {
+			if issue.Closed != nil {
+				issue.Created = *issue.Closed
+			} else {
+				issue.Created = time.Now()
+			}
+		}
+		if issue.Updated.IsZero() {
+			if issue.Closed != nil {
+				issue.Updated = *issue.Closed
+			} else {
+				issue.Updated = time.Now()
 			}
 		}
 
@@ -406,7 +452,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		for _, is := range iss {
-			g.issues.Store(is.Index, is.ID)
+			g.issues.Store(is.Index, is)
 		}
 	}
 
@@ -417,16 +463,17 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	var cms = make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
-		var issueID int64
-		if issueIDStr, ok := g.issues.Load(comment.IssueIndex); !ok {
-			issue, err := models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
+		var issue *models.Issue
+		issueInter, ok := g.issues.Load(comment.IssueIndex)
+		if !ok {
+			var err error
+			issue, err = models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
 			if err != nil {
 				return err
 			}
-			issueID = issue.ID
-			g.issues.Store(comment.IssueIndex, issueID)
+			g.issues.Store(comment.IssueIndex, issue)
 		} else {
-			issueID = issueIDStr.(int64)
+			issue = issueInter.(*models.Issue)
 		}
 
 		userid, ok := g.userMap[comment.PosterID]
@@ -442,8 +489,15 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			}
 		}
 
+		if comment.Created.IsZero() {
+			comment.Created = time.Unix(int64(issue.CreatedUnix), 0)
+		}
+		if comment.Updated.IsZero() {
+			comment.Updated = comment.Created
+		}
+
 		cm := models.Comment{
-			IssueID:     issueID,
+			IssueID:     issue.ID,
 			Type:        models.CommentTypeComment,
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
@@ -530,7 +584,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		return err
 	}
 	for _, pr := range gprs {
-		g.issues.Store(pr.Issue.Index, pr.Issue.ID)
+		g.issues.Store(pr.Issue.Index, pr.Issue)
 		pull.AddToTaskQueue(pr)
 	}
 	return nil
@@ -632,6 +686,19 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 	} else {
 		head = pr.Head.Ref
+	}
+
+	if pr.Created.IsZero() {
+		if pr.Closed != nil {
+			pr.Created = *pr.Closed
+		} else if pr.MergedTime != nil {
+			pr.Created = *pr.MergedTime
+		} else {
+			pr.Created = time.Now()
+		}
+	}
+	if pr.Updated.IsZero() {
+		pr.Updated = pr.Created
 	}
 
 	var issue = models.Issue{
@@ -743,16 +810,17 @@ func convertReviewState(state string) models.ReviewType {
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	var cms = make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
-		var issueID int64
-		if issueIDStr, ok := g.issues.Load(review.IssueIndex); !ok {
-			issue, err := models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
+		var issue *models.Issue
+		issueInter, ok := g.issues.Load(review.IssueIndex)
+		if !ok {
+			var err error
+			issue, err = models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
 			if err != nil {
 				return err
 			}
-			issueID = issue.ID
-			g.issues.Store(review.IssueIndex, issueID)
+			g.issues.Store(review.IssueIndex, issue)
 		} else {
-			issueID = issueIDStr.(int64)
+			issue = issueInter.(*models.Issue)
 		}
 
 		userid, ok := g.userMap[review.ReviewerID]
@@ -768,9 +836,13 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 		}
 
+		if review.CreatedAt.IsZero() {
+			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
+		}
+
 		var cm = models.Review{
 			Type:        convertReviewState(review.State),
-			IssueID:     issueID,
+			IssueID:     issue.ID,
 			Content:     review.Content,
 			Official:    review.Official,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
@@ -786,14 +858,14 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		// get pr
-		pr, ok := g.prCache[issueID]
+		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issueID)
+			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
 			if err != nil {
 				return err
 			}
-			g.prCache[issueID] = pr
+			g.prCache[issue.ID] = pr
 		}
 
 		for _, comment := range review.Comments {
@@ -824,10 +896,17 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 
 			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
+			if comment.CreatedAt.IsZero() {
+				comment.CreatedAt = review.CreatedAt
+			}
+			if comment.UpdatedAt.IsZero() {
+				comment.UpdatedAt = comment.CreatedAt
+			}
+
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,
 				PosterID:    comment.PosterID,
-				IssueID:     issueID,
+				IssueID:     issue.ID,
 				Content:     comment.Content,
 				Line:        int64(line + comment.Position - 1),
 				TreePath:    comment.TreePath,

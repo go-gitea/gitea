@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
 )
@@ -260,7 +261,7 @@ var (
 
 func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
-		return http.ProxyFromEnvironment
+		return proxy.Proxy()
 	}
 
 	once.Do(func() {

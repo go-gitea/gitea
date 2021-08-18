@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,6 +18,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -90,7 +93,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 		Transport: &http.Transport{
 			Proxy: func(req *http.Request) (*url.URL, error) {
 				req.SetBasicAuth(userName, password)
-				return nil, nil
+				return proxy.Proxy()(req)
 			},
 		},
 	}
@@ -269,6 +272,13 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		r.Published = rel.PublishedAt.Time
 	}
 
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}
+
 	for _, asset := range rel.Assets {
 		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
@@ -295,7 +305,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 						if err != nil {
 							return nil, err
 						}
-						resp, err := http.DefaultClient.Do(req)
+						resp, err := httpClient.Do(req)
 						err1 := g.RefreshRate()
 						if err1 != nil {
 							log.Error("g.client.RateLimits: %s", err1)
