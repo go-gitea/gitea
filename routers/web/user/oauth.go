@@ -187,7 +187,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 				ErrorDescription: "cannot find application",
 			}
 		}
-		err = app.LoadUser()
+		user, err := models.GetUserByID(grant.UserID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -212,17 +212,17 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			Nonce: grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
-			idToken.Name = app.User.FullName
-			idToken.PreferredUsername = app.User.Name
-			idToken.Profile = app.User.HTMLURL()
-			idToken.Picture = app.User.AvatarLink()
-			idToken.Website = app.User.Website
-			idToken.Locale = app.User.Language
-			idToken.UpdatedAt = app.User.UpdatedUnix
+			idToken.Name = user.FullName
+			idToken.PreferredUsername = user.Name
+			idToken.Profile = user.HTMLURL()
+			idToken.Picture = user.AvatarLink()
+			idToken.Website = user.Website
+			idToken.Locale = user.Language
+			idToken.UpdatedAt = user.UpdatedUnix
 		}
 		if grant.ScopeContains("email") {
-			idToken.Email = app.User.Email
-			idToken.EmailVerified = app.User.IsActive
+			idToken.Email = user.Email
+			idToken.EmailVerified = user.IsActive
 		}
 
 		signedIDToken, err = idToken.SignToken(signingKey)
