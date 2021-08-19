@@ -133,7 +133,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *models.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(); err != nil {
 			return nil, &AccessTokenError{
@@ -151,7 +151,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			ExpiresAt: expirationDate.AsTime().Unix(),
 		},
 	}
-	signedAccessToken, err := accessToken.SignToken()
+	signedAccessToken, err := accessToken.SignToken(serverKey)
 	if err != nil {
 		return nil, &AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -169,7 +169,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			ExpiresAt: refreshExpirationDate,
 		},
 	}
-	signedRefreshToken, err := refreshToken.SignToken()
+	signedRefreshToken, err := refreshToken.SignToken(serverKey)
 	if err != nil {
 		return nil, &AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -225,7 +225,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			idToken.EmailVerified = user.IsActive
 		}
 
-		signedIDToken, err = idToken.SignToken(signingKey)
+		signedIDToken, err = idToken.SignToken(clientKey)
 		if err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -541,9 +541,11 @@ func AccessTokenOAuth(ctx *context.Context) {
 		}
 	}
 
-	signingKey := oauth2.DefaultSigningKey
-	if signingKey.IsSymmetric() {
-		clientKey, err := oauth2.CreateJWTSingingKey(signingKey.SigningMethod().Alg(), []byte(form.ClientSecret))
+	serverKey := oauth2.DefaultSigningKey
+	clientKey := serverKey
+	if serverKey.IsSymmetric() {
+		var err error
+		clientKey, err = oauth2.CreateJWTSingingKey(serverKey.SigningMethod().Alg(), []byte(form.ClientSecret))
 		if err != nil {
 			handleAccessTokenError(ctx, AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -551,14 +553,13 @@ func AccessTokenOAuth(ctx *context.Context) {
 			})
 			return
 		}
-		signingKey = clientKey
 	}
 
 	switch form.GrantType {
 	case "refresh_token":
-		handleRefreshToken(ctx, form, signingKey)
+		handleRefreshToken(ctx, form, serverKey, clientKey)
 	case "authorization_code":
-		handleAuthorizationCode(ctx, form, signingKey)
+		handleAuthorizationCode(ctx, form, serverKey, clientKey)
 	default:
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnsupportedGrantType,
@@ -567,8 +568,8 @@ func AccessTokenOAuth(ctx *context.Context) {
 	}
 }
 
-func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signingKey oauth2.JWTSigningKey) {
-	token, err := oauth2.ParseToken(form.RefreshToken)
+func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
+	token, err := oauth2.ParseToken(form.RefreshToken, serverKey)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
@@ -595,7 +596,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signin
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-	accessToken, tokenErr := newAccessTokenResponse(grant, signingKey)
+	accessToken, tokenErr := newAccessTokenResponse(grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -603,7 +604,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signin
 	ctx.JSON(http.StatusOK, accessToken)
 }
 
-func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, signingKey oauth2.JWTSigningKey) {
+func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -657,7 +658,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, signingKey)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return

@@ -29,9 +29,9 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := oauth2.ParseToken(accessToken)
+	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
 	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
+		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
 	var grant *models.OAuth2Grant
