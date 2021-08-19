@@ -56,7 +56,9 @@ func Match(u string) bool {
 // Proxy returns the system proxy
 func Proxy() func(req *http.Request) (*url.URL, error) {
 	if !setting.Proxy.Enabled {
-		return nil
+		return func(req *http.Request) (*url.URL, error) {
+			return nil, nil
+		}
 	}
 	if setting.Proxy.ProxyURL == "" {
 		return http.ProxyFromEnvironment
