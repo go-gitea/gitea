@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/modules/auth/oauth2"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
-func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *oauth2.OIDCToken {
+func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *models.OIDCToken {
 	signingKey, err := oauth2.CreateJWTSingingKey("HS256", make([]byte, 32))
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
@@ -24,7 +24,7 @@ func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *oauth2.OIDCTo
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
-	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &oauth2.OIDCToken{}, func(token *jwt.Token) (interface{}, error) {
+	parsedToken, err := jwt.ParseWithClaims(response.IDToken, &models.OIDCToken{}, func(token *jwt.Token) (interface{}, error) {
 		assert.NotNil(t, token.Method)
 		assert.Equal(t, signingKey.SigningMethod().Alg(), token.Method.Alg())
 		return signingKey.VerifyKey(), nil
@@ -32,7 +32,7 @@ func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *oauth2.OIDCTo
 	assert.NoError(t, err)
 	assert.True(t, parsedToken.Valid)
 
-	oidcToken, ok := parsedToken.Claims.(*oauth2.OIDCToken)
+	oidcToken, ok := parsedToken.Claims.(*models.OIDCToken)
 	assert.True(t, ok)
 	assert.NotNil(t, oidcToken)
 
