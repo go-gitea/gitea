@@ -96,24 +96,6 @@ func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
-// BearerTokenErrorCode represents an error code specified in RFC 6750
-type BearerTokenErrorCode string
-
-const (
-	// BearerTokenErrorCodeInvalidRequest represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInvalidRequest BearerTokenErrorCode = "invalid_request"
-	// BearerTokenErrorCodeInvalidToken represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInvalidToken BearerTokenErrorCode = "invalid_token"
-	// BearerTokenErrorCodeInsufficientScope represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInsufficientScope BearerTokenErrorCode = "insufficient_scope"
-)
-
-// BearerTokenError represents an error response specified in RFC 6750
-type BearerTokenError struct {
-	ErrorCode        BearerTokenErrorCode `json:"error" form:"error"`
-	ErrorDescription string               `json:"error_description"`
-}
-
 // TokenType specifies the kind of token
 type TokenType string
 
@@ -253,32 +235,53 @@ type userInfoResponse struct {
 
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
-	header := ctx.Req.Header.Get("Authorization")
-	auths := strings.Fields(header)
-	if len(auths) != 2 || auths[0] != "Bearer" {
-		ctx.HandleText(http.StatusUnauthorized, "no valid auth token authorization")
-		return
-	}
-	uid := auth.CheckOAuthAccessToken(auths[1])
-	if uid == 0 {
-		handleBearerTokenError(ctx, BearerTokenError{
-			ErrorCode:        BearerTokenErrorCodeInvalidToken,
-			ErrorDescription: "Access token not assigned to any user",
-		})
-		return
-	}
-	authUser, err := models.GetUserByID(uid)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+	if ctx.User == nil || ctx.Data["AuthedMethod"] != (&auth.OAuth2{}).Name() {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(authUser.ID),
-		Name:     authUser.FullName,
-		Username: authUser.Name,
-		Email:    authUser.Email,
-		Picture:  authUser.AvatarLink(),
+		Sub:      fmt.Sprint(ctx.User.ID),
+		Name:     ctx.User.FullName,
+		Username: ctx.User.Name,
+		Email:    ctx.User.Email,
+		Picture:  ctx.User.AvatarLink(),
 	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// IntrospectOAuth introspects an oauth token
+func IntrospectOAuth(ctx *context.Context) {
+	if ctx.User == nil {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
+		return
+	}
+
+	var response struct {
+		Active bool   `json:"active"`
+		Scope  string `json:"scope,omitempty"`
+		jwt.StandardClaims
+	}
+
+	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
+	token, err := oauth2.ParseToken(form.Token)
+	if err == nil {
+		if token.Valid() == nil {
+			grant, err := models.GetOAuth2GrantByID(token.GrantID)
+			if err == nil && grant != nil {
+				app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+				if err == nil && app != nil {
+					response.Active = true
+					response.Scope = grant.Scope
+					response.Issuer = setting.AppURL
+					response.Audience = app.ClientID
+					response.Subject = fmt.Sprint(grant.UserID)
+				}
+			}
+		}
+	}
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -696,19 +699,4 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String(), 302)
-}
-
-func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
-	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
-	switch beErr.ErrorCode {
-	case BearerTokenErrorCodeInvalidRequest:
-		ctx.JSON(http.StatusBadRequest, beErr)
-	case BearerTokenErrorCodeInvalidToken:
-		ctx.JSON(http.StatusUnauthorized, beErr)
-	case BearerTokenErrorCodeInsufficientScope:
-		ctx.JSON(http.StatusForbidden, beErr)
-	default:
-		log.Error("Invalid BearerTokenErrorCode: %v", beErr.ErrorCode)
-		ctx.ServerError("Unhandled BearerTokenError", fmt.Errorf("BearerTokenError: error=\"%v\", error_description=\"%v\"", beErr.ErrorCode, beErr.ErrorDescription))
-	}
 }
