@@ -7,6 +7,7 @@ package lfs
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxy"
 )
 
 const batchSize = 20
@@ -32,8 +34,13 @@ func (c *HTTPClient) BatchSize() int {
 	return batchSize
 }
 
-func newHTTPClient(endpoint *url.URL) *HTTPClient {
-	hc := &http.Client{}
+func newHTTPClient(endpoint *url.URL, skipTLSVerify bool) *HTTPClient {
+	hc := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
+	}
 
 	client := &HTTPClient{
 		client:    hc,

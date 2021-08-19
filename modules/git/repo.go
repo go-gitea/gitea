@@ -9,11 +9,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/proxy"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -99,12 +103,12 @@ type CloneRepoOptions struct {
 }
 
 // Clone clones original repository to target path.
-func Clone(from, to string, opts CloneRepoOptions) (err error) {
+func Clone(from, to string, opts CloneRepoOptions) error {
 	return CloneWithContext(DefaultContext, from, to, opts)
 }
 
 // CloneWithContext clones original repository to target path.
-func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) (err error) {
+func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)
@@ -146,8 +150,24 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 		opts.Timeout = -1
 	}
 
-	_, err = cmd.RunTimeout(opts.Timeout)
-	return err
+	var envs = os.Environ()
+	u, err := url.Parse(from)
+	if err == nil && (strings.EqualFold(u.Scheme, "http") || strings.EqualFold(u.Scheme, "https")) {
+		if proxy.Match(u.Host) {
+			envs = append(envs, fmt.Sprintf("https_proxy=%s", proxy.GetProxyURL()))
+		}
+	}
+
+	var stderr = new(bytes.Buffer)
+	if err = cmd.RunWithContext(&RunContext{
+		Timeout: opts.Timeout,
+		Env:     envs,
+		Stdout:  io.Discard,
+		Stderr:  stderr,
+	}); err != nil {
+		return ConcatenateError(err, stderr.String())
+	}
+	return nil
 }
 
 // PullRemoteOptions options when pull from remote
