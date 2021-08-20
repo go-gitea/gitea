@@ -2148,7 +2148,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if ctx.FormString("action") == "ignoreAttachments" {
+	if ctx.FormBool("ignore_attachments") {
 		return
 	}
 

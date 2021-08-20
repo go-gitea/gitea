@@ -46,7 +46,7 @@ export function initMarkupTasklist() {
           const {updateUrl, context} = editContentZone.dataset;
 
           await $.post(updateUrl, {
-            action: 'ignoreAttachments',
+            ignore_attachments: true,
             _csrf: window.config.csrf,
             content: newContent,
             context
