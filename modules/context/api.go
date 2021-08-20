@@ -16,7 +16,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -247,9 +246,8 @@ func (ctx *APIContext) CheckForOTP() {
 // APIAuth converts auth_service.Auth as a middleware
 func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 	return func(ctx *APIContext) {
-		var store = session.NewEmptyStore()
 		// Get user from session if logged in.
-		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, store)
+		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.Doer != nil {
 			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)

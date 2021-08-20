@@ -48,7 +48,10 @@ import (
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7afa66cba (Fix test)
 	"gitea.com/go-chi/session"
 )
 
@@ -188,7 +191,7 @@ func NormalRoutes() *web.Route {
 
 	r.Mount("/", web_routers.Routes(sessioner))
 	r.Mount("/api/v1", apiv1.Routes())
-	r.Mount("/api/ui", apiui.Routes())
+	r.Mount("/api/ui", apiui.Routes(sessioner))
 	r.Mount("/api/internal", private.Routes())
 	return r
 }
