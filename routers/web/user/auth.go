@@ -32,8 +32,8 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 
-	"github.com/markbates/goth"
 	"github.com/golang-jwt/jwt"
+	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
 )
 
@@ -614,8 +614,14 @@ func SignInOAuthCallback(ctx *context.Context) {
 	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 
 	if err != nil {
-		ctx.ServerError("UserSignIn", err)
-		return
+		if models.IsErrUserProhibitLogin(err) {
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			return
+		} else {
+			ctx.ServerError("UserSignIn", err)
+			return
+		}
 	}
 
 	if u == nil {
@@ -786,7 +792,8 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 	err = allowLogin(gothUser)
 	if err != nil {
-		return nil, goth.User{}, err
+		log.Info("Login not allowed. %v", err)
+		return nil, goth.User{}, models.ErrUserProhibitLogin{}
 	}
 
 	user := &models.User{
