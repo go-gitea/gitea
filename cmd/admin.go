@@ -307,6 +307,21 @@ var (
 			Value: "",
 			Usage: "Claim value that has to be set to allow users to login with this source",
 		},
+		cli.StringFlag{
+			Name:  "group-claim-name",
+			Value: "",
+			Usage: "Claim name providing group names for this source",
+		},
+		cli.StringFlag{
+			Name:  "admin-group",
+			Value: "",
+			Usage: "Group Claim value for administrator users",
+		},
+		cli.StringFlag{
+			Name:  "restricted-group",
+			Value: "",
+			Usage: "Group Claim value for restricted users",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -639,6 +654,9 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		Scopes:                        c.StringSlice("scopes"),
 		RequiredClaimName:             c.String("required-claim-name"),
 		RequiredClaimValue:            c.String("required-claim-value"),
+		GroupClaimName:                c.String("group-claim-name"),
+		AdminGroup:                    c.String("admin-group"),
+		RestrictedGroup:               c.String("restricted-group"),
 	}
 }
 
@@ -705,6 +723,16 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 	if c.IsSet("required-claim-value") {
 		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
+	}
+
+	if c.IsSet("group-claim-name") {
+		oAuth2Config.GroupClaimName = c.String("group-claim-name")
+	}
+	if c.IsSet("admin-group") {
+		oAuth2Config.AdminGroup = c.String("admin-group")
+	}
+	if c.IsSet("restricted-group") {
+		oAuth2Config.RestrictedGroup = c.String("restricted-group")
 	}
 
 	// update custom URL mapping

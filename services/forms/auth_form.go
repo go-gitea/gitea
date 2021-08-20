@@ -70,6 +70,9 @@ type AuthenticationForm struct {
 	Oauth2Scopes                  string
 	Oauth2RequiredClaimName       string
 	Oauth2RequiredClaimValue      string
+	Oauth2GroupClaimName          string
+	Oauth2AdminGroup              string
+	Oauth2RestrictedGroup         string
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

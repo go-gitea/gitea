@@ -29,6 +29,9 @@ type Source struct {
 	Scopes             []string
 	RequiredClaimName  string
 	RequiredClaimValue string
+	GroupClaimName     string
+	AdminGroup         string
+	RestrictedGroup    string
 
 	// reference to the loginSource
 	loginSource *models.LoginSource

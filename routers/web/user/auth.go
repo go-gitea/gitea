@@ -597,6 +597,13 @@ func SignInOAuthCallback(ctx *context.Context) {
 	u, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 
 	if err != nil {
+		if models.IsErrUserProhibitLogin(err) {
+			uplerr := err.(*models.ErrUserProhibitLogin)
+			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			return
+		}
 		ctx.ServerError("UserSignIn", err)
 		return
 	}
@@ -633,6 +640,8 @@ func SignInOAuthCallback(ctx *context.Context) {
 				LoginName:   gothUser.UserID,
 			}
 
+			setUserGroupClaims(loginSource, u, &gothUser)
+
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
 				return
@@ -645,6 +654,51 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	handleOAuth2SignIn(ctx, loginSource, u, gothUser)
+}
+
+func setUserGroupClaims(loginSource *models.LoginSource, u *models.User, gothUser *goth.User) bool {
+
+	source := loginSource.Cfg.(*oauth2.Source)
+	if source.GroupClaimName == "" || (source.AdminGroup == "" && source.RestrictedGroup == "") {
+		return false
+	}
+
+	groupClaims, has := gothUser.RawData[source.GroupClaimName]
+	if !has {
+		return false
+	}
+
+	var groups []string
+
+	switch rawGroup := groupClaims.(type) {
+	case []string:
+		groups = rawGroup
+	case string:
+		if strings.Contains(rawGroup, ",") {
+			groups = strings.Split(rawGroup, ",")
+		} else {
+			groups = []string{rawGroup}
+		}
+	}
+
+	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
+
+	if source.AdminGroup != "" {
+		u.IsAdmin = false
+	}
+	if source.RestrictedGroup != "" {
+		u.IsRestricted = false
+	}
+
+	for _, g := range groups {
+		if source.AdminGroup != "" && g == source.AdminGroup {
+			u.IsAdmin = true
+		} else if source.RestrictedGroup != "" && g == source.RestrictedGroup {
+			u.IsRestricted = true
+		}
+	}
+
+	return wasAdmin == u.IsAdmin && wasRestricted == u.IsRestricted
 }
 
 func getUserName(gothUser *goth.User) string {
@@ -717,7 +771,15 @@ func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *mod
 
 		// Register last login
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+
+		// Update GroupClaims
+		changed := setUserGroupClaims(source, u, &gothUser)
+		cols := []string{"last_login_unix"}
+		if changed {
+			cols = append(cols, "is_admin", "is_restricted")
+		}
+
+		if err := models.UpdateUserCols(u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -735,6 +797,14 @@ func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *mod
 
 		ctx.Redirect(setting.AppSubURL + "/")
 		return
+	}
+
+	changed := setUserGroupClaims(source, u, &gothUser)
+	if changed {
+		if err := models.UpdateUserCols(u, "is_admin", "is_restricted"); err != nil {
+			ctx.ServerError("UpdateUserCols", err)
+			return
+		}
 	}
 
 	// User needs to use 2FA, save data and redirect to 2FA page.
