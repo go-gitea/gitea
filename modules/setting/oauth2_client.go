@@ -58,6 +58,8 @@ var OAuth2Client struct {
 	Username               OAuth2UsernameType
 	UpdateAvatar           bool
 	AccountLinking         OAuth2AccountLinkingType
+	AllowedLoginClaimName  string
+	AllowedLoginClaimValue string
 }
 
 func newOAuth2Client() {
@@ -76,6 +78,8 @@ func newOAuth2Client() {
 		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingLogin)
 		OAuth2Client.AccountLinking = OAuth2AccountLinkingLogin
 	}
+	OAuth2Client.AllowedLoginClaimName = sec.Key("ALLOW_LOGIN_CLAIM_NAME").String()
+	OAuth2Client.AllowedLoginClaimValue = sec.Key("ALLOW_LOGIN_CLAIM_VALUE").String()
 }
 
 func parseScopes(sec *ini.Section, name string) []string {

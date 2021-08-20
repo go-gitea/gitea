@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/utils"
@@ -32,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 
 	"github.com/markbates/goth"
+	"github.com/golang-jwt/jwt"
 	"github.com/tstranex/u2f"
 )
 
@@ -782,6 +784,11 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 		return nil, goth.User{}, err
 	}
 
+	err = allowLogin(gothUser)
+	if err != nil {
+		return nil, goth.User{}, err
+	}
+
 	user := &models.User{
 		LoginName:   gothUser.UserID,
 		LoginType:   models.LoginOAuth2,
@@ -814,6 +821,59 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 	// no user found to login
 	return nil, gothUser, nil
 
+}
+
+// allowLogin checks if a specific claim or claim-value has to be satisfied in oauth access token to allow signing in
+func allowLogin(gothUser goth.User) error {
+
+	if setting.OAuth2Client.AllowedLoginClaimName == "" {
+		return nil
+	}
+
+	// access token validation out of this scope (done prior)
+	token, _, err := new(jwt.Parser).ParseUnverified(gothUser.AccessToken, jwt.MapClaims{})
+
+	if err != nil {
+		return err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	if !ok {
+		return fmt.Errorf("Unexpected error allowing access token signin")
+	}
+
+	claim := claims[setting.OAuth2Client.AllowedLoginClaimName]
+
+	if claim == nil {
+		return fmt.Errorf("Login not allowed. Claim %s not found in Oauth2 access token", setting.OAuth2Client.AllowedLoginClaimName)
+	}
+
+	if setting.OAuth2Client.AllowedLoginClaimValue == "" {
+		return nil
+	}
+
+	// Check claim value
+	var values []string
+	switch v := claim.(type) {
+	case string:
+		values = append(values, v)
+	case []string:
+		values = v
+	case []interface{}:
+		for _, a := range v {
+			vs, ok := a.(string)
+			if !ok {
+				log.Warn("Value %v in claim is not string. Skipping", a)
+			}
+			values = append(values, vs)
+		}
+	}
+
+	if !util.ExistsInSlice(setting.OAuth2Client.AllowedLoginClaimValue, values) {
+		return fmt.Errorf("Login not allowed. Value %s not found in claim %s: %v", setting.OAuth2Client.AllowedLoginClaimValue, setting.OAuth2Client.AllowedLoginClaimName, claim)
+	}
+	return nil
 }
 
 // LinkAccount shows the page where the user can decide to login or create a new account
