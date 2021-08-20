@@ -289,16 +289,8 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			gothUser := ctx.Session.Get("linkAccountGothUser")
-			if gothUser == nil {
-				ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
-				return
-			}
-
-			err = externalaccount.LinkAccountToUser(u, gothUser.(goth.User))
-			if err != nil {
+			if err := externalaccount.LinkAccountFromStore(ctx.Session, u); err != nil {
 				ctx.ServerError("UserSignIn", err)
-				return
 			}
 		}
 
@@ -470,16 +462,8 @@ func U2FSign(ctx *context.Context) {
 			}
 
 			if ctx.Session.Get("linkAccount") != nil {
-				gothUser := ctx.Session.Get("linkAccountGothUser")
-				if gothUser == nil {
-					ctx.ServerError("UserSignIn", errors.New("not in LinkAccount session"))
-					return
-				}
-
-				err = externalaccount.LinkAccountToUser(user, gothUser.(goth.User))
-				if err != nil {
+				if err := externalaccount.LinkAccountFromStore(ctx.Session, user); err != nil {
 					ctx.ServerError("UserSignIn", err)
-					return
 				}
 			}
 			redirect := handleSignInFull(ctx, user, remember, false)
@@ -739,7 +723,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *mod
 		}
 
 		// update external user information
-		if err := models.UpdateExternalUser(u, gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(u, gothUser); err != nil {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
 
@@ -1321,7 +1305,7 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 
 	// update external user information
 	if gothUser != nil {
-		if err := models.UpdateExternalUser(u, *gothUser); err != nil {
+		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
 	}

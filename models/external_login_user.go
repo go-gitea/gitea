@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/markbates/goth"
 	"xorm.io/builder"
 )
 
@@ -99,42 +98,18 @@ func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 	return id, nil
 }
 
-// UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *User, gothUser goth.User) error {
-	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
-	if err != nil {
-		return err
-	}
-	externalLoginUser := &ExternalLoginUser{
-		ExternalID:        gothUser.UserID,
-		UserID:            user.ID,
-		LoginSourceID:     loginSource.ID,
-		RawData:           gothUser.RawData,
-		Provider:          gothUser.Provider,
-		Email:             gothUser.Email,
-		Name:              gothUser.Name,
-		FirstName:         gothUser.FirstName,
-		LastName:          gothUser.LastName,
-		NickName:          gothUser.NickName,
-		Description:       gothUser.Description,
-		AvatarURL:         gothUser.AvatarURL,
-		Location:          gothUser.Location,
-		AccessToken:       gothUser.AccessToken,
-		AccessTokenSecret: gothUser.AccessTokenSecret,
-		RefreshToken:      gothUser.RefreshToken,
-		ExpiresAt:         gothUser.ExpiresAt,
-	}
-
-	has, err := x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
+// UpdateExternalUserByExternalID updates an external user's information
+func UpdateExternalUserByExternalID(external *ExternalLoginUser) error {
+	has, err := x.Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).
 		NoAutoCondition().
-		Exist(externalLoginUser)
+		Exist(external)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrExternalLoginUserNotExist{user.ID, loginSource.ID}
+		return ErrExternalLoginUserNotExist{external.UserID, external.LoginSourceID}
 	}
 
-	_, err = x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).AllCols().Update(externalLoginUser)
+	_, err = x.Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
 	return err
 }
 
