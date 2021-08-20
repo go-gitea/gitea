@@ -26,6 +26,8 @@ type Source struct {
 	IconURL                       string
 	OverrideLocalTwoFA            bool
 
+	Scopes []string
+
 	// reference to the loginSource
 	loginSource *models.LoginSource
 }

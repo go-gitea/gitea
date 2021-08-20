@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/auth/pam"
@@ -182,6 +183,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
 		OverrideLocalTwoFA:            form.OverrideLocalTwoFA,
+		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
 	}
 }
 
@@ -322,8 +324,8 @@ func EditAuthSource(ctx *context.Context) {
 				break
 			}
 		}
-
 	}
+
 	ctx.HTML(http.StatusOK, tplAuthEdit)
 }
 

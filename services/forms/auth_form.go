@@ -67,6 +67,7 @@ type AuthenticationForm struct {
 	Oauth2IconURL                 string
 	Oauth2Tenant                  string
 	OverrideLocalTwoFA            bool
+	Oauth2Scopes                  string
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool
 	SSPIStripDomainNames          bool

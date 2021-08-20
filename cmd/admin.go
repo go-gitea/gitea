@@ -292,6 +292,11 @@ var (
 			Name:  "override-local-2fa",
 			Usage: "Set to true to override local 2fa settings",
 		},
+		cli.StringSliceFlag{
+			Name:  "scopes",
+			Value: nil,
+			Usage: "Scopes to request when to authenticate against this OAuth2 source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -621,6 +626,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
 		OverrideLocalTwoFA:            c.Bool("override-local-2fa"),
+		Scopes:                        c.StringSlice("scopes"),
 	}
 }
 
@@ -675,6 +681,10 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("icon-url") {
 		oAuth2Config.IconURL = c.String("icon-url")
+	}
+
+	if c.IsSet("scopes") {
+		oAuth2Config.Scopes = c.StringSlice("scopes")
 	}
 
 	// update custom URL mapping
