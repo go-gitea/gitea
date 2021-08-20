@@ -2128,13 +2128,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-	}
-
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -2156,8 +2149,18 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	files := ctx.QueryStrings("files[]")
-	if err := updateAttachments(comment, files); err != nil {
+	if ctx.QueryBool("ignore_attachments") {
+		return
+	}
+
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
+	if err := updateAttachments(comment, ctx.QueryStrings("files[]")); err != nil {
 		ctx.ServerError("UpdateAttachments", err)
 		return
 	}
