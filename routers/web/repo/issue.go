@@ -2148,7 +2148,7 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if ctx.FormString("action") == "tasklist" {
+	if ctx.FormString("action") == "ignoreAttachments" {
 		return
 	}
 
