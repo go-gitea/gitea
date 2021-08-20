@@ -574,9 +574,15 @@ func SignInOAuth(ctx *context.Context) {
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
-		// we got the user without going through the whole OAuth2 authentication flow again
-		handleOAuth2SignIn(ctx, user, gothUser)
-		return
+		if models.IsErrUserProhibitLogin(err) {
+			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
+			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			return
+		}else {
+			// we got the user without going through the whole OAuth2 authentication flow again
+			handleOAuth2SignIn(ctx, user, gothUser)
+			return
+		}
 	}
 
 	if err = oauth2.Auth(loginSource.Name, ctx.Req, ctx.Resp); err != nil {
