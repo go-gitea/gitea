@@ -43,12 +43,20 @@ export function initMarkupTasklist() {
 
         try {
           const editContentZone = container.querySelector('.edit-content-zone');
-          const {updateUrl, context} = editContentZone.dataset;
+          const {updateUrl, context, attachmentUrl} = editContentZone.dataset;
+
+          const resp = await fetch(attachmentUrl);
+          const attachments = await resp.json();
+          const files = [];
+          for (const attachment of attachments) {
+            files.push(attachment.uuid);
+          }
 
           await $.post(updateUrl, {
             _csrf: window.config.csrf,
             content: newContent,
             context,
+            files
           });
 
           rawContent.textContent = newContent;
