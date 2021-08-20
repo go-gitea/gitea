@@ -17,10 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
+}
+
 func TestAPIAdminOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session)
+		token := getUserToken(t, "user1")
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
@@ -31,7 +34,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -53,8 +56,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 
 func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session)
+		token := getUserToken(t, "user1")
 
 		org := api.CreateOrgOption{
 			UserName:    "user2_org",
@@ -65,15 +67,14 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 			Visibility:  "notvalid",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 }
 
 func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 	defer prepareTestEnv(t)()
-	nonAdminUsername := "user2"
-	session := loginUser(t, nonAdminUsername)
-	token := getTokenForLoggedInUser(t, session)
+
+	token := getUserToken(t, "user2")
 	org := api.CreateOrgOption{
 		UserName:    "user2_org",
 		FullName:    "User2's organization",
@@ -83,5 +84,5 @@ func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
 		Visibility:  "public",
 	}
 	req := NewRequestWithJSON(t, "POST", "/api/v1/admin/users/user2/orgs?token="+token, &org)
-	session.MakeRequest(t, req, http.StatusForbidden)
+	MakeRequest(t, req, http.StatusForbidden)
 }

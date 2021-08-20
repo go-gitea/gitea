@@ -9,26 +9,20 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/setting"
-	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type SearchResults struct {
-	OK   bool        `json:"ok"`
-	Data []*api.User `json:"data"`
-}
-
-func TestAPIUserSearchLoggedIn(t *testing.T) {
+func TestAPIUIUserSearchLoggedIn(t *testing.T) {
 	defer prepareTestEnv(t)()
 	adminUsername := "user1"
-	token := getUserToken(t, adminUsername)
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
 	query := "user2"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
-	resp := MakeRequest(t, req, http.StatusOK)
+	req := NewRequestf(t, "GET", "/api/ui/users/search?token=%s&q=%s", token, query)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
 	DecodeJSON(t, resp, &results)
@@ -39,19 +33,19 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 	}
 }
 
-func TestAPIUserSearchNotLoggedIn(t *testing.T) {
+func TestAPIUIUserSearchNotLoggedIn(t *testing.T) {
 	defer prepareTestEnv(t)()
 	query := "user2"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
+	req := NewRequestf(t, "GET", "/api/ui/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
-	var modelUser *user_model.User
+	var modelUser *models.User
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
-		modelUser = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID}).(*user_model.User)
+		modelUser = models.AssertExistsAndLoadBean(t, &models.User{ID: user.ID}).(*models.User)
 		if modelUser.KeepEmailPrivate {
 			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
 		} else {
@@ -60,14 +54,15 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	}
 }
 
-func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
+func TestAPIUIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	defer prepareTestEnv(t)()
 	adminUsername := "user1"
-	token := getUserToken(t, adminUsername)
+	session := loginUser(t, adminUsername)
+	token := getTokenForLoggedInUser(t, session)
 	query := "user31"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?token=%s&q=%s", token, query)
+	req := NewRequestf(t, "GET", "/api/ui/users/search?token=%s&q=%s", token, query)
 	req.SetBasicAuth(token, "x-oauth-basic")
-	resp := MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults
 	DecodeJSON(t, resp, &results)
@@ -79,10 +74,10 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 	}
 }
 
-func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
+func TestAPIUIUserSearchNotLoggedInUserHidden(t *testing.T) {
 	defer prepareTestEnv(t)()
 	query := "user31"
-	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
+	req := NewRequestf(t, "GET", "/api/ui/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var results SearchResults

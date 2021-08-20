@@ -26,12 +26,11 @@ func TestAPIListIssues(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, owner.Name)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues", owner.Name, repo.Name))
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}}.Encode()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, unittest.GetCount(t, &models.Issue{RepoID: repo.ID}))
@@ -41,7 +40,7 @@ func TestAPIListIssues(t *testing.T) {
 
 	// test milestone filter
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "type": {"all"}, "milestones": {"ignore,milestone1,3,4"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 2) {
 		assert.EqualValues(t, 3, apiIssues[0].Milestone.ID)
@@ -49,21 +48,21 @@ func TestAPIListIssues(t *testing.T) {
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "created_by": {"user2"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 5, apiIssues[0].ID)
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "assigned_by": {"user1"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
 	}
 
 	link.RawQuery = url.Values{"token": {token}, "state": {"all"}, "mentioned_by": {"user4"}}.Encode()
-	resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	if assert.Len(t, apiIssues, 1) {
 		assert.EqualValues(t, 1, apiIssues[0].ID)
@@ -77,15 +76,14 @@ func TestAPICreateIssue(t *testing.T) {
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, owner.Name)
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues?state=all&token=%s", owner.Name, repoBefore.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:     body,
 		Title:    title,
 		Assignee: owner.Name,
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 	assert.Equal(t, body, apiIssue.Body)
@@ -113,8 +111,7 @@ func TestAPIEditIssue(t *testing.T) {
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 
-	session := loginUser(t, owner.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, owner.Name)
 
 	// update values of issue
 	issueState := "closed"
@@ -133,7 +130,7 @@ func TestAPIEditIssue(t *testing.T) {
 
 		// ToDo change more
 	})
-	resp := session.MakeRequest(t, req, http.StatusCreated)
+	resp := MakeRequest(t, req, http.StatusCreated)
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 
@@ -168,10 +165,9 @@ func TestAPIEditIssue(t *testing.T) {
 func TestAPISearchIssues(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user2")
 
-	link, _ := url.Parse("/api/ui/repos/issues/search")
+	link, _ := url.Parse("/api/v1/repos/issues/search")
 	req := NewRequest(t, "GET", link.String())
 	resp := MakeRequest(t, WithToken(req, token), http.StatusOK)
 	var apiIssues []*api.Issue
@@ -243,21 +239,21 @@ func TestAPISearchIssues(t *testing.T) {
 	query = url.Values{"owner": {"user2"}} // user
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 6)
 
 	query = url.Values{"owner": {"user3"}} // organization
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 3)
 
 	query = url.Values{"owner": {"user3"}, "team": {"team1"}} // organization + team
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
@@ -265,27 +261,29 @@ func TestAPISearchIssues(t *testing.T) {
 func TestUISearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
+	token := getUserToken(t, "user1")
 
-	link, _ := url.Parse("/api/ui/repos/issues/search")
+	link, _ := url.Parse("/api/v1/repos/issues/search?token=" + token)
 	req := NewRequest(t, "GET", link.String())
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 
 	assert.Len(t, apiIssues, 10)
 
-	query := url.Values{}
+	query := url.Values{
+		"token": []string{token},
+	}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 10)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -293,7 +291,7 @@ func TestUISearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -301,7 +299,7 @@ func TestUISearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
@@ -310,7 +308,7 @@ func TestUISearchIssuesWithLabels(t *testing.T) {
 	query.Add("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -318,7 +316,7 @@ func TestUISearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
@@ -326,8 +324,7 @@ func TestUISearchIssuesWithLabels(t *testing.T) {
 func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, "user1")
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	req := NewRequest(t, "GET", link.String())

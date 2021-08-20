@@ -32,7 +32,7 @@ func TestAPIOrgCreate(t *testing.T) {
 			Visibility:  "limited",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -51,12 +51,12 @@ func TestAPIOrgCreate(t *testing.T) {
 		})
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 		DecodeJSON(t, resp, &apiOrg)
 		assert.EqualValues(t, org.UserName, apiOrg.UserName)
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 
 		var repos []*api.Repository
 		DecodeJSON(t, resp, &repos)
@@ -65,7 +65,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		}
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		resp = MakeRequest(t, WithToken(req, token), http.StatusOK)
 
 		// user1 on this org is public
 		var users []*api.User
@@ -88,7 +88,7 @@ func TestAPIOrgEdit(t *testing.T) {
 			Visibility:  "private",
 		}
 		req := NewRequestWithJSON(t, "PATCH", "/api/v1/orgs/user3?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)

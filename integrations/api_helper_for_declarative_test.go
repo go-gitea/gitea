@@ -26,18 +26,14 @@ import (
 
 type APITestContext struct {
 	Reponame     string
-	Session      *TestSession
 	Token        string
 	Username     string
 	ExpectedCode int
 }
 
 func NewAPITestContext(t *testing.T, username, reponame string) APITestContext {
-	session := loginUser(t, username)
-	token := getTokenForLoggedInUser(t, session)
 	return APITestContext{
-		Session:  session,
-		Token:    token,
+		Token:    getUserToken(t, username),
 		Username: username,
 		Reponame: reponame,
 	}
@@ -61,10 +57,10 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos?token="+ctx.Token, createRepoOption)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
@@ -78,10 +74,10 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 	return func(t *testing.T) {
 		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
@@ -105,10 +101,10 @@ func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessM
 		}
 		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s?token=%s", ctx.Username, ctx.Reponame, username, ctx.Token), addCollaboratorOption)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
@@ -117,10 +113,10 @@ func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*
 		createForkOption := &api.CreateForkOption{}
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks?token=%s", username, ctx.Reponame, ctx.Token), createForkOption)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusAccepted)
+		resp := MakeRequest(t, req, http.StatusAccepted)
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
 		if len(callback) > 0 {
@@ -135,10 +131,10 @@ func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Rep
 
 		req := NewRequest(t, "GET", urlStr)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
