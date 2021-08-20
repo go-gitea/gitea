@@ -297,6 +297,16 @@ var (
 			Value: nil,
 			Usage: "Scopes to request when to authenticate against this OAuth2 source",
 		},
+		cli.StringFlag{
+			Name:  "required-claim-name",
+			Value: "",
+			Usage: "Claim name that has to be set to allow users to login with this source",
+		},
+		cli.StringFlag{
+			Name:  "required-claim-value",
+			Value: "",
+			Usage: "Claim value that has to be set to allow users to login with this source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -627,6 +637,8 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		IconURL:                       c.String("icon-url"),
 		OverrideLocalTwoFA:            c.Bool("override-local-2fa"),
 		Scopes:                        c.StringSlice("scopes"),
+		RequiredClaimName:             c.String("required-claim-name"),
+		RequiredClaimValue:            c.String("required-claim-value"),
 	}
 }
 
@@ -685,6 +697,14 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("scopes") {
 		oAuth2Config.Scopes = c.StringSlice("scopes")
+	}
+
+	if c.IsSet("required-claim-name") {
+		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
+
+	}
+	if c.IsSet("required-claim-value") {
+		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
 	}
 
 	// update custom URL mapping

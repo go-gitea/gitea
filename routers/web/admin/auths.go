@@ -184,6 +184,8 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		IconURL:                       form.Oauth2IconURL,
 		OverrideLocalTwoFA:            form.OverrideLocalTwoFA,
 		Scopes:                        strings.Split(form.Oauth2Scopes, ","),
+		RequiredClaimName:             form.Oauth2RequiredClaimName,
+		RequiredClaimValue:            form.Oauth2RequiredClaimValue,
 	}
 }
 

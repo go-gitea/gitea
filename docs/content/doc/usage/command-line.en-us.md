@@ -119,6 +119,8 @@ Admin operations:
         - `--icon-url`: Custom icon URL for OAuth2 login source.
         - `--override-local-2fa`: Allow source to override local 2fa. (Optional)
         - `--scopes`: Addtional scopes to request for this OAuth2 source. (Optional)
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
       - Examples:
         - `gitea admin auth add-oauth --name external-github --provider github --key OBTAIN_FROM_SOURCE --secret OBTAIN_FROM_SOURCE`
     - `update-oauth`:
@@ -137,6 +139,8 @@ Admin operations:
         - `--icon-url`: Custom icon URL for OAuth2 login source.
         - `--override-local-2fa`: Allow source to override local 2fa. (Optional)
         - `--scopes`: Addtional scopes to request for this OAuth2 source.
+        - `--required-claim-name`: Claim name that has to be set to allow users to login with this source. (Optional)
+        - `--required-claim-value`: Claim value that has to be set to allow users to login with this source. (Optional)
       - Examples:
         - `gitea admin auth update-oauth --id 1 --name external-github-updated`
     - `add-ldap`: Add new LDAP (via Bind DN) authentication source
