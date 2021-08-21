@@ -242,14 +242,14 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
-	OneDevService                         // 6 onedev service
-	GitBucketService                      // 7 gitbucket service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
 )
 
 // Name represents the service type's name
