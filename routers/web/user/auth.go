@@ -656,6 +656,23 @@ func SignInOAuthCallback(ctx *context.Context) {
 	handleOAuth2SignIn(ctx, loginSource, u, gothUser)
 }
 
+func claimValueToStringSlice(claimValue interface{}) []string {
+	var groups []string
+
+	switch rawGroup := claimValue.(type) {
+	case []string:
+		groups = rawGroup
+	default:
+		str := fmt.Sprintf("%s", rawGroup)
+		if strings.Contains(str, ",") {
+			groups = strings.Split(str, ",")
+		} else {
+			groups = []string{str}
+		}
+	}
+	return groups
+}
+
 func setUserGroupClaims(loginSource *models.LoginSource, u *models.User, gothUser *goth.User) bool {
 
 	source := loginSource.Cfg.(*oauth2.Source)
@@ -668,18 +685,7 @@ func setUserGroupClaims(loginSource *models.LoginSource, u *models.User, gothUse
 		return false
 	}
 
-	var groups []string
-
-	switch rawGroup := groupClaims.(type) {
-	case []string:
-		groups = rawGroup
-	case string:
-		if strings.Contains(rawGroup, ",") {
-			groups = strings.Split(rawGroup, ",")
-		} else {
-			groups = []string{rawGroup}
-		}
-	}
+	groups := claimValueToStringSlice(groupClaims)
 
 	wasAdmin, wasRestricted := u.IsAdmin, u.IsRestricted
 
@@ -844,8 +850,22 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 	if oauth2Source.RequiredClaimName != "" {
 		claimInterface, has := gothUser.RawData[oauth2Source.RequiredClaimName]
-		if !has || (oauth2Source.RequiredClaimValue != "" && claimInterface.(string) != oauth2Source.RequiredClaimValue) {
+		if !has {
 			return nil, goth.User{}, models.ErrUserProhibitLogin{Name: gothUser.UserID}
+		}
+
+		if oauth2Source.RequiredClaimValue != "" {
+			groups := claimValueToStringSlice(claimInterface)
+			found := false
+			for _, group := range groups {
+				if group == oauth2Source.RequiredClaimValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, goth.User{}, models.ErrUserProhibitLogin{Name: gothUser.UserID}
+			}
 		}
 	}
 
