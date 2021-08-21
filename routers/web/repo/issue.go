@@ -1727,9 +1727,12 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	// when update the request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.FormBool("ignore_attachments") {
+		if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
@@ -2127,13 +2130,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-	}
-
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -2155,9 +2151,19 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
+	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.FormBool("ignore_attachments") {
+		if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
