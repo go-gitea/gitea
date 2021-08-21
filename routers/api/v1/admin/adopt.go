@@ -5,7 +5,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -47,8 +46,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 	}
 
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count")
+	ctx.SetTotalCountHeader(int64(count))
 
 	ctx.JSON(http.StatusOK, repoNames)
 }

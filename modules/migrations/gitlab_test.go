@@ -36,7 +36,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
 	// Repo Owner is blank in Gitlab Group repos
-	assert.EqualValues(t, &base.Repository{
+	assertRepositoryEqual(t, &base.Repository{
 		Name:          "test_repo",
 		Owner:         "",
 		Description:   "Test repository for testing migration from gitlab to gitea",
@@ -52,56 +52,66 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
-	assert.True(t, len(milestones) >= 2)
-
-	for _, milestone := range milestones {
-		switch milestone.Title {
-		case "1.0":
-			assertMilestoneEqual(t, "", "1.0",
-				"",
-				"2019-11-28 08:42:30.301 +0000 UTC",
-				"2019-11-28 15:57:52.401 +0000 UTC",
-				"",
-				"closed", milestone)
-		case "1.1.0":
-			assertMilestoneEqual(t, "", "1.1.0",
-				"",
-				"2019-11-28 08:42:44.575 +0000 UTC",
-				"2019-11-28 08:42:44.575 +0000 UTC",
-				"",
-				"active", milestone)
-		}
-	}
+	assertMilestonesEqual(t, []*base.Milestone{
+		{
+			Title:   "1.1.0",
+			Created: time.Date(2019, 11, 28, 8, 42, 44, 575000000, time.UTC),
+			Updated: timePtr(time.Date(2019, 11, 28, 8, 42, 44, 575000000, time.UTC)),
+			State:   "active",
+		},
+		{
+			Title:   "1.0.0",
+			Created: time.Date(2019, 11, 28, 8, 42, 30, 301000000, time.UTC),
+			Updated: timePtr(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
+			Closed:  timePtr(time.Date(2019, 11, 28, 15, 57, 52, 401000000, time.UTC)),
+			State:   "closed",
+		},
+	}, milestones)
 
 	labels, err := downloader.GetLabels()
 	assert.NoError(t, err)
-	assert.True(t, len(labels) >= 9)
-	for _, l := range labels {
-		switch l.Name {
-		case "bug":
-			assertLabelEqual(t, "bug", "d9534f", "", l)
-		case "documentation":
-			assertLabelEqual(t, "documentation", "f0ad4e", "", l)
-		case "confirmed":
-			assertLabelEqual(t, "confirmed", "d9534f", "", l)
-		case "enhancement":
-			assertLabelEqual(t, "enhancement", "5cb85c", "", l)
-		case "critical":
-			assertLabelEqual(t, "critical", "d9534f", "", l)
-		case "discussion":
-			assertLabelEqual(t, "discussion", "428bca", "", l)
-		case "suggestion":
-			assertLabelEqual(t, "suggestion", "428bca", "", l)
-		case "support":
-			assertLabelEqual(t, "support", "f0ad4e", "", l)
-		case "duplicate":
-			assertLabelEqual(t, "duplicate", "7F8C8D", "", l)
-		}
-	}
+	assertLabelsEqual(t, []*base.Label{
+		{
+			Name:  "bug",
+			Color: "d9534f",
+		},
+		{
+			Name:  "confirmed",
+			Color: "d9534f",
+		},
+		{
+			Name:  "critical",
+			Color: "d9534f",
+		},
+		{
+			Name:  "discussion",
+			Color: "428bca",
+		},
+		{
+			Name:  "documentation",
+			Color: "f0ad4e",
+		},
+		{
+			Name:  "duplicate",
+			Color: "7f8c8d",
+		},
+		{
+			Name:  "enhancement",
+			Color: "5cb85c",
+		},
+		{
+			Name:  "suggestion",
+			Color: "428bca",
+		},
+		{
+			Name:  "support",
+			Color: "f0ad4e",
+		},
+	}, labels)
 
 	releases, err := downloader.GetReleases()
 	assert.NoError(t, err)
-	assert.EqualValues(t, []*base.Release{
+	assertReleasesEqual(t, []*base.Release{
 		{
 			TagName:         "v0.9.99",
 			TargetCommitish: "0720a3ec57c1f843568298117b874319e7deee75",
@@ -111,18 +121,13 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			PublisherID:     1241334,
 			PublisherName:   "lafriks",
 		},
-	}, releases[len(releases)-1:])
+	}, releases)
 
 	issues, isEnd, err := downloader.GetIssues(1, 2)
 	assert.NoError(t, err)
-	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
 
-	var (
-		closed1 = time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC)
-		closed2 = time.Date(2019, 11, 28, 8, 45, 44, 959000000, time.UTC)
-	)
-	assert.EqualValues(t, []*base.Issue{
+	assertIssuesEqual(t, []*base.Issue{
 		{
 			Number:     1,
 			Title:      "Please add an animated gif icon to the merge button",
@@ -152,7 +157,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					UserName: "lafriks",
 					Content:  "open_mouth",
 				}},
-			Closed: &closed1,
+			Closed: timePtr(time.Date(2019, 11, 28, 8, 46, 23, 275000000, time.UTC)),
 		},
 		{
 			Number:     2,
@@ -200,7 +205,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 					UserName: "lafriks",
 					Content:  "hearts",
 				}},
-			Closed: &closed2,
+			Closed: timePtr(time.Date(2019, 11, 28, 8, 45, 44, 959000000, time.UTC)),
 		},
 	}, issues)
 
@@ -208,8 +213,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		IssueNumber: 2,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, comments, 4)
-	assert.EqualValues(t, []*base.Comment{
+	assertCommentsEqual(t, []*base.Comment{
 		{
 			IssueIndex: 2,
 			PosterID:   1241334,
@@ -242,13 +246,11 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			Content:    "A second comment",
 			Reactions:  nil,
 		},
-	}, comments[:4])
+	}, comments)
 
 	prs, _, err := downloader.GetPullRequests(1, 1)
 	assert.NoError(t, err)
-	assert.Len(t, prs, 1)
-
-	assert.EqualValues(t, []*base.PullRequest{
+	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
 			Number:         4,
 			OriginalNumber: 2,
@@ -296,27 +298,29 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	rvs, err := downloader.GetReviews(1)
 	assert.NoError(t, err)
-	if assert.Len(t, rvs, 2) {
-		for i := range rvs {
-			switch rvs[i].ReviewerID {
-			case 4102996:
-				assert.EqualValues(t, "zeripath", rvs[i].ReviewerName)
-				assert.EqualValues(t, "APPROVED", rvs[i].State)
-			case 527793:
-				assert.EqualValues(t, "axifive", rvs[i].ReviewerName)
-				assert.EqualValues(t, "APPROVED", rvs[i].State)
-			default:
-				t.Errorf("Unexpected Reviewer ID: %d", rvs[i].ReviewerID)
+	assertReviewsEqual(t, []*base.Review{
+		{
+			ReviewerID:   4102996,
+			ReviewerName: "zeripath",
+			CreatedAt:    time.Date(2019, 11, 28, 16, 02, 8, 377000000, time.UTC),
+			State:        "APPROVED",
+		},
+		{
+			ReviewerID:   527793,
+			ReviewerName: "axifive",
+			CreatedAt:    time.Date(2019, 11, 28, 16, 02, 8, 377000000, time.UTC),
+			State:        "APPROVED",
+		},
+	}, rvs)
 
-			}
-		}
-	}
 	rvs, err = downloader.GetReviews(2)
 	assert.NoError(t, err)
-	if assert.Len(t, prs, 1) {
-		assert.EqualValues(t, 4575606, rvs[0].ReviewerID)
-		assert.EqualValues(t, "real6543", rvs[0].ReviewerName)
-		assert.EqualValues(t, "APPROVED", rvs[0].State)
-	}
-
+	assertReviewsEqual(t, []*base.Review{
+		{
+			ReviewerID:   4575606,
+			ReviewerName: "real6543",
+			CreatedAt:    time.Date(2020, 04, 19, 19, 24, 21, 108000000, time.UTC),
+			State:        "APPROVED",
+		},
+	}, rvs)
 }

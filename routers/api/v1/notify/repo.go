@@ -108,6 +108,12 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	}
 	opts.RepoID = ctx.Repo.Repository.ID
 
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -118,6 +124,8 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(totalCount)
 
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }

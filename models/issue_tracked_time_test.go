@@ -38,27 +38,27 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	// by Issue
-	times, err := GetTrackedTimes(FindTrackedTimesOptions{IssueID: 1})
+	times, err := GetTrackedTimes(&FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 1)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{IssueID: -1})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{IssueID: -1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by User
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 1})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{UserID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{UserID: 3})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{UserID: 3})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by Repo
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 2})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(1), times[0].Time)
@@ -66,11 +66,11 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, issue.RepoID, int64(2))
 
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 1})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 5)
 
-	times, err = GetTrackedTimes(FindTrackedTimesOptions{RepositoryID: 10})
+	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 10})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 }
@@ -78,7 +78,7 @@ func TestGetTrackedTimes(t *testing.T) {
 func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	total, err := TotalTimes(FindTrackedTimesOptions{IssueID: 1})
+	total, err := TotalTimes(&FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -86,7 +86,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.Equal(t, "6min 40s", time)
 	}
 
-	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 2})
+	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 	for user, time := range total {
@@ -99,7 +99,7 @@ func TestTotalTimes(t *testing.T) {
 		}
 	}
 
-	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 5})
+	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 5})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -107,7 +107,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.Equal(t, "1s", time)
 	}
 
-	total, err = TotalTimes(FindTrackedTimesOptions{IssueID: 4})
+	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 }

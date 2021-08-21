@@ -269,7 +269,7 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, error) {
+func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, int64, error) {
 	sess := x.
 		Where("uid=?", uid).
 		Desc("id")
@@ -278,11 +278,13 @@ func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Applic
 		sess = listOptions.setSessionPagination(sess)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
-		return apps, sess.Find(&apps)
+		total, err := sess.FindAndCount(&apps)
+		return apps, total, err
 	}
 
 	apps := make([]*OAuth2Application, 0, 5)
-	return apps, sess.Find(&apps)
+	total, err := sess.FindAndCount(&apps)
+	return apps, total, err
 }
 
 //////////////////////////////////////////////////////

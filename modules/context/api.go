@@ -181,6 +181,23 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 
 	if len(links) > 0 {
 		ctx.Header().Set("Link", strings.Join(links, ","))
+		ctx.AppendAccessControlExposeHeaders("Link")
+	}
+}
+
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *APIContext) SetTotalCountHeader(total int64) {
+	ctx.Header().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.Header().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.Header().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.Header().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
 	}
 }
 

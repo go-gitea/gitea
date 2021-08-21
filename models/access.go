@@ -246,7 +246,7 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.getTeams(e); err != nil {
+	if err = repo.Owner.loadTeams(e); err != nil {
 		return err
 	}
 

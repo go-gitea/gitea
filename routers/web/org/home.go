@@ -107,7 +107,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	var opts = &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
 		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
@@ -122,7 +122,7 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(&opts)
+	members, _, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
