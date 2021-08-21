@@ -113,7 +113,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		return nil
 	}
 
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
 		return nil
 	}
 
@@ -133,4 +133,14 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user
+}
+
+func isAuthenticatedTokenRequest(req *http.Request) bool {
+	switch req.URL.Path {
+	case "/login/oauth/userinfo":
+		fallthrough
+	case "/login/oauth/introspect":
+		return true
+	}
+	return false
 }
