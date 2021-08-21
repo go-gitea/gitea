@@ -428,6 +428,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Closed:      issue.ClosedAt,
 			IsLocked:    issue.GetLocked(),
 			Assignees:   assignees,
+			Context:     base.BasicIssueContext(*issue.Number),
 		})
 	}
 
@@ -441,15 +442,15 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	if opts.IssueNumber > 0 {
-		comments, err := g.getComments(opts.IssueNumber)
+	if opts.Context != nil {
+		comments, err := g.getComments(opts.Context)
 		return comments, false, err
 	}
 
 	return g.GetAllComments(opts.Page, opts.PageSize)
 }
 
-func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, error) {
+func (g *GithubDownloaderV3) getComments(issueContext base.IssueContext) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -464,7 +465,7 @@ func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, er
 	}
 	for {
 		g.sleep()
-		comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueNumber), opt)
+		comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueContext.ForeignID()), opt)
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
@@ -495,7 +496,7 @@ func (g *GithubDownloaderV3) getComments(issueNumber int64) ([]*base.Comment, er
 			}
 
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  issueNumber,
+				IssueIndex:  issueContext.LocalID(),
 				PosterID:    comment.GetUser().GetID(),
 				PosterName:  comment.GetUser().GetLogin(),
 				PosterEmail: comment.GetUser().GetEmail(),
@@ -661,6 +662,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			},
 			PatchURL:  pr.GetPatchURL(),
 			Reactions: reactions,
+			Context:   base.BasicIssueContext(*pr.Number),
 		})
 	}
 
@@ -724,28 +726,28 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
+func (g *GithubDownloaderV3) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}
 	for {
 		g.sleep()
-		reviews, resp, err := g.client.PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), opt)
+		reviews, resp, err := g.client.PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(context.ForeignID()), opt)
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
 		g.rate = &resp.Rate
 		for _, review := range reviews {
 			r := convertGithubReview(review)
-			r.IssueIndex = pullRequestNumber
+			r.IssueIndex = context.LocalID()
 			// retrieve all review comments
 			opt2 := &github.ListOptions{
 				PerPage: g.maxPerPage,
 			}
 			for {
 				g.sleep()
-				reviewComments, resp, err := g.client.PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), review.GetID(), opt2)
+				reviewComments, resp, err := g.client.PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(context.ForeignID()), review.GetID(), opt2)
 				if err != nil {
 					return nil, fmt.Errorf("error while listing repos: %v", err)
 				}
