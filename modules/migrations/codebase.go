@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -51,7 +52,7 @@ func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOp
 
 	log.Trace("Create onedev downloader. BaseURL: %v RepoName: %s", u, repoName)
 
-	return NewCodebaseDownloader(ctx, project, repoName, opts.AuthUsername, opts.AuthPassword), nil
+	return NewCodebaseDownloader(ctx, u, project, repoName, opts.AuthUsername, opts.AuthPassword), nil
 }
 
 // GitServiceType returns the type of git service
@@ -72,6 +73,7 @@ type CodebaseDownloader struct {
 	ctx           context.Context
 	client        *http.Client
 	baseURL       *url.URL
+	projectURL    *url.URL
 	project       string
 	repoName      string
 	repoID        int64
@@ -86,21 +88,22 @@ func (d *CodebaseDownloader) SetContext(ctx context.Context) {
 }
 
 // NewCodebaseDownloader creates a new downloader
-func NewCodebaseDownloader(ctx context.Context, project, repoName, username, password string) *CodebaseDownloader {
+func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, repoName, username, password string) *CodebaseDownloader {
 	baseURL, _ := url.Parse("https://api3.codebasehq.com")
 
 	var downloader = &CodebaseDownloader{
-		ctx:      ctx,
-		baseURL:  baseURL,
-		project:  project,
-		repoName: repoName,
+		ctx:        ctx,
+		baseURL:    baseURL,
+		projectURL: projectURL,
+		project:    project,
+		repoName:   repoName,
 		client: &http.Client{
 			Transport: &http.Transport{
 				Proxy: func(req *http.Request) (*url.URL, error) {
 					if len(username) > 0 && len(password) > 0 {
 						req.SetBasicAuth(username, password)
 					}
-					return nil, nil
+					return proxy.Proxy()(req)
 				},
 			},
 		},
@@ -166,16 +169,11 @@ func (d *CodebaseDownloader) GetRepoInfo() (*base.Repository, error) {
 		return nil, err
 	}
 
-	/*originalURL, err := d.baseURL.Parse("/projects/" + rawRepository.Name)
-	if err != nil {
-		return nil, err
-	}*/
-
 	return &base.Repository{
 		Name:        rawRepository.Name,
 		Description: rawRepository.Description,
-		//CloneURL:    rawRepository.CloneURL,
-		//OriginalURL: originalURL.String(),
+		CloneURL:    d.projectURL.String(),
+		OriginalURL: d.projectURL.String(),
 	}, nil
 }
 
@@ -261,7 +259,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 	var labels = make([]*base.Label, 0, len(rawTypes.TicketingType))
 	for _, label := range rawTypes.TicketingType {
 		labels = append(labels, &base.Label{
-			Name: label.Name,
+			Name:  label.Name,
 			Color: "ffffff",
 		})
 	}
