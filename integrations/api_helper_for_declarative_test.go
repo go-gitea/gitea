@@ -43,6 +43,10 @@ func (ctx APITestContext) GitPath() string {
 	return fmt.Sprintf("%s/%s.git", ctx.Username, ctx.Reponame)
 }
 
+func (ctx APITestContext) MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
+	return MakeRequest(t, WithToken(req, ctx.Token), expectedStatus)
+}
+
 func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		createRepoOption := &api.CreateRepoOption{
@@ -150,10 +154,10 @@ func doAPIDeleteRepository(ctx APITestContext) func(*testing.T) {
 
 		req := NewRequest(t, "DELETE", urlStr)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
@@ -168,10 +172,10 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 			Key:   string(dataPubKey),
 		})
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 		var publicKey api.PublicKey
 		DecodeJSON(t, resp, &publicKey)
 		if len(callback) > 0 {
@@ -186,10 +190,10 @@ func doAPIDeleteUserKey(ctx APITestContext, keyID int64) func(*testing.T) {
 
 		req := NewRequest(t, "DELETE", urlStr)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
@@ -206,10 +210,10 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 		})
 
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		MakeRequest(t, req, http.StatusCreated)
 	}
 }
 
@@ -246,7 +250,7 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 		if ctx.ExpectedCode != 0 {
 			expected = ctx.ExpectedCode
 		}
-		resp := ctx.Session.MakeRequest(t, req, expected)
+		resp := MakeRequest(t, req, expected)
 
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
@@ -259,7 +263,6 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
 			owner, repo, index, ctx.Token)
-
 		var req *http.Request
 		var resp *httptest.ResponseRecorder
 
@@ -269,7 +272,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 				Do:                string(repo_model.MergeStyleMerge),
 			})
 
-			resp = ctx.Session.MakeRequest(t, req, NoExpectedStatus)
+			resp = MakeRequest(t, req, NoExpectedStatus)
 
 			if resp.Code != http.StatusMethodNotAllowed {
 				break
@@ -314,10 +317,10 @@ func doAPIGetBranch(ctx APITestContext, branch string, callback ...func(*testing
 	return func(t *testing.T) {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/branches/%s?token=%s", ctx.Username, ctx.Reponame, branch, ctx.Token)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		resp := MakeRequest(t, req, http.StatusOK)
 
 		var branch api.Branch
 		DecodeJSON(t, resp, &branch)
@@ -332,10 +335,10 @@ func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFil
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", ctx.Username, ctx.Reponame, treepath, ctx.Token)
 		req := NewRequestWithJSON(t, "POST", url, &options)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var contents api.FileResponse
 		DecodeJSON(t, resp, &contents)
@@ -351,10 +354,10 @@ func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, c
 
 		req := NewRequestWithJSON(t, "POST", url, &options)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var contents api.Organization
 		DecodeJSON(t, resp, &contents)
@@ -370,10 +373,10 @@ func doAPICreateOrganizationRepository(ctx APITestContext, orgName string, optio
 
 		req := NewRequestWithJSON(t, "POST", url, &options)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var contents api.Repository
 		DecodeJSON(t, resp, &contents)
@@ -389,10 +392,10 @@ func doAPICreateOrganizationTeam(ctx APITestContext, orgName string, options *ap
 
 		req := NewRequestWithJSON(t, "POST", url, &options)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var contents api.Team
 		DecodeJSON(t, resp, &contents)
@@ -408,10 +411,10 @@ func doAPIAddUserToOrganizationTeam(ctx APITestContext, teamID int64, username s
 
 		req := NewRequest(t, "PUT", url)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
@@ -421,9 +424,9 @@ func doAPIAddRepoToOrganizationTeam(ctx APITestContext, teamID int64, orgName, r
 
 		req := NewRequest(t, "PUT", url)
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusNoContent)
+		MakeRequest(t, req, http.StatusNoContent)
 	}
 }

@@ -95,9 +95,6 @@ func repoAssignment() func(ctx *context.APIContext) {
 // Contexter middleware already checks token for user sign in process.
 func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		if true == ctx.Data["IsApiToken"] {
-			return
-		}
 		if ctx.Context.IsBasicAuth {
 			ctx.CheckForOTP()
 			return
@@ -306,7 +303,7 @@ func Routes(sess func(next http.Handler) http.Handler) *web.Route {
 		// Notifications
 		m.Group("/notifications", func() {
 			m.Get("/new", notify.NewAvailable)
-		}, reqToken())
+		})
 
 		// Users
 		m.Group("/users", func() {
@@ -315,7 +312,7 @@ func Routes(sess func(next http.Handler) http.Handler) *web.Route {
 
 		m.Group("/user", func() {
 			m.Get("/stopwatches", repo.GetStopwatches)
-		}, reqToken())
+		})
 
 		// Repositories
 		m.Group("/repos", func() {

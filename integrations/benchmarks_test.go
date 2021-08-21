@@ -45,7 +45,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 					for i := 0; i < b.N; i++ {
 						b.Run("new_"+branchName, func(b *testing.B) {
 							b.Skip("benchmark broken") // TODO fix
-							testAPICreateBranch(b, session, repo.OwnerName, repo.Name, repo.DefaultBranch, "new_"+branchName, http.StatusCreated)
+							testAPICreateBranch(b, repo.OwnerName, repo.Name, repo.DefaultBranch, "new_"+branchName, http.StatusCreated)
 						})
 					}
 				})
