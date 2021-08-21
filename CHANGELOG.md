@@ -48,7 +48,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add LFS Migration and Mirror (#14726)
   * Improve notifications for WIP draft PR's (#14663)
   * Disable Stars config option (#14653)
-  * Add option to provide signature for a token to verify key ownership (#14054)
+  * GPG Key Ownership verification with Signed Token (#14054)
   * OAuth2 auto-register (#5123)
 * API
   * Return updated repository when changing repository using API (#16420)
