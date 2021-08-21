@@ -7,7 +7,6 @@ package templates
 
 import (
 	"bytes"
-	"container/list"
 	"errors"
 	"fmt"
 	"html"
@@ -126,7 +125,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"SizeFmt":  base.FileSize,
 		"CountFmt": base.FormatNumberSI,
-		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -297,18 +295,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
 		"MirrorRemoteAddress": mirrorRemoteAddress,
-		"CommitType": func(commit interface{}) string {
-			switch commit.(type) {
-			case models.SignCommitWithStatuses:
-				return "SignCommitWithStatuses"
-			case models.SignCommit:
-				return "SignCommit"
-			case models.UserCommit:
-				return "UserCommit"
-			default:
-				return ""
-			}
-		},
 		"NotificationSettings": func() map[string]interface{} {
 			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -428,7 +414,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"List": List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -634,20 +619,6 @@ func Escape(raw string) string {
 // JSEscape escapes a JS string
 func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
-}
-
-// List traversings the list
-func List(l *list.List) chan interface{} {
-	e := l.Front()
-	c := make(chan interface{})
-	go func() {
-		for e != nil {
-			c <- e.Value
-			e = e.Next()
-		}
-		close(c)
-	}()
-	return c
 }
 
 // Sha1 returns sha1 sum of string

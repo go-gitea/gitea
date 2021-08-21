@@ -254,6 +254,13 @@ type swaggerCommitList struct {
 	Body []api.Commit `json:"body"`
 }
 
+// Note
+// swagger:response Note
+type swaggerNote struct {
+	// in: body
+	Body api.Note `json:"body"`
+}
+
 // EmptyRepository
 // swagger:response EmptyRepository
 type swaggerEmptyRepository struct {

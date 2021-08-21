@@ -54,14 +54,14 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, models.RepositoryReady, repo.Status)
 
-	milestones, err := models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err := models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateOpen,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, milestones, 1)
 
-	milestones, err = models.GetMilestones(models.GetMilestonesOption{
+	milestones, _, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
 		State:  structs.StateClosed,
 	})
@@ -70,7 +70,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
 	assert.NoError(t, err)
-	assert.Len(t, labels, 11)
+	assert.Len(t, labels, 12)
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
@@ -98,7 +98,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
-	assert.Len(t, issues, 14)
+	assert.Len(t, issues, 15)
 	assert.NoError(t, issues[0].LoadDiscussComments())
 	assert.Empty(t, issues[0].Comments)
 
@@ -106,7 +106,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)
-	assert.Len(t, pulls, 34)
+	assert.Len(t, pulls, 30)
 	assert.NoError(t, pulls[0].LoadIssue())
 	assert.NoError(t, pulls[0].Issue.LoadDiscussComments())
 	assert.Len(t, pulls[0].Issue.Comments, 2)

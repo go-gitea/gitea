@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
@@ -84,8 +85,13 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	}
 
 	err := models.CreateUser(user)
+	if err != nil {
+		return user, err
+	}
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
+	mailer.SendRegisterNotifyMail(user)
+
+	if isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
 		err = models.RewriteAllPublicKeys()
 	}
 

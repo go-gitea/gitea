@@ -16,8 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
+	"xorm.io/builder"
 )
 
 // HookContentType is the content type of a web hook
@@ -387,53 +389,51 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 	})
 }
 
-// GetActiveWebhooksByRepoID returns all active webhooks of repository.
-func GetActiveWebhooksByRepoID(repoID int64) ([]*Webhook, error) {
-	return getActiveWebhooksByRepoID(x, repoID)
+// ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
+type ListWebhookOptions struct {
+	ListOptions
+	RepoID   int64
+	OrgID    int64
+	IsActive util.OptionalBool
 }
 
-func getActiveWebhooksByRepoID(e Engine, repoID int64) ([]*Webhook, error) {
-	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, e.Where("is_active=?", true).
-		Find(&webhooks, &Webhook{RepoID: repoID})
+func (opts *ListWebhookOptions) toCond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"webhook.repo_id": opts.RepoID})
+	}
+	if opts.OrgID != 0 {
+		cond = cond.And(builder.Eq{"webhook.org_id": opts.OrgID})
+	}
+	if !opts.IsActive.IsNone() {
+		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.IsTrue()})
+	}
+	return cond
 }
 
-// GetWebhooksByRepoID returns all webhooks of a repository.
-func GetWebhooksByRepoID(repoID int64, listOptions ListOptions) ([]*Webhook, error) {
-	if listOptions.Page == 0 {
-		webhooks := make([]*Webhook, 0, 5)
-		return webhooks, x.Find(&webhooks, &Webhook{RepoID: repoID})
+func listWebhooksByOpts(e Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
+	sess := e.Where(opts.toCond())
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+		webhooks := make([]*Webhook, 0, opts.PageSize)
+		err := sess.Find(&webhooks)
+		return webhooks, err
 	}
 
-	sess := listOptions.getPaginatedSession()
-	webhooks := make([]*Webhook, 0, listOptions.PageSize)
-
-	return webhooks, sess.Find(&webhooks, &Webhook{RepoID: repoID})
+	webhooks := make([]*Webhook, 0, 10)
+	err := sess.Find(&webhooks)
+	return webhooks, err
 }
 
-// GetActiveWebhooksByOrgID returns all active webhooks for an organization.
-func GetActiveWebhooksByOrgID(orgID int64) (ws []*Webhook, err error) {
-	return getActiveWebhooksByOrgID(x, orgID)
+// ListWebhooksByOpts return webhooks based on options
+func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
+	return listWebhooksByOpts(x, opts)
 }
 
-func getActiveWebhooksByOrgID(e Engine, orgID int64) (ws []*Webhook, err error) {
-	err = e.
-		Where("org_id=?", orgID).
-		And("is_active=?", true).
-		Find(&ws)
-	return ws, err
-}
-
-// GetWebhooksByOrgID returns paginated webhooks for an organization.
-func GetWebhooksByOrgID(orgID int64, listOptions ListOptions) ([]*Webhook, error) {
-	if listOptions.Page == 0 {
-		ws := make([]*Webhook, 0, 5)
-		return ws, x.Find(&ws, &Webhook{OrgID: orgID})
-	}
-
-	sess := listOptions.getPaginatedSession()
-	ws := make([]*Webhook, 0, listOptions.PageSize)
-	return ws, sess.Find(&ws, &Webhook{OrgID: orgID})
+// CountWebhooksByOpts count webhooks based on options and ignore pagination
+func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Webhook{})
 }
 
 // GetDefaultWebhooks returns all admin-default webhooks.

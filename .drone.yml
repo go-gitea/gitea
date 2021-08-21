@@ -65,7 +65,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -93,7 +93,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -106,7 +106,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -118,7 +118,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -193,7 +193,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make backend
     environment:
@@ -208,7 +208,7 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -218,7 +218,7 @@ steps:
         from_secret: github_read_token
 
   - name: unit-test-race
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make test-backend
     environment:
@@ -230,7 +230,7 @@ steps:
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -277,7 +277,7 @@ steps:
       - build
 
   - name: generate-coverage
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make coverage
     environment:
@@ -351,7 +351,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make backend
     environment:
@@ -463,7 +463,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 

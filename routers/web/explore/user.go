@@ -7,7 +7,6 @@ package explore
 import (
 	"bytes"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -44,8 +43,8 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Form("sort")
-	switch ctx.Form("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByIDReverse
 	case "oldest":
@@ -63,7 +62,7 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		orderBy = models.SearchOrderByAlphabetically
 	}
 
-	opts.Keyword = strings.Trim(ctx.Form("q"), " ")
+	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)

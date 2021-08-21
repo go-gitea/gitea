@@ -55,7 +55,7 @@ func TeamsAction(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.Form("page")
+	page := ctx.FormString("page")
 	var err error
 	switch ctx.Params(":action") {
 	case "join":
@@ -78,7 +78,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Form("uname")))
+		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
 		var u *models.User
 		u, err = models.GetUserByName(uname)
 		if err != nil {
@@ -140,7 +140,7 @@ func TeamsRepoAction(ctx *context.Context) {
 	action := ctx.Params(":action")
 	switch action {
 	case "add":
-		repoName := path.Base(ctx.Form("repo_name"))
+		repoName := path.Base(ctx.FormString("repo_name"))
 		var repo *models.Repository
 		repo, err = models.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
 		if err != nil {
