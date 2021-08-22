@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -591,6 +592,8 @@ type DiffFile struct {
 	IsIncomplete            bool
 	IsIncompleteLineTooLong bool
 	IsProtected             bool
+	IsGenerated             bool
+	IsVendored              bool
 }
 
 // GetType returns type of diff file.
@@ -1260,7 +1263,77 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
+
+	var checker *git.CheckAttributeReader
+
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+
+			checker = &git.CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated"},
+				Repo:       gitRepo,
+				IndexFile:  indexFilename,
+			}
+			ctx, cancel := context.WithCancel(git.DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil {
+						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+						cancel()
+					} else {
+						log.Info("Done")
+					}
+				}()
+			}
+			defer func() {
+				log.Info("Cancelling the diff context")
+				cancel()
+			}()
+		}
+	}
+
 	for _, diffFile := range diff.Files {
+
+		gotVendor := false
+		gotGenerated := false
+		if checker != nil {
+			log.Info("Checking %s", diffFile.Name)
+			attrs, err := checker.CheckPath(diffFile.Name)
+			log.Info("%v, %v", attrs, err)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						diffFile.IsVendored = true
+						gotVendor = true
+					} else {
+						gotVendor = vendored == "false"
+					}
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						diffFile.IsGenerated = true
+						gotGenerated = true
+					} else {
+						gotGenerated = generated == "false"
+					}
+				}
+			} else {
+				log.Error("Unexpected error: %v", err)
+			}
+		}
+
+		if !gotVendor {
+			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		}
+		if !gotGenerated {
+			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		}
+
 		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
