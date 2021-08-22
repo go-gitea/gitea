@@ -76,7 +76,6 @@ type CodebaseDownloader struct {
 	projectURL    *url.URL
 	project       string
 	repoName      string
-	repoID        int64
 	maxIssueIndex int64
 	userMap       map[int64]*codebaseUser
 	commitMap     map[string]string
@@ -115,7 +114,7 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 }
 
 // FormatCloneURL add authentification into remote URLs
-func (g *CodebaseDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+func (d *CodebaseDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
 	return opts.CloneAddr, nil
 }
 
