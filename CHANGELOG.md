@@ -229,6 +229,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix wrong user in OpenID response (#16736) (#16741)
   * Do not use thin scrollbars on Firefox (#16738) (#16745)
   * Recreate Tables should Recreate indexes on MySQL (#16718) (#16739)
+  * Keep attachments on tasklist update (#16750) (#16757)
 * TESTING
   * Bump `postgres` and `mysql` versions (#15710)
   * Add tests for clone from wiki (#15513)
