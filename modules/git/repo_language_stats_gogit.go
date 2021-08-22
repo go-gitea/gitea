@@ -9,6 +9,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 
