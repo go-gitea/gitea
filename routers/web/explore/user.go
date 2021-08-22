@@ -62,8 +62,15 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		orderBy = models.SearchOrderByAlphabetically
 	}
 
+	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
+	statusFilterMap := map[string]string{}
+	for _, filterKey := range statusFilterKeys {
+		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+	}
+
 	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
+	opts.StatusFilterMap = statusFilterMap
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)
 		if err != nil {
@@ -71,7 +78,9 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 			return
 		}
 	}
+
 	ctx.Data["Keyword"] = opts.Keyword
+	ctx.Data["StatusFilterMap"] = statusFilterMap
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
 	ctx.Data["UsersTwoFaStatus"] = models.UserList(users).GetTwoFaStatus()

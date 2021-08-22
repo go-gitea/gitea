@@ -1588,14 +1588,15 @@ func GetUser(user *User) (bool, error) {
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	ListOptions
-	Keyword       string
-	Type          UserType
-	UID           int64
-	OrderBy       SearchOrderBy
-	Visible       []structs.VisibleType
-	Actor         *User // The user doing the search
-	IsActive      util.OptionalBool
-	SearchByEmail bool // Search by email as well as username/full name
+	Keyword         string
+	StatusFilterMap map[string]string // Admin can apply advanced search filters
+	Type            UserType
+	UID             int64
+	OrderBy         SearchOrderBy
+	Visible         []structs.VisibleType
+	Actor           *User // The user doing the search
+	IsActive        util.OptionalBool
+	SearchByEmail   bool // Search by email as well as username/full name
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1643,8 +1644,35 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			// Don't forget about self
 			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
 			cond = cond.And(accessCond)
+		} else {
+			// Admin can apply advanced filters
+			for filterKey, filterValue := range opts.StatusFilterMap {
+				if filterValue == "" {
+					continue
+				}
+				if filterKey == "is_active" {
+					cond = cond.And(builder.Eq{"is_active": filterValue})
+				} else if filterKey == "is_admin" {
+					cond = cond.And(builder.Eq{"is_admin": filterValue})
+				} else if filterKey == "is_restricted" {
+					cond = cond.And(builder.Eq{"is_restricted": filterValue})
+				} else if filterKey == "is_prohibit_login" {
+					cond = cond.And(builder.Eq{"prohibit_login": filterValue})
+				} else if filterKey == "is_2fa_enabled" {
+					// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+					var twoFactorCond builder.Cond
+					twoFactorBuilder := builder.Select("uid").From("two_factor").Where(builder.And(builder.Expr("two_factor.uid = user.id")))
+					if filterValue == "1" {
+						twoFactorCond = builder.In("id", twoFactorBuilder)
+					} else {
+						twoFactorCond = builder.NotIn("id", twoFactorBuilder)
+					}
+					cond = cond.And(twoFactorCond)
+				} else {
+					log.Critical("Unknown admin user search filter: %v=%v", filterKey, filterValue)
+				}
+			}
 		}
-
 	} else {
 		// Force visibility for privacy
 		// Not logged in - only public users
