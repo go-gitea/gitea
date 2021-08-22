@@ -17,16 +17,13 @@ func alterIssueAndCommentTextFieldsToLongText(x *xorm.Engine) error {
 		return err
 	}
 
-	switch {
-	case setting.Database.UseMySQL:
+	if setting.Database.UseMySQL {
 		if _, err := sess.Exec("ALTER TABLE `issue` CHANGE `content` `content` LONGTEXT"); err != nil {
 			return err
 		}
 		if _, err := sess.Exec("ALTER TABLE `comment` CHANGE `content` `content` LONGTEXT, CHANGE `patch` `patch` LONGTEXT"); err != nil {
 			return err
 		}
-	default:
-		// only MySQL needs to widen the TEXT limitation. pgsql/mssql/sqlite do not have such limitation.
 	}
 	return sess.Commit()
 }
