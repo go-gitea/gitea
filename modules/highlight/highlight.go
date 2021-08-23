@@ -116,8 +116,8 @@ func Code(fileName, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
-// File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
-func File(numLines int, fileName string, code []byte) map[int]string {
+// File returns a slice of chroma syntax highlighted lines of code
+func File(numLines int, fileName string, code []byte) []string {
 	NewContext()
 
 	if len(code) > sizeLimit {
@@ -171,9 +171,8 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		finalNewLine = code[len(code)-1] == '\n'
 	}
 
-	m := make(map[int]string, numLines)
-	for k, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
-		line := k + 1
+	m := make([]string, 0, numLines)
+	for _, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
 		content := string(v)
 		//need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
@@ -183,26 +182,25 @@ func File(numLines int, fileName string, code []byte) map[int]string {
 		}
 		content = strings.TrimSuffix(content, `<span class="w">`)
 		content = strings.TrimPrefix(content, `</span>`)
-		m[line] = content
+		m = append(m, content)
 	}
 	if finalNewLine {
-		m[numLines+1] = "<span class=\"w\">\n</span>"
+		m = append(m, "<span class=\"w\">\n</span>")
 	}
 
 	return m
 }
 
 // return unhiglighted map
-func plainText(code string, numLines int) map[int]string {
-	m := make(map[int]string, numLines)
-	for k, v := range strings.SplitN(string(code), "\n", numLines) {
-		line := k + 1
+func plainText(code string, numLines int) []string {
+	m := make([]string, 0, numLines)
+	for _, v := range strings.SplitN(string(code), "\n", numLines) {
 		content := string(v)
 		//need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
 		}
-		m[line] = gohtml.EscapeString(content)
+		m = append(m, gohtml.EscapeString(content))
 	}
 	return m
 }
