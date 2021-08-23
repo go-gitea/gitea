@@ -32,10 +32,10 @@ type String struct {
 var _zeroString string
 
 // NewString creates a new String.
-func NewString(v string) *String {
+func NewString(val string) *String {
 	x := &String{}
-	if v != _zeroString {
-		x.Store(v)
+	if val != _zeroString {
+		x.Store(val)
 	}
 	return x
 }
@@ -49,6 +49,6 @@ func (x *String) Load() string {
 }
 
 // Store atomically stores the passed string.
-func (x *String) Store(v string) {
-	x.v.Store(v)
+func (x *String) Store(val string) {
+	x.v.Store(val)
 }
