@@ -1,4 +1,4 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -90,7 +90,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 	}, attr)
 	attr = <-wr.ReadAttribute()
 	assert.NoError(t, err)
-	assert.EqualValues(t, &attributeTriple{
+	assert.EqualValues(t, attributeTriple{
 		Filename:  "shouldbe.vendor",
 		Attribute: "linguist-language",
 		Value:     "unspecified",
