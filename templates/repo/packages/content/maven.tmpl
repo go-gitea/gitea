@@ -51,10 +51,16 @@
 	{{if .Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-			<div class="ui relaxed list">
-			{{range .Metadata.Dependencies}}
-				<div class="item">{{.GroupID}}:{{.ArtifactID}} ({{.Version}})</div>
-			{{end}}
+			<div class="ui list">
+				{{range .Metadata.Dependencies}}
+					<div class="item">
+						<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
+						<div class="content">
+							<div class="header">{{.GroupID}}:{{.ArtifactID}}</div>
+							<div class="description text small">{{.Version}}</div>
+						</div>
+					</div>
+				{{end}}
 			</div>
 		</div>
 	{{end}}

@@ -185,7 +185,7 @@ func GetFileStreamByPackageNameAndVersion(repository *models.Repository, package
 		return nil, nil, err
 	}
 
-	return getPackageFileStream(p, filename)
+	return GetPackageFileStream(p, filename)
 }
 
 // GetFileStreamByPackageID returns the content of the specific package file
@@ -205,10 +205,11 @@ func GetFileStreamByPackageID(repository *models.Repository, packageID int64, fi
 		return nil, nil, models.ErrPackageNotExist
 	}
 
-	return getPackageFileStream(p, filename)
+	return GetPackageFileStream(p, filename)
 }
 
-func getPackageFileStream(p *models.Package, filename string) (io.ReadCloser, *models.PackageFile, error) {
+// GetPackageFileStream returns the cotent of the specific package file
+func GetPackageFileStream(p *models.Package, filename string) (io.ReadCloser, *models.PackageFile, error) {
 	pf, err := p.GetFileByName(filename)
 	if err != nil {
 		return nil, nil, err

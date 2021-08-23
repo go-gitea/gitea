@@ -30,10 +30,16 @@
 	{{if .Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-			<div class="ui relaxed list">
-			{{range $dependency, $version := .Metadata.Dependencies}}
-				<div class="item">{{$dependency}} ({{$version}})</div>
-			{{end}}
+			<div class="ui list">
+				{{range $dependency, $version := .Metadata.Dependencies}}
+					<div class="item">
+						<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
+						<div class="content">
+							<div class="header">{{$dependency}}</div>
+							<div class="description">{{$version}}</div>
+						</div>
+					</div>
+				{{end}}
 			</div>
 		</div>
 	{{end}}

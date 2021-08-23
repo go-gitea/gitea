@@ -9,7 +9,6 @@
 		</div>
 		{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}
 	</div>
-
 	{{if or .Metadata.Description .Metadata.LongDescription .Metadata.Summary}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
 		<div class="ui attached segment">
@@ -19,6 +18,12 @@
 			{{else if .Metadata.Description}}
 				{{RenderMarkdownToHtml .Metadata.Description}}
 			{{end}}
+		</div>
+	{{end}}
+	{{if .Metadata.RequiresPython}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.requirements"}}</h4>
+		<div class="ui attached segment">
+			{{.i18n.Tr "repo.packages.pypi.requires"}}: {{.Metadata.RequiresPython}}
 		</div>
 	{{end}}
 {{end}}

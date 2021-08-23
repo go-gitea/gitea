@@ -84,6 +84,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages/npm"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
 	"code.gitea.io/gitea/routers/api/v1/packages/pypi"
+	"code.gitea.io/gitea/routers/api/v1/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
@@ -1021,6 +1022,17 @@ func Routes() *web.Route {
 						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 						m.Get("/simple/{id}", pypi.PackageMetadata)
 					}, reqBasicAuth())
+					m.Group("/rubygems", func() {
+						m.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
+						m.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
+						m.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
+						m.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
+						m.Get("/gems/{filename}", rubygems.DownloadPackageFile)
+						m.Group("/api/v1/gems", func() {
+							m.Post("/", rubygems.UploadPackageFile)
+							m.Delete("/yank", rubygems.DeletePackage)
+						}, reqRepoWriter(models.UnitTypePackages))
+					}, reqToken())
 					m.Group("/{id}", func() {
 						m.Get("/", repo.GetPackage)
 						m.Delete("/", reqRepoWriter(models.UnitTypePackages), repo.DeletePackage)

@@ -18,6 +18,7 @@
 					{{template "repo/packages/content/npm" .}}
 					{{template "repo/packages/content/maven" .}}
 					{{template "repo/packages/content/pypi" .}}
+					{{template "repo/packages/content/rubygems" .}}
 				</div>
 				<div class="four wide column">
 					<div class="ui segment metas">
@@ -31,6 +32,7 @@
 							{{template "repo/packages/metadata/npm" .}}
 							{{template "repo/packages/metadata/maven" .}}
 							{{template "repo/packages/metadata/pypi" .}}
+							{{template "repo/packages/metadata/rubygems" .}}
 						</div>
 						<div class="ui divider"></div>
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}}</strong></span>

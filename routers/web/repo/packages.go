@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/packages/pypi"
+	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/setting"
 
 	package_service "code.gitea.io/gitea/services/packages"
@@ -114,6 +115,8 @@ func ViewPackage(ctx *context.Context) {
 		metadata = &maven.Metadata{}
 	case models.PackagePyPI:
 		metadata = &pypi.Metadata{}
+	case models.PackageRubyGems:
+		metadata = &rubygems.Metadata{}
 	}
 	if metadata != nil {
 		if err := json.Unmarshal([]byte(p.MetadataRaw), &metadata); err != nil {

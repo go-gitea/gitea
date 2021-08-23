@@ -1,0 +1,76 @@
+{{if eq .Package.Type 5}}
+	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<label for="use1-input">{{.i18n.Tr "repo.packages.rubygems.use_1" | Safe}}:</label>
+			<div>
+				<input id="use1-input" type="text" readonly="readonly" value="gem install {{.Package.Name}} --version &quot;{{.Package.Version}}&quot; --source &quot;{{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/rubygems&quot;">
+			</div>
+			<label for="use2-input">{{.i18n.Tr "repo.packages.rubygems.use_2"}}:</label>
+			<div>
+				<textarea id="use2-input" readonly="readonly" rows="3">source "{{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/rubygems" do
+	gem "{{.Package.Name}}", "{{.Package.Version}}"
+end</textarea>
+			</div>
+		</div>
+		{{.i18n.Tr "repo.packages.rubygems.documentation" | Safe}}
+	</div>
+	{{if .Metadata.Description}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
+		<div class="ui attached segment">
+			{{if .Metadata.Description}}
+				{{.Metadata.Description}}
+			{{end}}
+		</div>
+	{{end}}
+	{{if or .Metadata.RequiredRubyVersion .Metadata.RequiredRubygemsVersion}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.requirements"}}</h4>
+		<div class="ui attached segment">
+			{{if .Metadata.RequiredRubyVersion}}<p>{{.i18n.Tr "repo.packages.rubygems.required.ruby"}}: {{range $i, $v := .Metadata.RequiredRubyVersion}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</p>{{end}}
+			{{if .Metadata.RequiredRubygemsVersion}}<p>{{.i18n.Tr "repo.packages.rubygems.required.rubygems"}}: {{range $i, $v := .Metadata.RequiredRubygemsVersion}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</p>{{end}}
+		</div>
+	{{end}}
+	{{if or .Metadata.RuntimeDependencies .Metadata.DevelopmentDependencies}}
+		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
+		<div class="ui attached segment">
+			<div class="ui list">
+				{{if .Metadata.RuntimeDependencies}}
+				<div class="item">
+					<div class="content">
+						<div class="header"><strong>Runtime Dependencies</strong></div>
+						<div class="list">
+							{{range .Metadata.RuntimeDependencies}}
+								<div class="item">
+									<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
+									<div class="content">
+										<div class="header">{{.Name}}</div>
+										<div class="description text small">{{range $i, $v := .Version}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</div>
+									</div>
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				{{end}}
+				{{if .Metadata.DevelopmentDependencies}}
+				<div class="item">
+					<div class="content">
+						<div class="header"><strong>Development Dependencies</strong></div>
+						<div class="list">
+							{{range .Metadata.DevelopmentDependencies}}
+								<div class="item">
+									<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
+									<div class="content">
+										<div class="header">{{.Name}}</div>
+										<div class="description text small">{{range $i, $v := .Version}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</div>
+									</div>
+								</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				{{end}}
+			</div>
+		</div>
+	{{end}}
+{{end}}

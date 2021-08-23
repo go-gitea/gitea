@@ -18,11 +18,12 @@ type PackageType int
 
 // Note: new type must append to the end of list to maintain compatibility.
 const (
-	PackageGeneric PackageType = iota
-	PackageNuGet               // 1
-	PackageNpm                 // 2
-	PackageMaven               // 3
-	PackagePyPI                // 4
+	PackageGeneric  PackageType = iota
+	PackageNuGet                // 1
+	PackageNpm                  // 2
+	PackageMaven                // 3
+	PackagePyPI                 // 4
+	PackageRubyGems             // 5
 )
 
 func (pt PackageType) String() string {
@@ -37,6 +38,8 @@ func (pt PackageType) String() string {
 		return "Maven"
 	case PackagePyPI:
 		return "PyPI"
+	case PackageRubyGems:
+		return "RubyGems"
 	}
 	return ""
 }
@@ -199,6 +202,8 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"package.type": PackageMaven})
 	case "pypi":
 		cond = cond.And(builder.Eq{"package.type": PackagePyPI})
+	case "rubygems":
+		cond = cond.And(builder.Eq{"package.type": PackageRubyGems})
 	}
 
 	if opts.Query != "" {
@@ -212,7 +217,9 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 func GetPackages(opts *PackageSearchOptions) ([]*Package, int64, error) {
 	sess := x.Where(opts.toConds())
 
-	sess = opts.Paginator.SetSessionPagination(sess)
+	if opts.Paginator != nil {
+		sess = opts.Paginator.SetSessionPagination(sess)
+	}
 
 	packages := make([]*Package, 0, 10)
 	count, err := sess.FindAndCount(&packages)
@@ -228,7 +235,9 @@ func GetLatestPackagesGrouped(opts *PackageSearchOptions) ([]*Package, int64, er
 		Table("package").
 		Join("left", "package p2", "package.repo_id = p2.repo_id AND package.type = p2.type AND package.lower_name = p2.lower_name AND package.version < p2.version")
 
-	sess = opts.Paginator.SetSessionPagination(sess)
+	if opts.Paginator != nil {
+		sess = opts.Paginator.SetSessionPagination(sess)
+	}
 
 	packages := make([]*Package, 0, 10)
 	count, err := sess.FindAndCount(&packages)
@@ -280,6 +289,22 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 		return nil, ErrPackageNotExist
 	}
 	return p, nil
+}
+
+// GetPackagesByFilename gets a repository packages by filename
+func GetPackagesByFilename(repositoryID int64, packageType PackageType, packageFilename string) ([]*Package, error) {
+	var cond builder.Cond = builder.Eq{
+		"package.repo_id":         repositoryID,
+		"package.type":            packageType,
+		"package_file.lower_name": strings.ToLower(packageFilename),
+	}
+
+	packages := make([]*Package, 0, 10)
+	return packages, x.
+		Table("package").
+		Where(cond).
+		Join("INNER", "package_file", "package.id = package_file.package_id").
+		Find(&packages)
 }
 
 // TryInsertPackageFile inserts a package file

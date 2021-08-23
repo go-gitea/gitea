@@ -316,6 +316,18 @@ func (ctx *Context) HandleText(status int, title string) {
 	ctx.PlainText(status, []byte(title))
 }
 
+// SetServeHeaders sets necessary content serve headers
+func (ctx *Context) SetServeHeaders(filename string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+}
+
 // ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
 	modtime := time.Now()
@@ -325,14 +337,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 			modtime = v
 		}
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modtime, r)
 }
 
@@ -353,25 +358,13 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	} else {
 		name = path.Base(file)
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
 // ServeStream serves file via io stream
 func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	_, err := io.Copy(ctx.Resp, rd)
 	if err != nil {
 		ctx.ServerError("Download file failed", err)

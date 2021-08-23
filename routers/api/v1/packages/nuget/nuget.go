@@ -228,7 +228,7 @@ func DeletePackage(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 
-	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion)
+	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, models.PackageNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == models.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
