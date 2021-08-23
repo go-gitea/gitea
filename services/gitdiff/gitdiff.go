@@ -1276,7 +1276,9 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 				log.Error("Unable to create temporary directory: %v", err)
 				return nil, err
 			}
-			defer util.RemoveAll(workdir)
+			defer func() {
+				_ = util.RemoveAll(workdir)
+			}()
 
 			checker = &git.CheckAttributeReader{
 				Attributes: []string{"linguist-vendored", "linguist-generated"},
