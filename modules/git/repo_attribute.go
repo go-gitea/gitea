@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -92,9 +93,10 @@ type CheckAttributeReader struct {
 	Attributes []string
 	Repo       *Repository
 	IndexFile  string
+	WorkTree   string
 
-	stdinReader *io.PipeReader
-	stdinWriter *io.PipeWriter
+	stdinReader io.ReadCloser
+	stdinWriter *os.File
 	stdOut      attributeWriter
 	cmd         *Command
 	env         []string
@@ -113,8 +115,13 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		c.env = []string{"GIT_INDEX_FILE=" + c.IndexFile}
 	}
 
+	if len(c.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+		c.env = []string{"GIT_WORK_TREE=" + c.WorkTree}
+	}
+
 	if len(c.Attributes) > 0 {
 		cmdArgs = append(cmdArgs, c.Attributes...)
+		cmdArgs = append(cmdArgs, "--")
 	} else {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
@@ -126,7 +133,11 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
 	c.cmd = NewCommandContext(c.ctx, cmdArgs...)
-	c.stdinReader, c.stdinWriter = io.Pipe()
+	var err error
+	c.stdinReader, c.stdinWriter, err = os.Pipe()
+	if err != nil {
+		return err
+	}
 
 	if CheckGitVersionAtLeast("1.8.5") == nil {
 		lw := new(nulSeparatedAttributeWriter)
@@ -149,9 +160,9 @@ func (c *CheckAttributeReader) Run() error {
 		close(c.running)
 		return nil
 	})
-	if err != nil && (err != context.Canceled || err != context.DeadlineExceeded) {
-		defer c.cancel()
-		c.stdOut.Close()
+	defer c.cancel()
+	_ = c.stdOut.Close()
+	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
 
@@ -166,6 +177,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error)
 	case <-c.running:
 	}
 	_, err := c.stdinWriter.Write([]byte(path + "\x00"))
+	_ = c.stdinWriter.Sync()
 	if err != nil {
 		defer c.cancel()
 		return nil, err
@@ -213,13 +225,9 @@ type nulSeparatedAttributeWriter struct {
 }
 
 func (wr *nulSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
-	if wr.attributes == nil {
-		wr.attributes = make(chan attributeTriple, 5)
-	}
-
-	nulIdx := bytes.IndexByte(p, '\x00')
 	l, read := len(p), 0
 
+	nulIdx := bytes.IndexByte(p, '\x00')
 	for nulIdx >= 0 {
 		wr.tmp = append(wr.tmp, p[:nulIdx]...)
 		switch wr.pos {

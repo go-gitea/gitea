@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
@@ -1270,11 +1271,18 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
 		if err == nil {
 			defer deleteTemporaryFile()
+			workdir, err := ioutil.TempDir("", "empty-work-dir")
+			if err != nil {
+				log.Error("Unable to create temporary directory: %v", err)
+				return nil, err
+			}
+			defer util.RemoveAll(workdir)
 
 			checker = &git.CheckAttributeReader{
 				Attributes: []string{"linguist-vendored", "linguist-generated"},
 				Repo:       gitRepo,
 				IndexFile:  indexFilename,
+				WorkTree:   workdir,
 			}
 			ctx, cancel := context.WithCancel(git.DefaultContext)
 			if err := checker.Init(ctx); err != nil {
@@ -1282,16 +1290,13 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 			} else {
 				go func() {
 					err = checker.Run()
-					if err != nil {
+					if err != nil && err != ctx.Err() {
 						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
-						cancel()
-					} else {
-						log.Info("Done")
 					}
+					cancel()
 				}()
 			}
 			defer func() {
-				log.Info("Cancelling the diff context")
 				cancel()
 			}()
 		}
@@ -1302,9 +1307,7 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		gotVendor := false
 		gotGenerated := false
 		if checker != nil {
-			log.Info("Checking %s", diffFile.Name)
 			attrs, err := checker.CheckPath(diffFile.Name)
-			log.Info("%v, %v", attrs, err)
 			if err == nil {
 				if vendored, has := attrs["linguist-vendored"]; has {
 					if vendored == "set" || vendored == "true" {
