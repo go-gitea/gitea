@@ -189,6 +189,7 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	SuccessfulTokensCacheSize          int
 
 	// UI settings
 	UI = struct {
@@ -842,6 +843,7 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -1195,6 +1197,7 @@ func NewServices() {
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
+	newProxyService()
 	newWebhookService()
 	newMigrationsService()
 	newIndexerService()

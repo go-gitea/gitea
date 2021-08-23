@@ -5,3 +5,19 @@
   scope: "openid profile"
   created_unix: 1546869730
   updated_unix: 1546869730
+
+- id: 2
+  user_id: 3
+  application_id: 1
+  counter: 1
+  scope: "openid"
+  created_unix: 1546869730
+  updated_unix: 1546869730
+
+- id: 3
+  user_id: 5
+  application_id: 1
+  counter: 1
+  scope: "openid profile email"
+  created_unix: 1546869730
+  updated_unix: 1546869730

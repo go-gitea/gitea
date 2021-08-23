@@ -14,7 +14,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	gouuid "github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
 )
+
+var successfulAccessTokenCache *lru.Cache
 
 // AccessToken represents a personal access token.
 type AccessToken struct {
@@ -52,6 +55,21 @@ func NewAccessToken(t *AccessToken) error {
 	return err
 }
 
+func getAccessTokenIDFromCache(token string) int64 {
+	if successfulAccessTokenCache == nil {
+		return 0
+	}
+	tInterface, ok := successfulAccessTokenCache.Get(token)
+	if !ok {
+		return 0
+	}
+	t, ok := tInterface.(int64)
+	if !ok {
+		return 0
+	}
+	return t
+}
+
 // GetAccessTokenBySHA returns access token by given token value
 func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	if token == "" {
@@ -66,17 +84,38 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 			return nil, ErrAccessTokenNotExist{token}
 		}
 	}
-	var tokens []AccessToken
+
 	lastEight := token[len(token)-8:]
+
+	if id := getAccessTokenIDFromCache(token); id > 0 {
+		token := &AccessToken{
+			TokenLastEight: lastEight,
+		}
+		// Re-get the token from the db in case it has been deleted in the intervening period
+		has, err := x.ID(id).Get(token)
+		if err != nil {
+			return nil, err
+		}
+		if has {
+			return token, nil
+		}
+		successfulAccessTokenCache.Remove(token)
+	}
+
+	var tokens []AccessToken
 	err := x.Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
 		return nil, ErrAccessTokenNotExist{token}
 	}
+
 	for _, t := range tokens {
 		tempHash := hashToken(token, t.TokenSalt)
 		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
+			if successfulAccessTokenCache != nil {
+				successfulAccessTokenCache.Add(token, t.ID)
+			}
 			return &t, nil
 		}
 	}
