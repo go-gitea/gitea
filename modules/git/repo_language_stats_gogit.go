@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5"
@@ -73,25 +74,25 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	sizes := make(map[string]int64)
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if f.Size() == 0 {
-			continue
+		if f.Size == 0 {
+			return nil
 		}
 
 		notVendored := false
 		notGenerated := false
 
 		if checker != nil {
-			attrs, err := checker.CheckPath(f.Name())
+			attrs, err := checker.CheckPath(f.Name)
 			if err == nil {
-				if vendored, has := attrs["linguist-vendor"]; has {
+				if vendored, has := attrs["linguist-vendored"]; has {
 					if vendored == "set" || vendored == "true" {
-						continue
+						return nil
 					}
 					notVendored = vendored == "false"
 				}
 				if generated, has := attrs["linguist-generated"]; has {
 					if generated == "set" || generated == "true" {
-						continue
+						return nil
 					}
 					notGenerated = generated == "false"
 				}
@@ -102,9 +103,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						language = group
 					}
 
-					sizes[language] += f.Size()
+					sizes[language] += f.Size
 
-					continue
+					return nil
 				}
 			}
 		}

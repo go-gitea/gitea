@@ -108,7 +108,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		if checker != nil {
 			attrs, err := checker.CheckPath(f.Name())
 			if err == nil {
-				if vendored, has := attrs["linguist-vendor"]; has {
+				if vendored, has := attrs["linguist-vendored"]; has {
 					if vendored == "set" || vendored == "true" {
 						continue
 					}
