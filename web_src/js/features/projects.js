@@ -62,12 +62,15 @@ export default async function initProject() {
   }
 
   $('.edit-project-board').each(function () {
-    const projectTitleLabel = $(this).closest('.board-column-header').find('.board-label');
+    const projectHeader = $(this).closest('.board-column-header');
+    const projectTitleLabel = projectHeader.find('.board-label');
     const projectTitleInput = $(this).find(
       '.content > .form > .field > .project-board-title',
     );
     const projectColorInput = $(this).find('.content > .form > .field > #new_board_color');
     const boardColumn = $(this).closest('.board-column');
+
+    setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
 
     $(this)
       .find('.content > .form > .actions > .red')
@@ -87,6 +90,7 @@ export default async function initProject() {
           projectTitleLabel.text(projectTitleInput.val());
           projectTitleInput.closest('form').removeClass('dirty');
           boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+          setLabelColor(projectHeader, projectColorInput.val());
           $('.ui.modal').modal('hide');
         });
       });
@@ -146,4 +150,35 @@ export default async function initProject() {
       window.location.reload();
     });
   });
+}
+
+function setLabelColor(label, color) {
+  const red = getRelativeColor(parseInt(color.substr(1, 2), 16));
+  const green = getRelativeColor(parseInt(color.substr(3, 2), 16));
+  const blue = getRelativeColor(parseInt(color.substr(5, 2), 16));
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+  if (luminance > 0.179) {
+    label.removeClass('light-label').addClass('dark-label');
+  } else {
+    label.removeClass('dark-label').addClass('light-label');
+  }
+}
+
+/**
+ * Inspired by W3C recommandation https://www.w3.org/TR/WCAG20/#relativeluminancedef
+ */
+function getRelativeColor(color) {
+  color /= 255;
+  return color <= 0.03928 ? color / 12.92 : ((color + 0.055) / 1.055) ** 2.4;
+}
+
+function rgbToHex(rgb) {
+  rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
+}
+
+function hex(x) {
+  const hexDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
+  return Number.isNaN(x) ? '00' : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
 }
