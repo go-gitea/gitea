@@ -19,7 +19,7 @@ func TestFile(t *testing.T) {
 		numLines int
 		fileName string
 		code     string
-		want     map[int]string
+		want     []string
 	}{
 		{
 			name:     ".drone.yml",
@@ -38,22 +38,22 @@ steps:
 	- go build -v
 	- go test -v -race -coverprofile=coverage.txt -covermode=atomic
 `,
-			want: map[int]string{
-				1: `<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">pipeline</span>`,
-				2: `<span class="w"></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">default</span>`,
-				3: `<span class="w">
+			want: []string{
+				`<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">pipeline</span>`,
+				`<span class="w"></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">default</span>`,
+				`<span class="w">
 </span>`,
-				4: `<span class="w"></span><span class="nt">steps</span><span class="p">:</span>`,
-				5: `<span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span>`,
-				6: `<span class="w">	</span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">golang:1.13</span>`,
-				7: `<span class="w">	</span><span class="nt">environment</span><span class="p">:</span>`,
-				8: `<span class="w"></span><span class="w">		</span><span class="nt">GOPROXY</span><span class="p">:</span><span class="w"> </span><span class="l">https://goproxy.cn</span>`,
-				9: `<span class="w">	</span><span class="nt">commands</span><span class="p">:</span>`,
-				10: `<span class="w"></span><span class="w">	</span>- <span class="l">go get -u</span>`,
-				11: `<span class="w">	</span>- <span class="l">go build -v</span>`,
-				12: `<span class="w">	</span>- <span class="l">go test -v -race -coverprofile=coverage.txt -covermode=atomic</span><span class="w">
+				`<span class="w"></span><span class="nt">steps</span><span class="p">:</span>`,
+				`<span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span>`,
+				`<span class="w">	</span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">golang:1.13</span>`,
+				`<span class="w">	</span><span class="nt">environment</span><span class="p">:</span>`,
+				`<span class="w"></span><span class="w">		</span><span class="nt">GOPROXY</span><span class="p">:</span><span class="w"> </span><span class="l">https://goproxy.cn</span>`,
+				`<span class="w">	</span><span class="nt">commands</span><span class="p">:</span>`,
+				`<span class="w"></span><span class="w">	</span>- <span class="l">go get -u</span>`,
+				`<span class="w">	</span>- <span class="l">go build -v</span>`,
+				`<span class="w">	</span>- <span class="l">go test -v -race -coverprofile=coverage.txt -covermode=atomic</span><span class="w">
 </span>`,
-				13: `<span class="w">
+				`<span class="w">
 </span>`,
 			},
 		},
@@ -74,21 +74,21 @@ steps:
 	- go build -v
 	- go test -v -race -coverprofile=coverage.txt -covermode=atomic
 	`,
-			want: map[int]string{
-				1: `<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">pipeline</span>`,
-				2: `<span class="w"></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">default  </span>`,
-				3: `<span class="w">
+			want: []string{
+				`<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l">pipeline</span>`,
+				`<span class="w"></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">default  </span>`,
+				`<span class="w">
 </span>`,
-				4: `<span class="w"></span><span class="nt">steps</span><span class="p">:</span>`,
-				5: `<span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span>`,
-				6: `<span class="w">	</span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">golang:1.13</span>`,
-				7: `<span class="w">	</span><span class="nt">environment</span><span class="p">:</span>`,
-				8: `<span class="w"></span><span class="w">		</span><span class="nt">GOPROXY</span><span class="p">:</span><span class="w"> </span><span class="l">https://goproxy.cn</span>`,
-				9: `<span class="w">	</span><span class="nt">commands</span><span class="p">:</span>`,
-				10: `<span class="w"></span><span class="w">	</span>- <span class="l">go get -u</span>`,
-				11: `<span class="w">	</span>- <span class="l">go build -v</span>`,
-				12: `<span class="w">	</span>- <span class="l">go test -v -race -coverprofile=coverage.txt -covermode=atomic</span>`,
-				13: `<span class="w">	</span>`,
+				`<span class="w"></span><span class="nt">steps</span><span class="p">:</span>`,
+				`<span class="w"></span>- <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">test</span>`,
+				`<span class="w">	</span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">golang:1.13</span>`,
+				`<span class="w">	</span><span class="nt">environment</span><span class="p">:</span>`,
+				`<span class="w"></span><span class="w">		</span><span class="nt">GOPROXY</span><span class="p">:</span><span class="w"> </span><span class="l">https://goproxy.cn</span>`,
+				`<span class="w">	</span><span class="nt">commands</span><span class="p">:</span>`,
+				`<span class="w"></span><span class="w">	</span>- <span class="l">go get -u</span>`,
+				`<span class="w">	</span>- <span class="l">go build -v</span>`,
+				`<span class="w">	</span>- <span class="l">go test -v -race -coverprofile=coverage.txt -covermode=atomic</span>`,
+				`<span class="w">	</span>`,
 			},
 		},
 	}
