@@ -184,8 +184,8 @@ github.com/boombuler/barcode v1.0.1/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl
 github.com/bradfitz/gomemcache v0.0.0-20190329173943-551aad21a668/go.mod h1:H0wQNHz2YrLsuXOZozoeDmnHXkNCRmMW0gwFWDfEZDA=
 github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b h1:L/QXpzIa3pOvUGt1D1lA5KjYhPBAN/3iWdP7xeFS9F0=
 github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b/go.mod h1:H0wQNHz2YrLsuXOZozoeDmnHXkNCRmMW0gwFWDfEZDA=
-github.com/caddyserver/certmagic v0.14.0 h1:XW1o32s7smIYEJSc6g+N8YXljpjRo5ZE2zi3CIYTs74=
-github.com/caddyserver/certmagic v0.14.0/go.mod h1:oRQOZmUVKwlpgNidslysHt05osM9uMrJ4YMk+Ot4P4Q=
+github.com/caddyserver/certmagic v0.14.1 h1:8RIFS/LbGne/I7Op56Kkm2annnei7io9VW/IWDttE9U=
+github.com/caddyserver/certmagic v0.14.1/go.mod h1:oRQOZmUVKwlpgNidslysHt05osM9uMrJ4YMk+Ot4P4Q=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
