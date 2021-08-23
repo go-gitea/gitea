@@ -116,7 +116,7 @@ func Code(fileName, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
-// File returns map with line lumbers and HTML version of code with chroma syntax highlighting classes
+// File returns a slice of chroma syntax highlighted lines of code
 func File(numLines int, fileName string, code []byte) []string {
 	NewContext()
 
