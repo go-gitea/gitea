@@ -20,20 +20,16 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 		r.Reviewer = models.NewGhostUser()
 	}
 
-	auth := false
-	if doer != nil {
-		auth = doer.IsAdmin || doer.ID == r.ReviewerID
-	}
-
 	result := &api.PullReview{
 		ID:                r.ID,
-		Reviewer:          ToUser(r.Reviewer, doer != nil, auth),
+		Reviewer:          ToUser(r.Reviewer, doer),
 		ReviewerTeam:      ToTeam(r.ReviewerTeam),
 		State:             api.ReviewStateUnknown,
 		Body:              r.Content,
 		CommitID:          r.CommitID,
 		Stale:             r.Stale,
 		Official:          r.Official,
+		Dismissed:         r.Dismissed,
 		CodeCommentsCount: r.GetCodeCommentsCount(),
 		Submitted:         r.CreatedUnix.AsTime(),
 		HTMLURL:           r.HTMLURL(),
@@ -84,18 +80,14 @@ func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.P
 
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))
 
-	auth := false
-	if doer != nil {
-		auth = doer.IsAdmin || doer.ID == review.ReviewerID
-	}
-
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
 				apiComment := &api.PullReviewComment{
 					ID:           comment.ID,
 					Body:         comment.Content,
-					Reviewer:     ToUser(review.Reviewer, doer != nil, auth),
+					Poster:       ToUser(comment.Poster, doer),
+					Resolver:     ToUser(comment.ResolveDoer, doer),
 					ReviewID:     review.ID,
 					Created:      comment.CreatedUnix.AsTime(),
 					Updated:      comment.UpdatedUnix.AsTime(),

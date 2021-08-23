@@ -157,7 +157,8 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
 	sess := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true)
+		And("official = ?", true).
+		And("dismissed = ?", false)
 	if protectBranch.DismissStaleApprovals {
 		sess = sess.And("stale = ?", false)
 	}
@@ -178,6 +179,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
+		And("dismissed = ?", false).
 		Exist(new(Review))
 	if err != nil {
 		log.Error("MergeBlockedByRejectedReview: %v", err)
@@ -217,7 +219,7 @@ func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
+				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}
@@ -258,12 +260,6 @@ func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path
 	return r
 }
 
-// GetProtectedBranchByRepoID getting protected branch by repo ID
-func GetProtectedBranchByRepoID(repoID int64) ([]*ProtectedBranch, error) {
-	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Where("repo_id = ?", repoID).Desc("updated_unix").Find(&protectedBranches)
-}
-
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
 	return getProtectedBranchBy(x, repoID, branchName)
@@ -272,19 +268,6 @@ func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, er
 func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := e.Get(rel)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, nil
-	}
-	return rel, nil
-}
-
-// GetProtectedBranchByID getting protected branch by ID
-func GetProtectedBranchByID(id int64) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{}
-	has, err := x.ID(id).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -379,11 +362,7 @@ func (repo *Repository) GetBranchProtection(branchName string) (*ProtectedBranch
 }
 
 // IsProtectedBranch checks if branch is protected
-func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
+func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repo.ID,
 		BranchName: branchName,
@@ -394,27 +373,6 @@ func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, 
 		return true, err
 	}
 	return has, nil
-}
-
-// IsProtectedBranchForPush checks if branch is protected for push
-func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repo.ID,
-		BranchName: branchName,
-	}
-
-	has, err := x.Get(protectedBranch)
-	if err != nil {
-		return true, err
-	} else if has {
-		return !protectedBranch.CanUserPush(doer.ID), nil
-	}
-
-	return false, nil
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with

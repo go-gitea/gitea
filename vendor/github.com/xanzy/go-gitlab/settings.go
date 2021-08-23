@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package gitlab
 
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // SettingsService handles communication with the application SettingsService
 // related methods of the GitLab API.
@@ -33,6 +36,7 @@ type Settings struct {
 	ID                                        int               `json:"id"`
 	CreatedAt                                 *time.Time        `json:"created_at"`
 	UpdatedAt                                 *time.Time        `json:"updated_at"`
+	AdminMode                                 bool              `json:"admin_mode"`
 	AdminNotificationEmail                    string            `json:"admin_notification_email"`
 	AfterSignOutPath                          string            `json:"after_sign_out_path"`
 	AfterSignUpText                           string            `json:"after_sign_up_text"`
@@ -206,7 +210,7 @@ func (s Settings) String() string {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#get-current-application.settings
 func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, *Response, error) {
-	req, err := s.client.NewRequest("GET", "application/settings", nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, "application/settings", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,6 +229,7 @@ func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, 
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#change-application.settings
 type UpdateSettingsOptions struct {
+	AdminMode                                 *bool             `url:"admin_mode,omitempty" json:"admin_mode,omitempty"`
 	AdminNotificationEmail                    *string           `url:"admin_notification_email,omitempty" json:"admin_notification_email,omitempty"`
 	AfterSignOutPath                          *string           `url:"after_sign_out_path,omitempty" json:"after_sign_out_path,omitempty"`
 	AfterSignUpText                           *string           `url:"after_sign_up_text,omitempty" json:"after_sign_up_text,omitempty"`
@@ -394,7 +399,7 @@ type UpdateSettingsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/settings.html#change-application.settings
 func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...RequestOptionFunc) (*Settings, *Response, error) {
-	req, err := s.client.NewRequest("PUT", "application/settings", opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, "application/settings", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

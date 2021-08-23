@@ -129,12 +129,12 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 		var err error
 		globUser, err = glob.Compile(qsplit[0])
 		if err != nil {
-			log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[0], err)
+			log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[0], err)
 		}
 		if len(qsplit) > 1 {
 			globRepo, err = glob.Compile(qsplit[1])
 			if err != nil {
-				log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[1], err)
+				log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[1], err)
 			}
 		}
 	}
@@ -228,7 +228,7 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 					found := false
 				repoLoop:
 					for i, repo := range repos {
-						if repo.Name == name {
+						if repo.LowerName == name {
 							found = true
 							repos = append(repos[:i], repos[i+1:]...)
 							break repoLoop

@@ -33,7 +33,7 @@ type CodeActivityAuthor struct {
 	Commits int64
 }
 
-// GetCodeActivityStats returns code statistics for acitivity page
+// GetCodeActivityStats returns code statistics for activity page
 func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
@@ -59,7 +59,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%an%n%ae%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
+	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
 	if len(branch) == 0 {
 		args = append(args, "--branches=*")
 	} else {

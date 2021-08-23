@@ -57,7 +57,7 @@ type Named interface {
 // Queues will handle their own contents in the Run method
 type Queue interface {
 	Flushable
-	Run(atShutdown, atTerminate func(context.Context, func()))
+	Run(atShutdown, atTerminate func(func()))
 	Push(Data) error
 }
 
@@ -74,7 +74,7 @@ type DummyQueue struct {
 }
 
 // Run does nothing
-func (*DummyQueue) Run(_, _ func(context.Context, func())) {}
+func (*DummyQueue) Run(_, _ func(func())) {}
 
 // Push fakes a push of data to the queue
 func (*DummyQueue) Push(Data) error {
@@ -122,7 +122,7 @@ type Immediate struct {
 }
 
 // Run does nothing
-func (*Immediate) Run(_, _ func(context.Context, func())) {}
+func (*Immediate) Run(_, _ func(func())) {}
 
 // Push fakes a push of data to the queue
 func (q *Immediate) Push(data Data) error {

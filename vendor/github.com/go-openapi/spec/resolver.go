@@ -1,18 +1,16 @@
 package spec
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/swag"
 )
 
 func resolveAnyWithBase(root interface{}, ref *Ref, result interface{}, options *ExpandOptions) error {
+	options = optionsOrDefault(options)
 	resolver := defaultSchemaLoader(root, options, nil, nil)
 
-	basePath := ""
-	if options != nil && options.RelativeBase != "" {
-		basePath, _ = absPath(options.RelativeBase)
-	}
-
-	if err := resolver.Resolve(ref, result, basePath); err != nil {
+	if err := resolver.Resolve(ref, result, options.RelativeBase); err != nil {
 		return err
 	}
 
@@ -22,8 +20,8 @@ func resolveAnyWithBase(root interface{}, ref *Ref, result interface{}, options 
 // ResolveRefWithBase resolves a reference against a context root with preservation of base path
 func ResolveRefWithBase(root interface{}, ref *Ref, options *ExpandOptions) (*Schema, error) {
 	result := new(Schema)
-	err := resolveAnyWithBase(root, ref, result, options)
-	if err != nil {
+
+	if err := resolveAnyWithBase(root, ref, result, options); err != nil {
 		return nil, err
 	}
 
@@ -52,15 +50,15 @@ func ResolveRef(root interface{}, ref *Ref) (*Schema, error) {
 		}
 		return newSch, nil
 	default:
-		return nil, ErrUnknownTypeForReference
+		return nil, fmt.Errorf("type: %T: %w", sch, ErrUnknownTypeForReference)
 	}
 }
 
 // ResolveParameterWithBase resolves a parameter reference against a context root and base path
 func ResolveParameterWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Parameter, error) {
 	result := new(Parameter)
-	err := resolveAnyWithBase(root, &ref, result, options)
-	if err != nil {
+
+	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
 		return nil, err
 	}
 
@@ -75,6 +73,7 @@ func ResolveParameter(root interface{}, ref Ref) (*Parameter, error) {
 // ResolveResponseWithBase resolves response a reference against a context root and base path
 func ResolveResponseWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Response, error) {
 	result := new(Response)
+
 	err := resolveAnyWithBase(root, &ref, result, options)
 	if err != nil {
 		return nil, err
@@ -91,8 +90,8 @@ func ResolveResponse(root interface{}, ref Ref) (*Response, error) {
 // ResolvePathItemWithBase resolves response a path item against a context root and base path
 func ResolvePathItemWithBase(root interface{}, ref Ref, options *ExpandOptions) (*PathItem, error) {
 	result := new(PathItem)
-	err := resolveAnyWithBase(root, &ref, result, options)
-	if err != nil {
+
+	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
 		return nil, err
 	}
 
@@ -112,8 +111,8 @@ func ResolvePathItem(root interface{}, ref Ref, options *ExpandOptions) (*PathIt
 // Similarly, $ref are forbidden in response headers.
 func ResolveItemsWithBase(root interface{}, ref Ref, options *ExpandOptions) (*Items, error) {
 	result := new(Items)
-	err := resolveAnyWithBase(root, &ref, result, options)
-	if err != nil {
+
+	if err := resolveAnyWithBase(root, &ref, result, options); err != nil {
 		return nil, err
 	}
 

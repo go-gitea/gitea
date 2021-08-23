@@ -8,7 +8,7 @@ goldmark
 
 > A Markdown parser written in Go. Easy to extend, standards-compliant, well-structured.
 
-goldmark is compliant with CommonMark 0.29.
+goldmark is compliant with CommonMark 0.30.
 
 Motivation
 ----------------------
@@ -280,7 +280,7 @@ markdown := goldmark.New(
                 []byte("https:"),
             }),
             extension.WithLinkifyURLRegexp(
-                xurls.Strict(),
+                xurls.Strict,
             ),
         ),
     ),
@@ -303,7 +303,7 @@ This extension has some options:
 | `extension.WithFootnoteBacklinkClass` | `[]byte` |  a class for footnote backlinks. This defaults to `footnote-backref`. |
 | `extension.WithFootnoteBacklinkHTML` | `[]byte` |  a class for footnote backlinks. This defaults to `&#x21a9;&#xfe0e;`. |
 
-Some options can have special substitutions. Occurances of “^^” in the string will be replaced by the corresponding footnote number in the HTML output. Occurances of “%%” will be replaced by a number for the reference (footnotes can have multiple references).
+Some options can have special substitutions. Occurrences of “^^” in the string will be replaced by the corresponding footnote number in the HTML output. Occurrences of “%%” will be replaced by a number for the reference (footnotes can have multiple references).
 
 `extension.WithFootnoteIDPrefix` and `extension.WithFootnoteIDPrefixFunction` are useful if you have multiple Markdown documents displayed inside one HTML document to avoid footnote ids to clash each other.
 
@@ -423,6 +423,7 @@ Extensions
 - [goldmark-emoji](https://github.com/yuin/goldmark-emoji): An emoji
   extension for the goldmark Markdown parser.
 - [goldmark-mathjax](https://github.com/litao91/goldmark-mathjax): Mathjax support for the goldmark markdown parser
+- [goldmark-pdf](https://github.com/stephenafamo/goldmark-pdf): A PDF renderer that can be passed to `goldmark.WithRenderer()`.
 
 goldmark internal(for extension developers)
 ----------------------------------------------

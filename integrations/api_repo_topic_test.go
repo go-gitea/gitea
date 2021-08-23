@@ -7,6 +7,7 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -14,6 +15,38 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestAPITopicSearch(t *testing.T) {
+	defer prepareTestEnv(t)()
+	searchURL, _ := url.Parse("/api/v1/topics/search")
+	var topics struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}
+
+	query := url.Values{"page": []string{"1"}, "limit": []string{"4"}}
+
+	searchURL.RawQuery = query.Encode()
+	res := MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 4)
+	assert.EqualValues(t, "6", res.Header().Get("x-total-count"))
+
+	query.Add("q", "topic")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 2)
+
+	query.Set("q", "database")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	if assert.Len(t, topics.TopicNames, 1) {
+		assert.EqualValues(t, 2, topics.TopicNames[0].ID)
+		assert.EqualValues(t, "database", topics.TopicNames[0].Name)
+		assert.EqualValues(t, 1, topics.TopicNames[0].RepoCount)
+	}
+}
 
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
@@ -88,7 +121,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 25, len(topics.TopicNames))
+	assert.Len(t, topics.TopicNames, 25)
 
 	// Test writing more topics than allowed
 	newTopics = append(newTopics, "t26")
@@ -115,7 +148,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 0, len(topics.TopicNames))
+	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)

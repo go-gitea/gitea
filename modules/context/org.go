@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 // Organization contains organization context
@@ -70,7 +69,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Force redirection when username is actually a user.
 	if !org.IsOrganization() {
-		ctx.Redirect(setting.AppSubURL + "/" + org.Name)
+		ctx.Redirect(org.HomeLink())
 		return
 	}
 
@@ -118,14 +117,14 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
-	ctx.Org.OrgLink = setting.AppSubURL + "/org/" + org.Name
+	ctx.Org.OrgLink = org.OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
 	// Team.
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
-			if err := org.GetTeams(&models.SearchTeamOptions{}); err != nil {
-				ctx.ServerError("GetTeams", err)
+			if err := org.LoadTeams(); err != nil {
+				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {

@@ -78,14 +78,21 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	allReviews, err := models.FindReviews(models.FindReviewOptions{
+	opts := models.FindReviewOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		Type:        models.ReviewTypeUnknown,
 		IssueID:     pr.IssueID,
-	})
+	}
 
+	allReviews, err := models.FindReviews(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindReviews", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	count, err := models.CountReviews(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -95,6 +102,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiReviews)
 }
 
@@ -307,7 +315,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(opts.Comments) > 0)
 	if isWrong {
 		return
 	}
@@ -359,7 +367,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	}
 
 	// create review and associate all pending review comments
-	review, _, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID)
+	review, _, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, opts.CommitID, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SubmitReview", err)
 		return
@@ -429,7 +437,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// determine review type
-	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body)
+	reviewType, isWrong := preparePullReviewType(ctx, pr, opts.Event, opts.Body, len(review.Comments) > 0)
 	if isWrong {
 		return
 	}
@@ -447,7 +455,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 	}
 
 	// create review and associate all pending review comments
-	review, _, err = pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, headCommitID)
+	review, _, err = pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, pr.Issue, reviewType, opts.Body, headCommitID, nil)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SubmitReview", err)
 		return
@@ -463,11 +471,14 @@ func SubmitPullReview(ctx *context.APIContext) {
 }
 
 // preparePullReviewType return ReviewType and false or nil and true if an error happen
-func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string) (models.ReviewType, bool) {
+func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, event api.ReviewStateType, body string, hasComments bool) (models.ReviewType, bool) {
 	if err := pr.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return -1, true
 	}
+
+	needsBody := true
+	hasBody := len(strings.TrimSpace(body)) > 0
 
 	var reviewType models.ReviewType
 	switch event {
@@ -478,6 +489,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 			return -1, true
 		}
 		reviewType = models.ReviewTypeApprove
+		needsBody = false
 
 	case api.ReviewStateRequestChanges:
 		// can not reject your own PR
@@ -489,13 +501,19 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 
 	case api.ReviewStateComment:
 		reviewType = models.ReviewTypeComment
+		needsBody = false
+		// if there is no body we need to ensure that there are comments
+		if !hasBody && !hasComments {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s requires a body or a comment", event))
+			return -1, true
+		}
 	default:
 		reviewType = models.ReviewTypePending
 	}
 
-	// reject reviews with empty body if not approve type
-	if reviewType != models.ReviewTypeApprove && len(strings.TrimSpace(body)) == 0 {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s need body", event))
+	// reject reviews with empty body if a body is required for this call
+	if needsBody && !hasBody {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("review event %s requires a body", event))
 		return -1, true
 	}
 
@@ -756,4 +774,130 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		ctx.Status(http.StatusNoContent)
 		return
 	}
+}
+
+// DismissPullReview dismiss a review for a pull request
+func DismissPullReview(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/dismissals repository repoDismissPullReview
+	// ---
+	// summary: Dismiss a review for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: body
+	//   in: body
+	//   required: true
+	//   schema:
+	//     "$ref": "#/definitions/DismissPullReviewOptions"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	opts := web.GetForm(ctx).(*api.DismissPullReviewOptions)
+	dismissReview(ctx, opts.Message, true)
+}
+
+// UnDismissPullReview cancel to dismiss a review for a pull request
+func UnDismissPullReview(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/reviews/{id}/undismissals repository repoUnDismissPullReview
+	// ---
+	// summary: Cancel to dismiss a review for a pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReview"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	dismissReview(ctx, "", false)
+}
+
+func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
+	if !ctx.Repo.IsAdmin() {
+		ctx.Error(http.StatusForbidden, "", "Must be repo admin")
+		return
+	}
+	review, pr, isWrong := prepareSingleReview(ctx)
+	if isWrong {
+		return
+	}
+
+	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because it's type is not Approve or change request")
+		return
+	}
+
+	if pr.Issue.IsClosed {
+		ctx.Error(http.StatusForbidden, "", "not need to dismiss this review because this pr is closed")
+		return
+	}
+
+	_, err := pull_service.DismissReview(review.ID, msg, ctx.User, isDismiss)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
+		return
+	}
+
+	if review, err = models.GetReviewByID(review.ID); err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
+		return
+	}
+
+	// convert response
+	apiReview, err := convert.ToPullReview(review, ctx.User)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "convertToPullReview", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiReview)
 }

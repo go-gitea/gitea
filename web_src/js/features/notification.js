@@ -1,5 +1,7 @@
 const {AppSubUrl, csrf, NotificationSettings} = window.config;
 
+let notificationSequenceNumber = 0;
+
 export function initNotificationsTable() {
   $('#notification_table .button').on('click', async function () {
     const data = await updateNotification(
@@ -10,8 +12,10 @@ export function initNotificationsTable() {
       $(this).data('notification-id'),
     );
 
-    $('#notification_div').replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      $('#notification_div').replaceWith(data);
+      initNotificationsTable();
+    }
     await updateNotificationCount();
 
     return false;
@@ -49,9 +53,9 @@ export async function initNotificationCount() {
     worker.addEventListener('error', (event) => {
       console.error(event);
     });
-    worker.port.onmessageerror = () => {
+    worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
-    };
+    });
     worker.port.postMessage({
       type: 'start',
       url: `${window.location.origin}${AppSubUrl}/user/events`,
@@ -66,7 +70,7 @@ export async function initNotificationCount() {
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
-        if (event.data !== 'here') {
+        if (event.data.data !== 'here') {
           return;
         }
         worker.port.postMessage({
@@ -74,6 +78,11 @@ export async function initNotificationCount() {
         });
         worker.port.close();
         window.location.href = AppSubUrl;
+      } else if (event.data.type === 'close') {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
       }
     });
     worker.port.addEventListener('error', (e) => {
@@ -134,10 +143,13 @@ async function updateNotificationTable() {
       url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
       data: {
         'div-only': true,
+        'sequence-number': ++notificationSequenceNumber,
       }
     });
-    notificationDiv.replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      notificationDiv.replaceWith(data);
+      initNotificationsTable();
+    }
   }
 }
 
@@ -177,6 +189,7 @@ async function updateNotification(url, status, page, q, notificationID) {
       page,
       q,
       noredirect: true,
+      'sequence-number': ++notificationSequenceNumber,
     },
   });
 }

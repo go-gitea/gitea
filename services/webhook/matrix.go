@@ -6,7 +6,6 @@ package webhook
 
 import (
 	"crypto/sha1"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -16,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -74,9 +74,6 @@ type MatrixPayloadSafe struct {
 	FormattedBody string               `json:"formatted_body"`
 	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
-
-// SetSecret sets the Matrix secret
-func (m *MatrixPayloadUnsafe) SetSecret(_ string) {}
 
 // JSONPayload Marshals the MatrixPayloadUnsafe to json
 func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
@@ -260,7 +257,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixHookRequest creates a new request which contains an Authorization header.
 // The access_token is removed from t.PayloadContent
-func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
+func getMatrixHookRequest(w *models.Webhook, t *models.HookTask) (*http.Request, error) {
 	payloadunsafe := MatrixPayloadUnsafe{}
 	if err := json.Unmarshal([]byte(t.PayloadContent), &payloadunsafe); err != nil {
 		log.Error("Matrix Hook delivery failed: %v", err)
@@ -284,9 +281,9 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 		return nil, fmt.Errorf("getMatrixHookRequest: unable to hash payload: %+v", err)
 	}
 
-	t.URL = fmt.Sprintf("%s/%s", t.URL, txnID)
+	url := fmt.Sprintf("%s/%s", w.URL, txnID)
 
-	req, err := http.NewRequest(t.HTTPMethod, t.URL, strings.NewReader(string(payload)))
+	req, err := http.NewRequest(w.HTTPMethod, url, strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}

@@ -6,14 +6,19 @@ import (
 )
 
 // C lexer.
-var C = internal.Register(MustNewLexer(
+var C = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "C",
 		Aliases:   []string{"c"},
-		Filenames: []string{"*.c", "*.h", "*.idc"},
-		MimeTypes: []string{"text/x-chdr", "text/x-csrc"},
+		Filenames: []string{"*.c", "*.h", "*.idc", "*.x[bp]m"},
+		MimeTypes: []string{"text/x-chdr", "text/x-csrc", "image/x-xbitmap", "image/x-xpixmap"},
+		EnsureNL:  true,
 	},
-	Rules{
+	cRules,
+))
+
+func cRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`^#if\s+0`, CommentPreproc, Push("if0")},
 			{`^#`, CommentPreproc, Push("macro")},
@@ -38,7 +43,7 @@ var C = internal.Register(MustNewLexer(
 			{`[~!%^&*+=|?:<>/-]`, Operator, nil},
 			{`[()\[\],.]`, Punctuation, nil},
 			{Words(``, `\b`, `asm`, `auto`, `break`, `case`, `const`, `continue`, `default`, `do`, `else`, `enum`, `extern`, `for`, `goto`, `if`, `register`, `restricted`, `return`, `sizeof`, `static`, `struct`, `switch`, `typedef`, `union`, `volatile`, `while`), Keyword, nil},
-			{`(bool|int|long|float|short|double|char|unsigned|signed|void)\b`, KeywordType, nil},
+			{`(bool|int|long|float|short|double|char((8|16|32)_t)?|unsigned|signed|void|u?int(_fast|_least|)(8|16|32|64)_t)\b`, KeywordType, nil},
 			{Words(``, `\b`, `inline`, `_inline`, `__inline`, `naked`, `restrict`, `thread`, `typename`), KeywordReserved, nil},
 			{`(__m(128i|128d|128|64))\b`, KeywordReserved, nil},
 			{Words(`__`, `\b`, `asm`, `int8`, `based`, `except`, `int16`, `stdcall`, `cdecl`, `fastcall`, `int32`, `declspec`, `finally`, `int64`, `try`, `leave`, `wchar_t`, `w64`, `unaligned`, `raise`, `noop`, `identifier`, `forceinline`, `assume`), KeywordReserved, nil},
@@ -87,5 +92,5 @@ var C = internal.Register(MustNewLexer(
 			{`^\s*#endif.*?(?<!\\)\n`, CommentPreproc, Pop(1)},
 			{`.*?\n`, Comment, nil},
 		},
-	},
-))
+	}
+}

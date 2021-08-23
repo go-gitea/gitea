@@ -3,12 +3,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"go/format"
@@ -20,6 +20,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 const (
@@ -174,7 +176,7 @@ func generate() ([]byte, error) {
 					s = append(s, k)
 				} else {
 					// insert into slice after first element because all emoji that support skin tones
-					// have that modifer placed at this spot
+					// have that modifier placed at this spot
 					s = append(s, "")
 					copy(s[2:], s[1:])
 					s[1] = k

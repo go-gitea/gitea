@@ -25,7 +25,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref := AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypePullRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, true, ref.RefIsPull)
+	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionCloses, ref.RefAction)
 
 	// Comment on PR to reopen issue #1
@@ -34,7 +34,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: c.ID}).(*Comment)
 	assert.Equal(t, CommentTypeCommentRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, true, ref.RefIsPull)
+	assert.True(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionReopens, ref.RefAction)
 
 	// Issue mentioning issue #1
@@ -43,7 +43,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
-	assert.Equal(t, false, ref.RefIsPull)
+	assert.False(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Issue #4 to test against
@@ -55,7 +55,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, i.RepoID, ref.RefRepoID)
-	assert.Equal(t, false, ref.RefIsPull)
+	assert.False(t, ref.RefIsPull)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
 	// Cross-reference to issue #4 with no permission
@@ -125,12 +125,27 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
 	r := AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
 	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
-	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: ispull}
+
+	idx, err := GetNextResourceIndex("issue_index", r.ID)
+	assert.NoError(t, err)
+	i := &Issue{
+		RepoID:   r.ID,
+		PosterID: d.ID,
+		Poster:   d,
+		Title:    title,
+		Content:  content,
+		IsPull:   ispull,
+		Index:    idx,
+	}
 
 	sess := x.NewSession()
 	defer sess.Close()
+
 	assert.NoError(t, sess.Begin())
-	_, err := sess.SetExpr("`index`", "coalesce(MAX(`index`),0)+1").Where("repo_id=?", repo).Insert(i)
+	err = newIssue(sess, d, NewIssueOptions{
+		Repo:  r,
+		Issue: i,
+	})
 	assert.NoError(t, err)
 	i, err = getIssueByID(sess, i.ID)
 	assert.NoError(t, err)

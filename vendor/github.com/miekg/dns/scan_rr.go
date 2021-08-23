@@ -590,7 +590,7 @@ func (rr *LOC) parse(c *zlexer, o string) *ParseError {
 	// North
 	l, _ := c.Next()
 	i, e := strconv.ParseUint(l.token, 10, 32)
-	if e != nil || l.err {
+	if e != nil || l.err || i > 90 {
 		return &ParseError{"", "bad LOC Latitude", l}
 	}
 	rr.Latitude = 1000 * 60 * 60 * uint32(i)
@@ -601,7 +601,7 @@ func (rr *LOC) parse(c *zlexer, o string) *ParseError {
 	if rr.Latitude, ok = locCheckNorth(l.token, rr.Latitude); ok {
 		goto East
 	}
-	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err {
+	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err || i > 59 {
 		return &ParseError{"", "bad LOC Latitude minutes", l}
 	} else {
 		rr.Latitude += 1000 * 60 * uint32(i)
@@ -609,7 +609,7 @@ func (rr *LOC) parse(c *zlexer, o string) *ParseError {
 
 	c.Next() // zBlank
 	l, _ = c.Next()
-	if i, err := strconv.ParseFloat(l.token, 32); err != nil || l.err {
+	if i, err := strconv.ParseFloat(l.token, 64); err != nil || l.err || i < 0 || i >= 60 {
 		return &ParseError{"", "bad LOC Latitude seconds", l}
 	} else {
 		rr.Latitude += uint32(1000 * i)
@@ -627,7 +627,7 @@ East:
 	// East
 	c.Next() // zBlank
 	l, _ = c.Next()
-	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err {
+	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err || i > 180 {
 		return &ParseError{"", "bad LOC Longitude", l}
 	} else {
 		rr.Longitude = 1000 * 60 * 60 * uint32(i)
@@ -638,14 +638,14 @@ East:
 	if rr.Longitude, ok = locCheckEast(l.token, rr.Longitude); ok {
 		goto Altitude
 	}
-	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err {
+	if i, err := strconv.ParseUint(l.token, 10, 32); err != nil || l.err || i > 59 {
 		return &ParseError{"", "bad LOC Longitude minutes", l}
 	} else {
 		rr.Longitude += 1000 * 60 * uint32(i)
 	}
 	c.Next() // zBlank
 	l, _ = c.Next()
-	if i, err := strconv.ParseFloat(l.token, 32); err != nil || l.err {
+	if i, err := strconv.ParseFloat(l.token, 64); err != nil || l.err || i < 0 || i >= 60 {
 		return &ParseError{"", "bad LOC Longitude seconds", l}
 	} else {
 		rr.Longitude += uint32(1000 * i)
@@ -662,13 +662,13 @@ East:
 Altitude:
 	c.Next() // zBlank
 	l, _ = c.Next()
-	if len(l.token) == 0 || l.err {
+	if l.token == "" || l.err {
 		return &ParseError{"", "bad LOC Altitude", l}
 	}
 	if l.token[len(l.token)-1] == 'M' || l.token[len(l.token)-1] == 'm' {
 		l.token = l.token[0 : len(l.token)-1]
 	}
-	if i, err := strconv.ParseFloat(l.token, 32); err != nil {
+	if i, err := strconv.ParseFloat(l.token, 64); err != nil {
 		return &ParseError{"", "bad LOC Altitude", l}
 	} else {
 		rr.Altitude = uint32(i*100.0 + 10000000.0 + 0.5)
@@ -722,7 +722,7 @@ func (rr *HIP) parse(c *zlexer, o string) *ParseError {
 
 	c.Next()        // zBlank
 	l, _ = c.Next() // zString
-	if len(l.token) == 0 || l.err {
+	if l.token == "" || l.err {
 		return &ParseError{"", "bad HIP Hit", l}
 	}
 	rr.Hit = l.token // This can not contain spaces, see RFC 5205 Section 6.
@@ -730,11 +730,15 @@ func (rr *HIP) parse(c *zlexer, o string) *ParseError {
 
 	c.Next()        // zBlank
 	l, _ = c.Next() // zString
-	if len(l.token) == 0 || l.err {
+	if l.token == "" || l.err {
 		return &ParseError{"", "bad HIP PublicKey", l}
 	}
 	rr.PublicKey = l.token // This cannot contain spaces
-	rr.PublicKeyLength = uint16(base64.StdEncoding.DecodedLen(len(rr.PublicKey)))
+	decodedPK, decodedPKerr := base64.StdEncoding.DecodeString(rr.PublicKey)
+	if decodedPKerr != nil {
+		return &ParseError{"", "bad HIP PublicKey", l}
+	}
+	rr.PublicKeyLength = uint16(len(decodedPK))
 
 	// RendezvousServers (if any)
 	l, _ = c.Next()
@@ -846,6 +850,38 @@ func (rr *CSYNC) parse(c *zlexer, o string) *ParseError {
 	return nil
 }
 
+func (rr *ZONEMD) parse(c *zlexer, o string) *ParseError {
+	l, _ := c.Next()
+	i, e := strconv.ParseUint(l.token, 10, 32)
+	if e != nil || l.err {
+		return &ParseError{"", "bad ZONEMD Serial", l}
+	}
+	rr.Serial = uint32(i)
+
+	c.Next() // zBlank
+	l, _ = c.Next()
+	i, e1 := strconv.ParseUint(l.token, 10, 8)
+	if e1 != nil || l.err {
+		return &ParseError{"", "bad ZONEMD Scheme", l}
+	}
+	rr.Scheme = uint8(i)
+
+	c.Next() // zBlank
+	l, _ = c.Next()
+	i, err := strconv.ParseUint(l.token, 10, 8)
+	if err != nil || l.err {
+		return &ParseError{"", "bad ZONEMD Hash Algorithm", l}
+	}
+	rr.Hash = uint8(i)
+
+	s, e2 := endingToString(c, "bad ZONEMD Digest")
+	if e2 != nil {
+		return e2
+	}
+	rr.Digest = s
+	return nil
+}
+
 func (rr *SIG) parse(c *zlexer, o string) *ParseError { return rr.RRSIG.parse(c, o) }
 
 func (rr *RRSIG) parse(c *zlexer, o string) *ParseError {
@@ -893,8 +929,7 @@ func (rr *RRSIG) parse(c *zlexer, o string) *ParseError {
 	l, _ = c.Next()
 	if i, err := StringToTime(l.token); err != nil {
 		// Try to see if all numeric and use it as epoch
-		if i, err := strconv.ParseInt(l.token, 10, 64); err == nil {
-			// TODO(miek): error out on > MAX_UINT32, same below
+		if i, err := strconv.ParseUint(l.token, 10, 32); err == nil {
 			rr.Expiration = uint32(i)
 		} else {
 			return &ParseError{"", "bad RRSIG Expiration", l}
@@ -906,7 +941,7 @@ func (rr *RRSIG) parse(c *zlexer, o string) *ParseError {
 	c.Next() // zBlank
 	l, _ = c.Next()
 	if i, err := StringToTime(l.token); err != nil {
-		if i, err := strconv.ParseInt(l.token, 10, 64); err == nil {
+		if i, err := strconv.ParseUint(l.token, 10, 32); err == nil {
 			rr.Inception = uint32(i)
 		} else {
 			return &ParseError{"", "bad RRSIG Inception", l}
@@ -998,7 +1033,7 @@ func (rr *NSEC3) parse(c *zlexer, o string) *ParseError {
 	rr.Iterations = uint16(i)
 	c.Next()
 	l, _ = c.Next()
-	if len(l.token) == 0 || l.err {
+	if l.token == "" || l.err {
 		return &ParseError{"", "bad NSEC3 Salt", l}
 	}
 	if l.token != "-" {
@@ -1008,7 +1043,7 @@ func (rr *NSEC3) parse(c *zlexer, o string) *ParseError {
 
 	c.Next()
 	l, _ = c.Next()
-	if len(l.token) == 0 || l.err {
+	if l.token == "" || l.err {
 		return &ParseError{"", "bad NSEC3 NextDomain", l}
 	}
 	rr.HashLength = 20 // Fix for NSEC3 (sha1 160 bits)
@@ -1388,7 +1423,7 @@ func (rr *RFC3597) parse(c *zlexer, o string) *ParseError {
 
 	c.Next() // zBlank
 	l, _ = c.Next()
-	rdlength, e := strconv.Atoi(l.token)
+	rdlength, e := strconv.ParseUint(l.token, 10, 16)
 	if e != nil || l.err {
 		return &ParseError{"", "bad RFC3597 Rdata ", l}
 	}
@@ -1397,7 +1432,7 @@ func (rr *RFC3597) parse(c *zlexer, o string) *ParseError {
 	if e1 != nil {
 		return e1
 	}
-	if rdlength*2 != len(s) {
+	if int(rdlength)*2 != len(s) {
 		return &ParseError{"", "bad RFC3597 Rdata", l}
 	}
 	rr.Rdata = s

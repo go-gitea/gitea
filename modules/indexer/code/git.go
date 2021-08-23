@@ -17,6 +17,8 @@ import (
 type fileUpdate struct {
 	Filename string
 	BlobSha  string
+	Size     int64
+	Sized    bool
 }
 
 // repoChanges changes (file additions/updates/removals) to a repo
@@ -77,6 +79,8 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 			updates[idxCount] = fileUpdate{
 				Filename: entry.Name(),
 				BlobSha:  entry.ID.String(),
+				Size:     entry.Size(),
+				Sized:    true,
 			}
 			idxCount++
 		}
@@ -87,7 +91,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]fileUpdate, error) {
 // genesisChanges get changes to add repo to the indexer for the first time
 func genesisChanges(repo *models.Repository, revision string) (*repoChanges, error) {
 	var changes repoChanges
-	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-r", revision).
+	stdout, err := git.NewCommand("ls-tree", "--full-tree", "-l", "-r", revision).
 		RunInDirBytes(repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -162,7 +166,7 @@ func nonGenesisChanges(repo *models.Repository, revision string) (*repoChanges, 
 		}
 	}
 
-	cmd := git.NewCommand("ls-tree", "--full-tree", revision, "--")
+	cmd := git.NewCommand("ls-tree", "--full-tree", "-l", revision, "--")
 	cmd.AddArguments(updatedFilenames...)
 	lsTreeStdout, err := cmd.RunInDirBytes(repo.RepoPath())
 	if err != nil {

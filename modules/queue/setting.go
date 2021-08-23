@@ -5,10 +5,10 @@
 package queue
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -27,7 +27,6 @@ func validType(t string) (Type, error) {
 
 func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	q := setting.GetQueueSettings(name)
-
 	cfg, err := json.Marshal(q)
 	if err != nil {
 		log.Error("Unable to marshall generic options: %v Error: %v", q, err)

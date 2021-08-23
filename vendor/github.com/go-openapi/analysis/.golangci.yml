@@ -43,3 +43,7 @@ linters:
     - gci
     - dogsled
     - paralleltest
+    - tparallel
+    - thelper
+    - ifshort
+    - forbidigo

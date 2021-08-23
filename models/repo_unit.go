@@ -5,9 +5,9 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -24,12 +24,11 @@ type RepoUnit struct {
 }
 
 // UnitConfig describes common unit config
-type UnitConfig struct {
-}
+type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a UnitConfig to a serialized format.
@@ -44,7 +43,7 @@ type ExternalWikiConfig struct {
 
 // FromDB fills up a ExternalWikiConfig from serialized format.
 func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalWikiConfig to a serialized format.
@@ -61,7 +60,7 @@ type ExternalTrackerConfig struct {
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
 func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalTrackerConfig to a serialized format.
@@ -78,7 +77,7 @@ type IssuesConfig struct {
 
 // FromDB fills up a IssuesConfig from serialized format.
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a IssuesConfig to a serialized format.
@@ -88,16 +87,20 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 
 // PullRequestsConfig describes pull requests config
 type PullRequestsConfig struct {
-	IgnoreWhitespaceConflicts bool
-	AllowMerge                bool
-	AllowRebase               bool
-	AllowRebaseMerge          bool
-	AllowSquash               bool
+	IgnoreWhitespaceConflicts     bool
+	AllowMerge                    bool
+	AllowRebase                   bool
+	AllowRebaseMerge              bool
+	AllowSquash                   bool
+	AllowManualMerge              bool
+	AutodetectManualMerge         bool
+	DefaultDeleteBranchAfterMerge bool
+	DefaultMergeStyle             MergeStyle
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
@@ -110,7 +113,17 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
-		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
+}
+
+// GetDefaultMergeStyle returns the default merge style for this pull request
+func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
+	if len(cfg.DefaultMergeStyle) != 0 {
+		return cfg.DefaultMergeStyle
+	}
+
+	return MergeStyleMerge
 }
 
 // AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig

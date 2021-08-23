@@ -1,3 +1,4 @@
+//go:build !bindata
 // +build !bindata
 
 // Copyright 2016 The Gitea Authors. All rights reserved.

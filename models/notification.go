@@ -6,7 +6,7 @@ package models
 
 import (
 	"fmt"
-	"path"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -39,6 +39,8 @@ const (
 	NotificationSourcePullRequest
 	// NotificationSourceCommit is a notification of a commit
 	NotificationSourceCommit
+	// NotificationSourceRepository is a notification for a repository
+	NotificationSourceRepository
 )
 
 // Notification represents a notification
@@ -72,6 +74,7 @@ type FindNotificationOptions struct {
 	RepoID            int64
 	IssueID           int64
 	Status            []NotificationStatus
+	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
 }
@@ -91,6 +94,9 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if len(opts.Status) > 0 {
 		cond = cond.And(builder.In("notification.status", opts.Status))
 	}
+	if len(opts.Source) > 0 {
+		cond = cond.And(builder.In("notification.source", opts.Source))
+	}
 	if opts.UpdatedAfterUnix != 0 {
 		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
 	}
@@ -109,14 +115,59 @@ func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
 	return sess
 }
 
-func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
+func getNotifications(e Engine, options *FindNotificationOptions) (nl NotificationList, err error) {
 	err = options.ToSession(e).OrderBy("notification.updated_unix DESC").Find(&nl)
 	return
 }
 
 // GetNotifications returns all notifications that fit to the given options.
-func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
+func GetNotifications(opts *FindNotificationOptions) (NotificationList, error) {
 	return getNotifications(x, opts)
+}
+
+// CountNotifications count all notifications that fit to the given options and ignore pagination.
+func CountNotifications(opts *FindNotificationOptions) (int64, error) {
+	return x.Where(opts.ToCond()).Count(&Notification{})
+}
+
+// CreateRepoTransferNotification creates  notification for the user a repository was transferred to
+func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	var notify []*Notification
+
+	if newOwner.IsOrganization() {
+		users, err := getUsersWhoCanCreateOrgRepo(sess, newOwner.ID)
+		if err != nil || len(users) == 0 {
+			return err
+		}
+		for i := range users {
+			notify = append(notify, &Notification{
+				UserID:    users[i].ID,
+				RepoID:    repo.ID,
+				Status:    NotificationStatusUnread,
+				UpdatedBy: doer.ID,
+				Source:    NotificationSourceRepository,
+			})
+		}
+	} else {
+		notify = []*Notification{{
+			UserID:    newOwner.ID,
+			RepoID:    repo.ID,
+			Status:    NotificationStatusUnread,
+			UpdatedBy: doer.ID,
+			Source:    NotificationSourceRepository,
+		}}
+	}
+
+	if _, err := sess.InsertMulti(notify); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
@@ -140,7 +191,6 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 	// init
 	var toNotify map[int64]struct{}
 	notifications, err := getNotificationsByIssueID(e, issueID)
-
 	if err != nil {
 		return err
 	}
@@ -162,13 +212,14 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 		for _, id := range issueWatches {
 			toNotify[id] = struct{}{}
 		}
-
-		repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
-		if err != nil {
-			return err
-		}
-		for _, id := range repoWatches {
-			toNotify[id] = struct{}{}
+		if !(issue.IsPull && HasWorkInProgressPrefix(issue.Title)) {
+			repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+			if err != nil {
+				return err
+			}
+			for _, id := range repoWatches {
+				toNotify[id] = struct{}{}
+			}
 		}
 		issueParticipants, err := issue.getParticipantIDsByIssue(e)
 		if err != nil {
@@ -363,7 +414,7 @@ func (n *Notification) loadRepo(e Engine) (err error) {
 }
 
 func (n *Notification) loadIssue(e Engine) (err error) {
-	if n.Issue == nil {
+	if n.Issue == nil && n.IssueID != 0 {
 		n.Issue, err = getIssueByID(e, n.IssueID)
 		if err != nil {
 			return fmt.Errorf("getIssueByID [%d]: %v", n.IssueID, err)
@@ -374,7 +425,7 @@ func (n *Notification) loadIssue(e Engine) (err error) {
 }
 
 func (n *Notification) loadComment(e Engine) (err error) {
-	if n.Comment == nil && n.CommentID > 0 {
+	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
 			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
@@ -405,15 +456,23 @@ func (n *Notification) GetIssue() (*Issue, error) {
 
 // HTMLURL formats a URL-string to the notification
 func (n *Notification) HTMLURL() string {
-	if n.Comment != nil {
-		return n.Comment.HTMLURL()
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		if n.Comment != nil {
+			return n.Comment.HTMLURL()
+		}
+		return n.Issue.HTMLURL()
+	case NotificationSourceCommit:
+		return n.Repository.HTMLURL() + "/commit/" + n.CommitID
+	case NotificationSourceRepository:
+		return n.Repository.HTMLURL()
 	}
-	return n.Issue.HTMLURL()
+	return ""
 }
 
 // APIURL formats a URL-string to the notification
 func (n *Notification) APIURL() string {
-	return setting.AppURL + path.Join("api/v1/notifications/threads", fmt.Sprintf("%d", n.ID))
+	return setting.AppURL + "api/v1/notifications/threads/" + strconv.FormatInt(n.ID, 10)
 }
 
 // NotificationList contains a list of notifications
@@ -431,7 +490,7 @@ func (nl NotificationList) LoadAttributes() (err error) {
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Repository != nil {
 			continue
@@ -449,11 +508,11 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 		return RepositoryList{}, []int{}, nil
 	}
 
-	var repoIDs = nl.getPendingRepoIDs()
-	var repos = make(map[int64]*Repository, len(repoIDs))
-	var left = len(repoIDs)
+	repoIDs := nl.getPendingRepoIDs()
+	repos := make(map[int64]*Repository, len(repoIDs))
+	left := len(repoIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -482,7 +541,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 
 	failed := []int{}
 
-	var reposList = make(RepositoryList, 0, len(repoIDs))
+	reposList := make(RepositoryList, 0, len(repoIDs))
 	for i, notification := range nl {
 		if notification.Repository == nil {
 			notification.Repository = repos[notification.RepoID]
@@ -507,7 +566,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 }
 
 func (nl NotificationList) getPendingIssueIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.Issue != nil {
 			continue
@@ -525,11 +584,11 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		return []int{}, nil
 	}
 
-	var issueIDs = nl.getPendingIssueIDs()
-	var issues = make(map[int64]*Issue, len(issueIDs))
-	var left = len(issueIDs)
+	issueIDs := nl.getPendingIssueIDs()
+	issues := make(map[int64]*Issue, len(issueIDs))
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -562,8 +621,10 @@ func (nl NotificationList) LoadIssues() ([]int, error) {
 		if notification.Issue == nil {
 			notification.Issue = issues[notification.IssueID]
 			if notification.Issue == nil {
-				log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
-				failures = append(failures, i)
+				if notification.IssueID != 0 {
+					log.Error("Notification[%d]: IssueID: %d Not Found", notification.ID, notification.IssueID)
+					failures = append(failures, i)
+				}
 				continue
 			}
 			notification.Issue.Repo = notification.Repository
@@ -591,7 +652,7 @@ func (nl NotificationList) Without(failures []int) NotificationList {
 }
 
 func (nl NotificationList) getPendingCommentIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(nl))
+	ids := make(map[int64]struct{}, len(nl))
 	for _, notification := range nl {
 		if notification.CommentID == 0 || notification.Comment != nil {
 			continue
@@ -609,11 +670,11 @@ func (nl NotificationList) LoadComments() ([]int, error) {
 		return []int{}, nil
 	}
 
-	var commentIDs = nl.getPendingCommentIDs()
-	var comments = make(map[int64]*Comment, len(commentIDs))
-	var left = len(commentIDs)
+	commentIDs := nl.getPendingCommentIDs()
+	comments := make(map[int64]*Comment, len(commentIDs))
+	left := len(commentIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -683,7 +744,7 @@ func GetUIDsAndNotificationCounts(since, until timeutil.TimeStamp) ([]UserIDCoun
 	return res, x.SQL(sql, since, until, NotificationStatusUnread).Find(&res)
 }
 
-func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
+func setIssueNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification, err := getIssueNotification(e, userID, issueID)
 	// ignore if not exists
 	if err != nil {
@@ -697,6 +758,16 @@ func setNotificationStatusReadIfUnread(e Engine, userID, issueID int64) error {
 	notification.Status = NotificationStatusRead
 
 	_, err = e.ID(notification.ID).Update(notification)
+	return err
+}
+
+func setRepoNotificationStatusReadIfUnread(e Engine, userID, repoID int64) error {
+	_, err := e.Where(builder.Eq{
+		"user_id": userID,
+		"status":  NotificationStatusUnread,
+		"source":  NotificationSourceRepository,
+		"repo_id": repoID,
+	}).Cols("status").Update(&Notification{Status: NotificationStatusRead})
 	return err
 }
 
@@ -727,7 +798,6 @@ func getNotificationByID(e Engine, notificationID int64) (*Notification, error) 
 	ok, err := e.
 		Where("id = ?", notificationID).
 		Get(notification)
-
 	if err != nil {
 		return nil, err
 	}
@@ -740,7 +810,7 @@ func getNotificationByID(e Engine, notificationID int64) (*Notification, error) 
 }
 
 // UpdateNotificationStatuses updates the statuses of all of a user's notifications that are of the currentStatus type to the desiredStatus
-func UpdateNotificationStatuses(user *User, currentStatus NotificationStatus, desiredStatus NotificationStatus) error {
+func UpdateNotificationStatuses(user *User, currentStatus, desiredStatus NotificationStatus) error {
 	n := &Notification{Status: desiredStatus, UpdatedBy: user.ID}
 	_, err := x.
 		Where("user_id = ? AND status = ?", user.ID, currentStatus).

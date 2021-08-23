@@ -33,16 +33,12 @@ import (
 // NOTE: if you are using the go-openapi/loads package, it will override
 // this value with its own default (a loader to retrieve YAML documents as
 // well as JSON ones).
-var PathLoader func(string) (json.RawMessage, error)
-
-func init() {
-	PathLoader = func(path string) (json.RawMessage, error) {
-		data, err := swag.LoadFromFileOrHTTP(path)
-		if err != nil {
-			return nil, err
-		}
-		return json.RawMessage(data), nil
+var PathLoader = func(pth string) (json.RawMessage, error) {
+	data, err := swag.LoadFromFileOrHTTP(pth)
+	if err != nil {
+		return nil, err
 	}
+	return json.RawMessage(data), nil
 }
 
 // resolverContext allows to share a context during spec processing.
@@ -55,12 +51,13 @@ type resolverContext struct {
 	circulars map[string]bool
 	basePath  string
 	loadDoc   func(string) (json.RawMessage, error)
+	rootID    string
 }
 
-func newResolverContext(expandOptions *ExpandOptions) *resolverContext {
-	absBase, _ := absPath(expandOptions.RelativeBase)
+func newResolverContext(options *ExpandOptions) *resolverContext {
+	expandOptions := optionsOrDefault(options)
 
-	// path loader may be overridden from option
+	// path loader may be overridden by options
 	var loader func(string) (json.RawMessage, error)
 	if expandOptions.PathLoader == nil {
 		loader = PathLoader
@@ -70,7 +67,7 @@ func newResolverContext(expandOptions *ExpandOptions) *resolverContext {
 
 	return &resolverContext{
 		circulars: make(map[string]bool),
-		basePath:  absBase, // keep the root base path in context
+		basePath:  expandOptions.RelativeBase, // keep the root base path in context
 		loadDoc:   loader,
 	}
 }
@@ -88,7 +85,7 @@ func (r *schemaLoader) transitiveResolver(basePath string, ref Ref) *schemaLoade
 	}
 
 	baseRef := MustCreateRef(basePath)
-	currentRef := normalizeFileRef(&ref, basePath)
+	currentRef := normalizeRef(&ref, basePath)
 	if strings.HasPrefix(currentRef.String(), baseRef.String()) {
 		return r
 	}
@@ -102,15 +99,17 @@ func (r *schemaLoader) transitiveResolver(basePath string, ref Ref) *schemaLoade
 	// traversing multiple documents
 	newOptions := r.options
 	newOptions.RelativeBase = rootURL.String()
+
 	return defaultSchemaLoader(root, newOptions, r.cache, r.context)
 }
 
 func (r *schemaLoader) updateBasePath(transitive *schemaLoader, basePath string) string {
 	if transitive != r {
 		if transitive.options != nil && transitive.options.RelativeBase != "" {
-			basePath, _ = absPath(transitive.options.RelativeBase)
+			return normalizeBase(transitive.options.RelativeBase)
 		}
 	}
+
 	return basePath
 }
 
@@ -142,7 +141,7 @@ func (r *schemaLoader) resolveRef(ref *Ref, target interface{}, basePath string)
 	if (ref.IsRoot() || ref.HasFragmentOnly) && root != nil {
 		data = root
 	} else {
-		baseRef := normalizeFileRef(ref, basePath)
+		baseRef := normalizeRef(ref, basePath)
 		data, _, _, err = r.load(baseRef.GetURL())
 		if err != nil {
 			return err
@@ -166,43 +165,39 @@ func (r *schemaLoader) load(refURL *url.URL) (interface{}, url.URL, bool, error)
 
 	var err error
 	pth := toFetch.String()
-	if pth == rootBase {
-		pth, err = absPath(rootBase)
-		if err != nil {
-			return nil, url.URL{}, false, err
-		}
-	}
-	normalized := normalizeAbsPath(pth)
+	normalized := normalizeBase(pth)
+	debugLog("loading doc from: %s", normalized)
 
 	data, fromCache := r.cache.Get(normalized)
-	if !fromCache {
-		b, err := r.context.loadDoc(normalized)
-		if err != nil {
-			return nil, url.URL{}, false, fmt.Errorf("%s [%s]: %w", pth, normalized, err)
-		}
-
-		var doc interface{}
-		if err := json.Unmarshal(b, &doc); err != nil {
-			return nil, url.URL{}, false, err
-		}
-		r.cache.Set(normalized, doc)
-
-		return doc, toFetch, fromCache, nil
+	if fromCache {
+		return data, toFetch, fromCache, nil
 	}
 
-	return data, toFetch, fromCache, nil
+	b, err := r.context.loadDoc(normalized)
+	if err != nil {
+		return nil, url.URL{}, false, err
+	}
+
+	var doc interface{}
+	if err := json.Unmarshal(b, &doc); err != nil {
+		return nil, url.URL{}, false, err
+	}
+	r.cache.Set(normalized, doc)
+
+	return doc, toFetch, fromCache, nil
 }
 
 // isCircular detects cycles in sequences of $ref.
+//
 // It relies on a private context (which needs not be locked).
 func (r *schemaLoader) isCircular(ref *Ref, basePath string, parentRefs ...string) (foundCycle bool) {
-	normalizedRef := normalizePaths(ref.String(), basePath)
+	normalizedRef := normalizeURI(ref.String(), basePath)
 	if _, ok := r.context.circulars[normalizedRef]; ok {
 		// circular $ref has been already detected in another explored cycle
 		foundCycle = true
 		return
 	}
-	foundCycle = swag.ContainsStringsCI(parentRefs, normalizedRef) // TODO(fred): normalize windows url and remove CI equality
+	foundCycle = swag.ContainsStrings(parentRefs, normalizedRef) // normalized windows url's are lower cased
 	if foundCycle {
 		r.context.circulars[normalizedRef] = true
 	}
@@ -240,7 +235,7 @@ func (r *schemaLoader) deref(input interface{}, parentRefs []string, basePath st
 		return nil
 	}
 
-	normalizedRef := normalizeFileRef(ref, basePath)
+	normalizedRef := normalizeRef(ref, basePath)
 	normalizedBasePath := normalizedRef.RemoteURI()
 
 	if r.isCircular(normalizedRef, basePath, parentRefs...) {
@@ -279,7 +274,7 @@ func (r *schemaLoader) setSchemaID(target interface{}, id, basePath string) (str
 	// remember that basePath has to point to a file
 	var refPath string
 	if strings.HasSuffix(id, "/") {
-		// path.Clean here would not work correctly if there is a scheme (e.g. https://...)
+		// ensure this is detected as a file, not a folder
 		refPath = fmt.Sprintf("%s%s", id, "placeholder.json")
 	} else {
 		refPath = id
@@ -288,10 +283,17 @@ func (r *schemaLoader) setSchemaID(target interface{}, id, basePath string) (str
 	// updates the current base path
 	// * important: ID can be a relative path
 	// * registers target to be fetchable from the new base proposed by this id
-	newBasePath := normalizePaths(refPath, basePath)
+	newBasePath := normalizeURI(refPath, basePath)
 
 	// store found IDs for possible future reuse in $ref
 	r.cache.Set(newBasePath, target)
+
+	// the root document has an ID: all $ref relative to that ID may
+	// be rebased relative to the root document
+	if basePath == r.context.basePath {
+		debugLog("root document is a schema with ID: %s (normalized as:%s)", id, newBasePath)
+		r.context.rootID = newBasePath
+	}
 
 	return newBasePath, refPath
 }
@@ -306,6 +308,16 @@ func defaultSchemaLoader(
 		expandOptions = &ExpandOptions{}
 	}
 
+	cache = cacheOrDefault(cache)
+
+	if expandOptions.RelativeBase == "" {
+		// if no relative base is provided, assume the root document
+		// contains all $ref, or at least, that the relative documents
+		// may be resolved from the current working directory.
+		expandOptions.RelativeBase = baseForRoot(root, cache)
+	}
+	debugLog("effective expander options: %#v", expandOptions)
+
 	if context == nil {
 		context = newResolverContext(expandOptions)
 	}
@@ -313,7 +325,7 @@ func defaultSchemaLoader(
 	return &schemaLoader{
 		root:    root,
 		options: expandOptions,
-		cache:   cacheOrDefault(cache),
+		cache:   cache,
 		context: context,
 	}
 }

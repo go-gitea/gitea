@@ -5,12 +5,12 @@
 package action
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -275,6 +275,26 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mode
 	}
 }
 
+func (*actionNotifier) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+	reviewerName := review.Reviewer.Name
+	if len(review.OriginalAuthor) > 0 {
+		reviewerName = review.OriginalAuthor
+	}
+	if err := models.NotifyWatchers(&models.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    models.ActionPullReviewDismissed,
+		Content:   fmt.Sprintf("%d|%s|%s", review.Issue.Index, reviewerName, comment.Content),
+		RepoID:    review.Issue.Repo.ID,
+		Repo:      review.Issue.Repo,
+		IsPrivate: review.Issue.Repo.IsPrivate,
+		CommentID: comment.ID,
+		Comment:   comment,
+	}); err != nil {
+		log.Error("NotifyWatchers [%d]: %v", review.Issue.ID, err)
+	}
+}
+
 func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	data, err := json.Marshal(commits)
 	if err != nil {
@@ -311,7 +331,8 @@ func (a *actionNotifier) NotifyPushCommits(pusher *models.User, repo *models.Rep
 func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 	opType := models.ActionCommitRepo
 	if refType == "tag" {
-		opType = models.ActionPushTag
+		// has sent same action in `NotifyPushCommits`, so skip it.
+		return
 	}
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
@@ -329,7 +350,8 @@ func (a *actionNotifier) NotifyCreateRef(doer *models.User, repo *models.Reposit
 func (a *actionNotifier) NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string) {
 	opType := models.ActionDeleteBranch
 	if refType == "tag" {
-		opType = models.ActionDeleteTag
+		// has sent same action in `NotifyPushCommits`, so skip it.
+		return
 	}
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,

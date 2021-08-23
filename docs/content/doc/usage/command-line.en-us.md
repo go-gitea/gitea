@@ -46,6 +46,8 @@ Starts the server:
   - `--port number`, `-p number`: Port number. Optional. (default: 3000). Overrides configuration file.
   - `--install-port number`: Port number to run the install page on. Optional. (default: 3000). Overrides configuration file.
   - `--pid path`, `-P path`: Pidfile path. Optional.
+  - `--quiet`, `-q`: Only emit Fatal logs on the console for logs emitted before logging set up.
+  - `--verbose`: Emit tracing logs on the console for logs emitted before logging is set-up.
 - Examples:
   - `gitea web`
   - `gitea web --port 80`
@@ -232,7 +234,7 @@ Generates a self-signed SSL certificate. Outputs to `cert.pem` and `key.pem` in 
 directory and will overwrite any existing files.
 
 - Options:
-  - `--host value`: Comma seperated hostnames and ips which this certificate is valid for.
+  - `--host value`: Comma separated hostnames and ips which this certificate is valid for.
     Wildcards are supported. Required.
   - `--ecdsa-curve value`: ECDSA curve to use to generate a key. Optional. Valid options
     are P224, P256, P384, P521.
@@ -253,6 +255,7 @@ in the current directory.
   - `--file name`, `-f name`: Name of the dump file with will be created. Optional. (default: gitea-dump-[timestamp].zip).
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
+  - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
 - Examples:

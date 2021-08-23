@@ -5,9 +5,10 @@
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"sync"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"gitea.com/go-chi/session"
 	couchbase "gitea.com/go-chi/session/couchbase"
@@ -39,6 +40,8 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 		o.provider = &session.FileProvider{}
 	case "redis":
 		o.provider = &RedisProvider{}
+	case "db":
+		o.provider = &DBProvider{}
 	case "mysql":
 		o.provider = &mysql.MysqlProvider{}
 	case "postgres":

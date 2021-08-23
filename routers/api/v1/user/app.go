@@ -44,9 +44,16 @@ func ListAccessTokens(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AccessTokenList"
 
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)})
+	opts := models.ListAccessTokensOptions{UserID: ctx.User.ID, ListOptions: utils.GetListOptions(ctx)}
+
+	count, err := models.CountAccessTokens(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListAccessTokens", err)
+		ctx.InternalServerError(err)
+		return
+	}
+	tokens, err := models.ListAccessTokens(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +65,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 			TokenLastEight: tokens[i].TokenLastEight,
 		}
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiTokens)
 }
 
@@ -76,18 +85,15 @@ func CreateAccessToken(ctx *context.APIContext) {
 	//   description: username of user
 	//   type: string
 	//   required: true
-	// - name: accessToken
+	// - name: userCreateToken
 	//   in: body
 	//   schema:
-	//     type: object
-	//     required:
-	//       - name
-	//     properties:
-	//       name:
-	//         type: string
+	//     "$ref": "#/definitions/CreateAccessTokenOption"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/AccessToken"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*api.CreateAccessTokenOption)
 
@@ -139,6 +145,8 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/error"
 
@@ -162,7 +170,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 		case 1:
 			tokenID = tokens[0].ID
 		default:
-			ctx.Error(http.StatusUnprocessableEntity, "DeleteAccessTokenByID", fmt.Errorf("multible matches for token name '%s'", token))
+			ctx.Error(http.StatusUnprocessableEntity, "DeleteAccessTokenByID", fmt.Errorf("multiple matches for token name '%s'", token))
 			return
 		}
 	}
@@ -199,6 +207,8 @@ func CreateOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/OAuth2Application"
+	//   "400":
+	//     "$ref": "#/responses/error"
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
@@ -241,7 +251,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
+	apps, total, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -252,6 +262,8 @@ func ListOauth2Applications(ctx *context.APIContext) {
 		apiApps[i] = convert.ToOAuth2Application(apps[i])
 		apiApps[i].ClientSecret = "" // Hide secret on application list
 	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiApps)
 }
 
@@ -272,9 +284,15 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
 	if err := models.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+		if models.IsErrOAuthApplicationNotFound(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
+		}
 		return
 	}
 
@@ -298,6 +316,8 @@ func GetOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
 	app, err := models.GetOAuth2ApplicationByID(appID)
 	if err != nil {
@@ -336,6 +356,8 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OAuth2Application"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)

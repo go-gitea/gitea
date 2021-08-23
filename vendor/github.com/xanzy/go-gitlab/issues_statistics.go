@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -59,7 +60,7 @@ type GetIssuesStatisticsOptions struct {
 	AssigneeID       *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeUsername []string   `url:"assignee_username,omitempty" json:"assignee_username,omitempty"`
 	MyReactionEmoji  *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
-	IIDs             []int      `url:"iids,omitempty" json:"iids,omitempty"`
+	IIDs             []int      `url:"iids[],omitempty" json:"iids,omitempty"`
 	Search           *string    `url:"search,omitempty" json:"search,omitempty"`
 	In               *string    `url:"in,omitempty" json:"in,omitempty"`
 	CreatedAfter     *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
@@ -75,7 +76,7 @@ type GetIssuesStatisticsOptions struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issues_statistics.html#get-issues-statistics
 func (s *IssuesStatisticsService) GetIssuesStatistics(opt *GetIssuesStatisticsOptions, options ...RequestOptionFunc) (*IssuesStatistics, *Response, error) {
-	req, err := s.client.NewRequest("GET", "issues_statistics", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "issues_statistics", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -96,8 +97,8 @@ func (s *IssuesStatisticsService) GetIssuesStatistics(opt *GetIssuesStatisticsOp
 // https://docs.gitlab.com/ee/api/issues_statistics.html#get-group-issues-statistics
 type GetGroupIssuesStatisticsOptions struct {
 	Labels           Labels     `url:"labels,omitempty" json:"labels,omitempty"`
-	IIDs             []int      `url:"iids,omitempty" json:"iids,omitempty"`
-	Milestone        *Milestone `url:"milestone,omitempty" json:"milestone,omitempty"`
+	IIDs             []int      `url:"iids[],omitempty" json:"iids,omitempty"`
+	Milestone        *string    `url:"milestone,omitempty" json:"milestone,omitempty"`
 	Scope            *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID         *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AuthorUsername   *string    `url:"author_username,omitempty" json:"author_username,omitempty"`
@@ -123,7 +124,7 @@ func (s *IssuesStatisticsService) GetGroupIssuesStatistics(gid interface{}, opt 
 	}
 	u := fmt.Sprintf("groups/%s/issues_statistics", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -143,7 +144,7 @@ func (s *IssuesStatisticsService) GetGroupIssuesStatistics(gid interface{}, opt 
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/issues_statistics.html#get-project-issues-statistics
 type GetProjectIssuesStatisticsOptions struct {
-	IIDs             []int      `url:"iids,omitempty" json:"iids,omitempty"`
+	IIDs             []int      `url:"iids[],omitempty" json:"iids,omitempty"`
 	Labels           Labels     `url:"labels,omitempty" json:"labels,omitempty"`
 	Milestone        *Milestone `url:"milestone,omitempty" json:"milestone,omitempty"`
 	Scope            *string    `url:"scope,omitempty" json:"scope,omitempty"`
@@ -171,7 +172,7 @@ func (s *IssuesStatisticsService) GetProjectIssuesStatistics(pid interface{}, op
 	}
 	u := fmt.Sprintf("projects/%s/issues_statistics", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}

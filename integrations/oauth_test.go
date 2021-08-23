@@ -6,10 +6,10 @@ package integrations
 
 import (
 	"bytes"
-	"encoding/json"
 	"io/ioutil"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -70,6 +70,7 @@ func TestAccessTokenExchange(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -93,6 +94,7 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -181,6 +183,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 	assert.True(t, len(parsed.AccessToken) > 10)
 	assert.True(t, len(parsed.RefreshToken) > 10)
@@ -223,6 +226,7 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	parsed := new(response)
+
 	assert.NoError(t, json.Unmarshal(resp.Body.Bytes(), parsed))
 
 	// test without invalidation

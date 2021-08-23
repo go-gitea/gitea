@@ -6,9 +6,11 @@
 package log
 
 import (
-	"encoding/json"
+	"fmt"
 	"io"
 	"net"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 type connWriter struct {
@@ -106,7 +108,7 @@ func NewConn() LoggerProvider {
 func (log *ConnLogger) Init(jsonconfig string) error {
 	err := json.Unmarshal([]byte(jsonconfig), log)
 	if err != nil {
-		return err
+		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
 	log.NewWriterLogger(&connWriter{
 		ReconnectOnMsg: log.ReconnectOnMsg,

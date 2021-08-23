@@ -6,14 +6,18 @@ import (
 )
 
 // Erlang lexer.
-var Erlang = internal.Register(MustNewLexer(
+var Erlang = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Erlang",
 		Aliases:   []string{"erlang"},
 		Filenames: []string{"*.erl", "*.hrl", "*.es", "*.escript"},
 		MimeTypes: []string{"text/x-erlang"},
 	},
-	Rules{
+	erlangRules,
+))
+
+func erlangRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`%.*\n`, Comment, nil},
@@ -62,5 +66,5 @@ var Erlang = internal.Register(MustNewLexer(
 			{`,`, Punctuation, Pop(1)},
 			{`(?=\})`, Punctuation, Pop(1)},
 		},
-	},
-))
+	}
+}

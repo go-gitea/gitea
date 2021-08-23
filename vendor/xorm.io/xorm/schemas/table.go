@@ -5,7 +5,6 @@
 package schemas
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -90,23 +89,28 @@ func (table *Table) PKColumns() []*Column {
 	return columns
 }
 
+// ColumnType returns a column's type
 func (table *Table) ColumnType(name string) reflect.Type {
 	t, _ := table.Type.FieldByName(name)
 	return t.Type
 }
 
+// AutoIncrColumn returns autoincrement column
 func (table *Table) AutoIncrColumn() *Column {
 	return table.GetColumn(table.AutoIncrement)
 }
 
+// VersionColumn returns version column's information
 func (table *Table) VersionColumn() *Column {
 	return table.GetColumn(table.Version)
 }
 
+// UpdatedColumn returns updated column's information
 func (table *Table) UpdatedColumn() *Column {
 	return table.GetColumn(table.Updated)
 }
 
+// DeletedColumn returns deleted column's information
 func (table *Table) DeletedColumn() *Column {
 	return table.GetColumn(table.Deleted)
 }
@@ -154,24 +158,8 @@ func (table *Table) IDOfV(rv reflect.Value) (PK, error) {
 	for i, col := range table.PKColumns() {
 		var err error
 
-		fieldName := col.FieldName
-		for {
-			parts := strings.SplitN(fieldName, ".", 2)
-			if len(parts) == 1 {
-				break
-			}
+		pkField := v.FieldByIndex(col.FieldIndex)
 
-			v = v.FieldByName(parts[0])
-			if v.Kind() == reflect.Ptr {
-				v = v.Elem()
-			}
-			if v.Kind() != reflect.Struct {
-				return nil, fmt.Errorf("Unsupported read value of column %s from field %s", col.Name, col.FieldName)
-			}
-			fieldName = parts[1]
-		}
-
-		pkField := v.FieldByName(fieldName)
 		switch pkField.Kind() {
 		case reflect.String:
 			pk[i], err = col.ConvertID(pkField.String())

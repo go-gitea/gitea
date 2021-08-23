@@ -2,6 +2,9 @@
 	<div class="commits-table-left df ac">
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
 			{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}} {{if .Branch}}({{.Branch}}){{end}}
+		{{else if .IsNothingToCompare }}
+			{{.i18n.Tr "repo.commits.nothing_to_compare" }} {{if .Branch}}({{.Branch}}){{end}}
+
 		{{else}}
 			{{.i18n.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch }} {{if .Branch}}({{.Branch}}){{end}}
 		{{end}}
@@ -28,7 +31,7 @@
 </h4>
 
 {{if and .Commits (gt .CommitCount 0)}}
-    {{template "repo/commits_list" .}}
+	{{template "repo/commits_list" .}}
 {{end}}
 
 {{template "base/paginate" .}}

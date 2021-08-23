@@ -5,7 +5,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/utils"
@@ -133,7 +133,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			BranchFilter: form.BranchFilter,
 		},
 		IsActive: form.Active,
-		Type:     models.HookTaskType(form.Type),
+		Type:     models.HookType(form.Type),
 	}
 	if w.Type == models.SLACK {
 		channel, ok := form.Config["channel"]

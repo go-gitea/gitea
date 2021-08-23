@@ -60,7 +60,7 @@ func ValidateTopic(topic string) bool {
 }
 
 // SanitizeAndValidateTopics sanitizes and checks an array or topics
-func SanitizeAndValidateTopics(topics []string) (validTopics []string, invalidTopics []string) {
+func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []string) {
 	validTopics = make([]string, 0)
 	mValidTopics := make(map[string]struct{})
 	invalidTopics = make([]string, 0)
@@ -171,7 +171,7 @@ type FindTopicOptions struct {
 }
 
 func (opts *FindTopicOptions) toConds() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_topic.repo_id": opts.RepoID})
 	}
@@ -184,7 +184,7 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 }
 
 // FindTopics retrieves the topics via FindTopicOptions
-func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
+func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 	sess := x.Select("topic.*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
@@ -192,15 +192,27 @@ func FindTopics(opts *FindTopicOptions) (topics []*Topic, err error) {
 	if opts.PageSize != 0 && opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
-	return topics, sess.Desc("topic.repo_count").Find(&topics)
+	topics := make([]*Topic, 0, 10)
+	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
+	return topics, total, err
 }
 
-// GetRepoTopicByName retrives topic from name for a repo if it exist
+// CountTopics counts the number of topics matching the FindTopicOptions
+func CountTopics(opts *FindTopicOptions) (int64, error) {
+	sess := x.Where(opts.toConds())
+	if opts.RepoID > 0 {
+		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+	}
+	return sess.Count(new(Topic))
+}
+
+// GetRepoTopicByName retrieves topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
 	return getRepoTopicByName(x, repoID, topicName)
 }
+
 func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error) {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	var topic Topic
 	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
 	sess := e.Table("topic").Where(cond)
@@ -268,7 +280,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 
 // SaveTopics save topics to a repository
 func SaveTopics(repoID int64, topicNames ...string) error {
-	topics, err := FindTopics(&FindTopicOptions{
+	topics, _, err := FindTopics(&FindTopicOptions{
 		RepoID: repoID,
 	})
 	if err != nil {

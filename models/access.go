@@ -121,8 +121,8 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	}
 	defer rows.Close()
 
-	var repos = make(map[*Repository]AccessMode, 10)
-	var ownerCache = make(map[int64]*User, 10)
+	repos := make(map[*Repository]AccessMode, 10)
+	ownerCache := make(map[int64]*User, 10)
 	for rows.Next() {
 		var repo repoAccess
 		err = rows.Scan(&repo)
@@ -246,7 +246,7 @@ func (repo *Repository) recalculateTeamAccesses(e Engine, ignTeamID int64) (err 
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.getTeams(e); err != nil {
+	if err = repo.Owner.loadTeams(e); err != nil {
 		return err
 	}
 
