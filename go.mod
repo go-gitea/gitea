@@ -22,7 +22,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.0.6
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.14.0
+	github.com/caddyserver/certmagic v0.14.1
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
