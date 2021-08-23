@@ -75,6 +75,7 @@ const (
 type DiffLine struct {
 	LeftIdx     int
 	RightIdx    int
+	Match       int
 	Type        DiffLineType
 	Content     string
 	Comments    []*models.Comment
@@ -943,6 +944,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		curFileLFSPrefix  bool
 	)
 
+	lastLeftIdx := -1
 	leftLine, rightLine := 1, 1
 
 	for {
@@ -1027,12 +1029,20 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				curFile.IsIncomplete = true
 				continue
 			}
-			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine}
+			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine, Match: -1}
 			rightLine++
 			if curSection == nil {
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+			}
+			if lastLeftIdx > -1 {
+				diffLine.Match = lastLeftIdx
+				curSection.Lines[lastLeftIdx].Match = len(curSection.Lines)
+				lastLeftIdx++
+				if lastLeftIdx >= len(curSection.Lines) || curSection.Lines[lastLeftIdx].Type != DiffLineDel {
+					lastLeftIdx = -1
+				}
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case '-':
@@ -1042,7 +1052,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				curFile.IsIncomplete = true
 				continue
 			}
-			diffLine := &DiffLine{Type: DiffLineDel, LeftIdx: leftLine}
+			diffLine := &DiffLine{Type: DiffLineDel, LeftIdx: leftLine, Match: -1}
 			if leftLine > 0 {
 				leftLine++
 			}
@@ -1050,6 +1060,9 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+			}
+			if len(curSection.Lines) == 0 || curSection.Lines[len(curSection.Lines)-1].Type != DiffLineDel {
+				lastLeftIdx = len(curSection.Lines)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case ' ':
@@ -1061,6 +1074,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			diffLine := &DiffLine{Type: DiffLinePlain, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
+			lastLeftIdx = -1
 			if curSection == nil {
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
