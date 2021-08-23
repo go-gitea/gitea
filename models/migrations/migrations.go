@@ -335,6 +335,8 @@ var migrations = []Migration{
 	// v190 -> v191
 	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
 	// v191 -> v192
+	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
+	// v192 -> v193
 	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
 }
 
