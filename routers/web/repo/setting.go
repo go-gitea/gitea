@@ -742,6 +742,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		default:
 			ctx.ServerError("Unknown error", err)
 		}
+		return
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
 }
