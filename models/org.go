@@ -432,12 +432,35 @@ func queryUserOrgIDs(uid int64) *builder.Builder {
 type MinimalOrg = User
 
 // GetUserOrgsList returns one user's all orgs list
-func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
+func GetUserOrgsList(doer *User) ([]*MinimalOrg, error) {
 	var orgs = make([]*MinimalOrg, 0, 20)
-	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
+	sess := x.NewSession()
+	defer sess.Close()
+
+	err := sess.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
 		Table("user").
-		In("id", queryUserOrgIDs(uid)).
+		In("id", queryUserOrgIDs(doer.ID)).
 		Find(&orgs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, org := range orgs {
+		cond := SearchRepositoryCondition(&SearchRepoOptions{
+			Actor:      doer,
+			Private:    true,
+			OwnerID:    org.ID,
+			AllPublic:  false, // Include also all public repositories of users and public organisations
+			AllLimited: false, // Include also all public repositories of limited organisations
+		})
+		org.NumRepos, err = countRepositoryByCondition(x, cond)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return orgs, nil
 }
 
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {

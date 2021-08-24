@@ -366,6 +366,13 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 	return SearchRepositoryByCondition(opts, cond, true)
 }
 
+func countRepositoryByCondition(e Engine, cond builder.Cond) (int, error) {
+	count, err := e.
+		Where(cond).
+		Count(new(Repository))
+	return int(count), err
+}
+
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
 	sess, count, err := searchRepositoryByCondition(opts, cond)
