@@ -40,13 +40,47 @@
 					<td class="lines-code lines-code-new halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}" data-new-comment-url="{{$.root.Issue.HTMLURL}}/files/reviews/new_comment">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 				{{end}}
 			</tr>
-			{{if gt (len $line.Comments) 0}}
+			{{if and (eq .GetType 3) $hasmatch}}
+				{{$match := index $section.Lines $line.Match}}
+				{{if or (gt (len $line.Comments) 0) (gt (len $match.Comments) 0)}}
+					<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
+						<td class="lines-num"></td>
+						<td class="lines-type-marker"></td>
+						<td class="add-comment-left">
+							{{if gt (len $line.Comments) 0}}
+								{{if eq $line.GetCommentSide "previous"}}
+									{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+								{{end}}
+							{{end}}
+							{{if gt (len $match.Comments) 0}}
+								{{if eq $match.GetCommentSide "previous"}}
+									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+								{{end}}
+							{{end}}
+						</td>
+						<td class="lines-num"></td>
+						<td class="lines-type-marker"></td>
+						<td class="add-comment-right">
+							{{if eq $line.GetCommentSide "proposed"}}
+								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+							{{end}}
+							{{if gt (len $match.Comments) 0}}
+								{{if eq $match.GetCommentSide "proposed"}}
+									{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
+								{{end}}
+							{{end}}
+						</td>
+					</tr>
+				{{end}}
+			{{else if gt (len $line.Comments) 0}}
 				<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
 					<td class="lines-num"></td>
 					<td class="lines-type-marker"></td>
 					<td class="add-comment-left">
-						{{if eq $line.GetCommentSide "previous"}}
-							{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+						{{if gt (len $line.Comments) 0}}
+							{{if eq $line.GetCommentSide "previous"}}
+								{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+							{{end}}
 						{{end}}
 					</td>
 					<td class="lines-num"></td>
@@ -57,27 +91,6 @@
 						{{end}}
 					</td>
 				</tr>
-			{{end}}
-			{{if and (eq .GetType 3) $hasmatch}}
-				{{$match := index $section.Lines $line.Match}}
-				{{if gt (len $match.Comments) 0}}
-					<tr class="add-comment" data-line-type="add">
-						<td class="lines-num"></td>
-						<td class="lines-type-marker"></td>
-						<td class="add-comment-left">
-							{{if eq $match.GetCommentSide "previous"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
-							{{end}}
-						</td>
-						<td class="lines-num"></td>
-						<td class="lines-type-marker"></td>
-						<td class="add-comment-right">
-							{{if eq $match.GetCommentSide "proposed"}}
-								{{template "repo/diff/conversation" mergeinto $.root "comments" $match.Comments}}
-							{{end}}
-						</td>
-					</tr>
-				{{end}}
 			{{end}}
 		{{end}}
 	{{end}}
