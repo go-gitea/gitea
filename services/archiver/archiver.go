@@ -171,6 +171,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		if archiver.Type == git.BUNDLE {
 			err = gitRepo.CreateBundle(
 				graceful.GetManager().ShutdownContext(),
+				archiver.CommitID,
 				w,
 			)
 		} else {

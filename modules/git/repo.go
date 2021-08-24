@@ -418,7 +418,7 @@ func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string
 }
 
 // CreateBundle create bundle content to the target path
-func (repo *Repository) CreateBundle(ctx context.Context, out io.Writer) error {
+func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
 	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
 	if err != nil {
 		return err
@@ -430,7 +430,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, out io.Writer) error {
 		"bundle",
 		"create",
 		tmpFile,
-		"--all",
+		commit,
 	}
 	_, err = NewCommandContext(ctx, args...).RunInDir(repo.Path)
 	if err != nil {
