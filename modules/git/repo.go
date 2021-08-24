@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -414,4 +415,34 @@ func GetDivergingCommits(repoPath string, baseBranch string, targetBranch string
 	}
 
 	return DivergeObject{ahead, behind}, nil
+}
+
+// CreateBundle create bundle content to the target path
+func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.Writer) error {
+	tmp, err := os.MkdirTemp(os.TempDir(), "gitea-bundle")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmp)
+
+	tmpFile := filepath.Join(tmp, "bundle")
+	args := []string{
+		"bundle",
+		"create",
+		tmpFile,
+		commit,
+	}
+	_, err = NewCommandContext(ctx, args...).RunInDir(repo.Path)
+	if err != nil {
+		return err
+	}
+
+	fi, err := os.Open(tmpFile)
+	if err != nil {
+		return err
+	}
+	defer fi.Close()
+
+	_, err = io.Copy(out, fi)
+	return err
 }

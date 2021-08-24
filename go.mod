@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.14
+go 1.16
 
 require (
 	cloud.google.com/go v0.78.0 // indirect
@@ -22,7 +22,7 @@ require (
 	github.com/blevesearch/bleve/v2 v2.0.6
 	github.com/boombuler/barcode v1.0.1 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b // indirect
-	github.com/caddyserver/certmagic v0.14.0
+	github.com/caddyserver/certmagic v0.14.1
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/couchbase/go-couchbase v0.0.0-20210224140812-5740cd35f448 // indirect
 	github.com/couchbase/gomemcached v0.1.2 // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/kevinburke/ssh_config v1.1.0 // indirect
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.13.1
-	github.com/klauspost/cpuid/v2 v2.0.8 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
 	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.10.2
@@ -121,14 +121,14 @@ require (
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
-	go.uber.org/atomic v1.8.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
-	go.uber.org/zap v1.18.1 // indirect
-	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
-	golang.org/x/net v0.0.0-20210716203947-853a461950ff
+	go.uber.org/zap v1.19.0 // indirect
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
-	golang.org/x/text v0.3.6
+	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
+	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20210611083556-38a9dc6acbc6 // indirect
 	golang.org/x/tools v0.1.0
 	google.golang.org/protobuf v1.27.1 // indirect

@@ -210,7 +210,11 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	}, issues)
 
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		IssueNumber: 2,
+		Context: gitlabIssueContext{
+			foreignID:      2,
+			localID:        2,
+			IsMergeRequest: false,
+		},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -252,15 +256,14 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
-			Number:         4,
-			OriginalNumber: 2,
-			Title:          "Test branch",
-			Content:        "do not merge this PR",
-			Milestone:      "1.0.0",
-			PosterID:       1241334,
-			PosterName:     "lafriks",
-			State:          "opened",
-			Created:        time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
+			Number:     4,
+			Title:      "Test branch",
+			Content:    "do not merge this PR",
+			Milestone:  "1.0.0",
+			PosterID:   1241334,
+			PosterName: "lafriks",
+			State:      "opened",
+			Created:    time.Date(2019, 11, 28, 15, 56, 54, 104000000, time.UTC),
 			Labels: []*base.Label{
 				{
 					Name: "bug",
@@ -293,10 +296,15 @@ func TestGitlabDownloadRepo(t *testing.T) {
 			Merged:         false,
 			MergedTime:     nil,
 			MergeCommitSHA: "",
+			Context: gitlabIssueContext{
+				foreignID:      2,
+				localID:        4,
+				IsMergeRequest: true,
+			},
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(1)
+	rvs, err := downloader.GetReviews(base.BasicIssueContext(1))
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -313,7 +321,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 		},
 	}, rvs)
 
-	rvs, err = downloader.GetReviews(2)
+	rvs, err = downloader.GetReviews(base.BasicIssueContext(2))
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

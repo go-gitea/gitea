@@ -32,10 +32,10 @@ type Error struct {
 var _zeroError error
 
 // NewError creates a new Error.
-func NewError(v error) *Error {
+func NewError(val error) *Error {
 	x := &Error{}
-	if v != _zeroError {
-		x.Store(v)
+	if val != _zeroError {
+		x.Store(val)
 	}
 	return x
 }
@@ -46,6 +46,6 @@ func (x *Error) Load() error {
 }
 
 // Store atomically stores the passed error.
-func (x *Error) Store(v error) {
-	x.v.Store(packError(v))
+func (x *Error) Store(val error) {
+	x.v.Store(packError(val))
 }

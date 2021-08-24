@@ -490,7 +490,7 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
-									<a class="title" href="{{.Repository.Link}}/issues/{{.Issue.Index}}">
+									<a class="title" href="{{.Repository.Link}}/{{if .Issue.IsPull}}pulls{{else}}issues{{end}}/{{.Issue.Index}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
 									<div class="text small">
