@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Uber Technologies, Inc.
+//  Copyright (c) 2021 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,39 +20,17 @@
 
 package atomic
 
-import (
-	"sync/atomic"
-	"unsafe"
-)
+import "time"
 
-// UnsafePointer is an atomic wrapper around unsafe.Pointer.
-type UnsafePointer struct {
-	_ nocmp // disallow non-atomic comparison
+//go:generate bin/gen-atomicwrapper -name=Time -type=time.Time -wrapped=Value -pack=packTime -unpack=unpackTime -imports time -file=time.go
 
-	v unsafe.Pointer
+func packTime(t time.Time) interface{} {
+	return t
 }
 
-// NewUnsafePointer creates a new UnsafePointer.
-func NewUnsafePointer(val unsafe.Pointer) *UnsafePointer {
-	return &UnsafePointer{v: val}
-}
-
-// Load atomically loads the wrapped value.
-func (p *UnsafePointer) Load() unsafe.Pointer {
-	return atomic.LoadPointer(&p.v)
-}
-
-// Store atomically stores the passed value.
-func (p *UnsafePointer) Store(val unsafe.Pointer) {
-	atomic.StorePointer(&p.v, val)
-}
-
-// Swap atomically swaps the wrapped unsafe.Pointer and returns the old value.
-func (p *UnsafePointer) Swap(val unsafe.Pointer) (old unsafe.Pointer) {
-	return atomic.SwapPointer(&p.v, val)
-}
-
-// CAS is an atomic compare-and-swap.
-func (p *UnsafePointer) CAS(old, new unsafe.Pointer) (swapped bool) {
-	return atomic.CompareAndSwapPointer(&p.v, old, new)
+func unpackTime(v interface{}) time.Time {
+	if t, ok := v.(time.Time); ok {
+		return t
+	}
+	return time.Time{}
 }
