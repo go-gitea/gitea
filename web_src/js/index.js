@@ -27,7 +27,7 @@ import {initMarkupContent, initCommentContent} from './markup/content.js';
 import {stripTags, mqBinarySearch} from './utils.js';
 import {svg, svgs} from './svg.js';
 
-const {AppSubUrl, AssetUrlPrefix, csrf, PageData} = window.config;
+const {AppSubUrl, AssetUrlPrefix, csrf} = window.config;
 
 let previewFileModes;
 const commentMDEditors = {};
@@ -3439,7 +3439,7 @@ function initVueApp() {
         searchLimit: Number((document.querySelector('meta[name=_search_limit]') || {}).content),
         suburl: AppSubUrl,
         uid: Number((document.querySelector('meta[name=_context_uid]') || {}).content),
-        activityTopAuthors: PageData.ActivityTopAuthors || [],
+        activityTopAuthors: window.ActivityTopAuthors || [],
       };
     },
   });
