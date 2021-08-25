@@ -33,8 +33,8 @@ func Test_addIssueResourceIndexTable(t *testing.T) {
 	}
 
 	type ResourceIndex struct {
-		GroupID  int64 `xorm:"index unique(s)"`
-		MaxIndex int64 `xorm:"index unique(s)"`
+		GroupID  int64 `xorm:"pk"`
+		MaxIndex int64 `xorm:"index"`
 	}
 
 	var start = 0
