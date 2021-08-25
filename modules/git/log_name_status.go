@@ -167,6 +167,9 @@ func (g *LogNameStatusRepoParser) Next(treepath string, paths2ids map[string]int
 				return nil, err
 			}
 		}
+		if len(g.next) == 0 {
+			return &ret, nil
+		}
 		if g.next[0] == '\x00' {
 			g.buffull = false
 			g.next, err = g.rd.ReadSlice('\x00')
