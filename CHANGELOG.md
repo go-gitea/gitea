@@ -4,51 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.15.0-rc3](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc3) - 2021-08-06
-
-* BREAKING
-  * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
-* SECURITY
-  * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
-  * Correctly create of git-daemon-export-ok files (#16508) (#16514)
-  * Don't show private user's repo in explore view (#16550) (#16554)
-  * Update node tar dependency to 6.1.6 (#16622) (#16623)
-* API
-  * Swagger AccessToken fixes (#16574) (#16597)
-  * Set AllowedHeaders on API CORS handler (#16524) (#16618)
-* BUGFIXES
-  * Restore Accessibility for Dropdown (#16576) (#16617)
-  * Pass down SignedUserName down to AccessLogger context (#16605) (#16616)
-  * Fix table alignment in markdown (#16596) (#16602)
-  * Fix 500 on first wiki page (#16586) (#16598)
-  * Lock goth/gothic and Re-attempt OAuth2 registration on login if registration failed at startup (#16564) (#16570)
-  * Upgrade levelqueue to v0.4.0 (#16560) (#16561)
-  * Handle too long PR titles correctly (#16517) (#16549)
-  * Fix data race in bleve indexer (#16474) (#16509)
-  * Restore CORS on git smart http protocol (#16496) (#16506)
-  * Fix race in log (#16490) (#16505)
-  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
-  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
-  * Update notification table with only latest data (#16445) (#16469)
-  * Revert to use alpine 3.13 (#16451) (#16452)
-  * Fix crash following ldap authentication update (#16447) (#16448)
-  * Fix direct creation of external users on admin page (partial #16612) (#16613)
-  * Prevent 500 on draft releases without tag (#16634) (#16636)
-
-## [1.15.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc2) - 2021-07-22
-
-* BUGFIXES
-  * Restore creation of git-daemon-export-ok files (#16508) (#16514)
-  * Fix data race in bleve indexer (#16474) (#16509)
-  * Restore CORS on git smart http protocol (#16496) (#16506)
-  * Fix race in log (#16490) (#16505)
-  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
-  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
-  * Update notification table with only latest data (#16445) (#16469)
-  * Revert to use alpine 3.13 to fix multiple seccomp related issues with Docker <20 (#16451) (#16452)
-  * Fix crash following ldap authentication update (#16447) (#16448)
-
-## [1.15.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.15.0-rc1) - 2021-07-15
+## [1.15.0](https://github.com/go-gitea/gitea/releases/tag/v1.15.0) - 2021-08-21
 
 * BREAKING
   * Make app.ini permissions more restrictive (#16266)
@@ -63,9 +19,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Move (custom) assets into subpath `/assets` (#15219)
   * Use level config in log section when sub log section not set level (#15176)
   * Links in markdown should be absolute to the repository not the server (#15088)
+  * Upgrade to the latest version of golang-jwt (#16590) (#16606)
+  * Set minimum supported version of go to 1.16 (#16710)
 * SECURITY
   * Encrypt LDAP bind password in db with SECRET_KEY (#15547)
   * Remove random password in Dockerfiles (#15362)
+  * Upgrade to the latest version of golang-jwt and increase minimum go to 1.15 (#16590) (#16606)
+  * Correctly create of git-daemon-export-ok files (#16508) (#16514)
+  * Don't show private user's repo in explore view (#16550) (#16554)
+  * Update node tar dependency to 6.1.6 (#16622) (#16623)
 * FEATURES
   * Update Go-Git to take advantage of LargeObjectThreshold (#16316)
   * Support custom mime type mapping for text files (#16304)
@@ -86,7 +48,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add LFS Migration and Mirror (#14726)
   * Improve notifications for WIP draft PR's (#14663)
   * Disable Stars config option (#14653)
-  * Add option to provide signature for a token to verify key ownership (#14054)
+  * GPG Key Ownership verification with Signed Token (#14054)
   * OAuth2 auto-register (#5123)
 * API
   * Return updated repository when changing repository using API (#16420)
@@ -106,6 +68,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add Active and ProhibitLogin to API (#15689)
   * Add Location, Website and Description to API (#15675)
   * Expose resolver via API (#15167)
+  * Swagger AccessToken fixes (#16574) (#16597)
+  * Set AllowedHeaders on API CORS handler (#16524) (#16618)
 * ENHANCEMENTS
   * Support HTTP/2 in Let's Encrypt (#16371)
   * Introduce NotifySubjectType (#16320)
@@ -231,6 +195,41 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add NeedPostProcess for Parser interface to improve performance of csv parser and some external parser (#15153)
   * Add code block highlight to orgmode back (#14222)
   * Remove User.GetOrganizations() (#14032)
+  * Restore Accessibility for Dropdown (#16576) (#16617)
+  * Pass down SignedUserName down to AccessLogger context (#16605) (#16616)
+  * Fix table alignment in markdown (#16596) (#16602)
+  * Fix 500 on first wiki page (#16586) (#16598)
+  * Lock goth/gothic and Re-attempt OAuth2 registration on login if registration failed at startup (#16564) (#16570)
+  * Upgrade levelqueue to v0.4.0 (#16560) (#16561)
+  * Handle too long PR titles correctly (#16517) (#16549)
+  * Fix data race in bleve indexer (#16474) (#16509)
+  * Restore CORS on git smart http protocol (#16496) (#16506)
+  * Fix race in log (#16490) (#16505)
+  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
+  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
+  * Update notification table with only latest data (#16445) (#16469)
+  * Fix crash following ldap authentication update (#16447) (#16448)
+  * Fix direct creation of external users on admin page (partial #16612) (#16613)
+  * Prevent 500 on draft releases without tag (#16634) (#16636)
+  * Restore creation of git-daemon-export-ok files (#16508) (#16514)
+  * Fix data race in bleve indexer (#16474) (#16509)
+  * Restore CORS on git smart http protocol (#16496) (#16506)
+  * Fix race in log (#16490) (#16505)
+  * Fix prepareWikiFileName to respect existing unescaped files (#16487) (#16498)
+  * Make cancel from CatFileBatch and CatFileBatchCheck wait for the command to end (#16479) (#16480)
+  * Update notification table with only latest data (#16445) (#16469)
+  * Fix crash following ldap authentication update (#16447) (#16448)
+  * Restore compatibility with SQLServer 2008 R2 in migrations (#16638)
+  * Fix direct creation of external users on admin page (#16613)
+  * Fix go-git implementation of GetNote when passed a non-existent commit (#16658) (#16659)
+  * Fix NPE in fuzzer (#16680) (#16682)
+  * Set issue_index when finishing migration (#16685) (#16687)
+  * Skip patch download when no patch file exists (#16356) (#16681)
+  * Ensure empty lines are copiable and final new line too (#16678) (#16692)
+  * Fix wrong user in OpenID response (#16736) (#16741)
+  * Do not use thin scrollbars on Firefox (#16738) (#16745)
+  * Recreate Tables should Recreate indexes on MySQL (#16718) (#16739)
+  * Keep attachments on tasklist update (#16750) (#16757)
 * TESTING
   * Bump `postgres` and `mysql` versions (#15710)
   * Add tests for clone from wiki (#15513)
@@ -241,7 +240,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix mirror_lfs source string in en-US locale (#15369)
 * BUILD
   * Upgrade xorm to v1.1.1 (#16339)
-  * Alpine 3.14 released (#16170)
   * Disable legal comments in esbuild (#15929)
   * Switch to Node 16 to build fronted  (#15804)
   * Use esbuild to minify CSS (#15756)
