@@ -1,11 +1,9 @@
 export function initAdminUserListSearchForm() {
-  if (!$('.admin').length) return;
-  if (!window.giteaContext || !window.giteaContext.adminUserListSearchForm) return;
+  const searchForm = window.config.PageData.adminUserListSearchForm;
+  if (!searchForm) return;
 
   const $form = $('#user-list-search-form');
   if (!$form.length) return;
-
-  const searchForm = window.giteaContext.adminUserListSearchForm;
 
   $form.find(`button[name=sort][value=${searchForm.sortType}]`).addClass('active');
 

@@ -1669,7 +1669,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 					}
 					cond = cond.And(twoFactorCond)
 				} else {
-					log.Critical("Unknown admin user search filter: %v=%v", filterKey, filterValue)
+					log.Error("Unknown admin user search filter: %v=%v", filterKey, filterValue)
 				}
 			}
 		}

@@ -44,6 +44,7 @@
 			},
 			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
 			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
+			PageData: {},  // to store page related data, eg: pass variables to javascript module
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
@@ -75,7 +76,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />
@@ -134,8 +134,10 @@
 				{{template "base/head_navbar" .}}
 			</div><!-- end bar -->
 		{{end}}
-{{/*
+
+{{if false}}
+	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
 	</div>
 </body>
 </html>
-*/}}
+{{end}}

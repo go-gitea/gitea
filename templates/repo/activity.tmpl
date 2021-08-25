@@ -110,7 +110,7 @@
 					</div>
 					<div class="ui attached segment" id="app">
 						<script type="text/javascript">
-						var ActivityTopAuthors = {{Json .ActivityTopAuthors | SafeJS}};
+						window.config.PageData.ActivityTopAuthors = {{Json .ActivityTopAuthors | SafeJS}};
 						</script>
 						<activity-top-authors :data="activityTopAuthors" />
 					</div>
