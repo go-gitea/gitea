@@ -246,8 +246,8 @@ func createPublicKeyFingerprint(key interface{}) ([]byte, error) {
 	return checksum[:], nil
 }
 
-// CreateJWTSingingKey creates a signing key from an algorithm / key pair.
-func CreateJWTSingingKey(algorithm string, key interface{}) (JWTSigningKey, error) {
+// CreateJWTSigningKey creates a signing key from an algorithm / key pair.
+func CreateJWTSigningKey(algorithm string, key interface{}) (JWTSigningKey, error) {
 	var signingMethod jwt.SigningMethod
 	switch algorithm {
 	case "HS256":
@@ -340,10 +340,10 @@ func InitSigningKey() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error while loading or creating symmetric key: %v", err)
+		return fmt.Errorf("Error while loading or creating JWT key: %v", err)
 	}
 
-	signingKey, err := CreateJWTSingingKey(setting.OAuth2.JWTSigningAlgorithm, key)
+	signingKey, err := CreateJWTSigningKey(setting.OAuth2.JWTSigningAlgorithm, key)
 	if err != nil {
 		return err
 	}
