@@ -546,7 +546,7 @@ func AccessTokenOAuth(ctx *context.Context) {
 
 	signingKey := oauth2.DefaultSigningKey
 	if signingKey.IsSymmetric() {
-		clientKey, err := oauth2.CreateJWTSingingKey(signingKey.SigningMethod().Alg(), []byte(form.ClientSecret))
+		clientKey, err := oauth2.CreateJWTSigningKey(signingKey.SigningMethod().Alg(), []byte(form.ClientSecret))
 		if err != nil {
 			handleAccessTokenError(ctx, AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
