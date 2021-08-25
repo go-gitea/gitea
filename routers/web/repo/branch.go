@@ -217,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches - 1
+	return branches, totalNumOfBranches
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
