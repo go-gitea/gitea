@@ -1622,14 +1622,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	}
 
 	if opts.Actor != nil {
-		var exprCond builder.Cond
-		if setting.Database.UseMySQL {
-			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr("org_user.org_id = [user].id")
-		} else {
-			exprCond = builder.Expr("org_user.org_id = \"user\".id")
-		}
+		var exprCond builder.Cond = builder.Expr("org_user.org_id = `user`.id")
 
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
