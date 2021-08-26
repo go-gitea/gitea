@@ -16,11 +16,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
-	"xorm.io/xorm"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -35,7 +33,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
+
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -1590,15 +1590,19 @@ func GetUser(user *User) (bool, error) {
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	ListOptions
-	Keyword         string
-	StatusFilterMap map[string]string // Admin can apply advanced search filters
-	Type            UserType
-	UID             int64
-	OrderBy         SearchOrderBy
-	Visible         []structs.VisibleType
-	Actor           *User // The user doing the search
-	IsActive        util.OptionalBool
-	SearchByEmail   bool // Search by email as well as username/full name
+	Keyword       string
+	Type          UserType
+	UID           int64
+	OrderBy       SearchOrderBy
+	Visible       []structs.VisibleType
+	Actor         *User // The user doing the search
+	SearchByEmail bool  // Search by email as well as username/full name
+
+	IsActive           util.OptionalBool
+	IsAdmin            util.OptionalBool
+	IsRestricted       util.OptionalBool
+	IsTwoFactorEnabled util.OptionalBool
+	IsProhibitLogin    util.OptionalBool
 }
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
@@ -1640,6 +1644,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
 			cond = cond.And(accessCond)
 		}
+
 	} else {
 		// Force visibility for privacy
 		// Not logged in - only public users
@@ -1654,6 +1659,18 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
 
+	if !opts.IsAdmin.IsNone() {
+		cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+	}
+
+	if !opts.IsRestricted.IsNone() {
+		cond = cond.And(builder.Eq{"is_restricted": opts.IsRestricted.IsTrue()})
+	}
+
+	if !opts.IsProhibitLogin.IsNone() {
+		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
+	}
+
 	return cond
 }
 
@@ -1662,38 +1679,14 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	cond := opts.toConds()
 
-	searchFilterTwoFactorValue := ""
-	if opts.Actor != nil && opts.Actor.IsAdmin {
-		// Admin can apply advanced filters
-		for filterKey, filterValue := range opts.StatusFilterMap {
-			if filterValue == "" {
-				continue
-			}
-			parsedBool, _ := strconv.ParseBool(filterValue)
-			if filterKey == "is_active" {
-				cond = cond.And(builder.Eq{"is_active": parsedBool})
-			} else if filterKey == "is_admin" {
-				cond = cond.And(builder.Eq{"is_admin": parsedBool})
-			} else if filterKey == "is_restricted" {
-				cond = cond.And(builder.Eq{"is_restricted": parsedBool})
-			} else if filterKey == "is_prohibit_login" {
-				cond = cond.And(builder.Eq{"prohibit_login": parsedBool})
-			} else if filterKey == "is_2fa_enabled" {
-				searchFilterTwoFactorValue = filterValue
-			} else {
-				log.Error("Unknown admin user search filter: %v=%v", filterKey, filterValue)
-			}
-		}
-	}
-
-	searchUserBaseQuery := func () (sess *xorm.Session) {
+	searchUserBaseQuery := func() (sess *xorm.Session) {
 		sess = x.Where(cond)
 
-		if searchFilterTwoFactorValue != "" {
+		if !opts.IsTwoFactorEnabled.IsNone() {
 			// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
 			// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
 			sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
-			if searchFilterTwoFactorValue == "1" {
+			if opts.IsTwoFactorEnabled.IsTrue() {
 				cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
 			} else {
 				cond = cond.And(builder.Expr("two_factor.uid IS NULL"))

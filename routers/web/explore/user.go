@@ -68,9 +68,15 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
 	}
 
+	opts.IsActive = util.OptionalBoolParse(statusFilterMap["is_active"])
+	opts.IsAdmin = util.OptionalBoolParse(statusFilterMap["is_admin"])
+	opts.IsRestricted = util.OptionalBoolParse(statusFilterMap["is_restricted"])
+	opts.IsTwoFactorEnabled = util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"])
+	opts.IsProhibitLogin = util.OptionalBoolParse(statusFilterMap["is_prohibit_login"])
+
 	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
-	opts.StatusFilterMap = statusFilterMap
+
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)
 		if err != nil {
