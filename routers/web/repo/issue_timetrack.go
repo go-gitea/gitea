@@ -26,7 +26,6 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 	url := issue.HTMLURL()
-
 	if c.HasError() {
 		c.Flash.Error(c.GetErrMsg())
 		c.Redirect(url)
@@ -40,8 +39,11 @@ func AddTimeManually(c *context.Context) {
 		c.Redirect(url, http.StatusSeeOther)
 		return
 	}
-
-	if _, err := models.AddTime(c.User, issue, int64(total.Seconds()), time.Now()); err != nil {
+	created, err := time.Parse("2006-01-02", form.Created)
+	if err != nil {
+		created = time.Now()
+	}
+	if _, err := models.AddTime(c.User, issue, int64(total.Seconds()), created); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}
