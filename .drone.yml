@@ -214,6 +214,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
@@ -236,6 +237,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
@@ -246,6 +248,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -259,6 +262,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -271,6 +275,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -366,6 +371,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -378,6 +384,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata gogit
+      RACE_ENABLED: true
       TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
