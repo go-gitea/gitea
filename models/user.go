@@ -1605,7 +1605,7 @@ type SearchUserOptions struct {
 	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toConds() builder.Cond {
+func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1671,32 +1671,38 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	return cond
+	type Join struct {
+		Operator  string
+		Table     interface{}
+		Condition string
+		Args      []interface{}
+	}
+
+	var joins []*Join
+
+	if !opts.IsTwoFactorEnabled.IsNone() {
+		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+		if opts.IsTwoFactorEnabled.IsTrue() {
+			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+		} else {
+			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+		}
+		joins = append(joins, &Join{Operator: "LEFT OUTER", Table: "two_factor", Condition: "two_factor.uid = `user`.id"})
+	}
+
+	sess = x.Where(cond)
+	for _, join := range joins {
+		sess = sess.Join(join.Operator, join.Table, join.Condition, join.Args...)
+	}
+
+	return sess
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	cond := opts.toConds()
-
-	searchUserBaseQuery := func() (sess *xorm.Session) {
-		sess = x.Where(cond)
-
-		if !opts.IsTwoFactorEnabled.IsNone() {
-			// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
-			// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
-			sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
-			if opts.IsTwoFactorEnabled.IsTrue() {
-				cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
-			} else {
-				cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
-			}
-		}
-
-		return sess
-	}
-
-	count, err := searchUserBaseQuery().Count(new(User))
+	count, err := opts.toSearchQueryBase().Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -1705,7 +1711,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := searchUserBaseQuery().OrderBy(opts.OrderBy.String())
+	sess := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
