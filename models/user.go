@@ -16,9 +16,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
+	"xorm.io/xorm"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -1644,34 +1646,6 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 			// Don't forget about self
 			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
 			cond = cond.And(accessCond)
-		} else {
-			// Admin can apply advanced filters
-			for filterKey, filterValue := range opts.StatusFilterMap {
-				if filterValue == "" {
-					continue
-				}
-				if filterKey == "is_active" {
-					cond = cond.And(builder.Eq{"is_active": filterValue})
-				} else if filterKey == "is_admin" {
-					cond = cond.And(builder.Eq{"is_admin": filterValue})
-				} else if filterKey == "is_restricted" {
-					cond = cond.And(builder.Eq{"is_restricted": filterValue})
-				} else if filterKey == "is_prohibit_login" {
-					cond = cond.And(builder.Eq{"prohibit_login": filterValue})
-				} else if filterKey == "is_2fa_enabled" {
-					// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
-					var twoFactorCond builder.Cond
-					twoFactorBuilder := builder.Select("uid").From("two_factor").Where(builder.And(builder.Expr("two_factor.uid = user.id")))
-					if filterValue == "1" {
-						twoFactorCond = builder.In("id", twoFactorBuilder)
-					} else {
-						twoFactorCond = builder.NotIn("id", twoFactorBuilder)
-					}
-					cond = cond.And(twoFactorCond)
-				} else {
-					log.Error("Unknown admin user search filter: %v=%v", filterKey, filterValue)
-				}
-			}
 		}
 	} else {
 		// Force visibility for privacy
@@ -1694,7 +1668,49 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 // it returns results in given range and number of total results.
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	cond := opts.toConds()
-	count, err := x.Where(cond).Count(new(User))
+
+	searchFilterTwoFactorValue := ""
+	if opts.Actor != nil && opts.Actor.IsAdmin {
+		// Admin can apply advanced filters
+		for filterKey, filterValue := range opts.StatusFilterMap {
+			if filterValue == "" {
+				continue
+			}
+			parsedBool, _ := strconv.ParseBool(filterValue)
+			if filterKey == "is_active" {
+				cond = cond.And(builder.Eq{"is_active": parsedBool})
+			} else if filterKey == "is_admin" {
+				cond = cond.And(builder.Eq{"is_admin": parsedBool})
+			} else if filterKey == "is_restricted" {
+				cond = cond.And(builder.Eq{"is_restricted": parsedBool})
+			} else if filterKey == "is_prohibit_login" {
+				cond = cond.And(builder.Eq{"prohibit_login": parsedBool})
+			} else if filterKey == "is_2fa_enabled" {
+				searchFilterTwoFactorValue = filterValue
+			} else {
+				log.Error("Unknown admin user search filter: %v=%v", filterKey, filterValue)
+			}
+		}
+	}
+
+	searchUserBaseQuery := func () (sess *xorm.Session) {
+		sess = x.Where(cond)
+
+		if searchFilterTwoFactorValue != "" {
+			// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+			// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+			sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+			if searchFilterTwoFactorValue == "1" {
+				cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+			} else {
+				cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+			}
+		}
+
+		return sess
+	}
+
+	count, err := searchUserBaseQuery().Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -1703,7 +1719,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := x.Where(cond).OrderBy(opts.OrderBy.String())
+	sess := searchUserBaseQuery().OrderBy(opts.OrderBy.String())
 	if opts.Page != 0 {
 		sess = opts.setSessionPagination(sess)
 	}
