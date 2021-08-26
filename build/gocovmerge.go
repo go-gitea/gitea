@@ -6,6 +6,7 @@
 // gocovmerge takes the results from multiple `go test -coverprofile` runs and
 // merges them into one profile
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -108,7 +109,7 @@ func main() {
 	for _, file := range flag.Args() {
 		profiles, err := cover.ParseProfiles(file)
 		if err != nil {
-			log.Fatalf("failed to parse profiles: %v", err)
+			log.Fatalf("failed to parse profile '%s': %v", file, err)
 		}
 		for _, p := range profiles {
 			merged = addProfile(merged, p)
