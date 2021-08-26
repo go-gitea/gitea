@@ -7,7 +7,6 @@ package admin
 import (
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -59,7 +58,7 @@ func DeleteRepo(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.Form("page") + "&sort=" + ctx.Form("sort"),
+		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.FormString("page") + "&sort=" + ctx.FormString("sort"),
 	})
 }
 
@@ -83,7 +82,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	doSearch := ctx.FormBool("search")
 
 	ctx.Data["search"] = doSearch
-	q := ctx.Form("q")
+	q := ctx.FormString("q")
 
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
@@ -109,10 +108,10 @@ func UnadoptedRepos(ctx *context.Context) {
 
 // AdoptOrDeleteRepository adopts or deletes a repository
 func AdoptOrDeleteRepository(ctx *context.Context) {
-	dir := ctx.Form("id")
-	action := ctx.Form("action")
-	page := ctx.FormInt("page")
-	q := ctx.Form("q")
+	dir := ctx.FormString("id")
+	action := ctx.FormString("action")
+	page := ctx.FormString("page")
+	q := ctx.FormString("q")
 
 	dirSplit := strings.SplitN(dir, "/", 2)
 	if len(dirSplit) != 2 {
@@ -162,5 +161,5 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + strconv.Itoa(page))
+	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + page)
 }

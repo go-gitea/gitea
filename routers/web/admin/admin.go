@@ -161,7 +161,7 @@ func DashboardPost(ctx *context.Context) {
 
 // SendTestMail send test mail to confirm mail service is OK
 func SendTestMail(ctx *context.Context) {
-	email := ctx.Form("email")
+	email := ctx.FormString("email")
 	// Send a test email to the user's email address and redirect back to Config
 	if err := mailer.SendTestMail(email); err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.test_mail_failed", email, err))
@@ -377,7 +377,7 @@ func Flush(ctx *context.Context) {
 		ctx.Status(404)
 		return
 	}
-	timeout, err := time.ParseDuration(ctx.Form("timeout"))
+	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
 	if err != nil {
 		timeout = -1
 	}
@@ -405,7 +405,7 @@ func AddWorkers(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 		return
 	}
-	timeout, err := time.ParseDuration(ctx.Form("timeout"))
+	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.monitor.queue.pool.addworkers.musttimeoutduration"))
 		ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
@@ -435,9 +435,9 @@ func SetQueueSettings(ctx *context.Context) {
 		return
 	}
 
-	maxNumberStr := ctx.Form("max-number")
-	numberStr := ctx.Form("number")
-	timeoutStr := ctx.Form("timeout")
+	maxNumberStr := ctx.FormString("max-number")
+	numberStr := ctx.FormString("number")
+	timeoutStr := ctx.FormString("timeout")
 
 	var err error
 	var maxNumber, number int

@@ -99,7 +99,8 @@
 				{{else}}
 				<table>
 					<tbody>
-						{{range $line, $code := .FileContent}}
+						{{range $idx, $code := .FileContent}}
+						{{$line := Add $idx 1}}
 						<tr>
 							<td id="L{{$line}}" class="lines-num">
 								<span id="L{{$line}}" data-line-number="{{$line}}"></span>

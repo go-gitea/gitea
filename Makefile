@@ -24,7 +24,7 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.16.x
+XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
 
@@ -385,7 +385,7 @@ test\#%:
 
 .PHONY: coverage
 coverage:
-	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all
+	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out coverage.out > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
@@ -699,6 +699,7 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
+	cp -f web_src/js/vendor/dropdown.js $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/definitions/modules
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 
 .PHONY: webpack

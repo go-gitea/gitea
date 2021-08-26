@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // TagPrefix tags prefix path on the repository
@@ -160,24 +161,18 @@ func (repo *Repository) GetTag(name string) (*Tag, error) {
 }
 
 // GetTagInfos returns all tag infos of the repository.
-func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
+func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// TODO this a slow implementation, makes one git command per tag
 	stdout, err := NewCommand("tag").RunInDir(repo.Path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	tagNames := strings.Split(strings.TrimRight(stdout, "\n"), "\n")
+	tagsTotal := len(tagNames)
 
 	if page != 0 {
-		skip := (page - 1) * pageSize
-		if skip >= len(tagNames) {
-			return nil, nil
-		}
-		if (len(tagNames) - skip) < pageSize {
-			pageSize = len(tagNames) - skip
-		}
-		tagNames = tagNames[skip : skip+pageSize]
+		tagNames = util.PaginateSlice(tagNames, page, pageSize).([]string)
 	}
 
 	var tags = make([]*Tag, 0, len(tagNames))
@@ -189,13 +184,13 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, error) {
 
 		tag, err := repo.GetTag(tagName)
 		if err != nil {
-			return nil, err
+			return nil, tagsTotal, err
 		}
 		tag.Name = tagName
 		tags = append(tags, tag)
 	}
 	sortTagsByTime(tags)
-	return tags, nil
+	return tags, tagsTotal, nil
 }
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)

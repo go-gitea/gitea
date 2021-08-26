@@ -90,7 +90,7 @@ func EmailPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	// Make emailaddress primary.
-	if ctx.Form("_method") == "PRIMARY" {
+	if ctx.FormString("_method") == "PRIMARY" {
 		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
@@ -101,7 +101,7 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Send activation Email
-	if ctx.Form("_method") == "SENDACTIVATION" {
+	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
@@ -147,8 +147,8 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Set Email Notification Preference
-	if ctx.Form("_method") == "NOTIFICATION" {
-		preference := ctx.Form("preference")
+	if ctx.FormString("_method") == "NOTIFICATION" {
+		preference := ctx.FormString("preference")
 		if !(preference == models.EmailNotificationsEnabled ||
 			preference == models.EmailNotificationsOnMention ||
 			preference == models.EmailNotificationsDisabled) {
@@ -229,7 +229,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, err := auth.UserSignIn(ctx.User.Name, ctx.Form("password")); err != nil {
+	if _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
 		if models.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 

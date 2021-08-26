@@ -181,6 +181,23 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 
 	if len(links) > 0 {
 		ctx.Header().Set("Link", strings.Join(links, ","))
+		ctx.AppendAccessControlExposeHeaders("Link")
+	}
+}
+
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *APIContext) SetTotalCountHeader(total int64) {
+	ctx.Header().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.Header().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.Header().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.Header().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
 	}
 }
 
@@ -270,11 +287,22 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
+			}
 		})
 	}
 }

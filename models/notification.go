@@ -125,6 +125,11 @@ func GetNotifications(opts *FindNotificationOptions) (NotificationList, error) {
 	return getNotifications(x, opts)
 }
 
+// CountNotifications count all notifications that fit to the given options and ignore pagination.
+func CountNotifications(opts *FindNotificationOptions) (int64, error) {
+	return x.Where(opts.ToCond()).Count(&Notification{})
+}
+
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) error {
 	sess := x.NewSession()
