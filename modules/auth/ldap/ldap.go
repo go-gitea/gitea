@@ -14,9 +14,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-ldap/ldap/v3"
-	"github.com/thoas/go-funk"
 )
 
 // SecurityProtocol protocol type
@@ -273,7 +273,7 @@ func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 	ldapGroupsToTeams := make(map[string]map[string][]string)
 	err := json.Unmarshal([]byte(ls.TeamGroupMap), &ldapGroupsToTeams)
 	if err != nil {
-		log.Debug("Failed to unmarshall LDAP teams map: %v", err)
+		log.Error("Failed to unmarshall LDAP teams map: %v", err)
 		return ldapGroupsToTeams
 	}
 	return ldapGroupsToTeams
@@ -287,11 +287,11 @@ func (ls *Source) getMappedTeams(l *ldap.Conn, uid string) (map[string][]string,
 	// unmarshall LDAP group team map from configs
 	ldapGroupsToTeams := ls.mapLdapGroupsToTeams()
 	// select all LDAP groups from settings
-	allLdapGroups := funk.Keys(ldapGroupsToTeams).([]string)
+	allLdapGroups := util.KeysString(ldapGroupsToTeams).([]string)
 	// contains LDAP config groups, which the user is a member of
-	usersLdapGroupsToAdd := funk.IntersectString(allLdapGroups, usersLdapGroups)
+	usersLdapGroupsToAdd := util.IntersectString(allLdapGroups, usersLdapGroups)
 	// contains LDAP config groups, which the user is not a member of
-	usersLdapGroupToRemove, _ := funk.DifferenceString(allLdapGroups, usersLdapGroups)
+	usersLdapGroupToRemove := util.DifferenceString(allLdapGroups, usersLdapGroups)
 	for _, groupToAdd := range usersLdapGroupsToAdd {
 		for k, v := range ldapGroupsToTeams[groupToAdd] {
 			teamsToAdd[k] = v
