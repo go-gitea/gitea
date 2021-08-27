@@ -1672,17 +1672,16 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 // UserIssueStatsOptions contains parameters accepted by GetUserIssueStats.
 type UserIssueStatsOptions struct {
-	UserID      int64
-	RepoIDs     []int64
-	UserRepoIDs []int64
-	FilterMode  int
-	IsPull      bool
-	IsClosed    bool
-	IssueIDs    []int64
-	IsArchived  util.OptionalBool
-	LabelIDs    []int64
-	Org         *User
-	Team        *Team
+	UserID     int64
+	RepoIDs    []int64
+	FilterMode int
+	IsPull     bool
+	IsClosed   bool
+	IssueIDs   []int64
+	IsArchived util.OptionalBool
+	LabelIDs   []int64
+	Org        *User
+	Team       *Team
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1718,13 +1717,13 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 
 	switch opts.FilterMode {
 	case FilterModeAll:
-		stats.OpenCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).
+		stats.OpenCount, err = sess(cond).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).
+		stats.ClosedCount, err = sess(cond).
 			And("issue.is_closed = ?", true).
 			Count(new(Issue))
 		if err != nil {
@@ -1800,7 +1799,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		return nil, err
 	}
 
-	stats.YourRepositoriesCount, err = applyReposCondition(sess(cond), opts.UserRepoIDs).Count(new(Issue))
+	stats.YourRepositoriesCount, err = sess(cond).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}

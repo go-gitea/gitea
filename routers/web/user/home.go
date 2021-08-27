@@ -549,27 +549,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:     ctx.User.ID,
-		FilterMode: filterMode,
-		IsPull:     isPullList,
-		IsClosed:   isShowClosed,
-		IsArchived: util.OptionalBoolFalse,
-		LabelIDs:   opts.LabelIDs,
-		Org:        org,
-		Team:       team,
-	}
-	if len(repoIDs) > 0 {
-		userIssueStatsOpts.UserRepoIDs = repoIDs
-	}
-
-	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
-	if err != nil {
-		ctx.ServerError("GetUserIssueStats User", err)
-		return
-	}
-
-	var shownIssueStats *models.IssueStats
+	var issueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
 			UserID:     ctx.User.ID,
@@ -585,43 +565,23 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
 		}
-		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
+		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
 			return
 		}
 	} else {
-		shownIssueStats = &models.IssueStats{}
-	}
-
-	var allIssueStats *models.IssueStats
-	if !forceEmpty {
-		allIssueStatsOpts := models.UserIssueStatsOptions{
-			UserID:     ctx.User.ID,
-			FilterMode: filterMode,
-			IsPull:     isPullList,
-			IsClosed:   isShowClosed,
-			IssueIDs:   issueIDsFromSearch,
-			IsArchived: util.OptionalBoolFalse,
-			LabelIDs:   opts.LabelIDs,
-		}
-		allIssueStats, err = models.GetUserIssueStats(allIssueStatsOpts)
-		if err != nil {
-			ctx.ServerError("GetUserIssueStats All", err)
-			return
-		}
-	} else {
-		allIssueStats = &models.IssueStats{}
+		issueStats = &models.IssueStats{}
 	}
 
 	// Will be posted to ctx.Data.
 	var shownIssues int
 	if !isShowClosed {
-		shownIssues = int(shownIssueStats.OpenCount)
-		ctx.Data["TotalIssueCount"] = int(allIssueStats.OpenCount)
+		shownIssues = int(issueStats.OpenCount)
+		ctx.Data["TotalIssueCount"] = shownIssues
 	} else {
-		shownIssues = int(shownIssueStats.ClosedCount)
-		ctx.Data["TotalIssueCount"] = int(allIssueStats.ClosedCount)
+		shownIssues = int(issueStats.ClosedCount)
+		ctx.Data["TotalIssueCount"] = shownIssues
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
@@ -657,8 +617,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	ctx.Data["CommitStatus"] = commitStatus
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = issueCountByRepo
-	ctx.Data["IssueStats"] = userIssueStats
-	ctx.Data["ShownIssueStats"] = shownIssueStats
+	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["RepoIDs"] = repoIDs
