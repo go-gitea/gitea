@@ -519,27 +519,25 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// ----------------------------------
 
 	// showReposMap maps repository IDs to their Repository pointers.
-	showReposMap, err := repoIDMap(ctxUser, issueCountByRepo, unitType)
+	showReposMap, err := loadRepoByIDs(ctxUser, issueCountByRepo, unitType)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByID", err)
 			return
 		}
-		ctx.ServerError("repoIDMap", err)
+		ctx.ServerError("loadRepoByIDs", err)
 		return
 	}
 
 	// a RepositoryList
 	showRepos := models.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
-	if err = showRepos.LoadAttributes(); err != nil {
-		ctx.ServerError("LoadAttributes", err)
-		return
-	}
 
 	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
 	for _, issue := range issues {
-		issue.Repo = showReposMap[issue.RepoID]
+		if issue.Repo == nil {
+			issue.Repo = showReposMap[issue.RepoID]
+		}
 	}
 
 	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
@@ -551,26 +549,20 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	var userRepoIDs = make([]int64, 0, len(issueCountByRepo))
-	for id := range issueCountByRepo {
-		userRepoIDs = append(userRepoIDs, id)
-	}
-
 	userIssueStatsOpts := models.UserIssueStatsOptions{
-		UserID:      ctx.User.ID,
-		UserRepoIDs: userRepoIDs,
-		FilterMode:  filterMode,
-		IsPull:      isPullList,
-		IsClosed:    isShowClosed,
-		IsArchived:  util.OptionalBoolFalse,
-		LabelIDs:    opts.LabelIDs,
+		UserID:     ctx.User.ID,
+		FilterMode: filterMode,
+		IsPull:     isPullList,
+		IsClosed:   isShowClosed,
+		IsArchived: util.OptionalBoolFalse,
+		LabelIDs:   opts.LabelIDs,
+		Org:        org,
+		Team:       team,
 	}
 	if len(repoIDs) > 0 {
 		userIssueStatsOpts.UserRepoIDs = repoIDs
 	}
-	if ctxUser.IsOrganization() {
-		userIssueStatsOpts.RepoIDs = userRepoIDs
-	}
+
 	userIssueStats, err := models.GetUserIssueStats(userIssueStatsOpts)
 	if err != nil {
 		ctx.ServerError("GetUserIssueStats User", err)
@@ -580,19 +572,18 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var shownIssueStats *models.IssueStats
 	if !forceEmpty {
 		statsOpts := models.UserIssueStatsOptions{
-			UserID:      ctx.User.ID,
-			UserRepoIDs: userRepoIDs,
-			FilterMode:  filterMode,
-			IsPull:      isPullList,
-			IsClosed:    isShowClosed,
-			IssueIDs:    issueIDsFromSearch,
-			IsArchived:  util.OptionalBoolFalse,
-			LabelIDs:    opts.LabelIDs,
+			UserID:     ctx.User.ID,
+			FilterMode: filterMode,
+			IsPull:     isPullList,
+			IsClosed:   isShowClosed,
+			IssueIDs:   issueIDsFromSearch,
+			IsArchived: util.OptionalBoolFalse,
+			LabelIDs:   opts.LabelIDs,
+			Org:        org,
+			Team:       team,
 		}
 		if len(repoIDs) > 0 {
 			statsOpts.RepoIDs = repoIDs
-		} else if ctxUser.IsOrganization() {
-			statsOpts.RepoIDs = userRepoIDs
 		}
 		shownIssueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
@@ -606,17 +597,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var allIssueStats *models.IssueStats
 	if !forceEmpty {
 		allIssueStatsOpts := models.UserIssueStatsOptions{
-			UserID:      ctx.User.ID,
-			UserRepoIDs: userRepoIDs,
-			FilterMode:  filterMode,
-			IsPull:      isPullList,
-			IsClosed:    isShowClosed,
-			IssueIDs:    issueIDsFromSearch,
-			IsArchived:  util.OptionalBoolFalse,
-			LabelIDs:    opts.LabelIDs,
-		}
-		if ctxUser.IsOrganization() {
-			allIssueStatsOpts.RepoIDs = userRepoIDs
+			UserID:     ctx.User.ID,
+			FilterMode: filterMode,
+			IsPull:     isPullList,
+			IsClosed:   isShowClosed,
+			IssueIDs:   issueIDsFromSearch,
+			IsArchived: util.OptionalBoolFalse,
+			LabelIDs:   opts.LabelIDs,
 		}
 		allIssueStats, err = models.GetUserIssueStats(allIssueStatsOpts)
 		if err != nil {
@@ -746,33 +733,27 @@ func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.I
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
-	repoByID := make(map[int64]*repo_model.Repository, len(issueCountByRepo))
+func loadRepoByIDs(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*repo_model.Repository, error) {
+	var totalRes = make(map[int64]*repo_model.Repository, len(issueCountByRepo))
+	var repoIDs = make([]int64, 0, 500)
 	for id := range issueCountByRepo {
 		if id <= 0 {
 			continue
 		}
-		if _, ok := repoByID[id]; !ok {
-			repo, err := repo_model.GetRepositoryByID(id)
-			if repo_model.IsErrRepoNotExist(err) {
+		repoIDs = append(repoIDs, id)
+		if len(repoIDs) == 500 {
+			if err := models.FindReposMapByIDs(repoIDs, totalRes); err != nil {
 				return nil, err
-			} else if err != nil {
-				return nil, fmt.Errorf("GetRepositoryByID: [%d]%v", id, err)
 			}
-			repoByID[id] = repo
-		}
-		repo := repoByID[id]
-
-		// Check if user has access to given repository.
-		perm, err := models.GetUserRepoPermission(repo, ctxUser)
-		if err != nil {
-			return nil, fmt.Errorf("GetUserRepoPermission: [%d]%v", id, err)
-		}
-		if !perm.CanRead(unitType) {
-			log.Debug("User created Issues in Repository which they no longer have access to: [%d]", id)
+			repoIDs = make([]int64, 0, 500)
 		}
 	}
-	return repoByID, nil
+	if len(repoIDs) > 0 {
+		if err := models.FindReposMapByIDs(repoIDs, totalRes); err != nil {
+			return nil, err
+		}
+	}
+	return totalRes, nil
 }
 
 // ShowSSHKeys output all the ssh keys of user by uid

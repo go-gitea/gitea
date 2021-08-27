@@ -1334,26 +1334,35 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if opts.User != nil {
-		if opts.Org != nil {
-			var unitType = UnitTypeIssues
-			if opts.IsPull.IsTrue() {
-				unitType = UnitTypePullRequests
-			}
-
-			if opts.Team != nil {
-				sess.And(teamUnitsRepoCond("issue.repo_id", opts.User.ID, opts.Org.ID, opts.Team.ID, unitType))
-			} else {
-				sess.And(orgUnitsRepoCond("issue.repo_id", opts.User.ID, opts.Org.ID, unitType))
-			}
-		} else {
-			sess.And(
-				builder.Or(
-					userRepoCond(opts.User.ID),
-					userCollaborationRepoCond("issue.repo_id", opts.User.ID),
-				),
-			)
-		}
+		sess.And(
+			accessibleRepositoryCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
+		)
 	}
+}
+
+// accessibleRepositoryCond user must not be nil
+func accessibleRepositoryCond(repoIDstr string, userID int64, org *User, team *Team, isPull bool) builder.Cond {
+	var cond = builder.NewCond()
+	if org != nil {
+		var unitType = UnitTypeIssues
+		if isPull {
+			unitType = UnitTypePullRequests
+		}
+
+		if team != nil {
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType))
+		} else {
+			cond = cond.And(orgUnitsRepoCond(repoIDstr, userID, org.ID, unitType))
+		}
+	} else {
+		cond = cond.And(
+			builder.Or(
+				userRepoCond(userID),
+				userCollaborationRepoCond(repoIDstr, userID),
+			),
+		)
+	}
+	return cond
 }
 
 func applyReposCondition(sess *xorm.Session, repoIDs []int64) *xorm.Session {
@@ -1672,6 +1681,8 @@ type UserIssueStatsOptions struct {
 	IssueIDs    []int64
 	IsArchived  util.OptionalBool
 	LabelIDs    []int64
+	Org         *User
+	Team        *Team
 }
 
 // GetUserIssueStats returns issue statistic information for dashboard by given conditions.
@@ -1686,6 +1697,10 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 	if len(opts.IssueIDs) > 0 {
 		cond = cond.And(builder.In("issue.id", opts.IssueIDs))
+	}
+
+	if opts.UserID > 0 {
+		cond = cond.And(accessibleRepositoryCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
